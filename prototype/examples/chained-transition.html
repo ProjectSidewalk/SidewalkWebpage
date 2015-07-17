@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+</head>
+<body>
+<div id="line"></div>
+<script type="text/javascript">
+    // An example from
+    // http://bl.ocks.org/explunit/6082362
+    // The data for our line
+    var lineData = [
+        {x:50, y:50, speed: 0}, // there is no transition to the first element
+        {x:50, y:100, speed: 1000},
+        {x:100, y:150, speed: 1000},
+        {x:150, y:175, speed: 1000},
+        {x:225, y:175, speed: 1000},
+        {x:275, y:200, speed: 1000},
+        {x:300, y:300, speed: 1000},
+        {x:200, y:350, speed: 1000}
+    ];
+
+    // Set the size of our graph
+    var w = 500;
+    var h = 500;
+    var padding = 10;
+
+    var max_x = d3.max(lineData, function(d) {return d.x;});
+    var max_y = d3.max(lineData, function(d) {return d.y;});
+
+    var x = d3.scale.linear().domain([0, max_x]).range([padding, (w - padding)]);
+    var y = d3.scale.linear().domain([0, max_y]).range([padding, (h - padding)]);
+
+    // Line generator function
+    var line = d3.svg.line()
+            .interpolate('cardinal')
+            .x(function(d) {return x(d.x);})
+            .y(function(d) {return y(d.y);});
+
+    // SVG container
+    var svg = d3.select('#line')
+            .append('svg')
+            .attr( { width: w, height: h, id: 'visualization' } );
+
+    // Add circles so we can see that the speed changes at the right points. Can remove later
+    svg.selectAll('.point')
+            .data(lineData)
+            .enter().append('circle')
+            .attr( {r: 4, cx: function(d) { return x(d.x); }, cy: function(d) { return y(d.y); } });
+
+    // Find the length of the line at each given point.
+    // Hack: draw hidden line with portion of the points -- surely there is a more elegant way but I'm not sure how to get the 'cardinal' interpolation
+    var lengthAt = [];
+    for (var i = 1; i < lineData.length - 1; i++) {
+        var path = svg.append('path').attr( { d: line( lineData.slice(i) ), class: 'temppath', visibility: 'hidden' } )
+        lengthAt.push(path.node().getTotalLength());
+    }
+    svg.selectAll('.temppath').remove();
+
+    // Add the path
+    var path = svg.append('path')
+            .attr( {d: line(lineData), stroke: "steelblue", 'stroke-width': 2, fill: 'none'} );
+
+    var totalLength = path.node().getTotalLength();
+
+    // stroke-dasharray: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray
+    // stroke-dashoffset: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dashoffset
+    path.attr( {'stroke-dasharray': totalLength + " " + totalLength, 'stroke-dashoffset': totalLength } );
+
+    // transition will be chained from either the original path or the last transition
+    var transitionFrom = path;
+    // start at 1 since no transition needed to first point
+    for (var i = 1; i < lineData.length; i++) {
+
+        // Fire an event at the end of each transition
+        // http://stackoverflow.com/questions/10692100/invoke-a-callback-at-the-end-of-a-transition
+        // https://github.com/mbostock/d3/wiki/Transitions
+        transitionFrom = transitionFrom.transition()
+                .duration(lineData[i].speed)
+                .ease("linear")
+                .each("start", function () {
+                    console.log("I'm starting!");
+                })
+                .attr("stroke-dashoffset", lengthAt[i-1] || 0)
+                .each("end", function () {
+                    console.log("Hello");
+                })
+                .transition()
+                .duration(1000)
+                .each("end", function () {
+                    console.log("I waited!");
+                });
+    }
+
+</script>
+</body>
+</html>
