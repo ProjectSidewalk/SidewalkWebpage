@@ -105,21 +105,25 @@
             color: #32BDD3;
         }
 
-        h1, h2, h3, h4 {
+        h1, h2, h3, h4, h5 {
             font-family: 'Noto Sans', sans-serif;
             font-weight: bold;
         }
 
         h2 {
-            font-size: 32px;
+            font-size: 28px;
         }
         h4 {
             color: gray;
-            font-size: 24px;
+            font-size: 20px;
         }
 
         p {
-            font-size: 24px;
+            font-size: 20px;
+        }
+
+        .spacer10 {
+            height: 10px;
         }
 
         .btn {
@@ -129,12 +133,134 @@
             background: #32BDD3;
             border-color: #32BDD3;
             border-width: 0;
-            font-size: 24px;
+            font-size: 20px;
             box-shadow: 1px 1px 5px 0px rgba(0,0,0,0.50);
         }
+
+        .navbar {
+            margin-bottom: 0;
+        }
+        .navbar-default {
+            background-color: #fff;
+            border-width: 0;
+        }
+
+        .avatar-medium {
+            height: 24px;
+            width: 24px;
+            position: relative;
+            bottom: 1px;
+        }
+
+        .modal-backdrop {
+            background-color: rgba(255, 255, 255, 1.0);
+        }
+
+        /*#sign-in-modal {*/
+            /*top: 5%;*/
+            /*left: 65%;*/
+            /*outline: none;*/
+            /*width: 550px*/
+        /*}*/
+
+        .modal-footer {
+            color: gray;
+            text-align: center;
+        }
+
+        .modal-footer a {
+            color: rgba(37,154,173, 1.0);
+        }
+
+        #sign-in-modal-container .modal-dialog {
+            width: 400px;
+        }
     </style>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#form-open-sign-up").on("mouseup", function () {
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
+            });
+
+            $("#form-open-sign-in").on("mouseup", function () {
+                $("#sign-up-modal").addClass("hidden");
+                $("#sign-in-modal").removeClass("hidden");
+            });
+        });
+    </script>
 </head>
 <body>
+<nav class="navbar navbar-default navbar-static-top">
+    <div class="container">
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#">About</a></li>
+                <li><a href="#">Map</a></li>
+                <li>
+                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container"><img src="images/avatar.png" alt="User avatar" class="avatar-medium">&nbsp;Sign in</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" id="sign-in-modal">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="sign-in-label">Sign in</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-signin">
+                    <label for="input-username" class="sr-only">Username</label>
+                    <input type="text" id="input-username" class="form-control" placeholder="Username" required autofocus>
+                    <div class="spacer10"></div>
+                    <label for="input-password" class="sr-only">Password</label>
+                    <input type="password" id="input-password" class="form-control" placeholder="Password" required>
+                    <div class="spacer10"></div>
+                    <button class="btn btn-sm btn-primary btn-block" type="submit">Sign in</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div>
+                    <a href="#">Forgot password</a>
+                </div>
+                <div>
+                    Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
+                </div>
+            </div>
+        </div><!-- /.modal-content -->
+        <div class="modal-content hidden" id="sign-up-modal">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="sign-up-label">Sign up</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-sign-up">
+                    <label for="sign-up-fullname" class="sr-only">Fullname</label>
+                    <input type="text" id="sign-up-fullname" class="form-control" placeholder="Fullname (Optional)">
+                    <div class="spacer10"></div>
+                    <label for="sign-up-email" class="sr-only">Email</label>
+                    <input type="email" id="sign-up-email" class="form-control" placeholder="Email address">
+                    <div class="spacer10"></div>
+                    <label for="sign-up-username" class="sr-only">Username</label>
+                    <input type="text" id="sign-up-username" class="form-control" placeholder="Username" required autofocus>
+                    <div class="spacer10"></div>
+                    <label for="sign-up-password" class="sr-only">Password</label>
+                    <input type="password" id="sign-up-password" class="form-control" placeholder="Password" required>
+                    <div class="spacer10"></div>
+                    <button class="btn btn-sm btn-primary btn-block" type="submit">Sign up</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div>
+                    Have an account? <a href="#" id="form-open-sign-in">Sign in!</a>
+                </div>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 <header class="jumbotron subhead" id="map-container">
     <div id="map"></div>
 </header>
