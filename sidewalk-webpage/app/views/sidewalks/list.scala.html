@@ -1,0 +1,15 @@
+@(sidewalkEdges: List[SidewalkEdge])
+
+@main("Sidewalk Edges") {
+<h1>You have @sidewalkEdges.size sidewalks and crosswalks</h1>
+
+<div>
+    <ul>
+        @sidewalkEdges.map { edge =>
+        <li>
+            @edge.sidewalkEdgeId
+        </li>
+        }
+    </ul>
+</div>
+}

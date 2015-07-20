@@ -1,0 +1,37 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /                           @controllers.ApplicationController.index
+GET     /test                       @controllers.ApplicationController.test
+
+# Silhouette
+GET     /home                           @controllers.UserController.index
+GET     /signIn                     @controllers.UserController.signIn
+GET     /signUp                     @controllers.UserController.signUp
+GET     /signOut                    @controllers.UserController.signOut
+POST    /authenticate/credentials   @controllers.CredentialsAuthController.authenticate
+POST    /signUp                     @controllers.SignUpController.signUp
+
+
+
+# Postgres
+# GET     /users                      controllers.UsersController.index
+# POST    /users                      controllers.UsersController.save
+# GET     /users/add                  controllers.UsersController.add
+# GET     /users/:id             		controllers.UsersController.show(id: Int)
+# POST    /users/:id             		controllers.UsersController.update(id: Int)
+# GET     /users/:id/edit				controllers.UsersController.edit(id: Int)
+# POST    /users/:id/delete			controllers.UsersController.delete(id: Int)
+
+
+# Sidewalks
+GET     /sidewalks                  controllers.SidewalkController.listSidewalks
+# POST    /sidewalks                  controllers.SidewalkController.createSidewalks
+# PUT     /sidewalks                  controllers.SidewalkController.editSidewalks
+# DELETE  /sidewalks/:id              controllers.SidewalkController.removeSidewalk(id: Int)
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET     /webjars/*file              controllers.WebJarAssets.at(file)

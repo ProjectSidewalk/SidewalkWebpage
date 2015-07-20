@@ -1,0 +1,79 @@
+@(title: String, user: models.User)
+
+@import com.mohiva.play.silhouette.impl.providers._
+@import views.html.bootstrap._
+@import play.api.Play
+@import play.api.Play.current
+
+@main(title) {
+<script type="text/javascript">
+        $(document).ready(function () {
+            $("#form-open-sign-up").on("mouseup", function () {
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
+            });
+
+            $("#form-open-sign-in").on("mouseup", function () {
+                $("#sign-up-modal").addClass("hidden");
+                $("#sign-in-modal").removeClass("hidden");
+            });
+        });
+    </script>
+<nav class="navbar navbar-default navbar-static-top">
+    <div class="container">
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#">About</a></li>
+                <li><a href="#">Map</a></li>
+                <li class="dropdown">
+                    <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                        <img src='@routes.Assets.at("images/avatar.png")' alt="User avatar" class="avatar-medium">&nbsp;
+                        @user.username
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                        <li role="presentation">
+                            <a href="@routes.UserController.signOut" role="menuitem">Sign out</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<header class="jumbotron subhead" id="map-container">
+    <div id="map"></div>
+</header>
+<div class="container">
+    <div class="row">
+        <div class="col-lg-12">
+            <h2>Project Sidewalk</h2>
+            <h4>Help make sidewalks more accessible for everyone</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-8">
+            <p>
+                We need your help to identify sidewalk accessibility problems that may make
+                navigation more difficult for people with mobility impairments.
+                Walk through streets in Google Street View to locate and identify the accessibility problems!
+            </p>
+            <p>
+                <a href="#">Learn more about the project!</a>
+            </p>
+        </div>
+        <div class="col-lg-4">
+            <p>
+                <strong>256</strong> people have helped us inspect accessibility of cities.
+                A total of <strong>32km</strong> sidewalks got surveyed!
+            </p>
+            <p>
+                <a href="#" class="btn btn-primary">Participate!</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src='@routes.Assets.at("javascripts/index.js")'></script>
+}
