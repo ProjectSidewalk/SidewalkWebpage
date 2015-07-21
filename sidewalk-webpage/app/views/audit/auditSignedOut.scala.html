@@ -1,0 +1,6 @@
+@(title: String)(implicit header: controllers.headers.Header)
+
+@main(title) {
+    @navbar()
+    @audit.auditBody()
+}

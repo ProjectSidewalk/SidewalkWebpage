@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.api.services.AuthInfoService
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
+import controllers.headers.ProvidesHeader
 import forms.SignInForm
 import models.User
 import models.services.UserService
@@ -27,7 +28,7 @@ class CredentialsAuthController @Inject() (
                                             implicit val env: Environment[User, SessionAuthenticator],
                                             val userService: UserService,
                                             val authInfoService: AuthInfoService)
-  extends Silhouette[User, SessionAuthenticator] {
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**
    * Authenticates a user against the credentials provider.
@@ -42,7 +43,7 @@ class CredentialsAuthController @Inject() (
         case _ => Future.failed(new ConfigurationException(s"Cannot find credentials provider"))
       }).flatMap { loginInfo =>
 //        val result = Future.successful(Redirect(routes.UserController.index()))
-        val result = Future.successful(Redirect(routes.UserController.index()))
+        val result = Future.successful(Redirect(routes.ApplicationController.index()))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
             // If I want to extend the expiration time, follow this instruction.

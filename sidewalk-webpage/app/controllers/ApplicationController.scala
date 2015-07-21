@@ -20,12 +20,26 @@ import scala.concurrent.Future
  * @param env The Silhouette environment.
  */
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] {
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   def index = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>Future.successful(Ok(views.html.indexSignedIn("Project Sidewalk", request.identity.get)))
-      case None => Future.successful(Ok(views.html.index("Project Sidewalk", SignInForm.form, SignUpForm.form)))
+      case Some(user) =>Future.successful(Ok(views.html.index.indexSignedIn("Project Sidewalk", user)))
+      case None => Future.successful(Ok(views.html.index.indexSignedOut("Project Sidewalk")))
+    }
+  }
+
+  def about = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>Future.successful(Ok(views.html.about.aboutSignedIn("Project Sidewalk - About", user)))
+      case None => Future.successful(Ok(views.html.about.aboutSignedOut("Project Sidewalk - About")))
+    }
+  }
+
+  def audit = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>Future.successful(Ok(views.html.audit.auditSignedIn("Project Sidewalk - Audit", user)))
+      case None => Future.successful(Ok(views.html.audit.auditSignedOut("Project Sidewalk - Audit")))
     }
   }
 

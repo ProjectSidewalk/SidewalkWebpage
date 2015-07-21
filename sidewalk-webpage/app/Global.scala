@@ -10,7 +10,7 @@ import play.api.mvc._
 import play.api.mvc.Results._
 import play.api.mvc.{ RequestHeader, Result }
 import utils.di.SilhouetteModule
-
+import controllers.headers._
 import scala.concurrent.Future
 
 /**

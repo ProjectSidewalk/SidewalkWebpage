@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
+import controllers.headers.ProvidesHeader
 import forms.SignUpForm
 import models.User
 import models.daos.slick.UserDAOSlick
@@ -33,7 +34,7 @@ class SignUpController @Inject() (
                                    val authInfoService: AuthInfoService,
                                    val avatarService: AvatarService,
                                    val passwordHasher: PasswordHasher)
-  extends Silhouette[User, SessionAuthenticator] {
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**
    * Registers a new user.

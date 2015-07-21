@@ -4,6 +4,7 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
 import models.User
@@ -19,7 +20,7 @@ import scala.concurrent.Future
  * @param env The Silhouette environment.
  */
 class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] {
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**
    * Handles the index action.

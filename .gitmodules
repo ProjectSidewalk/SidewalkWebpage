@@ -1,0 +1,3 @@
+[submodule "sidewalk-webpage/public/javascripts/SVLabel"]
+	path = sidewalk-webpage/public/javascripts/SVLabel
+	url = https://github.com/kotarohara/SVLabel.git
