@@ -43,7 +43,7 @@ class CredentialsAuthController @Inject() (
         case _ => Future.failed(new ConfigurationException(s"Cannot find credentials provider"))
       }).flatMap { loginInfo =>
 //        val result = Future.successful(Redirect(routes.UserController.index()))
-        val result = Future.successful(Redirect(routes.ApplicationController.index()))
+        val result = Future.successful(Redirect(request.headers("referer")))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
             // If I want to extend the expiration time, follow this instruction.

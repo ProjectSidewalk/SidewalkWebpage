@@ -1,4 +1,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
+
 <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")' />
 <div class="container">
     <div id="svl-application-holder">
@@ -6,16 +9,16 @@
             <span id="Holder_RibbonMenuLeftColumn">
                 <div id="RibbonMenu_LeftColumnTitle"></div>
                 <div id="RibbonMenu_LeftColumnIcons">
-                    <span class="modeSwitch" val="Walk" id="modeSwitchWalk" style="width:50px;">
+                    <span class="modeSwitch" val="Walk" id="modeSwitchWalk" style="">
                         <span class="modeSwitch_Icon">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="Icon_Explore" class="Icon_RibbonMenuLarge" alt="Mode switch: Walk" align="">
                         </span>
                         <span class="modeSwitch_Name" style="position:absolute; left: 0px;">Explore</span>
-                        <div class="RibbonModeSwitchHorizontalLine" value="Walk"></div>
+                        <div id="ribbon-mode-switch-horizontal-line-walk" class="RibbonModeSwitchHorizontalLine" value="Walk"></div>
                     </span>
                 </div>
             </span>
-            <span id="Holder_Landmark">
+            <span id="landmark-holder">
                 <div id="RibbonMenu_LandmarkTitle">
                     Find and label the following
                 </div>
@@ -34,26 +37,34 @@
                         <span class="modeSwitch_Name">Missing Curb Ramp</span>
                         <div class="RibbonModeSwitchHorizontalLine" value="NoCurbRamp"></div>
                     </span>
-                    <!--
+
                     <span id="ModeSwitchButton_Obstacle" class="modeSwitch" val="Obstacle">
                         <span class="modeSwitch_Icon">
-                            <img src="img/icons/Sidewalk/Icon_NoCurbRamp.svg" class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
                         </span>
                         <span class="modeSwitch_Name">
-                            Obstacle in a Path
+                            Obstacle in <br /> a Path
                         </span>
                         <div class="RibbonModeSwitchHorizontalLine" value="Obstacle"></div>
                     </span>
                     <span id="ModeSwitchButton_SurfaceProblem" class="modeSwitch" val="SurfaceProblem">
                         <span class="modeSwitch_Icon">
-                            <img src="img/icons/Sidewalk/Icon_NoCurbRamp.svg" class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
                         </span>
                         <span class="modeSwitch_Name">
                             Surface Problem
                         </span>
                         <div class="RibbonModeSwitchHorizontalLine" value="SurfaceProblem"></div>
                     </span>
-                  -->
+                    <span id="ModeSwitchButton_Other" class="modeSwitch" val="Other">
+                        <span class="modeSwitch_Icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                        </span>
+                        <span class="modeSwitch_Name">
+                            Other
+                        </span>
+                        <div class="RibbonModeSwitchHorizontalLine" value="Other"></div>
+                    </span>
                 </div>
             </span>
 

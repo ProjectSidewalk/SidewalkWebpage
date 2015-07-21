@@ -116,7 +116,7 @@ p {
 }
 .navbar-default {
     background-color: #fff;
-    border-width: 0;
+    border-width: 1;
 }
 .avatar-medium {
     height: 24px;

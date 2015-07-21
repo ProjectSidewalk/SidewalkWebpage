@@ -62,7 +62,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signOut = SecuredAction.async { implicit request =>
 //    val result = Future.successful(Redirect(routes.UserController.index()))
-    val result = Future.successful(Redirect("/"))
+    val result = Future.successful(Redirect(request.headers("referer")))
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)
   }
