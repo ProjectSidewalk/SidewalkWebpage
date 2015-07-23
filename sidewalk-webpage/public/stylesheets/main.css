@@ -27,9 +27,8 @@ body {
     height: 100%;
     width: 100%;
     font-family: 'Noto Sans', sans-serif;
-}
-body {
     margin: 0;
+    margin-bottom: 60px;
 }
 #map-container {
     height: 40%;
