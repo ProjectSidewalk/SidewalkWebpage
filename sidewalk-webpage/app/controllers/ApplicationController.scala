@@ -8,6 +8,7 @@ import formats.json.UserFormats._
 import forms._
 import models.User
 import controllers.headers.ProvidesHeader
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
 

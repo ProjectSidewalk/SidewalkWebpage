@@ -84,39 +84,40 @@ object SidewalkController extends Controller {
    *
    * @return
    */
-  def editSidewalks = Action(BodyParsers.parse.json) { request =>
-    val featureCollectionResult = request.body.validate[FeatureCollection]
-    featureCollectionResult.fold(
-      errors => {
-        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors)))
-      },
-      featureCollection => {
-        featureCollection.features.foreach { feature =>
-
-          val coordinates = feature.geometry.coordinates
-          val properties = feature.properties
-          val coord: Array[Coordinate] = coordinates.map(coord => new Coordinate(coord.head.toDouble, coord(1).toDouble)).toArray
-          val newLineString = fact.createLineString(coord)
-
-          val sourceId = properties.source.getOrElse(-1) // Todo. Create a new node if id is not specified
-          val targetId = properties.target.getOrElse(-1) // Todo. Create a new ndoe if id is not speficied
-
-          properties.parentSidewalkEdgeId match {
-            case None => None
-            case _ =>
-              val edge: SidewalkEdge = new SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
-                coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, properties.parentSidewalkEdgeId, false, None)
-
-              SidewalkEdgeTable.delete(properties.parentSidewalkEdgeId.get) // Delete the parent
-
-              val id = SidewalkEdgeTable.save(edge)
-          }
-        }
-
-        Ok(Json.obj("status" -> "OK", "message" -> "FeatureCollection created."))  // Todo. Return a mapping from parentSidewalkEdgeId to the new
-      }
-    )
-  }
+  def editSidewalks = TODO
+//  def editSidewalks = Action(BodyParsers.parse.json) { request =>
+//    val featureCollectionResult = request.body.validate[FeatureCollection]
+//    featureCollectionResult.fold(
+//      errors => {
+//        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors)))
+//      },
+//      featureCollection => {
+//        featureCollection.features.foreach { feature =>
+//
+//          val coordinates = feature.geometry.coordinates
+//          val properties = feature.properties
+//          val coord: Array[Coordinate] = coordinates.map(coord => new Coordinate(coord.head.toDouble, coord(1).toDouble)).toArray
+//          val newLineString = fact.createLineString(coord)
+//
+//          val sourceId = properties.source.getOrElse(-1) // Todo. Create a new node if id is not specified
+//          val targetId = properties.target.getOrElse(-1) // Todo. Create a new ndoe if id is not speficied
+//
+//          properties.parentSidewalkEdgeId match {
+//            case None => None
+//            case _ =>
+//              val edge: SidewalkEdge = new SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
+//                coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, properties.parentSidewalkEdgeId, false, None)
+//
+//              SidewalkEdgeTable.delete(properties.parentSidewalkEdgeId.get) // Delete the parent
+//
+//              val id = SidewalkEdgeTable.save(edge)
+//          }
+//        }
+//
+//        Ok(Json.obj("status" -> "OK", "message" -> "FeatureCollection created."))  // Todo. Return a mapping from parentSidewalkEdgeId to the new
+//      }
+//    )
+//  }
 
 
   /**
@@ -148,7 +149,7 @@ object SidewalkController extends Controller {
           val targetId = properties.target.getOrElse(-1) // Todo. Create a new ndoe if id is not speficied
 
           val edge: SidewalkEdge = new SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
-            coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, None, false, None)
+            coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, false, None)
           SidewalkEdgeTable.save(edge)
           println(edge.toString)
         }

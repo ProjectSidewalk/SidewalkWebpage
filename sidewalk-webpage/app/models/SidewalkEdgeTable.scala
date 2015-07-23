@@ -26,9 +26,10 @@ case class SidewalkEdge(sidewalkEdgeId: Option[Int],
                         x2: Float,
                         y2: Float,
                         wayType: String,
-                        parentSidewalkEdgeId: Option[Int],
                         deleted: Boolean,
                         timestamp: Option[Timestamp])
+
+case class SidewalkEdgeParentEdge(sidewalkEdgeId: Int, parentEdgeId: Int)
 
 /**
  *
@@ -43,12 +44,20 @@ class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, "sidewalk_edg
   def x2 = column[Float]("x2")
   def y2 = column[Float]("y2")
   def wayType = column[String]("way_type")
-  def parentSidewalkEdgeId = column[Option[Int]]("parent_sidewalk_edge_id")
   def deleted = column[Boolean]("deleted", O.Default(false))
   def timestamp = column[Option[Timestamp]]("timestamp")
 
-  def * = (sidewalkEdgeId, geom, source, target, x1, y1, x2, y2, wayType, parentSidewalkEdgeId, deleted, timestamp) <> ((SidewalkEdge.apply _).tupled, SidewalkEdge.unapply)
+  def * = (sidewalkEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((SidewalkEdge.apply _).tupled, SidewalkEdge.unapply)
 }
+
+case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParentEdge](tag, "sidewalk_edge_parent_edge") {
+  def sidewalkEdgeId = column[Int]("sidewalk_edge_id", O.PrimaryKey, O.Default(0))
+  def parentEdgeId = column[Int]("parent_edge_id")
+
+  def * = (sidewalkEdgeId, parentEdgeId) <> ((SidewalkEdgeParentEdge.apply _).tupled, SidewalkEdgeParentEdge.unapply)
+}
+
+
 
 /**
  * Data access object for the sidewalk_edge table
@@ -100,5 +109,40 @@ object SidewalkEdgeTable {
 //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
 //    user
   }
+}
 
+/**
+ *
+ */
+object SidewalkEdgeParentEdgeTable {
+  val db = play.api.db.slick.DB
+  val sidewalkEdgeParentEdgeTable = TableQuery[SidewalkEdgeParentEdgeTable]
+
+  /**
+   * Get records based on the child id.
+   * @param id
+   * @return
+   */
+  def selectByChildId(id: Int): List[SidewalkEdgeParentEdge] = db.withSession { implicit session =>
+    sidewalkEdgeParentEdgeTable.filter(item => item.sidewalkEdgeId === id).list
+  }
+
+  /**
+   * Get records based on the parent id.
+   * @param id
+   * @return
+   */
+  def selectByParentId(id: Int): List[SidewalkEdgeParentEdge] = db.withSession { implicit session =>
+    sidewalkEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).list
+  }
+
+  /**
+   * Save a record.
+   * @param childId
+   * @param parentId
+   * @return
+   */
+  def save(childId: Int, parentId: Int) = db.withSession { implicit session =>
+    sidewalkEdgeParentEdgeTable += new SidewalkEdgeParentEdge(childId, parentId)
+  }
 }
