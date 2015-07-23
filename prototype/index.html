@@ -238,8 +238,17 @@
             </div>
             <div class="modal-body">
                 <form class="form-sign-up">
-                    <label for="sign-up-fullname" class="sr-only">Fullname</label>
-                    <input type="text" id="sign-up-fullname" class="form-control" placeholder="Fullname (Optional)">
+                    <div>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="sign-up-ad-checkbox1" value="manual-assistive-device"> Manual devices (e.g., Canes/Walkers)
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="sign-up-ad-checkbox2" value="manual-wheelchair"> Manual wheelchair
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="sign-up-ad-checkbox3" value="motorized-device"> Motorized wheelchair/Scooter
+                        </label>
+                    </div>
                     <div class="spacer10"></div>
                     <label for="sign-up-email" class="sr-only">Email</label>
                     <input type="email" id="sign-up-email" class="form-control" placeholder="Email address">
