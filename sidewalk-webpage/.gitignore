@@ -64,6 +64,7 @@ project/plugins/project/
 
 *.conf
 
+
 # Scala-IDE specific
 .scala_dependencies
 .worksheet
