@@ -48,8 +48,8 @@ object StreetController extends Controller {
   def join(limit: Int) = DBAction { implicit js =>
     val joinQuery = for {
       se <- streetEdges if se.streetEdgeId > 10
-      sac <- assignmentCounts if se.streetEdgeId === sac.streetEdgeId
-    } yield (se.streetEdgeId, sac.assignmentCount)
+      ac <- assignmentCounts if se.streetEdgeId === ac.streetEdgeId
+    } yield (se.streetEdgeId, ac.assignmentCount)
 
     val tupleList = joinQuery.take(limit).list
     val listList = tupleList.map { t=> List(t._1, t._2)}

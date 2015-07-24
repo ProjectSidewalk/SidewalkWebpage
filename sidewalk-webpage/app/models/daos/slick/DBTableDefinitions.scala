@@ -7,12 +7,12 @@ import scala.slick.driver.PostgresDriver.simple._
 object DBTableDefinitions {
 
   case class DBUser (
-                      userID: String,
+                      userId: String,
                       username: String,
                       email: String
                       )
 
-  class UserTable(tag: Tag) extends Table[DBUser](tag, "user") {
+  class UserTable(tag: Tag) extends Table[DBUser](tag, Some("sidewalk"), "user") {
     def userId = column[String]("user_id", O.PrimaryKey)
     def username = column[String]("username")
     def email = column[String]("email")

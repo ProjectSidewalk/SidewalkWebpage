@@ -7,18 +7,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 
-case class StreetEdge(streetEdgeId: Int,
-                        geom: LineString,
-                        source: Int,
-                        target: Int,
-                        x1: Float,
-                        y1: Float,
-                        x2: Float,
-                        y2: Float,
-                        wayType: String,
-                        deleted: Boolean,
-                        timestamp: Option[Timestamp])
-
+case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,
+                      x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
 /**
  *
@@ -38,10 +28,6 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
 
   def * = (streetEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((StreetEdge.apply _).tupled, StreetEdge.unapply)
 }
-
-
-
-
 
 
 /**
@@ -95,8 +81,4 @@ object StreetEdgeTable {
     //    user
   }
 }
-
-/**
- *
- */
 

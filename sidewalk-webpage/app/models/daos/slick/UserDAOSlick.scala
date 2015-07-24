@@ -31,7 +31,7 @@ class UserDAOSlick extends UserDAO {
               case Some(userLoginInfo) =>
                 slickUsers.filter(_.userId === userLoginInfo.userID).firstOption match {
                   case Some(user) =>
-                    Some(User(UUID.fromString(user.userID), loginInfo, user.username, user.email))
+                    Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email))
                   case None => None
                 }
               case None => None
@@ -55,11 +55,11 @@ class UserDAOSlick extends UserDAO {
           _.userId === userID.toString
         ).firstOption match {
           case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userID).firstOption match {
+            slickUserLoginInfos.filter(_.userID === user.userId).firstOption match {
               case Some(info) =>
                 slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
                   case Some(loginInfo) =>
-                    Some(User(UUID.fromString(user.userID), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email))
+                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email))
                   case None => None
                 }
               case None => None
@@ -80,8 +80,8 @@ class UserDAOSlick extends UserDAO {
     DB withSession { implicit session =>
       Future.successful {
         val dbUser = DBUser(user.userId.toString, user.username, user.email)
-        slickUsers.filter(_.userId === dbUser.userID).firstOption match {
-          case Some(userFound) => slickUsers.filter(_.userId === dbUser.userID).update(dbUser)
+        slickUsers.filter(_.userId === dbUser.userId).firstOption match {
+          case Some(userFound) => slickUsers.filter(_.userId === dbUser.userId).update(dbUser)
           case None => slickUsers.insert(dbUser)
         }
         var dbLoginInfo = DBLoginInfo(None, user.loginInfo.providerID, user.loginInfo.providerKey)
@@ -92,11 +92,11 @@ class UserDAOSlick extends UserDAO {
         }
         dbLoginInfo = slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).first
         // Now make sure they are connected
-        slickUserLoginInfos.filter(info => info.userID === dbUser.userID && info.loginInfoId === dbLoginInfo.id).firstOption match {
+        slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).firstOption match {
           case Some(info) =>
           // They are connected already, we could as well omit this case ;)
           case None =>
-            slickUserLoginInfos += DBUserLoginInfo(dbUser.userID, dbLoginInfo.id.get)
+            slickUserLoginInfos += DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get)
         }
         user // We do not change the user => return it
       }
