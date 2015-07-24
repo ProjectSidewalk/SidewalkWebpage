@@ -2,7 +2,7 @@ package models.audit
 
 import java.sql.Timestamp
 import java.util.{UUID, Calendar, Date}
-import models.street.{StreetEdge, StreetEdgeTable}
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
 //import models.{User, User}
 import models.daos.slick.DBTableDefinitions.{UserTable, DBUser => User}
@@ -39,9 +39,12 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, "audit_task") {
  */
 object AuditTaskTable {
   val db = play.api.db.slick.DB
+  val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val users = TableQuery[UserTable]
+
+  val rand = new scala.util.Random
 
   def all: List[AuditTask] = db.withSession { implicit session =>
     auditTasks.list
@@ -71,13 +74,32 @@ object AuditTaskTable {
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
-//    val completedTasks = for {
-//      u <- users.filter(_.username == username)
-//      at <- auditTasks if at.userId == u.userId
-//    } yield at.streetEdgeId
-//
-//    streetEdges.outerJoin(completedTasks)
+    val completedTasks = for {
+      u <- users.filter(_.username === username)
+      at <- auditTasks if at.userId === u.userId
+    } yield (u.username.?, at.streetEdgeId.?)
 
-    NewTask(0, currentTimestamp)
+    val edges = for {
+      (e, c) <- streetEdges.leftJoin(completedTasks).on(_.streetEdgeId === _._2)
+      if c._1.isEmpty
+    } yield e.streetEdgeId
+
+    val newTasks = edges.take(100).list
+
+    NewTask(newTasks(rand.nextInt(newTasks.size - 1)), currentTimestamp)
+  }
+
+  def getNewTask: NewTask = db.withSession { implicit session =>
+    val calendar: Calendar = Calendar.getInstance()
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+
+    var edges = for {
+      (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount).sortBy(_._2.completionCount)
+    } yield _streetEdges.streetEdgeId
+
+    val newTasks = edges.take(100).list
+
+    NewTask(newTasks(rand.nextInt(newTasks.size - 1)), currentTimestamp)
   }
 }
