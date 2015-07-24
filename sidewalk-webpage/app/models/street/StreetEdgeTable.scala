@@ -13,7 +13,7 @@ case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: 
 /**
  *
  */
-class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
+class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
   def source = column[Int]("source")

@@ -14,7 +14,7 @@ import play.api.Play.current
 
 case class StreetEdgeAssignmentCount(streetEdgeAssignmentCountId: Int, streetEdgeId: Int, assignmentCount: Int, CompletionCount: Int)
 
-class StreetEdgeAssignmentCountTable(tag: Tag) extends Table[StreetEdgeAssignmentCount](tag, "street_edge_assignment_count") {
+class StreetEdgeAssignmentCountTable(tag: Tag) extends Table[StreetEdgeAssignmentCount](tag, Some("sidewalk"), "street_edge_assignment_count") {
   def streetEdgeAssignmentCountId = column[Int]("street_edge_assignment_count_id", O.PrimaryKey, O.AutoInc)
   def streetEdgeId = column[Int]("street_edge_id")
   def assignmentCount = column[Int]("assignment_count")

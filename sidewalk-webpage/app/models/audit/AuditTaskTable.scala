@@ -16,7 +16,7 @@ case class NewTask(edgeId: Int, taskStart: Timestamp)
 /**
  *
  */
-class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, "audit_task") {
+class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey)
   def assignmentId = column[Option[Int]]("assignment_id")
   def userId = column[String]("user_id")

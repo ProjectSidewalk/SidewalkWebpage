@@ -25,7 +25,7 @@ case class SidewalkEdge(sidewalkEdgeId: Option[Int], geom: LineString, source: I
 /**
  *
  */
-class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, "sidewalk_edge") {
+class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, Some("sidewalk"), "sidewalk_edge") {
   def sidewalkEdgeId = column[Option[Int]]("sidewalk_edge_id", O.PrimaryKey, O.Default(Some(0)))
   def geom = column[LineString]("geom")
   def source = column[Int]("source")

@@ -9,7 +9,7 @@ import play.api.Play.current
 
 case class SidewalkEdgeParentEdge(sidewalkEdgeId: Int, parentEdgeId: Int)
 
-case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParentEdge](tag, "sidewalk_edge_parent_edge") {
+case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParentEdge](tag, Some("sidewalk"),  "sidewalk_edge_parent_edge") {
   def sidewalkEdgeId = column[Int]("sidewalk_edge_id", O.PrimaryKey, O.Default(0))
   def parentEdgeId = column[Int]("parent_edge_id")
 

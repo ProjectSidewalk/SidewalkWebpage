@@ -8,7 +8,7 @@ import play.api.Play.current
 
 case class StreetEdgeParentEdge(streetEdgeId: Int, parentEdgeId: Int)
 
-class StreetEdgeParentEdgeTable(tag: Tag) extends Table[StreetEdgeParentEdge](tag, "street_edge_parent_edge") {
+class StreetEdgeParentEdgeTable(tag: Tag) extends Table[StreetEdgeParentEdge](tag, Some("sidewalk"),  "street_edge_parent_edge") {
   def streetEdgeId = column[Int]("street_edge_id")
   def parentEdgeId = column[Int]("parent_edge_id")
 
