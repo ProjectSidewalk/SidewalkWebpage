@@ -1,3 +1,5 @@
+@(task: Option[models.audit.NewTask] = None)
+
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
@@ -179,8 +181,13 @@
         <div id="page-overlay-holder"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image"></div>
     </div>
 </div>
+
 <script>
     var svl = svl || {};
+
+    @if(task) {
+    svl.currentTask = @Html(task.get.toJSON.toString);
+    }
 
     $(document).ready(function () {
         var _pointCloudLoader = new GSVPANO.PanoPointCloudLoader();
@@ -196,19 +203,16 @@
         // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
         document.onselectstart = function () { return false; };
 
-        var mainParam = {};
-        var hitId = getURLParameter("hitId");
-        var assignmentId =  getURLParameter("assignmentId");
-        var turkerId =  getURLParameter("workerId");
-        turkerId = turkerId ? turkerId : 'Test_User';
-        assignmentId = assignmentId ? assignmentId : 'Test_Assignment';
-        hitId = hitId ? hitId : 'Test_Hit';
+        init()
+    });
 
+    function init() {
+        var mainParam = {};
         var formParam = {};
         formParam.dataStoreUrl = ''; // '<?php echo url_for("/api_post_labels");?>';
-        formParam.hitId = hitId;
-        formParam.assignmentId = assignmentId;
-        formParam.turkerId = turkerId;
+        formParam.hitId = '';
+        formParam.assignmentId = '';
+        formParam.turkerId = '';
         formParam.onboarding = false;
         formParam.taskPanoramaId = "";
         formParam.taskDescription = "";
@@ -225,5 +229,5 @@
         mainParam.missionDescription = missionDescriptionParam
 
         svl.main = new Main($, mainParam);
-    });
+    }
 </script>

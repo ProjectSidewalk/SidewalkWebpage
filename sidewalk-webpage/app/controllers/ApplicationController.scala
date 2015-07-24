@@ -8,6 +8,7 @@ import formats.json.UserFormats._
 import forms._
 import models.User
 import controllers.headers.ProvidesHeader
+import models.audit.{NewTask, AuditTaskTable}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
@@ -39,8 +40,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   def audit = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>Future.successful(Ok(views.html.audit.auditSignedIn("Project Sidewalk - Audit", user)))
-      case None => Future.successful(Ok(views.html.audit.auditSignedOut("Project Sidewalk - Audit")))
+      case Some(user) => {
+        val task: NewTask = AuditTaskTable.getNewTask(user.username)
+        Future.successful(Ok(views.html.audit.auditSignedIn("Project Sidewalk - Audit", user, task)))
+      }
+      case None => {
+        val task: NewTask = AuditTaskTable.getNewTask
+        Future.successful(Ok(views.html.audit.auditSignedOut("Project Sidewalk - Audit", task)))
+      }
     }
   }
 

@@ -24,4 +24,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       case None => Future.successful(Ok(AuditTaskTable.getNewTask.toString))
     }
   }
+
+  def getNearby = TODO
 }
