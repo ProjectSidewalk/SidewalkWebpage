@@ -30,7 +30,6 @@ case class SidewalkEdge(sidewalkEdgeId: Option[Int],
                         deleted: Boolean,
                         timestamp: Option[Timestamp])
 
-case class SidewalkEdgeParentEdge(sidewalkEdgeId: Int, parentEdgeId: Int)
 
 /**
  *
@@ -51,12 +50,6 @@ class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, "sidewalk_edg
   def * = (sidewalkEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((SidewalkEdge.apply _).tupled, SidewalkEdge.unapply)
 }
 
-case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParentEdge](tag, "sidewalk_edge_parent_edge") {
-  def sidewalkEdgeId = column[Int]("sidewalk_edge_id", O.PrimaryKey, O.Default(0))
-  def parentEdgeId = column[Int]("parent_edge_id")
-
-  def * = (sidewalkEdgeId, parentEdgeId) <> ((SidewalkEdgeParentEdge.apply _).tupled, SidewalkEdgeParentEdge.unapply)
-}
 
 
 
@@ -109,41 +102,5 @@ object SidewalkEdgeTable {
 //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
 //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
 //    user
-  }
-}
-
-/**
- *
- */
-object SidewalkEdgeParentEdgeTable {
-  val db = play.api.db.slick.DB
-  val sidewalkEdgeParentEdgeTable = TableQuery[SidewalkEdgeParentEdgeTable]
-
-  /**
-   * Get records based on the child id.
-   * @param id
-   * @return
-   */
-  def selectByChildId(id: Int): List[SidewalkEdgeParentEdge] = db.withSession { implicit session =>
-    sidewalkEdgeParentEdgeTable.filter(item => item.sidewalkEdgeId === id).list
-  }
-
-  /**
-   * Get records based on the parent id.
-   * @param id
-   * @return
-   */
-  def selectByParentId(id: Int): List[SidewalkEdgeParentEdge] = db.withSession { implicit session =>
-    sidewalkEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).list
-  }
-
-  /**
-   * Save a record.
-   * @param childId
-   * @param parentId
-   * @return
-   */
-  def save(childId: Int, parentId: Int) = db.withSession { implicit session =>
-    sidewalkEdgeParentEdgeTable += new SidewalkEdgeParentEdge(childId, parentId)
   }
 }
