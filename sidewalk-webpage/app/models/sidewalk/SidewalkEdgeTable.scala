@@ -18,17 +18,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 
-case class SidewalkEdge(sidewalkEdgeId: Option[Int],
-                        geom: LineString,
-                        source: Int,
-                        target: Int,
-                        x1: Float,
-                        y1: Float,
-                        x2: Float,
-                        y2: Float,
-                        wayType: String,
-                        deleted: Boolean,
-                        timestamp: Option[Timestamp])
+case class SidewalkEdge(sidewalkEdgeId: Option[Int], geom: LineString, source: Int, target: Int,
+                        x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
 
 /**
@@ -49,8 +40,6 @@ class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, "sidewalk_edg
 
   def * = (sidewalkEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((SidewalkEdge.apply _).tupled, SidewalkEdge.unapply)
 }
-
-
 
 
 /**
@@ -94,7 +83,7 @@ object SidewalkEdgeTable {
    * @param id
    * @return
    */
-  def randomQuery(id: Int) = db.withSession { implicit session =>
+//  def randomQuery(id: Int) = db.withSession { implicit session =>
 //    import scala.slick.jdbc.meta._
 //    import scala.slick.jdbc.{StaticQuery => Q}
 //    import Q.interpolation
@@ -102,5 +91,5 @@ object SidewalkEdgeTable {
 //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
 //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
 //    user
-  }
+//  }
 }
