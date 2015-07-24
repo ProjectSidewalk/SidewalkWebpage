@@ -89,6 +89,10 @@ object AuditTaskTable {
     NewTask(newTasks(rand.nextInt(newTasks.size - 1)), currentTimestamp)
   }
 
+  /**
+   * Get task without username
+   * @return
+   */
   def getNewTask: NewTask = db.withSession { implicit session =>
     val calendar: Calendar = Calendar.getInstance()
     val now: Date = calendar.getTime
