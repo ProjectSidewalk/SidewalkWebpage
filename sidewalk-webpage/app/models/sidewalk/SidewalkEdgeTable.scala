@@ -1,4 +1,4 @@
-package models
+package models.sidewalk
 
 /**
  * References:
@@ -11,10 +11,11 @@ package models
 
 //import scala.slick.driver.PostgresDriver.simple._
 
-import models.utils.MyPostgresDriver.simple._
-import com.vividsolutions.jts.geom.LineString
-import play.api.Play.current
 import java.sql.Timestamp
+
+import com.vividsolutions.jts.geom.LineString
+import models.utils.MyPostgresDriver.simple._
+import play.api.Play.current
 
 
 case class SidewalkEdge(sidewalkEdgeId: Option[Int],

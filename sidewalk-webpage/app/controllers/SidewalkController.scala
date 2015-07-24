@@ -1,5 +1,7 @@
 package controllers
 
+import models.sidewalk.{SidewalkEdgeTable, SidewalkEdge}
+
 import play.api.mvc._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._

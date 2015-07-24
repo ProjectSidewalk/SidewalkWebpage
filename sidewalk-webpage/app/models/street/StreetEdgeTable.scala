@@ -1,13 +1,13 @@
-package models
+package models.street
 
-
-import models.utils.MyPostgresDriver.simple._
-import com.vividsolutions.jts.geom.LineString
-import play.api.Play.current
 import java.sql.Timestamp
 
+import com.vividsolutions.jts.geom.LineString
+import models.utils.MyPostgresDriver.simple._
+import play.api.Play.current
 
-case class StreetEdge(streetEdgeId: Option[Int],
+
+case class StreetEdge(streetEdgeId: Int,
                         geom: LineString,
                         source: Int,
                         target: Int,
@@ -19,13 +19,12 @@ case class StreetEdge(streetEdgeId: Option[Int],
                         deleted: Boolean,
                         timestamp: Option[Timestamp])
 
-case class StreetEdgeParentEdge(streetEdgeId: Int, parentEdgeId: Int)
 
 /**
  *
  */
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
-  def streetEdgeId = column[Option[Int]]("street_edge_id", O.PrimaryKey, O.Default(Some(0)))
+  def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
   def source = column[Int]("source")
   def target = column[Int]("target")
@@ -40,12 +39,8 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def * = (streetEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((StreetEdge.apply _).tupled, StreetEdge.unapply)
 }
 
-case class StreetEdgeParentEdgeTable(tag: Tag) extends Table[StreetEdgeParentEdge](tag, "street_edge_parent_edge") {
-  def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey, O.Default(0))
-  def parentEdgeId = column[Int]("parent_edge_id")
 
-  def * = (streetEdgeId, parentEdgeId) <> ((StreetEdgeParentEdge.apply _).tupled, StreetEdgeParentEdge.unapply)
-}
+
 
 
 
@@ -79,7 +74,7 @@ object StreetEdgeTable {
    */
   def save(edge: StreetEdge): Int = db.withTransaction { implicit session =>
     streetEdges += edge
-    edge.streetEdgeId.get // return the edge id.
+    edge.streetEdgeId // return the edge id.
   }
 
   /**
@@ -104,35 +99,4 @@ object StreetEdgeTable {
 /**
  *
  */
-object StreetEdgeParentEdgeTable {
-  val db = play.api.db.slick.DB
-  val streetEdgeParentEdgeTable = TableQuery[StreetEdgeParentEdgeTable]
 
-  /**
-   * Get records based on the child id.
-   * @param id
-   * @return
-   */
-  def selectByChildId(id: Int): List[StreetEdgeParentEdge] = db.withSession { implicit session =>
-    streetEdgeParentEdgeTable.filter(item => item.streetEdgeId === id).list
-  }
-
-  /**
-   * Get records based on the parent id.
-   * @param id
-   * @return
-   */
-  def selectByParentId(id: Int): List[StreetEdgeParentEdge] = db.withSession { implicit session =>
-    streetEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).list
-  }
-
-  /**
-   * Save a record.
-   * @param childId
-   * @param parentId
-   * @return
-   */
-  def save(childId: Int, parentId: Int) = db.withSession { implicit session =>
-    streetEdgeParentEdgeTable += new StreetEdgeParentEdge(childId, parentId)
-  }
-}
