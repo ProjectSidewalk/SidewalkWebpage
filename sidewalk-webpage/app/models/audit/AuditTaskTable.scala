@@ -99,7 +99,7 @@ object AuditTaskTable {
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
     var edges = for {
-      (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount).sortBy(_._2.completionCount)
+      (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount).on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
     } yield _streetEdges.streetEdgeId
 
     val newTasks = edges.take(100).list
