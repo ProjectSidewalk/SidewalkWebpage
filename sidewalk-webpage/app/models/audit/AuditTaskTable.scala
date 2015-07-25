@@ -11,11 +11,8 @@ import play.api.Play.current
 import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTask(auditTaskId: Int, assignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
-  /**
-   *
-   */
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
     val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
@@ -32,18 +29,19 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
     Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
   }
 }
+
 /**
  *
  */
 class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey)
-  def assignmentId = column[Option[Int]]("assignment_id")
-  def userId = column[String]("user_id")
-  def streetEdgeId = column[Int]("street_edge_id")
-  def taskStart = column[Timestamp]("timestamp")
+  def amtAssignmentId = column[Option[Int]]("amt_assignment_id")
+  def userId = column[String]("user_id", O.NotNull)
+  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
+  def taskStart = column[Timestamp]("timestamp", O.NotNull)
   def taskEnd = column[Timestamp]("timestamp")
 
-  def * = (auditTaskId, assignmentId, userId, streetEdgeId, taskStart, taskEnd) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
+  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
