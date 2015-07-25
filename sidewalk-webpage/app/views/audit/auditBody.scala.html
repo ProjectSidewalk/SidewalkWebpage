@@ -186,7 +186,8 @@
     var svl = svl || {};
 
     @if(task) {
-    svl.currentTask = @Html(task.get.toJSON.toString);
+    svl.task = new Task($);
+    svl.task.set(@Html(task.get.toJSON.toString));
     }
 
     $(document).ready(function () {
@@ -207,8 +208,9 @@
     });
 
     function init() {
-        var mainParam = {};
-        var formParam = {};
+        var mainParam = {},
+            formParam = {},
+            initialLocation = svl.task.initialLocation();
         formParam.dataStoreUrl = ''; // '<?php echo url_for("/api_post_labels");?>';
         formParam.hitId = '';
         formParam.assignmentId = '';
@@ -219,9 +221,11 @@
         formParam.domIds = {};
         formParam.domIds.canvas = 'onboardingCanvas';
         mainParam.form = formParam;
-        mainParam.panoId = '_AUz5cV_ofocoDbesxY3Kw';
-        mainParam.initLat = 38.894799;
-        mainParam.initLng = -77.021906;
+        // mainParam.panoId = '_AUz5cV_ofocoDbesxY3Kw';
+        // mainParam.initLat = 38.894799;
+        // mainParam.initLng = -77.021906;
+        mainParam.initLat = initialLocation.lat;
+        mainParam.initLng = initialLocation.lng;
         mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
 
         var missionDescriptionParam = {};
