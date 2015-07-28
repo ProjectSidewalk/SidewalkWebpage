@@ -3,14 +3,14 @@ package models.label
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class Label(labelId: Option[Int], auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int,
+case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int,
                  photographerHeading: Float, photographerPitch: Float, deleted: Boolean)
 
 /**
  *
  */
 class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
-  def labelId = column[Option[Int]]("label_id", O.PrimaryKey)
+  def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id")
   def gsvPanoramaId = column[String]("gsv_panorama_id")
   def labelTypeId = column[Int]("label_type_id")
@@ -34,9 +34,9 @@ object LabelTable {
    * @return
    */
   def save(label: Label): Int = db.withTransaction { implicit session =>
-    val labelId: Option[Int] =
+    val labelId: Int =
       (labels returning labels.map(_.labelId)) += label
-    labelId.getOrElse(-1)
+    labelId
   }
 }
 

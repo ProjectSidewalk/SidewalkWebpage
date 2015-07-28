@@ -12,7 +12,6 @@ import scala.concurrent.Future
 
 import scala.slick.driver.PostgresDriver.simple._
 
-// KH: Why did the author of Silhouette split trait and implementation?
 class UserDAOImpl extends UserDAO {
 
 
@@ -33,6 +32,10 @@ class UserDAOImpl extends UserDAO {
    * @return The found user or None if no user for the given ID could be found.
    */
   def find(userID: UUID) = Future.successful(users.get(userID))
+
+  def find(username: String) = Future.successful(
+    users.find { case (id, user) => user.username == username }.map(_._2)
+  )
 
   /**
    * Saves a user.

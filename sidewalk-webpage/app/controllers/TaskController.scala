@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
@@ -10,6 +11,7 @@ import formats.json.TaskSubmissionFormats._
 import models.User
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable, slickUsers}
 import models.label._
 import play.api.libs.json.{JsBoolean, JsError, Json}
 import play.api.mvc._
@@ -50,34 +52,34 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Insert assignment (if any)
         val amtAssignmentId: Option[Int] = data.assignment match {
           case Some(asg) =>
-            val newAsg = AMTAssignment(None, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None)
+            val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None)
             Some(AMTAssignmentTable.save(newAsg))
           case _ => None
         }
 
         // Insert audit task
         val auditTask = request.identity match {
-          case Some(user) => AuditTask(None, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), None)
-          case None => AuditTask(None, amtAssignmentId, "Anonymous", data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), None)
+          case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), None)
+          case None =>
+            val user: Option[DBUser] = UserTable.find("anonymous")
+            AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), None)
         }
         val auditTaskId:Int = AuditTaskTable.save(auditTask)
 
         // Insert labels
         for (label <- data.labels) {
           val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-          LabelTable.save(Label(None, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
+          LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
         }
 
         // Insert interaction
         for (interaction <- data.interactions) {
-          AuditTaskInteractionTable.save(AuditTaskInteraction(None, auditTaskId, interaction.action, interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note, Timestamp.valueOf(interaction.timestamp)))
+          AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action, interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note, Timestamp.valueOf(interaction.timestamp)))
         }
 
         // Insert environment
         val env: EnvironmentSubmission = data.environment
-        val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(None, auditTaskId, env.browser,
-          env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-          env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
+        val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
         AuditTaskEnvironmentTable.save(taskEnv)
         Future.successful(Ok(Json.toJson("Goo job man!")))
       }

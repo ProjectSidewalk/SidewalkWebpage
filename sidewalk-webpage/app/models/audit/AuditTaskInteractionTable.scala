@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class AuditTaskInteraction(auditTaskInteractionId: Option[Int], auditTaskId: Int, action: String,
+case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
                                 note: Option[String], timestamp: java.sql.Timestamp)
@@ -14,7 +14,7 @@ case class AuditTaskInteraction(auditTaskInteractionId: Option[Int], auditTaskId
  *
  */
 class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
-  def auditTaskInteractionId = column[Option[Int]]("audit_task_interaction_id", O.PrimaryKey)
+  def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def action = column[String]("action", O.NotNull)
   def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.NotNull)
@@ -37,9 +37,9 @@ object AuditTaskInteractionTable {
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
 
   def save(interaction: AuditTaskInteraction): Int = db.withTransaction { implicit session =>
-    val interactionId: Option[Int] =
-      (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) += interaction
-    interactionId.getOrElse(-1)
+    val interactionId: Int =
+      (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)).insert(interaction)
+    interactionId
   }
 
 }

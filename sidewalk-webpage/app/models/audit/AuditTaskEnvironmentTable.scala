@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class AuditTaskEnvironment(auditTaskEnvironmentId: Option[Int], auditTaskId: Int, browser: Option[String],
+case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String])
@@ -14,11 +14,11 @@ case class AuditTaskEnvironment(auditTaskEnvironmentId: Option[Int], auditTaskId
  *
  */
 class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, Some("sidewalk"), "audit_task_environment") {
-  def auditTaskEnvironmentId = column[Option[Int]]("audit_task_environment_id", O.PrimaryKey)
+  def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def browser = column[Option[String]]("browser")
   def browserVersion = column[Option[String]]("browser_version")
-  def browserWidth = column[Option[Int]]("browswer_width")
+  def browserWidth = column[Option[Int]]("browser_width")
   def browserHeight = column[Option[Int]]("browser_height")
   def availWidth = column[Option[Int]]("avail_width")
   def availHeight = column[Option[Int]]("avail_height")
@@ -47,8 +47,8 @@ object AuditTaskEnvironmentTable {
    * @return
    */
   def save(env: AuditTaskEnvironment): Int = db.withTransaction { implicit session =>
-    val auditTaskEnvironmentId: Option[Int] =
+    val auditTaskEnvironmentId: Int =
       (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
-    auditTaskEnvironmentId.getOrElse(-1)
+    auditTaskEnvironmentId
   }
 }

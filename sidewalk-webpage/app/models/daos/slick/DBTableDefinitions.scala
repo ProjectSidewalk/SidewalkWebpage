@@ -56,4 +56,15 @@ object DBTableDefinitions {
   val slickUserLoginInfos = TableQuery[UserLoginInfoTable]
   val slickPasswordInfos = TableQuery[PasswordInfoTable]
 
+  object UserTable {
+    import play.api.Play.current
+
+    val db = play.api.db.slick.DB
+    def find(username: String): Option[DBUser] = db.withTransaction { implicit session =>
+      slickUsers.filter(_.username === username).firstOption match {
+        case Some(user) => Some(user)
+        case None => None
+      }
+    }
+  }
 }

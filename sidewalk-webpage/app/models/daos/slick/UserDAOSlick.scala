@@ -70,6 +70,26 @@ class UserDAOSlick extends UserDAO {
     }
   }
 
+  def find(username: String) = {
+    DB withSession { implicit session =>
+      Future.successful {
+        slickUsers.filter(_.username === username).firstOption match {
+          case Some(user) =>
+            slickUserLoginInfos.filter(_.userID === user.userId).firstOption match {
+              case Some(info) =>
+                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
+                  case Some(loginInfo) =>
+                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email))
+                  case None => None
+                }
+              case None => None
+            }
+          case None => None
+        }
+      }
+    }
+  }
+
   /**
    * Saves a user.
    *

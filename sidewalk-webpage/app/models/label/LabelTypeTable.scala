@@ -4,13 +4,13 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.Logger
 
-case class LabelType(labelTypeId: Option[Int], labelType: String, description: String)
+case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
 /**
  *
  */
 class LabelTypeTable(tag: Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
-  def labelTypeId = column[Option[Int]]("label_type_id", O.PrimaryKey)
+  def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type", O.NotNull)
   def description = column[String]("description")
 
@@ -31,10 +31,10 @@ object LabelTypeTable {
    */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
     try {
-      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head.get
+      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head
     } catch {
       case e: java.util.NoSuchElementException => {
-        LabelTypeTable.save(LabelType(None, labelType, ""))
+        LabelTypeTable.save(LabelType(0, labelType, ""))
       }
     }
   }
@@ -45,9 +45,9 @@ object LabelTypeTable {
    * @return
    */
   def save(lt: LabelType): Int = db.withTransaction { implicit session =>
-    val labelTypeId: Option[Int] =
+    val labelTypeId: Int =
       (labelTypes returning labelTypes.map(_.labelTypeId)) += lt
-    labelTypeId.getOrElse(-1)
+    labelTypeId
   }
 }
 
