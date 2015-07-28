@@ -26,5 +26,11 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
 object AMTAssignmentTable {
   val db = play.api.db.slick.DB
   val amtAssignments = TableQuery[AMTAssignmentTable]
+
+  def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
+    val asgId: Option[Int] =
+      (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
+    asgId.getOrElse(-1)
+  }
 }
 
