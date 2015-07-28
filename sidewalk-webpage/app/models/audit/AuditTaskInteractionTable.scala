@@ -27,7 +27,7 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
 }
 
 /**
- * Data access object for the label table
+ * Data access object for the audit_task_environment table
  */
 object AuditTaskInteractionTable {
   val db = play.api.db.slick.DB

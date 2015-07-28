@@ -4,15 +4,11 @@ import models.sidewalk.{SidewalkEdgeTable, SidewalkEdge}
 
 import play.api.mvc._
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import play.extras.geojson
 import com.vividsolutions.jts.io.{WKBReader, WKBWriter, WKTReader}
-import com.vividsolutions.jts.geom.{LineString, Coordinate, CoordinateSequence, GeometryFactory, PrecisionModel}
-import collection.immutable.Seq
+import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 
 import formats.json.SidewalkFormats._
-
-import models._
 
 /**
  * References:
@@ -150,7 +146,7 @@ object SidewalkController extends Controller {
           val sourceId = properties.source.getOrElse(-1) // Todo. Create a new node if id is not specified
           val targetId = properties.target.getOrElse(-1) // Todo. Create a new ndoe if id is not speficied
 
-          val edge: SidewalkEdge = new SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
+          val edge: SidewalkEdge = SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
             coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, false, None)
           SidewalkEdgeTable.save(edge)
           println(edge.toString)

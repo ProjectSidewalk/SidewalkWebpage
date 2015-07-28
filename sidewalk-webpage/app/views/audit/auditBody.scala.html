@@ -211,7 +211,7 @@
         var mainParam = {},
             formParam = {},
             initialLocation = svl.task.initialLocation();
-        formParam.dataStoreUrl = ''; // '<?php echo url_for("/api_post_labels");?>';
+        formParam.dataStoreUrl = '@routes.TaskController.post'; // '<?php echo url_for("/api_post_labels");?>';
         formParam.hitId = '';
         formParam.assignmentId = '';
         formParam.turkerId = '';
