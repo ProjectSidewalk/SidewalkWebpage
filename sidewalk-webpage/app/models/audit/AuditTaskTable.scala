@@ -11,7 +11,7 @@ import play.api.Play.current
 import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
@@ -38,8 +38,8 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
   def amtAssignmentId = column[Option[Int]]("amt_assignment_id")
   def userId = column[String]("user_id", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
-  def taskStart = column[Timestamp]("timestamp", O.NotNull)
-  def taskEnd = column[Timestamp]("timestamp")
+  def taskStart = column[Timestamp]("task_start", O.NotNull)
+  def taskEnd = column[Option[Timestamp]]("task_end")
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 

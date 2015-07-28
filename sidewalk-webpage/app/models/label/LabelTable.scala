@@ -18,7 +18,7 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
   def photographerPitch = column[Double]("photographer_pitch")
   def deleted = column[Boolean]("deleted")
 
-  def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, deleted) <> ((Label.apply _).tupled, Label.unapply)
+  def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch, deleted) <> ((Label.apply _).tupled, Label.unapply)
 }
 
 /**

@@ -25,10 +25,10 @@ class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](ta
   def screenWidth = column[Option[Int]]("screen_width")
   def screenHeight = column[Option[Int]]("screen_height")
   def operatingSystem = column[Option[String]]("operating_system")
-  def ipaddress = column[Option[String]]("ip_address")
+  def ipAddress = column[Option[String]]("ip_address")
 
   def * = (auditTaskEnvironmentId, auditTaskId, browser, browserVersion, browserWidth, browserHeight,
-    availWidth, availHeight, screenWidth, screenHeight, operatingSystem) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
+    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
 }
 
 /**
