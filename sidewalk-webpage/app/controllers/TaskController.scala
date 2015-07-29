@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.util.{Date, Calendar}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
@@ -12,6 +13,7 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
+import models.street.StreetEdgeAssignmentCountTable
 import play.api.libs.json.{JsBoolean, JsError, Json}
 import play.api.mvc._
 
@@ -23,6 +25,8 @@ import scala.concurrent.Future
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
+  val calendar: Calendar = Calendar.getInstance
 
   /**
    *
@@ -57,13 +61,18 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         // Insert audit task
+        val now: Date = calendar.getTime
+        val currentTimestamp: Timestamp = new Timestamp(now.getTime)
         val auditTask = request.identity match {
-          case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), None)
+          case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
           case None =>
             val user: Option[DBUser] = UserTable.find("anonymous")
-            AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), None)
+            AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
         }
         val auditTaskId:Int = AuditTaskTable.save(auditTask)
+
+        // Update task street_edge_assignment_count.completion_count
+        StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId)
 
         // Insert labels
         for (label <- data.labels) {
@@ -85,6 +94,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
         AuditTaskEnvironmentTable.save(taskEnv)
         Future.successful(Ok(Json.toJson("Goo job man!")))
+
+
       }
     )
   }

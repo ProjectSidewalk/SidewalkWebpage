@@ -14,12 +14,12 @@ case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTyp
  */
 class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId = column[Int]("audit_task_id")
-  def gsvPanoramaId = column[String]("gsv_panorama_id")
-  def labelTypeId = column[Int]("label_type_id")
-  def photographerHeading = column[Float]("photographer_heading")
-  def photographerPitch = column[Float]("photographer_pitch")
-  def deleted = column[Boolean]("deleted")
+  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
+  def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
+  def labelTypeId = column[Int]("label_type_id", O.NotNull)
+  def photographerHeading = column[Float]("photographer_heading", O.NotNull)
+  def photographerPitch = column[Float]("photographer_pitch", O.NotNull)
+  def deleted = column[Boolean]("deleted", O.NotNull)
 
   def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch, deleted) <> ((Label.apply _).tupled, Label.unapply)
 

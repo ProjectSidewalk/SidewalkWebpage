@@ -11,7 +11,7 @@ import play.api.Play.current
 import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
@@ -35,11 +35,11 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
  */
 class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
-  def amtAssignmentId = column[Option[Int]]("amt_assignment_id")
+  def amtAssignmentId = column[Option[Int]]("amt_assignment_id", O.Nullable)
   def userId = column[String]("user_id", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def taskStart = column[Timestamp]("task_start", O.NotNull)
-  def taskEnd = column[Option[Timestamp]]("task_end")
+  def taskEnd = column[Timestamp]("task_end", O.Nullable)
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
@@ -110,7 +110,9 @@ object AuditTaskTable {
       if c._1.isEmpty
     } yield e).take(100).list
 
+    // Increment the assignment count and return the task
     val e = edges(rand.nextInt(edges.size - 1))
+    StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
 
@@ -128,6 +130,7 @@ object AuditTaskTable {
     } yield _streetEdges).take(100).list
 
     val e = edges(rand.nextInt(edges.size - 1))
+    StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
 }
