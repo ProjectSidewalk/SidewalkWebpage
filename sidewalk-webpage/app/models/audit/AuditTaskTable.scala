@@ -47,7 +47,7 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 
   def user: ForeignKeyQuery[UserTable, User] =
-    foreignKey("", userId, TableQuery[UserTable])(_.userId)
+    foreignKey("audit_task_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
 

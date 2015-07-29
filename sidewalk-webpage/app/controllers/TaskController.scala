@@ -1,7 +1,6 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
@@ -11,7 +10,7 @@ import formats.json.TaskSubmissionFormats._
 import models.User
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable, slickUsers}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
 import play.api.libs.json.{JsBoolean, JsError, Json}
 import play.api.mvc._
@@ -69,7 +68,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Insert labels
         for (label <- data.labels) {
           val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-          LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
+          val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
+
+          for (point <- label.points) {
+            LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY, point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY, point.lat, point.lng))
+          }
         }
 
         // Insert interaction

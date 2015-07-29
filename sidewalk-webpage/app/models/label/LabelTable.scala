@@ -1,7 +1,10 @@
 package models.label
 
+import models.audit.{AuditTask, AuditTaskTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+
+import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int,
                  photographerHeading: Float, photographerPitch: Float, deleted: Boolean)
@@ -19,6 +22,13 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
   def deleted = column[Boolean]("deleted")
 
   def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch, deleted) <> ((Label.apply _).tupled, Label.unapply)
+
+  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
+    foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+
+  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
+    foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+
 }
 
 /**
