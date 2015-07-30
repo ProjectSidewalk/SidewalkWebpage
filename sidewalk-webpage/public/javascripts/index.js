@@ -33,6 +33,7 @@ $(document).ready(function () {
         };
 
         var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
+        var colorScheme = svl.misc.getLabelColors();
 
         // Prepare a layer to put d3 stuff
         var svg = d3.select(map.getPanes().overlayPane).append("svg");  // The base svg
@@ -132,18 +133,20 @@ $(document).ready(function () {
                                     var label = d.properties.label;
                                     var p = map.latLngToLayerPoint(new L.LatLng(label.coordinates[1], label.coordinates[0]));
                                     var c = g.append("circle")
-                                            .attr("r", 3)
+                                            .attr("r", 5)
                                             .attr("cx", p.x)
                                             .attr("cy", p.y)
-                                            .attr("fill", "#fff")
-                                            .attr("color", "#ccc")
-                                            .attr("stroke", "#888")
+                                            .attr("fill", function () {
+                                                return svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5);
+                                            })
+                                            // .attr("color", "white")
+                                            // .attr("stroke", "#ddd")
                                             .attr("stroke-width", 1)
                                             .on("mouseover", function () {
                                                 d3.select(this).attr("r", 15);
                                             })
                                             .on("mouseout", function () {
-                                               d3.select(this).attr("r", 3);
+                                               d3.select(this).attr("r", 5);
                                             });
                                     // Update the chart as well
                                     dotPlotVisualization.increment(label.label_type);
@@ -196,7 +199,7 @@ $(document).ready(function () {
           description: "Curb Ramp",
           left: margin.left,
           top: margin.top,
-          fillColor: colorScheme["CurbRamp"].fillStyle,
+          fillColor: svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5),
           count: 0,
           data: []
         },
