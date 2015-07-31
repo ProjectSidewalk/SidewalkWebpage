@@ -15,7 +15,7 @@
                         <span class="modeSwitch_Icon">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="Icon_Explore" class="Icon_RibbonMenuLarge" alt="Mode switch: Walk" align="">
                         </span>
-                        <span class="modeSwitch_Name" style="position:absolute; left: 0px;">Explore</span>
+                        <span class="modeSwitch_Name" style="position:absolute; left: 0px;"><u>E</u>xplore</span>
                         <div id="ribbon-mode-switch-horizontal-line-walk" class="RibbonModeSwitchHorizontalLine" value="Walk"></div>
                     </span>
                 </div>
@@ -29,14 +29,14 @@
                         <span class="modeSwitch_Icon">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
                         </span>
-                        <div class="modeSwitch_Name">Curb Ramp</div>
+                        <div class="modeSwitch_Name"><u>C</u>urb Ramp</div>
                         <div class="RibbonModeSwitchHorizontalLine" value="CurbRamp"></div>
                     </span>
                     <span id="ModeSwitchButton_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
                         <span class="modeSwitch_Icon">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
                         </span>
-                        <span class="modeSwitch_Name">Missing Curb Ramp</span>
+                        <span class="modeSwitch_Name"><u>M</u>issing Curb Ramp</span>
                         <div class="RibbonModeSwitchHorizontalLine" value="NoCurbRamp"></div>
                     </span>
 
@@ -44,18 +44,14 @@
                         <span class="modeSwitch_Icon">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
                         </span>
-                        <span class="modeSwitch_Name">
-                            Obstacle in <br /> a Path
-                        </span>
+                        <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> a Path</span>
                         <div class="RibbonModeSwitchHorizontalLine" value="Obstacle"></div>
                     </span>
                     <span id="ModeSwitchButton_SurfaceProblem" class="modeSwitch" val="SurfaceProblem">
                         <span class="modeSwitch_Icon">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
                         </span>
-                        <span class="modeSwitch_Name">
-                            Surface Problem
-                        </span>
+                        <span class="modeSwitch_Name"><u>S</u>urface Problem</span>
                         <div class="RibbonModeSwitchHorizontalLine" value="SurfaceProblem"></div>
                     </span>
                     <span id="ModeSwitchButton_Other" class="modeSwitch" val="Other">
@@ -128,35 +124,35 @@
                             </div>
                         </div>
                     </div>
-                    <div id="Holder_LabeledLandmarks" class="FeedbackBox">
-                        <div id="LabeledLandmarks_Title">
-                            <span class="bold">Labeled Landmarks:</span>
+                    <div id="counter-holder" class="FeedbackBox">
+                        <div id="counter-title">
+                            <span class="bold">You have labeled:</span>
                         </div>
-                        <div id="LabeledLandmarks_Description">
-                            <div id="LabeledLandmarkHolder_CurbRamp" class="LabeledLandmarkHolder">
-                                <div class="LabeledLandmarkIconHolder">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")'
-                                         class="LabeledLandmark_Icon">
-                                    <div class="LabeledLandmark_Description">
-                                        Bus Stop Sign
-                                    </div>
-                                    <div id="LabeledLandmarkCount_CurbRamp" class="LabeledLandmark_Count">
-                                        0
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="LabeledLandmarkHolder_NoCurbRamp" class="LabeledLandmarkHolder">
-                                <div class="LabeledLandmarkIconHolder">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")'
-                                         class="LabeledLandmark_Icon">
-                                    <div class="LabeledLandmark_Description">
-                                        Bus stop shelter
-                                    </div>
-                                    <div id="LabeledLandmarkCount_NoCurbRamp" class="LabeledLandmark_Count">
-                                        0
-                                    </div>
-                                </div>
-                            </div>
+                        <div id="label-counter">
+                            <!--<div id="LabeledLandmarkHolder_CurbRamp" class="LabeledLandmarkHolder">-->
+                                <!--<div class="LabeledLandmarkIconHolder">-->
+                                    <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")'-->
+                                         <!--class="LabeledLandmark_Icon">-->
+                                    <!--<div class="LabeledLandmark_Description">-->
+                                        <!--Bus Stop Sign-->
+                                    <!--</div>-->
+                                    <!--<div id="LabeledLandmarkCount_CurbRamp" class="LabeledLandmark_Count">-->
+                                        <!--0-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                            <!--</div>-->
+                            <!--<div id="LabeledLandmarkHolder_NoCurbRamp" class="LabeledLandmarkHolder">-->
+                                <!--<div class="LabeledLandmarkIconHolder">-->
+                                    <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")'-->
+                                         <!--class="LabeledLandmark_Icon">-->
+                                    <!--<div class="LabeledLandmark_Description">-->
+                                        <!--Bus stop shelter-->
+                                    <!--</div>-->
+                                    <!--<div id="LabeledLandmarkCount_NoCurbRamp" class="LabeledLandmark_Count">-->
+                                        <!--0-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                            <!--</div>-->
                         </div>
                     </div>
                 </div>
