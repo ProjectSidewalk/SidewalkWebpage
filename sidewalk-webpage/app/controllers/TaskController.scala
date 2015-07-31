@@ -15,10 +15,11 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
 import models.street.StreetEdgeAssignmentCountTable
 import play.api.libs.json.{JsBoolean, JsError, Json}
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
+import play.api.Play.current
 
 import scala.concurrent.Future
-
 
 /**
  * Street controller

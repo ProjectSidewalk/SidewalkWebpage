@@ -4,7 +4,8 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
 
-<link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")' />
+<link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
+<link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
 <div class="container">
     <div id="svl-application-holder">
         <div id="ribbon-menu-holder">
@@ -97,63 +98,77 @@
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Edit.png")' id="LabelEditIcon" />
                 </div>
             </div>
-            <div id="Holder_Feedback" class="Window_Feedback">
+            <div id="status-holder" class="Window_Feedback">
                 <div id="status-pane-title">
                     Status
                 </div>
-                <div id="Holder_FeedbackContents">
-                    <div id="Holder_CurrentStatus" class="FeedbackBox">
-                        <div id="CurrentStatus_Title">
+                <div id="current-status-holder" class="status-box">
+                    <div id="current-status-mission">
+                        <div id="current-status-mission-title">
                             <span class="bold">Mission:</span>
                         </div>
-                        <div id="CurrentStatus_Description">
+                        <div id="current-status-mission-description">
                             A description of a user's current mission.
                         </div>
                     </div>
-                    <div id="Holder_Progress" class="FeedbackBox">
-                        <div id="Progress_Title">
-                            <span class="bold">Progress:</span>
+                    <div id="current-status-complete" class="hidden">
+                        <div id="current-statu-complete-title">
+                            <span class="bold">You've finished auditing this street!</span>
                         </div>
-                        <div id="Progress_Description">
-                            <div id="ProgressBarContainer">
-                                <div id="ProgressBarFilled">
-                                </div>
+                        <div id="current-status-complete-description">
+                            <div>Do you want to create an account and keep track of your progress?</div>
+                            <div>
+                                <a href="#" id="current-status-complete-sign-up">Let me sign up!</a>
                             </div>
-                            <div id="Progress_Message">
-                                You are half way done with tutorials!
+                            <div>
+                                <a href="#" id="current-status-complete-sign-in">I have an account. Let me sign in.</a>
                             </div>
                         </div>
                     </div>
-                    <div id="counter-holder" class="FeedbackBox">
-                        <div id="counter-title">
-                            <span class="bold">You have labeled:</span>
+                </div>
+                <div id="progress-holder" class="status-box">
+                    <div id="Progress_Title">
+                        <span class="bold">Progress:</span>
+                    </div>
+                    <div id="Progress_Description">
+                        <div id="ProgressBarContainer">
+                            <div id="ProgressBarFilled">
+                            </div>
                         </div>
-                        <div id="label-counter">
-                            <!--<div id="LabeledLandmarkHolder_CurbRamp" class="LabeledLandmarkHolder">-->
-                                <!--<div class="LabeledLandmarkIconHolder">-->
-                                    <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")'-->
-                                         <!--class="LabeledLandmark_Icon">-->
-                                    <!--<div class="LabeledLandmark_Description">-->
-                                        <!--Bus Stop Sign-->
-                                    <!--</div>-->
-                                    <!--<div id="LabeledLandmarkCount_CurbRamp" class="LabeledLandmark_Count">-->
-                                        <!--0-->
-                                    <!--</div>-->
+                        <div id="Progress_Message">
+                            You are half way done with tutorials!
+                        </div>
+                    </div>
+                </div>
+                <div id="counter-holder" class="status-box">
+                    <div id="counter-title">
+                        <span class="bold">You have labeled:</span>
+                    </div>
+                    <div id="label-counter">
+                        <!--<div id="LabeledLandmarkHolder_CurbRamp" class="LabeledLandmarkHolder">-->
+                            <!--<div class="LabeledLandmarkIconHolder">-->
+                                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")'-->
+                                     <!--class="LabeledLandmark_Icon">-->
+                                <!--<div class="LabeledLandmark_Description">-->
+                                    <!--Bus Stop Sign-->
+                                <!--</div>-->
+                                <!--<div id="LabeledLandmarkCount_CurbRamp" class="LabeledLandmark_Count">-->
+                                    <!--0-->
                                 <!--</div>-->
                             <!--</div>-->
-                            <!--<div id="LabeledLandmarkHolder_NoCurbRamp" class="LabeledLandmarkHolder">-->
-                                <!--<div class="LabeledLandmarkIconHolder">-->
-                                    <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")'-->
-                                         <!--class="LabeledLandmark_Icon">-->
-                                    <!--<div class="LabeledLandmark_Description">-->
-                                        <!--Bus stop shelter-->
-                                    <!--</div>-->
-                                    <!--<div id="LabeledLandmarkCount_NoCurbRamp" class="LabeledLandmark_Count">-->
-                                        <!--0-->
-                                    <!--</div>-->
+                        <!--</div>-->
+                        <!--<div id="LabeledLandmarkHolder_NoCurbRamp" class="LabeledLandmarkHolder">-->
+                            <!--<div class="LabeledLandmarkIconHolder">-->
+                                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")'-->
+                                     <!--class="LabeledLandmark_Icon">-->
+                                <!--<div class="LabeledLandmark_Description">-->
+                                    <!--Bus stop shelter-->
+                                <!--</div>-->
+                                <!--<div id="LabeledLandmarkCount_NoCurbRamp" class="LabeledLandmark_Count">-->
+                                    <!--0-->
                                 <!--</div>-->
                             <!--</div>-->
-                        </div>
+                        <!--</div>-->
                     </div>
                 </div>
                 <div id="progress-pov-holder"></div>
@@ -177,7 +192,6 @@
         <div id="page-overlay-holder"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image"></div>
     </div>
 </div>
-
 <script>
     var svl = svl || {};
 

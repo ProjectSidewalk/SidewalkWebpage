@@ -423,7 +423,7 @@ input#Text_BusStopAbsenceOtherReason {
 }
 
 
-#Holder_Feedback {
+#status-holder {
     border: 3px dotted none;
     margin: 0;
     padding: 0;
@@ -832,7 +832,7 @@ footer {
     text-align: center;
 }
 
-.FeedbackBox {
+.status-box {
     border-bottom: 1px dotted #ccc;
     font-size: 0.8em;
     margin-bottom: 10px;
@@ -843,7 +843,7 @@ footer {
 /*
  * Progress bar holder
  */
-#Holder_Progress {
+#progress-holder {
     position: relative;
     height: 65px;
 }
