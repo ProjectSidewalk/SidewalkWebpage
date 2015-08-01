@@ -1,4 +1,4 @@
-@(task: Option[models.audit.NewTask] = None)
+@(task: Option[models.audit.NewTask] = None, user: Option[models.User] = None)
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
@@ -111,12 +111,15 @@
                             A description of a user's current mission.
                         </div>
                     </div>
-                    <div id="current-status-complete" class="hidden">
+                    <!--
+                    <div id="current-status-complete" class="hidden" style="position: relative; top: 0;">
                         <div id="current-statu-complete-title">
                             <span class="bold">You've finished auditing this street!</span>
                         </div>
                         <div id="current-status-complete-description">
-                            <div>Do you want to create an account and keep track of your progress?</div>
+                            <div>
+                                Do you want to create an account and keep track of your progress?
+                            </div>
                             <div>
                                 <a href="#" id="current-status-complete-sign-up">Let me sign up!</a>
                             </div>
@@ -125,6 +128,14 @@
                             </div>
                         </div>
                     </div>
+                    -->
+                    <!--<script>-->
+                        <!--setTimeout(function () {-->
+                            <!--$("#current-status-mission").addClass('animated fadeOut');-->
+                            <!--$("#current-status-complete").removeClass('hidden');-->
+                            <!--$("#current-status-complete").addClass('animated fadeIn');-->
+                        <!--}, 2000);-->
+                    <!--</script>-->
                 </div>
                 <div id="progress-holder" class="status-box">
                     <div id="Progress_Title">
@@ -144,32 +155,7 @@
                     <div id="counter-title">
                         <span class="bold">You have labeled:</span>
                     </div>
-                    <div id="label-counter">
-                        <!--<div id="LabeledLandmarkHolder_CurbRamp" class="LabeledLandmarkHolder">-->
-                            <!--<div class="LabeledLandmarkIconHolder">-->
-                                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")'-->
-                                     <!--class="LabeledLandmark_Icon">-->
-                                <!--<div class="LabeledLandmark_Description">-->
-                                    <!--Bus Stop Sign-->
-                                <!--</div>-->
-                                <!--<div id="LabeledLandmarkCount_CurbRamp" class="LabeledLandmark_Count">-->
-                                    <!--0-->
-                                <!--</div>-->
-                            <!--</div>-->
-                        <!--</div>-->
-                        <!--<div id="LabeledLandmarkHolder_NoCurbRamp" class="LabeledLandmarkHolder">-->
-                            <!--<div class="LabeledLandmarkIconHolder">-->
-                                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")'-->
-                                     <!--class="LabeledLandmark_Icon">-->
-                                <!--<div class="LabeledLandmark_Description">-->
-                                    <!--Bus stop shelter-->
-                                <!--</div>-->
-                                <!--<div id="LabeledLandmarkCount_NoCurbRamp" class="LabeledLandmark_Count">-->
-                                    <!--0-->
-                                <!--</div>-->
-                            <!--</div>-->
-                        <!--</div>-->
-                    </div>
+                    <div id="label-counter"></div>
                 </div>
                 <div id="progress-pov-holder"></div>
             </div>
@@ -190,6 +176,14 @@
             </form>
         </div>
         <div id="page-overlay-holder"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image"></div>
+        <div id="pop-up-message-holder" class="hidden">
+            <div id="pop-up-message-background"></div>
+            <div id="pop-up-message-box">
+                <div id="pop-up-message-title" class="bold">Title</div>
+                <div id="pop-up-message-content">Content</div>
+            </div>
+
+        </div>
     </div>
 </div>
 <script>
@@ -198,6 +192,11 @@
     @if(task) {
     svl.task = new Task($);
     svl.task.set(@Html(task.get.toJSON.toString));
+    }
+
+    @if(user) {
+    var userParam = { username : '@user.get.username' };
+    svl.user = new User(userParam);
     }
 
     $(document).ready(function () {
