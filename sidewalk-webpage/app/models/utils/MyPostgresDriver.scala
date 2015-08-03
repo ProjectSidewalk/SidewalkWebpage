@@ -1,14 +1,14 @@
 package models.utils
 
 import com.github.tminglei.slickpg._
-import slick.driver.PostgresDriver
+import slick.driver.{PostgresDriver, JdbcDriver, JdbcTypesComponent}
 
 trait WithMyDriver {
   val driver: MyPostgresDriver
 }
 
 ////////////////////////////////////////////////////////////
-trait MyPostgresDriver extends PostgresDriver
+trait MyPostgresDriver extends JdbcDriver with PostgresDriver
 with PgArraySupport
 with PgDateSupportJoda
 with PgRangeSupport
@@ -34,6 +34,17 @@ with PgPostGISSupport {
   with ImplicitsPlus
   with SearchAssistants
   with PostGISAssistants
+
+
 }
 
-object MyPostgresDriver extends MyPostgresDriver
+object MyPostgresDriver extends MyPostgresDriver with PgPostGISSupport {
+
+  // For plain query
+  // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
+  override lazy val Implicit = new ImplicitsPlus with PostGISImplicits
+  override val simple = new Implicits with SimpleQLPlus with PostGISImplicits with PostGISAssistants
+
+  val plainImplicits = new Implicits with PostGISPlainImplicits
+
+}

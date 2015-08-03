@@ -4,12 +4,16 @@ import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
 import java.util.{Calendar, Date}
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
+import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{UserTable, DBUser => User}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
+import play.api.db.slick._
+import scala.slick.jdbc.GetResult
+import scala.slick.jdbc.{StaticQuery => Q}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
@@ -62,6 +66,10 @@ object AuditTaskTable {
   val users = TableQuery[UserTable]
 
   val rand = new scala.util.Random
+  val calendar: Calendar = Calendar.getInstance
+
+
+
 
   def all: List[AuditTask] = db.withSession { implicit session =>
     auditTasks.list
@@ -96,7 +104,6 @@ object AuditTaskTable {
    * @return
    */
   def getNewTask(username: String): NewTask = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance()
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
@@ -121,16 +128,58 @@ object AuditTaskTable {
    * @return
    */
   def getNewTask: NewTask = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance()
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
-    var edges = (for {
-      (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount).on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
+    val edges = (for {
+      (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
+        .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
     } yield _streetEdges).take(100).list
 
     val e = edges(rand.nextInt(edges.size - 1))
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+  }
+
+
+  /**
+   * Get a task that is connected to the end point of the current task (street edge)
+   * @param streetEdgeId Street edge id
+   */
+  def getNewTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
+    import MyPostgresDriver.plainImplicits._
+
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+
+    implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
+      StreetEdge(r.nextInt, r.nextGeometry[LineString], r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<)
+    })
+    val selectEdgeQuery = Q.query[(Float, Float, Int), StreetEdge](
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+        FROM sidewalk.street_edge_street_node AS st_e_st_n
+        INNER JOIN (SELECT st_n.street_node_id FROM sidewalk.street_node AS st_n
+        ORDER BY st_n.geom <-> st_setsrid(st_makepoint(?, ?), 4326)
+        LIMIT 1) AS st_n_view
+        ON st_e_st_n.street_node_id = st_n_view.street_node_id
+        INNER JOIN sidewalk.street_edge AS st_e
+        ON st_e_st_n.street_edge_id = st_e.street_edge_id
+        INNER JOIN sidewalk.street_edge_assignment_count AS st_e_asg
+        ON st_e.street_edge_id = st_e_asg.street_edge_id
+        WHERE NOT st_e_st_n.street_edge_id = ?
+        ORDER BY st_e_asg.completion_count ASC"""
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((lng, lat, streetEdgeId)).list
+    edges match {
+      case edges if (edges.size > 0) => {
+        val e = edges(0)
+        StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+      }
+      case _ => {
+        getNewTask // The list is empty for whatever the reason
+      }
+    }
   }
 }

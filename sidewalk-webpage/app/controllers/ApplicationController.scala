@@ -54,5 +54,4 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None => Future.successful(Ok(Json.obj("message" -> "you are not logged! Login man!")))
     }
   }
-
 }

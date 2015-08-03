@@ -38,6 +38,7 @@ GET     /api/streets                controllers.StreetController.listStreets
 GET     /api/join/:limit            controllers.StreetController.join(limit: Int)
 GET     /api/select                 controllers.StreetController.select
 GET     /task                       @controllers.TaskController.get
+GET     /task/next                  @controllers.TaskController.next(streetEdgeId: Int, lat: Float, lng: Float)
 POST    /task                       @controllers.TaskController.post
 
 # Map static resources from the /public folder to the /assets URL path

@@ -1,8 +1,5 @@
 package models.street
 
-import java.sql.Timestamp
-
-import com.vividsolutions.jts.geom.LineString
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
@@ -10,7 +7,6 @@ import scala.slick.lifted.ForeignKeyQuery
 import play.api.db.slick._
 import scala.slick.jdbc.GetResult
 import scala.slick.jdbc.{StaticQuery => Q}
-import play.api.Play.current
 
 case class StreetEdgeAssignmentCount(streetEdgeAssignmentCountId: Int, streetEdgeId: Int, assignmentCount: Int, completionCount: Int)
 

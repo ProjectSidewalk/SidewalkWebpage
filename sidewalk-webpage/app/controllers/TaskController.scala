@@ -40,6 +40,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  def next(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(AuditTaskTable.getNewTask(streetEdgeId, lat, lng).toString))
+  }
+
   /**
    *
    * @return

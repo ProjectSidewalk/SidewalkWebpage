@@ -189,14 +189,17 @@
 <script>
     var svl = svl || {};
 
-    @if(task) {
-    svl.task = new Task($);
-    svl.task.set(@Html(task.get.toJSON.toString));
-    }
+    svl.storage = new Storage(JSON);
+
 
     @if(user) {
     var userParam = { username : '@user.get.username' };
     svl.user = new User(userParam);
+    }
+
+    @if(task) {
+        svl.task = new Task($);
+        svl.task.set(@Html(task.get.toJSON.toString));
     }
 
     $(document).ready(function () {
