@@ -1,4 +1,4 @@
-@(user: Option[models.User] = None)
+@(user: Option[models.User] = None, url: Option[String] = Some("/"))
 
 @import views.html.bootstrap._
 
@@ -26,7 +26,7 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
-                                <a href="@routes.UserController.signOut" role="menuitem">Sign out</a>
+                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
                             </li>
                         </ul>
                     } else {
@@ -59,7 +59,7 @@
                     <h4 class="modal-title" id="sign-in-label">Sign in</h4>
                 </div>
                 <div class="modal-body">
-                    @helper.form(action = routes.CredentialsAuthController.authenticate()) {
+                    @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/"))) {
                     @text(forms.SignInForm.form("identifier"), "Email address")
                     @password(forms.SignInForm.form("password"), "Password")
                     <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
@@ -77,7 +77,7 @@
                     <h4 class="modal-title" id="sign-up-label">Sign up</h4>
                 </div>
                 <div class="modal-body">
-                    @helper.form(action = routes.SignUpController.signUp()) {
+                    @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/"))) {
                     @text(forms.SignUpForm.form("username"), "Username", icon = "person")
                     @text(forms.SignUpForm.form("email"), "Email", icon = "at")
                     @password(forms.SignUpForm.form("password"), "Password", icon = "key")

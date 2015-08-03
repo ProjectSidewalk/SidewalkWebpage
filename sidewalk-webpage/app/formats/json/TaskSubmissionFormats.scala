@@ -82,4 +82,5 @@ object TaskSubmissionFormats {
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission]
     )(AuditTaskSubmission.apply _)
+
 }

@@ -41,7 +41,7 @@ class SignUpController @Inject() (
    *
    * @return The result to display.
    */
-  def signUp = Action.async { implicit request =>
+  def signUp(url: String) = Action.async { implicit request =>
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
@@ -63,7 +63,7 @@ class SignUpController @Inject() (
               authenticator <- env.authenticatorService.create(user.loginInfo)
               value <- env.authenticatorService.init(authenticator)
               result <- env.authenticatorService.embed(value, Future.successful(
-                Redirect(routes.ApplicationController.index)
+                Redirect(url)
               ))
             } yield {
               env.eventBus.publish(SignUpEvent(user, request, request2lang))

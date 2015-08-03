@@ -1,6 +1,6 @@
 @(title: String, task: models.audit.NewTask)(implicit header: controllers.headers.Header)
 
 @main(title) {
-    @navbar()
+    @navbar(None, Some("/audit"))
     @views.html.audit.auditBody(Some(task))
 }

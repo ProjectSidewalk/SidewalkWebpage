@@ -76,7 +76,7 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
    * @return The result to send to the client.
    */
   override def onNotAuthenticated(request: RequestHeader, lang: Lang): Option[Future[Result]] = {
-    Some(Future.successful(Redirect(routes.UserController.signIn)))
+    Some(Future.successful(Redirect(routes.UserController.signIn())))
   }
 
   /**
@@ -89,6 +89,6 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
    * @return The result to send to the client.
    */
   override def onNotAuthorized(request: RequestHeader, lang: Lang): Option[Future[Result]] = {
-    Some(Future.successful(Redirect(routes.UserController.signIn).flashing("error" -> Messages("access.denied"))))
+    Some(Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("access.denied"))))
   }
 }

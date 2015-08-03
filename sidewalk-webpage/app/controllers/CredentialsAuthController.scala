@@ -35,7 +35,7 @@ class CredentialsAuthController @Inject() (
    *
    * @return The result to display.
    */
-  def authenticate = Action.async { implicit request =>
+  def authenticate(url: String) = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
@@ -44,7 +44,7 @@ class CredentialsAuthController @Inject() (
       }).flatMap { loginInfo =>
 //        val result = Future.successful(Redirect(routes.UserController.index()))
         // Todo. [Issue #1]
-        val result = Future.successful(Redirect(request.headers("referer")))
+        val result = Future.successful(Redirect(url))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
             // If I want to extend the expiration time, follow this instruction.
@@ -58,7 +58,7 @@ class CredentialsAuthController @Inject() (
         }
       }.recover {
         case e: ProviderException =>
-          Redirect(routes.UserController.signIn()).flashing("error" -> Messages("invalid.credentials"))
+          Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("invalid.credentials"))
       }
     )
   }

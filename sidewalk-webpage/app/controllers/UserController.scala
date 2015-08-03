@@ -36,10 +36,10 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    *
    * @return The result to display.
    */
-  def signIn = UserAwareAction.async { implicit request =>
+  def signIn(url: String) = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Redirect("/"))
-      case None => Future.successful(Ok(views.html.signIn(SignInForm.form)))
+      case Some(user) => Future.successful(Redirect(url))
+      case None => Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
     }
   }
 
@@ -48,9 +48,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    *
    * @return The result to display.
    */
-  def signUp = UserAwareAction.async { implicit request =>
+  def signUp(url: String) = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Redirect("/"))
+      case Some(user) => Future.successful(Redirect(url))
       case None => Future.successful(Ok(views.html.signUp(SignUpForm.form)))
     }
   }
@@ -60,9 +60,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    *
    * @return The result to display.
    */
-  def signOut = SecuredAction.async { implicit request =>
+  def signOut(url: String) = SecuredAction.async { implicit request =>
 //    val result = Future.successful(Redirect(routes.UserController.index()))
-    val result = Future.successful(Redirect(request.headers("referer")))
+    val result = Future.successful(Redirect(url))
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)
   }

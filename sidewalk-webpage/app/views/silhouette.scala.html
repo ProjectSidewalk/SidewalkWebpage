@@ -53,10 +53,10 @@
             <ul class="nav navbar-nav navbar-right">
                 @user.map { u =>
                 <li><a href="@routes.UserController.index">@u.username</a></li>
-                <li><a href="@routes.UserController.signOut">Sign Out</a></li>
+                <li><a href="@routes.UserController.signOut()">Sign Out</a></li>
                 }.getOrElse {
-                <li><a href="@routes.UserController.signIn">Sign In</a></li>
-                <li><a href="@routes.UserController.signUp">Sign Up</a></li>
+                <li><a href="@routes.UserController.signIn()">Sign In</a></li>
+                <li><a href="@routes.UserController.signUp()">Sign Up</a></li>
                 }
             </ul>
         </nav>
