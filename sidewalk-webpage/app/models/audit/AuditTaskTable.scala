@@ -147,14 +147,11 @@ object AuditTaskTable {
    * @param streetEdgeId Street edge id
    */
   def getNewTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
-    import MyPostgresDriver.plainImplicits._
+    import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
 
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
-    implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
-      StreetEdge(r.nextInt, r.nextGeometry[LineString], r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<)
-    })
     val selectEdgeQuery = Q.query[(Float, Float, Int), StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
         FROM sidewalk.street_edge_street_node AS st_e_st_n

@@ -3,8 +3,11 @@ package models.street
 import java.sql.Timestamp
 
 import com.vividsolutions.jts.geom.LineString
+import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+
+import scala.slick.jdbc.GetResult
 
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,
@@ -34,6 +37,14 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"),
  * Data access object for the street_edge table
  */
 object StreetEdgeTable {
+  // For plain query
+  // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
+  import MyPostgresDriver.plainImplicits._
+
+  implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
+    StreetEdge(r.nextInt, r.nextGeometry[LineString], r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean, r.nextTimestampOption)
+  })
+
   val db = play.api.db.slick.DB
   val streetEdges = TableQuery[StreetEdgeTable]
 
