@@ -2,7 +2,7 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
-import java.util.{Calendar, Date}
+import java.util.{UUID, Calendar, Date}
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -178,5 +178,18 @@ object AuditTaskTable {
         getNewTask // The list is empty for whatever the reason
       }
     }
+  }
+
+  /**
+   * Return an audited edges
+   * @param userId
+   * @return
+   */
+  def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
+    val _streetEdges = for {
+      (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
+    } yield _streetEdges
+
+    _streetEdges.list
   }
 }
