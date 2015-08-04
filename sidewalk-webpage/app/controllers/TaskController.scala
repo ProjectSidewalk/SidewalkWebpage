@@ -40,6 +40,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+   * Get a next task.
+   * @param streetEdgeId
+   * @param lat
+   * @param lng
+   * @return
+   */
   def next(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
     Future.successful(Ok(AuditTaskTable.getNewTask(streetEdgeId, lat, lng).toJSON))
   }
@@ -103,7 +110,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
     )
-    Future.successful(Ok(Json.toJson("Goo job man!")))
+    Future.successful(Ok(Json.toJson("Good job!")))
   }
 
   def getNearby = TODO

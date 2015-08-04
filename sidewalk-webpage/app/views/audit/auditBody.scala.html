@@ -103,39 +103,12 @@
                     Status
                 </div>
                 <div id="current-status-holder" class="status-box">
-                    <div id="current-status-mission">
-                        <div id="current-status-mission-title">
-                            <span class="bold">Mission:</span>
-                        </div>
-                        <div id="current-status-mission-description">
-                            A description of a user's current mission.
-                        </div>
+                    <div id="current-status-title">
+                        Mission:
                     </div>
-                    <!--
-                    <div id="current-status-complete" class="hidden" style="position: relative; top: 0;">
-                        <div id="current-statu-complete-title">
-                            <span class="bold">You've finished auditing this street!</span>
-                        </div>
-                        <div id="current-status-complete-description">
-                            <div>
-                                Do you want to create an account and keep track of your progress?
-                            </div>
-                            <div>
-                                <a href="#" id="current-status-complete-sign-up">Let me sign up!</a>
-                            </div>
-                            <div>
-                                <a href="#" id="current-status-complete-sign-in">I have an account. Let me sign in.</a>
-                            </div>
-                        </div>
+                    <div id="current-status-description">
+                        A description of a user's current mission.
                     </div>
-                    -->
-                    <!--<script>-->
-                        <!--setTimeout(function () {-->
-                            <!--$("#current-status-mission").addClass('animated fadeOut');-->
-                            <!--$("#current-status-complete").removeClass('hidden');-->
-                            <!--$("#current-status-complete").addClass('animated fadeIn');-->
-                        <!--}, 2000);-->
-                    <!--</script>-->
                 </div>
                 <div id="progress-holder" class="status-box">
                     <div id="Progress_Title">
@@ -241,7 +214,7 @@
         mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
 
         var missionDescriptionParam = {};
-        missionDescriptionParam.description = "Your mission is to learn how to <span class='bold'>walk</span> using our interface.";
+        missionDescriptionParam.description = "";
         mainParam.missionDescription = missionDescriptionParam
 
         svl.main = new Main($, mainParam);
