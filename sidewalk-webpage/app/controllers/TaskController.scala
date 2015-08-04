@@ -6,6 +6,8 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.vividsolutions.jts.geom.Coordinate
+import controllers.SidewalkController._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
 import models.User
@@ -13,11 +15,13 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
+import models.sidewalk.SidewalkEdgeTable
 import models.street.StreetEdgeAssignmentCountTable
-import play.api.libs.json.{JsArray, JsBoolean, JsError, Json}
+import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Play.current
+import play.extras.geojson
 
 import scala.concurrent.Future
 
@@ -113,5 +117,27 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     Future.successful(Ok(Json.toJson("Good job!")))
   }
 
-  def getNearby = TODO
+  def completed = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => {
+        val streets = AuditTaskTable.auditedStreets(user.userId)
+        val features: List[JsObject] = streets.map { edge =>
+          val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+          val properties = Json.obj(
+            "street_edge_id" -> edge.streetEdgeId,
+            "source" -> edge.source,
+            "target" -> edge.target,
+            "way_type" -> edge.wayType
+          )
+          Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+        }
+
+        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Future.successful(Ok(featureCollection))
+      }
+      case None => Future.successful(Redirect("/"))
+    }
+  }
 }
