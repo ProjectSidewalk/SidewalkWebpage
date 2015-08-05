@@ -21,6 +21,10 @@ import scala.concurrent.Future
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+   * Returns an index page.
+   * @return
+   */
   def index = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>Future.successful(Ok(views.html.index.indexSignedIn("Project Sidewalk", user)))
@@ -28,6 +32,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+   * Returns an about page
+   * @return
+   */
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>Future.successful(Ok(views.html.about.aboutSignedIn("Project Sidewalk - About", user)))
@@ -35,23 +43,29 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+   * Returns an audit page.
+   * @return
+   */
   def audit = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => {
-        val task: NewTask = AuditTaskTable.getNewTask(user.username)
+        // Check if s/he has gone through an onboarding.
+        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
+          case Some("completed") => AuditTaskTable.getNewTask(user.username)
+          case _ => AuditTaskTable.getOnboardingTask
+        }
+        // val task: NewTask = AuditTaskTable.getNewTask(user.username)
         Future.successful(Ok(views.html.audit.auditSignedIn("Project Sidewalk - Audit", user, task)))
       }
       case None => {
-        val task: NewTask = AuditTaskTable.getNewTask
+        // Check if s/he has gone through an onboarding.
+        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
+          case Some("completed") => AuditTaskTable.getNewTask
+          case _ => AuditTaskTable.getOnboardingTask
+        }
         Future.successful(Ok(views.html.audit.auditSignedOut("Project Sidewalk - Audit", task)))
       }
-    }
-  }
-
-  def test = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => Future.successful(Ok(Json.obj("user" -> user.username)))
-      case None => Future.successful(Ok(Json.obj("message" -> "you are not logged! Login man!")))
     }
   }
 }

@@ -1,6 +1,7 @@
 @(task: Option[models.audit.NewTask] = None, user: Option[models.User] = None)
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.Tutorial.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
 
@@ -218,5 +219,11 @@
         mainParam.missionDescription = missionDescriptionParam
 
         svl.main = new Main($, mainParam);
+
+        @if(task.get.edgeId == 1) {
+        // Initiate the onbaording task.
+        svl.onboarding = new Tutorial($);
+        svl.onboarding.start();
+        }
     }
 </script>

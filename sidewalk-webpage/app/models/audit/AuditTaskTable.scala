@@ -14,6 +14,7 @@ import scala.slick.lifted.ForeignKeyQuery
 import play.api.db.slick._
 import scala.slick.jdbc.GetResult
 import scala.slick.jdbc.{StaticQuery => Q}
+import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
@@ -59,16 +60,12 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
  * Data access object for the audit_task table
  */
 object AuditTaskTable {
+  val calendar: Calendar = Calendar.getInstance
   val db = play.api.db.slick.DB
   val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val users = TableQuery[UserTable]
-
-  val rand = new scala.util.Random
-  val calendar: Calendar = Calendar.getInstance
-
-
 
 
   def all: List[AuditTask] = db.withSession { implicit session =>
@@ -76,17 +73,16 @@ object AuditTaskTable {
   }
 
   /**
-   * Saves a new audit task.
-   *
-   * Reference for rturning the last inserted item's id
-   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
-   * @param completedTask
+   * Return an audited edges
+   * @param userId
    * @return
    */
-  def save(completedTask: AuditTask): Int = db.withTransaction { implicit session =>
-    val auditTaskId: Int =
-      (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
-    auditTaskId
+  def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
+    val _streetEdges = for {
+      (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
+    } yield _streetEdges
+
+    _streetEdges.list
   }
 
   /**
@@ -118,7 +114,7 @@ object AuditTaskTable {
     } yield e).take(100).list
 
     // Increment the assignment count and return the task
-    val e = edges(rand.nextInt(edges.size - 1))
+    val e: StreetEdge = Random.shuffle(edges).head
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
@@ -136,7 +132,8 @@ object AuditTaskTable {
         .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
     } yield _streetEdges).take(100).list
 
-    val e = edges(rand.nextInt(edges.size - 1))
+    val e: StreetEdge = Random.shuffle(edges).head
+
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
@@ -181,15 +178,27 @@ object AuditTaskTable {
   }
 
   /**
-   * Return an audited edges
-   * @param userId
+   *
    * @return
    */
-  def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
-    val _streetEdges = for {
-      (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
-    } yield _streetEdges
+  def getOnboardingTask: NewTask = db.withSession { implicit session =>
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val e: StreetEdge = streetEdges.filter(_.wayType === "onboarding").list.head
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+  }
 
-    _streetEdges.list
+  /**
+   * Saves a new audit task.
+   *
+   * Reference for rturning the last inserted item's id
+   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
+   * @param completedTask
+   * @return
+   */
+  def save(completedTask: AuditTask): Int = db.withTransaction { implicit session =>
+    val auditTaskId: Int =
+      (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
+    auditTaskId
   }
 }

@@ -34,7 +34,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   val calendar: Calendar = Calendar.getInstance
 
   /**
-   *
+   * Get a task for a user.
    * @return
    */
   def get = UserAwareAction.async { implicit request =>
@@ -56,7 +56,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   *
+   * Parse the submitted data and insert them into tables.
    * @return
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
@@ -117,6 +117,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     Future.successful(Ok(Json.toJson("Good job!")))
   }
 
+  /**
+   * Get a list of edges that are submitted by users.
+   * @return
+   */
   def completed = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => {

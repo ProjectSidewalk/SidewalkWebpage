@@ -6,7 +6,7 @@
 GET     /                           @controllers.ApplicationController.index
 GET     /about                      @controllers.ApplicationController.about
 GET     /audit                      @controllers.ApplicationController.audit
-GET     /test                       @controllers.ApplicationController.test
+# GET     /test                       @controllers.ApplicationController.test
 
 # Silhouette
 GET     /home                       @controllers.UserController.index
