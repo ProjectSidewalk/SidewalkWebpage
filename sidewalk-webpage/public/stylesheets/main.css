@@ -48,13 +48,15 @@ body {
 svg {
     position: relative;
 }
-path {
+
+#map path {
     fill: #fff;
     fill-opacity: 0.3;
     stroke: none;
     stroke-width: 2px;
     stroke-opacity: 1;
 }
+
 .travelMarker {
     fill: yellow;
     stroke: gray;
