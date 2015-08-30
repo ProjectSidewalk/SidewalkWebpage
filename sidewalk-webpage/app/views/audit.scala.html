@@ -1,0 +1,232 @@
+@(title: String, task: Option[models.audit.NewTask] = None, user: Option[models.User] = None)(implicit header: controllers.headers.Header)
+
+@main(title) {
+    @navbar(user, Some("/audit"))
+
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.Onboarding.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
+
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
+    <div class="container">
+        <div id="svl-application-holder">
+            <div id="ribbon-menu-holder">
+                <span id="Holder_RibbonMenuLeftColumn">
+                    <div id="RibbonMenu_LeftColumnTitle"></div>
+                    <div id="RibbonMenu_LeftColumnIcons">
+                        <span class="modeSwitch" val="Walk" id="modeSwitchWalk" style="">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="Icon_Explore" class="Icon_RibbonMenuLarge" alt="Mode switch: Walk" align="">
+                            </span>
+                            <span class="modeSwitch_Name" style="position:absolute; left: 0px;"><u>E</u>xplore</span>
+                            <div id="ribbon-mode-switch-horizontal-line-walk" class="RibbonModeSwitchHorizontalLine" value="Walk"></div>
+                        </span>
+                    </div>
+                </span>
+                <span id="landmark-holder">
+                    <div id="RibbonMenu_LandmarkTitle">
+                        Find and label the following
+                    </div>
+                    <div id="RibbonMenu_LandmarkIcons">
+                        <span id="ModeSwitchButton_CurbRamp" class="modeSwitch" val="CurbRamp">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            </span>
+                            <div class="modeSwitch_Name"><u>C</u>urb Ramp</div>
+                            <div class="RibbonModeSwitchHorizontalLine" value="CurbRamp"></div>
+                        </span>
+                        <span id="ModeSwitchButton_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            </span>
+                            <span class="modeSwitch_Name"><u>M</u>issing Curb Ramp</span>
+                            <div class="RibbonModeSwitchHorizontalLine" value="NoCurbRamp"></div>
+                        </span>
+
+                        <span id="ModeSwitchButton_Obstacle" class="modeSwitch" val="Obstacle">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            </span>
+                            <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> a Path</span>
+                            <div class="RibbonModeSwitchHorizontalLine" value="Obstacle"></div>
+                        </span>
+                        <span id="ModeSwitchButton_SurfaceProblem" class="modeSwitch" val="SurfaceProblem">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            </span>
+                            <span class="modeSwitch_Name"><u>S</u>urface Problem</span>
+                            <div class="RibbonModeSwitchHorizontalLine" value="SurfaceProblem"></div>
+                        </span>
+                        <span id="ModeSwitchButton_Other" class="modeSwitch" val="Other">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.svg")' class="Icon_RibbonMenuLarge" alt="Mode switch:" align="">
+                            </span>
+                            <span class="modeSwitch_Name">
+                                Other
+                            </span>
+                            <div class="RibbonModeSwitchHorizontalLine" value="Other"></div>
+                        </span>
+                    </div>
+                </span>
+
+            </div>
+            <div id="zoom-control-holder"></div>
+            <div id="action-stack-control-holder"></div>
+            <div id="Holder_DirectManipulation" onSelectStart="return true;">
+                <div id="Holder_StreetView">
+                    <div id="StreetViewLabelRibbonConnection"><!-- border --></div>
+                    <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
+                    <div id="pano" class="Window_StreetView" style="z-index: 0;" ></div>
+                    <div id="overlay-message-holder" class="Window_StreetView"></div>
+                    <div id="onboarding-holder" class="Window_StreetView"></div>
+
+                    <div id="userControlLayer"  class="Window_StreetView" style="z-index: 0;">
+                        <div id="viewControlLayer"  class="Window_StreetView" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
+                            <!-- In IE, it seems like a div element that has nothing inside gets neglected...
+                                So I put an empty canvas as a place holder.
+                            -->
+                            <!--[if IE]>
+                            <canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>
+                            <![endif]-->
+                        </div>
+                        <div id="labelDrawingLayer"  class="Window_StreetView" style="z-index: 0;">
+                            <canvas id="label-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        </div>
+                    </div>
+                    <div id="Holder_LabelDeleteIcon">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="LabelDeleteIcon" />
+                    </div>
+                    <div id="Holder_LabelEditIcon">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Edit.png")' id="LabelEditIcon" />
+                    </div>
+                </div>
+                <div id="status-holder" class="Window_Feedback">
+                    <div id="status-pane-title">
+                        Status
+                    </div>
+                    <div id="current-status-holder" class="status-box">
+                        <div id="current-status-title">
+                            Mission:
+                        </div>
+                        <div id="current-status-description">
+                            A description of a user's current mission.
+                        </div>
+                    </div>
+                    <div id="progress-holder" class="status-box">
+                        <div id="Progress_Title">
+                            <span class="bold">Progress:</span>
+                        </div>
+                        <div id="Progress_Description">
+                            <div id="ProgressBarContainer">
+                                <div id="ProgressBarFilled">
+                                </div>
+                            </div>
+                            <div id="Progress_Message">
+                                You are half way done with tutorials!
+                            </div>
+                        </div>
+                    </div>
+                    <div id="counter-holder" class="status-box">
+                        <div id="counter-title">
+                            <span class="bold">You have labeled:</span>
+                        </div>
+                        <div id="label-counter"></div>
+                    </div>
+                    <div id="progress-pov-holder"></div>
+                </div>
+                <div id="google-maps-holder"></div>
+            </div>
+            <div id="form-holder">
+                <form id="BusStopLabelerForm" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
+                    <input type="hidden" name="assignmentId" value="" />
+                    <input type="hidden" name="workerId" value=""/>
+                    <input type="hidden" name="hitId" value="" />
+                    <div id="comment-field-holder">
+                        <textarea id="comment-field" class="defaultTextActive"  title="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>
+                    </div>
+                    <div id="form-buttons-holder">
+                        <button id="skip-button" class="button" style="margin-top: 3px; width:300px;" onclick="return false;">Skip</button>
+                        <input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />
+                    </div>
+                </form>
+            </div>
+            <div id="page-overlay-holder"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image"></div>
+            <div id="pop-up-message-holder" class="hidden">
+                <div id="pop-up-message-background"></div>
+                <div id="pop-up-message-box">
+                    <div id="pop-up-message-title" class="bold">Title</div>
+                    <div id="pop-up-message-content">Content</div>
+                </div>
+            </div>
+            <div id="annotation-holder"></div>
+        </div>
+    </div>
+    <script>
+        var svl = svl || {};
+
+        svl.storage = new Storage(JSON);
+
+
+        @if(user) {
+        var userParam = { username : '@user.get.username' };
+        svl.user = new User(userParam);
+        }
+
+        @if(task) {
+            svl.task = new Task($);
+            svl.task.set(@Html(task.get.toJSON.toString));
+        }
+
+        $(document).ready(function () {
+            var _pointCloudLoader = new GSVPANO.PanoPointCloudLoader();
+            _pointCloudLoader.onPointCloudLoad = function () {
+                svl.pointCloud = this.pointCloud;
+            };
+            _pointCloudLoader.load(this.panoId);
+        });
+
+        $(document).ready(function(){
+            //
+            // Solutions to annoying text selection cursor.
+            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
+            document.onselectstart = function () { return false; };
+
+            init()
+        });
+
+        function init() {
+            var mainParam = {},
+                formParam = {},
+                initialLocation = svl.task.initialLocation();
+            formParam.dataStoreUrl = '@routes.TaskController.post'; // '<?php echo url_for("/api_post_labels");?>';
+            formParam.hitId = '';
+            formParam.assignmentId = '';
+            formParam.turkerId = '';
+            formParam.onboarding = false;
+            formParam.taskPanoramaId = "";
+            formParam.taskDescription = "";
+            formParam.domIds = {};
+            formParam.domIds.canvas = 'onboardingCanvas';
+            mainParam.form = formParam;
+            // mainParam.panoId = '_AUz5cV_ofocoDbesxY3Kw';
+            // mainParam.initLat = 38.894799;
+            // mainParam.initLng = -77.021906;
+            mainParam.initLat = initialLocation.lat;
+            mainParam.initLng = initialLocation.lng;
+            mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
+
+            var missionDescriptionParam = {};
+            missionDescriptionParam.description = "";
+            mainParam.missionDescription = missionDescriptionParam
+
+            @if(task.get.edgeId == -1) {
+            // Initiate the onbaording task.
+            svl.onboarding = new Onboarding($);
+            }
+            svl.main = new Main($, mainParam);
+
+        }
+    </script>
+}

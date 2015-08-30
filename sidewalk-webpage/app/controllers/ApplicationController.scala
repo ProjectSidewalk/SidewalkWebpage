@@ -56,7 +56,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case _ => AuditTaskTable.getOnboardingTask
         }
         // val task: NewTask = AuditTaskTable.getNewTask(user.username)
-        Future.successful(Ok(views.html.audit.auditSignedIn("Project Sidewalk - Audit", user, task)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
       }
       case None => {
         // Check if s/he has gone through an onboarding.
@@ -64,7 +64,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some("completed") => AuditTaskTable.getNewTask
           case _ => AuditTaskTable.getOnboardingTask
         }
-        Future.successful(Ok(views.html.audit.auditSignedOut("Project Sidewalk - Audit", task)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
       }
     }
   }
