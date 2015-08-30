@@ -1,4 +1,4 @@
-@(title: String, task: Option[models.audit.NewTask] = None, user: Option[models.User] = None)(implicit header: controllers.headers.Header)
+@(title: String, task: Option[models.audit.NewTask] = None, user: Option[models.User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))

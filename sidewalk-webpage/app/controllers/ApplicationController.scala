@@ -27,8 +27,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
    */
   def index = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>Future.successful(Ok(views.html.index.indexSignedIn("Project Sidewalk", user)))
-      case None => Future.successful(Ok(views.html.index.indexSignedOut("Project Sidewalk")))
+      case Some(user) =>Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+      case None => Future.successful(Ok(views.html.index("Project Sidewalk")))
     }
   }
 
@@ -38,8 +38,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
    */
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>Future.successful(Ok(views.html.about.aboutSignedIn("Project Sidewalk - About", user)))
-      case None => Future.successful(Ok(views.html.about.aboutSignedOut("Project Sidewalk - About")))
+      case Some(user) =>Future.successful(Ok(views.html.about("Project Sidewalk - About", Some(user))))
+      case None => Future.successful(Ok(views.html.about("Project Sidewalk - About")))
     }
   }
 

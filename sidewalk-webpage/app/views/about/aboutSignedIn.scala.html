@@ -1,6 +1,0 @@
-@(title: String, user: models.User)(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, header: controllers.headers.Header)
-
-@main(title) {
-    @navbar(Some(user))
-    @about.aboutBody()
-}
