@@ -62,8 +62,6 @@ src_managed/
 project/boot/
 project/plugins/project/
 
-*.conf
-
 
 # Scala-IDE specific
 .scala_dependencies
