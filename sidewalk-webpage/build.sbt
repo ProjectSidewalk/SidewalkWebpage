@@ -2,7 +2,7 @@ import play.PlayScala
 
 import scalariform.formatter.preferences._
 
-name := """play-postgres-example"""
+name := """sidewalk-webpage"""
 
 version := "1.0-SNAPSHOT"
 
