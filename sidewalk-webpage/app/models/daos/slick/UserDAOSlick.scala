@@ -1,5 +1,6 @@
 package models.daos.slick
 
+import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import models.User
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._

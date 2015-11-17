@@ -131,6 +131,7 @@ object AuditTaskTable {
       (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
         .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
     } yield _streetEdges).take(100).list
+    assert(edges.length > 0)
 
     val e: StreetEdge = Random.shuffle(edges).head
 
@@ -184,7 +185,10 @@ object AuditTaskTable {
   def getOnboardingTask: NewTask = db.withSession { implicit session =>
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-    val e: StreetEdge = streetEdges.filter(_.wayType === "onboarding").list.head
+    val onboardingEdges: List[StreetEdge] = streetEdges.filter(_.wayType === "onboarding").list
+    assert(onboardingEdges.length > 0)  // There should be more than one onboarding edges
+
+    val e: StreetEdge = onboardingEdges.head
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
 
