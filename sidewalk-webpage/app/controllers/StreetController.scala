@@ -23,6 +23,9 @@ import play.api.libs.json.Json._
  */
 object StreetController extends Controller {
 
+  val streetEdges = TableQuery[StreetEdgeTable]
+  val assignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
+
   /**
    * This returns a list of all the streets stored in the database
    * @return
@@ -42,8 +45,14 @@ object StreetController extends Controller {
     Ok(featureCollection)
   }
 
-  val streetEdges = TableQuery[StreetEdgeTable]
-  val assignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
+  def listAuditedStreets = TODO
+    /**
+     * SELECT street_edge.* from audit_task
+     * INNER JOIN street_edge
+     * ON street_edge.street_edge_id = audit_task.street_edge_id
+     */
+
+
 
   def join(limit: Int) = DBAction { implicit js =>
     val joinQuery = for {
@@ -62,4 +71,6 @@ object StreetController extends Controller {
     val list = StreetEdgeAssignmentCountTable.selectAssignment
     Ok(toJson(list))
   }
+
+
 }

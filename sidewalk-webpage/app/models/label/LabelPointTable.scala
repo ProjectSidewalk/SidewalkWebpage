@@ -3,6 +3,8 @@ package models.label
 import models.audit.{AuditTask, AuditTaskTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import com.vividsolutions.jts.geom.Point
+
 
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -54,4 +56,9 @@ object LabelPointTable {
       (labelPoints returning labelPoints.map(_.labelPointId)) += point
     labelPointId
   }
+
+  /**
+   * Todo. I need to
+   * SELECT label_point_id, ST_SetSRID(ST_Point(lng, lat),4326) from sidewalk.label_point
+   */
 }
