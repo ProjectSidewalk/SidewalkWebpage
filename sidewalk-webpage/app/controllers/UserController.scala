@@ -27,9 +27,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    *
    * @return The result to display.
    */
-  def index = SecuredAction.async { implicit request =>
-    Future.successful(Ok(views.html.home(request.identity)))
-  }
+//  def index = SecuredAction.async { implicit request =>
+//    Future.successful(Ok(views.html.home(request.identity)))
+//  }
 
   /**
    * Handles the Sign In action.

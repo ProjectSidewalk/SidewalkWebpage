@@ -6,10 +6,8 @@
 GET     /                           @controllers.ApplicationController.index
 GET     /about                      @controllers.ApplicationController.about
 GET     /audit                      @controllers.ApplicationController.audit
-# GET     /test                       @controllers.ApplicationController.test
 
-# Silhouette
-GET     /home                       @controllers.UserController.index
+# User authentication
 GET     /signIn                     @controllers.UserController.signIn(url: String ?= "/")
 GET     /signUp                     @controllers.UserController.signUp(url: String ?= "/")
 GET     /signOut                    @controllers.UserController.signOut(url: String ?="/")
@@ -19,12 +17,12 @@ POST    /signUp                     @controllers.SignUpController.signUp(url: St
 
 
 # Postgres
-# GET     /users                      controllers.UsersController.index
-# POST    /users                      controllers.UsersController.save
-# GET     /users/add                  controllers.UsersController.add
-# GET     /users/:id             		controllers.UsersController.show(id: Int)
-# POST    /users/:id             		controllers.UsersController.update(id: Int)
-# GET     /users/:id/edit				controllers.UsersController.edit(id: Int)
+# GET     /users                    controllers.UsersController.index
+# POST    /users                    controllers.UsersController.save
+# GET     /users/add                controllers.UsersController.add
+# GET     /users/:id                controllers.UsersController.show(id: Int)
+# POST    /users/:id             	controllers.UsersController.update(id: Int)
+# GET     /users/:id/edit			controllers.UsersController.edit(id: Int)
 # POST    /users/:id/delete			controllers.UsersController.delete(id: Int)
 
 
