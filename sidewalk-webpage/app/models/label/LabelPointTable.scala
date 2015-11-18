@@ -5,11 +5,11 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
 
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int,
-                      heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
+                      heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,
+                      alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], geom: Option[Point])
 
 /**
  *
@@ -30,9 +30,10 @@ class LabelPointTable(tag: Tag) extends Table[LabelPoint](tag, Some("sidewalk"),
   def alphaY = column[Float]("alpha_y", O.NotNull)
   def lat = column[Option[Float]]("lat", O.Nullable)
   def lng = column[Option[Float]]("lng", O.Nullable)
+  def geom = column[Option[Point]]("geom", O.Nullable)
 
   def * = (labelPointId, labelId, svImageX, svImageY, canvasX, canvasY, heading, pitch, zoom,
-    canvasHeight, canvasWidth, alphaX, alphaY, lat, lng) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
+    canvasHeight, canvasWidth, alphaX, alphaY, lat, lng, geom) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
 
   def label: ForeignKeyQuery[LabelTable, Label] =
     foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)

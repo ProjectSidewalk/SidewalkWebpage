@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.Coordinate
+import com.vividsolutions.jts.geom.{GeometryFactory, PrecisionModel, Coordinate, Point}
 import controllers.SidewalkController._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
@@ -32,6 +32,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val calendar: Calendar = Calendar.getInstance
+  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
    * Get a task for a user.
@@ -97,19 +98,32 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
             val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
 
+            // Insert label points
             for (point <- label.points) {
-              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY, point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY, point.lat, point.lng))
+              val pointGeom: Option[Point] = (point.lat, point.lng) match {
+                case (Some(lat), Some(lng)) =>
+                  val coord: Coordinate = new Coordinate(lng.toDouble, lat.toDouble)
+                  Some(gf.createPoint(coord))
+                case _ => None
+              }
+              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
+                point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
+                point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
             }
           }
 
           // Insert interaction
           for (interaction <- data.interactions) {
-            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action, interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note, Timestamp.valueOf(interaction.timestamp)))
+            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
+              interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
+              interaction.zoom, interaction.note, Timestamp.valueOf(interaction.timestamp)))
           }
 
           // Insert environment
           val env: EnvironmentSubmission = data.environment
-          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
+          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion,
+            env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
+            env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
         }
       }

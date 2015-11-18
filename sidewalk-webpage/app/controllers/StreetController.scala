@@ -45,14 +45,6 @@ object StreetController extends Controller {
     Ok(featureCollection)
   }
 
-  def listAuditedStreets = TODO
-    /**
-     * SELECT street_edge.* from audit_task
-     * INNER JOIN street_edge
-     * ON street_edge.street_edge_id = audit_task.street_edge_id
-     */
-
-
 
   def join(limit: Int) = DBAction { implicit js =>
     val joinQuery = for {
