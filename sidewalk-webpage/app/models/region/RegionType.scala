@@ -1,10 +1,6 @@
 package models.region
-
-import com.vividsolutions.jts.geom.Polygon
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
-import scala.slick.lifted.ForeignKeyQuery
 
 case class RegionType(regionTypeId: Int, description: String)
 
