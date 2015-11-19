@@ -26,6 +26,11 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
+                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                    Your dashboard
+                                </a>
+                            </li>
+                            <li role="presentation">
                                 <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
                             </li>
                         </ul>

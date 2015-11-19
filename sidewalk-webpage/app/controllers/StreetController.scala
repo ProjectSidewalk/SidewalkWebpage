@@ -63,6 +63,4 @@ object StreetController extends Controller {
     val list = StreetEdgeAssignmentCountTable.selectAssignment
     Ok(toJson(list))
   }
-
-
 }

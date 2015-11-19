@@ -66,4 +66,11 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)
   }
+
+  def userProfile(username: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => Future.successful(Ok(s"Hello $username!"))
+      case None => Future.successful(Redirect("/"))
+    }
+  }
 }

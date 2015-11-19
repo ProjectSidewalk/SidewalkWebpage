@@ -1,0 +1,17 @@
+@(title: String, user: Option[models.User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="map">Map</div>
+            </div>
+        </div>
+        <div class="row">
+            Another row
+        </div>
+    </div>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/userProfile.js")'></script>
+    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
+}

@@ -24,7 +24,7 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
 /**
  * Data access object for the sidewalk_edge table
  */
-object SidewalkEdgeTable {
+object RegionTable {
   val db = play.api.db.slick.DB
   val regions = TableQuery[RegionTable]
 
@@ -34,5 +34,18 @@ object SidewalkEdgeTable {
    */
   def all: List[Region] = db.withSession { implicit session =>
     regions.list
+  }
+
+  /**
+   * Returns a list of regions of a given type.
+   * @param regionType A type of regions (e.g., "city", "neighborhood")
+   * @return
+   */
+  def listRegionType(regionType: String): List[Region] = db.withSession { implicit session =>
+    val regionTypes = TableQuery[RegionTypeTable]
+    val _regions = for {
+      (_regions, _regionTypes) <- regions.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.description === regionType
+    } yield _regions
+    _regions.list
   }
 }
