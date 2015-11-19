@@ -21,7 +21,6 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
     foreignKey("region_region_type_id_fkey", regionTypeId, TableQuery[RegionTypeTable])(_.regionTypeId)
 }
 
-
 /**
  * Data access object for the sidewalk_edge table
  */
