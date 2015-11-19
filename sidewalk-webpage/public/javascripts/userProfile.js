@@ -33,13 +33,14 @@ $(document).ready(function () {
  * This function queries the streets that the user audited and visualize them as segmetns on the map.
  */
 function initializeAuditedStreetVisualization (map) {
-    var linestringStyle = {
-          color: "black",
-          weight: 2,
-          opacity: 0.75
-        };
+    var streetLinestringStyle = {
+      color: "black",
+      weight: 2,
+      opacity: 0.75
+    };
+    neighborhoodPolygonStyle = streetLinestringStyle;
 
-    function onEachFeature(feature, layer) {
+    function onEachStreetFeature(feature, layer) {
           // does this feature have a property named popupContent?
             if (feature.properties && feature.properties.type) {
               // http://gis.stackexchange.com/questions/31951/how-to-show-a-popup-on-mouse-over-not-on-click
@@ -53,38 +54,32 @@ function initializeAuditedStreetVisualization (map) {
             }
         }
 
+    // Add a semi-transparent white polygon on top of a map
     var overlayPolygon = {
         "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
-                    ]
-                }
+        "features": [{"type": "Feature", "geometry": {
+            "type": "Polygon", "coordinates": [
+                [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+            ]}}]};
+    var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
+
+
+    // Add neighborhood data
+    $.getJSON("/geometry/neighborhoods", function (data) {
+        L.geoJson(data, {
+            style: function (feature) {
+              var style = $.extend(true, {}, neighborhoodPolygonStyle)
             }
-        ]
-    };
+          })
+          .addTo(map);
+    });
 
-    var overlayPolygonLayer = L.geoJson(overlayPolygon, {
-        style: {
-            "fill": "#fff",
-            "fill-opacity": 0.3,
-            "stroke": "none",
-            "stroke-width": "2px",
-            "stroke-opacity": 1
-        }
-    }).addTo(map);
-
+    // Add audited street data
     $.getJSON("/completed", function (data) {
-        console.log(data)
         L.geoJson(data, {
               pointToLayer: L.mapbox.marker.style,
               style: function(feature) {
-                console.log(feature);
-                var style = $.extend(true, {}, linestringStyle);
+                var style = $.extend(true, {}, streetLinestringStyle);
                 var randomInt = Math.floor(Math.random() * 5);
                 style.stroke = "black";
                 style["stroke-width"] = 3;
@@ -93,7 +88,7 @@ function initializeAuditedStreetVisualization (map) {
 
                 return style;
               },
-                onEachFeature: onEachFeature
+                onEachFeature: onEachStreetFeature
             })
             .addTo(map);
     });

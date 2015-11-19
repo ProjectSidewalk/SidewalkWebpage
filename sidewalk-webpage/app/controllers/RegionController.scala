@@ -41,5 +41,4 @@ object RegionController extends Controller {
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Ok(featureCollection)
   }
-
 }

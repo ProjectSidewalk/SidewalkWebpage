@@ -44,7 +44,7 @@ object RegionTable {
   def listRegionType(regionType: String): List[Region] = db.withSession { implicit session =>
     val regionTypes = TableQuery[RegionTypeTable]
     val _regions = for {
-      (_regions, _regionTypes) <- regions.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.description === regionType
+      (_regions, _regionTypes) <- regions.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.regionType === regionType
     } yield _regions
     _regions.list
   }
