@@ -1,7 +1,5 @@
 package models.region
 
-import java.sql.Timestamp
-
 import com.vividsolutions.jts.geom.Polygon
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
