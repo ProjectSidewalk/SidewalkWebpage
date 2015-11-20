@@ -96,7 +96,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert labels
           for (label <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
+            val labelId: Int = LabelTable.save(
+              Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId,
+                label.photographerHeading, label.photographerPitch,
+                label.panoramaLat, label.panoramaLng, label.deleted.value
+              )
+            )
 
             // Insert label points
             for (point <- label.points) {
@@ -135,7 +140,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * Get a list of edges that are submitted by users.
    * @return
    */
-  def completed = UserAwareAction.async { implicit request =>
+  def auditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => {
         val streets = AuditTaskTable.auditedStreets(user.userId)
@@ -155,7 +160,37 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Future.successful(Ok(featureCollection))
       }
-      case None => Future.successful(Redirect("/"))
+      case None => Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
+  }
+
+  /**
+   * Get a list of labels submitted by the user
+   * @return
+   */
+  def submittedLabels = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val labels = LabelTable.submittedLabels(user.userId)
+        val features: List[JsObject] = labels.map { label =>
+          val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+          val properties = Json.obj(
+              "audit_task_id" -> label.auditTaskId,
+              "label_id" -> label.labelId,
+              "gsv_panorama_id" -> label.gsvPanoramaId,
+              "label_type" -> label.labelType
+            )
+          Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+        }
+        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Future.successful(Ok(featureCollection))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
     }
   }
 }

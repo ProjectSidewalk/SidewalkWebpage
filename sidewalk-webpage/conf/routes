@@ -33,15 +33,16 @@ POST    /audit/task                 @controllers.TaskController.post
 
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
-GET     /completed                  @controllers.TaskController.completed
+GET     /contribution/streets       @controllers.TaskController.auditedStreets
+GET     /contribution/labels        @controllers.TaskController.submittedLabels
 GET     /:username                  @controllers.UserProfileController.userProfile(username: String)
 
 # Geometry API
-GET     /geometry/neighborhoods     controllers.NeighborhoodController.listNeighborhoods
+GET     /geometry/neighborhoods     controllers.RegionController.listNeighborhoods
 
-GET     /geometry/streets                controllers.StreetController.listStreets
-GET     /geometry/join/:limit            controllers.StreetController.join(limit: Int)
-GET     /geometry/select                 controllers.StreetController.select
+GET     /geometry/streets           controllers.StreetController.listStreets
+GET     /geometry/join/:limit       controllers.StreetController.join(limit: Int)
+GET     /geometry/select            controllers.StreetController.select
 
 GET     /api/sidewalks              controllers.SidewalkController.listSidewalks
 # POST    /sidewalks                controllers.SidewalkController.createSidewalks

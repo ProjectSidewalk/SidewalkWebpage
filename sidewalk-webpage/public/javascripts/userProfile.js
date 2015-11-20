@@ -6,15 +6,14 @@ $(document).ready(function () {
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
     var southWest = L.latLng(38.761, -77.262),
         northEast = L.latLng(39.060, -76.830),
-        bounds = L.latLngBounds(southWest, northEast);
+        bounds = L.latLngBounds(southWest, northEast),
 
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    var mapboxTiles = L.tileLayer(tileUrl, {
-        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-    });
-
-    var map = L.mapbox.map('map', "kotarohara.8e0c6890", {
+        tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
+        mapboxTiles = L.tileLayer(tileUrl, {
+            attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+        }),
+        map = L.mapbox.map('map', "kotarohara.8e0c6890", {
             // set that bounding box as maxBounds to restrict moving the map
             // see full maxBounds documentation:
             // http://leafletjs.com/reference.html#map-maxbounds
@@ -26,70 +25,152 @@ $(document).ready(function () {
         .fitBounds(bounds)
         .setView([38.892, -77.038], 12);
 
-    initializeAuditedStreetVisualization(map)
+    initializeOverlayPolygon(map);
+    initializeNeighborhoodPolygons(map);
+    initializeAuditedStreets(map);
+    initializeSubmittedLabels(map);
 });
 
 /**
- * This function queries the streets that the user audited and visualize them as segmetns on the map.
+ * This function adds a semi-transparent white polygon on top of a map
  */
-function initializeAuditedStreetVisualization (map) {
-    var streetLinestringStyle = {
-      color: "black",
-      weight: 2,
-      opacity: 0.75
-    };
-    neighborhoodPolygonStyle = streetLinestringStyle;
-
-    function onEachStreetFeature(feature, layer) {
-          // does this feature have a property named popupContent?
-            if (feature.properties && feature.properties.type) {
-              // http://gis.stackexchange.com/questions/31951/how-to-show-a-popup-on-mouse-over-not-on-click
-                layer.bindPopup(feature.properties.type);
-                // layer.on('mouseover', function (e) {
-                //   this.openPopup();
-                // });
-                // layer.on('mouseout', function (e) {
-                //   this.closePopup();
-                // });
-            }
-        }
-
-    // Add a semi-transparent white polygon on top of a map
+function initializeOverlayPolygon (map) {
     var overlayPolygon = {
         "type": "FeatureCollection",
         "features": [{"type": "Feature", "geometry": {
             "type": "Polygon", "coordinates": [
                 [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
             ]}}]};
-    var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
+    L.geoJson(overlayPolygon).addTo(map);
+}
 
+/**
+ * render points
+ */
+function initializeNeighborhoodPolygons(map) {
+    var neighborhoodPolygonStyle = {
+      color: '#888',
+      weight: 1,
+      opacity: 0.25,
+      fillColor: "#ccc",
+      fillOpacity: 0.1
+    };
 
-    // Add neighborhood data
+    function onEachNeighborhoodFeature(feature, layer) {
+        layer.on('mouseover', function (e) {
+            this.setStyle({color: "red", fillColor: "red"});
+        });
+        layer.on('mouseout', function (e) {
+            this.setStyle(neighborhoodPolygonStyle);
+        });
+        layer.on('click', function (e) {
+            var center = turf.center(this.feature),
+                coordinates = center.geometry.coordinates,
+                latlng = L.latLng(coordinates[1], coordinates[0]),
+                zoom = map.getZoom();
+            zoom = zoom > 14 ? zoom : 14;
+
+            console.log(coordinates);
+            console.log(latlng);
+            map.setView(latlng, zoom, {animate: true});
+        });
+    }
+
     $.getJSON("/geometry/neighborhoods", function (data) {
         L.geoJson(data, {
             style: function (feature) {
               var style = $.extend(true, {}, neighborhoodPolygonStyle)
-            }
+              return style;
+            },
+            onEachFeature: onEachNeighborhoodFeature
           })
           .addTo(map);
     });
+}
 
-    // Add audited street data
-    $.getJSON("/completed", function (data) {
+/**
+ * This function queries the streets that the user audited and visualize them as segmetns on the map.
+ */
+function initializeAuditedStreets(map) {
+    var distanceAudited = 0,  // Distance audited in km
+        streetLinestringStyle = {
+          color: "black",
+          weight: 3,
+          opacity: 0.75
+        };
+
+    function onEachStreetFeature(feature, layer) {
+        if (feature.properties && feature.properties.type) {
+            layer.bindPopup(feature.properties.type);
+        }
+    }
+
+    $.getJSON("/contribution/streets", function (data) {
+
+        // Render audited street segments
         L.geoJson(data, {
-              pointToLayer: L.mapbox.marker.style,
-              style: function(feature) {
-                var style = $.extend(true, {}, streetLinestringStyle);
-                var randomInt = Math.floor(Math.random() * 5);
-                style.stroke = "black";
-                style["stroke-width"] = 3;
-                style.opacity = 0.75;
-                style.weight = 3;
+          pointToLayer: L.mapbox.marker.style,
+          style: function(feature) {
+            var style = $.extend(true, {}, streetLinestringStyle);
+            var randomInt = Math.floor(Math.random() * 5);
+            style.color = "#000";
+            style["stroke-width"] = 3;
+            style.opacity = 0.75;
+            style.weight = 3;
 
-                return style;
-              },
-                onEachFeature: onEachStreetFeature
-            })
-            .addTo(map);
+            return style;
+          },
+            onEachFeature: onEachStreetFeature
+        })
+        .addTo(map);
+
+        // Calculate total distance audited in (km)
+        for (var i = data.features.length - 1; i >= 0; i--) {
+            distanceAudited += turf.lineDistance(data.features[i]);
+        }
+        document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
+    });
+}
+
+function initializeSubmittedLabels(map) {
+    var distanceAudited = 0,  // Distance audited in km
+        labelPointStyle = {
+          color: "black",
+          weight: 3,
+          opacity: 0.75
+        };
+
+    function onEachLabelFeature(feature, layer) {
+        if (feature.properties && feature.properties.type) {
+            layer.bindPopup(feature.properties.type);
+        }
+    }
+
+    var geojsonMarkerOptions = {
+        radius: 5,
+        fillColor: "#ff7800",
+        color: "#ffffff",
+        weight: 1,
+        opacity: 0.5,
+        fillOpacity: 0.8,
+        "stroke-width": 1,
+    };
+
+    $.getJSON("/contribution/labels", function (data) {
+
+        // Render audited street segments
+        L.geoJson(data, {
+          pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, geojsonMarkerOptions);
+          },
+            onEachFeature: onEachLabelFeature
+        })
+        .addTo(map);
+
+        // Calculate total distance audited in (km)
+//        for (var i = data.features.length - 1; i >= 0; i--) {
+//            distanceAudited += turf.lineDistance(data.features[i]);
+//        }
+//        document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
     });
 }

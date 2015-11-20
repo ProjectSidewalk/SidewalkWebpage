@@ -8,9 +8,9 @@ svg {
 }
 
 .leaflet-overlay-pane svg g:first-child path {
-    fill: #fff;
-    fill-opacity: 0.4;
-    stroke-width: 2px;
-    stroke-opacity: 1;
-    stroke: #ffffff;
+    fill: #fff !important;
+    fill-opacity: 0.4 !important;
+    stroke-width: 2px !important;
+    stroke-opacity: 1 !important;
+    stroke: #ffffff !important;
 }

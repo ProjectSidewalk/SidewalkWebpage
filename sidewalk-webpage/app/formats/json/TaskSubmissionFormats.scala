@@ -10,7 +10,7 @@ object TaskSubmissionFormats {
 
   case class InteractionSubmission(action: String, gsv_panorama_id: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], timestamp: String)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
-  case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, deleted: JsBoolean, points: Seq[LabelPointSubmission])
+  case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, points: Seq[LabelPointSubmission])
   case class TaskSubmission(streetEdgeId: Int, taskStart: String)
   case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission)
@@ -60,6 +60,8 @@ object TaskSubmissionFormats {
       (JsPath \ "label_type").read[String] and
       (JsPath \ "photographer_heading").read[Float] and
       (JsPath \ "photographer_pitch").read[Float] and
+      (JsPath \ "panorama_lat").read[Float] and
+      (JsPath \ "panorama_lng").read[Float] and
       (JsPath \ "deleted").read[JsBoolean] and
       (JsPath \ "label_points").read[Seq[LabelPointSubmission]]
     )(LabelSubmission.apply _)
