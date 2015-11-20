@@ -64,15 +64,15 @@ object LabelTable {
     val auditTasks = TableQuery[AuditTaskTable]
     val labelTypes = TableQuery[LabelTypeTable]
     val _labels = for {
-      (_auditTasks, _labels) <- auditTasks innerJoin labels on(_.auditTaskId === _.auditTaskId)
+      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labels on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString && _labels.deleted === false
-    } yield _labels
-
-    val _labelsWithLatLng = for {
-      (_labels, _labelTypes) <- labels leftJoin labelTypes on (_.labelTypeId === _.labelTypeId)
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
-    val labelLocationList: List[LabelLocation] = _labelsWithLatLng.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
+//    val _labelsWithLatLng = for {
+//      (_labels, _labelTypes) <- labels innerJoin labelTypes on (_.labelTypeId === _.labelTypeId)
+//    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
+
+    val labelLocationList: List[LabelLocation] = _labels.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
     labelLocationList
   }
 }

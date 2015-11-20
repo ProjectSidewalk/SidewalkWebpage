@@ -133,12 +133,7 @@ function initializeAuditedStreets(map) {
 }
 
 function initializeSubmittedLabels(map) {
-    var distanceAudited = 0,  // Distance audited in km
-        labelPointStyle = {
-          color: "black",
-          weight: 3,
-          opacity: 0.75
-        };
+    var colorMapping = svl.misc.getLabelColors();
 
     function onEachLabelFeature(feature, layer) {
         if (feature.properties && feature.properties.type) {
@@ -152,25 +147,38 @@ function initializeSubmittedLabels(map) {
         color: "#ffffff",
         weight: 1,
         opacity: 0.5,
-        fillOpacity: 0.8,
+        fillOpacity: 0.5,
         "stroke-width": 1,
     };
 
     $.getJSON("/contribution/labels", function (data) {
+        // Count a number of each label type
+        var labelCounter = {
+            "CurbRamp": 0,
+            "NoCurbRamp": 0,
+            "Obstacle": 0,
+            "SurfaceProblem": 0
+        };
+
+        for (var i = data.features.length - 1; i >= 0; i--) {
+            labelCounter[data.features[i].properties.label_type] += 1;
+            console.log(data.features[i].properties.label_type)
+        }
+        document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
+        document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
+        document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
+        document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
 
         // Render audited street segments
         L.geoJson(data, {
           pointToLayer: function (feature, latlng) {
-            return L.circleMarker(latlng, geojsonMarkerOptions);
+            var style = $.extend(true, {}, geojsonMarkerOptions),
+                rgba = colorMapping[feature.properties.label_type].fillStyle;
+            style.fillColor = rgba;
+            return L.circleMarker(latlng, style);
           },
             onEachFeature: onEachLabelFeature
         })
         .addTo(map);
-
-        // Calculate total distance audited in (km)
-//        for (var i = data.features.length - 1; i >= 0; i--) {
-//            distanceAudited += turf.lineDistance(data.features[i]);
-//        }
-//        document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
     });
 }
