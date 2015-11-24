@@ -24,7 +24,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.userProfile("Project Sidewalk - $user.username", Some(user))))
+      case Some(user) =>
+        val username: String = user.username
+        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
       case None => Future.successful(Redirect("/"))
     }
   }

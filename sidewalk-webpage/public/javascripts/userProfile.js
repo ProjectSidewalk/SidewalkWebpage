@@ -162,7 +162,6 @@ function initializeSubmittedLabels(map) {
 
         for (var i = data.features.length - 1; i >= 0; i--) {
             labelCounter[data.features[i].properties.label_type] += 1;
-            console.log(data.features[i].properties.label_type)
         }
         document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
         document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
