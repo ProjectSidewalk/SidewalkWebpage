@@ -152,12 +152,35 @@
                     </div>
                 </form>
             </div>
-            <div id="page-overlay-holder"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image"></div>
+            <div id="page-overlay-holder">
+                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
+            </div>
             <div id="pop-up-message-holder" class="hidden">
                 <div id="pop-up-message-background"></div>
                 <div id="pop-up-message-box">
                     <div id="pop-up-message-title" class="bold">Title</div>
                     <div id="pop-up-message-content">Content</div>
+                </div>
+            </div>
+            <div id="modal-skip-holder" class="">
+                <div id="modal-skip-background"></div>
+                <div id="modal-skip-box">
+                    <div id="modal-skip-title" class="bold">
+                        <p>Jump to another location because:</p>
+                    </div>
+                    <div id="modal-skip-content">
+                        <div class="radio">
+                            <label><input class="modal-skip-radio-buttons" type="radio" value="IWantToExplore" name="modal-skip-radio">I want to explore another area!</label>
+                        </div>
+                        <div class="radio">
+                            <label><input class="modal-skip-radio-buttons" type="radio" value="GSVNotAvailable" name="modal-skip-radio">Street View is not available and I cannot walk towards the goal.</label>
+                        </div>
+                        <div>
+                            <button class="button" id="modal-skip-ok-button">OK</button>&nbsp;
+                            <button class="button" id="modal-skip-cancel-button">Cancel</button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             <div id="annotation-holder"></div>

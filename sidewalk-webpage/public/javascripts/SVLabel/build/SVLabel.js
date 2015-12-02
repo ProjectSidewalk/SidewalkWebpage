@@ -2134,9 +2134,9 @@ function Canvas ($, param) {
 
         //
         // Check if the user audited all the angles or not.
-        if ('form' in svl) {
-            svl.form.checkSubmittable();
-        }
+        //if ('form' in svl) {
+        //    svl.form.checkSubmittable();
+        //}
 
         if ('progressPov' in svl) {
             svl.progressPov.updateCompletionRate();
@@ -2576,10 +2576,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function Form ($, params) {
-    var self = {
-        className : 'Form'
-    };
-
+    var self = { className : 'Form' };
     var properties = {
         commentFieldMessage: undefined,
         isAMTTask : false,
@@ -2592,8 +2589,7 @@ function Form ($, params) {
         taskPanoramaId: undefined,
         hitId : undefined,
         assignmentId: undefined,
-        turkerId: undefined,
-        userExperiment: false
+        turkerId: undefined
     };
     var status = {
         disabledButtonMessageVisibility: 'hidden',
@@ -2610,30 +2606,11 @@ function Form ($, params) {
         disableSubmit : false
     };
 
-    // jQuery doms
-    var $form;
-    var $textieldComment;
-    var $btnSubmit;
-    var $btnSkip;
-    var $btnConfirmSkip;
-    var $btnCancelSkip;
-    var $radioSkipReason;
-    var $textSkipOtherReason;
-    var $divSkipOptions;
-    //var $pageOverlay;
-    //var $taskDifficultyWrapper;
-    //var $taskDifficultyOKButton;
-
-    var messageCanvas;
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////////////////////////////////////////////
     function _init (params) {
-        var hasGroupId = getURLParameter('groupId') !== "";
-        var hasHitId = getURLParameter('hitId') !== "";
-        var hasWorkerId = getURLParameter('workerId') !== "";
-        var assignmentId = getURLParameter('assignmentId');
+        var hasGroupId = getURLParameter('groupId') !== "",
+            hasHitId = getURLParameter('hitId') !== "",
+            hasWorkerId = getURLParameter('workerId') !== "",
+            assignmentId = getURLParameter('assignmentId');
 
         properties.onboarding = params.onboarding;
         properties.dataStoreUrl = params.dataStoreUrl;
@@ -2647,29 +2624,6 @@ function Form ($, params) {
         if (('turkerId' in params) && params.turkerId) {
             properties.turkerId = params.turkerId;
         }
-
-        if (('userExperiment' in params) && params.userExperiment) {
-            properties.userExperiment = true;
-        }
-
-        //
-        // initiailze jQuery elements.
-        $form = svl.ui.form.form;
-        $textieldComment = svl.ui.form.commentField; //$("#CommentField");
-        $btnSubmit = svl.ui.form.submitButton;
-        $btnSkip = svl.ui.form.skipButton;
-        //$btnConfirmSkip = $("#BusStopAbsence_Submit");
-        //$btnCancelSkip = $("#BusStopAbsence_Cancel");
-        //$radioSkipReason = $('.Radio_BusStopAbsence');
-        //$textSkipOtherReason = $("#Text_BusStopAbsenceOtherReason");
-        $divSkipOptions = $("#Holder_SkipOptions");
-
-
-        //if (properties.userExperiment) {
-        //    $taskDifficultyOKButton = $("#task-difficulty-button");
-        //    $taskDifficultyWrapper = $("#task-difficulty-wrapper");
-        //}
-
 
         $('input[name="assignmentId"]').attr('value', properties.assignmentId);
         $('input[name="workerId"]').attr('value', properties.turkerId);
@@ -2692,17 +2646,15 @@ function Form ($, params) {
             properties.isAMTTask = true;
         }
 
-        //
         // Check if this is a sandbox task or not
         properties.isSandbox = false;
         if (properties.isAMTTask) {
             if (document.referrer.indexOf("workersandbox.mturk.com") !== -1) {
                 properties.isSandbox = true;
-                $form.prop("action", "https://workersandbox.mturk.com/mturk/externalSubmit");
+                svl.ui.form.form.prop("action", "https://workersandbox.mturk.com/mturk/externalSubmit");
             }
         }
 
-        //
         // Check if this is a preview and, if so, disable submission and show a message saying
         // this is a preview.
         if (properties.isAMTTask && properties.isPreviewMode) {
@@ -2716,38 +2668,9 @@ function Form ($, params) {
             self.lockDisableSubmit();
         }
 
-        // if (!('onboarding' in svl && svl.onboarding)) {
-        //     messageCanvas = new Onboarding(params, $)
-        // }
-
-        //
-        // Insert texts in a textfield
-        properties.commentFieldMessage = $textieldComment.attr('title');
-        $textieldComment.val(properties.commentFieldMessage);
-
-        //
-        // Disable Submit button so turkers cannot submit without selecting
-        // a reason for not being able to find the bus stop.
-        //disableConfirmSkip();
-
-        //
         // Attach listeners
-        $textieldComment.bind('focus', focusCallback); // focusCallback is in Utilities.js
-        $textieldComment.bind('blur', blurCallback); // blurCallback is in Utilities.js
-        $form.bind('submit', formSubmit);
-        $btnSkip.bind('click', openSkipWindow);
-        //$btnConfirmSkip.on('click', skipSubmit);
-        //$btnCancelSkip.on('click', closeSkipWindow);
-        //$radioSkipReason.on('click', radioSkipReasonClicked);
-        // http://stackoverflow.com/questions/11189136/fire-oninput-event-with-jquery
-        //if ($textSkipOtherReason.get().length > 0) {
-        //    $textSkipOtherReason[0].oninput = skipOtherReasonInput;
-        //}
-
-        //if (properties.userExperiment) {
-        //    $taskDifficultyOKButton.bind('click', taskDifficultyOKButtonClicked);
-        //}
-
+        svl.ui.form.form.bind('submit', formSubmit);
+        svl.ui.form.skipButton.bind('click', openSkipWindow);
     }
 
     /**
@@ -2822,33 +2745,16 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
-//        if (data.labels.length === 0) {
-//            data.labelingTask.no_label = 0;
-//        }
 
         // Add the value in the comment field if there are any.
-        var comment = $textieldComment.val();
+        var comment = svl.ui.form.commentField.val();
         data.comment = undefined;
         if (comment &&
-            comment !== $textieldComment.attr('title')) {
-            data.comment = $textieldComment.val();
+            comment !== svl.ui.form.commentField.attr('title')) {
+            data.comment = svl.ui.form.commentField.val();
         }
         return data;
     }
-
-
-    //function disableConfirmSkip () {
-    //    // This method disables the confirm skip button
-    //    $btnConfirmSkip.attr('disabled', true);
-    //    $btnConfirmSkip.css('color', 'rgba(96,96,96,0.5)');
-    //}
-    //
-    //
-    //function enableConfirmSkip () {
-    //    // This method enables the confirm skip button
-    //    $btnConfirmSkip.attr('disabled', false);
-    //    $btnConfirmSkip.css('color', 'rgba(96,96,96,1)');
-    //}
 
     /**
       * Submit the data.
@@ -2918,358 +2824,42 @@ function Form ($, params) {
             return false;
         }
 
-        // temp
-        // window.location.reload();
-
-        //
-        // If this is a task with ground truth labels, check if users made any mistake.
-//        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-//            var numMistakes = svl.goldenInsertion.reviewLabels();
-//            self.disableSubmit().lockDisableSubmit();
-//            self.disableSkip().lockDisableSkip();
-//            return false;
-//        }
-
-        //
-        // Disable a submit button and other buttons so turkers cannot submit labels more than once.
-        //$btnSubmit.attr('disabled', true);
-        //$btnSkip.attr('disabled', true);
-        $btnConfirmSkip.attr('disabled', true);
-
-        svl.modal.showPageOverlay();
+        svl.modalSkip.showPageOverlay();
         //$pageOverlay.css('visibility', 'visible');
 
 
-        //
         // If this is a user experiment
-        if (properties.userExperiment) {
-            if (!status.taskDifficulty) {
-                status.submitType = 'submit';
-                $taskDifficultyWrapper.css('visibility', 'visible');
-                return false;
-            }
-        }
+        //if (properties.userExperiment) {
+        //    if (!status.taskDifficulty) {
+        //        status.submitType = 'submit';
+        //        $taskDifficultyWrapper.css('visibility', 'visible');
+        //        return false;
+        //    }
+        //}
 
         //
         // Submit collected data if a user is not in onboarding mode.
         if (!properties.onboarding) {
             data = compileSubmissionData();
             submit(data);
-//            svl.tracker.push('TaskSubmit');
-//
-//            data = compileSubmissionData();
-//
-//            if (status.taskDifficulty != undefined) {
-//                data.taskDifficulty = status.taskDifficulty;
-//                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
-//                if (status.taskDifficultyComment) {
-//                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
-//                }
-//            }
-//
-//            try {
-//                $.ajax({
-//                    async: false,
-//                    contentType: 'application/json; charset=utf-8',
-//                    url: url,
-//                    type: 'post',
-//                    data: JSON.stringify(data),
-//                    dataType: 'json',
-//                    success: function (result) {
-//                        if (result.error) {
-//                            console.log(result.error);
-//                        }
-//                    },
-//                    error: function (result) {
-//                        throw result;
-//                        // console.error(result);
-//                    }
-//                });
-//            } catch (e) {
-//                console.error(e);
-//                return false;
-//            }
-//
-//            if (properties.taskRemaining > 1) {
-//                window.location.reload();
-//                return false;
-//            } else {
-//                if (properties.isAMTTask) {
-//                    return true;
-//                } else {
-//                    window.location.reload();
-//                    //window.location = '/';
-//                    return false;
-//                }
-//            }
-        }
-        return false;
-    }
-
-    function goldenInsertionSubmit () {
-        // This method submits the labels that a user provided on golden insertion task and refreshes the page.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.tracker.push('GoldenInsertion_Submit');
-            var url = properties.dataStoreUrl;
-            var data;
-            svl.goldenInsertion.disableOkButton();
-
-            data = compileSubmissionData();
-            data.labelingTask.description = "GoldenInsertion";
-
-            try {
-                $.ajax({
-                    async: false,
-                    url: url,
-                    type: 'post',
-                    data: data,
-                    dataType: 'json',
-                    success: function (result) {
-                        if (((typeof result) == 'object') && ('error' in result) && result.error) {
-                            console.log(result.error);
-                        }
-                    },
-                    error: function (result) {
-                        throw result;
-                        // console.error(result);
-                    }
-                });
-            } catch (e) {
-                console.error(e);
-                return false;
-            }
-
-            window.location.reload();
-        } else {
-            throw self.className + ": This method cannot be called without GoldenInsertion";
-        }
-        return false;
-    }
-
-    function showDisabledSubmitButtonMessage () {
-        // This method is called from formSubmit method when a user clicks the submit button evne then have
-        // not looked around and inspected the entire panorama.
-        var completionRate = parseInt(svl.progressPov.getCompletionRate() * 100, 10);
-
-        if (!('onboarding' in svl && svl.onboarding) &&
-            (completionRate < 100)) {
-            var message = "You have inspected " + completionRate + "% of the scene. Let's inspect all the corners before you submit the task!";
-            var $OkBtn;
-
-            //
-            // Clear and render the onboarding canvas
-            var $divOnboardingMessageBox = undefined; //
-            messageCanvas.clear();
-            messageCanvas.renderMessage(300, 250, message, 350, 140);
-            messageCanvas.renderArrow(650, 282, 710, 282);
-
-            if (status.disabledButtonMessageVisibility === 'hidden') {
-                status.disabledButtonMessageVisibility = 'visible';
-                var okButton = '<button id="TempOKButton" class="button bold" style="left:20px;position:relative; width:100px;">OK</button>';
-                $divOnboardingMessageBox.append(okButton);
-                $OkBtn = $("#TempOKButton");
-                $OkBtn.bind('click', function () {
-                    //
-                    // Remove the OK button and clear the message.
-                    $OkBtn.remove();
-                    messageCanvas.clear();
-                    status.disabledButtonMessageVisibility = 'hidden';
-                })
-            }
-        }
-    }
-
-    function skipSubmit (e) {
-        // To prevent a button in a form to fire form submission, add onclick="return false"
-        // http://stackoverflow.com/questions/932653/how-to-prevent-buttons-from-submitting-forms
-        if (!properties.isAMTTask || properties.taskRemaining > 1) {
-            e.preventDefault();
-        }
-
-
-
-        var url = properties.dataStoreUrl;
-        var data = {};
-        //
-        // If this is a task with ground truth labels, check if users made any mistake.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            self.disableSubmit().lockDisableSubmit();
-            $btnSkip.attr('disabled', true);
-            $btnConfirmSkip.attr('disabled', true);
-            $divSkipOptions.css({
-                visibility: 'hidden'
-            });
-            var numMistakes = svl.goldenInsertion.reviewLabels()
-            return false;
-        }
-
-        //
-        // Disable a submit button.
-        $btnSubmit.attr('disabled', true);
-        $btnSkip.attr('disabled', true);
-        $btnConfirmSkip.attr('disabled', true);
-
-        svl.modal.showPageOverlay();
-        //$pageOverlay.css('visibility', 'visible');
-
-
-        //
-        // If this is a user experiment, run the following lines
-        if (properties.userExperiment) {
-            if (!status.taskDifficulty) {
-                status.submitType = 'skip';
-                $taskDifficultyWrapper.css('visibility', 'visible');
-                return false;
-            }
-        }
-        //
-        // Set a value for skipReasonDescription.
-        //if (status.radioValue === 'Other:') {
-        //    status.skipReasonDescription = "Other: " + $textSkipOtherReason.val();
-        //}
-
-        // Submit collected data if a user is not in oboarding mode.
-        if (!properties.onboarding) {
-            svl.tracker.push('TaskSubmitSkip');
-
-            //
-            // Compile the submission data with compileSubmissionData method,
-            // then overwrite a part of the compiled data.
-            data = compileSubmissionData()
-            data.noLabels = true;
-            data.labelingTask.no_label = 1;
-            data.labelingTask.description = status.skipReasonDescription;
-
-            if (status.taskDifficulty != undefined) {
-                data.taskDifficulty = status.taskDifficulty;
-                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
-                if (status.taskDifficultyComment) {
-                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
-                }
-            }
-
-            try {
-                $.ajax({
-                    async: false,
-                    url: url,
-                    type: 'post',
-                    data: data,
-                    success: function (result) {
-                        if (result.error) {
-                            console.log(result.error);
-                        }
-                    },
-                    error: function (result) {
-                        throw result;
-                        // console.error(self.className, result);
-                    }
-                });
-            } catch (e) {
-                console.error(e);
-                return false;
-            }
-
-            if (properties.taskRemaining > 1) {
-                window.location.reload();
-                return false;
-            } else {
-                if (properties.isAMTTask) {
-                    // $form.submit();
-                    document.getElementById("BusStopLabelerForm").submit();
-                    return true;
-                } else {
-                    // window.location = '/';
-                    window.location.reload();
-                    return false;
-                }
-            }
 
         }
         return false;
     }
 
 
+    /**
+     * Open a modal window and ask why they are jumping to another location
+     * @param e
+     * @returns {boolean}
+     */
     function openSkipWindow (e) {
         e.preventDefault();
-
-        if (status.disableSkip) {
-            showDisabledSubmitButtonMessage();
-        } else {
-            svl.tracker.push('Click_OpenSkipWindow');
-            $divSkipOptions.css({
-                visibility: 'visible'
-            });
-        }
+        svl.tracker.push('Click_OpenSkipWindow');
+        svl.modalSkip.showSkipMenu();
         return false;
     }
 
-
-    //function closeSkipWindow (e) {
-    //    // This method closes the skip menu.
-    //    e.preventDefault(); // Do not submit the form!
-    //
-    //    svl.tracker.push('Click_CloseSkipWindow');
-    //
-    //    $divSkipOptions.css({
-    //        visibility: 'hidden'
-    //    });
-    //    return false;
-    //}
-
-
-    //function radioSkipReasonClicked () {
-    //    // This function is invoked when one of a radio button is clicked.
-    //    // If the clicked radio button is 'Other', check if a user has entered a text.
-    //    // If the text is entered, then enable submit. Otherwise disable submit.
-    //    status.radioValue = $(this).attr('value');
-    //    svl.tracker.push('Click_SkipRadio', {RadioValue: status.radioValue});
-    //
-    //    if (status.radioValue !== 'Other:') {
-    //        status.skipReasonDescription = status.radioValue;
-    //        enableConfirmSkip();
-    //    } else {
-    //        var textValue = $textSkipOtherReason.val();
-    //        if (textValue) {
-    //            enableConfirmSkip();
-    //        } else {
-    //            disableConfirmSkip();
-    //        }
-    //    }
-    //}
-
-    //function skipOtherReasonInput () {
-    //    // This function is invoked when the text is entered in Other field.
-    //    if (status.radioValue && status.radioValue === 'Other:') {
-    //        var textValue = $textSkipOtherReason.val();
-    //        if (textValue) {
-    //            enableConfirmSkip();
-    //        } else {
-    //            disableConfirmSkip();
-    //        }
-    //    }
-    //}
-
-    //function taskDifficultyOKButtonClicked (e) {
-    //    // This is used in the user experiment script
-    //    // Get checked radio value
-    //    // http://stackoverflow.com/questions/4138859/jquery-how-to-get-selected-radio-button-value
-    //    status.taskDifficulty = parseInt($('input[name="taskDifficulty"]:radio:checked').val(), 10);
-    //    status.taskDifficultyComment = $("#task-difficulty-comment").val();
-    //    status.taskDifficultyComment = (status.taskDifficultyComment != "") ? status.taskDifficultyComment : undefined;
-    //    console.log(status.taskDifficultyComment);
-    //
-    //
-    //    if (status.taskDifficulty) {
-    //        if (('submitType' in status) && status.submitType == 'submit') {
-    //            formSubmit(e);
-    //        } else if (('submitType' in status) && status.submitType == 'skip') {
-    //            skipSubmit(e);
-    //        }
-    //    }
-    //}
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////////////////////////////////////////////
 
     function checkSubmittable () {
         // This method checks whether users can submit labels or skip this task by first checking if they
@@ -3285,31 +2875,25 @@ function Form ($, params) {
 
         if (1 - completionRate < 0.01) {
             if (labelCount > 0) {
-                self.enableSubmit();
-                self.disableSkip();
+                enableSubmit();
+                disableSkip();
             } else {
-                self.disableSubmit();
-                self.enableSkip();
+                disableSubmit();
+                enableSkip();
             }
             return true;
         } else {
-            self.disableSubmit();
-            self.disableSkip();
+            disableSubmit();
+            disableSkip();
             return false;
         }
     }
 
-    function compileSubmissionData () {
-        // This method returns the return value of a private method compileSubmissionData();
-        return compileSubmissionData();
-    }
-
-
     function disableSubmit () {
         if (!lock.disableSubmit) {
             status.disableSubmit = true;
-            //  $btnSubmit.attr('disabled', true);
-            $btnSubmit.css('opacity', 0.5);
+            //  svl.ui.form.submitButton.attr('disabled', true);
+            svl.ui.form.submitButton.css('opacity', 0.5);
             return this;
         }
         return false;
@@ -3319,8 +2903,8 @@ function Form ($, params) {
     function disableSkip () {
         if (!lock.disableSkip) {
             status.disableSkip = true;
-            // $btnSkip.attr('disabled', true);
-            $btnSkip.css('opacity', 0.5);
+            // svl.ui.form.skipButton.attr('disabled', true);
+            svl.ui.form.skipButton.css('opacity', 0.5);
             return this;
         }
         return false;
@@ -3329,8 +2913,8 @@ function Form ($, params) {
     function enableSubmit () {
         if (!lock.disableSubmit) {
             status.disableSubmit = false;
-            // $btnSubmit.attr('disabled', false);
-            $btnSubmit.css('opacity', 1);
+            // svl.ui.form.submitButton.attr('disabled', false);
+            svl.ui.form.submitButton.css('opacity', 1);
             return this;
         }
         return false;
@@ -3339,8 +2923,8 @@ function Form ($, params) {
     function enableSkip () {
         if (!lock.disableSkip) {
             status.disableSkip = false;
-            // $btnSkip.attr('disabled', false);
-            $btnSkip.css('opacity', 1);
+            // svl.ui.form.skipButton.attr('disabled', false);
+            svl.ui.form.skipButton.css('opacity', 1);
             return this;
         }
         return false;
@@ -3413,7 +2997,6 @@ function Form ($, params) {
     self.disableSkip = disableSkip;
     self.enableSubmit = enableSubmit;
     self.enableSkip = enableSkip;
-    self.goldenInsertionSubmit = goldenInsertionSubmit;
     self.isPreviewMode = isPreviewMode;
     self.lockDisableSubmit = lockDisableSubmit;
     self.lockDisableSkip = lockDisableSkip;
@@ -3424,7 +3007,6 @@ function Form ($, params) {
     self.unlockDisableSubmit = unlockDisableSubmit;
     self.unlockDisableSkip = unlockDisableSkip;
     self.submit = submit;
-    self.compileSubmissionData = compileSubmissionData;
     _init(params);
     return self;
 }
@@ -5631,7 +5213,7 @@ function Main ($, params) {
         svl.progressPov = new ProgressPov($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
-        svl.modal = new Modal($);
+        svl.modalSkip = new ModalSkip($);
 
 
         // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
@@ -7014,10 +6596,46 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Modal ($) {
-    var self = { className : 'Modal' };
+function ModalSkip ($) {
+    var self = { className : 'Modal'},
+        status = {
+            disableClickOK: true
+        };
+
+
 
     function _init () {
+        disableClickOK();
+
+        svl.ui.modalSkip.ok.bind("click", handlerClickOK);
+        svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
+        svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
+    }
+
+    /**
+     * This method handles a click OK event
+     * @param e
+     */
+    function handlerClickOK (e) {
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val()
+        console.debug(radioValue);
+    }
+
+    /**
+     * This method handles a click Cancel event
+     * @param e
+     */
+    function handlerClickCancel (e) {
+
+        hideSkipMenu();
+    }
+
+    /**
+     * This method takes care of nothing.
+     * @param e
+     */
+    function handlerClickRadio (e) {
+        enableClickOK();
     }
 
     /**
@@ -7028,21 +6646,40 @@ function Modal ($) {
     }
 
     /**
-     * Show the background of the modal menu
+     * Hide a skip menu
      */
-    function showPageOverlay () {
-        svl.ui.modal.overlay.css('visibility', 'visible');
+    function hideSkipMenu () {
+        svl.ui.modalSkip.holder.addClass('hidden');
+    }
+
+    /**
+     * Show a skip menu
+     */
+    function showSkipMenu () {
+        svl.ui.modalSkip.holder.removeClass('hidden');
+    }
+
+
+    function disableClickOK () {
+        svl.ui.modalSkip.ok.attr("disabled", true);
+        svl.ui.modalSkip.ok.addClass("disabled");
+        status.disableClickOK = true;
+    }
+
+    function enableClickOK () {
+        svl.ui.modalSkip.ok.attr("disabled", false);
+        svl.ui.modalSkip.ok.removeClass("disabled");
+        status.disableClickOK = false;
     }
 
 
     _init();
 
-    self.hidePageOverlay = hidePageOverlay;
-    self.showPageOverlay = showPageOverlay;
+    self.showSkipMenu = showSkipMenu;
+    self.hideSkipMenu = hideSkipMenu;
     return self;
 }
 
-// test
 var svl = svl || {};
 
 /**
@@ -10726,6 +10363,21 @@ function UI ($, params) {
       self.popUpMessage.title = $("#pop-up-message-title");
       self.popUpMessage.content = $("#pop-up-message-content");
 
+      // Modal
+      self.modal = {};
+      self.modal.overlay = $("#page-overlay-holder");
+
+      // ModalSkip
+      self.modalSkip = {};
+      self.modalSkip.holder = $("#modal-skip-holder");
+      self.modalSkip.box = $("#modal-skip-box");
+      self.modalSkip.background = $("#modal-skip-background");
+      self.modalSkip.title = $("#modal-skip-title");
+      self.modalSkip.content = $("#modal-skip-content");
+      self.modalSkip.ok = $("#modal-skip-ok-button");
+      self.modalSkip.cancel = $("#modal-skip-cancel-button");
+      self.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
+
       // ProgressPov
       self.progressPov = {};
       self.progressPov.holder = $("#progress-pov-holder");
@@ -10738,16 +10390,11 @@ function UI ($, params) {
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
       // Ribbon menu DOMs
-      $divStreetViewHolder = $("#Holder_StreetView");
-      $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
-      $ribbonConnector = $("#StreetViewLabelRibbonConnection");
-      $spansModeSwitches = $('span.modeSwitch');
-
       self.ribbonMenu = {};
-      self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
-      self.ribbonMenu.buttons = $spansModeSwitches;
-      self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
-      self.ribbonMenu.connector = $ribbonConnector;
+      self.ribbonMenu.streetViewHolder = $("#Holder_StreetView");
+      self.ribbonMenu.buttons = $('span.modeSwitch');
+      self.ribbonMenu.bottonBottomBorders = $(".RibbonModeSwitchHorizontalLine");
+      self.ribbonMenu.connector = $("#StreetViewLabelRibbonConnection");
 
       // Zoom control
       self.zoomControl = {};
@@ -10765,9 +10412,7 @@ function UI ($, params) {
       self.form.submitButton = $("#submit-button");
       self.form.form = $("#svl-form");
 
-      // Modal
-      self.modal = {};
-      self.modal.overlay = $("#page-overlay-holder");
+
 
       self.onboarding = {};
       self.onboarding.holder = $("#onboarding-holder");

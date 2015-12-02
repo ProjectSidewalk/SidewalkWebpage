@@ -48,7 +48,7 @@ function Main ($, params) {
         svl.progressPov = new ProgressPov($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
-        svl.modal = new Modal($);
+        svl.modalSkip = new ModalSkip($);
 
 
         // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message

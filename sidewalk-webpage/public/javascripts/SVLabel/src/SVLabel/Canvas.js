@@ -1071,9 +1071,9 @@ function Canvas ($, param) {
 
         //
         // Check if the user audited all the angles or not.
-        if ('form' in svl) {
-            svl.form.checkSubmittable();
-        }
+        //if ('form' in svl) {
+        //    svl.form.checkSubmittable();
+        //}
 
         if ('progressPov' in svl) {
             svl.progressPov.updateCompletionRate();
