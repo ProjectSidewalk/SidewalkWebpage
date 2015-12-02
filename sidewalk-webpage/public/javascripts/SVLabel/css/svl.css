@@ -1,0 +1,160 @@
+.svl-container {
+    background: rgba(255,255,255,1);
+    padding: 0px;
+    margin: 0px;
+    font-family: SegoeUILight, 'Mono Sans', Helvetica, Arial;
+}
+
+text {
+    visibility: hidden;
+}
+
+.visible {
+    visibility: visible;
+}
+/*
+#Footer {
+    position: absolute;
+    top: 100%;
+    width: 100%;
+}
+
+#FooterMessageBox {
+    background: rgba(0, 161, 203, 0.9);
+    color: white;
+    font-size: 12px;
+
+    position: absolute;
+    top:-20px;
+    height: 20px;
+    width: 100%;
+}
+
+#FooterMessage {
+    margin: 5px;
+}
+*/
+.highlight {
+    color: orange;
+    font-family: SegoeUISemiBold, 'Mono Sans', Helvetica, Arial;
+    font-weight: bold;
+}
+
+.button {
+    background: -moz-linear-gradient(center top , #fff, #eee);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+    color: rgba(96,96,96,1);
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 3px;
+    padding-bottom: 2px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 2px;
+    width: 200px;
+}
+
+.bold {
+    font-family: SegoeUISemiBold, 'Open Sans', 'Mono Sans', Helvetica, Arial;
+    font-weight: bold;
+}
+
+b {
+    font-family: SegoeUISemiBold, 'Open Sans','Mono Sans', Helvetica, Arial;
+    font-weight: bold;
+}
+
+/* Pseudo-classes
+* http://www.w3schools.com/css/css_pseudo_classes.asp */
+.button:hover {
+    background: -moz-linear-gradient(center top , #ccc, #bbb);
+    background: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#bbb));
+    color: #333;
+}
+
+.defaultTextActive { color:#888; font-style: italic; }
+
+.inline {
+    float: left;
+}
+
+.InlineBlock {
+    display: inline-block;
+}
+
+.clearBoth {
+    clear: both;
+}
+
+input[type="radio"] {
+    height: 15px;
+    width: 15px;
+}
+
+.HorizontalLine_SolidGray {
+    border-bottom: 1px solid rgba(90,90,90,0.5);
+}
+
+.VerticalLine_ThinDottedGray {
+    border-left: 1px dotted #ccc;
+    margin-bottom: 1px;
+    margin-left: 0px;
+    margin-right: 0px;
+    margin-top: 1px;
+}
+
+.VerticalLine_Solid {
+    /* border-top: 3px solid rgba(0,0,0,1); */
+    background: black;
+    /* Position */
+    border-left: 1px solid #ccc;
+
+    margin-bottom: 1px;
+    margin-left: 0px;
+    margin-right: 0px;
+    margin-top: 1px;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+#svl-application-holder {
+    background: rgba(255,255,255,1);
+    margin: 0px auto;
+    position: relative;
+    height: 700px;
+    width: 960px;
+}
+
+
+/*************************************************************
+* This style applies to a wrapper that holds the ribbon menu,
+* Street View window, feedback window, and Google Map window.
+*************************************************************/
+#Holder_DirectManipulation {
+    border: 3px solid transparent;
+    position: absolute;
+    left: 0;
+    top: 110px;
+    height: 480px;
+    width: 720px;
+}
+
+
+#page-overlay-holder {
+    background: rgba(255,255,255,0.5);
+    left: 0;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    visibility: hidden;
+}
+#ajax-loader-image {
+    left: 45%;
+    position: relative;
+    top: 90%;
+}
+

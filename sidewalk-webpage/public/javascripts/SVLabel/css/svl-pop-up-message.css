@@ -1,0 +1,32 @@
+#pop-up-message-holder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    /* height: 100%;
+    width: 100%; */
+}
+
+#pop-up-message-background {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    height: 100%;
+    width: 100%;
+}
+
+#pop-up-message-box {
+    background: rgba(69,183,214,1);
+    border: 3px solid rgba(255,255,255,1);
+    color: white;
+    /* background: rgba(255, 255, 255, 1); */
+    /* border: 3px solid rgba(200, 200, 200, 1); */
+    /* color: black; */
+    font-size: 14pt;
+    padding: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    visibility: visible;
+    width: 730px;
+}

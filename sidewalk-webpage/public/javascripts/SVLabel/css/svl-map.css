@@ -1,0 +1,19 @@
+/*******************************************
+* This class is applied to DIVs and CANVASes
+* which overlap with a Google Map.
+*/
+#google-maps-holder  {
+    position: absolute;
+    left: 735px;
+    top: 288px;
+}
+
+.google-maps-pane {
+    border: 1px solid black;
+    position: absolute;
+    left: 0px;
+    top:0px;
+    width: 200px;
+    height: 200px;
+}
+

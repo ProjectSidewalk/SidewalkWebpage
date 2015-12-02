@@ -1,0 +1,58 @@
+
+/*
+ * Labeled landmark counter
+ */
+#Holder_LabeledLandmarks {
+    position: relative;
+    height: 100px;
+}
+
+.LabeledLandmarkHolder {
+    background: transparent;
+    border-bottom: solid 1px #ccc;
+    text-align: left;
+    height: 45px;
+    width: 80px;
+}
+
+#LabeledLandmarkHolder_CurbRamp {
+    position: absolute;
+    left: 10px;
+    top: 20px;
+}
+
+#LabeledLandmarkHolder_NoCurbRamp {
+    position: absolute;
+    left: 120px;
+    top: 20px;
+}
+
+.LabeledLandmark_Icon {
+    height: 45px;
+    width: 45px;
+}
+
+.LabeledLandmark_Description {
+    font-size: 0.8em;
+    text-align: center;
+    visibility: hidden;
+}
+
+.LabeledLandmark_Count {
+    color: #484848;
+    font-size: 1.4em;
+    font-family: SegoeUISemiBold, 'Mono Sans', Helvetica, Arial;
+    visibility: visible;
+    /* position */
+    position: absolute;
+    top: 22px;
+    left: 55px;
+    height: 20px;
+    width: 20px;
+}
+
+#LabeledLandmarks_SubmittedLabelCount {
+    font-size: 8pt;
+    position: absolute;
+    top: 67px;
+}
