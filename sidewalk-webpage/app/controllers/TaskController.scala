@@ -39,6 +39,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @return
    */
   def get = UserAwareAction.async { implicit request =>
+    // Todo. Edit this so I can control which region to drop the user.
     request.identity match {
       case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toString))
       case None => Future.successful(Ok(AuditTaskTable.getNewTask.toString))
@@ -54,6 +55,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def next(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
     Future.successful(Ok(AuditTaskTable.getNewTask(streetEdgeId, lat, lng).toJSON))
+  }
+
+  /**
+   * Get a next task, but make sure the task is in the specified region.
+   * @param regionId
+   * @return
+   */
+  def nextInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    val task = AuditTaskTable.getNewTaskInRegion(regionId)
+    Future.successful(Ok(task.toJSON))
   }
 
   /**

@@ -25,6 +25,8 @@ $(document).ready(function () {
         .fitBounds(bounds)
         .setView([38.892, -77.038], 12);
 
+    popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
+
     initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
@@ -49,19 +51,34 @@ function initializeOverlayPolygon (map) {
  */
 function initializeNeighborhoodPolygons(map) {
     var neighborhoodPolygonStyle = {
-      color: '#888',
-      weight: 1,
-      opacity: 0.25,
-      fillColor: "#ccc",
-      fillOpacity: 0.1
-    };
+          color: '#888',
+          weight: 1,
+          opacity: 0.25,
+          fillColor: "#ccc",
+          fillOpacity: 0.1
+        },
+        layers = [],
+        currentLayer;
 
     function onEachNeighborhoodFeature(feature, layer) {
+
+        var regionId = feature.properties.region_id,
+            url = "/audit/task/region/" + regionId,
+            popupContent = "<p>Do you want to audit this area? " +
+                "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a></p>";
+        layer.bindPopup(popupContent);
+        layers.push(layer);
+
         layer.on('mouseover', function (e) {
             this.setStyle({color: "red", fillColor: "red"});
+
         });
         layer.on('mouseout', function (e) {
-            this.setStyle(neighborhoodPolygonStyle);
+            for (var i = layers.length - 1; i >= 0; i--) {
+                if (currentLayer !== layers[i])
+                    layers[i].setStyle(neighborhoodPolygonStyle);
+            }
+            //this.setStyle(neighborhoodPolygonStyle);
         });
         layer.on('click', function (e) {
             var center = turf.center(this.feature),
@@ -70,9 +87,8 @@ function initializeNeighborhoodPolygons(map) {
                 zoom = map.getZoom();
             zoom = zoom > 14 ? zoom : 14;
 
-            console.log(coordinates);
-            console.log(latlng);
             map.setView(latlng, zoom, {animate: true});
+            currentLayer = this;
         });
     }
 
@@ -85,7 +101,16 @@ function initializeNeighborhoodPolygons(map) {
             onEachFeature: onEachNeighborhoodFeature
           })
           .addTo(map);
+
+
     });
+
+    // Catch click even in popups
+    // https://www.mapbox.com/mapbox.js/example/v1.0.0/clicks-in-popups/
+//    $("#map").on('click', '.region-selection-trigger', function () {
+//        var regionId = $(this).attr('regionid');
+//        console.log(regionId)
+//    });
 }
 
 /**

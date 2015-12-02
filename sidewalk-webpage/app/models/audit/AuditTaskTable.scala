@@ -150,12 +150,13 @@ object AuditTaskTable {
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
+    // Todo: I don't think this query takes into account if the auditor has looked at the area or not.
     val selectEdgeQuery = Q.query[(Float, Float, Int), StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
         FROM sidewalk.street_edge_street_node AS st_e_st_n
         INNER JOIN (SELECT st_n.street_node_id FROM sidewalk.street_node AS st_n
-        ORDER BY st_n.geom <-> st_setsrid(st_makepoint(?, ?), 4326)
-        LIMIT 1) AS st_n_view
+          ORDER BY st_n.geom <-> st_setsrid(st_makepoint(?, ?), 4326)
+          LIMIT 1) AS st_n_view
         ON st_e_st_n.street_node_id = st_n_view.street_node_id
         INNER JOIN sidewalk.street_edge AS st_e
         ON st_e_st_n.street_edge_id = st_e.street_edge_id
@@ -169,6 +170,39 @@ object AuditTaskTable {
     edges match {
       case edges if (edges.size > 0) => {
         val e = edges(0)
+
+        StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+      }
+      case _ => {
+        getNewTask // The list is empty for whatever the reason
+      }
+    }
+  }
+
+  /**
+   * Get a task that is in a given region
+   * @param regionId
+   * @return
+   */
+  def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
+    import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
+
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+
+    val selectEdgeQuery = Q.query[Int, StreetEdge](
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM region
+       |INNER JOIN street_edge AS st_e
+       |ON ST_Intersects(st_e.geom, region.geom)
+       |WHERE region.region_id = ?""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery(regionId).list
+    edges match {
+      case edges if (edges.size > 0) => {
+        // Increment the assignment count and return the task
+        val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
       }

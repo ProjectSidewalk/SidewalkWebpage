@@ -71,4 +71,19 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       }
     }
   }
+
+  def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => {
+        val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      }
+      case None => {
+        // Check if s/he has gone through an onboarding.
+        val cookie = request.cookies.get("sidewalk-onboarding")
+        val task: NewTask = AuditTaskTable.getNewTask
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+      }
+    }
+  }
 }

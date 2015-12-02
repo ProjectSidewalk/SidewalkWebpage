@@ -19,6 +19,8 @@ POST    /signUp                     @controllers.SignUpController.signUp(url: St
 GET     /audit                      @controllers.ApplicationController.audit
 GET     /audit/task                 @controllers.TaskController.get
 GET     /audit/task/next            @controllers.TaskController.next(streetEdgeId: Int, lat: Float, lng: Float)
+GET     /audit/task/nextInRegion    @controllers.TaskController.nextInRegion(regionId: Int)
+GET     /audit/task/region/:id      @controllers.ApplicationController.auditRegion(id: Int)
 POST    /audit/task                 @controllers.TaskController.post
 
 # Postgres
