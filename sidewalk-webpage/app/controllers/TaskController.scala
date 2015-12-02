@@ -41,8 +41,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   def get = UserAwareAction.async { implicit request =>
     // Todo. Edit this so I can control which region to drop the user.
     request.identity match {
-      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toString))
-      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toString))
+      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toJSON))
+      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toJSON))
     }
   }
 

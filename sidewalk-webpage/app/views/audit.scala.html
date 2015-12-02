@@ -4,7 +4,7 @@
     @navbar(user, Some("/audit"))
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.Onboarding.js")'></script>
+    <!--<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel/Onboarding/Onboarding.js")'></script>-->
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
 
@@ -139,16 +139,16 @@
                 <div id="google-maps-holder"></div>
             </div>
             <div id="form-holder">
-                <form id="BusStopLabelerForm" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
+                <form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
                     <input type="hidden" name="assignmentId" value="" />
                     <input type="hidden" name="workerId" value=""/>
                     <input type="hidden" name="hitId" value="" />
                     <div id="comment-field-holder">
-                        <textarea id="comment-field" class="defaultTextActive"  title="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>
+                        <textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>
                     </div>
                     <div id="form-buttons-holder">
-                        <button id="skip-button" class="button" style="margin-top: 3px; width:300px;" onclick="return false;">Skip</button>
-                        <input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />
+                        <button id="skip-button" class="button" onclick="return false;">Jump to another location</button>
+                        <!--<input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />-->
                     </div>
                 </form>
             </div>
