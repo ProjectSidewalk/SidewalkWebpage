@@ -13,7 +13,15 @@ object TaskSubmissionFormats {
   case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, points: Seq[LabelPointSubmission])
   case class TaskSubmission(streetEdgeId: Int, taskStart: String)
   case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
-  case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission)
+  case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission])
+  case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
+
+
+  implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
+    (JsPath \ "issue_description").read[String] and
+      (JsPath \ "lat").read[Float] and
+      (JsPath \ "lng").read[Float]
+    )(IncompleteTaskSubmission.apply _)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
@@ -82,7 +90,8 @@ object TaskSubmissionFormats {
       (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "labels").read[Seq[LabelSubmission]] and
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
-      (JsPath \ "environment").read[EnvironmentSubmission]
+      (JsPath \ "environment").read[EnvironmentSubmission] and
+      (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission]
     )(AuditTaskSubmission.apply _)
 
 }

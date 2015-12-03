@@ -35,25 +35,22 @@ function Task ($) {
      * Get a next task
      */
     function nextTask (parameters) {
-        var streetEdgeId, regionId;
+        var streetEdgeId, regionId, url;
+        if (!parameters) parameters = {};
         if ("streetEdgeId" in parameters) { streetEdgeId = parameters["streetEdgeId"]; }
         if ("regionId" in parameters) { regionId = parameters["regionId"]; }
 
         regionId = null;  // Let's keep it simple...
 
+        var len = taskSetting.features[0].geometry.coordinates.length - 1,
+            latEnd = taskSetting.features[0].geometry.coordinates[len][1],
+            lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
         if (regionId) {
-            var len = taskSetting.features[0].geometry.coordinates.length - 1,
-                latEnd = taskSetting.features[0].geometry.coordinates[len][1],
-                lngEnd = taskSetting.features[0].geometry.coordinates[len][0],
-                url = "/audit/task/nextInRegion?regionId=" + regionId;
+            url = "/audit/task/nextInRegion?regionId=" + regionId;
         } else if (streetEdgeId) {
-//            var data = {street_edge_id: streetEdgeId},
-            var len = taskSetting.features[0].geometry.coordinates.length - 1,
-                latEnd = taskSetting.features[0].geometry.coordinates[len][1],
-                lngEnd = taskSetting.features[0].geometry.coordinates[len][0],
-                url = "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd;
+            url = "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd;
         } else {
-            var url = "/audit/task";
+            url = "/audit/task";
         }
 
         $.ajax({
@@ -73,8 +70,6 @@ function Task ($) {
                 if (d1 > 10 && d2 > 10) {
                     // If the starting point of the task is far away, jump there.
                     svl.setPosition(lat1, lng1);
-//                     svl.setPosition(38.912962, -76.992749);
-//                    svl.setPosition(38.917815, -76.988286);
                 } else if (d2 < d1) {
                     // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                     task.features[0].geometry.coordinates.reverse();
@@ -86,6 +81,26 @@ function Task ($) {
                 throw result;
             }
         });
+    }
+
+    function newTask () {
+        var url = "/audit/task";
+        $.ajax({
+            url: url,
+            type: 'get',
+            success: function (task) {
+                var len = task.features[0].geometry.coordinates.length - 1,
+                    lat1 = task.features[0].geometry.coordinates[0][1],
+                    lng1 = task.features[0].geometry.coordinates[0][0];
+
+                svl.setPosition(lat1, lng1);
+                set(task);
+                render();
+            },
+            error: function (result) {
+                throw result;
+            }
+        })
     }
 
     /**
@@ -253,5 +268,6 @@ function Task ($) {
     self.render = render;
     self.save = save;
     self.nextTask = nextTask;
+    self.newTask = newTask;
     return self;
 }

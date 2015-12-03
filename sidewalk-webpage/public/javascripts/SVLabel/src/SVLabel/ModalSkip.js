@@ -28,8 +28,16 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickOK (e) {
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val()
-        console.debug(radioValue);
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
+            position = svl.panorama.getPosition(),
+            incomplete = {
+                issue_description: radioValue,
+                lat: position.lat(),
+                lng: position.lng()
+            };
+
+        svl.form.skipSubmit(incomplete);
+        hideSkipMenu();
     }
 
     /**
@@ -37,7 +45,6 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickCancel (e) {
-
         hideSkipMenu();
     }
 
@@ -60,6 +67,7 @@ function ModalSkip ($) {
      * Hide a skip menu
      */
     function hideSkipMenu () {
+        svl.ui.modalSkip.radioButtons.prop('checked', false);
         svl.ui.modalSkip.holder.addClass('hidden');
     }
 

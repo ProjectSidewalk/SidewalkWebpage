@@ -249,35 +249,28 @@ function Form ($, params) {
             e.preventDefault();
         }
 
-        var url = properties.dataStoreUrl;
-        var data = {};
-
         if (status.disableSubmit) {
             showDisabledSubmitButtonMessage();
             return false;
         }
 
-        svl.modalSkip.showPageOverlay();
-        //$pageOverlay.css('visibility', 'visible');
-
-
-        // If this is a user experiment
-        //if (properties.userExperiment) {
-        //    if (!status.taskDifficulty) {
-        //        status.submitType = 'submit';
-        //        $taskDifficultyWrapper.css('visibility', 'visible');
-        //        return false;
-        //    }
-        //}
-
-        //
         // Submit collected data if a user is not in onboarding mode.
         if (!properties.onboarding) {
-            data = compileSubmissionData();
+            var data = compileSubmissionData();
             submit(data);
-
         }
         return false;
+    }
+
+    /**
+     * Submit data that has been collected so far.
+     * @param e
+     */
+    function skipSubmit (incompleteTaskData) {
+        var data = compileSubmissionData();
+        data.incomplete = incompleteTaskData;
+        submit(data);
+        svl.task.newTask();
     }
 
 
@@ -440,6 +433,7 @@ function Form ($, params) {
     self.unlockDisableSubmit = unlockDisableSubmit;
     self.unlockDisableSkip = unlockDisableSkip;
     self.submit = submit;
+    self.skipSubmit = skipSubmit;
     _init(params);
     return self;
 }
