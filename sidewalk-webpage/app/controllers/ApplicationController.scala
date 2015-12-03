@@ -75,7 +75,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => {
-        val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId)
+        val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
       }
       case None => {

@@ -38,8 +38,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * Get a task for a user.
    * @return
    */
-  def get = UserAwareAction.async { implicit request =>
-    // Todo. Edit this so I can control which region to drop the user.
+  def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toJSON))
       case None => Future.successful(Ok(AuditTaskTable.getNewTask.toJSON))
@@ -53,8 +52,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param lng
    * @return
    */
-  def next(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(AuditTaskTable.getNewTask(streetEdgeId, lat, lng).toJSON))
+  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
   }
 
   /**
@@ -62,9 +61,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param regionId
    * @return
    */
-  def nextInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.getNewTaskInRegion(regionId)
-    Future.successful(Ok(task.toJSON))
+  def getTaskInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val task = AuditTaskTable.getNewTaskInRegion(regionId)
+        Future.successful(Ok(task.toJSON))
+      case None =>
+        val task = AuditTaskTable.getNewTaskInRegion(regionId)
+        Future.successful(Ok(task.toJSON))
+    }
+
   }
 
   /**
@@ -176,7 +182,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
-        "message" -> "Your user id could not be found."
+        "message" -> "We could not find your username in our system :("
       )))
     }
   }

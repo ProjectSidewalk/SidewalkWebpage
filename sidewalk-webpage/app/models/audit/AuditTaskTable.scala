@@ -3,10 +3,10 @@ package models.audit
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
 import java.util.{UUID, Calendar, Date}
+import models.User
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
-import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
-import models.daos.slick.DBTableDefinitions.{UserTable, DBUser => User}
+import models.daos.slick.DBTableDefinitions.{UserTable, DBUser}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -51,7 +51,7 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 
-  def user: ForeignKeyQuery[UserTable, User] =
+  def user: ForeignKeyQuery[UserTable, DBUser] =
     foreignKey("audit_task_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
@@ -86,7 +86,7 @@ object AuditTaskTable {
   }
 
   /**
-   * Given a
+   * get a new task for the user
    *
    * Reference for creating java.sql.timestamp
    * http://stackoverflow.com/questions/308683/how-can-i-get-the-current-date-and-time-in-utc-or-gmt-in-java
@@ -144,7 +144,7 @@ object AuditTaskTable {
    * Get a task that is connected to the end point of the current task (street edge)
    * @param streetEdgeId Street edge id
    */
-  def getNewTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
+  def getConnectedTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
 
     val now: Date = calendar.getTime
@@ -186,7 +186,7 @@ object AuditTaskTable {
    * @return
    */
   def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
-    import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
+    import models.street.StreetEdgeTable.streetEdgeConverter
 
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
@@ -197,6 +197,13 @@ object AuditTaskTable {
        |ON ST_Intersects(st_e.geom, region.geom)
        |WHERE region.region_id = ?""".stripMargin
     )
+
+//    SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.region
+//    INNER JOIN sidewalk.street_edge AS st_e
+//    ON ST_Intersects(st_e.geom, region.geom)
+//    LEFT JOIN sidewalk.audit_task
+//    ON st_e.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = '25b85b51-574b-436e-a9c4-339eef879e78'
+//    WHERE region.region_id = 85 AND audit_task.audit_task_id ISNULL
 
     val edges: List[StreetEdge] = selectEdgeQuery(regionId).list
     edges match {
@@ -211,6 +218,38 @@ object AuditTaskTable {
       }
     }
   }
+
+  def getNewTaskInRegion(regionId: Int, user: User) = db.withSession { implicit session =>
+    import models.street.StreetEdgeTable.streetEdgeConverter
+
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val userId: String = user.userId.toString
+
+    val selectEdgeQuery = Q.query[(String, Int), StreetEdge](
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.region
+       | INNER JOIN sidewalk.street_edge AS st_e
+       | ON ST_Intersects(st_e.geom, region.geom)
+       | LEFT JOIN sidewalk.audit_task
+       | ON st_e.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
+       | WHERE region.region_id = ? AND audit_task.audit_task_id ISNULL""".stripMargin
+    )
+
+
+    val edges: List[StreetEdge] = selectEdgeQuery((userId, regionId)).list
+    edges match {
+      case edges if (edges.size > 0) => {
+        // Increment the assignment count and return the task
+        val e: StreetEdge = Random.shuffle(edges).head
+        StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+      }
+      case _ => {
+        getNewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
+      }
+    }
+  }
+
 
   /**
    *

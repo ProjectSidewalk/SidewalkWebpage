@@ -44,6 +44,7 @@ object StreetEdgeTable {
     StreetEdge(r.nextInt, r.nextGeometry[LineString], r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean, r.nextTimestampOption)
   })
 
+
   val db = play.api.db.slick.DB
   val streetEdges = TableQuery[StreetEdgeTable]
 
@@ -89,6 +90,17 @@ object StreetEdgeTable {
     //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
     //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
     //    user
+  }
+
+
+  def numberOfStreetsInRegions() = db.withSession {implicit session =>
+    val query = """SELECT region.region_id, COUNT(st_e.*) AS number_of_streets FROM sidewalk.region
+                |INNER JOIN sidewalk.street_edge AS st_e
+                |ON ST_Intersects(st_e.geom, region.geom)
+                |GROUP BY region.region_id
+                |""".stripMargin
+
+    val
   }
 }
 
