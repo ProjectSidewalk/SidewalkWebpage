@@ -100,7 +100,7 @@ object StreetEdgeTable {
                 |GROUP BY region.region_id
                 |""".stripMargin
 
-    val
+
   }
 }
 

@@ -6673,7 +6673,7 @@ function ModalSkip ($) {
         svl.ui.modalSkip.ok.removeClass("disabled");
         status.disableClickOK = false;
     }
-    
+
 
     _init();
 

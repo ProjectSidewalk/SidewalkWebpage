@@ -35,6 +35,50 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
+   * Returns an audit page.
+   * @return
+   */
+  def audit = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => {
+        // Check if s/he has gone through an onboarding.
+        //        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
+        //          case Some("completed") => AuditTaskTable.getNewTask(user.username)
+        //          case _ => AuditTaskTable.getOnboardingTask
+        //        }
+        val task: NewTask = AuditTaskTable.getNewTask(user.username)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      }
+      case None => {
+        // Check if s/he has gone through an onboarding.
+        val cookie = request.cookies.get("sidewalk-onboarding")
+        val task: NewTask = AuditTaskTable.getNewTask
+        // Once you implement onboarding, use the following code to switch.
+        //        val task: NewTask = cookie.getOrElse(None) match {
+        //          case Some("completed") => AuditTaskTable.getNewTask
+        //          case _ => AuditTaskTable.getOnboardingTask
+        //        }
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+      }
+    }
+  }
+
+  def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => {
+        val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      }
+      case None => {
+        // Check if s/he has gone through an onboarding.
+        val cookie = request.cookies.get("sidewalk-onboarding")
+        val task: NewTask = AuditTaskTable.getNewTask
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+      }
+    }
+  }
+
+  /**
    * Get a task for a user.
    * @return
    */
