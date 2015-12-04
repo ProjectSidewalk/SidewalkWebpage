@@ -30,8 +30,9 @@ object StreetController extends Controller {
    * This returns a list of all the streets stored in the database
    * @return
    */
-  def listStreets = Action {
-    val features: List[JsObject] = StreetEdgeTable.all.map { edge =>
+  def getStreets(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) = Action { implicit request =>
+    val streetEdges = StreetEdgeTable.getWithIn(minLat, minLng, maxLat, maxLng)
+    val features: List[JsObject] = streetEdges.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
       val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)

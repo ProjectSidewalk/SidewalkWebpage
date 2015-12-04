@@ -26,5 +26,4 @@ class MapController @Inject() (implicit val env: Environment[User, SessionAuthen
       case None => Future.successful(Ok(views.html.mapEdit("Project Sidewalk")))
     }
   }
-
 }

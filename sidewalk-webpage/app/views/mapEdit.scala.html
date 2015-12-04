@@ -3,7 +3,11 @@
 @main(title) {
     @navbar(user)
     <div class="container">
-        <div id="map">
+        <div id="map-edit-holder">
+            <div id="map">
+            </div>
         </div>
     </div>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/mapEdit.js")'></script>
+    <link href='@routes.Assets.at("stylesheets/mapEdit.css")' rel="stylesheet"/>
 }
