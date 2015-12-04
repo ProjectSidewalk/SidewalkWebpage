@@ -1,19 +1,15 @@
 function GraphEdit(d3, _, map, graph, parameters) {
-    var mode = "explore", // "edit"
+    var mode = "edit",// "edit", "explore"
         mousedownVertex,
         temporaryVertices = [],
-        temporaryEdges = [];
-
-    // Prepare svg elements
-    // var svg = d3.select("#map")
-    //        .append("svg")
-    //        .attr("width", parameters.width)
-    //        .attr("height", parameters.height);
-
+        temporaryEdges = [],
+        status = {
+            doNotDraw: false
+        };
     var svg = d3.select(map.getPanes().overlayPane)
         .append("svg")
-        .attr("width", 960)
-        .attr("height", 500);
+        .attr("width", map.getSize().x)
+        .attr("height", map.getSize().y);
 
     var segmentContainer = svg.append("g").attr("class", "leaflet-zoom-hide"),
         temporaryDomContainer = svg.append("g").attr("class", "leaflet-zoom-hide"),
@@ -101,12 +97,12 @@ function GraphEdit(d3, _, map, graph, parameters) {
      */
     function mouseDown () {
         if (mode == "draw" || mode == "edit" || mode == "delete") {
-            d3.event.stopPropagation();
+            //d3.event.stopPropagation();
         }
     }
     function mouseUp () {
         if (mode == "draw") {
-            d3.event.stopPropagation();
+            //d3.event.stopPropagation();
             var offset = {
                 x: parseInt(d3.select(this).style("left").replace("px", ""), 10),
                 y: parseInt(d3.select(this).style("top").replace("px", ""), 10)
@@ -252,6 +248,7 @@ function GraphEdit(d3, _, map, graph, parameters) {
         },
         mousedown: function (d) {
             if (mode == "draw") {
+                d3.event.stopPropagation();
                 var temporaryVertex1 = _.clone(d),
                     temporaryVertex2 = _.clone(d);
                 mousedownVertex = d;
@@ -264,7 +261,8 @@ function GraphEdit(d3, _, map, graph, parameters) {
         mouseup: function (d) {
             // Draw a new edge between two nodes
             if (mode == "draw") {
-                d3.event.stopPropagation();
+                //d3.event.stopPropagation();
+
                 if (mousedownVertex && mousedownVertex != d) {
                     graph.addEdge(graph.getUniqueEdgeId(), mousedownVertex, d);
                 }
@@ -346,8 +344,14 @@ function GraphEdit(d3, _, map, graph, parameters) {
         temporaryLine.attr(edgeCoordinates);
     }
 
+    map.on("resize", function (e) {
+        svg.attr("width", e.newSize.x)
+            .attr("height", e.newSize.y);
+        });
+
     update();
     return {
-        update: update
+        update: update,
+        svg: svg
     };
 }

@@ -78,9 +78,9 @@ object AuditTaskTable {
    * @return
    */
   def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
-    val _streetEdges = for {
+    val _streetEdges = (for {
       (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
-    } yield _streetEdges
+    } yield _streetEdges).filter(edge => edge.deleted === false)
 
     _streetEdges.list
   }
@@ -111,7 +111,7 @@ object AuditTaskTable {
     val edges = (for {
       (e, c) <- streetEdges.leftJoin(completedTasks).on(_.streetEdgeId === _._2)
       if c._1.isEmpty
-    } yield e).take(100).list
+    } yield e).filter(edge => edge.deleted === false).take(100).list
 
     // Increment the assignment count and return the task
     val e: StreetEdge = Random.shuffle(edges).head
@@ -130,7 +130,7 @@ object AuditTaskTable {
     val edges = (for {
       (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
         .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
-    } yield _streetEdges).take(100).list
+    } yield _streetEdges).filter(edge => edge.deleted === false).take(100).list
     assert(edges.length > 0)
 
     val e: StreetEdge = Random.shuffle(edges).head
@@ -195,7 +195,7 @@ object AuditTaskTable {
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM region
        |INNER JOIN street_edge AS st_e
        |ON ST_Intersects(st_e.geom, region.geom)
-       |WHERE region.region_id = ?""".stripMargin
+       |WHERE st_e.deleted = FALSE AND region.region_id = ?""".stripMargin
     )
 
 //    SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.region
@@ -232,7 +232,7 @@ object AuditTaskTable {
        | ON ST_Intersects(st_e.geom, region.geom)
        | LEFT JOIN sidewalk.audit_task
        | ON st_e.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
-       | WHERE region.region_id = ? AND audit_task.audit_task_id ISNULL""".stripMargin
+       | WHERE st_e.deleted = FALSE AND region.region_id = ? AND audit_task.audit_task_id ISNULL""".stripMargin
     )
 
 

@@ -24,6 +24,10 @@ $(document).ready(function () {
         .fitBounds(bounds)
         .setView([38.912651, -76.993827], 16);
 
+    var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+        g = svg.append("g").attr("class", "leaflet-zoom-hide");
+
+
     _map = map;
 
     var currentBounds = map.getBounds(),
@@ -33,12 +37,35 @@ $(document).ready(function () {
         minLng = southWest.lng,
         maxLat = northEast.lat,
         maxLng = northEast.lng,
-        url = "/geometry/streets?minLat=" + minLat + "&minLng=" + minLng + "&maxLat=" + maxLat + "&maxLng=" + maxLng;
+        url = "/geometry/streets?minLat=" + minLat + "&minLng=" + minLng + "&maxLat=" + maxLat + "&maxLng=" + maxLng,
+        graph = new Graph(_),
+        graphEdit;
 
-    $.getJSON(url, function (data) {
-        console.log(data)
-        L.geoJson(data).addTo(map);
-    })
+    //$.getJSON(url, function (data) {
+    //    console.log(data)
+    //    L.geoJson(data).addTo(map);
+    //})
+
+    d3.json(url, function(error, collection) {
+        if (error) throw error;
+        var vertices = {};
+        var vid = 0, eid = 0;
+        for (var i = collection.features.length - 1; i >= 0; i--) {
+            var coordinates = collection.features[i].geometry.coordinates,
+                j,
+                len = coordinates.length,
+                vertices = [];
+
+            for (j = 0; j < len; j++) {
+                vertices.push(graph.addVertex(vid++, coordinates[j][0], coordinates[j][1]));
+            }
+            for (j = 0; j < len - 1; j++) {
+                graph.addEdge(eid++, vertices[j], vertices[j + 1]);
+            }
+        }
+
+        graphEdit = new GraphEdit(d3, _, map, graph);
+    });
 });
 
 var _map;

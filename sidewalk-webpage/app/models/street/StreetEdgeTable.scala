@@ -61,7 +61,7 @@ object StreetEdgeTable {
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.street_edge AS st_e
-       | WHERE st_e.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)""".stripMargin
+       | WHERE st_e.deleted = FALSE AND st_e.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list

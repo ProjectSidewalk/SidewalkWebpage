@@ -42,7 +42,7 @@ GET     /:username                  @controllers.UserProfileController.userProfi
 
 # Geometry API
 GET     /geometry/neighborhoods     controllers.RegionController.listNeighborhoods
-GET     /geometry/streets           controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 39.060, maxLng: Double ?= -76.830)
+GET     /geometry/streets           controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
 GET     /geometry/join/:limit       controllers.StreetController.join(limit: Int)
 GET     /geometry/select            controllers.StreetController.select
 
