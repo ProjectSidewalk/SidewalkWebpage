@@ -63,6 +63,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+   * Audit a given region
+   * @param regionId
+   * @return
+   */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => {
@@ -75,6 +80,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val task: NewTask = AuditTaskTable.getNewTask
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
       }
+    }
+  }
+
+  /**
+   * Audit a given street
+   * @param streetEdgeId
+   * @return
+   */
+  def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+    val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)
+    request.identity match {
+      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
     }
   }
 
@@ -131,7 +149,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        for (data <- submission) {
+        val returnValue: Seq[Seq[Int]] = for (data <- submission) yield {
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
@@ -140,21 +158,28 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case _ => None
           }
 
-          // Insert audit task
-          val now: Date = calendar.getTime
-          val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-          val auditTask = request.identity match {
-            case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
-            case None =>
-              val user: Option[DBUser] = UserTable.find("anonymous")
-              AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+          // Check if there is auditTaskId
+          val auditTaskId: Int = if (data.auditTask.auditTaskId != None) {
+            data.auditTask.auditTaskId.get
+          } else {
+            // Insert audit task
+            val now: Date = calendar.getTime
+            val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+            val auditTask = request.identity match {
+              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+              case None =>
+                val user: Option[DBUser] = UserTable.find("anonymous")
+                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+            }
+            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
+            AuditTaskTable.save(auditTask)
           }
-          val auditTaskId:Int = AuditTaskTable.save(auditTask)
+
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           data.incomplete match {
             case Some(incomplete) => AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
-            case _ => StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId)
+            case _ =>
           }
 
           // Insert labels
@@ -194,10 +219,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
             env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
+
+          Seq(auditTaskId, data.auditTask.streetEdgeId)
         }
+        Future.successful(Ok(Json.obj("audit_task_id" -> returnValue.head(0), "street_edge_id" -> returnValue.head(1))))
       }
+
     )
-    Future.successful(Ok(Json.toJson("Good job!")))
+
   }
 
   /**

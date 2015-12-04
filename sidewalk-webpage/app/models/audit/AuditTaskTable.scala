@@ -139,6 +139,22 @@ object AuditTaskTable {
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
 
+  def getNewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+
+    val edges = (for {
+      (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
+        .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
+    } yield _streetEdges).filter(edge => edge.deleted === false && edge.streetEdgeId === streetEdgeId).list
+    assert(edges.length > 0)
+
+    val e: StreetEdge = edges.head
+
+    StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+  }
+
 
   /**
    * Get a task that is connected to the end point of the current task (street edge)

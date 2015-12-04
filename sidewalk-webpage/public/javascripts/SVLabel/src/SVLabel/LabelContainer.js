@@ -36,6 +36,7 @@ function LabelContainer() {
     function push(label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
+
     }
 
     /**

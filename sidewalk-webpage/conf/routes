@@ -19,6 +19,7 @@ GET     /audit/task                 @controllers.TaskController.getTask
 GET     /audit/task/next            @controllers.TaskController.getNextTask(streetEdgeId: Int, lat: Float, lng: Float)
 GET     /audit/task/nextInRegion    @controllers.TaskController.getTaskInRegion(regionId: Int)
 GET     /audit/task/region/:id      @controllers.TaskController.auditRegion(id: Int)
+GET     /audit/task/street/:id      @controllers.TaskController.auditStreet(id: Int)
 POST    /audit/task                 @controllers.TaskController.post
 
 # Map Edit

@@ -104,6 +104,7 @@ function Tracker () {
             note: note,
             timestamp: timestamp
         });
+
         return this;
     }
 

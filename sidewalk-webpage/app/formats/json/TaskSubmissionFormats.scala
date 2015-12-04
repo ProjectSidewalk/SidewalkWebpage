@@ -11,7 +11,7 @@ object TaskSubmissionFormats {
   case class InteractionSubmission(action: String, gsv_panorama_id: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], timestamp: String)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
   case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, points: Seq[LabelPointSubmission])
-  case class TaskSubmission(streetEdgeId: Int, taskStart: String)
+  case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int])
   case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission])
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
@@ -76,7 +76,8 @@ object TaskSubmissionFormats {
 
   implicit val auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and
-      (JsPath \ "task_start").read[String]
+      (JsPath \ "task_start").read[String] and
+      (JsPath \ "audit_task_id").readNullable[Int]
     )(TaskSubmission.apply _)
 
   implicit val amtAssignmentReads: Reads[AMTAssignmentSubmission] = (

@@ -11,7 +11,9 @@ var svl = svl || {};
 function Task ($) {
     var self = {className: 'Task'},
         properties = {},
-        status = {},
+        status = {
+            auditTaskId: null
+        },
         taskSetting,
         previousTasks = [],
         lat, lng;
@@ -157,7 +159,7 @@ function Task ($) {
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged)
+                svl.form.submit(staged);
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
                 svl.form.submit(data);
@@ -191,6 +193,22 @@ function Task ($) {
     }
 
     /**
+     * Set an audit task id
+     * @param asgId
+     */
+    function setAuditTaskId(auditTaskId) {
+        status.auditTaskId = auditTaskId;
+    }
+
+    /**
+     * Get an audit task id
+     * @returns {null}
+     */
+    function getAuditTaskId() {
+        return status.auditTaskId;
+    }
+
+    /**
      * Returns the starting location
      */
     function initialLocation() {
@@ -219,13 +237,19 @@ function Task ($) {
 
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
 
-            console.log('Distance to the end:' , d);
+            console.debug('Distance to the end:' , d);
 
-            if (d < threshold) {
-                return true;
-            } else {
-                return false;
+            // Submit data after a while even before the task is complete, because you can get 413 error due to data overload
+            // http://www.checkupdown.com/status/E413.html
+            var actionCapacityThreshold = 150,
+                labelCapacityThreshold = 50;
+            if (svl.tracker.getActions().length > actionCapacityThreshold ||
+                    svl.labelContainer.getCurrentLabels().length > labelCapacityThreshold) {
+                var data = svl.form.compileSubmissionData();
+                svl.form.submit(data);
             }
+
+            return d < threshold;
         }
     }
 
@@ -253,6 +277,7 @@ function Task ($) {
      * This method takes a task parameters in geojson format.
      */
     function set(json) {
+        setAuditTaskId(null);
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];
         lng = taskSetting.features[0].geometry.coordinates[0][0];
@@ -261,6 +286,8 @@ function Task ($) {
     self.endTask = endTask;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
+    self.getAuditTaskId = getAuditTaskId;
+    self.setAuditTaskId = setAuditTaskId;
     self.load = load;
     self.set = set;
     self.initialLocation = initialLocation;

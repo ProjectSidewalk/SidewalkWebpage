@@ -115,7 +115,8 @@ function Form ($, params) {
 
         data.audit_task = {
             street_edge_id: svl.task.getStreetEdgeId(),
-            task_start: svl.task.getTaskStart()
+            task_start: svl.task.getTaskStart(),
+            audit_task_id: svl.task.getAuditTaskId()
         };
 
         data.environment = {
@@ -131,7 +132,6 @@ function Form ($, params) {
         };
 
         data.interactions = svl.tracker.getActions();
-        svl.tracker.refresh();
 
         data.labels = [];
         var labels = svl.labelContainer.getCurrentLabels();
@@ -196,12 +196,12 @@ function Form ($, params) {
       */
     function submit(data) {
         svl.tracker.push('TaskSubmit');
+        svl.tracker.refresh();
         svl.labelContainer.refresh();
 
         if (data.constructor !== Array) {
             data = [data];
         }
-
         try {
             $.ajax({
                 // async: false,
@@ -211,8 +211,13 @@ function Form ($, params) {
                 data: JSON.stringify(data),
                 dataType: 'json',
                 success: function (result) {
+                    console.log(result);
+
                     if (result.error) {
-                        console.log(result.error);
+                        console.error(result.error);
+                    }
+                    else if (!svl.task.getAuditTaskId() && svl.task.getStreetEdgeId() == result.street_edge_id) {
+                        svl.task.setAuditTaskId(result.audit_task_id);
                     }
                 },
                 error: function (result) {
@@ -224,19 +229,6 @@ function Form ($, params) {
             console.error(e);
             return false;
         }
-//
-//        if (properties.taskRemaining > 1) {
-//            window.location.reload();
-//            return false;
-//        } else {
-//            if (properties.isAMTTask) {
-//                return true;
-//            } else {
-//                window.location.reload();
-//                //window.location = '/';
-//                return false;
-//            }
-//        }
     }
 
     /**

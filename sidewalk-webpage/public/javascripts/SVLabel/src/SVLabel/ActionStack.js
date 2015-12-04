@@ -29,9 +29,6 @@ function ActionStack ($, params) {
     var $buttonUndo;
 
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     function init (params) {
         // Initialization function
         if (svl.ui && svl.ui.actionStack) {
@@ -68,23 +65,19 @@ function ActionStack ($, params) {
         }
     }
 
-    ////////////////////////////////////////
-    // Public methods
-    ////////////////////////////////////////
-    self.disableRedo = function () {
+    function disableRedo () {
         if (!lock.disableRedo) {
             status.disableRedo = true;
             if (svl.ui && svl.ui.actionStack) {
-              $buttonRedo.css('opacity', 0.5);
+                $buttonRedo.css('opacity', 0.5);
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-
-    self.disableUndo = function () {
+    function disableUndo () {
         if (!lock.disableUndo) {
             status.disableUndo = true;
             if (svl.ui && svl.ui.actionStack) {
@@ -94,7 +87,9 @@ function ActionStack ($, params) {
         } else {
             return false;
         }
-    };
+    }
+    self.disableRedo = disableRedo;
+    self.disableUndo = disableUndo;
 
 
     self.enableRedo = function () {

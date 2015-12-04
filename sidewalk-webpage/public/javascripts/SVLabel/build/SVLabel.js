@@ -807,9 +807,6 @@ function ActionStack ($, params) {
     var $buttonUndo;
 
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     function init (params) {
         // Initialization function
         if (svl.ui && svl.ui.actionStack) {
@@ -846,23 +843,19 @@ function ActionStack ($, params) {
         }
     }
 
-    ////////////////////////////////////////
-    // Public methods
-    ////////////////////////////////////////
-    self.disableRedo = function () {
+    function disableRedo () {
         if (!lock.disableRedo) {
             status.disableRedo = true;
             if (svl.ui && svl.ui.actionStack) {
-              $buttonRedo.css('opacity', 0.5);
+                $buttonRedo.css('opacity', 0.5);
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-
-    self.disableUndo = function () {
+    function disableUndo () {
         if (!lock.disableUndo) {
             status.disableUndo = true;
             if (svl.ui && svl.ui.actionStack) {
@@ -872,7 +865,9 @@ function ActionStack ($, params) {
         } else {
             return false;
         }
-    };
+    }
+    self.disableRedo = disableRedo;
+    self.disableUndo = disableUndo;
 
 
     self.enableRedo = function () {
@@ -2682,7 +2677,8 @@ function Form ($, params) {
 
         data.audit_task = {
             street_edge_id: svl.task.getStreetEdgeId(),
-            task_start: svl.task.getTaskStart()
+            task_start: svl.task.getTaskStart(),
+            audit_task_id: svl.task.getAuditTaskId()
         };
 
         data.environment = {
@@ -2698,7 +2694,6 @@ function Form ($, params) {
         };
 
         data.interactions = svl.tracker.getActions();
-        svl.tracker.refresh();
 
         data.labels = [];
         var labels = svl.labelContainer.getCurrentLabels();
@@ -2763,12 +2758,12 @@ function Form ($, params) {
       */
     function submit(data) {
         svl.tracker.push('TaskSubmit');
+        svl.tracker.refresh();
         svl.labelContainer.refresh();
 
         if (data.constructor !== Array) {
             data = [data];
         }
-
         try {
             $.ajax({
                 // async: false,
@@ -2778,8 +2773,13 @@ function Form ($, params) {
                 data: JSON.stringify(data),
                 dataType: 'json',
                 success: function (result) {
+                    console.log(result);
+
                     if (result.error) {
-                        console.log(result.error);
+                        console.error(result.error);
+                    }
+                    else if (!svl.task.getAuditTaskId() && svl.task.getStreetEdgeId() == result.street_edge_id) {
+                        svl.task.setAuditTaskId(result.audit_task_id);
                     }
                 },
                 error: function (result) {
@@ -2791,19 +2791,6 @@ function Form ($, params) {
             console.error(e);
             return false;
         }
-//
-//        if (properties.taskRemaining > 1) {
-//            window.location.reload();
-//            return false;
-//        } else {
-//            if (properties.isAMTTask) {
-//                return true;
-//            } else {
-//                window.location.reload();
-//                //window.location = '/';
-//                return false;
-//            }
-//        }
     }
 
     /**
@@ -4790,6 +4777,7 @@ function LabelContainer() {
     function push(label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
+
     }
 
     /**
@@ -9879,7 +9867,9 @@ var svl = svl || {};
 function Task ($) {
     var self = {className: 'Task'},
         properties = {},
-        status = {},
+        status = {
+            auditTaskId: null
+        },
         taskSetting,
         previousTasks = [],
         lat, lng;
@@ -10025,7 +10015,7 @@ function Task ($) {
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged)
+                svl.form.submit(staged);
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
                 svl.form.submit(data);
@@ -10059,6 +10049,22 @@ function Task ($) {
     }
 
     /**
+     * Set an audit task id
+     * @param asgId
+     */
+    function setAuditTaskId(auditTaskId) {
+        status.auditTaskId = auditTaskId;
+    }
+
+    /**
+     * Get an audit task id
+     * @returns {null}
+     */
+    function getAuditTaskId() {
+        return status.auditTaskId;
+    }
+
+    /**
      * Returns the starting location
      */
     function initialLocation() {
@@ -10087,13 +10093,19 @@ function Task ($) {
 
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
 
-            console.log('Distance to the end:' , d);
+            console.debug('Distance to the end:' , d);
 
-            if (d < threshold) {
-                return true;
-            } else {
-                return false;
+            // Submit data after a while even before the task is complete, because you can get 413 error due to data overload
+            // http://www.checkupdown.com/status/E413.html
+            var actionCapacityThreshold = 150,
+                labelCapacityThreshold = 50;
+            if (svl.tracker.getActions().length > actionCapacityThreshold ||
+                    svl.labelContainer.getCurrentLabels().length > labelCapacityThreshold) {
+                var data = svl.form.compileSubmissionData();
+                svl.form.submit(data);
             }
+
+            return d < threshold;
         }
     }
 
@@ -10121,6 +10133,7 @@ function Task ($) {
      * This method takes a task parameters in geojson format.
      */
     function set(json) {
+        setAuditTaskId(null);
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];
         lng = taskSetting.features[0].geometry.coordinates[0][0];
@@ -10129,6 +10142,8 @@ function Task ($) {
     self.endTask = endTask;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
+    self.getAuditTaskId = getAuditTaskId;
+    self.setAuditTaskId = setAuditTaskId;
     self.load = load;
     self.set = set;
     self.initialLocation = initialLocation;
@@ -10280,6 +10295,7 @@ function Tracker () {
             note: note,
             timestamp: timestamp
         });
+
         return this;
     }
 
