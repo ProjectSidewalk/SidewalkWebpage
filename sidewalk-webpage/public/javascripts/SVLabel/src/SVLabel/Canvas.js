@@ -1063,45 +1063,22 @@ function Canvas ($, param) {
             }
         }
 
-        //
         // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) {
-            renderTempPath();
-        }
+        if (status.drawing) {  renderTempPath(); }
+        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
 
-        //
-        // Check if the user audited all the angles or not.
-        //if ('form' in svl) {
-        //    svl.form.checkSubmittable();
-        //}
-
-        if ('progressPov' in svl) {
-            svl.progressPov.updateCompletionRate();
-        }
-
-        //
         // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
-        }
+        if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
 
-        //
         // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) {
-            svl.actionStack.updateOpacity();
-        }
+        if (svl.actionStack) { svl.actionStack.updateOpacity(); }
 
-        //
         // Update the opacity of Zoom In and Zoom Out buttons.
-        if (svl.zoomControl) {
-            svl.zoomControl.updateOpacity();
-        }
+        if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
 
         //
         // This like of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.goldenInsertion.renderMessage();
-        }
+        if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
         return this;
     }
 

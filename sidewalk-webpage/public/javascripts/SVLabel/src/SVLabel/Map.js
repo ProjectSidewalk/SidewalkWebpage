@@ -1093,15 +1093,10 @@ function Map ($, params) {
         // Examples for plotting markers:
         // https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
         if (canvas) {
-            var labels = undefined;
-            var labelsLen = 0;
-            var prop = undefined;
-            var labelType = undefined;
-            var latlng = undefined;
+            var labels = undefined, labelsLen = 0, prop = undefined, labelType = undefined, latlng = undefined;
             labels = canvas.getLabels();
             labelsLen = labels.length;
 
-            //
             // Clear the map first
             for (var i = 0; i < markers.length; i += 1) {
                 markers[i].setMap(null);
