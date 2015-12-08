@@ -42,4 +42,12 @@ object AuditTaskInteractionTable {
     interactionId
   }
 
+  /**
+   * Get a list of audit task interaction
+   * @param auditTaskId
+   * @return
+   */
+  def auditInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
+    auditTaskInteractions.filter(record => record.auditTaskId === auditTaskId).list
+  }
 }

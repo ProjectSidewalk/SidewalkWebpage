@@ -73,6 +73,15 @@ object AuditTaskTable {
   }
 
   /**
+   * Get the last audit task that the user conducted
+   * @param userId
+   * @return
+   */
+  def lastAuditTask(userId: UUID): Option[AuditTask] = db.withSession { implicit session =>
+    auditTasks.filter(_.userId === userId.toString).list.lastOption
+  }
+
+  /**
    * Return an audited edges
    * @param userId
    * @return
@@ -214,13 +223,6 @@ object AuditTaskTable {
        |WHERE st_e.deleted = FALSE AND region.region_id = ?""".stripMargin
     )
 
-//    SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.region
-//    INNER JOIN sidewalk.street_edge AS st_e
-//    ON ST_Intersects(st_e.geom, region.geom)
-//    LEFT JOIN sidewalk.audit_task
-//    ON st_e.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = '25b85b51-574b-436e-a9c4-339eef879e78'
-//    WHERE region.region_id = 85 AND audit_task.audit_task_id ISNULL
-
     val edges: List[StreetEdge] = selectEdgeQuery(regionId).list
     edges match {
       case edges if (edges.size > 0) => {
@@ -235,6 +237,12 @@ object AuditTaskTable {
     }
   }
 
+  /**
+   * et a task that is in a given region
+   * @param regionId
+   * @param user
+   * @return
+   */
   def getNewTaskInRegion(regionId: Int, user: User) = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
 

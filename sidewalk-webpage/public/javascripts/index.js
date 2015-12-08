@@ -254,8 +254,6 @@ $(document).ready(function () {
                        return 'translate(135,10)';
                     });
 
-
-
       for (var key in dotPlots) {
         dotPlots[key].g = chart.append('g')
                       .attr('transform', 'translate(' + dotPlots[key].left + ',' + dotPlots[key].top + ')')
