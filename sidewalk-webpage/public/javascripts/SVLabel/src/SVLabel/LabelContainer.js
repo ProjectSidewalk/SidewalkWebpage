@@ -4,9 +4,10 @@ var svl = svl || {};
  * LabelContainer class constructor
  */
 function LabelContainer() {
-    var self = {className: 'LabelContainer'};
-    var currentCanvasLabels = [],
-        prevCanvasLabels = [];
+    var self = {className: 'LabelContainer'},
+        currentCanvasLabels = [],
+        prevCanvasLabels = [],
+        temporaryLabelId = 1;
 
     /**
      * Returns canvas labels
@@ -36,7 +37,6 @@ function LabelContainer() {
     function push(label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
-
     }
 
     /**

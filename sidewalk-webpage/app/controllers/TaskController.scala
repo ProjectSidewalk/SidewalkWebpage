@@ -187,7 +187,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             val labelId: Int = LabelTable.save(
               Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId,
                 label.photographerHeading, label.photographerPitch,
-                label.panoramaLat, label.panoramaLng, label.deleted.value
+                label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId
               )
             )
 
@@ -208,8 +208,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert interaction
           for (interaction <- data.interactions) {
             AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
-              interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-              interaction.zoom, interaction.note, Timestamp.valueOf(interaction.timestamp)))
+              interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
+              interaction.zoom, interaction.note, interaction.temporaryLabelId, Timestamp.valueOf(interaction.timestamp)))
           }
 
           // Insert environment
@@ -223,10 +223,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
         Future.successful(Ok(Json.obj("audit_task_id" -> returnValue.head(0), "street_edge_id" -> returnValue.head(1))))
       }
-
     )
-
   }
-
-
 }

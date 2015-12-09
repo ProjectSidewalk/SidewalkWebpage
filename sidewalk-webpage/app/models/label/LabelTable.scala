@@ -10,7 +10,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int,
                  photographerHeading: Float, photographerPitch: Float,
-                  panoramaLat: Float, panoramaLng: Float, deleted: Boolean)
+                  panoramaLat: Float, panoramaLng: Float, deleted: Boolean, temporaryLabelId: Option[Int])
 case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
                           lat: Float, lng: Float)
 /**
@@ -26,15 +26,16 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
   def panoramaLat = column[Float]("panorama_lat", O.NotNull)
   def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
 
-  def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch, panoramaLat, panoramaLng, deleted) <> ((Label.apply _).tupled, Label.unapply)
+  def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
+    panoramaLat, panoramaLng, deleted, temporaryLabelId) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
-
 }
 
 /**

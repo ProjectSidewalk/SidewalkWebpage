@@ -35,6 +35,15 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  def previousAudit = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val username: String = user.username
+        Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user))))
+      case None => Future.successful(Redirect("/"))
+    }
+  }
+
   /**
    * Get a list of edges that are submitted by users.
    * @return
@@ -94,42 +103,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   *
-   *
-   *     {
-      "type": "Feature",
-      "properties": {
-        "heading": 135,
-        "label": {
-          "label_type": "CurbRamp",
-          "coordinates": [
-            -77.041545510292,
-            38.909600262495
-          ]
-        }
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -77.041676938534,
-          38.909637830799
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "heading": 90
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -77.041676938534,
-          38.909637830799
-        ]
-      }
-    },
-
+   * Get user interaction records
    * @return
    */
   def getAuditTaskInteractions = UserAwareAction.async { implicit request =>
@@ -138,10 +112,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         AuditTaskTable.lastAuditTask(user.userId) match {
           case Some(auditTask) =>
             val interactions: List[AuditTaskInteraction] = AuditTaskInteractionTable.auditInteractions(auditTask.auditTaskId)
-
-            // Get rid of Options: http://stackoverflow.com/questions/10104558/how-to-filter-nones-out-of-listoption
-
-            val features: List[JsObject] = interactions.filter(_.lat != None).map { interaction =>
+            val features: List[JsObject] = interactions.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
               val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
               val properties = Json.obj(
                 "heading" -> interaction.heading.get.toDouble,

@@ -142,6 +142,7 @@ function Form ($, params) {
                 points = label.getPath().getPoints(),
                 pathLen = points.length;
 
+            var temporaryLabelId = label.getProperty("temporary_label_id");
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
@@ -151,11 +152,12 @@ function Form ($, params) {
                 gsv_panorama_id : prop.panoId,
                 panorama_lat : prop.panoramaLat,
                 panorama_lng : prop.panoramaLng,
-                label_points : []
+                label_points : [],
+                temporary_label_id: temporaryLabelId ? temporaryLabelId : null
             };
 
             for (var j = 0; j < pathLen; j += 1) {
-                var point = points[j],
+                var point = points[j], lat = point.getProperty('lat'), lng = point.getProperty('lng'),
                     gsvImageCoordinate = point.getGSVImageCoordinate(),
                     pointParam = {
                         sv_image_x : gsvImageCoordinate.x,
@@ -169,8 +171,8 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : null,
-                        lng : null
+                        lat : lat ? lat : null,
+                        lng : lng ? lng : null
                     };
                 temp.label_points.push(pointParam);
             }

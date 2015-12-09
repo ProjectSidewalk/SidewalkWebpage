@@ -29,9 +29,7 @@ function Tracker () {
      * Push an action into the array.
      */
     function push (action, param) {
-        // This function pushes action type, time stamp, current pov, and current panoId
-        // into actions list.
-        var pov, latlng, panoId, note;
+        var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
             if (('x' in param) && ('y' in param)) {
@@ -52,6 +50,10 @@ function Tracker () {
                 note = 'labelId:' + param.labelId;
             } else {
                 note = "";
+            }
+
+            if ('temporary_label_id' in param) {
+                temporaryLabelId = param.temporary_label_id;
             }
         } else {
             note = "";
@@ -91,7 +93,7 @@ function Tracker () {
         }
 
         var now = new Date(),
-            timestamp = now.getUTCFullYear() + "-" + now.getUTCMonth() + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+            timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         actions.push({
             action : action,
@@ -102,6 +104,7 @@ function Tracker () {
             pitch: pov.pitch,
             zoom: pov.zoom,
             note: note,
+            temporary_label_id: temporaryLabelId ? temporaryLabelId : null,
             timestamp: timestamp
         });
 

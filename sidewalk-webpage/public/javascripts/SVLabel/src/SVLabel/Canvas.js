@@ -150,16 +150,19 @@ function Canvas ($, param) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
-        svl.tracker.push('LabelingCanvas_FinishLabeling');
         var labelType = svl.ribbon.getStatus('selectedLabelType');
         var labelColor = getLabelColors()[labelType];
         var labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')];
         var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
+        var latlng = getPosition();
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
+        pointParameters.panoramaLat = latlng.lat;
+        pointParameters.panoramaLng = latlng.lng;
+        pointParameters.panoramaId = getPanoId();
 
         var pathLen = tempPath.length;
         var points = [];
@@ -170,7 +173,7 @@ function Canvas ($, param) {
             points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
-        var latlng = getPosition();
+
         var param = {
             canvasWidth: svl.canvasWidth,
             canvasHeight: svl.canvasHeight,
@@ -196,9 +199,11 @@ function Canvas ($, param) {
             param.photographerPitch = photographerPov.pitch;
         }
 
-        status.currentLabel = new Label(path, param)
-        labels.push(status.currentLabel);
+        //status.currentLabel = new Label(path, param);
+        status.currentLabel = svl.labelFactory.create(path, param);
         svl.labelContainer.push(status.currentLabel);
+        labels.push(status.currentLabel);
+        svl.tracker.push('LabelingCanvas_FinishLabeling', {temporary_label_id: status.currentLabel.getProperty("temporary_label_id")});
 
         svl.actionStack.push('addLabel', status.currentLabel);
         //var label = Label(path, param);
