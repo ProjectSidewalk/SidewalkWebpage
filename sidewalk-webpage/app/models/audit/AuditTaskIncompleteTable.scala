@@ -7,9 +7,6 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskIncomplete(auditTaskIncompletId: Int, auditTaskId: Int, issueDescription: String, lat: Float, lng: Float)
 
-/**
- *
- */
 class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag, Some("sidewalk"), "audit_task_incomplete") {
   def auditTaskIncompleteId = column[Int]("audit_task_incomplete_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
