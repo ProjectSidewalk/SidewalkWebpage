@@ -5,7 +5,9 @@ import play.api._
 import play.api.test.Helpers._
 import play.api.test._
 
-import play.api.db.slick.Config.driver.simple._
+import models.utils.MyPostgresDriver.simple._
+import play.api.Play.current
+// import play.api.db.slick.Config.driver.simple._
 import models._
 
 /**
@@ -24,7 +26,16 @@ class SidewalkEdgeTableSpec extends Specification {
 
   val appWithMemoryDatabase = FakeApplication(additionalConfiguration = inMemoryDatabase("test"))
 
+  val db = play.api.db.slick.DB
+
   "SidewalkEdgeTable#save" should {
+    "be able to save edges" in new WithApplication() {
+      db.withTransaction { transaction =>
+
+        transaction.rollback
+      }
+    }
+
   }
 
   "SidewalkEdgeTable#all" should {
