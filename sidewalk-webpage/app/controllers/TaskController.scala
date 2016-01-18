@@ -165,10 +165,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             val now: Date = calendar.getTime
             val currentTimestamp: Timestamp = new Timestamp(now.getTime)
             val auditTask = request.identity match {
-              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(currentTimestamp))
               case None =>
                 val user: Option[DBUser] = UserTable.find("anonymous")
-                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(currentTimestamp))
             }
             StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
             AuditTaskTable.save(auditTask)

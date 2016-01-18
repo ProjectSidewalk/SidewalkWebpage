@@ -25,14 +25,12 @@ class AuditTaskSpec extends Specification {
         val calendar: Calendar = Calendar.getInstance
         val now: Date = calendar.getTime
         val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-        val task = AuditTask(-2, Some(-2), "11c961e3-7181-49e6-94da-5dec3687536c", 1, currentTimestamp, currentTimestamp)
+        val task = AuditTask(-2, Some(-2), "11c961e3-7181-49e6-94da-5dec3687536c", 1, currentTimestamp, Some(currentTimestamp))
 
         auditTasks.insert(task)
-        auditTasks.list
 
-//        auditTasks.list
-//
-//        inserted.length shouldEqual 1
+        val filtered = auditTasks.filter(_.amtAssignmentId.getOrElse(-1) === -2).list
+        filtered.length shouldEqual 1
 
         s.rollback
       }
