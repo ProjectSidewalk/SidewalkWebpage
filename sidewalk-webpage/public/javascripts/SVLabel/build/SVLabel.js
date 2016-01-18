@@ -807,6 +807,9 @@ function ActionStack ($, params) {
     var $buttonUndo;
 
 
+    ////////////////////////////////////////
+    // Private Functions
+    ////////////////////////////////////////
     function init (params) {
         // Initialization function
         if (svl.ui && svl.ui.actionStack) {
@@ -843,19 +846,23 @@ function ActionStack ($, params) {
         }
     }
 
-    function disableRedo () {
+    ////////////////////////////////////////
+    // Public methods
+    ////////////////////////////////////////
+    self.disableRedo = function () {
         if (!lock.disableRedo) {
             status.disableRedo = true;
             if (svl.ui && svl.ui.actionStack) {
-                $buttonRedo.css('opacity', 0.5);
+              $buttonRedo.css('opacity', 0.5);
             }
             return this;
         } else {
             return false;
         }
-    }
+    };
 
-    function disableUndo () {
+
+    self.disableUndo = function () {
         if (!lock.disableUndo) {
             status.disableUndo = true;
             if (svl.ui && svl.ui.actionStack) {
@@ -865,9 +872,7 @@ function ActionStack ($, params) {
         } else {
             return false;
         }
-    }
-    self.disableRedo = disableRedo;
-    self.disableUndo = disableUndo;
+    };
 
 
     self.enableRedo = function () {
@@ -1208,19 +1213,16 @@ function Canvas ($, param) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
+        svl.tracker.push('LabelingCanvas_FinishLabeling');
         var labelType = svl.ribbon.getStatus('selectedLabelType');
         var labelColor = getLabelColors()[labelType];
         var labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')];
         var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
-        var latlng = getPosition();
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
-        pointParameters.panoramaLat = latlng.lat;
-        pointParameters.panoramaLng = latlng.lng;
-        pointParameters.panoramaId = getPanoId();
 
         var pathLen = tempPath.length;
         var points = [];
@@ -1231,7 +1233,7 @@ function Canvas ($, param) {
             points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
-
+        var latlng = getPosition();
         var param = {
             canvasWidth: svl.canvasWidth,
             canvasHeight: svl.canvasHeight,
@@ -1257,11 +1259,9 @@ function Canvas ($, param) {
             param.photographerPitch = photographerPov.pitch;
         }
 
-        //status.currentLabel = new Label(path, param);
-        status.currentLabel = svl.labelFactory.create(path, param);
-        svl.labelContainer.push(status.currentLabel);
+        status.currentLabel = new Label(path, param)
         labels.push(status.currentLabel);
-        svl.tracker.push('LabelingCanvas_FinishLabeling', {temporary_label_id: status.currentLabel.getProperty("temporary_label_id")});
+        svl.labelContainer.push(status.currentLabel);
 
         svl.actionStack.push('addLabel', status.currentLabel);
         //var label = Label(path, param);
@@ -2126,22 +2126,45 @@ function Canvas ($, param) {
             }
         }
 
+        //
         // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) {  renderTempPath(); }
-        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
+        if (status.drawing) {
+            renderTempPath();
+        }
 
+        //
+        // Check if the user audited all the angles or not.
+        if ('form' in svl) {
+            svl.form.checkSubmittable();
+        }
+
+        if ('progressPov' in svl) {
+            svl.progressPov.updateCompletionRate();
+        }
+
+        //
         // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
+        if (svl.labeledLandmarkFeedback) {
+            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
+        }
 
+        //
         // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) { svl.actionStack.updateOpacity(); }
+        if (svl.actionStack) {
+            svl.actionStack.updateOpacity();
+        }
 
+        //
         // Update the opacity of Zoom In and Zoom Out buttons.
-        if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
+        if (svl.zoomControl) {
+            svl.zoomControl.updateOpacity();
+        }
 
         //
         // This like of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
+        if ('goldenInsertion' in svl && svl.goldenInsertion) {
+            svl.goldenInsertion.renderMessage();
+        }
         return this;
     }
 
@@ -2553,7 +2576,10 @@ var svl = svl || {};
  * @memberof svl
  */
 function Form ($, params) {
-    var self = { className : 'Form' };
+    var self = {
+        'className' : 'Form'
+    };
+
     var properties = {
         commentFieldMessage: undefined,
         isAMTTask : false,
@@ -2566,7 +2592,8 @@ function Form ($, params) {
         taskPanoramaId: undefined,
         hitId : undefined,
         assignmentId: undefined,
-        turkerId: undefined
+        turkerId: undefined,
+        userExperiment: false
     };
     var status = {
         disabledButtonMessageVisibility: 'hidden',
@@ -2583,11 +2610,30 @@ function Form ($, params) {
         disableSubmit : false
     };
 
+    // jQuery doms
+    var $form;
+    var $textieldComment;
+    var $btnSubmit;
+    var $btnSkip;
+    var $btnConfirmSkip;
+    var $btnCancelSkip;
+    var $radioSkipReason;
+    var $textSkipOtherReason;
+    var $divSkipOptions;
+    var $pageOverlay;
+    var $taskDifficultyWrapper;
+    var $taskDifficultyOKButton;
+
+    var messageCanvas;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // Private functions
+    ////////////////////////////////////////////////////////////////////////////////
     function _init (params) {
-        var hasGroupId = getURLParameter('groupId') !== "",
-            hasHitId = getURLParameter('hitId') !== "",
-            hasWorkerId = getURLParameter('workerId') !== "",
-            assignmentId = getURLParameter('assignmentId');
+        var hasGroupId = getURLParameter('groupId') !== "";
+        var hasHitId = getURLParameter('hitId') !== "";
+        var hasWorkerId = getURLParameter('workerId') !== "";
+        var assignmentId = getURLParameter('assignmentId');
 
         properties.onboarding = params.onboarding;
         properties.dataStoreUrl = params.dataStoreUrl;
@@ -2601,6 +2647,30 @@ function Form ($, params) {
         if (('turkerId' in params) && params.turkerId) {
             properties.turkerId = params.turkerId;
         }
+
+        if (('userExperiment' in params) && params.userExperiment) {
+            properties.userExperiment = true;
+        }
+
+        //
+        // initiailze jQuery elements.
+        $form = $("#BusStopLabelerForm");
+        $textieldComment = svl.ui.form.commentField; //$("#CommentField");
+        $btnSubmit = svl.ui.form.submitButton;
+        $btnSkip = svl.ui.form.skipButton;
+        $btnConfirmSkip = $("#BusStopAbsence_Submit");
+        $btnCancelSkip = $("#BusStopAbsence_Cancel");
+        $radioSkipReason = $('.Radio_BusStopAbsence');
+        $textSkipOtherReason = $("#Text_BusStopAbsenceOtherReason");
+        $divSkipOptions = $("#Holder_SkipOptions");
+        $pageOverlay = $("#page-overlay-holder");
+
+
+        if (properties.userExperiment) {
+            $taskDifficultyOKButton = $("#task-difficulty-button");
+            $taskDifficultyWrapper = $("#task-difficulty-wrapper");
+        }
+
 
         $('input[name="assignmentId"]').attr('value', properties.assignmentId);
         $('input[name="workerId"]').attr('value', properties.turkerId);
@@ -2623,15 +2693,17 @@ function Form ($, params) {
             properties.isAMTTask = true;
         }
 
+        //
         // Check if this is a sandbox task or not
         properties.isSandbox = false;
         if (properties.isAMTTask) {
             if (document.referrer.indexOf("workersandbox.mturk.com") !== -1) {
                 properties.isSandbox = true;
-                svl.ui.form.form.prop("action", "https://workersandbox.mturk.com/mturk/externalSubmit");
+                $form.prop("action", "https://workersandbox.mturk.com/mturk/externalSubmit");
             }
         }
 
+        //
         // Check if this is a preview and, if so, disable submission and show a message saying
         // this is a preview.
         if (properties.isAMTTask && properties.isPreviewMode) {
@@ -2645,9 +2717,38 @@ function Form ($, params) {
             self.lockDisableSubmit();
         }
 
+        // if (!('onboarding' in svl && svl.onboarding)) {
+        //     messageCanvas = new Onboarding(params, $)
+        // }
+
+        //
+        // Insert texts in a textfield
+        properties.commentFieldMessage = $textieldComment.attr('title');
+        $textieldComment.val(properties.commentFieldMessage);
+
+        //
+        // Disable Submit button so turkers cannot submit without selecting
+        // a reason for not being able to find the bus stop.
+        disableConfirmSkip();
+
+        //
         // Attach listeners
-        svl.ui.form.form.bind('submit', formSubmit);
-        svl.ui.form.skipButton.bind('click', openSkipWindow);
+        $textieldComment.bind('focus', focusCallback); // focusCallback is in Utilities.js
+        $textieldComment.bind('blur', blurCallback); // blurCallback is in Utilities.js
+        $form.bind('submit', formSubmit);
+        $btnSkip.bind('click', openSkipWindow);
+        $btnConfirmSkip.on('click', skipSubmit);
+        $btnCancelSkip.on('click', closeSkipWindow);
+        $radioSkipReason.on('click', radioSkipReasonClicked);
+        // http://stackoverflow.com/questions/11189136/fire-oninput-event-with-jquery
+        if ($textSkipOtherReason.get().length > 0) {
+            $textSkipOtherReason[0].oninput = skipOtherReasonInput;
+        }
+
+        if (properties.userExperiment) {
+            $taskDifficultyOKButton.bind('click', taskDifficultyOKButtonClicked);
+        }
+
     }
 
     /**
@@ -2659,8 +2760,7 @@ function Form ($, params) {
 
         data.audit_task = {
             street_edge_id: svl.task.getStreetEdgeId(),
-            task_start: svl.task.getTaskStart(),
-            audit_task_id: svl.task.getAuditTaskId()
+            task_start: svl.task.getTaskStart()
         };
 
         data.environment = {
@@ -2676,6 +2776,7 @@ function Form ($, params) {
         };
 
         data.interactions = svl.tracker.getActions();
+        svl.tracker.refresh();
 
         data.labels = [];
         var labels = svl.labelContainer.getCurrentLabels();
@@ -2686,7 +2787,6 @@ function Form ($, params) {
                 points = label.getPath().getPoints(),
                 pathLen = points.length;
 
-            var temporaryLabelId = label.getProperty("temporary_label_id");
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
@@ -2694,14 +2794,11 @@ function Form ($, params) {
                 photographer_heading : prop.photographerHeading,
                 photographer_pitch : prop.photographerPitch,
                 gsv_panorama_id : prop.panoId,
-                panorama_lat : prop.panoramaLat,
-                panorama_lng : prop.panoramaLng,
-                label_points : [],
-                temporary_label_id: temporaryLabelId ? temporaryLabelId : null
+                label_points : []
             };
 
             for (var j = 0; j < pathLen; j += 1) {
-                var point = points[j], lat = point.getProperty('lat'), lng = point.getProperty('lng'),
+                var point = points[j],
                     gsvImageCoordinate = point.getGSVImageCoordinate(),
                     pointParam = {
                         sv_image_x : gsvImageCoordinate.x,
@@ -2715,8 +2812,8 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : lat ? lat : null,
-                        lng : lng ? lng : null
+                        lat : prop.panoramaLat,
+                        lng : prop.panoramaLng
                     };
                 temp.label_points.push(pointParam);
             }
@@ -2724,15 +2821,32 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
+//        if (data.labels.length === 0) {
+//            data.labelingTask.no_label = 0;
+//        }
 
         // Add the value in the comment field if there are any.
-        var comment = svl.ui.form.commentField.val();
+        var comment = $textieldComment.val();
         data.comment = undefined;
         if (comment &&
-            comment !== svl.ui.form.commentField.attr('title')) {
-            data.comment = svl.ui.form.commentField.val();
+            comment !== $textieldComment.attr('title')) {
+            data.comment = $textieldComment.val();
         }
         return data;
+    }
+
+
+    function disableConfirmSkip () {
+        // This method disables the confirm skip button
+        $btnConfirmSkip.attr('disabled', true);
+        $btnConfirmSkip.css('color', 'rgba(96,96,96,0.5)');
+    }
+
+
+    function enableConfirmSkip () {
+        // This method enables the confirm skip button
+        $btnConfirmSkip.attr('disabled', false);
+        $btnConfirmSkip.css('color', 'rgba(96,96,96,1)');
     }
 
     /**
@@ -2742,12 +2856,12 @@ function Form ($, params) {
       */
     function submit(data) {
         svl.tracker.push('TaskSubmit');
-        svl.tracker.refresh();
         svl.labelContainer.refresh();
 
         if (data.constructor !== Array) {
             data = [data];
         }
+
         try {
             $.ajax({
                 // async: false,
@@ -2757,13 +2871,8 @@ function Form ($, params) {
                 data: JSON.stringify(data),
                 dataType: 'json',
                 success: function (result) {
-                    console.log(result);
-
                     if (result.error) {
-                        console.error(result.error);
-                    }
-                    else if (!svl.task.getAuditTaskId() && svl.task.getStreetEdgeId() == result.street_edge_id) {
-                        svl.task.setAuditTaskId(result.audit_task_id);
+                        console.log(result.error);
                     }
                 },
                 error: function (result) {
@@ -2775,6 +2884,19 @@ function Form ($, params) {
             console.error(e);
             return false;
         }
+//
+//        if (properties.taskRemaining > 1) {
+//            window.location.reload();
+//            return false;
+//        } else {
+//            if (properties.isAMTTask) {
+//                return true;
+//            } else {
+//                window.location.reload();
+//                //window.location = '/';
+//                return false;
+//            }
+//        }
     }
 
     /**
@@ -2787,45 +2909,363 @@ function Form ($, params) {
             e.preventDefault();
         }
 
+        var url = properties.dataStoreUrl;
+        var data = {};
+
         if (status.disableSubmit) {
             showDisabledSubmitButtonMessage();
             return false;
         }
 
+        // temp
+        // window.location.reload();
+
+        //
+        // If this is a task with ground truth labels, check if users made any mistake.
+//        if ('goldenInsertion' in svl && svl.goldenInsertion) {
+//            var numMistakes = svl.goldenInsertion.reviewLabels();
+//            self.disableSubmit().lockDisableSubmit();
+//            self.disableSkip().lockDisableSkip();
+//            return false;
+//        }
+
+        //
+        // Disable a submit button and other buttons so turkers cannot submit labels more than once.
+        //$btnSubmit.attr('disabled', true);
+        //$btnSkip.attr('disabled', true);
+        $btnConfirmSkip.attr('disabled', true);
+        $pageOverlay.css('visibility', 'visible');
+
+
+        //
+        // If this is a user experiment
+        if (properties.userExperiment) {
+            if (!status.taskDifficulty) {
+                status.submitType = 'submit';
+                $taskDifficultyWrapper.css('visibility', 'visible');
+                return false;
+            }
+        }
+
+        //
         // Submit collected data if a user is not in onboarding mode.
         if (!properties.onboarding) {
-            var data = compileSubmissionData();
+            data = compileSubmissionData();
             submit(data);
+//            svl.tracker.push('TaskSubmit');
+//
+//            data = compileSubmissionData();
+//
+//            if (status.taskDifficulty != undefined) {
+//                data.taskDifficulty = status.taskDifficulty;
+//                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
+//                if (status.taskDifficultyComment) {
+//                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
+//                }
+//            }
+//
+//            try {
+//                $.ajax({
+//                    async: false,
+//                    contentType: 'application/json; charset=utf-8',
+//                    url: url,
+//                    type: 'post',
+//                    data: JSON.stringify(data),
+//                    dataType: 'json',
+//                    success: function (result) {
+//                        if (result.error) {
+//                            console.log(result.error);
+//                        }
+//                    },
+//                    error: function (result) {
+//                        throw result;
+//                        // console.error(result);
+//                    }
+//                });
+//            } catch (e) {
+//                console.error(e);
+//                return false;
+//            }
+//
+//            if (properties.taskRemaining > 1) {
+//                window.location.reload();
+//                return false;
+//            } else {
+//                if (properties.isAMTTask) {
+//                    return true;
+//                } else {
+//                    window.location.reload();
+//                    //window.location = '/';
+//                    return false;
+//                }
+//            }
         }
         return false;
     }
 
-    /**
-     * Submit data that has been collected so far.
-     * @param e
-     */
-    function skipSubmit (incompleteTaskData) {
-        var data = compileSubmissionData();
-        data.incomplete = incompleteTaskData;
-        submit(data);
-        svl.task.newTask();
+    function goldenInsertionSubmit () {
+        // This method submits the labels that a user provided on golden insertion task and refreshes the page.
+        if ('goldenInsertion' in svl && svl.goldenInsertion) {
+            svl.tracker.push('GoldenInsertion_Submit');
+            var url = properties.dataStoreUrl;
+            var data;
+            svl.goldenInsertion.disableOkButton();
+
+            data = compileSubmissionData();
+            data.labelingTask.description = "GoldenInsertion";
+
+            try {
+                $.ajax({
+                    async: false,
+                    url: url,
+                    type: 'post',
+                    data: data,
+                    dataType: 'json',
+                    success: function (result) {
+                        if (((typeof result) == 'object') && ('error' in result) && result.error) {
+                            console.log(result.error);
+                        }
+                    },
+                    error: function (result) {
+                        throw result;
+                        // console.error(result);
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+                return false;
+            }
+
+            window.location.reload();
+        } else {
+            throw self.className + ": This method cannot be called without GoldenInsertion";
+        }
+        return false;
     }
 
+    function showDisabledSubmitButtonMessage () {
+        // This method is called from formSubmit method when a user clicks the submit button evne then have
+        // not looked around and inspected the entire panorama.
+        var completionRate = parseInt(svl.progressPov.getCompletionRate() * 100, 10);
 
-    /**
-     * Open a modal window and ask why they are jumping to another location
-     * @param e
-     * @returns {boolean}
-     */
-    function openSkipWindow (e) {
-        e.preventDefault();
-        svl.tracker.push('Click_OpenSkipWindow');
-        svl.modalSkip.showSkipMenu();
+        if (!('onboarding' in svl && svl.onboarding) &&
+            (completionRate < 100)) {
+            var message = "You have inspected " + completionRate + "% of the scene. Let's inspect all the corners before you submit the task!";
+            var $OkBtn;
+
+            //
+            // Clear and render the onboarding canvas
+            var $divOnboardingMessageBox = undefined; //
+            messageCanvas.clear();
+            messageCanvas.renderMessage(300, 250, message, 350, 140);
+            messageCanvas.renderArrow(650, 282, 710, 282);
+
+            if (status.disabledButtonMessageVisibility === 'hidden') {
+                status.disabledButtonMessageVisibility = 'visible';
+                var okButton = '<button id="TempOKButton" class="button bold" style="left:20px;position:relative; width:100px;">OK</button>';
+                $divOnboardingMessageBox.append(okButton);
+                $OkBtn = $("#TempOKButton");
+                $OkBtn.bind('click', function () {
+                    //
+                    // Remove the OK button and clear the message.
+                    $OkBtn.remove();
+                    messageCanvas.clear();
+                    status.disabledButtonMessageVisibility = 'hidden';
+                })
+            }
+        }
+    }
+
+    function skipSubmit (e) {
+        // To prevent a button in a form to fire form submission, add onclick="return false"
+        // http://stackoverflow.com/questions/932653/how-to-prevent-buttons-from-submitting-forms
+        if (!properties.isAMTTask || properties.taskRemaining > 1) {
+            e.preventDefault();
+        }
+
+
+
+        var url = properties.dataStoreUrl;
+        var data = {};
+        //
+        // If this is a task with ground truth labels, check if users made any mistake.
+        if ('goldenInsertion' in svl && svl.goldenInsertion) {
+            self.disableSubmit().lockDisableSubmit();
+            $btnSkip.attr('disabled', true);
+            $btnConfirmSkip.attr('disabled', true);
+            $divSkipOptions.css({
+                visibility: 'hidden'
+            });
+            var numMistakes = svl.goldenInsertion.reviewLabels()
+            return false;
+        }
+
+        //
+        // Disable a submit button.
+        $btnSubmit.attr('disabled', true);
+        $btnSkip.attr('disabled', true);
+        $btnConfirmSkip.attr('disabled', true);
+        $pageOverlay.css('visibility', 'visible');
+
+
+        //
+        // If this is a user experiment, run the following lines
+        if (properties.userExperiment) {
+            if (!status.taskDifficulty) {
+                status.submitType = 'skip';
+                $taskDifficultyWrapper.css('visibility', 'visible');
+                return false;
+            }
+        }
+        //
+        // Set a value for skipReasonDescription.
+        if (status.radioValue === 'Other:') {
+            status.skipReasonDescription = "Other: " + $textSkipOtherReason.val();
+        }
+
+        // Submit collected data if a user is not in oboarding mode.
+        if (!properties.onboarding) {
+            svl.tracker.push('TaskSubmitSkip');
+
+            //
+            // Compile the submission data with compileSubmissionData method,
+            // then overwrite a part of the compiled data.
+            data = compileSubmissionData()
+            data.noLabels = true;
+            data.labelingTask.no_label = 1;
+            data.labelingTask.description = status.skipReasonDescription;
+
+            if (status.taskDifficulty != undefined) {
+                data.taskDifficulty = status.taskDifficulty;
+                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
+                if (status.taskDifficultyComment) {
+                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
+                }
+            }
+
+            try {
+                $.ajax({
+                    async: false,
+                    url: url,
+                    type: 'post',
+                    data: data,
+                    success: function (result) {
+                        if (result.error) {
+                            console.log(result.error);
+                        }
+                    },
+                    error: function (result) {
+                        throw result;
+                        // console.error(self.className, result);
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+                return false;
+            }
+
+            if (properties.taskRemaining > 1) {
+                window.location.reload();
+                return false;
+            } else {
+                if (properties.isAMTTask) {
+                    // $form.submit();
+                    document.getElementById("BusStopLabelerForm").submit();
+                    return true;
+                } else {
+                    // window.location = '/';
+                    window.location.reload();
+                    return false;
+                }
+            }
+
+        }
         return false;
     }
 
 
-    function checkSubmittable () {
+    function openSkipWindow (e) {
+        e.preventDefault();
+
+        if (status.disableSkip) {
+            showDisabledSubmitButtonMessage();
+        } else {
+            svl.tracker.push('Click_OpenSkipWindow');
+            $divSkipOptions.css({
+                visibility: 'visible'
+            });
+        }
+        return false;
+    }
+
+
+    function closeSkipWindow (e) {
+        // This method closes the skip menu.
+        e.preventDefault(); // Do not submit the form!
+
+        svl.tracker.push('Click_CloseSkipWindow');
+
+        $divSkipOptions.css({
+            visibility: 'hidden'
+        });
+        return false;
+    }
+
+
+    function radioSkipReasonClicked () {
+        // This function is invoked when one of a radio button is clicked.
+        // If the clicked radio button is 'Other', check if a user has entered a text.
+        // If the text is entered, then enable submit. Otherwise disable submit.
+        status.radioValue = $(this).attr('value');
+        svl.tracker.push('Click_SkipRadio', {RadioValue: status.radioValue});
+
+        if (status.radioValue !== 'Other:') {
+            status.skipReasonDescription = status.radioValue;
+            enableConfirmSkip();
+        } else {
+            var textValue = $textSkipOtherReason.val();
+            if (textValue) {
+                enableConfirmSkip();
+            } else {
+                disableConfirmSkip();
+            }
+        }
+    }
+
+    function skipOtherReasonInput () {
+        // This function is invoked when the text is entered in Other field.
+        if (status.radioValue && status.radioValue === 'Other:') {
+            var textValue = $textSkipOtherReason.val();
+            if (textValue) {
+                enableConfirmSkip();
+            } else {
+                disableConfirmSkip();
+            }
+        }
+    }
+
+    function taskDifficultyOKButtonClicked (e) {
+        // This is used in the user experiment script
+        // Get checked radio value
+        // http://stackoverflow.com/questions/4138859/jquery-how-to-get-selected-radio-button-value
+        status.taskDifficulty = parseInt($('input[name="taskDifficulty"]:radio:checked').val(), 10);
+        status.taskDifficultyComment = $("#task-difficulty-comment").val();
+        status.taskDifficultyComment = (status.taskDifficultyComment != "") ? status.taskDifficultyComment : undefined;
+        console.log(status.taskDifficultyComment);
+
+
+        if (status.taskDifficulty) {
+            if (('submitType' in status) && status.submitType == 'submit') {
+                formSubmit(e);
+            } else if (('submitType' in status) && status.submitType == 'skip') {
+                skipSubmit(e);
+            }
+        }
+    }
+    ////////////////////////////////////////////////////////////////////////////////
+    // Public functions
+    ////////////////////////////////////////////////////////////////////////////////
+    self.checkSubmittable = function () {
         // This method checks whether users can submit labels or skip this task by first checking if they
         // assessed all the angles of the street view.
         // Enable/disable form a submit button and a skip button
@@ -2839,139 +3279,128 @@ function Form ($, params) {
 
         if (1 - completionRate < 0.01) {
             if (labelCount > 0) {
-                enableSubmit();
-                disableSkip();
+                self.enableSubmit();
+                self.disableSkip();
             } else {
-                disableSubmit();
-                enableSkip();
+                self.disableSubmit();
+                self.enableSkip();
             }
             return true;
         } else {
-            disableSubmit();
-            disableSkip();
+            self.disableSubmit();
+            self.disableSkip();
             return false;
         }
+    };
+
+    self.compileSubmissionData = function () {
+        // This method returns the return value of a private method compileSubmissionData();
+        return compileSubmissionData();
     }
 
-    function disableSubmit () {
+    self.disableSubmit = function () {
         if (!lock.disableSubmit) {
             status.disableSubmit = true;
-            //  svl.ui.form.submitButton.attr('disabled', true);
-            svl.ui.form.submitButton.css('opacity', 0.5);
+            //  $btnSubmit.attr('disabled', true);
+            $btnSubmit.css('opacity', 0.5);
             return this;
         }
         return false;
-    }
+    };
 
 
-    function disableSkip () {
+    self.disableSkip = function () {
         if (!lock.disableSkip) {
             status.disableSkip = true;
-            // svl.ui.form.skipButton.attr('disabled', true);
-            svl.ui.form.skipButton.css('opacity', 0.5);
+            // $btnSkip.attr('disabled', true);
+            $btnSkip.css('opacity', 0.5);
             return this;
         }
         return false;
-    }
+    };
 
-    function enableSubmit () {
+
+    self.enableSubmit = function () {
         if (!lock.disableSubmit) {
             status.disableSubmit = false;
-            // svl.ui.form.submitButton.attr('disabled', false);
-            svl.ui.form.submitButton.css('opacity', 1);
+            // $btnSubmit.attr('disabled', false);
+            $btnSubmit.css('opacity', 1);
             return this;
         }
         return false;
-    }
+    };
 
-    function enableSkip () {
+
+    self.enableSkip = function () {
         if (!lock.disableSkip) {
             status.disableSkip = false;
-            // svl.ui.form.skipButton.attr('disabled', false);
-            svl.ui.form.skipButton.css('opacity', 1);
+            // $btnSkip.attr('disabled', false);
+            $btnSkip.css('opacity', 1);
             return this;
         }
         return false;
-    }
+    };
 
-    function isPreviewMode () {
+    self.goldenInsertionSubmit = function () {
+        // This method allows GoldenInsetion to submit the task.
+        return goldenInsertionSubmit();
+    };
+
+    self.isPreviewMode = function () {
         // This method returns whether the task is in preview mode or not.
         return properties.isPreviewMode;
-    }
+    };
 
-    function lockDisableSubmit () {
+    self.lockDisableSubmit = function () {
         lock.disableSubmit = true;
         return this;
-    }
+    };
 
-    function lockDisableSkip () {
+
+    self.lockDisableSkip = function () {
         lock.disableSkip = true;
         return this;
-    }
+    };
 
-    function setTaskDescription (val) {
+    self.setPreviousLabelingTaskId = function (val) {
+        // This method sets the labelingTaskId
+        properties.previousLabelingTaskId = val;
+        return this;
+    };
+
+    self.setTaskDescription = function (val) {
         // This method sets the taskDescription
         properties.taskDescription = val;
         return this;
-    }
+    };
 
-    /**
-     * This method sets the labelingTaskId
-     * @param val
-     * @returns {setPreviousLabelingTaskId}
-     */
-    function setPreviousLabelingTaskId (val) {
-        properties.previousLabelingTaskId = val;
-        return this;
-    }
 
-    /**
-     * This method sets the number of remaining tasks
-     * @param val
-     * @returns {setTaskRemaining}
-     */
-    function setTaskRemaining (val) {
+    self.setTaskRemaining = function (val) {
+        // This method sets the number of remaining tasks
         properties.taskRemaining = val;
         return this;
-    }
+    };
 
-    /**
-     * This method sets the taskPanoramaId. Note it is not same as the GSV panorama id.
-     * @param val
-     * @returns {setTaskPanoramaId}
-     */
-    function setTaskPanoramaId (val) {
+    self.setTaskPanoramaId = function (val) {
+        // This method sets the taskPanoramaId. Note it is not same as the GSV panorama id.
         properties.taskPanoramaId = val;
         return this;
-    }
+    };
 
-    function unlockDisableSubmit () {
+
+    self.unlockDisableSubmit = function () {
         lock.disableSubmit = false;
         return this;
-    }
+    };
 
-    function unlockDisableSkip () {
+
+    self.unlockDisableSkip = function () {
         lock.disableSkipButton = false;
         return this;
-    }
+    };
 
-    self.checkSubmittable = checkSubmittable;
-    self.disableSubmit = disableSubmit;
-    self.compileSubmissionData = compileSubmissionData;
-    self.disableSkip = disableSkip;
-    self.enableSubmit = enableSubmit;
-    self.enableSkip = enableSkip;
-    self.isPreviewMode = isPreviewMode;
-    self.lockDisableSubmit = lockDisableSubmit;
-    self.lockDisableSkip = lockDisableSkip;
-    self.setPreviousLabelingTaskId = setPreviousLabelingTaskId;
-    self.setTaskDescription = setTaskDescription;
-    self.setTaskRemaining = setTaskRemaining;
-    self.setTaskPanoramaId = setTaskPanoramaId;
-    self.unlockDisableSubmit = unlockDisableSubmit;
-    self.unlockDisableSkip = unlockDisableSkip;
     self.submit = submit;
-    self.skipSubmit = skipSubmit;
+    self.compileSubmissionData = compileSubmissionData;
     _init(params);
     return self;
 }
@@ -3810,7 +4239,6 @@ function Label (pathIn, params) {
     var goolgeMarker;
 
     var properties = {
-        temporary_label_id: null,
         canvasWidth: undefined,
         canvasHeight: undefined,
         canvasDistortionAlphaX: undefined,
@@ -3872,6 +4300,28 @@ function Label (pathIn, params) {
             }
 
             for (attrName in properties) {
+                // It is ok if some attributes are not passed as parameters
+                if ((attrName === 'tagHeight' ||
+                     attrName === 'tagWidth' ||
+                     attrName === 'tagX' ||
+                     attrName === 'tagY' ||
+                     attrName === 'labelerId' ||
+                     attrName === 'photographerPov' ||
+                     attrName === 'photographerHeading' ||
+                     attrName === 'photographerPitch' ||
+                            attrName === 'distanceThreshold'
+                    ) &&
+                    !param[attrName]) {
+                    continue;
+                }
+
+                // Check if all the necessary properties are set in param.
+                // Checking paroperties:
+                // http://www.nczonline.net/blog/2010/07/27/determining-if-an-object-property-exists/
+                if (!(attrName in param)) {
+                    var errMsg = '"' + attrName + '" is not in the passed parameter.';
+                    throw errMsg;
+                }
                 properties[attrName] = param[attrName];
             }
 
@@ -4283,40 +4733,30 @@ function Label (pathIn, params) {
         };
     };
 
+    self.getProperties = function () {
+        // Return the deep copy of the properties object,
+        // so the caller can only modify properties from
+        // setProperties() (which I have not implemented.)
+        //
+        // JavaScript Deepcopy
+        // http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+        return $.extend(true, {}, properties);
+    };
 
-    /**
-     * Return the deep copy of the properties object
-     * @returns {*}
-     */
-    function getProperties () { return $.extend(true, {}, properties); }
+    self.getProperty = function (propName) {
+        if (!(propName in properties)) {
+            return false;
+        }
+        return properties[propName];
+    };
 
-
-    function getProperty (key) {
-        if (!(key in properties)) throw "KeyError";
-        return properties[key];
+    self.getstatus = function (key) {
+        return status[key];
     }
 
-    function getStatus (key) { return status[key]; }
-
-    function getVisibility () { return status.visibility; }
-
-    /**
-     * Set a label property
-     * @param key
-     * @param value
-     * @returns {*}
-     */
-    function setProperty (key, value) {
-        if (!(key in properties)) return false;
-        properties[key] = value;
-        return this;
-    }
-
-    self.getstatus = getStatus;
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    self.getVisibility = getVisibility;
+    self.getVisibility = function () {
+        return status.visibility;
+    };
 
     self.fill = function (fill) {
         // This method changes the fill color of the path and points that constitute the path.
@@ -4332,14 +4772,15 @@ function Label (pathIn, params) {
         return this;
     };
 
-    /**
-     * This method changes the fill color of the path and points to orange.
-     */
-    function highlight () { return self.fill('rgba(255,165,0,0.8)'); }
-    function isDeleted () { return status.deleted; }
+    self.highlight = function () {
+        // This method changes the fill color of the path and points to orange.
+        var fillStyle = 'rgba(255,165,0,0.8)';
+        return self.fill(fillStyle);
+    };
 
-    self.highlight = highlight;
-    self.isDeleted = isDeleted;
+    self.isDeleted = function () {
+        return status.deleted;
+    };
 
 
     self.isOn = function (x, y) {
@@ -4354,41 +4795,40 @@ function Label (pathIn, params) {
             return result;
         } else {
             return false;
-            //
-            //var margin = 20;
-            //if (properties.tagX - margin < x &&
-            //    properties.tagX + properties.tagWidth + margin > x &&
-            //    properties.tagY - margin < y &&
-            //    properties.tagY + properties.tagHeight + margin > y) {
-            //    // The mouse cursor is on the tag.
-            //    return this;
-            //} else {
-            //    return false;
-            //}
+
+            var margin = 20;
+            if (properties.tagX - margin < x &&
+                properties.tagX + properties.tagWidth + margin > x &&
+                properties.tagY - margin < y &&
+                properties.tagY + properties.tagHeight + margin > y) {
+                // The mouse cursor is on the tag.
+                return this;
+            } else {
+                return false;
+            }
         }
     };
 
 
+    self.isVisible = function () {
+        // This method returns the visibility of this label.
+        if (status.visibility === 'visible') {
+            return true;
+        } else {
+            return false;
+        }
+    };
 
-    /**
-     * This method returns the visibility of this label.
-     * @returns {boolean}
-     */
-    function isVisible () { return status.visibility === 'visible'; }
-    self.isVisible = isVisible;
-
-    function lockTagVisibility () {
+    self.lockTagVisibility = function () {
         lock.tagVisibility = true;
         return this;
-    }
-    self.lockTagVisibility = lockTagVisibility;
+    };
 
 
     self.lockVisibility = function () {
         lock.visibility = true;
         return this;
     };
-
 
     self.overlap = function (label, mode) {
         // This method calculates the area overlap between this label and another label passed as an argument.
@@ -4498,9 +4938,7 @@ function Label (pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function renderOnMap () {
-        //var latlng = toLatLng();
-        var lat = path.points[0].getProperty("lat"), lng = path.points[0].getProperty("lng"),
-            latlng = {lat: lat, lng: lng};
+        var latlng = toLatLng();
         var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
 
         var image = {
@@ -4705,6 +5143,9 @@ function Label (pathIn, params) {
 
     self.toLatLng = toLatLng;
 
+    //
+    // Initialize
+    //
     if (!init(params, pathIn)) {
         return false;
     }
@@ -4717,10 +5158,9 @@ var svl = svl || {};
  * LabelContainer class constructor
  */
 function LabelContainer() {
-    var self = {className: 'LabelContainer'},
-        currentCanvasLabels = [],
-        prevCanvasLabels = [],
-        temporaryLabelId = 1;
+    var self = {className: 'LabelContainer'};
+    var currentCanvasLabels = [],
+        prevCanvasLabels = [];
 
     /**
      * Returns canvas labels
@@ -5042,20 +5482,6 @@ function LabelCounter ($, d3) {
     self.set = set;
     return self;
 }
-function LabelFactory () {
-    var self = { className: "LabelFactory"},
-        temporaryLabelId = 1;
-
-    function create (path, param) {
-        var label = new Label(path, param);
-        label.setProperty("temporary_label_id", temporaryLabelId);
-        temporaryLabelId++;
-        return label;
-    }
-
-    self.create = create;
-    return self;
-}
 var svl = svl || {};
 
 /**
@@ -5181,12 +5607,8 @@ function Main ($, params) {
         svl.progressPov = new ProgressPov($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
-        svl.modalSkip = new ModalSkip($);
-        svl.labelFactory = new LabelFactory();
 
 
-        // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-        svl.service = new google.maps.StreetViewService();
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
@@ -5301,22 +5723,9 @@ function getPosition() {
 svl.getPosition = getPosition;
 
 function setPosition(lat, lng) {
-    var pos = new google.maps.LatLng(lat, lng),
-        radius = 50;
-
     if (svl.panorama) {
-        // Checking if there are street view panoramas
-        // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-        svl.service.getPanoramaByLocation(pos, radius, function (data, status) {
-            if (status === google.maps.StreetViewStatus.OK) {
-                svl.panorama.setPosition(pos);
-            } else {
-                // no street view available in this range, or some error occurred
-                svl.task.nextTask({regionId: 61});
-            }
-        });
-
-
+        var pos = new google.maps.LatLng(lat, lng);
+        svl.panorama.setPosition(pos);
     }
 }
 svl.setPosition = setPosition;
@@ -5354,7 +5763,7 @@ svl.getLinks = getLinks;
 
 //
 // Fog related variables.
-var fogMode = false;
+var fogMode = true;
 var fogSet = false;
 var current;
 var first;
@@ -6353,10 +6762,15 @@ function Map ($, params) {
         // Examples for plotting markers:
         // https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
         if (canvas) {
-            var labels = undefined, labelsLen = 0, prop = undefined, labelType = undefined, latlng = undefined;
+            var labels = undefined;
+            var labelsLen = 0;
+            var prop = undefined;
+            var labelType = undefined;
+            var latlng = undefined;
             labels = canvas.getLabels();
             labelsLen = labels.length;
 
+            //
             // Clear the map first
             for (var i = 0; i < markers.length; i += 1) {
                 markers[i].setMap(null);
@@ -6548,107 +6962,6 @@ function Map ($, params) {
     self.load = load;
 
     _init(params);
-    return self;
-}
-
-var svl = svl || {};
-
-/**
- * A Modal module
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ModalSkip ($) {
-    var self = { className : 'Modal'},
-        status = {
-            disableClickOK: true
-        };
-
-
-
-    function _init () {
-        disableClickOK();
-
-        svl.ui.modalSkip.ok.bind("click", handlerClickOK);
-        svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
-        svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
-    }
-
-    /**
-     * This method handles a click OK event
-     * @param e
-     */
-    function handlerClickOK (e) {
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
-            position = svl.panorama.getPosition(),
-            incomplete = {
-                issue_description: radioValue,
-                lat: position.lat(),
-                lng: position.lng()
-            };
-
-        svl.form.skipSubmit(incomplete);
-        hideSkipMenu();
-    }
-
-    /**
-     * This method handles a click Cancel event
-     * @param e
-     */
-    function handlerClickCancel (e) {
-        hideSkipMenu();
-    }
-
-    /**
-     * This method takes care of nothing.
-     * @param e
-     */
-    function handlerClickRadio (e) {
-        enableClickOK();
-    }
-
-    /**
-     * Hide the background of the modal menu
-     */
-    function hidePageOverlay () {
-        svl.ui.modal.overlay.css('visibility', 'hidden');
-    }
-
-    /**
-     * Hide a skip menu
-     */
-    function hideSkipMenu () {
-        svl.ui.modalSkip.radioButtons.prop('checked', false);
-        svl.ui.modalSkip.holder.addClass('hidden');
-    }
-
-    /**
-     * Show a skip menu
-     */
-    function showSkipMenu () {
-        svl.ui.modalSkip.holder.removeClass('hidden');
-    }
-
-
-    function disableClickOK () {
-        svl.ui.modalSkip.ok.attr("disabled", true);
-        svl.ui.modalSkip.ok.addClass("disabled");
-        status.disableClickOK = true;
-    }
-
-    function enableClickOK () {
-        svl.ui.modalSkip.ok.attr("disabled", false);
-        svl.ui.modalSkip.ok.removeClass("disabled");
-        status.disableClickOK = false;
-    }
-
-
-    _init();
-
-    self.showSkipMenu = showSkipMenu;
-    self.hideSkipMenu = hideSkipMenu;
     return self;
 }
 
@@ -7442,11 +7755,6 @@ function Point (x, y, pov, params) {
         };
     var belongsTo = undefined;
     var properties = {
-        lat: null,
-        lng: null,
-        panoramaLat: null,
-        panoramaLng: null,
-        panoramaId: null,
         fillStyleInnerCircle: params.fillStyle,
         lineWidthOuterCircle: 2,
         iconImagePath: undefined,
@@ -7459,22 +7767,26 @@ function Point (x, y, pov, params) {
     };
     var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
     var status = {
-        deleted : false,
-        visibility : 'visible',
-        visibilityIcon : 'visible'
+            'deleted' : false,
+            'visibility' : 'visible',
+            'visibilityIcon' : 'visible'
     };
 
-    /**
-     * Convert a canvas coordinate (x, y) into a sv image coordinate. Note that svImageCoordinate.x varies from 0 to
-     * svImageWidth and svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-     * @param x
-     * @param y
-     * @param pov
-     * @param params
-     * @returns {boolean}
-     * @private
-     */
+//    function assemble () {
+//        return {
+//            properties: properties,
+//            status
+//        };
+//    }
+//    self.assemble = assemble;
+
     function _init (x, y, pov, params) {
+        // Convert a canvas coordinate (x, y) into a sv image coordinate
+        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
+        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
+
+        //
+        // Adjust the zoom level
         var zoom = pov.zoom;
         var zoomFactor = svl.zoomFactor[zoom];
         var svImageHeight = svl.svImageHeight;
@@ -7530,44 +7842,36 @@ function Point (x, y, pov, params) {
 
         properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
         properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
-
-        // Set latlng position of this point.
-        var latlng = toLatLng();
-        setProperty('lat', latlng.lat);
-        setProperty('lng', latlng.lng);
-
         return true;
     }
 
-    function _init2 () { return true; }
-    function getCanvasX () { return self.canvasCoordinate.x; }
-    function getCanvasY () { return self.canvasCoordinate.y; }
-    function getFill () {  return properties.fillStyleInnerCircle; }
-    function getPOV () { return pov; }
 
-    /**
-     * Get the label latlng position
-     * @returns {lat: lat, lng: lng}
-     */
-    function toLatLng() {
-        var x = self.svImageCoordinate.x, y = self.svImageCoordinate.y,
-            lat = getProperty('panoramaLat'),
-            pc = svl.pointCloud.getPointCloud(getProperty('panoramaId'));
-        if (pc) {
-            var p = svl.util.scaleImageCoordinate(x, y, 1/26),
-                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
-                dx = pc.pointCloud[idx],
-                dy = pc.pointCloud[idx + 1],
-                delta = svl.util.math.latlngOffset(lat, dx, dy);
-            return {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
-        } else {
-            return null;
-        }
+    function _init2 () {
+        return true;
     }
 
+    function getCanvasX () {
+      return self.canvasCoordinate.x;
+    }
 
+    function getCanvasY () {
+      return self.canvasCoordinate.y;
+    }
+
+    function getFill () {
+        // return the fill color of this point
+      return properties.fillStyleInnerCircle;
+    }
+    function getPOV () {
+        return pov;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // Public functions
+    ////////////////////////////////////////////////////////////////////////////////
     self.belongsTo = function () {
-
+        // This function returns an object directly above this object.
+        // I.e., it returns which path it belongs to.
         if (belongsTo) {
             return belongsTo;
         } else {
@@ -7575,7 +7879,9 @@ function Point (x, y, pov, params) {
         }
     };
 
-    self.getPOV = getPOV;
+    self.getPOV = function() {
+        return getPOV();
+    };
 
     self.getCanvasCoordinate = function (pov) {
         // This function takes current pov of the Street View as a parameter
@@ -7601,23 +7907,15 @@ function Point (x, y, pov, params) {
         return $.extend(true, {}, self.svImageCoordinate);
     };
 
-    function getProperty (name) {
+    self.getProperty = function (name) {
         if (!(name in properties)) {
             throw self.className + ' : A property name "' + name + '" does not exist in properties.';
         }
         return properties[name];
-    }
-
-    function setProperty (key, value) {
-        if (!(key in properties)) { throw "The key does not exist"; }
-        properties[key] = value;
-        return this;
-    }
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
+    };
 
 
-        self.getProperties = function () {
+    self.getProperties = function () {
         // Return the deep copy of the properties object,
         // so the caller can only modify properties from
         // setProperties() (which I have not implemented.)
@@ -9864,9 +10162,7 @@ var svl = svl || {};
 function Task ($) {
     var self = {className: 'Task'},
         properties = {},
-        status = {
-            auditTaskId: null
-        },
+        status = {},
         taskSetting,
         previousTasks = [],
         lat, lng;
@@ -9889,29 +10185,15 @@ function Task ($) {
     /**
      * Get a next task
      */
-    function nextTask (parameters) {
-        var streetEdgeId, regionId, url;
-        if (!parameters) parameters = {};
-        if ("streetEdgeId" in parameters) { streetEdgeId = parameters["streetEdgeId"]; }
-        if ("regionId" in parameters) { regionId = parameters["regionId"]; }
-
-        regionId = null;  // Let's keep it simple...
-
-        var len = taskSetting.features[0].geometry.coordinates.length - 1,
+    function nextTask (streetEdgeId) {
+        var data = {street_edge_id: streetEdgeId},
+            len = taskSetting.features[0].geometry.coordinates.length - 1,
             latEnd = taskSetting.features[0].geometry.coordinates[len][1],
             lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
-        if (regionId) {
-            url = "/audit/task/nextInRegion?regionId=" + regionId;
-        } else if (streetEdgeId) {
-            url = "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd;
-        } else {
-            url = "/audit/task";
-        }
-
         $.ajax({
             // async: false,
             // contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
             type: 'get',
             success: function (task) {
                 var len = task.features[0].geometry.coordinates.length - 1,
@@ -9929,8 +10211,11 @@ function Task ($) {
                     // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                     task.features[0].geometry.coordinates.reverse();
                 }
+
                 set(task);
                 render();
+
+
             },
             error: function (result) {
                 throw result;
@@ -9938,31 +10223,13 @@ function Task ($) {
         });
     }
 
-    function newTask () {
-        var url = "/audit/task";
-        $.ajax({
-            url: url,
-            type: 'get',
-            success: function (task) {
-                var len = task.features[0].geometry.coordinates.length - 1,
-                    lat1 = task.features[0].geometry.coordinates[0][1],
-                    lng1 = task.features[0].geometry.coordinates[0][0];
-
-                svl.setPosition(lat1, lng1);
-                set(task);
-                render();
-            },
-            error: function (result) {
-                throw result;
-            }
-        })
-    }
 
     /**
      * End the current task
      */
     function endTask () {
         // Show the end of the task message.
+        console.log("End of task");
         svl.statusMessage.animate();
         svl.statusMessage.setCurrentStatusTitle("Great!");
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
@@ -10012,23 +10279,13 @@ function Task ($) {
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged);
+                svl.form.submit(staged)
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
                 svl.form.submit(data);
             }
         }
-
-        var streetEdgeId = getStreetEdgeId(),
-            regionId = getRegionId();
-        nextTask({streetEdgeId: streetEdgeId, regionId: regionId});
-    }
-
-    /**
-     * Returns the region id of the current focus.
-     */
-    function getRegionId () {
-        return 61;
+        nextTask(getStreetEdgeId());
     }
 
     /**
@@ -10043,22 +10300,6 @@ function Task ($) {
      */
     function getTaskStart () {
         return taskSetting.features[0].properties.task_start;
-    }
-
-    /**
-     * Set an audit task id
-     * @param asgId
-     */
-    function setAuditTaskId(auditTaskId) {
-        status.auditTaskId = auditTaskId;
-    }
-
-    /**
-     * Get an audit task id
-     * @returns {null}
-     */
-    function getAuditTaskId() {
-        return status.auditTaskId;
     }
 
     /**
@@ -10090,19 +10331,13 @@ function Task ($) {
 
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
 
-            console.debug('Distance to the end:' , d);
+            console.log('Distance to the end:' , d);
 
-            // Submit data after a while even before the task is complete, because you can get 413 error due to data overload
-            // http://www.checkupdown.com/status/E413.html
-            var actionCapacityThreshold = 150,
-                labelCapacityThreshold = 50;
-            if (svl.tracker.getActions().length > actionCapacityThreshold ||
-                    svl.labelContainer.getCurrentLabels().length > labelCapacityThreshold) {
-                var data = svl.form.compileSubmissionData();
-                svl.form.submit(data);
+            if (d < threshold) {
+                return true;
+            } else {
+                return false;
             }
-
-            return d < threshold;
         }
     }
 
@@ -10130,7 +10365,6 @@ function Task ($) {
      * This method takes a task parameters in geojson format.
      */
     function set(json) {
-        setAuditTaskId(null);
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];
         lng = taskSetting.features[0].geometry.coordinates[0][0];
@@ -10139,8 +10373,6 @@ function Task ($) {
     self.endTask = endTask;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.getAuditTaskId = getAuditTaskId;
-    self.setAuditTaskId = setAuditTaskId;
     self.load = load;
     self.set = set;
     self.initialLocation = initialLocation;
@@ -10148,7 +10380,6 @@ function Task ($) {
     self.render = render;
     self.save = save;
     self.nextTask = nextTask;
-    self.newTask = newTask;
     return self;
 }
 
@@ -10217,7 +10448,9 @@ function Tracker () {
      * Push an action into the array.
      */
     function push (action, param) {
-        var pov, latlng, panoId, note, temporaryLabelId;
+        // This function pushes action type, time stamp, current pov, and current panoId
+        // into actions list.
+        var pov, latlng, panoId, note;
 
         if (param) {
             if (('x' in param) && ('y' in param)) {
@@ -10238,10 +10471,6 @@ function Tracker () {
                 note = 'labelId:' + param.labelId;
             } else {
                 note = "";
-            }
-
-            if ('temporary_label_id' in param) {
-                temporaryLabelId = param.temporary_label_id;
             }
         } else {
             note = "";
@@ -10281,7 +10510,7 @@ function Tracker () {
         }
 
         var now = new Date(),
-            timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+            timestamp = now.getUTCFullYear() + "-" + now.getUTCMonth() + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         actions.push({
             action : action,
@@ -10292,10 +10521,8 @@ function Tracker () {
             pitch: pov.pitch,
             zoom: pov.zoom,
             note: note,
-            temporary_label_id: temporaryLabelId ? temporaryLabelId : null,
             timestamp: timestamp
         });
-
         return this;
     }
 
@@ -10397,21 +10624,6 @@ function UI ($, params) {
       self.popUpMessage.title = $("#pop-up-message-title");
       self.popUpMessage.content = $("#pop-up-message-content");
 
-      // Modal
-      self.modal = {};
-      self.modal.overlay = $("#page-overlay-holder");
-
-      // ModalSkip
-      self.modalSkip = {};
-      self.modalSkip.holder = $("#modal-skip-holder");
-      self.modalSkip.box = $("#modal-skip-box");
-      self.modalSkip.background = $("#modal-skip-background");
-      self.modalSkip.title = $("#modal-skip-title");
-      self.modalSkip.content = $("#modal-skip-content");
-      self.modalSkip.ok = $("#modal-skip-ok-button");
-      self.modalSkip.cancel = $("#modal-skip-cancel-button");
-      self.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
-
       // ProgressPov
       self.progressPov = {};
       self.progressPov.holder = $("#progress-pov-holder");
@@ -10424,11 +10636,16 @@ function UI ($, params) {
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
       // Ribbon menu DOMs
+      $divStreetViewHolder = $("#Holder_StreetView");
+      $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+      $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+      $spansModeSwitches = $('span.modeSwitch');
+
       self.ribbonMenu = {};
-      self.ribbonMenu.streetViewHolder = $("#Holder_StreetView");
-      self.ribbonMenu.buttons = $('span.modeSwitch');
-      self.ribbonMenu.bottonBottomBorders = $(".RibbonModeSwitchHorizontalLine");
-      self.ribbonMenu.connector = $("#StreetViewLabelRibbonConnection");
+      self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
+      self.ribbonMenu.buttons = $spansModeSwitches;
+      self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
+      self.ribbonMenu.connector = $ribbonConnector;
 
       // Zoom control
       self.zoomControl = {};
@@ -10444,9 +10661,6 @@ function UI ($, params) {
       self.form.commentField = $("#comment-field");
       self.form.skipButton = $("#skip-button");
       self.form.submitButton = $("#submit-button");
-      self.form.form = $("#svl-form");
-
-
 
       self.onboarding = {};
       self.onboarding.holder = $("#onboarding-holder");
@@ -12585,15 +12799,6 @@ var svl = svl || {};
 svl.util = svl.util || {};
 svl.util.color = {};
 
-svl.util.color.RGBToHex = function (rgb) {
-    // http://jsfiddle.net/Mottie/xcqpF/1/light/
-    rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
-     return (rgb && rgb.length === 4) ? "#" +
-      ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
-      ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
-      ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
-};
-
 svl.util.color.RGBToRGBA = function (rgb, alpha) {
     if(!alpha){
         alpha = '0.5';
@@ -12801,8 +13006,6 @@ function hsvToRgb(h, s, v){
 
     return [r * 255, g * 255, b * 255];
 }
-
-
 
 var svl = svl || {};
 svl.util = svl.util || {};

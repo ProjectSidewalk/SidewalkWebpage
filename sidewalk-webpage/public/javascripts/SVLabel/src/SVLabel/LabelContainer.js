@@ -4,10 +4,9 @@ var svl = svl || {};
  * LabelContainer class constructor
  */
 function LabelContainer() {
-    var self = {className: 'LabelContainer'},
-        currentCanvasLabels = [],
-        prevCanvasLabels = [],
-        temporaryLabelId = 1;
+    var self = {className: 'LabelContainer'};
+    var currentCanvasLabels = [],
+        prevCanvasLabels = [];
 
     /**
      * Returns canvas labels

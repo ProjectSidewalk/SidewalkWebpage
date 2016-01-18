@@ -150,19 +150,16 @@ function Canvas ($, param) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
+        svl.tracker.push('LabelingCanvas_FinishLabeling');
         var labelType = svl.ribbon.getStatus('selectedLabelType');
         var labelColor = getLabelColors()[labelType];
         var labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')];
         var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
-        var latlng = getPosition();
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
-        pointParameters.panoramaLat = latlng.lat;
-        pointParameters.panoramaLng = latlng.lng;
-        pointParameters.panoramaId = getPanoId();
 
         var pathLen = tempPath.length;
         var points = [];
@@ -173,7 +170,7 @@ function Canvas ($, param) {
             points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
-
+        var latlng = getPosition();
         var param = {
             canvasWidth: svl.canvasWidth,
             canvasHeight: svl.canvasHeight,
@@ -199,11 +196,9 @@ function Canvas ($, param) {
             param.photographerPitch = photographerPov.pitch;
         }
 
-        //status.currentLabel = new Label(path, param);
-        status.currentLabel = svl.labelFactory.create(path, param);
-        svl.labelContainer.push(status.currentLabel);
+        status.currentLabel = new Label(path, param)
         labels.push(status.currentLabel);
-        svl.tracker.push('LabelingCanvas_FinishLabeling', {temporary_label_id: status.currentLabel.getProperty("temporary_label_id")});
+        svl.labelContainer.push(status.currentLabel);
 
         svl.actionStack.push('addLabel', status.currentLabel);
         //var label = Label(path, param);
@@ -1068,22 +1063,45 @@ function Canvas ($, param) {
             }
         }
 
+        //
         // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) {  renderTempPath(); }
-        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
+        if (status.drawing) {
+            renderTempPath();
+        }
 
+        //
+        // Check if the user audited all the angles or not.
+        if ('form' in svl) {
+            svl.form.checkSubmittable();
+        }
+
+        if ('progressPov' in svl) {
+            svl.progressPov.updateCompletionRate();
+        }
+
+        //
         // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
+        if (svl.labeledLandmarkFeedback) {
+            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
+        }
 
+        //
         // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) { svl.actionStack.updateOpacity(); }
+        if (svl.actionStack) {
+            svl.actionStack.updateOpacity();
+        }
 
+        //
         // Update the opacity of Zoom In and Zoom Out buttons.
-        if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
+        if (svl.zoomControl) {
+            svl.zoomControl.updateOpacity();
+        }
 
         //
         // This like of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
+        if ('goldenInsertion' in svl && svl.goldenInsertion) {
+            svl.goldenInsertion.renderMessage();
+        }
         return this;
     }
 

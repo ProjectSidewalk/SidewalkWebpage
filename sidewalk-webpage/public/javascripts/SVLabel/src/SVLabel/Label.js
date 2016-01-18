@@ -17,7 +17,6 @@ function Label (pathIn, params) {
     var goolgeMarker;
 
     var properties = {
-        temporary_label_id: null,
         canvasWidth: undefined,
         canvasHeight: undefined,
         canvasDistortionAlphaX: undefined,
@@ -79,6 +78,28 @@ function Label (pathIn, params) {
             }
 
             for (attrName in properties) {
+                // It is ok if some attributes are not passed as parameters
+                if ((attrName === 'tagHeight' ||
+                     attrName === 'tagWidth' ||
+                     attrName === 'tagX' ||
+                     attrName === 'tagY' ||
+                     attrName === 'labelerId' ||
+                     attrName === 'photographerPov' ||
+                     attrName === 'photographerHeading' ||
+                     attrName === 'photographerPitch' ||
+                            attrName === 'distanceThreshold'
+                    ) &&
+                    !param[attrName]) {
+                    continue;
+                }
+
+                // Check if all the necessary properties are set in param.
+                // Checking paroperties:
+                // http://www.nczonline.net/blog/2010/07/27/determining-if-an-object-property-exists/
+                if (!(attrName in param)) {
+                    var errMsg = '"' + attrName + '" is not in the passed parameter.';
+                    throw errMsg;
+                }
                 properties[attrName] = param[attrName];
             }
 
@@ -490,40 +511,30 @@ function Label (pathIn, params) {
         };
     };
 
+    self.getProperties = function () {
+        // Return the deep copy of the properties object,
+        // so the caller can only modify properties from
+        // setProperties() (which I have not implemented.)
+        //
+        // JavaScript Deepcopy
+        // http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+        return $.extend(true, {}, properties);
+    };
 
-    /**
-     * Return the deep copy of the properties object
-     * @returns {*}
-     */
-    function getProperties () { return $.extend(true, {}, properties); }
+    self.getProperty = function (propName) {
+        if (!(propName in properties)) {
+            return false;
+        }
+        return properties[propName];
+    };
 
-
-    function getProperty (key) {
-        if (!(key in properties)) throw "KeyError";
-        return properties[key];
+    self.getstatus = function (key) {
+        return status[key];
     }
 
-    function getStatus (key) { return status[key]; }
-
-    function getVisibility () { return status.visibility; }
-
-    /**
-     * Set a label property
-     * @param key
-     * @param value
-     * @returns {*}
-     */
-    function setProperty (key, value) {
-        if (!(key in properties)) return false;
-        properties[key] = value;
-        return this;
-    }
-
-    self.getstatus = getStatus;
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    self.getVisibility = getVisibility;
+    self.getVisibility = function () {
+        return status.visibility;
+    };
 
     self.fill = function (fill) {
         // This method changes the fill color of the path and points that constitute the path.
@@ -539,14 +550,15 @@ function Label (pathIn, params) {
         return this;
     };
 
-    /**
-     * This method changes the fill color of the path and points to orange.
-     */
-    function highlight () { return self.fill('rgba(255,165,0,0.8)'); }
-    function isDeleted () { return status.deleted; }
+    self.highlight = function () {
+        // This method changes the fill color of the path and points to orange.
+        var fillStyle = 'rgba(255,165,0,0.8)';
+        return self.fill(fillStyle);
+    };
 
-    self.highlight = highlight;
-    self.isDeleted = isDeleted;
+    self.isDeleted = function () {
+        return status.deleted;
+    };
 
 
     self.isOn = function (x, y) {
@@ -561,41 +573,40 @@ function Label (pathIn, params) {
             return result;
         } else {
             return false;
-            //
-            //var margin = 20;
-            //if (properties.tagX - margin < x &&
-            //    properties.tagX + properties.tagWidth + margin > x &&
-            //    properties.tagY - margin < y &&
-            //    properties.tagY + properties.tagHeight + margin > y) {
-            //    // The mouse cursor is on the tag.
-            //    return this;
-            //} else {
-            //    return false;
-            //}
+
+            var margin = 20;
+            if (properties.tagX - margin < x &&
+                properties.tagX + properties.tagWidth + margin > x &&
+                properties.tagY - margin < y &&
+                properties.tagY + properties.tagHeight + margin > y) {
+                // The mouse cursor is on the tag.
+                return this;
+            } else {
+                return false;
+            }
         }
     };
 
 
+    self.isVisible = function () {
+        // This method returns the visibility of this label.
+        if (status.visibility === 'visible') {
+            return true;
+        } else {
+            return false;
+        }
+    };
 
-    /**
-     * This method returns the visibility of this label.
-     * @returns {boolean}
-     */
-    function isVisible () { return status.visibility === 'visible'; }
-    self.isVisible = isVisible;
-
-    function lockTagVisibility () {
+    self.lockTagVisibility = function () {
         lock.tagVisibility = true;
         return this;
-    }
-    self.lockTagVisibility = lockTagVisibility;
+    };
 
 
     self.lockVisibility = function () {
         lock.visibility = true;
         return this;
     };
-
 
     self.overlap = function (label, mode) {
         // This method calculates the area overlap between this label and another label passed as an argument.
@@ -705,9 +716,7 @@ function Label (pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function renderOnMap () {
-        //var latlng = toLatLng();
-        var lat = path.points[0].getProperty("lat"), lng = path.points[0].getProperty("lng"),
-            latlng = {lat: lat, lng: lng};
+        var latlng = toLatLng();
         var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
 
         var image = {
@@ -912,6 +921,9 @@ function Label (pathIn, params) {
 
     self.toLatLng = toLatLng;
 
+    //
+    // Initialize
+    //
     if (!init(params, pathIn)) {
         return false;
     }

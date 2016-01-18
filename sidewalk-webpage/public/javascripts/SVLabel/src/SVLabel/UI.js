@@ -72,21 +72,6 @@ function UI ($, params) {
       self.popUpMessage.title = $("#pop-up-message-title");
       self.popUpMessage.content = $("#pop-up-message-content");
 
-      // Modal
-      self.modal = {};
-      self.modal.overlay = $("#page-overlay-holder");
-
-      // ModalSkip
-      self.modalSkip = {};
-      self.modalSkip.holder = $("#modal-skip-holder");
-      self.modalSkip.box = $("#modal-skip-box");
-      self.modalSkip.background = $("#modal-skip-background");
-      self.modalSkip.title = $("#modal-skip-title");
-      self.modalSkip.content = $("#modal-skip-content");
-      self.modalSkip.ok = $("#modal-skip-ok-button");
-      self.modalSkip.cancel = $("#modal-skip-cancel-button");
-      self.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
-
       // ProgressPov
       self.progressPov = {};
       self.progressPov.holder = $("#progress-pov-holder");
@@ -99,11 +84,16 @@ function UI ($, params) {
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
       // Ribbon menu DOMs
+      $divStreetViewHolder = $("#Holder_StreetView");
+      $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+      $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+      $spansModeSwitches = $('span.modeSwitch');
+
       self.ribbonMenu = {};
-      self.ribbonMenu.streetViewHolder = $("#Holder_StreetView");
-      self.ribbonMenu.buttons = $('span.modeSwitch');
-      self.ribbonMenu.bottonBottomBorders = $(".RibbonModeSwitchHorizontalLine");
-      self.ribbonMenu.connector = $("#StreetViewLabelRibbonConnection");
+      self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
+      self.ribbonMenu.buttons = $spansModeSwitches;
+      self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
+      self.ribbonMenu.connector = $ribbonConnector;
 
       // Zoom control
       self.zoomControl = {};
@@ -119,9 +109,6 @@ function UI ($, params) {
       self.form.commentField = $("#comment-field");
       self.form.skipButton = $("#skip-button");
       self.form.submitButton = $("#submit-button");
-      self.form.form = $("#svl-form");
-
-
 
       self.onboarding = {};
       self.onboarding.holder = $("#onboarding-holder");

@@ -11,9 +11,7 @@ var svl = svl || {};
 function Task ($) {
     var self = {className: 'Task'},
         properties = {},
-        status = {
-            auditTaskId: null
-        },
+        status = {},
         taskSetting,
         previousTasks = [],
         lat, lng;
@@ -36,29 +34,15 @@ function Task ($) {
     /**
      * Get a next task
      */
-    function nextTask (parameters) {
-        var streetEdgeId, regionId, url;
-        if (!parameters) parameters = {};
-        if ("streetEdgeId" in parameters) { streetEdgeId = parameters["streetEdgeId"]; }
-        if ("regionId" in parameters) { regionId = parameters["regionId"]; }
-
-        regionId = null;  // Let's keep it simple...
-
-        var len = taskSetting.features[0].geometry.coordinates.length - 1,
+    function nextTask (streetEdgeId) {
+        var data = {street_edge_id: streetEdgeId},
+            len = taskSetting.features[0].geometry.coordinates.length - 1,
             latEnd = taskSetting.features[0].geometry.coordinates[len][1],
             lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
-        if (regionId) {
-            url = "/audit/task/nextInRegion?regionId=" + regionId;
-        } else if (streetEdgeId) {
-            url = "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd;
-        } else {
-            url = "/audit/task";
-        }
-
         $.ajax({
             // async: false,
             // contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
             type: 'get',
             success: function (task) {
                 var len = task.features[0].geometry.coordinates.length - 1,
@@ -76,8 +60,11 @@ function Task ($) {
                     // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                     task.features[0].geometry.coordinates.reverse();
                 }
+
                 set(task);
                 render();
+
+
             },
             error: function (result) {
                 throw result;
@@ -85,31 +72,13 @@ function Task ($) {
         });
     }
 
-    function newTask () {
-        var url = "/audit/task";
-        $.ajax({
-            url: url,
-            type: 'get',
-            success: function (task) {
-                var len = task.features[0].geometry.coordinates.length - 1,
-                    lat1 = task.features[0].geometry.coordinates[0][1],
-                    lng1 = task.features[0].geometry.coordinates[0][0];
-
-                svl.setPosition(lat1, lng1);
-                set(task);
-                render();
-            },
-            error: function (result) {
-                throw result;
-            }
-        })
-    }
 
     /**
      * End the current task
      */
     function endTask () {
         // Show the end of the task message.
+        console.log("End of task");
         svl.statusMessage.animate();
         svl.statusMessage.setCurrentStatusTitle("Great!");
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
@@ -159,23 +128,13 @@ function Task ($) {
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged);
+                svl.form.submit(staged)
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
                 svl.form.submit(data);
             }
         }
-
-        var streetEdgeId = getStreetEdgeId(),
-            regionId = getRegionId();
-        nextTask({streetEdgeId: streetEdgeId, regionId: regionId});
-    }
-
-    /**
-     * Returns the region id of the current focus.
-     */
-    function getRegionId () {
-        return 61;
+        nextTask(getStreetEdgeId());
     }
 
     /**
@@ -190,22 +149,6 @@ function Task ($) {
      */
     function getTaskStart () {
         return taskSetting.features[0].properties.task_start;
-    }
-
-    /**
-     * Set an audit task id
-     * @param asgId
-     */
-    function setAuditTaskId(auditTaskId) {
-        status.auditTaskId = auditTaskId;
-    }
-
-    /**
-     * Get an audit task id
-     * @returns {null}
-     */
-    function getAuditTaskId() {
-        return status.auditTaskId;
     }
 
     /**
@@ -237,19 +180,13 @@ function Task ($) {
 
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
 
-            console.debug('Distance to the end:' , d);
+            console.log('Distance to the end:' , d);
 
-            // Submit data after a while even before the task is complete, because you can get 413 error due to data overload
-            // http://www.checkupdown.com/status/E413.html
-            var actionCapacityThreshold = 150,
-                labelCapacityThreshold = 50;
-            if (svl.tracker.getActions().length > actionCapacityThreshold ||
-                    svl.labelContainer.getCurrentLabels().length > labelCapacityThreshold) {
-                var data = svl.form.compileSubmissionData();
-                svl.form.submit(data);
+            if (d < threshold) {
+                return true;
+            } else {
+                return false;
             }
-
-            return d < threshold;
         }
     }
 
@@ -277,7 +214,6 @@ function Task ($) {
      * This method takes a task parameters in geojson format.
      */
     function set(json) {
-        setAuditTaskId(null);
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];
         lng = taskSetting.features[0].geometry.coordinates[0][0];
@@ -286,8 +222,6 @@ function Task ($) {
     self.endTask = endTask;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.getAuditTaskId = getAuditTaskId;
-    self.setAuditTaskId = setAuditTaskId;
     self.load = load;
     self.set = set;
     self.initialLocation = initialLocation;
@@ -295,6 +229,5 @@ function Task ($) {
     self.render = render;
     self.save = save;
     self.nextTask = nextTask;
-    self.newTask = newTask;
     return self;
 }

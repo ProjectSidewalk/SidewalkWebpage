@@ -16,7 +16,7 @@ import scala.slick.jdbc.GetResult
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.util.Random
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp)
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
@@ -44,7 +44,7 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
   def userId = column[String]("user_id", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def taskStart = column[Timestamp]("task_start", O.NotNull)
-  def taskEnd = column[Timestamp]("task_end", O.Nullable)
+  def taskEnd = column[Option[Timestamp]]("task_end", O.Nullable)
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 

@@ -27,11 +27,6 @@ function Point (x, y, pov, params) {
         };
     var belongsTo = undefined;
     var properties = {
-        lat: null,
-        lng: null,
-        panoramaLat: null,
-        panoramaLng: null,
-        panoramaId: null,
         fillStyleInnerCircle: params.fillStyle,
         lineWidthOuterCircle: 2,
         iconImagePath: undefined,
@@ -44,22 +39,26 @@ function Point (x, y, pov, params) {
     };
     var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
     var status = {
-        deleted : false,
-        visibility : 'visible',
-        visibilityIcon : 'visible'
+            'deleted' : false,
+            'visibility' : 'visible',
+            'visibilityIcon' : 'visible'
     };
 
-    /**
-     * Convert a canvas coordinate (x, y) into a sv image coordinate. Note that svImageCoordinate.x varies from 0 to
-     * svImageWidth and svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-     * @param x
-     * @param y
-     * @param pov
-     * @param params
-     * @returns {boolean}
-     * @private
-     */
+//    function assemble () {
+//        return {
+//            properties: properties,
+//            status
+//        };
+//    }
+//    self.assemble = assemble;
+
     function _init (x, y, pov, params) {
+        // Convert a canvas coordinate (x, y) into a sv image coordinate
+        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
+        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
+
+        //
+        // Adjust the zoom level
         var zoom = pov.zoom;
         var zoomFactor = svl.zoomFactor[zoom];
         var svImageHeight = svl.svImageHeight;
@@ -115,44 +114,36 @@ function Point (x, y, pov, params) {
 
         properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
         properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
-
-        // Set latlng position of this point.
-        var latlng = toLatLng();
-        setProperty('lat', latlng.lat);
-        setProperty('lng', latlng.lng);
-
         return true;
     }
 
-    function _init2 () { return true; }
-    function getCanvasX () { return self.canvasCoordinate.x; }
-    function getCanvasY () { return self.canvasCoordinate.y; }
-    function getFill () {  return properties.fillStyleInnerCircle; }
-    function getPOV () { return pov; }
 
-    /**
-     * Get the label latlng position
-     * @returns {lat: lat, lng: lng}
-     */
-    function toLatLng() {
-        var x = self.svImageCoordinate.x, y = self.svImageCoordinate.y,
-            lat = getProperty('panoramaLat'),
-            pc = svl.pointCloud.getPointCloud(getProperty('panoramaId'));
-        if (pc) {
-            var p = svl.util.scaleImageCoordinate(x, y, 1/26),
-                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
-                dx = pc.pointCloud[idx],
-                dy = pc.pointCloud[idx + 1],
-                delta = svl.util.math.latlngOffset(lat, dx, dy);
-            return {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
-        } else {
-            return null;
-        }
+    function _init2 () {
+        return true;
     }
 
+    function getCanvasX () {
+      return self.canvasCoordinate.x;
+    }
 
+    function getCanvasY () {
+      return self.canvasCoordinate.y;
+    }
+
+    function getFill () {
+        // return the fill color of this point
+      return properties.fillStyleInnerCircle;
+    }
+    function getPOV () {
+        return pov;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // Public functions
+    ////////////////////////////////////////////////////////////////////////////////
     self.belongsTo = function () {
-
+        // This function returns an object directly above this object.
+        // I.e., it returns which path it belongs to.
         if (belongsTo) {
             return belongsTo;
         } else {
@@ -160,7 +151,9 @@ function Point (x, y, pov, params) {
         }
     };
 
-    self.getPOV = getPOV;
+    self.getPOV = function() {
+        return getPOV();
+    };
 
     self.getCanvasCoordinate = function (pov) {
         // This function takes current pov of the Street View as a parameter
@@ -186,23 +179,15 @@ function Point (x, y, pov, params) {
         return $.extend(true, {}, self.svImageCoordinate);
     };
 
-    function getProperty (name) {
+    self.getProperty = function (name) {
         if (!(name in properties)) {
             throw self.className + ' : A property name "' + name + '" does not exist in properties.';
         }
         return properties[name];
-    }
-
-    function setProperty (key, value) {
-        if (!(key in properties)) { throw "The key does not exist"; }
-        properties[key] = value;
-        return this;
-    }
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
+    };
 
 
-        self.getProperties = function () {
+    self.getProperties = function () {
         // Return the deep copy of the properties object,
         // so the caller can only modify properties from
         // setProperties() (which I have not implemented.)

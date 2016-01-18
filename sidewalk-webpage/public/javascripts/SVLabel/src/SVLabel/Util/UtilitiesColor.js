@@ -2,15 +2,6 @@ var svl = svl || {};
 svl.util = svl.util || {};
 svl.util.color = {};
 
-svl.util.color.RGBToHex = function (rgb) {
-    // http://jsfiddle.net/Mottie/xcqpF/1/light/
-    rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
-     return (rgb && rgb.length === 4) ? "#" +
-      ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
-      ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
-      ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
-};
-
 svl.util.color.RGBToRGBA = function (rgb, alpha) {
     if(!alpha){
         alpha = '0.5';
@@ -218,5 +209,3 @@ function hsvToRgb(h, s, v){
 
     return [r * 255, g * 255, b * 255];
 }
-
-

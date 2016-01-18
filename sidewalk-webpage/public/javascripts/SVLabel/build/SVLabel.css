@@ -40,10 +40,6 @@ text {
     font-weight: bold;
 }
 
-.disabled {
-    opacity: 0.5;
-}
-
 .button {
     background: -moz-linear-gradient(center top , #fff, #eee);
     background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
@@ -684,11 +680,6 @@ footer {
     text-align: center;
     width: 100%;
 }
-
-#form-holder #skip-button {
-    margin-top: 3px;
-    width:300px;
-}
 /*******************************************
 * This class is applied to DIVs and CANVASes
 * which overlap with a Google Map.
@@ -706,39 +697,6 @@ footer {
     top:0px;
     width: 200px;
     height: 200px;
-}
-#modal-skip-holder {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 100%;
-}
-
-#modal-skip-background {
-    position: absolute;
-    left: 0;
-    top: 0;
-    background: rgba(255, 255, 255, 0.5);
-    height: 100%;
-    width: 100%;
-}
-
-#modal-skip-box {
-    background: rgba(69,183,214,1);
-    border: 3px solid rgba(255,255,255,1);
-    color: white;
-    background: rgba(255, 255, 255, 1);
-    border: 3px solid rgba(200, 200, 200, 1);
-    color: black;
-    font-size: 14pt;
-    padding: 10px;
-    position: relative;
-    top: 35%;
-    left: 0;
-    visibility: visible;
-    /* width: 730px; */
-    z-index: 1;
 }
 /*******************************************
  These styles apply to onboarding attirbutes

@@ -41,22 +41,9 @@ function getPosition() {
 svl.getPosition = getPosition;
 
 function setPosition(lat, lng) {
-    var pos = new google.maps.LatLng(lat, lng),
-        radius = 50;
-
     if (svl.panorama) {
-        // Checking if there are street view panoramas
-        // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-        svl.service.getPanoramaByLocation(pos, radius, function (data, status) {
-            if (status === google.maps.StreetViewStatus.OK) {
-                svl.panorama.setPosition(pos);
-            } else {
-                // no street view available in this range, or some error occurred
-                svl.task.nextTask({regionId: 61});
-            }
-        });
-
-
+        var pos = new google.maps.LatLng(lat, lng);
+        svl.panorama.setPosition(pos);
     }
 }
 svl.setPosition = setPosition;
@@ -94,7 +81,7 @@ svl.getLinks = getLinks;
 
 //
 // Fog related variables.
-var fogMode = false;
+var fogMode = true;
 var fogSet = false;
 var current;
 var first;
@@ -1093,10 +1080,15 @@ function Map ($, params) {
         // Examples for plotting markers:
         // https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
         if (canvas) {
-            var labels = undefined, labelsLen = 0, prop = undefined, labelType = undefined, latlng = undefined;
+            var labels = undefined;
+            var labelsLen = 0;
+            var prop = undefined;
+            var labelType = undefined;
+            var latlng = undefined;
             labels = canvas.getLabels();
             labelsLen = labels.length;
 
+            //
             // Clear the map first
             for (var i = 0; i < markers.length; i += 1) {
                 markers[i].setMap(null);
