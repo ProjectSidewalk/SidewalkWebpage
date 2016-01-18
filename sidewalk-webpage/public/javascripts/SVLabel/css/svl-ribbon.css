@@ -1,0 +1,178 @@
+
+/*************************************************************
+* These styles are for the Ribbon Menu area.
+*************************************************************/
+/* This style is applied to a ribbon menu */
+#ribbon-menu-holder {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 100px;
+}
+
+/* icon size */
+.Icon_RibbonMenuLarge {
+    height: 50px;
+    margin: 0px;
+    padding: 4px;
+    position: relative;
+    left: 0px;
+    top: -4px;
+}
+
+#Icon_Explore {
+    height: 38px;
+    left: 5px;
+    top: 2px;
+}
+
+.modeSwitch {
+    background: -moz-linear-gradient(center top , #fff, #eee);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
+    border-color: rgba(200,200,200,0.75);
+    border-style: solid;
+    border-width: 2px;
+    cursor: pointer;
+    display: inline-block;
+
+    position: relative;
+    height: 71px;
+    width:71px;
+
+    border-radius: 3px 3px 0px 0px;
+    -webkit-border-radius: 3px 3px 0px 0px;
+    -moz-border-radius: 3px 3px 0px 0px;
+    /*
+    -webkit-box-shadow: 1px 1px 2px #E7E7E7;
+    -moz-box-shadow: 1px 1px 2px #E7E7E7;
+    */
+}
+
+.modeSwitch_Icon {
+    position: absolute;
+    top: 0px;
+    left: 8px;
+}
+
+.modeSwitch_Name {
+    background: transparent;
+    color: black;
+    display: inline-block;
+    font-size: 11px;
+    line-height: 11px;
+    text-align: center;
+    vertical-align: middle;
+
+    position: absolute;
+    top: 40px;
+    left: 0px;
+    width: 100%;
+}
+
+#modeSwitchWalk {
+    width: 56px;
+    border: 3px solid rgba(0, 0, 0, 1);
+    background: rgb(204, 204, 204);
+}
+
+.RibbonModeSwitchHorizontalLine {
+    background: black;
+    position: absolute;
+    left: -3px;
+    bottom: -4px;
+    height: 3px;
+    width: 71px;
+}
+
+#ribbon-mode-switch-horizontal-line-walk {
+    left: -3px;
+}
+
+/*****************************************
+* Ribbon Menu Left Column
+*/
+#Holder_RibbonMenuLeftColumn {
+    background: none;
+
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 100px;
+    width: 65px;
+}
+
+#RibbonMenu_LeftColumnTitle {
+    /* border-bottom: 1px solid #ccc; */
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+    /* Position */
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 20px;
+    width: 55px
+}
+
+#RibbonMenu_LeftColumnIcons {
+    margin-left: 5px;
+    margin-right: 5px;
+    position: absolute;
+    left: 0px;
+    top: 25px;
+    height: 75px;
+    width: 100%;
+}
+
+/*****************************************
+* Ribbon Menu Landmark Column
+*/
+#landmark-holder {
+    background: transparent;
+
+    position: absolute;
+    left: 64px;
+    top: 0px;
+    height: 100px;
+    width: 470px;
+}
+
+#RibbonMenu_LandmarkTitle {
+    background: transparent;
+    border-bottom: 1px solid #ccc;
+    font-size: 9pt;
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+
+    position: absolute;
+    left: 0px;
+    top: 5px;
+    height: 16px;
+    width: 160px;
+}
+
+#RibbonMenu_LandmarkIcons {
+    background: transparent;
+    margin-left: 10px;
+    margin-right: 10px;
+
+    position: absolute;
+    left: 0px;
+    top: 25px;
+    height: 75px;
+    width: 470px;
+}
+
+
+
+
+
+#StreetViewLabelRibbonConnection {
+    border-left: 5px solid black;
+    position: absolute;
+    left: 25px;
+    top: -24px;
+    height: 20px;
+    width: 0px;
+}

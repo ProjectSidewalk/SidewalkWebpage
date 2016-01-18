@@ -2,17 +2,15 @@ package models.audit
 
 import java.sql.Timestamp
 
+import models.label.LabelTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
-                                note: Option[String], timestamp: java.sql.Timestamp)
+                                note: Option[String], temporaryLabelId: Option[Int], timestamp: java.sql.Timestamp)
 
-/**
- *
- */
 class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
@@ -24,9 +22,11 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
   def pitch = column[Option[Float]]("pitch", O.Nullable)
   def zoom = column[Option[Int]]("zoom", O.Nullable)
   def note = column[Option[String]]("note", O.Nullable)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 
-  def * = (auditTaskInteractionId, auditTaskId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
+  def * = (auditTaskInteractionId, auditTaskId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
+    temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
 }
 
 /**
@@ -35,6 +35,7 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
 object AuditTaskInteractionTable {
   val db = play.api.db.slick.DB
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
+  val labels = TableQuery[LabelTable]
 
   def save(interaction: AuditTaskInteraction): Int = db.withTransaction { implicit session =>
     val interactionId: Int =
@@ -42,4 +43,13 @@ object AuditTaskInteractionTable {
     interactionId
   }
 
+  /**
+   * Get a list of audit task interaction
+   * @param auditTaskId
+   * @return
+   */
+  def auditInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
+    auditTaskInteractions.leftJoin(labels)
+    auditTaskInteractions.filter(record => record.auditTaskId === auditTaskId).list
+  }
 }

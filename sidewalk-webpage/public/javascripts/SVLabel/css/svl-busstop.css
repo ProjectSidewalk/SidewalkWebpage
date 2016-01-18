@@ -1,0 +1,332 @@
+
+/*******************************************
+ Bus stop label menu
+*/
+#labelDrawingLayer_LabelMenu {
+    background: rgba(255,255,255,0.9);
+
+    font-size: 12px;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 180px;
+    width: 220px;
+
+    /* Corner */
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    /*
+    -webkit-box-shadow: 1px 1px 2px #E7E7E7;
+    -moz-box-shadow: 1px 1px 2px #E7E7E7;
+    */
+}
+
+.RightClickMenu {
+    padding: 5px;
+}
+
+#labelDrawingLayer_LabelMenuBar {
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    padding-left: 5px;
+    padding-top: 7px;
+    text-align: left;
+    /* Position */
+    height: 20px;
+    width: 215px;
+    border-radius: 3px 3px 0px 0px;
+    -webkit-border-radius: 3px 3px 0px 0px;
+    -moz-border-radius: 3px 3px 0px 0px;
+}
+
+#labelDrawingLayer_LabelMenuOptions {
+    width: 100%;
+}
+
+
+.BusStopLabelMenuItem {
+    padding-bottom: 2px;
+    padding-top: 2px;
+    position: relative;
+}
+
+.Holder_BusStopLabelMenuItemIcon {
+
+}
+
+.BusStopLabelMenuItemIcon {
+    height: 30px;
+    width: 30px;
+}
+
+.Holder_BusStopLabelMenuItemText {
+    position: absolute;
+    top: 10px;
+    left: 40px;
+}
+
+.Holder_RadioButton {
+    padding: 5px;
+    /* Position */
+    height: 20px;
+    width: 100%;
+}
+
+#Holder_BusStopLabelMenuOptionCloseIcon {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+/*******************************************
+ Bus stop location menu
+*/
+#BusStopPositionMenu {
+    background: rgba(255,255,255,0.9);
+
+    font-size: 12px;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 200px;
+    width: 220px;
+
+    /* Corner */
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    /*
+    -webkit-box-shadow: 1px 1px 2px #E7E7E7;
+    -moz-box-shadow: 1px 1px 2px #E7E7E7;
+    */
+}
+
+#BusStopPositionMenu_MenuBar {
+    background: rgba(0,0,0,1);
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    padding-left: 5px;
+    padding-top: 7px;
+    text-align: left;
+    /* Position */
+    height: 35px;
+    width: 215px;
+    -webkit-border-radius: 3px 3px 0px 0px;
+    -moz-border-radius: 3px 3px 0px 0px;
+}
+
+#BusStopPositionMenu_MenuBarText {
+    display: inline-block;
+    width: 180px;
+}
+
+#BusStopPositionMenu_MenuItems {
+    height: 140px;
+    margin-top: 5px;
+    position: relative;
+}
+
+.BusStopPositionMenu_MenuItem {
+    padding-bottom: 2px;
+    padding-top: 2px;
+    /* Position */
+    position: relative;
+    height: 30px;
+}
+
+.BusStopPositionMenu_MenuItemIcon {
+    position: absolute;
+    left: 5px;
+    top: 0px;
+    height: 30px;
+    width: 60px;
+}
+
+.BusStopPositionMenu_MenuItemText {
+    /* Position */
+    position: absolute;
+    left: 90px;
+    top: 10px;
+}
+
+#BusStopPositinoMenu_BackButton {
+    position: absolute;
+    right: 10px;
+    bottom: 5px;
+    width: 50px;
+}
+
+#Holder_BusStopPositionMenuCloseIcon {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+
+/*******************************************
+  Delete Menu
+*/
+#LabelDeleteMenu {
+    background: rgba(255,255,255,0.9);
+    font-size: 12px;
+    padding: 5px;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 40px;
+    width: 200px;
+    /* Corner */
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#LabelDeleteMenu_CancelButton {
+    font-size: 12px;
+    float: right;
+    width: 80px;
+}
+
+#LabelDeleteMenu_DeleteButton {
+    font-size: 12px;
+    float: right;
+    width: 80px;
+}
+
+
+
+#BusStopAbsenceQuestion, #BusStopAbsenceOptions, #BusStopAbsenceButtons {
+    padding: 5px;
+}
+
+.BusStopAbsenceOption {
+    padding: 5px;
+}
+
+input.Radio_BusStopAbsence {
+    height: 15px;
+
+    width: 15px;
+}
+
+input#Text_BusStopAbsenceOtherReason {
+    width: 200px;
+}
+
+
+/*******************************************
+* Styles for example window
+*/
+#Holder_Examples {
+    background: rgba(255,255,255,0.5);
+    visibility: hidden;
+    z-index: 100;
+    /* position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 940px;
+}
+
+#Examples {
+    background: rgba(0,0,0,0.9);
+    /* position */
+    position: absolute;
+    left: 0;
+    top: 130px;
+    height: 400px;
+    width: 100%;
+}
+
+#Holder_ExamplesCloseButton {
+    /* position */
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 48px;
+    width: 48px;
+}
+
+#ExamplesCloseButton {
+    height: 48px;
+    width: 48px;
+}
+
+.RightClickMenuExample {
+    color: white;
+    padding: 20px;
+    /* Position */
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.RightClickMenuExampleDescription {
+    padding-bottom: 15px;
+}
+
+.RightClickMenuExampleImageHolder {
+    padding-bottom: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 8px;
+}
+
+.ExampleImage {
+    width: 280px;
+    height: 187px;
+}
+
+
+/*******************************************
+ These styles apply to the right click menu holder
+*/
+#Holder_RightClickMenu {
+    visibility: hidden;
+}
+
+.RightClickMenu_CloseIcon {
+    height: 20px;
+    width: 20px;
+}
+
+
+.Holder_BusStopLabelMenuQuestionMarkIcon, .Holder_BusStopPositionMenuQuestionMarkIcon {
+    display: inline-block;
+    position: absolute;
+    left: 190px;
+    top: 15px;
+    height: 10px;
+    width:10px;
+    z-index: 100;
+}
+
+.BusStopLabelMenuQuestionMarkIcon, .BusStopPositionMenuQuestionMarkIcon {
+    height: 10px;
+    width: 10px;
+    z-index: 100;
+}
+
+.Holder_BusStopLabelMenuQuestionMarkIconTooltip, .Holder_BusStopPositionMenuQuestionMarkIconTooltip {
+    background: rgba(0,0,0,0.7);
+    color: white;
+    display: inline-block;
+    padding: 3px;
+    visibility: hidden;
+
+    position: absolute;
+    left: 13px;
+    top:-24px;
+    width: 150px;
+    height: 18px;
+
+    border-radius: 3px 3px 3px 0px;
+    -webkit-border-radius: 3px 3px 3px 0px;
+    -moz-border-radius: 3px 3px 3px 0px;
+}

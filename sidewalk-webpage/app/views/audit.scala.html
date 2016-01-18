@@ -4,7 +4,7 @@
     @navbar(user, Some("/audit"))
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.Onboarding.js")'></script>
+    <!--<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel/Onboarding/Onboarding.js")'></script>-->
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
 
@@ -139,25 +139,48 @@
                 <div id="google-maps-holder"></div>
             </div>
             <div id="form-holder">
-                <form id="BusStopLabelerForm" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
+                <form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
                     <input type="hidden" name="assignmentId" value="" />
                     <input type="hidden" name="workerId" value=""/>
                     <input type="hidden" name="hitId" value="" />
                     <div id="comment-field-holder">
-                        <textarea id="comment-field" class="defaultTextActive"  title="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>
+                        <textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>
                     </div>
                     <div id="form-buttons-holder">
-                        <button id="skip-button" class="button" style="margin-top: 3px; width:300px;" onclick="return false;">Skip</button>
-                        <input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />
+                        <button id="skip-button" class="button" onclick="return false;">Jump to another location</button>
+                        <!--<input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />-->
                     </div>
                 </form>
             </div>
-            <div id="page-overlay-holder"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image"></div>
+            <div id="page-overlay-holder">
+                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
+            </div>
             <div id="pop-up-message-holder" class="hidden">
                 <div id="pop-up-message-background"></div>
                 <div id="pop-up-message-box">
                     <div id="pop-up-message-title" class="bold">Title</div>
                     <div id="pop-up-message-content">Content</div>
+                </div>
+            </div>
+            <div id="modal-skip-holder" class="hidden">
+                <div id="modal-skip-background"></div>
+                <div id="modal-skip-box">
+                    <div id="modal-skip-title" class="bold">
+                        <p>Jump to another location because:</p>
+                    </div>
+                    <div id="modal-skip-content">
+                        <div class="radio">
+                            <label><input class="modal-skip-radio-buttons" type="radio" value="IWantToExplore" name="modal-skip-radio">I want to explore another area!</label>
+                        </div>
+                        <div class="radio">
+                            <label><input class="modal-skip-radio-buttons" type="radio" value="GSVNotAvailable" name="modal-skip-radio">Street View is not available and I cannot walk towards the goal.</label>
+                        </div>
+                        <div>
+                            <button class="button" id="modal-skip-ok-button">OK</button>&nbsp;
+                            <button class="button" id="modal-skip-cancel-button">Cancel</button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             <div id="annotation-holder"></div>

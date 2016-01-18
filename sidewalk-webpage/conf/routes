@@ -5,7 +5,6 @@
 # Home page
 GET     /                           @controllers.ApplicationController.index
 GET     /about                      @controllers.ApplicationController.about
-GET     /audit                      @controllers.ApplicationController.audit
 
 # User authentication
 GET     /signIn                     @controllers.UserController.signIn(url: String ?= "/")
@@ -14,31 +13,36 @@ GET     /signOut                    @controllers.UserController.signOut(url: Str
 POST    /authenticate/credentials   @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /signUp                     @controllers.SignUpController.signUp(url: String ?= "/")
 
+# Auditing tasks
+GET     /audit                      @controllers.TaskController.audit
+GET     /audit/task                 @controllers.TaskController.getTask
+GET     /audit/task/next            @controllers.TaskController.getNextTask(streetEdgeId: Int, lat: Float, lng: Float)
+GET     /audit/task/nextInRegion    @controllers.TaskController.getTaskInRegion(regionId: Int)
+GET     /audit/task/region/:id      @controllers.TaskController.auditRegion(id: Int)
+GET     /audit/task/street/:id      @controllers.TaskController.auditStreet(id: Int)
+POST    /audit/task                 @controllers.TaskController.post
 
+# Map Edit
+GET     /map/edit                   @controllers.MapController.edit
 
-# Postgres
-# GET     /users                    controllers.UsersController.index
-# POST    /users                    controllers.UsersController.save
-# GET     /users/add                controllers.UsersController.add
-# GET     /users/:id                controllers.UsersController.show(id: Int)
-# POST    /users/:id             	controllers.UsersController.update(id: Int)
-# GET     /users/:id/edit			controllers.UsersController.edit(id: Int)
-# POST    /users/:id/delete			controllers.UsersController.delete(id: Int)
+# User status
+# /:username has to come last in the list. Otherwise it eats other urls.
+GET     /contribution/streets       @controllers.UserProfileController.getAuditedStreets
+GET     /contribution/labels        @controllers.UserProfileController.getSubmittedLabels
+GET     /contribution/audits        @controllers.UserProfileController.getAuditTaskInteractions
+GET     /contribution/previousAudit @controllers.UserProfileController.previousAudit
+GET     /contribution/:username     @controllers.UserProfileController.userProfile(username: String)
 
+# Geometry API
+GET     /geometry/neighborhoods     controllers.RegionController.listNeighborhoods
+GET     /geometry/streets           controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
+GET     /geometry/join/:limit       controllers.StreetController.join(limit: Int)
+GET     /geometry/select            controllers.StreetController.select
 
-# Sidewalks
 GET     /api/sidewalks              controllers.SidewalkController.listSidewalks
 # POST    /sidewalks                controllers.SidewalkController.createSidewalks
 # PUT     /sidewalks                controllers.SidewalkController.editSidewalks
 # DELETE  /sidewalks/:id            controllers.SidewalkController.removeSidewalk(id: Int)
-
-GET     /api/streets                controllers.StreetController.listStreets
-GET     /api/join/:limit            controllers.StreetController.join(limit: Int)
-GET     /api/select                 controllers.StreetController.select
-GET     /task                       @controllers.TaskController.get
-GET     /task/next                  @controllers.TaskController.next(streetEdgeId: Int, lat: Float, lng: Float)
-POST    /task                       @controllers.TaskController.post
-GET     /completed                  @controllers.TaskController.completed
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

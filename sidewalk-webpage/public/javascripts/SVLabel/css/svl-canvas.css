@@ -1,0 +1,64 @@
+
+/*******************************************
+ This class is applied to those DIVs and CANVASes which overlap with
+ a Street View panorama.
+*/
+#Holder_StreetView {
+    border: 5px solid black;
+    border-radius: 5px;
+    position: absolute;
+    left: 0px;
+    top:0px;
+    height: 490px;
+    width: 730px;
+}
+
+.Window_StreetView {
+    position: absolute;
+    left: 0px;
+    top:0px;
+    height: 480px;
+    width: 720px;
+}
+
+
+#Holder_LabelDeleteIcon {
+    cursor: pointer;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    left: 0px;
+    top: 10px;
+}
+
+#Holder_LabelEditIcon {
+    cursor: pointer;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    left: -40px;
+    top: 10px;
+}
+
+#LabelDeleteIcon, #LabelEditIcon {
+    height: 20px;
+    width: 20px;
+}
+
+
+#status-holder {
+    border: 3px dotted none;
+    margin: 0;
+    padding: 0;
+    
+    position: absolute;
+    left: 735px;
+    top:-100px;
+    width: 200px;
+    height: 370px;
+}
+

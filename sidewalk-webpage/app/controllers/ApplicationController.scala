@@ -42,30 +42,4 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None => Future.successful(Ok(views.html.about("Project Sidewalk - About")))
     }
   }
-
-  /**
-   * Returns an audit page.
-   * @return
-   */
-  def audit = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => {
-        // Check if s/he has gone through an onboarding.
-        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
-          case Some("completed") => AuditTaskTable.getNewTask(user.username)
-          case _ => AuditTaskTable.getOnboardingTask
-        }
-        // val task: NewTask = AuditTaskTable.getNewTask(user.username)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
-      }
-      case None => {
-        // Check if s/he has gone through an onboarding.
-        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
-          case Some("completed") => AuditTaskTable.getNewTask
-          case _ => AuditTaskTable.getOnboardingTask
-        }
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
-      }
-    }
-  }
 }

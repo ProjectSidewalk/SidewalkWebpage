@@ -1,13 +1,20 @@
 import org.junit.runner._
+import org.specs2.execute.AsResult
 import org.specs2.mutable._
 import org.specs2.runner._
 import play.api._
 import play.api.test.Helpers._
 import play.api.test._
 
+<<<<<<< HEAD
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 // import play.api.db.slick.Config.driver.simple._
+=======
+import org.specs2.specification.BeforeEach
+import org.specs2.specification.AroundEach
+import play.api.db.slick.Config.driver.simple._
+>>>>>>> master
 import models._
 
 /**
@@ -40,4 +47,22 @@ class SidewalkEdgeTableSpec extends Specification {
 
   "SidewalkEdgeTable#all" should {
   }
+}
+
+
+@RunWith(classOf[JUnitRunner])
+class AuditTaskIncompleteTableSpec extends Specification {
+  import models.audit.{AuditTaskIncompleteTable, AuditTaskIncomplete}
+  val fakeApplicationWithGlobal = FakeApplication(withGlobal = Some(new GlobalSettings() {
+    override def onStart(app: Application) { println("Hello world!") }
+  }))
+
+  val appWithMemoryDatabase = FakeApplication(additionalConfiguration = inMemoryDatabase("test"))
+
+//  "SidewalkEdgeTable#save" should {
+//    "insert a record" in new WithApplication {
+//      AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, 1, "test", 0.0f, 0.0f))
+//      AuditTaskIncompleteTable.list.length mustEqual 1
+//    }
+//  }
 }

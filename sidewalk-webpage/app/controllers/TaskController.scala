@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.Coordinate
+import com.vividsolutions.jts.geom.{GeometryFactory, PrecisionModel, Coordinate, Point}
 import controllers.SidewalkController._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
@@ -32,15 +32,78 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val calendar: Calendar = Calendar.getInstance
+  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+
+  /**
+   * Returns an audit page.
+   * @return
+   */
+  def audit = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => {
+        // Check if s/he has gone through an onboarding.
+        //        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
+        //          case Some("completed") => AuditTaskTable.getNewTask(user.username)
+        //          case _ => AuditTaskTable.getOnboardingTask
+        //        }
+        val task: NewTask = AuditTaskTable.getNewTask(user.username)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      }
+      case None => {
+        // Check if s/he has gone through an onboarding.
+        val cookie = request.cookies.get("sidewalk-onboarding")
+        val task: NewTask = AuditTaskTable.getNewTask
+        // Once you implement onboarding, use the following code to switch.
+        //        val task: NewTask = cookie.getOrElse(None) match {
+        //          case Some("completed") => AuditTaskTable.getNewTask
+        //          case _ => AuditTaskTable.getOnboardingTask
+        //        }
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+      }
+    }
+  }
+
+  /**
+   * Audit a given region
+   * @param regionId
+   * @return
+   */
+  def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => {
+        val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      }
+      case None => {
+        // Check if s/he has gone through an onboarding.
+        val cookie = request.cookies.get("sidewalk-onboarding")
+        val task: NewTask = AuditTaskTable.getNewTask
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+      }
+    }
+  }
+
+  /**
+   * Audit a given street
+   * @param streetEdgeId
+   * @return
+   */
+  def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+    val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)
+    request.identity match {
+      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+    }
+  }
 
   /**
    * Get a task for a user.
    * @return
    */
-  def get = UserAwareAction.async { implicit request =>
+  def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toString))
-      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toString))
+      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toJSON))
+      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toJSON))
     }
   }
 
@@ -51,8 +114,24 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param lng
    * @return
    */
-  def next(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(AuditTaskTable.getNewTask(streetEdgeId, lat, lng).toJSON))
+  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
+  }
+
+  /**
+   * Get a next task, but make sure the task is in the specified region.
+   * @param regionId
+   * @return
+   */
+  def getTaskInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val task = AuditTaskTable.getNewTaskInRegion(regionId)
+        Future.successful(Ok(task.toJSON))
+      case None =>
+        val task = AuditTaskTable.getNewTaskInRegion(regionId)
+        Future.successful(Ok(task.toJSON))
+    }
   }
 
   /**
@@ -69,7 +148,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        for (data <- submission) {
+        val returnValue: Seq[Seq[Int]] = for (data <- submission) yield {
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
@@ -78,70 +157,72 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case _ => None
           }
 
-          // Insert audit task
-          val now: Date = calendar.getTime
-          val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-          val auditTask = request.identity match {
-            case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
-            case None =>
-              val user: Option[DBUser] = UserTable.find("anonymous")
-              AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+          // Check if there is auditTaskId
+          val auditTaskId: Int = if (data.auditTask.auditTaskId != None) {
+            data.auditTask.auditTaskId.get
+          } else {
+            // Insert audit task
+            val now: Date = calendar.getTime
+            val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+            val auditTask = request.identity match {
+              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+              case None =>
+                val user: Option[DBUser] = UserTable.find("anonymous")
+                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), currentTimestamp)
+            }
+            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
+            AuditTaskTable.save(auditTask)
           }
-          val auditTaskId:Int = AuditTaskTable.save(auditTask)
 
-          // Update task street_edge_assignment_count.completion_count
-          StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId)
+
+          // Insert the skip information or update task street_edge_assignment_count.completion_count
+          data.incomplete match {
+            case Some(incomplete) => AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
+            case _ =>
+          }
 
           // Insert labels
           for (label <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch, label.deleted.value))
+            val labelId: Int = LabelTable.save(
+              Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId,
+                label.photographerHeading, label.photographerPitch,
+                label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId
+              )
+            )
 
+            // Insert label points
             for (point <- label.points) {
-              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY, point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY, point.lat, point.lng))
+              val pointGeom: Option[Point] = (point.lat, point.lng) match {
+                case (Some(lat), Some(lng)) =>
+                  val coord: Coordinate = new Coordinate(lng.toDouble, lat.toDouble)
+                  Some(gf.createPoint(coord))
+                case _ => None
+              }
+              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
+                point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
+                point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
             }
           }
 
           // Insert interaction
           for (interaction <- data.interactions) {
-            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action, interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note, Timestamp.valueOf(interaction.timestamp)))
+            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
+              interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
+              interaction.zoom, interaction.note, interaction.temporaryLabelId, Timestamp.valueOf(interaction.timestamp)))
           }
 
           // Insert environment
           val env: EnvironmentSubmission = data.environment
-          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
+          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion,
+            env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
+            env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
+
+          Seq(auditTaskId, data.auditTask.streetEdgeId)
         }
+        Future.successful(Ok(Json.obj("audit_task_id" -> returnValue.head(0), "street_edge_id" -> returnValue.head(1))))
       }
     )
-    Future.successful(Ok(Json.toJson("Good job!")))
-  }
-
-  /**
-   * Get a list of edges that are submitted by users.
-   * @return
-   */
-  def completed = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => {
-        val streets = AuditTaskTable.auditedStreets(user.userId)
-        val features: List[JsObject] = streets.map { edge =>
-          val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-          val properties = Json.obj(
-            "street_edge_id" -> edge.streetEdgeId,
-            "source" -> edge.source,
-            "target" -> edge.target,
-            "way_type" -> edge.wayType
-          )
-          Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-        }
-
-        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Future.successful(Ok(featureCollection))
-      }
-      case None => Future.successful(Redirect("/"))
-    }
   }
 }

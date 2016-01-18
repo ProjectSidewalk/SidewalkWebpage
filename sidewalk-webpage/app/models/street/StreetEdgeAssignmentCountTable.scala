@@ -26,10 +26,6 @@ object StreetEdgeAssignmentCountTable {
   val db = play.api.db.slick.DB
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
-  implicit val streetEdgeAssignmentCountConverter = GetResult(r => {
-    StreetEdgeAssignmentCount(r.<<, r.<<, r.<<, r.<<)
-  })
-
   /**
    * Increment the assignmentCount field
    * @param edgeId
@@ -63,6 +59,10 @@ object StreetEdgeAssignmentCountTable {
 
   // An example of raw query
   // https://websketchbook.wordpress.com/2015/03/23/make-plain-sql-queries-work-with-slick-play-framework/
+  implicit val streetEdgeAssignmentCountConverter = GetResult(r => {
+    StreetEdgeAssignmentCount(r.<<, r.<<, r.<<, r.<<)
+  })
+
   val selectAssignmentQuery = Q.query[Int, StreetEdgeAssignmentCount](
     """SELECT street_edge_assignment_count_id, street_edge_id, assignment_count, completion_count
       FROM street_edge_assignment_count WHERE street_edge_id = ?"""

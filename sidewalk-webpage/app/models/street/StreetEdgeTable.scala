@@ -1,14 +1,12 @@
 package models.street
 
 import java.sql.Timestamp
-
 import com.vividsolutions.jts.geom.LineString
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.jdbc.GetResult
-
+import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,
                       x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
@@ -45,6 +43,7 @@ object StreetEdgeTable {
     StreetEdge(r.nextInt, r.nextGeometry[LineString], r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean, r.nextTimestampOption)
   })
 
+
   val db = play.api.db.slick.DB
   val streetEdges = TableQuery[StreetEdgeTable]
 
@@ -54,6 +53,19 @@ object StreetEdgeTable {
    */
   def all: List[StreetEdge] = db.withSession { implicit session =>
     streetEdges.filter(edge => edge.deleted === false).list
+  }
+
+  def getWithIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+
+    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
+    // http://postgis.net/docs/ST_MakeEnvelope.html
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.street_edge AS st_e
+       | WHERE st_e.deleted = FALSE AND st_e.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
   }
 
   /**
@@ -90,6 +102,15 @@ object StreetEdgeTable {
     //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
     //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
     //    user
+  }
+
+
+  def numberOfStreetsInRegions() = db.withSession {implicit session =>
+    val query = """SELECT region.region_id, COUNT(st_e.*) AS number_of_streets FROM sidewalk.region
+                |INNER JOIN sidewalk.street_edge AS st_e
+                |ON ST_Intersects(st_e.geom, region.geom)
+                |GROUP BY region.region_id
+                |""".stripMargin
   }
 }
 

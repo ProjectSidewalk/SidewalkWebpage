@@ -45,31 +45,39 @@ class SignUpController @Inject() (
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
-        val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
-        userService.retrieve(loginInfo).flatMap {
+        // Check presenc of user by username
+        import models.daos.slick.DBTableDefinitions.UserTable
+        UserTable.find(data.username) match {
           case Some(user) =>
-            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("user.exists")))
+            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
-            val authInfo = passwordHasher.hash(data.password)
-            val user = User(
-              userId = UUID.randomUUID(),
-              loginInfo = loginInfo,
-              username = data.username,
-              email = data.email
-            )
-            for {
-              user <- userService.save(user)
-              authInfo <- authInfoService.save(loginInfo, authInfo)
-              authenticator <- env.authenticatorService.create(user.loginInfo)
-              value <- env.authenticatorService.init(authenticator)
-              result <- env.authenticatorService.embed(value, Future.successful(
-                Redirect(url)
-              ))
-            } yield {
-              env.eventBus.publish(SignUpEvent(user, request, request2lang))
-              env.eventBus.publish(LoginEvent(user, request, request2lang))
-              result
-            }
+            val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
+
+//            userService.retrieve(loginInfo).flatMap {
+//              case Some(user) =>
+//                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
+//              case None =>
+                val authInfo = passwordHasher.hash(data.password)
+                val user = User(
+                  userId = UUID.randomUUID(),
+                  loginInfo = loginInfo,
+                  username = data.username,
+                  email = data.email
+                )
+                for {
+                  user <- userService.save(user)
+                  authInfo <- authInfoService.save(loginInfo, authInfo)
+                  authenticator <- env.authenticatorService.create(user.loginInfo)
+                  value <- env.authenticatorService.init(authenticator)
+                  result <- env.authenticatorService.embed(value, Future.successful(
+                    Redirect(url)
+                  ))
+                } yield {
+                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
+                  env.eventBus.publish(LoginEvent(user, request, request2lang))
+                  result
+                }
+//            }
         }
       }
     )

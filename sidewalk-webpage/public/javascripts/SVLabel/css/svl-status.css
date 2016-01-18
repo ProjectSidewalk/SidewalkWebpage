@@ -1,0 +1,22 @@
+#status-pane-title {
+    border-bottom: 1px solid #ccc;
+    font-size: 1em;
+    margin-bottom: 3px;
+    text-align: center;
+}
+
+.status-box {
+    border-bottom: 1px dotted #ccc;
+    font-size: 0.8em;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    text-align: left;
+}
+
+#current-status-complete {
+    background-color: rgb(254, 255, 223);
+}
+
+#current-status-title {
+    font-weight: bold;
+}
