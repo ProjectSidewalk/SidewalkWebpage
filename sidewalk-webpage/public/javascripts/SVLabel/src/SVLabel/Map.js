@@ -432,28 +432,30 @@ function Map ($, params) {
         }
     }
 
+
+    function getMap() { return properties.map; }
+    function getInitialPanoId () { return properties.initialPanoId; }
+    function getMaxPitch () { return properties.maxPitch; }
+    function getMinPitch () { return properties.minPitch; }
+
     /**
-     * Get the map
+     * This method returns a value of a specified property.
+     * @param prop
+     * @returns {*}
      */
-    function getMap() {
-        return properties.map;
-    }
+    function getProperty (prop) { return (prop in properties) ? properties[prop] : false; }
 
     /**
      * Returns a panorama dom element that is dynamically created by GSV API
      * @returns {*}
      */
-    function getPanoramaLayer () {
-        return $divPano.children(':first').children(':first').children(':first').children(':eq(5)');
-    }
+    function getPanoramaLayer () { return $divPano.children(':first').children(':first').children(':first').children(':eq(5)'); }
 
     /**
      * Get svg element (arrows) in Street View.
      * @returns {*}
      */
-    function getLinkLayer () {
-        return $divPano.find('svg').parent();
-    }
+    function getLinkLayer () { return $divPano.find('svg').parent(); }
 
     /**
      * This method hides links to neighboring Street View images by changing the
@@ -484,9 +486,7 @@ function Map ($, params) {
     /**
      * Load
      */
-    function load () {
-        return svl.storage.get("map");
-    }
+    function load () { return svl.storage.get("map"); }
 
     /**
      * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
@@ -531,10 +531,6 @@ function Map ($, params) {
             status.svLinkArrowsLoaded = true;
             window.clearTimeout(_streetViewInit);
         }
-
-        //if (!status.svLinkArrowsLoaded) {
-        //    hideLinks();
-        //}
     }
 
     /**
@@ -578,8 +574,6 @@ function Map ($, params) {
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
-
-
     }
 
     /**
@@ -628,7 +622,6 @@ function Map ($, params) {
             svl.canvas.render2();
         }
 
-
         // Sean & Vicki Fog code
         if (fogMode && "fog" in svl) {
             current = svl.panorama.getPosition();
@@ -654,6 +647,90 @@ function Map ($, params) {
         }
     }
 
+    /**
+     * This method locks status.disableWalking
+     * @returns {lockDisableWalking}
+     */
+    function lockDisableWalking () {
+        status.lockDisableWalking = true;
+        return this;
+    }
+
+    function lockRenderLabels () {
+        lock.renderLabels = true;
+        return this;
+    }
+
+    /**
+     * This function brings a div element for drawing labels in front of
+     */
+    function modeSwitchWalkClick () {
+        $divViewControlLayer.css('z-index', '1');
+        $divLabelDrawingLayer.css('z-index','0');
+        if (!status.disableWalking) {
+            // Show the link arrows on top of the panorama
+            showLinks();
+            // Make links clickable
+            makeLinksClickable();
+        }
+    }
+
+    /**
+     *
+     */
+    function modeSwitchLabelClick () {
+        $divLabelDrawingLayer.css('z-index','1');
+        $divViewControlLayer.css('z-index', '0');
+        // $divStreetViewHolder.append($divLabelDrawingLayer);
+
+        if (properties.browser === 'mozilla') {
+            // A bug in Firefox? The canvas in the div element with the largest z-index.
+            $divLabelDrawingLayer.append($canvas);
+        }
+
+        hideLinks();
+    }
+
+    /**
+     * Plot markers on the Google Maps pane
+     *
+     * Example: https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
+     * @returns {boolean}
+     */
+    function plotMarkers () {
+        if (canvas) {
+            var prop, labelType, latlng,
+                labels = canvas.getLabels(),
+                labelsLen = labels.length;
+
+            // Clear the map first, then plot markers
+            for (var i = 0; i < markers.length; i++) { markers[i].setMap(null); }
+
+            markers = [];
+            for (i = 0; i < labelsLen; i++) {
+                prop = labels[i].getProperties();
+                labelType = prop.labelProperties.labelType;
+                latlng = prop.panoramaProperties.latlng;
+                if (prop.labelerId.indexOf('Researcher') !== -1) {
+                    // Skip researcher labels
+                    continue;
+                }
+
+                //markers.push(
+                //    new google.maps.Marker({
+                //        position: new google.maps.LatLng(latlng.lat, latlng.lng),
+                //        map: map,
+                //        zIndex: i
+                //    })
+                //);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param type
+     */
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
@@ -873,9 +950,6 @@ function Map ($, params) {
             }
 
         }
-
-
-
         mouseStatus.prevMouseUpTime = currTime;
     }
 
@@ -922,16 +996,11 @@ function Map ($, params) {
 
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
-
-            //
-            // It feels the panning is a little bit slow, so speed it up by 50%.
             dx *= 1.5;
             dy *= 1.5;
-
             updatePov(dx, dy);
         }
 
-        //
         // Show label delete menu
         if ('canvas' in svl && svl.canvas) {
             var item = svl.canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
@@ -964,179 +1033,39 @@ function Map ($, params) {
         mouseStatus.prevY = mouseposition(e, this).y;
     }
 
+    /**
+     *
+     * @param e
+     */
     function viewControlLayerMouseLeave (e) {
         mouseStatus.isLeftDown = false;
     }
 
-    function showDeleteLabelMenu () {
-        var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var selectedLabel = item.belongsTo().belongsTo();
-            if (selectedLabel === canvas.getCurrentLabel()) {
-                canvas.showDeleteLabel(mouseStatus.currX, mouseStatus.currY);
-            }
-        }
-    }
-
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    self.disableWalking = function () {
-        if (!status.lockDisableWalking) {
-            disableWalking();
-            return this;
-        } else {
-            return false;
-        }
-    };
-
-    self.enableWalking = function () {
-        // This method enables users to walk and change the camera angle.
-        if (!status.lockDisableWalking) {
-            enableWalking();
-            return this;
-        } else {
-            return false;
-        }
-    };
-
-    self.getInitialPanoId = function () {
-        // This method returns the panorama id of the position this user is dropped.
-        return properties.initialPanoId;
-    };
-
-    self.getMap = getMap;
-
     /**
-     * This method returns a max pitch
+     * This method sets the minimum and maximum heading angle that users can adjust the Street View camera.
+     * @param range
+     * @returns {setHeadingRange}
      */
-    function getMaxPitch () {
-        return properties.maxPitch;
-    }
-    self.getMaxPitch = getMaxPitch;
-
-    /**
-     * This method returns a min pitch
-     * @returns {*}
-     */
-    function getMinPitch () {
-        return properties.minPitch;
-    }
-    self.getMinPitch = getMinPitch;
-
-    self.getProperty = function (prop) {
-        // This method returns a value of a specified property.
-        if (prop in properties) {
-            return properties[prop];
-        } else {
-            return false;
-        }
-    };
-
-    self.lockDisableWalking = function () {
-        // This method locks status.disableWalking
-        status.lockDisableWalking = true;
-        return this;
-    };
-
-    self.lockRenderLabels = function () {
-        lock.renderLabels = true;
-        return this;
-    };
-
-    self.modeSwitchWalkClick = function () {
-        // This function brings a div element for drawing labels in front of
-        // $svPanoramaLayer = getPanoramaLayer();
-        // $svPanoramaLayer.append($divLabelDrawingLayer);
-        $divViewControlLayer.css('z-index', '1');
-        $divLabelDrawingLayer.css('z-index','0');
-        if (!status.disableWalking) {
-            // Show the link arrows on top of the panorama
-            showLinks();
-            // Make links clickable
-            makeLinksClickable();
-        }
-    };
-
-
-    /**
-     * This is a call back function for mode switch click.
-     */
-    function modeSwitchLabelClick () {
-        // This function
-        $divLabelDrawingLayer.css('z-index','1');
-        $divViewControlLayer.css('z-index', '0');
-        // $divStreetViewHolder.append($divLabelDrawingLayer);
-
-        if (properties.browser === 'mozilla') {
-            // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divLabelDrawingLayer.append($canvas);
-        }
-
-        hideLinks();
-    }
-
-    self.plotMarkers = function () {
-        // Examples for plotting markers:
-        // https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
-        if (canvas) {
-            var labels = undefined;
-            var labelsLen = 0;
-            var prop = undefined;
-            var labelType = undefined;
-            var latlng = undefined;
-            labels = canvas.getLabels();
-            labelsLen = labels.length;
-
-            //
-            // Clear the map first
-            for (var i = 0; i < markers.length; i += 1) {
-                markers[i].setMap(null);
-            }
-
-            markers = [];
-            // Then plot markers
-            for (i = 0; i < labelsLen; i++) {
-                prop = labels[i].getProperties();
-                labelType = prop.labelProperties.labelType;
-                latlng = prop.panoramaProperties.latlng;
-                if (prop.labelerId.indexOf('Researcher') !== -1) {
-                    // Skip researcher labels
-                    continue;
-                }
-
-                var myLatLng =  new google.maps.LatLng(latlng.lat, latlng.lng);
-                var marker = new google.maps.Marker({
-                    position: myLatLng,
-                    map: map,
-                    zIndex: i
-                });
-                markers.push(marker);
-            }
-        }
-        return false;
-    };
-
-    self.setHeadingRange = function (range) {
-        // This method sets the minimum and maximum heading angle that users can adjust the Street View camera.
+    function setHeadingRange (range) {
         properties.minHeading = range[0];
         properties.maxHeading = range[1];
         return this;
-    };
+    }
 
-    self.setMode = function (modeIn) {
-        properties.mode = modeIn;
-        return this;
-    };
+    function setMode (modeIn) { properties.mode = modeIn; return this; }
 
-    self.setPitchRange = function (range) {
-        // This method sets the minimum and maximum pitch angle that users can adjust the Street View camera.
+    /**
+     * This method sets the minimum and maximum pitch angle that users can adjust the Street View camera.
+     * @param range
+     * @returns {setPitchRange}
+     */
+    function setPitchRange (range) {
         properties.minPitch = range[0];
         properties.maxPitch = range[1];
         return this;
-    };
+    }
 
-    self.setPov = function (pov, duration, callback) {
+    function setPov (pov, duration, callback) {
         // Change the pov.
         // If a transition duration is set, smoothly change the pov over the time specified (milli-sec)
         if (('panorama' in svl) && svl.panorama) {
@@ -1200,13 +1129,13 @@ function Map ($, params) {
                         //
                         // Update heading angle and pitch angle
                         /*
-                        var angle = (360 - pov.heading) + currentPov.heading;
-                        if (angle < 180 || angle > 360) {
-                            currentPov.heading -= headingIncrement;
-                        } else {
-                            currentPov.heading += headingIncrement;
-                        }
-                        */
+                         var angle = (360 - pov.heading) + currentPov.heading;
+                         if (angle < 180 || angle > 360) {
+                         currentPov.heading -= headingIncrement;
+                         } else {
+                         currentPov.heading += headingIncrement;
+                         }
+                         */
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
                         currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
@@ -1236,13 +1165,16 @@ function Map ($, params) {
         }
 
         return this;
-    };
+    }
 
-    self.setStatus = function (key, value) {
-        // This funciton sets the current status of the instantiated object
+    /**
+     * This funciton sets the current status of the instantiated object
+     * @param key
+     * @param value
+     * @returns {*}
+     */
+    function setStatus (key, value) {
         if (key in status) {
-
-
             // if the key is disableWalking, invoke walk disabling/enabling function
             if (key === "disableWalking") {
                 if (typeof value === "boolean") {
@@ -1260,24 +1192,47 @@ function Map ($, params) {
             return this;
         }
         return false;
-    };
+    }
 
-    self.unlockDisableWalking = function () {
-        status.lockDisableWalking = false;
-        return this;
-    };
+    function showDeleteLabelMenu () {
+        var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
+        if (item && item.className === "Point") {
+            var selectedLabel = item.belongsTo().belongsTo();
+            if (selectedLabel === canvas.getCurrentLabel()) {
+                canvas.showDeleteLabel(mouseStatus.currX, mouseStatus.currY);
+            }
+        }
+    }
 
-    self.unlockRenderLabels = function () {
-        lock.renderLabels = false;
-        return this;
-    };
 
+    function unlockDisableWalking () { status.lockDisableWalking = false; return this; }
+    function unlockRenderLabels () { lock.renderLabels = false; return this; }
+
+
+    self.disableWalking = disableWalking;
     self.disableClickZoom = disableClickZoom;
     self.enableClickZoom = enableClickZoom;
+    self.enableWalking = enableWalking;
+    self.getInitialPanoId = getInitialPanoId;
+    self.getMap = getMap;
+    self.getMaxPitch = getMaxPitch;
+    self.getMinPitch = getMinPitch;
+    self.getProperty = getProperty;
     self.hideLinks = hideLinks;
-    self.modeSwitchLabelClick = modeSwitchLabelClick;
-    self.save = save;
     self.load = load;
+    self.lockDisableWalking = lockDisableWalking;
+    self.lockRenderLabels = lockRenderLabels;
+    self.modeSwitchLabelClick = modeSwitchLabelClick;
+    self.modeSwitchWalkClick = modeSwitchWalkClick;
+    self.plotMarkers = plotMarkers;
+    self.save = save;
+    self.setHeadingRange = setHeadingRange;
+    self.setMode = setMode;
+    self.setPitchRange = setPitchRange;
+    self.setPov = setPov;
+    self.setStatus = setStatus;
+    self.unlockDisableWalking = unlockDisableWalking;
+    self.unlockRenderLabels = unlockRenderLabels;
 
     _init(params);
     return self;
