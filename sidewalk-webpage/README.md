@@ -9,3 +9,9 @@ For a more complex example, see the [computer database sample](https://github.co
 # Examples
 * Scala, Slick, Postgres: http://www.wiredmonk.me/rest-api-with-scala-play-slick-postgresql-redis-and-aws-s3.html
 # "Play, Heroku and PostgreSQl seed": http://typesafe.com/activator/template/play-heroku-seed
+
+# Upload
+1. Use Play's dist tool to create jar files of the project: https://www.playframework.com/documentation/2.3.x/ProductionDist
+2. Upload the zip file to the web server
+3. Unarchive and execute the application that is in sidewalk-webpage-[version]/bin/
+4. Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
