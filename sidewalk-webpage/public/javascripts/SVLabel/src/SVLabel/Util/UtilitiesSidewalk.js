@@ -93,25 +93,30 @@ svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 //
 function getLabelIconImagePath(labelType) {
     return {
-        'Walk' : {
-            'id' : 'Walk',
-            'iconImagePath' : undefined
+        Walk : {
+            id : 'Walk',
+            iconImagePath : null,
+            googleMapsIconImagePath: null
         },
         CurbRamp: {
             id: 'CurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/Icon_CurbRamp.svg'
+            iconImagePath : svl.rootDirectory + 'img/Icon_CurbRamp.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            iconImagePath : svl.rootDirectory + '/img/icons/Sidewalk/Icon_NoCurbRamp.svg'
+            iconImagePath : svl.rootDirectory + '/img/icons/Sidewalk/Icon_NoCurbRamp.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
         },
         Obstacle: {
-          id: 'Obstacle',
-          iconImagePath: null
+            id: 'Obstacle',
+            iconImagePath: svl.rootDirectory + 'img/Icon_Obstacle.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
         },
         SurfaceProblem: {
-          id: 'SurfaceProblem',
-          iconImagePath: null
+            id: 'SurfaceProblem',
+            iconImagePath: null,
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
         },
         Other: {
             id: 'Other',
@@ -120,50 +125,6 @@ function getLabelIconImagePath(labelType) {
         Void: {
             id: 'Void',
             iconImagePath : null
-        },
-        Unclear: {
-            id: 'Unclear',
-            iconImagePath : null
-        },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStop.png'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopSign_SingleLeg.png'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopSign_TwoLegged.png'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopSign_Column.png'
-        },
-        'StopSign_None' : {
-            'id' : 'StopSign_None',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStop.png'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopShelter.png'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_Bench.png'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_TrashCan2.png'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_Mailbox2.png'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_OtherPoles.png'
         }
     }
 }
@@ -408,7 +369,7 @@ svl.misc.getLabelDescriptions = getLabelDescriptions;
 
 // Todo. Get rid of this global function.
 function getLabelColors () {
-    return SidewalkColorScheme();
+    return SidewalkColorScheme2();
 }
 svl.misc.getLabelColors = getLabelColors;
 
@@ -438,6 +399,43 @@ function SidewalkColorScheme () {
         SurfaceProblem: {
           id: 'SurfaceProblem',
           fillStyle: 'rgba(215, 0, 96, 0.9)'
+        },
+        Void: {
+            id: 'Void',
+            fillStyle: 'rgba(255, 255, 255, 0)'
+        },
+        Unclear: {
+            id: 'Unclear',
+            fillStyle: 'rgba(128, 128, 128, 0.5)'
+        }
+    }
+}
+
+function SidewalkColorScheme2 () {
+    return {
+        Walk : {
+            id : 'Walk',
+            fillStyle : 'rgba(0, 0, 0, 0.9)'
+        },
+        CurbRamp: {
+            id: 'CurbRamp',
+            fillStyle: 'rgba(0, 244, 38, 0.9)'
+        },
+        NoCurbRamp: {
+            id: 'NoCurbRamp',
+            fillStyle: 'rgba(255, 39, 113, 0.9)'
+        },
+        Obstacle: {
+            id: 'Obstacle',
+            fillStyle: 'rgba(0, 161, 203, 0.9)'
+        },
+        Other: {
+            id: 'Other',
+            fillStyle: 'rgba(204, 204, 204, 0.9)'
+        },
+        SurfaceProblem: {
+            id: 'SurfaceProblem',
+            fillStyle: 'rgba(241, 141, 5, 0.9)'
         },
         Void: {
             id: 'Void',

@@ -5,13 +5,11 @@ var svl = svl || {};
  * @constructor
  */
 function ExampleWindow ($, params) {
-    var api = {
-            className : 'ExampleWindow'
-        };
-    var properties = {
+    var self = { className : 'ExampleWindow'},
+        properties = {
             exampleCategories : ['StopSign_OneLeg', 'StopSign_TwoLegs', 'StopSign_Column', 'NextToCurb', 'AwayFromCurb']
-        };
-    var status = {
+        },
+        status = {
             open : false
         };
 
@@ -48,7 +46,7 @@ function ExampleWindow ($, params) {
 
         // Add listeners
         $divHolderCloseButton.bind({
-            click : api.close,
+            click : self.close,
             mouseenter : closeButtonMouseEnter,
             mouseleave : closeButtonMouseLeave
         });
@@ -64,7 +62,6 @@ function ExampleWindow ($, params) {
         return this;
     }
 
-
     function closeButtonMouseLeave () {
         // A callback function that is invoked when a mouse cursor leaves the X sign.
         // This function changes a cursor to a 'default'.
@@ -75,10 +72,7 @@ function ExampleWindow ($, params) {
     }
 
 
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    api.close = function () {
+    self.close = function () {
         // Hide the example window.
         status.open = false;
         $divHolderExampleWindow.css({
@@ -91,12 +85,12 @@ function ExampleWindow ($, params) {
     };
 
 
-    api.isOpen = function () {
+    self.isOpen = function () {
         return status.open;
     };
 
 
-    api.show = function (exampleCategory) {
+    self.show = function (exampleCategory) {
         // Show the example window.
         // Return false if the passed category is not know.
         if (properties.exampleCategories.indexOf(exampleCategory) === -1) {
@@ -124,5 +118,5 @@ function ExampleWindow ($, params) {
     // Initialization
     ////////////////////////////////////////
     init(params);
-    return api;
+    return self;
 }

@@ -58,14 +58,10 @@ function LabelContainer() {
      * @method
      */
     function removeLabel (label) {
-        if (!label) {
-            return false;
-        }
+        if (!label) { return false; }
         svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
-
         svl.labelCounter.decrement(label.getProperty("labelType"));
-        label.setStatus('deleted', true);
-        label.setStatus('visibility', 'hidden');
+        label.remove();
 
         // Review label correctness if this is a ground truth insertion task.
         if (("goldenInsertion" in svl) &&

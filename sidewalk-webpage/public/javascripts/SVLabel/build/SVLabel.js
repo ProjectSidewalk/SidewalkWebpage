@@ -1214,22 +1214,21 @@ function Canvas ($, param) {
      */
     function closeLabelPath() {
         svl.tracker.push('LabelingCanvas_FinishLabeling');
-        var labelType = svl.ribbon.getStatus('selectedLabelType');
-        var labelColor = getLabelColors()[labelType];
-        var labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')];
-        var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
+        var labelType = svl.ribbon.getStatus('selectedLabelType'),
+            labelColor = getLabelColors()[labelType],
+            labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
+            iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
-        var pathLen = tempPath.length;
-        var points = [];
-        var pov = svl.getPOV();
-        var i;
+        var pathLen = tempPath.length,
+            points = [],
+            pov = svl.getPOV();
 
-        for (i = 0; i < pathLen; i++) {
+        for (var i = 0; i < pathLen; i++) {
             points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
@@ -1657,9 +1656,7 @@ function Canvas ($, param) {
      * Returns the label of the current focus
      * @method
      */
-    function getCurrentLabel () {
-        return status.currentLabel;
-    }
+    function getCurrentLabel () { return status.currentLabel; }
 
     /**
      * Get labels stored in this canvas.
@@ -1682,9 +1679,7 @@ function Canvas ($, param) {
      * Returns a lock that corresponds to the key.
      * @method
      */
-    function getLock (key) {
-      return lock[key];
-    }
+    function getLock (key) { return lock[key]; }
 
     /**
      * Returns a number of labels in the current panorama.
@@ -1706,9 +1701,7 @@ function Canvas ($, param) {
     /**
      * @method
      */
-    function getRightClickMenu () {
-        return rightClickMenu;
-    }
+    function getRightClickMenu () { return rightClickMenu; }
 
     /**
      * Returns a status
@@ -1729,16 +1722,8 @@ function Canvas ($, param) {
      * @method
      */
     function getSystemLabels (reference) {
-
-        if (!reference) {
-            reference = false;
-        }
-
-        if (reference) {
-            return systemLabels;
-        } else {
-            return $.extend(true, [], systemLabels);
-        }
+        if (!reference) { reference = false; }
+        return reference ? systemLabels : $.extend(true, [], systemLabels);
     }
 
     /**
@@ -1754,31 +1739,27 @@ function Canvas ($, param) {
 
     /**
      * Returns user labels (i.e., what the user labeled during this session.)
+     * If reference is true, then it returns reference to the labels. Otherwise it returns deepcopy of labels.
      * @method
      */
     function getUserLabels (reference) {
-        // This method returns user labels. If reference is true, then it returns reference to the labels.
-        // Otherwise it returns deepcopy of labels.
-        if (!reference) {
-            reference = false;
-        }
-
-        if (reference) {
-            return svl.labelContainer.getCanvasLabels();
-//            return labels;
-        } else {
-            return $.extend(true, [], svl.labelContainer.getCanvasLabels());
-        }
+        if (!reference) { reference = false; }
+        return reference ? svl.labelContainer.getCanvasLabels() : $.extend(true, [], svl.labelContainer.getCanvasLabels());
     }
 
     /**
+     * Hide the delete label
      * @method
      */
-    function hideDeleteLabel (x, y) {
+    function hideDeleteLabel () {
         rightClickMenu.hideDeleteLabel();
         return this;
     }
 
+    /**
+     * Hide the right click menu
+     * @returns {hideRightClickMenu}
+     */
     function hideRightClickMenu () {
         rightClickMenu.hideBusStopType();
         rightClickMenu.hideBusStopPosition();
@@ -1786,25 +1767,20 @@ function Canvas ($, param) {
     }
 
     /**
+     * This method takes a label data (i.e., a set of point coordinates, label types, etc) and
+     * and insert it into the labels array so the Canvas will render it
      * @method
      */
     function insertLabel (labelPoints, target) {
-        // This method takes a label data (i.e., a set of point coordinates, label types, etc) and
-        // and insert it into the labels array so the Canvas will render it
-        if (!target) {
-            target = 'user';
-        }
+        if (!target) { target = 'user'; }
 
-        var i;
-        var labelColors = svl.misc.getLabelColors();
-        var iconImagePaths = svl.misc.getIconImagePaths();
-        var length = labelPoints.length;
-        var pointData;
-        var pov;
-        var point;
-        var points = [];
+        var pointData, pov, point,
+            labelColors = svl.misc.getLabelColors(),
+            iconImagePaths = svl.misc.getIconImagePaths(),
+            length = labelPoints.length,
+            points = [];
 
-        for (i = 0; i < length; i += 1) {
+        for (var i = 0; i < length; i += 1) {
             pointData = labelPoints[i];
             pov = {
                 heading: pointData.originalHeading,
@@ -1885,30 +1861,24 @@ function Canvas ($, param) {
 
 
     /**
+     * This method returns the current status drawing.
      * @method
      * @return {boolean}
      */
-    function isDrawing () {
-        // This method returns the current status drawing.
-        return status.drawing;
-    }
+    function isDrawing () { return status.drawing; }
 
     /**
-    *
-    * @method
-    */
+     * This function takes cursor coordinates x and y on the canvas. Then returns an object right below the cursor.
+     * If a cursor is not on anything, return false.
+     * @method
+     */
     function isOn (x, y) {
-        // This function takes cursor coordinates x and y on the canvas.
-        // Then returns an object right below the cursor.
-        // If a cursor is not on anything, return false.
-        var i, lenLabels, ret;
-        var labels = svl.labelContainer.getCanvasLabels();
-        lenLabels = labels.length;
+        var i, ret = false,
+            labels = svl.labelContainer.getCanvasLabels(),
+            lenLabels = labels.length;
 
-        ret = false;
         for (i = 0; i < lenLabels; i += 1) {
-            // Check labels, paths, and points to see if they are
-            // under a mouse cursor
+            // Check labels, paths, and points to see if they are under a mouse cursor
             ret = labels[i].isOn(x, y);
             if (ret) {
                 status.currentLabel = labels[i];
@@ -1932,7 +1902,7 @@ function Canvas ($, param) {
     function lockDisableLabelDelete () {
         status.lockDisableLabelDelete = true;;
         return this;
-    };
+    }
 
     /**
      * @method
@@ -1951,10 +1921,10 @@ function Canvas ($, param) {
     }
 
     /**
+     * This method locks showLabelTag
      * @method
      */
     function lockShowLabelTag () {
-        // This method locks showLabelTag
         lock.showLabelTag = true;
         return this;
     }
@@ -2012,12 +1982,11 @@ function Canvas ($, param) {
      * @method
      */
     function render2 () {
-      if (!ctx) {
-        // JavaScript warning
-        // http://stackoverflow.com/questions/5188224/throw-new-warning-in-javascript
-        console.warn('The ctx is not set.')
-        return this;
-      }
+        if (!ctx) {
+            // JavaScript warning: http://stackoverflow.com/questions/5188224/throw-new-warning-in-javascript
+            console.warn('The ctx is not set.');
+            return this;
+        }
         var i,
             labels = svl.labelContainer.getCanvasLabels();
         var label;
@@ -2044,24 +2013,22 @@ function Canvas ($, param) {
             var currentPhotographerPov = svl.panorama.getPhotographerPov();
             if (currentPhotographerPov && 'heading' in currentPhotographerPov && 'pitch' in currentPhotographerPov) {
                 var j;
-                //
-                // Adjust user labels
                 lenLabels = labels.length;
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = labels[i];
-                    var points = label.getPoints(true)
-                    var pointsLen = points.length;
+                    var points = label.getPoints(true),
+                        pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
-                        var pointData = points[j].getProperties();
-                        var svImageCoordinate = points[j].getGSVImageCoordinate();
+                        var pointData = points[j].getProperties(),
+                            svImageCoordinate = points[j].getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
-                            var deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
-                            var x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
-                            var y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
-                            points[j].resetSVImageCoordinate({x: x, y: y})
+                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading,
+                                deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch,
+                                x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth,
+                                y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
+                            points[j].resetSVImageCoordinate({ x: x, y: y })
                         }
                     }
                 }
@@ -2091,14 +2058,11 @@ function Canvas ($, param) {
             }
         }
 
-        //
-        // Render user labels
+        // Render user labels. First check if the label comes from current SV panorama
         lenLabels = labels.length;
         for (i = 0; i < lenLabels; i += 1) {
-            // Check if the label comes from current SV panorama
             label = labels[i];
 
-            // If it is an evaluation mode, let a label not render a bounding box and a delete button.
             if (properties.evaluationMode) {
                 label.render(ctx, pov, true);
             } else {
@@ -2111,14 +2075,11 @@ function Canvas ($, param) {
             }
         }
 
-        //
-        // Render system labels
+        // Render system labels. First check if the label comes from current SV panorama
         lenLabels = systemLabels.length;
         for (i = 0; i < lenLabels; i += 1) {
-            // Check if the label comes from current SV panorama
             label = systemLabels[i];
 
-            // If it is an evaluation mode, let a label not render a bounding box and a delete button.
             if (properties.evaluationMode) {
                 label.render(ctx, pov, true);
             } else {
@@ -2126,45 +2087,27 @@ function Canvas ($, param) {
             }
         }
 
-        //
         // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) {
-            renderTempPath();
-        }
+        if (status.drawing) { renderTempPath(); }
 
-        //
         // Check if the user audited all the angles or not.
-        if ('form' in svl) {
-            svl.form.checkSubmittable();
-        }
+        if ('form' in svl) { svl.form.checkSubmittable(); }
 
-        if ('progressPov' in svl) {
-            svl.progressPov.updateCompletionRate();
-        }
+        // Update the completion rate
+        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
 
-        //
         // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
-        }
+        if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
 
-        //
         // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) {
-            svl.actionStack.updateOpacity();
-        }
+        if (svl.actionStack) { svl.actionStack.updateOpacity(); }
 
-        //
         // Update the opacity of Zoom In and Zoom Out buttons.
-        if (svl.zoomControl) {
-            svl.zoomControl.updateOpacity();
-        }
+        if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
 
-        //
         // This like of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.goldenInsertion.renderMessage();
-        }
+        if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
+
         return this;
     }
 
@@ -2271,20 +2214,16 @@ function Canvas ($, param) {
     /**
      * @method
      */
-    function setTagVisibility (labelIn) {
-        // Deprecated
-        return self.showLabelTag(labelIn);
-    }
+    function setTagVisibility (labelIn) { return self.showLabelTag(labelIn); }
 
     /**
      * @method
      */
     function setVisibility (visibility) {
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].unlockVisibility().setVisibility('visible');
         }
         return this;
@@ -2294,27 +2233,25 @@ function Canvas ($, param) {
      * @method
      */
     function setVisibilityBasedOnLocation (visibility) {
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLocation(visibility, getPanoId());
         }
         return this;
     }
 
     /**
+     * This function should not be used in labeling interfaces, but only in evaluation interfaces.
+     * Set labels that are not in LabelerIds hidden
      * @method
      */
     function setVisibilityBasedOnLabelerId (visibility, LabelerIds, included) {
-        // This function should not be used in labeling interfaces, but only in evaluation interfaces.
-        // Set labels that are not in LabelerIds hidden
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLabelerId(visibility, LabelerIds, included);
         }
         return this;
@@ -2324,10 +2261,9 @@ function Canvas ($, param) {
      * @method
      */
     function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, table, included) {
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLabelerIdAndLabelTypes(visibility, table, included);
         }
         return this;
@@ -2336,9 +2272,7 @@ function Canvas ($, param) {
     /**
      * @method
      */
-    function showDeleteLabel (x, y) {
-        rightClickMenu.showDeleteLabel(x, y);
-    }
+    function showDeleteLabel (x, y) { rightClickMenu.showDeleteLabel(x, y); }
 
     /**
      * @method
@@ -2443,13 +2377,11 @@ var svl = svl || {};
  * @constructor
  */
 function ExampleWindow ($, params) {
-    var api = {
-            className : 'ExampleWindow'
-        };
-    var properties = {
+    var self = { className : 'ExampleWindow'},
+        properties = {
             exampleCategories : ['StopSign_OneLeg', 'StopSign_TwoLegs', 'StopSign_Column', 'NextToCurb', 'AwayFromCurb']
-        };
-    var status = {
+        },
+        status = {
             open : false
         };
 
@@ -2486,7 +2418,7 @@ function ExampleWindow ($, params) {
 
         // Add listeners
         $divHolderCloseButton.bind({
-            click : api.close,
+            click : self.close,
             mouseenter : closeButtonMouseEnter,
             mouseleave : closeButtonMouseLeave
         });
@@ -2502,7 +2434,6 @@ function ExampleWindow ($, params) {
         return this;
     }
 
-
     function closeButtonMouseLeave () {
         // A callback function that is invoked when a mouse cursor leaves the X sign.
         // This function changes a cursor to a 'default'.
@@ -2513,10 +2444,7 @@ function ExampleWindow ($, params) {
     }
 
 
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    api.close = function () {
+    self.close = function () {
         // Hide the example window.
         status.open = false;
         $divHolderExampleWindow.css({
@@ -2529,12 +2457,12 @@ function ExampleWindow ($, params) {
     };
 
 
-    api.isOpen = function () {
+    self.isOpen = function () {
         return status.open;
     };
 
 
-    api.show = function (exampleCategory) {
+    self.show = function (exampleCategory) {
         // Show the example window.
         // Return false if the passed category is not know.
         if (properties.exampleCategories.indexOf(exampleCategory) === -1) {
@@ -2562,7 +2490,7 @@ function ExampleWindow ($, params) {
     // Initialization
     ////////////////////////////////////////
     init(params);
-    return api;
+    return self;
 }
 
 var svl = svl || {};
@@ -4277,19 +4205,6 @@ function Label (pathIn, params) {
         visibility : false
     };
 
-//    function assemble () {
-//        return {
-//            properties: properties,
-//            status: status,
-//            path: path.assemble(),
-//        }
-//    }
-//
-//    self.assemble = assemble;
-
-    //
-    // Private functions
-    //
     function init (param, pathIn) {
         try {
             if (!pathIn) {
@@ -4325,24 +4240,15 @@ function Label (pathIn, params) {
                 properties[attrName] = param[attrName];
             }
 
-            // If the labelType is a "Stop Sign", do not show a tag
-            // as a user has to select which type of a stop sign it is
-            // (e.g. One-leg, Two-leg, etc)
-            // if (properties.labelProperties.labelType === "StopSign") {
-            if (false) {
-                status.tagVisibility = 'hidden';
-            }
-
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            goolgeMarker = renderOnMap();
+            goolgeMarker = createGoogleMapsMarker(param.labelType);
             return true;
         } catch (e) {
             console.error(self.className, ':', 'Error initializing the Label object.', e);
             return false;
         }
-
     }
 
     function renderTag(ctx) {
@@ -4552,8 +4458,13 @@ function Label (pathIn, params) {
     // Public functions
     ////////////////////////////////////////
 
-    self.blink = function (numberOfBlinks, fade) {
-        // Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray;
+    /**
+     * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
+     * @param numberOfBlinks
+     * @param fade
+     * @returns {blink}
+     */
+    function blink (numberOfBlinks, fade) {
         if (!numberOfBlinks) {
             numberOfBlinks = 3;
         } else if (numberOfBlinks < 0) {
@@ -4604,114 +4515,115 @@ function Label (pathIn, params) {
         }, 500);
 
         return this;
-    };
+    }
 
-    self.fadeFillStyle = function (mode) {
-        // This method turn the associated Path and Points into gray.
-        var path = self.getPath();
-        var points = path.getPoints()
-        var i = 0;
-        var len = points.length;
-        var fillStyle = undefined;
+    /**
+     * This method turn the associated Path and Points into gray.
+     * @param mode
+     * @returns {fadeFillStyle}
+     */
+    function fadeFillStyle (mode) {
+        var path = self.getPath(),
+            points = path.getPoints(),
+            len = points.length, fillStyle;
 
-        if (!mode) {
-            mode = 'default';
-        }
+        if (!mode) { mode = 'default'; }
 
-        if (mode === 'gray') {
-            fillStyle = 'rgba(200,200,200,0.5)';
-        } else {
-            // fillStyle = path.getFillStyle();
-            // fillStyle = svl.util.color.changeDarknessRGBA(fillStyle, 0.9);
-            // fillStyle = svl.util.color.changeAlphaRGBA(fillStyle, 0.1);
-            fillStyle = 'rgba(255,165,0,0.8)';
-        }
+        fillStyle = mode == 'gray' ? 'rgba(200,200,200,0.5)' : 'rgba(255,165,0,0.8)';
         path.setFillStyle(fillStyle);
-        for (; i < len; i++) {
+        for (var i = 0; i < len; i++) {
             points[i].setFillStyle(fillStyle);
         }
         return this;
-    };
+    }
 
-    self.getBoundingBox = function (pov) {
-        // This method returns the boudning box of the label's outline.
+    /**
+     * This method returns the boudning box of the label's outline.
+     * @param pov
+     * @returns {*}
+     */
+    function getBoundingBox (pov) {
         var path = self.getPath();
         return path.getBoundingBox(pov);
-    };
+    }
 
-    self.getCoordinate = function () {
-        // This function returns the coordinate of a point.
+    /**
+     * This function returns the coordinate of a point.
+     * @returns {*}
+     */
+    function getCoordinate () {
         if (path && path.points.length > 0) {
             var pov = path.getPOV();
             return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
         }
         return path;
-    };
+    }
 
-    self.getGSVImageCoordinate = function () {
-        // This function return the coordinate of a point in the GSV image coordinate.
+    /**
+     * This function return the coordinate of a point in the GSV image coordinate.
+     * @returns {*}
+     */
+    function getGSVImageCoordinate () {
         if (path && path.points.length > 0) {
             return path.points[0].getGSVImageCoordinate();
         }
-    };
+    }
 
-    self.getImageCoordinates = function () {
-        // This function returns
+    /**
+     *
+     * @returns {*}
+     */
+    function getImageCoordinates () { return path ? path.getImageCoordinates() : false; }
+
+    /**
+     * This function returns labelId property
+     * @returns {string}
+     */
+    function getLabelId () { return properties.labelId; }
+
+    /**
+     * This function returns labelType property
+     * @returns {*}
+     */
+    function getLabelType () { return properties.labelType; }
+
+    /**
+     * This function returns the coordinate of a point.
+     * If reference is true, return a reference to the path instead of a copy of the path
+     * @param reference
+     * @returns {*}
+     */
+    function getPath (reference) {
         if (path) {
-            return path.getImageCoordinates();
+            return reference ? path : $.extend(true, {}, path);
         }
         return false;
-    };
+    }
 
-    self.getLabelId = function () {
-        // This function returns labelId property
-        return properties.labelId;
-    };
+    /**
+     * This function returns the coordinate of the first point in the path.
+     * @returns {*}
+     */
+    function getPoint () { return (path && path.points.length > 0) ? path.points[0] : path; }
 
-    self.getLabelType = function () {
-        // This function returns labelType property
-        return properties.labelType;
-    };
+    /**
+     * This function returns the point objects that constitute the path
+     * If reference is set to true, return the reference to the points
+     * @param reference
+     * @returns {*}
+     */
+    function getPoints (reference) { return path ? path.getPoints(reference) : false; }
 
-    self.getPath = function (reference) {
-        // This function returns the coordinate of a point.
-        // If reference is true, return a reference to the path instead of a copy of the path
-        if (path) {
-            if (reference) {
-                return path;
-            } else {
-                return $.extend(true, {}, path);
-            }
-        }
-        return false;
-    };
-
-    self.getPoint = function () {
-        // This function returns the coordinate of the first point in the path.
-        if (path && path.points.length > 0) {
-            return path.points[0];
-        }
-        return path;
-    };
-
-    self.getPoints = function (reference) {
-        // This function returns the point objects that constitute the path
-        // If reference is set to true, return the reference to the points
-        if (path) {
-            return path.getPoints(reference);
-        } else {
-            return false;
-        }
-    };
-
-    self.getLabelPov = function () {
-        // Return the pov of this label
-        var heading;//  = parseInt(properties.panoramaHeading, 10);
-        var pitch = parseInt(properties.panoramaPitch, 10);
-        var zoom = parseInt(properties.panoramaZoom, 10);
-
-        var points = self.getPoints();
-        var svImageXs = points.map(function(point) {return point.svImageCoordinate.x;});
+    /**
+     * This method returns the pov of this label
+     * @returns {{heading: Number, pitch: Number, zoom: Number}}
+     */
+    function getLabelPov () {
+        var heading, pitch = parseInt(properties.panoramaPitch, 10),
+            zoom = parseInt(properties.panoramaZoom, 10),
+            points = self.getPoints(),
+            svImageXs = points.map(function(point) { return point.svImageCoordinate.x; }),
+            labelSvImageX;
 
         if (svImageXs.max() - svImageXs.min() > (svl.svImageWidth / 2)) {
             svImageXs = svImageXs.map(function (x) {
@@ -4719,10 +4631,10 @@ function Label (pathIn, params) {
                     x += svl.svImageWidth;
                 }
                 return x;
-            })
-            var labelSvImageX = parseInt(svImageXs.mean(), 10) % svl.svImageWidth;
+            });
+            labelSvImageX = parseInt(svImageXs.mean(), 10) % svl.svImageWidth;
         } else {
-            var labelSvImageX = parseInt(svImageXs.mean(), 10);
+            labelSvImageX = parseInt(svImageXs.mean(), 10);
         }
         heading = parseInt((labelSvImageX / svl.svImageWidth) * 360, 10) % 360;
 
@@ -4731,107 +4643,80 @@ function Label (pathIn, params) {
             pitch: pitch,
             zoom: zoom
         };
-    };
-
-    self.getProperties = function () {
-        // Return the deep copy of the properties object,
-        // so the caller can only modify properties from
-        // setProperties() (which I have not implemented.)
-        //
-        // JavaScript Deepcopy
-        // http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
-        return $.extend(true, {}, properties);
-    };
-
-    self.getProperty = function (propName) {
-        if (!(propName in properties)) {
-            return false;
-        }
-        return properties[propName];
-    };
-
-    self.getstatus = function (key) {
-        return status[key];
     }
 
-    self.getVisibility = function () {
-        return status.visibility;
-    };
+    /**
+     * Return the deep copy of the properties object,
+     * so the caller can only modify properties from
+     * setProperties() (which I have not implemented.)
+     * JavaScript Deepcopy
+     * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+     */
+    function getProperties () { return $.extend(true, {}, properties); }
 
-    self.fill = function (fill) {
-        // This method changes the fill color of the path and points that constitute the path.
-        var path = self.getPath();
-        var points = path.getPoints()
-        var i = 0;
-        var len = points.length;
+    function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
 
-        path.setFillStyle(fill);
-        for (; i < len; i++) {
-            points[i].setFillStyle(fill);
-        }
+    function getstatus (key) { return status[key]; }
+
+    function getVisibility () { return status.visibility; }
+
+    /**
+     * This method changes the fill color of the path and points that constitute the path.
+     * @param fillColor
+     * @returns {fill}
+     */
+    function fill (fillColor) {
+        var path = self.getPath(),
+            points = path.getPoints(),
+            len = points.length;
+
+        path.setFillStyle(fillColor);
+        for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
         return this;
-    };
+    }
 
-    self.highlight = function () {
-        // This method changes the fill color of the path and points to orange.
-        var fillStyle = 'rgba(255,165,0,0.8)';
-        return self.fill(fillStyle);
-    };
+    /**
+     * This method changes the fill color of the path and points to orange.
+     */
+    function highlight () { return self.fill('rgba(255,165,0,0.8)'); }
 
-    self.isDeleted = function () {
-        return status.deleted;
-    };
+    function isDeleted () { return status.deleted; }
 
-
-    self.isOn = function (x, y) {
-        // This function checks if a path is under a cursor
-        if (status.deleted ||
-            status.visibility === 'hidden') {
-            return false;
-        }
-
+    /**
+     * This function checks if a path is under a cursor
+     * @param x
+     * @param y
+     * @returns {boolean}
+     */
+    function isOn (x, y) {
+        if (status.deleted || status.visibility === 'hidden') {  return false; }
         var result = path.isOn(x, y);
-        if (result) {
-            return result;
-        } else {
-            return false;
+        return result ? result : false;
+    }
 
-            var margin = 20;
-            if (properties.tagX - margin < x &&
-                properties.tagX + properties.tagWidth + margin > x &&
-                properties.tagY - margin < y &&
-                properties.tagY + properties.tagHeight + margin > y) {
-                // The mouse cursor is on the tag.
-                return this;
-            } else {
-                return false;
-            }
-        }
-    };
+    /**
+     * This method returns the visibility of this label.
+     * @returns {boolean}
+     */
+    function isVisible () { return status.visibility === 'visible'; }
 
-
-    self.isVisible = function () {
-        // This method returns the visibility of this label.
-        if (status.visibility === 'visible') {
-            return true;
-        } else {
-            return false;
-        }
-    };
-
-    self.lockTagVisibility = function () {
+    function lockTagVisibility () {
         lock.tagVisibility = true;
         return this;
-    };
+    }
 
-
-    self.lockVisibility = function () {
+    function lockVisibility () {
         lock.visibility = true;
         return this;
-    };
+    }
 
-    self.overlap = function (label, mode) {
-        // This method calculates the area overlap between this label and another label passed as an argument.
+    /**
+     * This method calculates the area overlap between this label and another label passed as an argument.
+     * @param label
+     * @param mode
+     * @returns {*|number}
+     */
+    function overlap (label, mode) {
         if (!mode) {
             mode = "boundingbox";
         }
@@ -4843,14 +4728,23 @@ function Label (pathIn, params) {
         var path2 = label.getPath();
 
         return path1.overlap(path2, mode);
-    };
+    }
 
-    self.removePath = function () {
-        // This function removes the path and points in the path.
+    /**
+     *
+     */
+    function remove () {
+        setStatus('deleted', true);
+        setStatus('visibility', 'hidden');
+    }
+
+    /**
+     * This function removes the path and points in the path.
+     */
+    function removePath () {
         path.removePoints();
         path = undefined;
-    };
-
+    }
 
     /**
      * This method renders this label on a canvas.
@@ -4859,7 +4753,7 @@ function Label (pathIn, params) {
      * @param evaluationMode
      * @returns {self}
      */
-    self.render = function (ctx, pov, evaluationMode) {
+    function render (ctx, pov, evaluationMode) {
         if (!evaluationMode) {
             evaluationMode = false;
         }
@@ -4887,25 +4781,15 @@ function Label (pathIn, params) {
                 var currLat = svl.panorama.location.latLng.lat(),
                     currLng = svl.panorama.location.latLng.lng();
                 var d = svl.util.math.haversine(currLat, currLng, latLng.lat, latLng.lng);
-
                 var offset = toOffset();
 
-
                 if (d < properties.distanceThreshold) {
-
                     var dPosition = svl.util.math.latlngInverseOffset(currLat, currLat - latLng.lat, currLng - latLng.lng);
-                    //var dx = dPosition.dx;
-                    //var dy = dPosition.dy;
-                    //var dz = 0;
-
 
                     var dx = offset.dx - dPosition.dx;
                     var dy = offset.dy - dPosition.dy;
                     var dz = offset.dz;
 
-
-                    //
-                    //console.debug("Debug");
                     var idx = svl.pointCloud.search(svl.panorama.pano, {x: dx, y: dy, z: dz});
                     var ix = idx / 3 % 512;
                     var iy = (idx / 3 - ix) / 512;
@@ -4931,86 +4815,105 @@ function Label (pathIn, params) {
             }
         }
         return this;
-    };
+    }
+
 
     /**
-     * This method renders a marker on a map.
+     * This method creates a Google Maps marker.
+     * https://developers.google.com/maps/documentation/javascript/markers
+     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
      * @returns {google.maps.Marker}
      */
-    function renderOnMap () {
-        var latlng = toLatLng();
-        var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
+    function createGoogleMapsMarker (labelType) {
+        var latlng = toLatLng(),
+            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+            imagePaths = svl.misc.getIconImagePaths(),
+            url = imagePaths[labelType].googleMapsIconImagePath
 
-        var image = {
-            url: svl.rootDirectory + "img/icons/Sidewalk/Icon_CurbRamp.png",
-            size: new google.maps.Size(20, 20),
-            origin: new google.maps.Point(latlng.lat, latlng.lng)
-
-        };
         return new google.maps.Marker({
             position: googleLatLng,
             map: svl.map.getMap(),
             title: "Hi!",
-            icon: svl.rootDirectory + "img/icons/Sidewalk/Icon_CurbRampSmall.png"
+            icon: url,
+            size: new google.maps.Size(20, 20)
         });
     }
-    self.renderOnMap = renderOnMap;
 
-    self.resetFillStyle = function () {
-        // This method turn the fill color of associated Path and Points into their original color.
-        var path = self.getPath();
-        var points = path.getPoints()
-        var i = 0;
-        var len = points.length;
+    /**
+     * This method turn the fill color of associated Path and Points into their original color.
+     * @returns {resetFillStyle}
+     */
+    function resetFillStyle () {
+        var path = self.getPath(),
+            points = path.getPoints(),
+            len = points.length;
         path.resetFillStyle();
-        for (; i < len; i++) {
+        for (var i = 0; i < len; i++) {
             points[i].resetFillStyle();
         }
         return this;
-    };
+    }
 
-    self.resetTagCoordinate = function () {
-        // This function sets properties.tag.x and properties.tag.y to 0
+    /**
+     * This function sets properties.tag.x and properties.tag.y to 0
+     * @returns {resetTagCoordinate}
+     */
+    function resetTagCoordinate () {
         properties.tagX = 0;
         properties.tagY = 0;
         return this;
-    };
+    }
 
-    self.setAlpha = function (alpha) {
-        // This method changes the alpha channel of the fill color of the path and points that constitute the path.
-        var path = self.getPath();
-        var points = path.getPoints()
-        var i = 0;
-        var len = points.length;
-        var fill = path.getFillStyle();
+    /**
+     * This method changes the alpha channel of the fill color of the path and points that constitute the path.
+     * @param alpha
+     * @returns {setAlpha}
+     */
+    function setAlpha (alpha) {
+        var path = self.getPath(),
+            points = path.getPoints(),
+            len = points.length,
+            fillColor = path.getFillStyle();
+        fillColor = svl.util.color.changeAlphaRGBA(fillColor, 0.3);
 
-        fill = svl.util.color.changeAlphaRGBA(fill, 0.3);
-
-        path.setFillStyle(fill);
-        for (; i < len; i++) {
-            points[i].setFillStyle(fill);
+        path.setFillStyle(fillColor);
+        for (var i = 0; i < len; i++) {
+            points[i].setFillStyle(fillColor);
         }
         return this;
-    };
+    }
 
-    self.setIconPath = function (iconPath) {
-        // This function sets the icon path of the point this label holds.
+
+    /**
+     * This function sets the icon path of the point this label holds.
+     * @param iconPath
+     * @returns {*}
+     */
+    function setIconPath (iconPath) {
         if (path && path.points[0]) {
             var point = path.points[0];
             point.setIconPath(iconPath);
             return this;
         }
         return false;
-    };
+    }
 
-
-    self.setLabelerId = function (labelerIdIn) {
+    /**
+     * Set the labeler id
+     * @param labelerIdIn
+     * @returns {setLabelerId}
+     */
+    function setLabelerId (labelerIdIn) {
         properties.labelerId = labelerIdIn;
         return this;
-    };
+    }
 
-
-    self.setStatus = function (key, value) {
+    /**
+     * Set status
+     * @param key
+     * @param value
+     */
+    function setStatus (key, value) {
         if (key in status) {
             if (key === 'visibility' &&
                 (value === 'visible' || value === 'hidden')) {
@@ -5023,56 +4926,37 @@ function Label (pathIn, params) {
                 status[key] = value;
             }
         }
-    };
+    }
 
-
-    self.setTagVisibility = function (visibility) {
+    function setTagVisibility (visibility) {
         if (!lock.tagVisibility) {
-            if (visibility === 'visible' ||
-                visibility === 'hidden') {
+            if (visibility === 'visible' || visibility === 'hidden') {
                 status['tagVisibility'] = visibility;
             }
         }
         return this;
-    };
+    }
 
-
-    self.setSubLabelDescription = function (labelType) {
-        // This function sets the sub label type of this label.
-        // E.g. for a bus stop there are StopSign_OneLeg
-        var labelDescriptions = getLabelDescriptions();
-        var labelDescription = labelDescriptions[labelType].text;
+    /**
+     * This function sets the sub label type of this label. E.g. for a bus stop there are StopSign_OneLeg
+     * @param labelType
+     * @returns {setSubLabelDescription}
+     */
+    function setSubLabelDescription (labelType) {
+        var labelDescriptions = getLabelDescriptions(),
+            labelDescription = labelDescriptions[labelType].text;
         properties.labelProperties.subLabelDescription = labelDescription;
         return this;
-    };
+    }
 
-
-    self.setVisibility = function (visibility) {
-        if (!lock.visibility) {
-            status.visibility = visibility;
-        }
-        return this;
-    };
-
-
-    self.setVisibilityBasedOnLocation = function (visibility, panoId) {
-        if (!status.deleted) {
-            if (panoId === properties.panoId) {
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
-            } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
-            }
-        }
-        return this;
-    };
-
-
-    self.setVisibilityBasedOnLabelerId = function (visibility, labelerIds, included) {
-        // if included is true and properties.labelerId is in labelerIds, then set this
-        // label's visibility to the passed visibility
+    /**
+     * Set this label's visibility to the passed visibility
+     * @param visibility
+     * @param labelerIds
+     * @param included
+     * @returns {setVisibilityBasedOnLabelerId}
+     */
+    function setVisibilityBasedOnLabelerId (visibility, labelerIds, included) {
         if (included === undefined) {
             if (labelerIds.indexOf(properties.labelerId) !== -1) {
                 self.unlockVisibility().setVisibility(visibility).lockVisibility();
@@ -5093,15 +4977,12 @@ function Label (pathIn, params) {
         }
 
         return this;
-    };
+    }
 
+    function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, tables, included) {
+        var tablesLen = tables.length, matched = false;
 
-    self.setVisibilityBasedOnLabelerIdAndLabelTypes = function (visibility, tables, included) {
-        var i;
-        var tablesLen = tables.length;
-        var matched = false;
-
-        for (i = 0; i < tablesLen; i += 1) {
+        for (var i = 0; i < tablesLen; i += 1) {
             if (tables[i].userIds.indexOf(properties.labelerId) !== -1) {
                 if (tables[i].labelTypesToRender.indexOf(properties.labelProperties.labelType) !== -1) {
                     matched = true;
@@ -5126,26 +5007,80 @@ function Label (pathIn, params) {
                 }
             }
         }
-    };
+    }
 
-
-    self.unlockTagVisibility = function () {
-        lock.tagVisibility = false;
-        return this;
-    };
-
-
-    self.unlockVisibility = function () {
+    function unlockVisibility () {
         lock.visibility = false;
         return this;
-    };
+    }
 
+    function unlockTagVisibility () {
+        lock.tagVisibility = false;
+        return this;
+    }
 
+    function setVisibility (visibility) {
+        if (!lock.visibility) { status.visibility = visibility; }
+        return this;
+    }
+
+    function setVisibilityBasedOnLocation (visibility, panoId) {
+        if (!status.deleted) {
+            if (panoId === properties.panoId) {
+                // self.setStatus('visibility', visibility);
+                self.setVisibility(visibility);
+            } else {
+                visibility = visibility === 'visible' ? 'hidden' : 'visible';
+                // self.setStatus('visibility', visibility);
+                self.setVisibility(visibility);
+            }
+        }
+        return this;
+    }
+
+    self.resetFillStyle = resetFillStyle;
+    self.blink = blink;
+    self.fadeFillStyle = fadeFillStyle;
+    self.getBoundingBox = getBoundingBox;
+    self.getCoordinate = getCoordinate;
+    self.getGSVImageCoordinate = getGSVImageCoordinate;
+    self.getImageCoordinates = getImageCoordinates;
+    self.getLabelId = getLabelId;
+    self.getLabelType = getLabelType;
+    self.getPath = getPath;
+    self.getPoint = getPoint;
+    self.getPoints = getPoints;
+    self.getLabelPov = getLabelPov;
+    self.getProperties = getProperties;
+    self.getProperty = getProperty;
+    self.getstatus = getstatus;
+    self.getVisibility = getVisibility;
+    self.fill = fill;
+    self.isDeleted = isDeleted;
+    self.isOn = isOn;
+    self.isVisible = isVisible;
+    self.highlight = highlight;
+    self.lockTagVisibility = lockTagVisibility;
+    self.lockVisibility = lockVisibility;
+    self.overlap = overlap;
+    self.removePath = removePath;
+    self.render = render;
+    self.remove = remove;
+    self.resetTagCoordinate = resetTagCoordinate;
+    self.setAlpha = setAlpha;
+    self.setIconPath = setIconPath;
+    self.setLabelerId = setLabelerId;
+    self.setStatus = setStatus;
+    self.setTagVisibility = setTagVisibility;
+    self.setSubLabelDescription = setSubLabelDescription;
+    self.setVisibility = setVisibility;
+    self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
+    self.setVisibilityBasedOnLabelerId = setVisibilityBasedOnLabelerId;
+    self.setVisibilityBasedOnLabelerIdAndLabelTypes = setVisibilityBasedOnLabelerIdAndLabelTypes;
+    self.unlockTagVisibility = unlockTagVisibility;
+    self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    //
-    // Initialize
-    //
     if (!init(params, pathIn)) {
         return false;
     }
@@ -5212,14 +5147,10 @@ function LabelContainer() {
      * @method
      */
     function removeLabel (label) {
-        if (!label) {
-            return false;
-        }
+        if (!label) { return false; }
         svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
-
         svl.labelCounter.decrement(label.getProperty("labelType"));
-        label.setStatus('deleted', true);
-        label.setStatus('visibility', 'hidden');
+        label.remove();
 
         // Review label correctness if this is a ground truth insertion task.
         if (("goldenInsertion" in svl) &&
@@ -5480,6 +5411,20 @@ function LabelCounter ($, d3) {
     self.increment = increment;
     self.decrement = decrement;
     self.set = set;
+    return self;
+}
+function LabelFactory () {
+    var self = { className: "LabelFactory"},
+        temporaryLabelId = 1;
+
+    function create (path, param) {
+        var label = new Label(path, param);
+        label.setProperty("temporary_label_id", temporaryLabelId);
+        temporaryLabelId++;
+        return label;
+    }
+
+    self.create = create;
     return self;
 }
 var svl = svl || {};
@@ -5786,50 +5731,48 @@ var polys = [];
  * @memberof svl
  */
 function Map ($, params) {
-    var self = {className: 'Map'},
+    var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
         mapIconInterval,
         lock = {
             renderLabels : false
         },
-        markers = [];
-    // properties
-    var properties = {
-        browser : 'unknown',
-        latlng : {
-            lat : undefined,
-            lng : undefined
+        markers = [],
+        properties = {
+            browser : 'unknown',
+            latlng : {
+                lat : undefined,
+                lng : undefined
+            },
+            initialPanoId : undefined,
+            panoramaPov : {
+                heading : 359,
+                pitch : -10,
+                zoom : 1
+            },
+            map: null,
+            maxPitch: 0,
+            minPitch: -35,
+            minHeading: undefined,
+            maxHeading: undefined,
+            mode : 'Labeling',
+            isInternetExplore: undefined
         },
-        initialPanoId : undefined,
-        panoramaPov : {
-            heading : 359,
-            pitch : -10,
-            zoom : 1
-        },
-        map: null,
-        maxPitch: 0,
-        minPitch: -35,
-        minHeading: undefined,
-        maxHeading: undefined,
-        mode : 'Labeling',
-        isInternetExplore: undefined
-    };
-    var status = {
-        availablePanoIds : undefined,
-        currentPanoId: undefined,
-        disableWalking : false,
-        disableClickZoom: false,
-        hideNonavailablePanoLinks : false,
-        lockDisableWalking : false,
-        panoLinkListenerSet: false,
-        svLinkArrowsLoaded : false
-    };
+        status = {
+            availablePanoIds : undefined,
+            currentPanoId: undefined,
+            disableWalking : false,
+            disableClickZoom: false,
+            hideNonavailablePanoLinks : false,
+            lockDisableWalking : false,
+            panoLinkListenerSet: false,
+            svLinkArrowsLoaded : false
+        };
 
-        // Street view variables
     var panoramaOptions;
 
-        // Mouse status and mouse event callback functions
+    // Mouse status and mouse event callback functions
     var mouseStatus = {
             currX:0,
             currY:0,
@@ -6114,28 +6057,30 @@ function Map ($, params) {
         }
     }
 
+
+    function getMap() { return properties.map; }
+    function getInitialPanoId () { return properties.initialPanoId; }
+    function getMaxPitch () { return properties.maxPitch; }
+    function getMinPitch () { return properties.minPitch; }
+
     /**
-     * Get the map
+     * This method returns a value of a specified property.
+     * @param prop
+     * @returns {*}
      */
-    function getMap() {
-        return properties.map;
-    }
+    function getProperty (prop) { return (prop in properties) ? properties[prop] : false; }
 
     /**
      * Returns a panorama dom element that is dynamically created by GSV API
      * @returns {*}
      */
-    function getPanoramaLayer () {
-        return $divPano.children(':first').children(':first').children(':first').children(':eq(5)');
-    }
+    function getPanoramaLayer () { return $divPano.children(':first').children(':first').children(':first').children(':eq(5)'); }
 
     /**
      * Get svg element (arrows) in Street View.
      * @returns {*}
      */
-    function getLinkLayer () {
-        return $divPano.find('svg').parent();
-    }
+    function getLinkLayer () { return $divPano.find('svg').parent(); }
 
     /**
      * This method hides links to neighboring Street View images by changing the
@@ -6166,9 +6111,7 @@ function Map ($, params) {
     /**
      * Load
      */
-    function load () {
-        return svl.storage.get("map");
-    }
+    function load () { return svl.storage.get("map"); }
 
     /**
      * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
@@ -6213,10 +6156,6 @@ function Map ($, params) {
             status.svLinkArrowsLoaded = true;
             window.clearTimeout(_streetViewInit);
         }
-
-        //if (!status.svLinkArrowsLoaded) {
-        //    hideLinks();
-        //}
     }
 
     /**
@@ -6260,8 +6199,6 @@ function Map ($, params) {
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
-
-
     }
 
     /**
@@ -6310,7 +6247,6 @@ function Map ($, params) {
             svl.canvas.render2();
         }
 
-
         // Sean & Vicki Fog code
         if (fogMode && "fog" in svl) {
             current = svl.panorama.getPosition();
@@ -6336,6 +6272,90 @@ function Map ($, params) {
         }
     }
 
+    /**
+     * This method locks status.disableWalking
+     * @returns {lockDisableWalking}
+     */
+    function lockDisableWalking () {
+        status.lockDisableWalking = true;
+        return this;
+    }
+
+    function lockRenderLabels () {
+        lock.renderLabels = true;
+        return this;
+    }
+
+    /**
+     * This function brings a div element for drawing labels in front of
+     */
+    function modeSwitchWalkClick () {
+        $divViewControlLayer.css('z-index', '1');
+        $divLabelDrawingLayer.css('z-index','0');
+        if (!status.disableWalking) {
+            // Show the link arrows on top of the panorama
+            showLinks();
+            // Make links clickable
+            makeLinksClickable();
+        }
+    }
+
+    /**
+     *
+     */
+    function modeSwitchLabelClick () {
+        $divLabelDrawingLayer.css('z-index','1');
+        $divViewControlLayer.css('z-index', '0');
+        // $divStreetViewHolder.append($divLabelDrawingLayer);
+
+        if (properties.browser === 'mozilla') {
+            // A bug in Firefox? The canvas in the div element with the largest z-index.
+            $divLabelDrawingLayer.append($canvas);
+        }
+
+        hideLinks();
+    }
+
+    /**
+     * Plot markers on the Google Maps pane
+     *
+     * Example: https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
+     * @returns {boolean}
+     */
+    function plotMarkers () {
+        if (canvas) {
+            var prop, labelType, latlng,
+                labels = canvas.getLabels(),
+                labelsLen = labels.length;
+
+            // Clear the map first, then plot markers
+            for (var i = 0; i < markers.length; i++) { markers[i].setMap(null); }
+
+            markers = [];
+            for (i = 0; i < labelsLen; i++) {
+                prop = labels[i].getProperties();
+                labelType = prop.labelProperties.labelType;
+                latlng = prop.panoramaProperties.latlng;
+                if (prop.labelerId.indexOf('Researcher') !== -1) {
+                    // Skip researcher labels
+                    continue;
+                }
+
+                markers.push(
+                    new google.maps.Marker({
+                        position: new google.maps.LatLng(latlng.lat, latlng.lng),
+                        map: map,
+                        zIndex: i
+                    })
+                );
+            }
+        }
+    }
+
+    /**
+     *
+     * @param type
+     */
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
@@ -6555,9 +6575,6 @@ function Map ($, params) {
             }
 
         }
-
-
-
         mouseStatus.prevMouseUpTime = currTime;
     }
 
@@ -6604,16 +6621,11 @@ function Map ($, params) {
 
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
-
-            //
-            // It feels the panning is a little bit slow, so speed it up by 50%.
             dx *= 1.5;
             dy *= 1.5;
-
             updatePov(dx, dy);
         }
 
-        //
         // Show label delete menu
         if ('canvas' in svl && svl.canvas) {
             var item = svl.canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
@@ -6646,179 +6658,39 @@ function Map ($, params) {
         mouseStatus.prevY = mouseposition(e, this).y;
     }
 
+    /**
+     *
+     * @param e
+     */
     function viewControlLayerMouseLeave (e) {
         mouseStatus.isLeftDown = false;
     }
 
-    function showDeleteLabelMenu () {
-        var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var selectedLabel = item.belongsTo().belongsTo();
-            if (selectedLabel === canvas.getCurrentLabel()) {
-                canvas.showDeleteLabel(mouseStatus.currX, mouseStatus.currY);
-            }
-        }
-    }
-
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    self.disableWalking = function () {
-        if (!status.lockDisableWalking) {
-            disableWalking();
-            return this;
-        } else {
-            return false;
-        }
-    };
-
-    self.enableWalking = function () {
-        // This method enables users to walk and change the camera angle.
-        if (!status.lockDisableWalking) {
-            enableWalking();
-            return this;
-        } else {
-            return false;
-        }
-    };
-
-    self.getInitialPanoId = function () {
-        // This method returns the panorama id of the position this user is dropped.
-        return properties.initialPanoId;
-    };
-
-    self.getMap = getMap;
-
     /**
-     * This method returns a max pitch
+     * This method sets the minimum and maximum heading angle that users can adjust the Street View camera.
+     * @param range
+     * @returns {setHeadingRange}
      */
-    function getMaxPitch () {
-        return properties.maxPitch;
-    }
-    self.getMaxPitch = getMaxPitch;
-
-    /**
-     * This method returns a min pitch
-     * @returns {*}
-     */
-    function getMinPitch () {
-        return properties.minPitch;
-    }
-    self.getMinPitch = getMinPitch;
-
-    self.getProperty = function (prop) {
-        // This method returns a value of a specified property.
-        if (prop in properties) {
-            return properties[prop];
-        } else {
-            return false;
-        }
-    };
-
-    self.lockDisableWalking = function () {
-        // This method locks status.disableWalking
-        status.lockDisableWalking = true;
-        return this;
-    };
-
-    self.lockRenderLabels = function () {
-        lock.renderLabels = true;
-        return this;
-    };
-
-    self.modeSwitchWalkClick = function () {
-        // This function brings a div element for drawing labels in front of
-        // $svPanoramaLayer = getPanoramaLayer();
-        // $svPanoramaLayer.append($divLabelDrawingLayer);
-        $divViewControlLayer.css('z-index', '1');
-        $divLabelDrawingLayer.css('z-index','0');
-        if (!status.disableWalking) {
-            // Show the link arrows on top of the panorama
-            showLinks();
-            // Make links clickable
-            makeLinksClickable();
-        }
-    };
-
-
-    /**
-     * This is a call back function for mode switch click.
-     */
-    function modeSwitchLabelClick () {
-        // This function
-        $divLabelDrawingLayer.css('z-index','1');
-        $divViewControlLayer.css('z-index', '0');
-        // $divStreetViewHolder.append($divLabelDrawingLayer);
-
-        if (properties.browser === 'mozilla') {
-            // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divLabelDrawingLayer.append($canvas);
-        }
-
-        hideLinks();
-    }
-
-    self.plotMarkers = function () {
-        // Examples for plotting markers:
-        // https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
-        if (canvas) {
-            var labels = undefined;
-            var labelsLen = 0;
-            var prop = undefined;
-            var labelType = undefined;
-            var latlng = undefined;
-            labels = canvas.getLabels();
-            labelsLen = labels.length;
-
-            //
-            // Clear the map first
-            for (var i = 0; i < markers.length; i += 1) {
-                markers[i].setMap(null);
-            }
-
-            markers = [];
-            // Then plot markers
-            for (i = 0; i < labelsLen; i++) {
-                prop = labels[i].getProperties();
-                labelType = prop.labelProperties.labelType;
-                latlng = prop.panoramaProperties.latlng;
-                if (prop.labelerId.indexOf('Researcher') !== -1) {
-                    // Skip researcher labels
-                    continue;
-                }
-
-                var myLatLng =  new google.maps.LatLng(latlng.lat, latlng.lng);
-                var marker = new google.maps.Marker({
-                    position: myLatLng,
-                    map: map,
-                    zIndex: i
-                });
-                markers.push(marker);
-            }
-        }
-        return false;
-    };
-
-    self.setHeadingRange = function (range) {
-        // This method sets the minimum and maximum heading angle that users can adjust the Street View camera.
+    function setHeadingRange (range) {
         properties.minHeading = range[0];
         properties.maxHeading = range[1];
         return this;
-    };
+    }
 
-    self.setMode = function (modeIn) {
-        properties.mode = modeIn;
-        return this;
-    };
+    function setMode (modeIn) { properties.mode = modeIn; return this; }
 
-    self.setPitchRange = function (range) {
-        // This method sets the minimum and maximum pitch angle that users can adjust the Street View camera.
+    /**
+     * This method sets the minimum and maximum pitch angle that users can adjust the Street View camera.
+     * @param range
+     * @returns {setPitchRange}
+     */
+    function setPitchRange (range) {
         properties.minPitch = range[0];
         properties.maxPitch = range[1];
         return this;
-    };
+    }
 
-    self.setPov = function (pov, duration, callback) {
+    function setPov (pov, duration, callback) {
         // Change the pov.
         // If a transition duration is set, smoothly change the pov over the time specified (milli-sec)
         if (('panorama' in svl) && svl.panorama) {
@@ -6882,13 +6754,13 @@ function Map ($, params) {
                         //
                         // Update heading angle and pitch angle
                         /*
-                        var angle = (360 - pov.heading) + currentPov.heading;
-                        if (angle < 180 || angle > 360) {
-                            currentPov.heading -= headingIncrement;
-                        } else {
-                            currentPov.heading += headingIncrement;
-                        }
-                        */
+                         var angle = (360 - pov.heading) + currentPov.heading;
+                         if (angle < 180 || angle > 360) {
+                         currentPov.heading -= headingIncrement;
+                         } else {
+                         currentPov.heading += headingIncrement;
+                         }
+                         */
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
                         currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
@@ -6918,13 +6790,16 @@ function Map ($, params) {
         }
 
         return this;
-    };
+    }
 
-    self.setStatus = function (key, value) {
-        // This funciton sets the current status of the instantiated object
+    /**
+     * This funciton sets the current status of the instantiated object
+     * @param key
+     * @param value
+     * @returns {*}
+     */
+    function setStatus (key, value) {
         if (key in status) {
-
-
             // if the key is disableWalking, invoke walk disabling/enabling function
             if (key === "disableWalking") {
                 if (typeof value === "boolean") {
@@ -6942,26 +6817,150 @@ function Map ($, params) {
             return this;
         }
         return false;
-    };
+    }
 
-    self.unlockDisableWalking = function () {
-        status.lockDisableWalking = false;
-        return this;
-    };
+    function showDeleteLabelMenu () {
+        var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
+        if (item && item.className === "Point") {
+            var selectedLabel = item.belongsTo().belongsTo();
+            if (selectedLabel === canvas.getCurrentLabel()) {
+                canvas.showDeleteLabel(mouseStatus.currX, mouseStatus.currY);
+            }
+        }
+    }
 
-    self.unlockRenderLabels = function () {
-        lock.renderLabels = false;
-        return this;
-    };
 
+    function unlockDisableWalking () { status.lockDisableWalking = false; return this; }
+    function unlockRenderLabels () { lock.renderLabels = false; return this; }
+
+
+    self.disableWalking = disableWalking;
     self.disableClickZoom = disableClickZoom;
     self.enableClickZoom = enableClickZoom;
+    self.enableWalking = enableWalking;
+    self.getInitialPanoId = getInitialPanoId;
+    self.getMap = getMap;
+    self.getMaxPitch = getMaxPitch;
+    self.getMinPitch = getMinPitch;
+    self.getProperty = getProperty;
     self.hideLinks = hideLinks;
-    self.modeSwitchLabelClick = modeSwitchLabelClick;
-    self.save = save;
     self.load = load;
+    self.lockDisableWalking = lockDisableWalking;
+    self.lockRenderLabels = lockRenderLabels;
+    self.modeSwitchLabelClick = modeSwitchLabelClick;
+    self.modeSwitchWalkClick = modeSwitchWalkClick;
+    self.plotMarkers = plotMarkers;
+    self.save = save;
+    self.setHeadingRange = setHeadingRange;
+    self.setMode = setMode;
+    self.setPitchRange = setPitchRange;
+    self.setPov = setPov;
+    self.setStatus = setStatus;
+    self.unlockDisableWalking = unlockDisableWalking;
+    self.unlockRenderLabels = unlockRenderLabels;
 
     _init(params);
+    return self;
+}
+
+var svl = svl || {};
+
+/**
+ * A Modal module
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function ModalSkip ($) {
+    var self = { className : 'Modal'},
+        status = {
+            disableClickOK: true
+        };
+
+
+
+    function _init () {
+        disableClickOK();
+
+        svl.ui.modalSkip.ok.bind("click", handlerClickOK);
+        svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
+        svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
+    }
+
+    /**
+     * This method handles a click OK event
+     * @param e
+     */
+    function handlerClickOK (e) {
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
+            position = svl.panorama.getPosition(),
+            incomplete = {
+                issue_description: radioValue,
+                lat: position.lat(),
+                lng: position.lng()
+            };
+
+        svl.form.skipSubmit(incomplete);
+        hideSkipMenu();
+    }
+
+    /**
+     * This method handles a click Cancel event
+     * @param e
+     */
+    function handlerClickCancel (e) {
+        hideSkipMenu();
+    }
+
+    /**
+     * This method takes care of nothing.
+     * @param e
+     */
+    function handlerClickRadio (e) {
+        enableClickOK();
+    }
+
+    /**
+     * Hide the background of the modal menu
+     */
+    function hidePageOverlay () {
+        svl.ui.modal.overlay.css('visibility', 'hidden');
+    }
+
+    /**
+     * Hide a skip menu
+     */
+    function hideSkipMenu () {
+        svl.ui.modalSkip.radioButtons.prop('checked', false);
+        svl.ui.modalSkip.holder.addClass('hidden');
+    }
+
+    /**
+     * Show a skip menu
+     */
+    function showSkipMenu () {
+        svl.ui.modalSkip.holder.removeClass('hidden');
+    }
+
+
+    function disableClickOK () {
+        svl.ui.modalSkip.ok.attr("disabled", true);
+        svl.ui.modalSkip.ok.addClass("disabled");
+        status.disableClickOK = true;
+    }
+
+    function enableClickOK () {
+        svl.ui.modalSkip.ok.attr("disabled", false);
+        svl.ui.modalSkip.ok.removeClass("disabled");
+        status.disableClickOK = false;
+    }
+
+
+    _init();
+
+    self.showSkipMenu = showSkipMenu;
+    self.hideSkipMenu = hideSkipMenu;
     return self;
 }
 
@@ -13408,25 +13407,30 @@ svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 //
 function getLabelIconImagePath(labelType) {
     return {
-        'Walk' : {
-            'id' : 'Walk',
-            'iconImagePath' : undefined
+        Walk : {
+            id : 'Walk',
+            iconImagePath : null,
+            googleMapsIconImagePath: null
         },
         CurbRamp: {
             id: 'CurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/Icon_CurbRamp.svg'
+            iconImagePath : svl.rootDirectory + 'img/Icon_CurbRamp.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            iconImagePath : svl.rootDirectory + '/img/icons/Sidewalk/Icon_NoCurbRamp.svg'
+            iconImagePath : svl.rootDirectory + '/img/icons/Sidewalk/Icon_NoCurbRamp.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
         },
         Obstacle: {
-          id: 'Obstacle',
-          iconImagePath: null
+            id: 'Obstacle',
+            iconImagePath: svl.rootDirectory + 'img/Icon_Obstacle.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
         },
         SurfaceProblem: {
-          id: 'SurfaceProblem',
-          iconImagePath: null
+            id: 'SurfaceProblem',
+            iconImagePath: null,
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
         },
         Other: {
             id: 'Other',
@@ -13435,50 +13439,6 @@ function getLabelIconImagePath(labelType) {
         Void: {
             id: 'Void',
             iconImagePath : null
-        },
-        Unclear: {
-            id: 'Unclear',
-            iconImagePath : null
-        },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStop.png'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopSign_SingleLeg.png'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopSign_TwoLegged.png'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopSign_Column.png'
-        },
-        'StopSign_None' : {
-            'id' : 'StopSign_None',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStop.png'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_BusStopShelter.png'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_Bench.png'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_TrashCan2.png'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_Mailbox2.png'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'iconImagePath' : svl.rootDirectory + '/img/icons/Icon_OtherPoles.png'
         }
     }
 }
@@ -13723,7 +13683,7 @@ svl.misc.getLabelDescriptions = getLabelDescriptions;
 
 // Todo. Get rid of this global function.
 function getLabelColors () {
-    return SidewalkColorScheme();
+    return SidewalkColorScheme2();
 }
 svl.misc.getLabelColors = getLabelColors;
 
@@ -13753,6 +13713,43 @@ function SidewalkColorScheme () {
         SurfaceProblem: {
           id: 'SurfaceProblem',
           fillStyle: 'rgba(215, 0, 96, 0.9)'
+        },
+        Void: {
+            id: 'Void',
+            fillStyle: 'rgba(255, 255, 255, 0)'
+        },
+        Unclear: {
+            id: 'Unclear',
+            fillStyle: 'rgba(128, 128, 128, 0.5)'
+        }
+    }
+}
+
+function SidewalkColorScheme2 () {
+    return {
+        Walk : {
+            id : 'Walk',
+            fillStyle : 'rgba(0, 0, 0, 0.9)'
+        },
+        CurbRamp: {
+            id: 'CurbRamp',
+            fillStyle: 'rgba(0, 244, 38, 0.9)'
+        },
+        NoCurbRamp: {
+            id: 'NoCurbRamp',
+            fillStyle: 'rgba(255, 39, 113, 0.9)'
+        },
+        Obstacle: {
+            id: 'Obstacle',
+            fillStyle: 'rgba(0, 161, 203, 0.9)'
+        },
+        Other: {
+            id: 'Other',
+            fillStyle: 'rgba(204, 204, 204, 0.9)'
+        },
+        SurfaceProblem: {
+            id: 'SurfaceProblem',
+            fillStyle: 'rgba(241, 141, 5, 0.9)'
         },
         Void: {
             id: 'Void',

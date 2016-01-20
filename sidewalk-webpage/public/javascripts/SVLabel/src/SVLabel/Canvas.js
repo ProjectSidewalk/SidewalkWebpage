@@ -151,22 +151,21 @@ function Canvas ($, param) {
      */
     function closeLabelPath() {
         svl.tracker.push('LabelingCanvas_FinishLabeling');
-        var labelType = svl.ribbon.getStatus('selectedLabelType');
-        var labelColor = getLabelColors()[labelType];
-        var labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')];
-        var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
+        var labelType = svl.ribbon.getStatus('selectedLabelType'),
+            labelColor = getLabelColors()[labelType],
+            labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
+            iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
-        var pathLen = tempPath.length;
-        var points = [];
-        var pov = svl.getPOV();
-        var i;
+        var pathLen = tempPath.length,
+            points = [],
+            pov = svl.getPOV();
 
-        for (i = 0; i < pathLen; i++) {
+        for (var i = 0; i < pathLen; i++) {
             points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
@@ -594,9 +593,7 @@ function Canvas ($, param) {
      * Returns the label of the current focus
      * @method
      */
-    function getCurrentLabel () {
-        return status.currentLabel;
-    }
+    function getCurrentLabel () { return status.currentLabel; }
 
     /**
      * Get labels stored in this canvas.
@@ -619,9 +616,7 @@ function Canvas ($, param) {
      * Returns a lock that corresponds to the key.
      * @method
      */
-    function getLock (key) {
-      return lock[key];
-    }
+    function getLock (key) { return lock[key]; }
 
     /**
      * Returns a number of labels in the current panorama.
@@ -643,9 +638,7 @@ function Canvas ($, param) {
     /**
      * @method
      */
-    function getRightClickMenu () {
-        return rightClickMenu;
-    }
+    function getRightClickMenu () { return rightClickMenu; }
 
     /**
      * Returns a status
@@ -666,16 +659,8 @@ function Canvas ($, param) {
      * @method
      */
     function getSystemLabels (reference) {
-
-        if (!reference) {
-            reference = false;
-        }
-
-        if (reference) {
-            return systemLabels;
-        } else {
-            return $.extend(true, [], systemLabels);
-        }
+        if (!reference) { reference = false; }
+        return reference ? systemLabels : $.extend(true, [], systemLabels);
     }
 
     /**
@@ -691,31 +676,27 @@ function Canvas ($, param) {
 
     /**
      * Returns user labels (i.e., what the user labeled during this session.)
+     * If reference is true, then it returns reference to the labels. Otherwise it returns deepcopy of labels.
      * @method
      */
     function getUserLabels (reference) {
-        // This method returns user labels. If reference is true, then it returns reference to the labels.
-        // Otherwise it returns deepcopy of labels.
-        if (!reference) {
-            reference = false;
-        }
-
-        if (reference) {
-            return svl.labelContainer.getCanvasLabels();
-//            return labels;
-        } else {
-            return $.extend(true, [], svl.labelContainer.getCanvasLabels());
-        }
+        if (!reference) { reference = false; }
+        return reference ? svl.labelContainer.getCanvasLabels() : $.extend(true, [], svl.labelContainer.getCanvasLabels());
     }
 
     /**
+     * Hide the delete label
      * @method
      */
-    function hideDeleteLabel (x, y) {
+    function hideDeleteLabel () {
         rightClickMenu.hideDeleteLabel();
         return this;
     }
 
+    /**
+     * Hide the right click menu
+     * @returns {hideRightClickMenu}
+     */
     function hideRightClickMenu () {
         rightClickMenu.hideBusStopType();
         rightClickMenu.hideBusStopPosition();
@@ -723,25 +704,20 @@ function Canvas ($, param) {
     }
 
     /**
+     * This method takes a label data (i.e., a set of point coordinates, label types, etc) and
+     * and insert it into the labels array so the Canvas will render it
      * @method
      */
     function insertLabel (labelPoints, target) {
-        // This method takes a label data (i.e., a set of point coordinates, label types, etc) and
-        // and insert it into the labels array so the Canvas will render it
-        if (!target) {
-            target = 'user';
-        }
+        if (!target) { target = 'user'; }
 
-        var i;
-        var labelColors = svl.misc.getLabelColors();
-        var iconImagePaths = svl.misc.getIconImagePaths();
-        var length = labelPoints.length;
-        var pointData;
-        var pov;
-        var point;
-        var points = [];
+        var pointData, pov, point,
+            labelColors = svl.misc.getLabelColors(),
+            iconImagePaths = svl.misc.getIconImagePaths(),
+            length = labelPoints.length,
+            points = [];
 
-        for (i = 0; i < length; i += 1) {
+        for (var i = 0; i < length; i += 1) {
             pointData = labelPoints[i];
             pov = {
                 heading: pointData.originalHeading,
@@ -822,30 +798,24 @@ function Canvas ($, param) {
 
 
     /**
+     * This method returns the current status drawing.
      * @method
      * @return {boolean}
      */
-    function isDrawing () {
-        // This method returns the current status drawing.
-        return status.drawing;
-    }
+    function isDrawing () { return status.drawing; }
 
     /**
-    *
-    * @method
-    */
+     * This function takes cursor coordinates x and y on the canvas. Then returns an object right below the cursor.
+     * If a cursor is not on anything, return false.
+     * @method
+     */
     function isOn (x, y) {
-        // This function takes cursor coordinates x and y on the canvas.
-        // Then returns an object right below the cursor.
-        // If a cursor is not on anything, return false.
-        var i, lenLabels, ret;
-        var labels = svl.labelContainer.getCanvasLabels();
-        lenLabels = labels.length;
+        var i, ret = false,
+            labels = svl.labelContainer.getCanvasLabels(),
+            lenLabels = labels.length;
 
-        ret = false;
         for (i = 0; i < lenLabels; i += 1) {
-            // Check labels, paths, and points to see if they are
-            // under a mouse cursor
+            // Check labels, paths, and points to see if they are under a mouse cursor
             ret = labels[i].isOn(x, y);
             if (ret) {
                 status.currentLabel = labels[i];
@@ -869,7 +839,7 @@ function Canvas ($, param) {
     function lockDisableLabelDelete () {
         status.lockDisableLabelDelete = true;;
         return this;
-    };
+    }
 
     /**
      * @method
@@ -888,10 +858,10 @@ function Canvas ($, param) {
     }
 
     /**
+     * This method locks showLabelTag
      * @method
      */
     function lockShowLabelTag () {
-        // This method locks showLabelTag
         lock.showLabelTag = true;
         return this;
     }
@@ -949,12 +919,11 @@ function Canvas ($, param) {
      * @method
      */
     function render2 () {
-      if (!ctx) {
-        // JavaScript warning
-        // http://stackoverflow.com/questions/5188224/throw-new-warning-in-javascript
-        console.warn('The ctx is not set.')
-        return this;
-      }
+        if (!ctx) {
+            // JavaScript warning: http://stackoverflow.com/questions/5188224/throw-new-warning-in-javascript
+            console.warn('The ctx is not set.');
+            return this;
+        }
         var i,
             labels = svl.labelContainer.getCanvasLabels();
         var label;
@@ -981,24 +950,22 @@ function Canvas ($, param) {
             var currentPhotographerPov = svl.panorama.getPhotographerPov();
             if (currentPhotographerPov && 'heading' in currentPhotographerPov && 'pitch' in currentPhotographerPov) {
                 var j;
-                //
-                // Adjust user labels
                 lenLabels = labels.length;
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = labels[i];
-                    var points = label.getPoints(true)
-                    var pointsLen = points.length;
+                    var points = label.getPoints(true),
+                        pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
-                        var pointData = points[j].getProperties();
-                        var svImageCoordinate = points[j].getGSVImageCoordinate();
+                        var pointData = points[j].getProperties(),
+                            svImageCoordinate = points[j].getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
-                            var deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
-                            var x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
-                            var y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
-                            points[j].resetSVImageCoordinate({x: x, y: y})
+                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading,
+                                deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch,
+                                x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth,
+                                y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
+                            points[j].resetSVImageCoordinate({ x: x, y: y })
                         }
                     }
                 }
@@ -1028,14 +995,11 @@ function Canvas ($, param) {
             }
         }
 
-        //
-        // Render user labels
+        // Render user labels. First check if the label comes from current SV panorama
         lenLabels = labels.length;
         for (i = 0; i < lenLabels; i += 1) {
-            // Check if the label comes from current SV panorama
             label = labels[i];
 
-            // If it is an evaluation mode, let a label not render a bounding box and a delete button.
             if (properties.evaluationMode) {
                 label.render(ctx, pov, true);
             } else {
@@ -1048,14 +1012,11 @@ function Canvas ($, param) {
             }
         }
 
-        //
-        // Render system labels
+        // Render system labels. First check if the label comes from current SV panorama
         lenLabels = systemLabels.length;
         for (i = 0; i < lenLabels; i += 1) {
-            // Check if the label comes from current SV panorama
             label = systemLabels[i];
 
-            // If it is an evaluation mode, let a label not render a bounding box and a delete button.
             if (properties.evaluationMode) {
                 label.render(ctx, pov, true);
             } else {
@@ -1063,45 +1024,27 @@ function Canvas ($, param) {
             }
         }
 
-        //
         // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) {
-            renderTempPath();
-        }
+        if (status.drawing) { renderTempPath(); }
 
-        //
         // Check if the user audited all the angles or not.
-        if ('form' in svl) {
-            svl.form.checkSubmittable();
-        }
+        if ('form' in svl) { svl.form.checkSubmittable(); }
 
-        if ('progressPov' in svl) {
-            svl.progressPov.updateCompletionRate();
-        }
+        // Update the completion rate
+        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
 
-        //
         // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
-        }
+        if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
 
-        //
         // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) {
-            svl.actionStack.updateOpacity();
-        }
+        if (svl.actionStack) { svl.actionStack.updateOpacity(); }
 
-        //
         // Update the opacity of Zoom In and Zoom Out buttons.
-        if (svl.zoomControl) {
-            svl.zoomControl.updateOpacity();
-        }
+        if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
 
-        //
         // This like of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.goldenInsertion.renderMessage();
-        }
+        if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
+
         return this;
     }
 
@@ -1208,20 +1151,16 @@ function Canvas ($, param) {
     /**
      * @method
      */
-    function setTagVisibility (labelIn) {
-        // Deprecated
-        return self.showLabelTag(labelIn);
-    }
+    function setTagVisibility (labelIn) { return self.showLabelTag(labelIn); }
 
     /**
      * @method
      */
     function setVisibility (visibility) {
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].unlockVisibility().setVisibility('visible');
         }
         return this;
@@ -1231,27 +1170,25 @@ function Canvas ($, param) {
      * @method
      */
     function setVisibilityBasedOnLocation (visibility) {
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLocation(visibility, getPanoId());
         }
         return this;
     }
 
     /**
+     * This function should not be used in labeling interfaces, but only in evaluation interfaces.
+     * Set labels that are not in LabelerIds hidden
      * @method
      */
     function setVisibilityBasedOnLabelerId (visibility, LabelerIds, included) {
-        // This function should not be used in labeling interfaces, but only in evaluation interfaces.
-        // Set labels that are not in LabelerIds hidden
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLabelerId(visibility, LabelerIds, included);
         }
         return this;
@@ -1261,10 +1198,9 @@ function Canvas ($, param) {
      * @method
      */
     function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, table, included) {
-        var i = 0,
-            labels = svl.labelContainer.getCanvasLabels(),
+        var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
-        for (i = 0; i < labelLen; i += 1) {
+        for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLabelerIdAndLabelTypes(visibility, table, included);
         }
         return this;
@@ -1273,9 +1209,7 @@ function Canvas ($, param) {
     /**
      * @method
      */
-    function showDeleteLabel (x, y) {
-        rightClickMenu.showDeleteLabel(x, y);
-    }
+    function showDeleteLabel (x, y) { rightClickMenu.showDeleteLabel(x, y); }
 
     /**
      * @method

@@ -104,50 +104,48 @@ var polys = [];
  * @memberof svl
  */
 function Map ($, params) {
-    var self = {className: 'Map'},
+    var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
         mapIconInterval,
         lock = {
             renderLabels : false
         },
-        markers = [];
-    // properties
-    var properties = {
-        browser : 'unknown',
-        latlng : {
-            lat : undefined,
-            lng : undefined
+        markers = [],
+        properties = {
+            browser : 'unknown',
+            latlng : {
+                lat : undefined,
+                lng : undefined
+            },
+            initialPanoId : undefined,
+            panoramaPov : {
+                heading : 359,
+                pitch : -10,
+                zoom : 1
+            },
+            map: null,
+            maxPitch: 0,
+            minPitch: -35,
+            minHeading: undefined,
+            maxHeading: undefined,
+            mode : 'Labeling',
+            isInternetExplore: undefined
         },
-        initialPanoId : undefined,
-        panoramaPov : {
-            heading : 359,
-            pitch : -10,
-            zoom : 1
-        },
-        map: null,
-        maxPitch: 0,
-        minPitch: -35,
-        minHeading: undefined,
-        maxHeading: undefined,
-        mode : 'Labeling',
-        isInternetExplore: undefined
-    };
-    var status = {
-        availablePanoIds : undefined,
-        currentPanoId: undefined,
-        disableWalking : false,
-        disableClickZoom: false,
-        hideNonavailablePanoLinks : false,
-        lockDisableWalking : false,
-        panoLinkListenerSet: false,
-        svLinkArrowsLoaded : false
-    };
+        status = {
+            availablePanoIds : undefined,
+            currentPanoId: undefined,
+            disableWalking : false,
+            disableClickZoom: false,
+            hideNonavailablePanoLinks : false,
+            lockDisableWalking : false,
+            panoLinkListenerSet: false,
+            svLinkArrowsLoaded : false
+        };
 
-        // Street view variables
     var panoramaOptions;
 
-        // Mouse status and mouse event callback functions
+    // Mouse status and mouse event callback functions
     var mouseStatus = {
             currX:0,
             currY:0,
@@ -716,13 +714,13 @@ function Map ($, params) {
                     continue;
                 }
 
-                //markers.push(
-                //    new google.maps.Marker({
-                //        position: new google.maps.LatLng(latlng.lat, latlng.lng),
-                //        map: map,
-                //        zIndex: i
-                //    })
-                //);
+                markers.push(
+                    new google.maps.Marker({
+                        position: new google.maps.LatLng(latlng.lat, latlng.lng),
+                        map: map,
+                        zIndex: i
+                    })
+                );
             }
         }
     }
