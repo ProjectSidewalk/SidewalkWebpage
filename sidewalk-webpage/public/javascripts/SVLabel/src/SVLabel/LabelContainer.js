@@ -8,26 +8,14 @@ function LabelContainer() {
     var currentCanvasLabels = [],
         prevCanvasLabels = [];
 
-    /**
-     * Returns canvas labels
-     */
-    function getCanvasLabels () {
-        return prevCanvasLabels.concat(currentCanvasLabels);
-    }
+    /** Returns canvas labels */
+    function getCanvasLabels () { return prevCanvasLabels.concat(currentCanvasLabels); }
 
-    /**
-     *
-     */
-    function getCurrentLabels () {
-        return currentCanvasLabels;
-    }
+    /** Get current label */
+    function getCurrentLabels () { return currentCanvasLabels; }
 
-    /**
-     * Load labels
-     */
-    function load () {
-        currentCanvasLabels = svl.storage.get("labels");
-    }
+    /** Load labels */
+    function load () { currentCanvasLabels = svl.storage.get("labels"); }
 
     /**
      * Push a label into canvasLabels
@@ -38,20 +26,14 @@ function LabelContainer() {
         svl.labelCounter.increment(label.getProperty("labelType"));
     }
 
-    /**
-     *
-     */
+    /** Refresh */
     function refresh () {
         prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
         currentCanvasLabels = [];
     }
 
-    /**
-     * Flush the canvasLabels
-     */
-    function removeAll() {
-        currentCanvasLabels = [];
-    }
+    /**  Flush the canvasLabels */
+    function removeAll() { currentCanvasLabels = []; }
 
     /**
      * This function removes a passed label and its child path and points

@@ -4164,7 +4164,7 @@ function Label (pathIn, params) {
     };
 
     var path;
-    var goolgeMarker;
+    var googleMarker;
 
     var properties = {
         canvasWidth: undefined,
@@ -4195,9 +4195,9 @@ function Label (pathIn, params) {
     };
 
     var status = {
-        'deleted' : false,
-        'tagVisibility' : 'visible',
-        'visibility' : 'visible'
+        deleted : false,
+        tagVisibility : 'visible',
+        visibility : 'visible'
     };
 
     var lock = {
@@ -4243,221 +4243,15 @@ function Label (pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            goolgeMarker = createGoogleMapsMarker(param.labelType);
+            googleMarker = createGoogleMapsMarker(param.labelType);
+            googleMarker.setMap(svl.map.getMap());
             return true;
         } catch (e) {
             console.error(self.className, ':', 'Error initializing the Label object.', e);
             return false;
         }
     }
-
-    function renderTag(ctx) {
-        // This function renders a tag on a canvas to show a property of the label
-        if (arguments.length !== 3) {
-            return false;
-        }
-        var boundingBox = path.getBoundingBox();
-
-        // Prepare a label message
-        var msg = properties.labelDescription;
-        var messages = msg.split('\n');
-
-        if (properties.labelerId !== 'DefaultValue') {
-            messages.push('Labeler: ' + properties.labelerId);
-        }
-
-        ctx.font = '10.5pt Calibri';
-        var height = properties.tagHeight * messages.length;
-        var width = -1;
-        for (var i = 0; i < messages.length; i += 1) {
-            var w = ctx.measureText(messages[i]).width + 5;
-            if (width < w) {
-                width = w;
-            }
-        }
-        properties.tagWidth = width;
-
-        var tagX;
-        var tagY;
-        ctx.save();
-        ctx.lineWidth = 3.5;
-        ctx.fillStyle = 'rgba(255,255,255,1)';
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.beginPath();
-        var connectorX = 15;
-        if (connectorX > boundingBox.width) {
-            connectorX = boundingBox.width - 1;
-        }
-
-        if (boundingBox.x < 5) {
-            tagX = 5;
-        } else {
-            tagX = boundingBox.x;
-        }
-
-        if (boundingBox.y + boundingBox.height < 400) {
-            ctx.moveTo(tagX + connectorX, boundingBox.y + boundingBox.height);
-            ctx.lineTo(tagX + connectorX, boundingBox.y + boundingBox.height + 10);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-            tagY = boundingBox.y + boundingBox.height + 10;
-        } else {
-            ctx.moveTo(tagX + connectorX, boundingBox.y);
-            ctx.lineTo(tagX + connectorX, boundingBox.y - 10);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-            // tagX = boundingBox.x;
-            tagY = boundingBox.y - height - 20;
-        }
-
-
-        var r = 3;
-        var paddingLeft = 16;
-        var paddingRight = 30;
-        var paddingBottom = 10;
-
-        // Set rendering properties
-        ctx.save();
-        ctx.lineCap = 'square';
-        ctx.lineWidth = 2;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // point.getProperty('fillStyleInnerCircle');
-        ctx.strokeStyle = 'rgba(255,255,255,1)'; // point.getProperty('strokeStyleOuterCircle');
-        //point.getProperty('lineWidthOuterCircle');
-
-        // Draw a tag
-        ctx.beginPath();
-        ctx.moveTo(tagX, tagY);
-        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY);
-        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY + height + paddingBottom);
-        ctx.lineTo(tagX, tagY + height + paddingBottom);
-        ctx.lineTo(tagX, tagY);
-//        ctx.moveTo(tagX, tagY - r);
-//        ctx.lineTo(tagX + width - r, tagY - r);
-//        ctx.arc(tagX + width, tagY, r, 3 * Math.PI / 2, 0, false); // Corner
-//        ctx.lineTo(tagX + width + r, tagY + height - r);
-//        ctx.arc(tagX + width, tagY + height, r, 0, Math.PI / 2, false); // Corner
-//        ctx.lineTo(tagX + r, tagY + height + r);
-//        ctx.arc(tagX, tagY + height, r, Math.PI / 2, Math.PI, false); // Corner
-//        ctx.lineTo(tagX - r, tagY); // Corner
-
-        ctx.fill();
-        ctx.stroke()
-        ctx.closePath();
-        ctx.restore();
-
-        // Render an icon and a message
-        ctx.save();
-        ctx.fillStyle = '#000';
-        var labelType = properties.labelType;
-        var iconImagePath = getLabelIconImagePath()[labelType].iconImagePath;
-        var imageObj;
-        var imageHeight;
-        var imageWidth;
-        var imageX;
-        var imageY;
-        imageObj = new Image();
-        imageHeight = imageWidth = 25;
-        imageX =  tagX + 5;
-        imageY = tagY + 2;
-
-        //imageObj.onload = function () {
-
-        ///            };
-        // ctx.globalAlpha = 0.5;
-        imageObj.src = iconImagePath;
-        ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-
-        for (var i = 0; i < messages.length; i += 1) {
-            ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
-        }
-        // ctx.fillText(msg, tagX, tagY + 17);
-        ctx.restore();
-
-        return;
-    }
-
-    function showDelete() {
-        if (status.tagVisibility !== 'hidden') {
-            var boundingBox = path.getBoundingBox();
-            var x = boundingBox.x + boundingBox.width - 20;
-            var y = boundingBox.y;
-
-            // Show a delete button
-            var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon");
-            $divHolderLabelDeleteIcon.css({
-                'visibility': 'visible',
-                'left' : x, // + width - 5,
-                'top' : y
-            });
-        }
-    }
-
-    function toOffset() {
-        var imageCoordinates = path.getImageCoordinates();
-        var lat = properties.panoramaLat;
-        var pc = svl.pointCloud.getPointCloud(properties.panoId);
-        if (pc) {
-            var minDx = 1000;
-            var minDy = 1000;
-            var minDz = 1000;
-            for (var i = 0; i < imageCoordinates.length; i++) {
-                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
-                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                var dx = pc.pointCloud[idx];
-                var dy = pc.pointCloud[idx + 1];
-                var dz = pc.pointCloud[idx + 2];
-                var r = dx * dx + dy * dy;
-                var minR = minDx * minDx + minDy + minDy;
-
-                if (r < minR) {
-                    minDx = dx;
-                    minDy = dy;
-                    minDz = dz;
-                }
-            }
-            return {dx: minDx, dy: minDy, dz: minDz};
-        }
-    }
-
-    /**
-     * Get the label latlng position
-     * @returns {lat: labelLat, lng: labelLng}
-     */
-    function toLatLng() {
-        var imageCoordinates = path.getImageCoordinates();
-        var lat = properties.panoramaLat;
-        var pc = svl.pointCloud.getPointCloud(properties.panoId);
-        if (pc) {
-            var minDx = 1000;
-            var minDy = 1000;
-            var delta;
-            for (var i = 0; i < imageCoordinates.length; i ++) {
-                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                var dx = pc.pointCloud[idx];
-                var dy = pc.pointCloud[idx + 1];
-                var r = dx * dx + dy * dy;
-                var minR = minDx * minDx + minDy + minDy;
-
-                if ( r < minR) {
-                    minDx = dx;
-                    minDy = dy;
-
-                }
-            }
-            delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
-
-            return {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
-        } else {
-            return null;
-        }
-    }
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-
+    
     /**
      * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
      * @param numberOfBlinks
@@ -4518,6 +4312,27 @@ function Label (pathIn, params) {
     }
 
     /**
+     * This method creates a Google Maps marker.
+     * https://developers.google.com/maps/documentation/javascript/markers
+     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+     * @returns {google.maps.Marker}
+     */
+    function createGoogleMapsMarker (labelType) {
+        var latlng = toLatLng(),
+            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+            imagePaths = svl.misc.getIconImagePaths(),
+            url = imagePaths[labelType].googleMapsIconImagePath
+
+        return new google.maps.Marker({
+            position: googleLatLng,
+            map: svl.map.getMap(),
+            title: "Hi!",
+            icon: url,
+            size: new google.maps.Size(20, 20)
+        });
+    }
+
+    /**
      * This method turn the associated Path and Points into gray.
      * @param mode
      * @returns {fadeFillStyle}
@@ -4534,6 +4349,21 @@ function Label (pathIn, params) {
         for (var i = 0; i < len; i++) {
             points[i].setFillStyle(fillStyle);
         }
+        return this;
+    }
+
+    /**
+     * This method changes the fill color of the path and points that constitute the path.
+     * @param fillColor
+     * @returns {fill}
+     */
+    function fill (fillColor) {
+        var path = self.getPath(),
+            points = path.getPoints(),
+            len = points.length;
+
+        path.setFillStyle(fillColor);
+        for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
         return this;
     }
 
@@ -4654,36 +4484,36 @@ function Label (pathIn, params) {
      */
     function getProperties () { return $.extend(true, {}, properties); }
 
+    /**
+     * Get a property
+     * @param propName
+     * @returns {boolean}
+     */
     function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
 
-    function getstatus (key) { return status[key]; }
+    /**
+     * Get a status
+     * @param key
+     * @returns {*}
+     */
+    function getStatus (key) { return status[key]; }
 
     function getVisibility () { return status.visibility; }
-
-    /**
-     * This method changes the fill color of the path and points that constitute the path.
-     * @param fillColor
-     * @returns {fill}
-     */
-    function fill (fillColor) {
-        var path = self.getPath(),
-            points = path.getPoints(),
-            len = points.length;
-
-        path.setFillStyle(fillColor);
-        for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
-        return this;
-    }
 
     /**
      * This method changes the fill color of the path and points to orange.
      */
     function highlight () { return self.fill('rgba(255,165,0,0.8)'); }
 
+    /**
+     * Check if the label is deleted
+     * @returns {boolean}
+     */
     function isDeleted () { return status.deleted; }
 
+
     /**
-     * This function checks if a path is under a cursor
+     * Check if a path is under a cursor
      * @param x
      * @param y
      * @returns {boolean}
@@ -4700,11 +4530,19 @@ function Label (pathIn, params) {
      */
     function isVisible () { return status.visibility === 'visible'; }
 
+    /**
+     * Lock tag visibility
+     * @returns {lockTagVisibility}
+     */
     function lockTagVisibility () {
         lock.tagVisibility = true;
         return this;
     }
 
+    /**
+     * Lock visibility
+     * @returns {lockVisibility}
+     */
     function lockVisibility () {
         lock.visibility = true;
         return this;
@@ -4724,14 +4562,14 @@ function Label (pathIn, params) {
         if (mode !== "boundingbox") {
             throw self.className + ": " + mobede + " is not a valid option.";
         }
-        var path1 = self.getPath();
-        var path2 = label.getPath();
+        var path1 = self.getPath(),
+            path2 = label.getPath();
 
         return path1.overlap(path2, mode);
     }
 
     /**
-     *
+     * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
      */
     function remove () {
         setStatus('deleted', true);
@@ -4814,30 +4652,150 @@ function Label (pathIn, params) {
                 }
             }
         }
+
+        // Show a label on the google maps pane.
+        if (!isDeleted() && isVisible()) {
+            if (googleMarker && !googleMarker.map) {
+                googleMarker.setMap(svl.map.getMap());
+            }
+        } else {
+            if (googleMarker && googleMarker.map) {
+                googleMarker.setMap(null);
+            }
+        }
         return this;
     }
 
-
     /**
-     * This method creates a Google Maps marker.
-     * https://developers.google.com/maps/documentation/javascript/markers
-     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
-     * @returns {google.maps.Marker}
+     * This function renders a tag on a canvas to show a property of the label
+     * @param ctx
+     * @returns {boolean}
      */
-    function createGoogleMapsMarker (labelType) {
-        var latlng = toLatLng(),
-            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-            imagePaths = svl.misc.getIconImagePaths(),
-            url = imagePaths[labelType].googleMapsIconImagePath
+    function renderTag(ctx) {
+        if (arguments.length !== 3) {
+            return false;
+        }
+        var boundingBox = path.getBoundingBox();
+        var msg = properties.labelDescription;
+        var messages = msg.split('\n');
 
-        return new google.maps.Marker({
-            position: googleLatLng,
-            map: svl.map.getMap(),
-            title: "Hi!",
-            icon: url,
-            size: new google.maps.Size(20, 20)
-        });
+        if (properties.labelerId !== 'DefaultValue') {
+            messages.push('Labeler: ' + properties.labelerId);
+        }
+
+        ctx.font = '10.5pt Calibri';
+        var height = properties.tagHeight * messages.length;
+        var width = -1;
+        for (var i = 0; i < messages.length; i += 1) {
+            var w = ctx.measureText(messages[i]).width + 5;
+            if (width < w) {
+                width = w;
+            }
+        }
+        properties.tagWidth = width;
+
+        var tagX;
+        var tagY;
+        ctx.save();
+        ctx.lineWidth = 3.5;
+        ctx.fillStyle = 'rgba(255,255,255,1)';
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
+        ctx.beginPath();
+        var connectorX = 15;
+        if (connectorX > boundingBox.width) {
+            connectorX = boundingBox.width - 1;
+        }
+
+        if (boundingBox.x < 5) {
+            tagX = 5;
+        } else {
+            tagX = boundingBox.x;
+        }
+
+        if (boundingBox.y + boundingBox.height < 400) {
+            ctx.moveTo(tagX + connectorX, boundingBox.y + boundingBox.height);
+            ctx.lineTo(tagX + connectorX, boundingBox.y + boundingBox.height + 10);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.restore();
+            tagY = boundingBox.y + boundingBox.height + 10;
+        } else {
+            ctx.moveTo(tagX + connectorX, boundingBox.y);
+            ctx.lineTo(tagX + connectorX, boundingBox.y - 10);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.restore();
+            // tagX = boundingBox.x;
+            tagY = boundingBox.y - height - 20;
+        }
+
+
+        var r = 3;
+        var paddingLeft = 16;
+        var paddingRight = 30;
+        var paddingBottom = 10;
+
+        // Set rendering properties
+        ctx.save();
+        ctx.lineCap = 'square';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // point.getProperty('fillStyleInnerCircle');
+        ctx.strokeStyle = 'rgba(255,255,255,1)'; // point.getProperty('strokeStyleOuterCircle');
+        //point.getProperty('lineWidthOuterCircle');
+
+        // Draw a tag
+        ctx.beginPath();
+        ctx.moveTo(tagX, tagY);
+        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY);
+        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY + height + paddingBottom);
+        ctx.lineTo(tagX, tagY + height + paddingBottom);
+        ctx.lineTo(tagX, tagY);
+//        ctx.moveTo(tagX, tagY - r);
+//        ctx.lineTo(tagX + width - r, tagY - r);
+//        ctx.arc(tagX + width, tagY, r, 3 * Math.PI / 2, 0, false); // Corner
+//        ctx.lineTo(tagX + width + r, tagY + height - r);
+//        ctx.arc(tagX + width, tagY + height, r, 0, Math.PI / 2, false); // Corner
+//        ctx.lineTo(tagX + r, tagY + height + r);
+//        ctx.arc(tagX, tagY + height, r, Math.PI / 2, Math.PI, false); // Corner
+//        ctx.lineTo(tagX - r, tagY); // Corner
+
+        ctx.fill();
+        ctx.stroke()
+        ctx.closePath();
+        ctx.restore();
+
+        // Render an icon and a message
+        ctx.save();
+        ctx.fillStyle = '#000';
+        var labelType = properties.labelType;
+        var iconImagePath = getLabelIconImagePath()[labelType].iconImagePath;
+        var imageObj;
+        var imageHeight;
+        var imageWidth;
+        var imageX;
+        var imageY;
+        imageObj = new Image();
+        imageHeight = imageWidth = 25;
+        imageX =  tagX + 5;
+        imageY = tagY + 2;
+
+        //imageObj.onload = function () {
+
+        ///            };
+        // ctx.globalAlpha = 0.5;
+        imageObj.src = iconImagePath;
+        ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+
+        for (var i = 0; i < messages.length; i += 1) {
+            ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
+        }
+        // ctx.fillText(msg, tagX, tagY + 17);
+        ctx.restore();
+
+        return;
     }
+
+
 
     /**
      * This method turn the fill color of associated Path and Points into their original color.
@@ -4979,6 +4937,36 @@ function Label (pathIn, params) {
         return this;
     }
 
+    /**
+     * Set the visibility of the label
+     * @param visibility
+     * @returns {setVisibility}
+     */
+    function setVisibility (visibility) {
+        if (!lock.visibility) { status.visibility = visibility; }
+        return this;
+    }
+
+    function setVisibilityBasedOnLocation (visibility, panoId) {
+        if (!status.deleted) {
+            if (panoId === properties.panoId) {
+                // self.setStatus('visibility', visibility);
+                self.setVisibility(visibility);
+            } else {
+                visibility = visibility === 'visible' ? 'hidden' : 'visible';
+                // self.setStatus('visibility', visibility);
+                self.setVisibility(visibility);
+            }
+        }
+        return this;
+    }
+
+    /**
+     *
+     * @param visibility
+     * @param tables
+     * @param included
+     */
     function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, tables, included) {
         var tablesLen = tables.length, matched = false;
 
@@ -5009,6 +4997,86 @@ function Label (pathIn, params) {
         }
     }
 
+    /**
+     * Show the delete button
+     */
+    function showDelete() {
+        if (status.tagVisibility !== 'hidden') {
+            var boundingBox = path.getBoundingBox(),
+                x = boundingBox.x + boundingBox.width - 20,
+                y = boundingBox.y;
+
+            // Show a delete button
+            var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon");
+            $divHolderLabelDeleteIcon.css({
+                visibility: 'visible',
+                left : x, // + width - 5,
+                top : y
+            });
+        }
+    }
+
+    function toOffset() {
+        var imageCoordinates = path.getImageCoordinates();
+        var lat = properties.panoramaLat;
+        var pc = svl.pointCloud.getPointCloud(properties.panoId);
+        if (pc) {
+            var minDx = 1000;
+            var minDy = 1000;
+            var minDz = 1000;
+            for (var i = 0; i < imageCoordinates.length; i++) {
+                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
+                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                var dx = pc.pointCloud[idx];
+                var dy = pc.pointCloud[idx + 1];
+                var dz = pc.pointCloud[idx + 2];
+                var r = dx * dx + dy * dy;
+                var minR = minDx * minDx + minDy + minDy;
+
+                if (r < minR) {
+                    minDx = dx;
+                    minDy = dy;
+                    minDz = dz;
+                }
+            }
+            return {dx: minDx, dy: minDy, dz: minDz};
+        }
+    }
+
+    /**
+     * Get the label latlng position
+     * @returns {lat: labelLat, lng: labelLng}
+     */
+    function toLatLng() {
+        var imageCoordinates = path.getImageCoordinates();
+        var lat = properties.panoramaLat;
+        var pc = svl.pointCloud.getPointCloud(properties.panoId);
+        if (pc) {
+            var minDx = 1000;
+            var minDy = 1000;
+            var delta;
+            for (var i = 0; i < imageCoordinates.length; i ++) {
+                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                var dx = pc.pointCloud[idx];
+                var dy = pc.pointCloud[idx + 1];
+                var r = dx * dx + dy * dy;
+                var minR = minDx * minDx + minDy + minDy;
+
+                if ( r < minR) {
+                    minDx = dx;
+                    minDy = dy;
+
+                }
+            }
+            delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
+
+            return {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
+        } else {
+            return null;
+        }
+    }
+
     function unlockVisibility () {
         lock.visibility = false;
         return this;
@@ -5019,24 +5087,6 @@ function Label (pathIn, params) {
         return this;
     }
 
-    function setVisibility (visibility) {
-        if (!lock.visibility) { status.visibility = visibility; }
-        return this;
-    }
-
-    function setVisibilityBasedOnLocation (visibility, panoId) {
-        if (!status.deleted) {
-            if (panoId === properties.panoId) {
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
-            } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
-            }
-        }
-        return this;
-    }
 
     self.resetFillStyle = resetFillStyle;
     self.blink = blink;
@@ -5053,7 +5103,7 @@ function Label (pathIn, params) {
     self.getLabelPov = getLabelPov;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
-    self.getstatus = getstatus;
+    self.getstatus = getStatus;
     self.getVisibility = getVisibility;
     self.fill = fill;
     self.isDeleted = isDeleted;
@@ -5097,26 +5147,14 @@ function LabelContainer() {
     var currentCanvasLabels = [],
         prevCanvasLabels = [];
 
-    /**
-     * Returns canvas labels
-     */
-    function getCanvasLabels () {
-        return prevCanvasLabels.concat(currentCanvasLabels);
-    }
+    /** Returns canvas labels */
+    function getCanvasLabels () { return prevCanvasLabels.concat(currentCanvasLabels); }
 
-    /**
-     *
-     */
-    function getCurrentLabels () {
-        return currentCanvasLabels;
-    }
+    /** Get current label */
+    function getCurrentLabels () { return currentCanvasLabels; }
 
-    /**
-     * Load labels
-     */
-    function load () {
-        currentCanvasLabels = svl.storage.get("labels");
-    }
+    /** Load labels */
+    function load () { currentCanvasLabels = svl.storage.get("labels"); }
 
     /**
      * Push a label into canvasLabels
@@ -5127,20 +5165,14 @@ function LabelContainer() {
         svl.labelCounter.increment(label.getProperty("labelType"));
     }
 
-    /**
-     *
-     */
+    /** Refresh */
     function refresh () {
         prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
         currentCanvasLabels = [];
     }
 
-    /**
-     * Flush the canvasLabels
-     */
-    function removeAll() {
-        currentCanvasLabels = [];
-    }
+    /**  Flush the canvasLabels */
+    function removeAll() { currentCanvasLabels = []; }
 
     /**
      * This function removes a passed label and its child path and points
