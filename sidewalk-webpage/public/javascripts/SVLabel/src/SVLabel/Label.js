@@ -101,7 +101,7 @@ function Label (pathIn, params) {
             return false;
         }
     }
-    
+
     /**
      * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
      * @param numberOfBlinks
@@ -504,7 +504,7 @@ function Label (pathIn, params) {
         }
 
         // Show a label on the google maps pane.
-        if (!isDeleted() && isVisible()) {
+        if (!isDeleted()) {
             if (googleMarker && !googleMarker.map) {
                 googleMarker.setMap(svl.map.getMap());
             }

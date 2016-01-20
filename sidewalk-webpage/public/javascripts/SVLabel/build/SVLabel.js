@@ -4251,7 +4251,7 @@ function Label (pathIn, params) {
             return false;
         }
     }
-    
+
     /**
      * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
      * @param numberOfBlinks
@@ -4654,7 +4654,7 @@ function Label (pathIn, params) {
         }
 
         // Show a label on the google maps pane.
-        if (!isDeleted() && isVisible()) {
+        if (!isDeleted()) {
             if (googleMarker && !googleMarker.map) {
                 googleMarker.setMap(svl.map.getMap());
             }
@@ -5412,21 +5412,19 @@ function LabelCounter ($, d3) {
     }
 
 
-    /**
-     * Decrement the label count
-     */
+    /**  Decrement the label count */
     function decrement(key) {
-        if (dotPlots[key].count > 0) {
+        if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
         update(key);
     }
-    /**
-     * Increment the label count
-     */
+    /** Increment the label count */
     function increment(key) {
-      dotPlots[key].count += 1;
-      update(key);
+        if (key in dotPlots) {
+            dotPlots[key].count += 1;
+            update(key);
+        }
     }
 
     /**
@@ -5740,7 +5738,7 @@ svl.getLinks = getLinks;
 
 //
 // Fog related variables.
-var fogMode = true;
+var fogMode = false;
 var fogSet = false;
 var current;
 var first;

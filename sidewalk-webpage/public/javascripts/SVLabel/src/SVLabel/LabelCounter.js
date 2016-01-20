@@ -199,21 +199,19 @@ function LabelCounter ($, d3) {
     }
 
 
-    /**
-     * Decrement the label count
-     */
+    /**  Decrement the label count */
     function decrement(key) {
-        if (dotPlots[key].count > 0) {
+        if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
         update(key);
     }
-    /**
-     * Increment the label count
-     */
+    /** Increment the label count */
     function increment(key) {
-      dotPlots[key].count += 1;
-      update(key);
+        if (key in dotPlots) {
+            dotPlots[key].count += 1;
+            update(key);
+        }
     }
 
     /**

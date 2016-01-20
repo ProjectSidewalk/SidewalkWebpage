@@ -81,7 +81,7 @@ svl.getLinks = getLinks;
 
 //
 // Fog related variables.
-var fogMode = true;
+var fogMode = false;
 var fogSet = false;
 var current;
 var first;
