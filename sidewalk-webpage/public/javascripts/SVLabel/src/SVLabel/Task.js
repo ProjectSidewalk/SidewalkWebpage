@@ -42,7 +42,7 @@ function Task ($) {
         $.ajax({
             // async: false,
             // contentType: 'application/json; charset=utf-8',
-            url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+            url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
             type: 'get',
             success: function (task) {
                 var len = task.features[0].geometry.coordinates.length - 1,
