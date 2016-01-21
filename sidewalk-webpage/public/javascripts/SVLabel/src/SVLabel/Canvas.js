@@ -283,7 +283,7 @@ function Canvas ($, param) {
 
                 self.clear();
                 self.setVisibilityBasedOnLocation('visible', getPanoId());
-                self.render2();
+                render2();
             } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
                 if (properties.drawingMode == "path") {
                     // This part is executed for a double click event
@@ -309,11 +309,9 @@ function Canvas ($, param) {
     }
 
     /**
-     * This is called on mouse move
+     * This function is fired when mouse cursor moves over the drawing layer.
      */
     function drawingLayerMouseMove (e) {
-        // This function is fired when mouse cursor moves
-        // over the drawing layer.
         var mousePosition = mouseposition(e, this);
         mouseStatus.currX = mousePosition.x;
         mouseStatus.currY = mousePosition.y;
@@ -862,7 +860,6 @@ function Canvas ($, param) {
      */
     function pushLabel (label) {
         status.currentLabel = label;
-//        labels.push(label);
         svl.labelContainer.push(label);
         if (svl.actionStack) {
             svl.actionStack.push('addLabel', label);
@@ -910,15 +907,9 @@ function Canvas ($, param) {
      * @method
      */
     function render2 () {
-        if (!ctx) {
-            // JavaScript warning: http://stackoverflow.com/questions/5188224/throw-new-warning-in-javascript
-            console.warn('The ctx is not set.');
-            return this;
-        }
-        var i,
+        if (!ctx) { return this; }
+        var i, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        var label;
-        var lenLabels;
         var labelCount = {
             Landmark_Bench : 0,
             Landmark_Shelter: 0,
@@ -932,8 +923,6 @@ function Canvas ($, param) {
         status.totalLabelCount = 0;
         var pov = svl.getPOV();
 
-
-        //
         // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
         // you can get from Street View API change. So adjust the image coordinate
         // Note that this adjustment happens only once
@@ -961,14 +950,13 @@ function Canvas ($, param) {
                     }
                 }
 
-                //
                 // Adjust system labels
                 lenLabels = systemLabels.length;
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = systemLabels[i];
-                    var points = label.getPoints(true)
-                    var pointsLen = points.length;
+                    var points = label.getPoints(true),
+                        pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
                         var pointData = points[j].getProperties();

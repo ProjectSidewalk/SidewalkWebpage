@@ -114,17 +114,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) => {
         AuditTaskTable.lastAuditTask(user.userId) match {
           case Some(auditTask) =>
-//            val interactions: List[AuditTaskInteraction] = AuditTaskInteractionTable.auditInteractions(auditTask.auditTaskId)
-//            val features: List[JsObject] = interactions.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
-//              val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
-//              val properties = Json.obj(
-//                "heading" -> interaction.heading.get.toDouble,
-//                "timestamp" -> interaction.timestamp.getTime
-//              )
-//              Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-//            }
-//            val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-
             val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.auditInteractionsWithLabels(auditTask.auditTaskId)
             val features: List[JsObject] = interactionsWithLabels.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
               val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))

@@ -1346,7 +1346,7 @@ function Canvas ($, param) {
 
                 self.clear();
                 self.setVisibilityBasedOnLocation('visible', getPanoId());
-                self.render2();
+                render2();
             } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
                 if (properties.drawingMode == "path") {
                     // This part is executed for a double click event
@@ -1372,11 +1372,9 @@ function Canvas ($, param) {
     }
 
     /**
-     * This is called on mouse move
+     * This function is fired when mouse cursor moves over the drawing layer.
      */
     function drawingLayerMouseMove (e) {
-        // This function is fired when mouse cursor moves
-        // over the drawing layer.
         var mousePosition = mouseposition(e, this);
         mouseStatus.currX = mousePosition.x;
         mouseStatus.currY = mousePosition.y;
@@ -1925,7 +1923,6 @@ function Canvas ($, param) {
      */
     function pushLabel (label) {
         status.currentLabel = label;
-//        labels.push(label);
         svl.labelContainer.push(label);
         if (svl.actionStack) {
             svl.actionStack.push('addLabel', label);
@@ -1973,15 +1970,9 @@ function Canvas ($, param) {
      * @method
      */
     function render2 () {
-        if (!ctx) {
-            // JavaScript warning: http://stackoverflow.com/questions/5188224/throw-new-warning-in-javascript
-            console.warn('The ctx is not set.');
-            return this;
-        }
-        var i,
+        if (!ctx) { return this; }
+        var i, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        var label;
-        var lenLabels;
         var labelCount = {
             Landmark_Bench : 0,
             Landmark_Shelter: 0,
@@ -1995,8 +1986,6 @@ function Canvas ($, param) {
         status.totalLabelCount = 0;
         var pov = svl.getPOV();
 
-
-        //
         // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
         // you can get from Street View API change. So adjust the image coordinate
         // Note that this adjustment happens only once
@@ -2024,14 +2013,13 @@ function Canvas ($, param) {
                     }
                 }
 
-                //
                 // Adjust system labels
                 lenLabels = systemLabels.length;
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = systemLabels[i];
-                    var points = label.getPoints(true)
-                    var pointsLen = points.length;
+                    var points = label.getPoints(true),
+                        pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
                         var pointData = points[j].getProperties();
@@ -7792,7 +7780,7 @@ function Point (x, y, pov, params) {
             pov : undefined,
             originalPov : undefined
         };
-    var belongsTo = undefined;
+    var belongsTo;
     var properties = {
         fillStyleInnerCircle: params.fillStyle,
         lineWidthOuterCircle: 2,
@@ -7811,13 +7799,6 @@ function Point (x, y, pov, params) {
             'visibilityIcon' : 'visible'
     };
 
-//    function assemble () {
-//        return {
-//            properties: properties,
-//            status
-//        };
-//    }
-//    self.assemble = assemble;
 
     function _init (x, y, pov, params) {
         // Convert a canvas coordinate (x, y) into a sv image coordinate
@@ -7885,87 +7866,48 @@ function Point (x, y, pov, params) {
     }
 
 
-    function _init2 () {
-        return true;
-    }
+    /** Deprecated */
+    function _init2 () { return true; }
 
-    function getCanvasX () {
-      return self.canvasCoordinate.x;
-    }
+    /** Get x canvas coordinate */
+    function getCanvasX () { return self.canvasCoordinate.x; }
 
-    function getCanvasY () {
-      return self.canvasCoordinate.y;
-    }
+    /** Get y canvas coordinate */
+    function getCanvasY () { return self.canvasCoordinate.y; }
 
-    function getFill () {
-        // return the fill color of this point
-      return properties.fillStyleInnerCircle;
-    }
-    function getPOV () {
-        return pov;
-    }
+    /** return the fill color of this point */
+    function getFill () { return properties.fillStyleInnerCircle; }
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////////////////////////////////////////////
-    self.belongsTo = function () {
-        // This function returns an object directly above this object.
-        // I.e., it returns which path it belongs to.
-        if (belongsTo) {
-            return belongsTo;
-        } else {
-            return false;
-        }
-    };
+    /** Get POV */
+    function getPOV () { return pov; }
 
-    self.getPOV = function() {
-        return getPOV();
-    };
+    /** Returns an object directly above this object. */
+    function getParent () { return belongsTo ? belongsTo : null; }
 
-    self.getCanvasCoordinate = function (pov) {
-        // This function takes current pov of the Street View as a parameter
-        // and returns a canvas coordinate of a point.
 
-        //
-        // POV adjustment
+    /**
+     * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point.
+     * @param pov
+     * @returns {{x, y}}
+     */
+    function getCanvasCoordinate (pov) {
         self.canvasCoordinate = svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
         return svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-    };
+    }
 
-    self.getCanvasX = getCanvasX;
-    self.getCanvasY = getCanvasY;
-    self.getFill = getFill;
+    /**
+     * Get the fill style.
+     * @returns {*}
+     */
+    function getFillStyle () { return  getFill(); }
 
-    self.getFillStyle = function () {
-        // Get the fill style.
-        // return properties.fillStyle;
-        return  getFill();
-    };
+    function getGSVImageCoordinate () { return $.extend(true, {}, self.svImageCoordinate); }
 
-    self.getGSVImageCoordinate = function () {
-        return $.extend(true, {}, self.svImageCoordinate);
-    };
+    function getProperty (name) { return (name in properties) ? properties[name] : null; }
 
-    self.getProperty = function (name) {
-        if (!(name in properties)) {
-            throw self.className + ' : A property name "' + name + '" does not exist in properties.';
-        }
-        return properties[name];
-    };
+    function getProperties () { return $.extend(true, {}, properties); }
 
-
-    self.getProperties = function () {
-        // Return the deep copy of the properties object,
-        // so the caller can only modify properties from
-        // setProperties() (which I have not implemented.)
-        //
-        // JavaScript Deepcopy
-        // http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
-        return $.extend(true, {}, properties);
-    };
-
-
-    self.isOn = function (x, y) {
+    function isOn (x, y) {
         var margin = properties.radiusOuterCircle / 2 + 3;
         if (x < self.canvasCoordinate.x + margin &&
             x > self.canvasCoordinate.x - margin &&
@@ -7975,23 +7917,19 @@ function Point (x, y, pov, params) {
         } else {
             return false;
         }
-    };
-
+    }
 
     /**
      * Renders this point
      * @param pov
      * @param ctx
      */
-    self.render = function (pov, ctx) {
+    function render (pov, ctx) {
         if (status.visibility === 'visible') {
-            var coord;
-            var x;
-            var y;
-            var r = properties.radiusInnerCircle;
-            coord = self.getCanvasCoordinate(pov);
-            x = coord.x;
-            y = coord.y;
+            var coord = self.getCanvasCoordinate(pov),
+                x = coord.x,
+                y = coord.y,
+                r = properties.radiusInnerCircle;
 
             ctx.save();
             ctx.strokeStyle = properties.strokeStyleOuterCircle;
@@ -8005,10 +7943,22 @@ function Point (x, y, pov, params) {
             ctx.arc(x, y, properties.radiusInnerCircle, 2 * Math.PI, 0, true);
             ctx.closePath();
             ctx.fill();
+
+            // Render an icon
+            var imagePath = getProperty("iconImagePath");
+            if (imagePath) {
+                var imageObj, imageHeight, imageWidth, imageX, imageY;
+                imageObj = new Image();
+                imageHeight = imageWidth = 2 * r - 3;
+                imageX =  x - r + 2;
+                imageY = y - r + 2;
+                //ctx.globalAlpha = 0.5;
+                imageObj.src = imagePath;
+                ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+            }
             ctx.restore();
         }
-
-    };
+    }
 
     /**
      * This method reverts the fillStyle property to its original value
@@ -8018,7 +7968,6 @@ function Point (x, y, pov, params) {
         properties.fillStyleInnerCircle = properties.originalFillStyleInnerCircle;
         return this;
     }
-    self.resetFillStyle = resetFillStyle;
 
     /**
      * Set the svImageCoordinate
@@ -8030,7 +7979,6 @@ function Point (x, y, pov, params) {
         self.canvasCoordinate = {x : 0, y: 0};
         return this;
     }
-    self.resetSVImageCoordinate = resetSVImageCoordinate;
 
     /**
      * This method resets the strokeStyle to its original value
@@ -8040,7 +7988,6 @@ function Point (x, y, pov, params) {
         properties.strokeStyleOuterCircle = properties.originalStrokeStyleOuterCircle;
         return this;
     }
-    self.resetStrokeStyle = resetStrokeStyle;
 
     /**
      * This function sets which object (Path)
@@ -8051,7 +7998,6 @@ function Point (x, y, pov, params) {
         belongsTo = obj;
         return this;
     }
-    self.setBelongsTo = setBelongsTo;
 
     /**
      * This method sets the fill style of inner circle to the specified value
@@ -8062,12 +8008,29 @@ function Point (x, y, pov, params) {
         properties.fillStyleInnerCircle = value;
         return this;
     }
-    self.setFillStyle = setFillStyle;
 
     function setIconPath (iconPath) {
         properties.iconImagePath = iconPath;
         return this;
     }
+
+    self.belongsTo = getParent;
+    self.getPOV = getPOV;
+    self.getCanvasCoordinate = getCanvasCoordinate;
+    self.getCanvasX = getCanvasX;
+    self.getCanvasY = getCanvasY;
+    self.getFill = getFill;
+    self.getFillStyle = getFillStyle;
+    self.getGSVImageCoordinate = getGSVImageCoordinate;
+    self.getProperty = getProperty;
+    self.getProperties = getProperties;
+    self.isOn = isOn;
+    self.render = render;
+    self.resetFillStyle = resetFillStyle;
+    self.resetSVImageCoordinate = resetSVImageCoordinate;
+    self.resetStrokeStyle = resetStrokeStyle;
+    self.setBelongsTo = setBelongsTo;
+    self.setFillStyle = setFillStyle;
     self.setIconPath = setIconPath;
 
     /**
@@ -8138,10 +8101,7 @@ function Point (x, y, pov, params) {
     // Todo. Deprecated method. Get rid of this later.
     self.resetProperties = self.setProperties;
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////////////////////////////////////////////
-    var argLen = arguments.length;
+  var argLen = arguments.length;
     if (argLen === 4) {
         _init(x, y, pov, params);
     } else {
@@ -13424,19 +13384,19 @@ function getLabelCursorImagePath() {
         },
         CurbRamp: {
             id: 'CurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
         },
         Obstacle: {
           id: 'Obstacle',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
         },
         SurfaceProblem: {
           id: 'SurfaceProblem',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
         },
         Other: {
             id: 'Other',
@@ -13459,22 +13419,22 @@ function getLabelIconImagePath(labelType) {
         },
         CurbRamp: {
             id: 'CurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/Icon_CurbRamp.svg',
+            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            iconImagePath : svl.rootDirectory + '/img/icons/Sidewalk/Icon_NoCurbRamp.svg',
+            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
         },
         Obstacle: {
             id: 'Obstacle',
-            iconImagePath: svl.rootDirectory + 'img/Icon_Obstacle.svg',
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
-            iconImagePath: null,
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
         },
         Other: {

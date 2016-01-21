@@ -65,19 +65,19 @@ function getLabelCursorImagePath() {
         },
         CurbRamp: {
             id: 'CurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
         },
         Obstacle: {
           id: 'Obstacle',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
         },
         SurfaceProblem: {
           id: 'SurfaceProblem',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/pen.png'
+          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
         },
         Other: {
             id: 'Other',
@@ -100,22 +100,22 @@ function getLabelIconImagePath(labelType) {
         },
         CurbRamp: {
             id: 'CurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/Icon_CurbRamp.svg',
+            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            iconImagePath : svl.rootDirectory + '/img/icons/Sidewalk/Icon_NoCurbRamp.svg',
+            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
         },
         Obstacle: {
             id: 'Obstacle',
-            iconImagePath: svl.rootDirectory + 'img/Icon_Obstacle.svg',
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
-            iconImagePath: null,
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
         },
         Other: {
