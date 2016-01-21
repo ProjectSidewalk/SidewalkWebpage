@@ -4600,9 +4600,7 @@ function Label (pathIn, params) {
                 // Render a tag
                 // Get a text to render (e.g, attribute type), and
                 // canvas coordinate to render the tag.
-                if(status.tagVisibility === 'visible') {
-                    var labelType =  properties.labelDescription;
-
+                if(status.tagVisibility == 'visible') {
                     if (!evaluationMode) {
                         renderTag(ctx);
                         path.renderBoundingBox(ctx);

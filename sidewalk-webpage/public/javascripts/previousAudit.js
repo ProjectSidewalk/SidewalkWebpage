@@ -119,7 +119,6 @@ $(document).ready(function () {
                 featuresdata[i].properties.timestamp /= 5;
             }
 
-
             var currentTimestamp = featuresdata[0].properties.timestamp;
             for (var i = 0; i < featuresdata.length; i++) {
                 var duration = featuresdata[i].properties.timestamp - currentTimestamp,
@@ -136,7 +135,36 @@ $(document).ready(function () {
                                     "rotate(" + heading + ")";
                         })
                         .each("end", function () {
+                            // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
+                            var counter = d3.select(this).attr("counter");
+                            var d = featuresdata[counter];
+                            if (d) {
+                                if ("label" in d.properties) {
+                                    var label = d.properties.label;
+                                    var p = map.latLngToLayerPoint(new L.LatLng(label.coordinates[1], label.coordinates[0]));
+                                    var c = g.append("circle")
+                                        .attr("r", 5)
+                                        .attr("cx", p.x)
+                                        .attr("cy", p.y)
+                                        .attr("fill", function () {
+                                            return svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5);
+                                        })
+                                        // .attr("color", "white")
+                                        // .attr("stroke", "#ddd")
+                                        .attr("stroke-width", 1)
+                                        .on("mouseover", function () {
+                                            d3.select(this).attr("r", 15);
+                                        })
+                                        .on("mouseout", function () {
+                                            d3.select(this).attr("r", 5);
+                                        });
+                                    // Update the chart as well
+                                    dotPlotVisualization.increment(label.label_type);
+                                    dotPlotVisualization.udpate();
 
+                                }
+                            }
+                            d3.select(this).attr("counter", ++counter);
                         });
             }
             // Finally delete the marker

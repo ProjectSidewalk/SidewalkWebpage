@@ -5,7 +5,6 @@ import com.vividsolutions.jts.geom.LineString
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,

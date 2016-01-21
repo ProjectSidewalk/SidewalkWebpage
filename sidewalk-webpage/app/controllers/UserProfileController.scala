@@ -9,7 +9,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
 import models.User
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
+import models.audit.{InteractionWithLabel, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
 import models.label.LabelTable
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
@@ -46,7 +46,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Get a list of edges that are submitted by users.
-   * @return
+    *
+    * @return
    */
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -77,7 +78,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Get a list of labels submitted by the user
-   * @return
+    *
+    * @return
    */
   def getSubmittedLabels = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -104,23 +106,48 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Get user interaction records
-   * @return
+    *
+    * @return
    */
   def getAuditTaskInteractions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => {
         AuditTaskTable.lastAuditTask(user.userId) match {
           case Some(auditTask) =>
-            val interactions: List[AuditTaskInteraction] = AuditTaskInteractionTable.auditInteractions(auditTask.auditTaskId)
-            val features: List[JsObject] = interactions.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
+//            val interactions: List[AuditTaskInteraction] = AuditTaskInteractionTable.auditInteractions(auditTask.auditTaskId)
+//            val features: List[JsObject] = interactions.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
+//              val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
+//              val properties = Json.obj(
+//                "heading" -> interaction.heading.get.toDouble,
+//                "timestamp" -> interaction.timestamp.getTime
+//              )
+//              Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+//            }
+//            val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+
+            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.auditInteractionsWithLabels(auditTask.auditTaskId)
+            val features: List[JsObject] = interactionsWithLabels.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
               val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
-              val properties = Json.obj(
-                "heading" -> interaction.heading.get.toDouble,
-                "timestamp" -> interaction.timestamp.getTime
-              )
+              val properties = if (interaction.labelType.isEmpty) {
+                Json.obj(
+                  "heading" -> interaction.heading.get.toDouble,
+                  "timestamp" -> interaction.timestamp.getTime
+                )
+              } else {
+                Json.obj(
+                  "heading" -> interaction.heading.get.toDouble,
+                  "timestamp" -> interaction.timestamp.getTime,
+                  "label" -> Json.obj(
+                    "label_type" -> interaction.labelType,
+                    "coordinates" -> Seq(interaction.labelLng, interaction.labelLat)
+                  )
+                )
+              }
               Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
             }
             val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+
+
             Future.successful(Ok(featureCollection))
           case None => Future.successful(Ok(Json.obj(
             "error" -> "0",
