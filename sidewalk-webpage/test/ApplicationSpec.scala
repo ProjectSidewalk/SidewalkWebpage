@@ -2,8 +2,15 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
 
+import java.sql.Timestamp
+import java.util.{Calendar, Date}
+
 import play.api.test._
 import play.api.test.Helpers._
+import play.api.db.slick.DB
+
+import models.utils.MyPostgresDriver.simple._
+import models.audit._
 
 /**
  * Add your spec here.
@@ -28,3 +35,4 @@ class ApplicationSpec extends Specification {
     }
   }
 }
+

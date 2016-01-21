@@ -26,11 +26,9 @@ function Tracker () {
     }
 
     /**
-     * Push an action into the array.
+     * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
     function push (action, param) {
-        // This function pushes action type, time stamp, current pov, and current panoId
-        // into actions list.
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {

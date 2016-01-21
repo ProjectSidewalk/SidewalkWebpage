@@ -10160,16 +10160,14 @@ var svl = svl || {};
  */
 function Task ($) {
     var self = {className: 'Task'},
-        properties = {},
-        status = {},
         taskSetting,
         previousTasks = [],
         lat, lng;
 
-    function save () {
-        svl.storage.set("task", taskSetting);
-    }
+    /** Save the task */
+    function save () { svl.storage.set("task", taskSetting); }
 
+    /** Load the task */
     function load () {
         var map = svl.storage.get("map");
         taskSetting = svl.storage.get("task");
@@ -10181,11 +10179,9 @@ function Task ($) {
         return taskSetting ? true : false;
     }
 
-    /**
-     * Get a next task
-     */
+    /**  Get a next task */
     function nextTask (streetEdgeId) {
-        var data = {street_edge_id: streetEdgeId},
+        var data = {street_edge_id: streetEdgeId },
             len = taskSetting.features[0].geometry.coordinates.length - 1,
             latEnd = taskSetting.features[0].geometry.coordinates[len][1],
             lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
@@ -10210,11 +10206,8 @@ function Task ($) {
                     // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                     task.features[0].geometry.coordinates.reverse();
                 }
-
                 set(task);
                 render();
-
-
             },
             error: function (result) {
                 throw result;
@@ -10222,17 +10215,13 @@ function Task ($) {
         });
     }
 
-
-    /**
-     * End the current task
-     */
+    /** End the current task */
     function endTask () {
-        // Show the end of the task message.
-        console.log("End of task");
         svl.statusMessage.animate();
         svl.statusMessage.setCurrentStatusTitle("Great!");
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
         svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
+        svl.tracker.push("TaskEnd");
 
         // Push the data into the list
         previousTasks.push(taskSetting);
@@ -10259,7 +10248,8 @@ function Task ($) {
                 var data = svl.form.compileSubmissionData();
                 svl.form.submit(data);
             });
-            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; ' +
+                'text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
                 var data = svl.form.compileSubmissionData(),
                     staged = svl.storage.get("staged");
                 staged.push(data);
@@ -10278,7 +10268,7 @@ function Task ($) {
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged)
+                svl.form.submit(staged);
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
                 svl.form.submit(data);
@@ -10287,31 +10277,14 @@ function Task ($) {
         nextTask(getStreetEdgeId());
     }
 
-    /**
-     * Returns the street edge id of the current task.
-     */
-    function getStreetEdgeId () {
-        return taskSetting.features[0].properties.street_edge_id
-    }
+    /** Returns the street edge id of the current task. */
+    function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
 
-    /**
-     * Returns the task start time
-     */
-    function getTaskStart () {
-        return taskSetting.features[0].properties.task_start;
-    }
+    /** Returns the task start time */
+    function getTaskStart () { return taskSetting.features[0].properties.task_start; }
 
-    /**
-     * Returns the starting location
-     */
-    function initialLocation() {
-        if (taskSetting) {
-            return {
-                lat: lat,
-                lng: lng
-            }
-        }
-    }
+    /** Returns the starting location */
+    function initialLocation() { return taskSetting ? { lat: lat, lng: lng } : null; }
 
     /**
      * This method checks if the task is done or not by assessing the
@@ -10319,29 +10292,18 @@ function Task ($) {
      */
     function isAtEnd (lat, lng, threshold) {
         if (taskSetting) {
-            var len = taskSetting.features[0].geometry.coordinates.length - 1,
+            var d, len = taskSetting.features[0].geometry.coordinates.length - 1,
                 latEnd = taskSetting.features[0].geometry.coordinates[len][1],
-                lngEnd = taskSetting.features[0].geometry.coordinates[len][0],
-                d;
+                lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
 
-            if (!threshold) {
-                threshold = 10; // 10 meters
-            }
-
+            if (!threshold) { threshold = 10; } // 10 meters
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
-
-            console.log('Distance to the end:' , d);
-
-            if (d < threshold) {
-                return true;
-            } else {
-                return false;
-            }
+            console.debug('Distance to the end:' , d);
+            return d < threshold;
         }
     }
 
     /**
-     *
      * Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      */
     function render() {
@@ -10356,7 +10318,7 @@ function Task ($) {
                 strokeOpacity: 1.0,
                 strokeWeight: 2
             });
-            path.setMap(svl.map.getMap())
+            path.setMap(svl.map.getMap());
         }
     }
 
@@ -10444,11 +10406,9 @@ function Tracker () {
     }
 
     /**
-     * Push an action into the array.
+     * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
     function push (action, param) {
-        // This function pushes action type, time stamp, current pov, and current panoId
-        // into actions list.
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
