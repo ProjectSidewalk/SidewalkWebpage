@@ -1213,7 +1213,7 @@ function Canvas ($, param) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
-        svl.tracker.push('LabelingCanvas_FinishLabeling');
+
         var labelType = svl.ribbon.getStatus('selectedLabelType'),
             labelColor = getLabelColors()[labelType],
             labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
@@ -1238,7 +1238,7 @@ function Canvas ($, param) {
             canvasHeight: svl.canvasHeight,
             canvasDistortionAlphaX: svl.alpha_x,
             canvasDistortionAlphaY: svl.alpha_y,
-            labelId: svl.getLabelCounter(),
+            //labelId: svl.getLabelCounter(),
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             labelFillStyle: labelColor.fillStyle,
@@ -1258,25 +1258,17 @@ function Canvas ($, param) {
             param.photographerPitch = photographerPov.pitch;
         }
 
-        status.currentLabel = new Label(path, param)
+        status.currentLabel = svl.labelFactory.create(path, param);
         labels.push(status.currentLabel);
         svl.labelContainer.push(status.currentLabel);
 
+        svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
         svl.actionStack.push('addLabel', status.currentLabel);
-        //var label = Label(path, param);
-        //if (label) {
-        //    status.currentLabel = new Label(path, param)
-        //    labels.push(status.currentLabel);
-        //    svl.actionStack.push('addLabel', status.currentLabel);
-        //} else {
-        //    throw "Failed to add a new label.";
-        //}
 
         // Initialize the tempPath
         tempPath = [];
         svl.ribbon.backToWalk();
 
-        //
         // Review label correctness if this is a ground truth insertion task.
         if (("goldenInsertion" in svl) &&
             svl.goldenInsertion &&
@@ -1849,13 +1841,12 @@ function Canvas ($, param) {
             param.photographerPitch = labelPoints[0].PhotographerPitch;
         }
 
-        var newLabel = new Label(path, param);
+        var newLabel = svl.labelFactory.create(path, param);
 
         if (target === 'system') {
             systemLabels.push(newLabel);
         } else {
-            svl.labelContainer.push(newLabel)
-//            labels.push(newLabel);
+            svl.labelContainer.push(newLabel);
         }
     }
 
@@ -2724,6 +2715,7 @@ function Form ($, params) {
                 photographer_pitch : prop.photographerPitch,
                 panorama_lat: prop.panoramaLat,
                 panorama_lng: prop.panoramaLng,
+                temporary_label_id: label.getProperty('temporary_label_id'),
                 gsv_panorama_id : prop.panoId,
                 label_points : []
             };
@@ -4219,7 +4211,7 @@ function Label (pathIn, params) {
                 path = pathIn;
             }
 
-            for (attrName in properties) {
+            for (var attrName in properties) {
                 // It is ok if some attributes are not passed as parameters
                 if ((attrName === 'tagHeight' ||
                      attrName === 'tagWidth' ||
@@ -4235,13 +4227,6 @@ function Label (pathIn, params) {
                     continue;
                 }
 
-                // Check if all the necessary properties are set in param.
-                // Checking paroperties:
-                // http://www.nczonline.net/blog/2010/07/27/determining-if-an-object-property-exists/
-                if (!(attrName in param)) {
-                    var errMsg = '"' + attrName + '" is not in the passed parameter.';
-                    throw errMsg;
-                }
                 properties[attrName] = param[attrName];
             }
 
@@ -5141,6 +5126,7 @@ function Label (pathIn, params) {
     self.setAlpha = setAlpha;
     self.setIconPath = setIconPath;
     self.setLabelerId = setLabelerId;
+    self.setProperty = setProperty;
     self.setStatus = setStatus;
     self.setTagVisibility = setTagVisibility;
     self.setSubLabelDescription = setSubLabelDescription;
@@ -5470,8 +5456,10 @@ function LabelFactory () {
 
     function create (path, param) {
         var label = new Label(path, param);
-        label.setProperty("temporary_label_id", temporaryLabelId);
-        temporaryLabelId++;
+        if (!('labelId' in param)) {
+            label.setProperty("temporary_label_id", temporaryLabelId);
+            temporaryLabelId++;
+        }
         return label;
     }
 
@@ -5603,6 +5591,7 @@ function Main ($, params) {
         svl.progressPov = new ProgressPov($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
+        svl.labelFactory = new LabelFactory();
 
 
 
@@ -10500,7 +10489,7 @@ function Tracker () {
     function push (action, param) {
         // This function pushes action type, time stamp, current pov, and current panoId
         // into actions list.
-        var pov, latlng, panoId, note;
+        var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
             if (('x' in param) && ('y' in param)) {
@@ -10521,6 +10510,10 @@ function Tracker () {
                 note = 'labelId:' + param.labelId;
             } else {
                 note = "";
+            }
+
+            if ('temporary_label_id' in param) {
+                temporaryLabelId = param.temporary_label_id;
             }
         } else {
             note = "";
@@ -10571,6 +10564,7 @@ function Tracker () {
             pitch: pov.pitch,
             zoom: pov.zoom,
             note: note,
+            temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         });
         return this;

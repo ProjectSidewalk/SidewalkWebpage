@@ -31,7 +31,7 @@ function Tracker () {
     function push (action, param) {
         // This function pushes action type, time stamp, current pov, and current panoId
         // into actions list.
-        var pov, latlng, panoId, note;
+        var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
             if (('x' in param) && ('y' in param)) {
@@ -52,6 +52,10 @@ function Tracker () {
                 note = 'labelId:' + param.labelId;
             } else {
                 note = "";
+            }
+
+            if ('temporary_label_id' in param) {
+                temporaryLabelId = param.temporary_label_id;
             }
         } else {
             note = "";
@@ -102,6 +106,7 @@ function Tracker () {
             pitch: pov.pitch,
             zoom: pov.zoom,
             note: note,
+            temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         });
         return this;

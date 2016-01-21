@@ -64,7 +64,7 @@ function Label (pathIn, params) {
                 path = pathIn;
             }
 
-            for (attrName in properties) {
+            for (var attrName in properties) {
                 // It is ok if some attributes are not passed as parameters
                 if ((attrName === 'tagHeight' ||
                      attrName === 'tagWidth' ||
@@ -80,13 +80,6 @@ function Label (pathIn, params) {
                     continue;
                 }
 
-                // Check if all the necessary properties are set in param.
-                // Checking paroperties:
-                // http://www.nczonline.net/blog/2010/07/27/determining-if-an-object-property-exists/
-                if (!(attrName in param)) {
-                    var errMsg = '"' + attrName + '" is not in the passed parameter.';
-                    throw errMsg;
-                }
                 properties[attrName] = param[attrName];
             }
 
@@ -986,6 +979,7 @@ function Label (pathIn, params) {
     self.setAlpha = setAlpha;
     self.setIconPath = setIconPath;
     self.setLabelerId = setLabelerId;
+    self.setProperty = setProperty;
     self.setStatus = setStatus;
     self.setTagVisibility = setTagVisibility;
     self.setSubLabelDescription = setSubLabelDescription;

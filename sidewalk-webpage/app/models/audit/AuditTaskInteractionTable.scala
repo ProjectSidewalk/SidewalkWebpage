@@ -90,8 +90,7 @@ object AuditTaskInteractionTable {
         |LEFT JOIN sidewalk.label_point
         |ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
-        |ORDER BY interaction.timestamp
-      """.stripMargin
+        |ORDER BY interaction.timestamp""".stripMargin
     )
     val interactions: List[InteractionWithLabel] = selectInteractionWithLabelQuery(auditTaskId).list
     interactions

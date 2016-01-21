@@ -150,7 +150,7 @@ function Canvas ($, param) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
-        svl.tracker.push('LabelingCanvas_FinishLabeling');
+
         var labelType = svl.ribbon.getStatus('selectedLabelType'),
             labelColor = getLabelColors()[labelType],
             labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
@@ -175,7 +175,7 @@ function Canvas ($, param) {
             canvasHeight: svl.canvasHeight,
             canvasDistortionAlphaX: svl.alpha_x,
             canvasDistortionAlphaY: svl.alpha_y,
-            labelId: svl.getLabelCounter(),
+            //labelId: svl.getLabelCounter(),
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             labelFillStyle: labelColor.fillStyle,
@@ -195,25 +195,17 @@ function Canvas ($, param) {
             param.photographerPitch = photographerPov.pitch;
         }
 
-        status.currentLabel = new Label(path, param)
+        status.currentLabel = svl.labelFactory.create(path, param);
         labels.push(status.currentLabel);
         svl.labelContainer.push(status.currentLabel);
 
+        svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
         svl.actionStack.push('addLabel', status.currentLabel);
-        //var label = Label(path, param);
-        //if (label) {
-        //    status.currentLabel = new Label(path, param)
-        //    labels.push(status.currentLabel);
-        //    svl.actionStack.push('addLabel', status.currentLabel);
-        //} else {
-        //    throw "Failed to add a new label.";
-        //}
 
         // Initialize the tempPath
         tempPath = [];
         svl.ribbon.backToWalk();
 
-        //
         // Review label correctness if this is a ground truth insertion task.
         if (("goldenInsertion" in svl) &&
             svl.goldenInsertion &&
@@ -786,13 +778,12 @@ function Canvas ($, param) {
             param.photographerPitch = labelPoints[0].PhotographerPitch;
         }
 
-        var newLabel = new Label(path, param);
+        var newLabel = svl.labelFactory.create(path, param);
 
         if (target === 'system') {
             systemLabels.push(newLabel);
         } else {
-            svl.labelContainer.push(newLabel)
-//            labels.push(newLabel);
+            svl.labelContainer.push(newLabel);
         }
     }
 

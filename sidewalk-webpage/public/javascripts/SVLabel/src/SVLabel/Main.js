@@ -48,6 +48,7 @@ function Main ($, params) {
         svl.progressPov = new ProgressPov($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
+        svl.labelFactory = new LabelFactory();
 
 
 

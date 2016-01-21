@@ -229,6 +229,7 @@ function Form ($, params) {
                 photographer_pitch : prop.photographerPitch,
                 panorama_lat: prop.panoramaLat,
                 panorama_lng: prop.panoramaLng,
+                temporary_label_id: label.getProperty('temporary_label_id'),
                 gsv_panorama_id : prop.panoId,
                 label_points : []
             };

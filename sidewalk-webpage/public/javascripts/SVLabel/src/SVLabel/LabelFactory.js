@@ -4,8 +4,10 @@ function LabelFactory () {
 
     function create (path, param) {
         var label = new Label(path, param);
-        label.setProperty("temporary_label_id", temporaryLabelId);
-        temporaryLabelId++;
+        if (!('labelId' in param)) {
+            label.setProperty("temporary_label_id", temporaryLabelId);
+            temporaryLabelId++;
+        }
         return label;
     }
 
