@@ -3,7 +3,11 @@
 @main(title) {
     @navbar(user)
     <header class="jumbotron subhead" id="home-header">
-        <div id="carousel-example-generic" class="carousel slide">
+        <div class="item active">
+            <div id="map"></div>
+            <div id="map-chart"></div>
+        </div>
+        @*<div id="carousel-example-generic" class="carousel slide">*@
             <!-- Indicators -->
             <!--<ol class="carousel-indicators">-->
                 <!--<li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>-->
@@ -11,27 +15,27 @@
             <!--</ol>-->
 
             <!-- Wrapper for slides -->
-            <div class="carousel-inner">
-                <div class="item active">
-                    <div id="map"></div>
-                    <div id="map-chart"></div>
-                </div>
-                <div class="item">
-                    <video style="height: 100%" id="audit-video" autoplay loop>
-                        <source src='@routes.Assets.at("videos/SVLabelDemo.mp4")' type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-            </div>
+            @*<div class="carousel-inner">*@
+                @*<div class="item active">*@
+                    @*<div id="map"></div>*@
+                    @*<div id="map-chart"></div>*@
+                @*</div>*@
+                @*<div class="item">*@
+                    @*<video style="height: 100%" id="audit-video" autoplay loop>*@
+                        @*<source src='@routes.Assets.at("videos/SVLabelDemo.mp4")' type="video/mp4">*@
+                        @*Your browser does not support the video tag.*@
+                    @*</video>*@
+                @*</div>*@
+            @*</div>*@
 
-            <!-- Controls -->
-            <a class="left carousel-control" href="#carousel-example-generic" data-slide="prev">
-                <span class="glyphicon glyphicon-chevron-left"></span>
-            </a>
-            <a class="right carousel-control" href="#carousel-example-generic" data-slide="next">
-                <span class="glyphicon glyphicon-chevron-right"></span>
-            </a>
-        </div>
+            @*<!-- Controls -->*@
+            @*<a class="left carousel-control" href="#carousel-example-generic" data-slide="prev">*@
+                @*<span class="glyphicon glyphicon-chevron-left"></span>*@
+            @*</a>*@
+            @*<a class="right carousel-control" href="#carousel-example-generic" data-slide="next">*@
+                @*<span class="glyphicon glyphicon-chevron-right"></span>*@
+            @*</a>*@
+        @*</div>*@
 
     </header>
     <div class="container">

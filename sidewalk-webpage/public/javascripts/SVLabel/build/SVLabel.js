@@ -13399,7 +13399,8 @@ function getLabelIconImagePath(labelType) {
         },
         Other: {
             id: 'Other',
-            iconImagePath: null
+            iconImagePath: null,
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
         },
         Void: {
             id: 'Void',
