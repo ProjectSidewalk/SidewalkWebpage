@@ -715,6 +715,17 @@ function Label (pathIn, params) {
     }
 
     /**
+     * Sets a property
+     * @param key
+     * @param value
+     * @returns {setProperty}
+     */
+    function setProperty (key, value) {
+        properties[key] = value;
+        return this;
+    }
+
+    /**
      * Set status
      * @param key
      * @param value
@@ -896,33 +907,40 @@ function Label (pathIn, params) {
      * @returns {lat: labelLat, lng: labelLng}
      */
     function toLatLng() {
-        var imageCoordinates = path.getImageCoordinates();
-        var lat = properties.panoramaLat;
-        var pc = svl.pointCloud.getPointCloud(properties.panoId);
-        if (pc) {
-            var minDx = 1000;
-            var minDy = 1000;
-            var delta;
-            for (var i = 0; i < imageCoordinates.length; i ++) {
-                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                var dx = pc.pointCloud[idx];
-                var dy = pc.pointCloud[idx + 1];
-                var r = dx * dx + dy * dy;
-                var minR = minDx * minDx + minDy + minDy;
+        if (!properties.labelLat) {
+            var imageCoordinates = path.getImageCoordinates();
+            var lat = properties.panoramaLat;
+            var pc = svl.pointCloud.getPointCloud(properties.panoId);
+            if (pc) {
+                var minDx = 1000;
+                var minDy = 1000;
+                var delta;
+                for (var i = 0; i < imageCoordinates.length; i ++) {
+                    var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                    var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                    var dx = pc.pointCloud[idx];
+                    var dy = pc.pointCloud[idx + 1];
+                    var r = dx * dx + dy * dy;
+                    var minR = minDx * minDx + minDy + minDy;
 
-                if ( r < minR) {
-                    minDx = dx;
-                    minDy = dy;
+                    if ( r < minR) {
+                        minDx = dx;
+                        minDy = dy;
 
+                    }
                 }
+                delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
+                var latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
+                setProperty('labelLat', latlng.lat);
+                setProperty('labelLng', latlng.lng);
+                return latlng;
+            } else {
+                return null;
             }
-            delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
-
-            return {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
         } else {
-            return null;
+            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };
         }
+
     }
 
     function unlockVisibility () {

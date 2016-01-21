@@ -60,7 +60,6 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
  * Data access object for the audit_task table
  */
 object AuditTaskTable {
-  val calendar: Calendar = Calendar.getInstance
   val db = play.api.db.slick.DB
   val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
@@ -109,6 +108,7 @@ object AuditTaskTable {
    * @return
    */
   def getNewTask(username: String): NewTask = db.withSession { implicit session =>
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
@@ -133,6 +133,7 @@ object AuditTaskTable {
    * @return
    */
   def getNewTask: NewTask = db.withSession { implicit session =>
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
@@ -149,6 +150,7 @@ object AuditTaskTable {
   }
 
   def getNewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
@@ -172,23 +174,24 @@ object AuditTaskTable {
   def getConnectedTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
 
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
     // Todo: I don't think this query takes into account if the auditor has looked at the area or not.
     val selectEdgeQuery = Q.query[(Float, Float, Int), StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
-        FROM sidewalk.street_edge_street_node AS st_e_st_n
-        INNER JOIN (SELECT st_n.street_node_id FROM sidewalk.street_node AS st_n
-          ORDER BY st_n.geom <-> st_setsrid(st_makepoint(?, ?), 4326)
-          LIMIT 1) AS st_n_view
-        ON st_e_st_n.street_node_id = st_n_view.street_node_id
-        INNER JOIN sidewalk.street_edge AS st_e
-        ON st_e_st_n.street_edge_id = st_e.street_edge_id
-        INNER JOIN sidewalk.street_edge_assignment_count AS st_e_asg
-        ON st_e.street_edge_id = st_e_asg.street_edge_id
-        WHERE NOT st_e_st_n.street_edge_id = ?
-        ORDER BY st_e_asg.completion_count ASC"""
+         | FROM sidewalk.street_edge_street_node AS st_e_st_n
+         | INNER JOIN (SELECT st_n.street_node_id FROM sidewalk.street_node AS st_n
+         |   ORDER BY st_n.geom <-> st_setsrid(st_makepoint(?, ?), 4326)
+         |   LIMIT 1) AS st_n_view
+         | ON st_e_st_n.street_node_id = st_n_view.street_node_id
+         | INNER JOIN sidewalk.street_edge AS st_e
+         | ON st_e_st_n.street_edge_id = st_e.street_edge_id
+         | INNER JOIN sidewalk.street_edge_assignment_count AS st_e_asg
+         | ON st_e.street_edge_id = st_e_asg.street_edge_id
+         | WHERE NOT st_e_st_n.street_edge_id = ?
+         | ORDER BY st_e_asg.completion_count ASC""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((lng, lat, streetEdgeId)).list
@@ -213,6 +216,7 @@ object AuditTaskTable {
   def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
 
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
@@ -246,6 +250,7 @@ object AuditTaskTable {
   def getNewTaskInRegion(regionId: Int, user: User) = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
 
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
     val userId: String = user.userId.toString
@@ -280,6 +285,7 @@ object AuditTaskTable {
    * @return
    */
   def getOnboardingTask: NewTask = db.withSession { implicit session =>
+    val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
     val onboardingEdges: List[StreetEdge] = streetEdges.filter(_.wayType === "onboarding").list

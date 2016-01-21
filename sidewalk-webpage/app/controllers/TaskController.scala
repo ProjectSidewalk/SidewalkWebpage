@@ -30,8 +30,6 @@ import scala.concurrent.Future
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-
-  val calendar: Calendar = Calendar.getInstance
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
@@ -162,6 +160,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             data.auditTask.auditTaskId.get
           } else {
             // Insert audit task
+            val calendar: Calendar = Calendar.getInstance
             val now: Date = calendar.getTime
             val currentTimestamp: Timestamp = new Timestamp(now.getTime)
             val auditTask = request.identity match {

@@ -2715,12 +2715,15 @@ function Form ($, params) {
                 points = label.getPath().getPoints(),
                 pathLen = points.length;
 
+            var labelLatLng = label.toLatLng();
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
                 label_type : label.getLabelType(),
                 photographer_heading : prop.photographerHeading,
                 photographer_pitch : prop.photographerPitch,
+                panorama_lat: prop.panoramaLat,
+                panorama_lng: prop.panoramaLng,
                 gsv_panorama_id : prop.panoId,
                 label_points : []
             };
@@ -2740,8 +2743,8 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : prop.panoramaLat,
-                        lng : prop.panoramaLng
+                        lat : labelLatLng.lat,
+                        lng : labelLatLng.lng
                     };
                 temp.label_points.push(pointParam);
             }
@@ -2763,16 +2766,18 @@ function Form ($, params) {
         return data;
     }
 
-
+    /**
+     * This method disables the confirm skip button
+     */
     function disableConfirmSkip () {
-        // This method disables the confirm skip button
         $btnConfirmSkip.attr('disabled', true);
         $btnConfirmSkip.css('color', 'rgba(96,96,96,0.5)');
     }
 
-
+    /**
+     * This method enables the confirm skip button
+     */
     function enableConfirmSkip () {
-        // This method enables the confirm skip button
         $btnConfirmSkip.attr('disabled', false);
         $btnConfirmSkip.css('color', 'rgba(96,96,96,1)');
     }
@@ -4865,6 +4870,17 @@ function Label (pathIn, params) {
     }
 
     /**
+     * Sets a property
+     * @param key
+     * @param value
+     * @returns {setProperty}
+     */
+    function setProperty (key, value) {
+        properties[key] = value;
+        return this;
+    }
+
+    /**
      * Set status
      * @param key
      * @param value
@@ -5046,33 +5062,40 @@ function Label (pathIn, params) {
      * @returns {lat: labelLat, lng: labelLng}
      */
     function toLatLng() {
-        var imageCoordinates = path.getImageCoordinates();
-        var lat = properties.panoramaLat;
-        var pc = svl.pointCloud.getPointCloud(properties.panoId);
-        if (pc) {
-            var minDx = 1000;
-            var minDy = 1000;
-            var delta;
-            for (var i = 0; i < imageCoordinates.length; i ++) {
-                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                var dx = pc.pointCloud[idx];
-                var dy = pc.pointCloud[idx + 1];
-                var r = dx * dx + dy * dy;
-                var minR = minDx * minDx + minDy + minDy;
+        if (!properties.labelLat) {
+            var imageCoordinates = path.getImageCoordinates();
+            var lat = properties.panoramaLat;
+            var pc = svl.pointCloud.getPointCloud(properties.panoId);
+            if (pc) {
+                var minDx = 1000;
+                var minDy = 1000;
+                var delta;
+                for (var i = 0; i < imageCoordinates.length; i ++) {
+                    var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                    var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                    var dx = pc.pointCloud[idx];
+                    var dy = pc.pointCloud[idx + 1];
+                    var r = dx * dx + dy * dy;
+                    var minR = minDx * minDx + minDy + minDy;
 
-                if ( r < minR) {
-                    minDx = dx;
-                    minDy = dy;
+                    if ( r < minR) {
+                        minDx = dx;
+                        minDy = dy;
 
+                    }
                 }
+                delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
+                var latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
+                setProperty('labelLat', latlng.lat);
+                setProperty('labelLng', latlng.lng);
+                return latlng;
+            } else {
+                return null;
             }
-            delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
-
-            return {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
         } else {
-            return null;
+            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };
         }
+
     }
 
     function unlockVisibility () {
@@ -10220,7 +10243,7 @@ function Task ($) {
         $.ajax({
             // async: false,
             // contentType: 'application/json; charset=utf-8',
-            url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+            url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
             type: 'get',
             success: function (task) {
                 var len = task.features[0].geometry.coordinates.length - 1,
@@ -10537,7 +10560,7 @@ function Tracker () {
         }
 
         var now = new Date(),
-            timestamp = now.getUTCFullYear() + "-" + now.getUTCMonth() + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+            timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         actions.push({
             action : action,

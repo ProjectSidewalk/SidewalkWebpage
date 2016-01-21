@@ -64,7 +64,7 @@ object TaskSubmissionFormats {
       (JsPath \ "lng").readNullable[Float]
     )(LabelPointSubmission.apply _)
 
-  implicit val labelSubmissionreads: Reads[LabelSubmission] = (
+  implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "gsv_panorama_id").read[String] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "photographer_heading").read[Float] and

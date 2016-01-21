@@ -220,12 +220,15 @@ function Form ($, params) {
                 points = label.getPath().getPoints(),
                 pathLen = points.length;
 
+            var labelLatLng = label.toLatLng();
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
                 label_type : label.getLabelType(),
                 photographer_heading : prop.photographerHeading,
                 photographer_pitch : prop.photographerPitch,
+                panorama_lat: prop.panoramaLat,
+                panorama_lng: prop.panoramaLng,
                 gsv_panorama_id : prop.panoId,
                 label_points : []
             };
@@ -245,8 +248,8 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : prop.panoramaLat,
-                        lng : prop.panoramaLng
+                        lat : labelLatLng.lat,
+                        lng : labelLatLng.lng
                     };
                 temp.label_points.push(pointParam);
             }
@@ -268,16 +271,18 @@ function Form ($, params) {
         return data;
     }
 
-
+    /**
+     * This method disables the confirm skip button
+     */
     function disableConfirmSkip () {
-        // This method disables the confirm skip button
         $btnConfirmSkip.attr('disabled', true);
         $btnConfirmSkip.css('color', 'rgba(96,96,96,0.5)');
     }
 
-
+    /**
+     * This method enables the confirm skip button
+     */
     function enableConfirmSkip () {
-        // This method enables the confirm skip button
         $btnConfirmSkip.attr('disabled', false);
         $btnConfirmSkip.css('color', 'rgba(96,96,96,1)');
     }
