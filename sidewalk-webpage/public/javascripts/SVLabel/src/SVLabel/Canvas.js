@@ -102,15 +102,10 @@ function Canvas ($, param) {
     var labels = [];
 
     // jQuery doms
-    var $canvas = $("#labelCanvas").length === 0 ? null : $("#labelCanvas");
     var $divLabelDrawingLayer = $("div#labelDrawingLayer").length === 0 ? null : $("div#labelDrawingLayer");
     var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon").length === 0 ? null : $("#Holder_LabelDeleteIcon");
-    var $divHolderLabelEditIcon = $("#Holder_LabelEditIcon").length === 0 ? null : $("#Holder_LabelEditIcon");
     var $labelDeleteIcon = $("#LabelDeleteIcon").length === 0 ? null : $("#LabelDeleteIcon");
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     // Initialization
     function _init (param) {
         var el = document.getElementById("label-canvas");
@@ -214,8 +209,11 @@ function Canvas ($, param) {
         }
     }
 
+    /**
+     * This function is fired when at the time of mouse-down
+     * @param e
+     */
     function drawingLayerMouseDown (e) {
-        // This function is fired when at the time of mouse-down
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
@@ -241,11 +239,7 @@ function Canvas ($, param) {
 
         if (!properties.evaluationMode) {
             if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-                var labelType = svl.ribbon.getStatus('selectedLabelType');
-                var labelDescription = svl.misc.getLabelDescriptions()[labelType];
                 if (properties.drawingMode == "point") {
-                    // Point labeling. Simply push a single point and call closeLabelPath.
-                    var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
                     tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
                     closeLabelPath();
                 } else if (properties.drawingMode == "path") {
@@ -375,7 +369,6 @@ function Canvas ($, param) {
       * This is called when a user clicks a delete icon.
       */
     function labelDeleteIconClick () {
-        // Deletes the current label
         if (!status.disableLabelDelete) {
             svl.tracker.push('Click_LabelDelete');
             var currLabel = self.getCurrentLabel();
@@ -404,10 +397,7 @@ function Canvas ($, param) {
                 svl.labelContainer.removeLabel(currLabel);
                 svl.actionStack.push('deleteLabel', self.getCurrentLabel());
                 $divHolderLabelDeleteIcon.css('visibility', 'hidden');
-                // $divHolderLabelEditIcon.css('visibility', 'hidden');
 
-
-                //
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
                 // a label is deleted.
                 if (lock.showLabelTag) {
@@ -426,11 +416,10 @@ function Canvas ($, param) {
             return false;
         }
 
-        var i = 0;
-        var pathLen = tempPath.length;
-        var labelColor = getLabelColors()[svl.ribbon.getStatus('selectedLabelType')];
-
-        var pointFill = labelColor.fillStyle;
+        var pathLen = tempPath.length,
+            labelColor = getLabelColors()[svl.ribbon.getStatus('selectedLabelType')],
+            pointFill = labelColor.fillStyle,
+            curr, prev, r;
         pointFill = svl.util.color.changeAlphaRGBA(pointFill, 0.5);
 
 
@@ -438,9 +427,9 @@ function Canvas ($, param) {
         ctx.strokeStyle = 'rgba(255,255,255,1)';
         ctx.lineWidth = 2;
         if (pathLen > 1) {
-            var curr = tempPath[1];
-            var prev = tempPath[0];
-            var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.currX), 2) + Math.pow((tempPath[0].y - mouseStatus.currY), 2));
+            curr = tempPath[1];
+            prev = tempPath[0];
+            r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.currX), 2) + Math.pow((tempPath[0].y - mouseStatus.currY), 2));
 
             // Change the circle radius of the first point depending on the distance between a mouse cursor and the point coordinate.
             if (r < properties.radiusThresh && pathLen > 2) {
@@ -451,9 +440,9 @@ function Canvas ($, param) {
         }
 
         // Draw the lines in between
-        for (i = 2; i < pathLen; i++) {
-            var curr = tempPath[i];
-            var prev = tempPath[i-1];
+        for (var i = 2; i < pathLen; i++) {
+            curr = tempPath[i];
+            prev = tempPath[i-1];
             svl.util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 5, curr.x, curr.y, 5, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
         }
 
@@ -569,9 +558,6 @@ function Canvas ($, param) {
      * @method
      */
     function enableLabeling () {
-        // Check right-click-menu visiibliey
-        // If all of the right click menu are hidden,
-        // enable labeling
         if (!status.lockDisableLabeling) {
             status.disableLabeling = false;
             return this;
@@ -583,7 +569,9 @@ function Canvas ($, param) {
      * Returns the label of the current focus
      * @method
      */
-    function getCurrentLabel () { return status.currentLabel; }
+    function getCurrentLabel () {
+        return status.currentLabel;
+    }
 
     /**
      * Get labels stored in this canvas.
@@ -615,8 +603,7 @@ function Canvas ($, param) {
     function getNumLabels () {
         var labels = svl.labelContainer.getCanvasLabels();
         var len = labels.length;
-        var i;
-        var total = 0;
+        var i, total = 0;
         for (i =0; i < len; i++) {
             if (!labels[i].isDeleted() && labels[i].isVisible()) {
                 total++;
@@ -756,7 +743,7 @@ function Canvas ($, param) {
         param.canvasDistortionAlphaX = svl.alpha_x;
         param.canvasDistortionAlphaY = svl.alpha_y;
         param.labelId = labelPoints[0].LabelId;
-        param.labelerId = labelPoints[0].AmazonTurkerId
+        param.labelerId = labelPoints[0].AmazonTurkerId;
         param.labelType = labelPoints[0].LabelType;
         param.labelDescription = labelDescriptions[param.labelType].text;
         param.labelFillStyle = labelColors[param.labelType].fillStyle;
@@ -818,7 +805,7 @@ function Canvas ($, param) {
      * @method
      */
     function lockCurrentLabel () {
-        status.lockCurrentLabel = true;;
+        status.lockCurrentLabel = true;
         return this;
     }
 
@@ -826,7 +813,7 @@ function Canvas ($, param) {
      * @method
      */
     function lockDisableLabelDelete () {
-        status.lockDisableLabelDelete = true;;
+        status.lockDisableLabelDelete = true;
         return this;
     }
 
@@ -923,6 +910,8 @@ function Canvas ($, param) {
         status.totalLabelCount = 0;
         var pov = svl.getPOV();
 
+
+        var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;
         // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
         // you can get from Street View API change. So adjust the image coordinate
         // Note that this adjustment happens only once
@@ -934,17 +923,17 @@ function Canvas ($, param) {
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = labels[i];
-                    var points = label.getPoints(true),
-                        pointsLen = points.length;
+                    points = label.getPoints(true);
+                    pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
-                        var pointData = points[j].getProperties(),
-                            svImageCoordinate = points[j].getGSVImageCoordinate();
+                        pointData = points[j].getProperties();
+                        svImageCoordinate = points[j].getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading,
-                                deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch,
-                                x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth,
-                                y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
+                            deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
+                            deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
+                            x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
+                            y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
                             points[j].resetSVImageCoordinate({ x: x, y: y })
                         }
                     }
@@ -955,17 +944,17 @@ function Canvas ($, param) {
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = systemLabels[i];
-                    var points = label.getPoints(true),
-                        pointsLen = points.length;
+                    points = label.getPoints(true);
+                    pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
-                        var pointData = points[j].getProperties();
-                        var svImageCoordinate = points[j].getGSVImageCoordinate();
+                        pointData = points[j].getProperties();
+                        svImageCoordinate = points[j].getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
-                            var deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
-                            var x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
-                            var y = svImageCoordinate.y + (deltaPitch / 180) * svl.svImageHeight;
+                            deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
+                            deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
+                            x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
+                            y = svImageCoordinate.y + (deltaPitch / 180) * svl.svImageHeight;
                             points[j].resetSVImageCoordinate({x: x, y: y})
                         }
                     }
@@ -1243,7 +1232,7 @@ function Canvas ($, param) {
     self.enableLabelDelete = enableLabelDelete;
     self.enableLabelEdit = enableLabelEdit;
     self.enableLabeling = enableLabeling;
-    self.getCurrentLabel = getCurrentLabel
+    self.getCurrentLabel = getCurrentLabel;
     self.getLabels = getLabels;
     self.getLock = getLock;
     self.getNumLabels = getNumLabels;

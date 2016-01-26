@@ -127,6 +127,13 @@ function Task ($) {
         nextTask(getStreetEdgeId());
     }
 
+    /** Get geometry */
+    function getGeometry () {
+        if (taskSetting) {
+            return taskSetting.features[0].geometry;
+        }
+    }
+
     /** Returns the street edge id of the current task. */
     function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
 
@@ -172,9 +179,7 @@ function Task ($) {
         }
     }
 
-    /**
-     * This method takes a task parameters in geojson format.
-     */
+    /** This method takes a task parameters in geojson format. */
     function set(json) {
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];
@@ -182,6 +187,7 @@ function Task ($) {
     }
 
     self.endTask = endTask;
+    self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
     self.load = load;

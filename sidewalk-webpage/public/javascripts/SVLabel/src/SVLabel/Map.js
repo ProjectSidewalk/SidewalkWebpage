@@ -572,6 +572,10 @@ function Map ($, params) {
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
+
+        if ('compass' in svl) {
+            svl.compass.update();
+        }
     }
 
     /**
@@ -594,6 +598,10 @@ function Map ($, params) {
             if (svl.task.isAtEnd(position.lat(), position.lng(), 10)) {
                 svl.task.endTask();
             }
+        }
+
+        if ('compass' in svl) {
+            svl.compass.update();
         }
     }
 
@@ -642,6 +650,10 @@ function Map ($, params) {
                     showLinks();
                 });
             }
+        }
+
+        if ('compass' in svl) {
+            svl.compass.update();
         }
     }
 
