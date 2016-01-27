@@ -74,7 +74,7 @@
             </div>
             <div id="zoom-control-holder"></div>
             <div id="action-stack-control-holder"></div>
-            <div id="Holder_DirectManipulation" onSelectStart="return true;">
+            <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="Holder_StreetView">
                     <div id="StreetViewLabelRibbonConnection"><!-- border --></div>
                     <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
@@ -138,6 +138,7 @@
                 </div>
                 <div id="google-maps-holder"></div>
             </div>
+            <div id="compass-holder"></div>
             <div id="form-holder">
                 <form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
                     <input type="hidden" name="assignmentId" value="" />
@@ -186,6 +187,7 @@
             <div id="annotation-holder"></div>
         </div>
     </div>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script>
         var svl = svl || {};
 
@@ -198,7 +200,7 @@
         }
 
         @if(task) {
-            svl.task = new Task($);
+            svl.task = new Task($, turf);
             svl.task.set(@Html(task.get.toJSON.toString));
         }
 

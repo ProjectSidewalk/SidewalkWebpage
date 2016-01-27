@@ -49,7 +49,7 @@ function Main ($, params) {
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
         svl.labelFactory = new LabelFactory();
-
+        svl.compass = new Compass($);
 
 
         svl.form.disableSubmit();

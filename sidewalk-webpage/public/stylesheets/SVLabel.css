@@ -1235,7 +1235,7 @@ input[type="radio"] {
 * This style applies to a wrapper that holds the ribbon menu,
 * Street View window, feedback window, and Google Map window.
 *************************************************************/
-#Holder_DirectManipulation {
+#interaction-area-holder {
     border: 3px solid transparent;
     position: absolute;
     left: 0;

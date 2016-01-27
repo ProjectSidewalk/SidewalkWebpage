@@ -249,7 +249,7 @@ function ActionStack ($, params) {
           console.warn("You have passed an invalid key for status.")
         }
         return lock[key];
-    }
+    };
 
     self.updateOpacity = function () {
         // Change opacity
@@ -275,9 +275,7 @@ function ActionStack ($, params) {
           }
         }
     };
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
+
     init(params);
 
     return self;

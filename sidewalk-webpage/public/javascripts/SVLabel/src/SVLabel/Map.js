@@ -2,17 +2,8 @@ var svl = svl || {};
 var panorama;
 svl.panorama = panorama;
 
-////////////////////////////////////////
-// Street View Global functions that can
-// be accessed from anywhere
-////////////////////////////////////////
-// Get the camera point-of-view (POV)
-// http://www.geocodezip.com/v3_Streetview_lookAt.html?lat=34.016673&lng=-118.501322&zoom=18&type=k
 
-
-//
-// Helper functions
-//
+/** Helper functions */
 function getPanoId() {
     if (svl.panorama) {
         var panoId = svl.panorama.getPano();
@@ -565,6 +556,10 @@ function Map ($, params) {
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
+
+        if ('compass' in svl) {
+            svl.compass.update();
+        }
     }
 
     /**
@@ -587,6 +582,10 @@ function Map ($, params) {
             if (svl.task.isAtEnd(position.lat(), position.lng(), 10)) {
                 svl.task.endTask();
             }
+        }
+
+        if ('compass' in svl) {
+            svl.compass.update();
         }
     }
 
@@ -635,6 +634,10 @@ function Map ($, params) {
                     showLinks();
                 });
             }
+        }
+
+        if ('compass' in svl) {
+            svl.compass.update();
         }
     }
 

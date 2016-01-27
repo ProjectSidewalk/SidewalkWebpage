@@ -1027,7 +1027,7 @@ function ActionStack ($, params) {
           console.warn("You have passed an invalid key for status.")
         }
         return lock[key];
-    }
+    };
 
     self.updateOpacity = function () {
         // Change opacity
@@ -1053,9 +1053,7 @@ function ActionStack ($, params) {
           }
         }
     };
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
+
     init(params);
 
     return self;
@@ -1165,15 +1163,10 @@ function Canvas ($, param) {
     var labels = [];
 
     // jQuery doms
-    var $canvas = $("#labelCanvas").length === 0 ? null : $("#labelCanvas");
     var $divLabelDrawingLayer = $("div#labelDrawingLayer").length === 0 ? null : $("div#labelDrawingLayer");
     var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon").length === 0 ? null : $("#Holder_LabelDeleteIcon");
-    var $divHolderLabelEditIcon = $("#Holder_LabelEditIcon").length === 0 ? null : $("#Holder_LabelEditIcon");
     var $labelDeleteIcon = $("#LabelDeleteIcon").length === 0 ? null : $("#LabelDeleteIcon");
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     // Initialization
     function _init (param) {
         var el = document.getElementById("label-canvas");
@@ -1277,8 +1270,11 @@ function Canvas ($, param) {
         }
     }
 
+    /**
+     * This function is fired when at the time of mouse-down
+     * @param e
+     */
     function drawingLayerMouseDown (e) {
-        // This function is fired when at the time of mouse-down
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
@@ -1304,11 +1300,7 @@ function Canvas ($, param) {
 
         if (!properties.evaluationMode) {
             if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-                var labelType = svl.ribbon.getStatus('selectedLabelType');
-                var labelDescription = svl.misc.getLabelDescriptions()[labelType];
                 if (properties.drawingMode == "point") {
-                    // Point labeling. Simply push a single point and call closeLabelPath.
-                    var iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
                     tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
                     closeLabelPath();
                 } else if (properties.drawingMode == "path") {
@@ -1438,7 +1430,6 @@ function Canvas ($, param) {
       * This is called when a user clicks a delete icon.
       */
     function labelDeleteIconClick () {
-        // Deletes the current label
         if (!status.disableLabelDelete) {
             svl.tracker.push('Click_LabelDelete');
             var currLabel = self.getCurrentLabel();
@@ -1467,10 +1458,7 @@ function Canvas ($, param) {
                 svl.labelContainer.removeLabel(currLabel);
                 svl.actionStack.push('deleteLabel', self.getCurrentLabel());
                 $divHolderLabelDeleteIcon.css('visibility', 'hidden');
-                // $divHolderLabelEditIcon.css('visibility', 'hidden');
 
-
-                //
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
                 // a label is deleted.
                 if (lock.showLabelTag) {
@@ -1489,11 +1477,10 @@ function Canvas ($, param) {
             return false;
         }
 
-        var i = 0;
-        var pathLen = tempPath.length;
-        var labelColor = getLabelColors()[svl.ribbon.getStatus('selectedLabelType')];
-
-        var pointFill = labelColor.fillStyle;
+        var pathLen = tempPath.length,
+            labelColor = getLabelColors()[svl.ribbon.getStatus('selectedLabelType')],
+            pointFill = labelColor.fillStyle,
+            curr, prev, r;
         pointFill = svl.util.color.changeAlphaRGBA(pointFill, 0.5);
 
 
@@ -1501,9 +1488,9 @@ function Canvas ($, param) {
         ctx.strokeStyle = 'rgba(255,255,255,1)';
         ctx.lineWidth = 2;
         if (pathLen > 1) {
-            var curr = tempPath[1];
-            var prev = tempPath[0];
-            var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.currX), 2) + Math.pow((tempPath[0].y - mouseStatus.currY), 2));
+            curr = tempPath[1];
+            prev = tempPath[0];
+            r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.currX), 2) + Math.pow((tempPath[0].y - mouseStatus.currY), 2));
 
             // Change the circle radius of the first point depending on the distance between a mouse cursor and the point coordinate.
             if (r < properties.radiusThresh && pathLen > 2) {
@@ -1514,9 +1501,9 @@ function Canvas ($, param) {
         }
 
         // Draw the lines in between
-        for (i = 2; i < pathLen; i++) {
-            var curr = tempPath[i];
-            var prev = tempPath[i-1];
+        for (var i = 2; i < pathLen; i++) {
+            curr = tempPath[i];
+            prev = tempPath[i-1];
             svl.util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 5, curr.x, curr.y, 5, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
         }
 
@@ -1632,9 +1619,6 @@ function Canvas ($, param) {
      * @method
      */
     function enableLabeling () {
-        // Check right-click-menu visiibliey
-        // If all of the right click menu are hidden,
-        // enable labeling
         if (!status.lockDisableLabeling) {
             status.disableLabeling = false;
             return this;
@@ -1646,7 +1630,9 @@ function Canvas ($, param) {
      * Returns the label of the current focus
      * @method
      */
-    function getCurrentLabel () { return status.currentLabel; }
+    function getCurrentLabel () {
+        return status.currentLabel;
+    }
 
     /**
      * Get labels stored in this canvas.
@@ -1678,8 +1664,7 @@ function Canvas ($, param) {
     function getNumLabels () {
         var labels = svl.labelContainer.getCanvasLabels();
         var len = labels.length;
-        var i;
-        var total = 0;
+        var i, total = 0;
         for (i =0; i < len; i++) {
             if (!labels[i].isDeleted() && labels[i].isVisible()) {
                 total++;
@@ -1819,7 +1804,7 @@ function Canvas ($, param) {
         param.canvasDistortionAlphaX = svl.alpha_x;
         param.canvasDistortionAlphaY = svl.alpha_y;
         param.labelId = labelPoints[0].LabelId;
-        param.labelerId = labelPoints[0].AmazonTurkerId
+        param.labelerId = labelPoints[0].AmazonTurkerId;
         param.labelType = labelPoints[0].LabelType;
         param.labelDescription = labelDescriptions[param.labelType].text;
         param.labelFillStyle = labelColors[param.labelType].fillStyle;
@@ -1881,7 +1866,7 @@ function Canvas ($, param) {
      * @method
      */
     function lockCurrentLabel () {
-        status.lockCurrentLabel = true;;
+        status.lockCurrentLabel = true;
         return this;
     }
 
@@ -1889,7 +1874,7 @@ function Canvas ($, param) {
      * @method
      */
     function lockDisableLabelDelete () {
-        status.lockDisableLabelDelete = true;;
+        status.lockDisableLabelDelete = true;
         return this;
     }
 
@@ -1986,6 +1971,8 @@ function Canvas ($, param) {
         status.totalLabelCount = 0;
         var pov = svl.getPOV();
 
+
+        var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;
         // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
         // you can get from Street View API change. So adjust the image coordinate
         // Note that this adjustment happens only once
@@ -1997,17 +1984,17 @@ function Canvas ($, param) {
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = labels[i];
-                    var points = label.getPoints(true),
-                        pointsLen = points.length;
+                    points = label.getPoints(true);
+                    pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
-                        var pointData = points[j].getProperties(),
-                            svImageCoordinate = points[j].getGSVImageCoordinate();
+                        pointData = points[j].getProperties();
+                        svImageCoordinate = points[j].getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading,
-                                deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch,
-                                x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth,
-                                y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
+                            deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
+                            deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
+                            x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
+                            y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
                             points[j].resetSVImageCoordinate({ x: x, y: y })
                         }
                     }
@@ -2018,17 +2005,17 @@ function Canvas ($, param) {
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
                     label = systemLabels[i];
-                    var points = label.getPoints(true),
-                        pointsLen = points.length;
+                    points = label.getPoints(true);
+                    pointsLen = points.length;
 
                     for (j = 0; j < pointsLen; j++) {
-                        var pointData = points[j].getProperties();
-                        var svImageCoordinate = points[j].getGSVImageCoordinate();
+                        pointData = points[j].getProperties();
+                        svImageCoordinate = points[j].getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            var deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
-                            var deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
-                            var x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
-                            var y = svImageCoordinate.y + (deltaPitch / 180) * svl.svImageHeight;
+                            deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
+                            deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
+                            x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
+                            y = svImageCoordinate.y + (deltaPitch / 180) * svl.svImageHeight;
                             points[j].resetSVImageCoordinate({x: x, y: y})
                         }
                     }
@@ -2306,7 +2293,7 @@ function Canvas ($, param) {
     self.enableLabelDelete = enableLabelDelete;
     self.enableLabelEdit = enableLabelEdit;
     self.enableLabeling = enableLabeling;
-    self.getCurrentLabel = getCurrentLabel
+    self.getCurrentLabel = getCurrentLabel;
     self.getLabels = getLabels;
     self.getLock = getLock;
     self.getNumLabels = getNumLabels;
@@ -2346,6 +2333,74 @@ function Canvas ($, param) {
     self.unlockDisableLabeling = unlockDisableLabeling;
     self.unlockShowLabelTag = unlockShowLabelTag;
 
+    return self;
+}
+
+function Compass ($) {
+    "use strict";
+    var self = { className : 'Compass' },
+        status = {},
+        properties = {};
+
+    var height = 50, width = 50, padding = 5,
+        needleRadius = 10,
+        el = d3.select('#compass-holder'),
+        svg = el.append('svg'),
+        chart = svg.append('g');
+
+    svg.attr('width', width + 2 * padding)
+        .attr('height', height + 2 * padding)
+        .style({ position: 'absolute', left: 660, top: 520 });
+    chart.attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
+    chart.append('circle')
+        .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
+        .attr('fill', 'black');
+    chart.append('circle')
+        .attr('cx', 0) .attr('cy', 10).attr('r', needleRadius)
+        .attr('fill', 'white');
+    chart.append('path')
+        .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L -10 9')
+        .attr('fill', 'white');
+
+
+    /**
+     * Get the angle to the next goal.
+     * @returns {number}
+     */
+    function getTargetAngle () {
+        var latlng = svl.getPosition(),
+            geometry = svl.task.getGeometry(),
+            coordinates = geometry.coordinates,
+            distArray = coordinates.map(function(o) { return norm(latlng.lat, latlng.lng, o[1], o[0]) }),
+            minimum = Math.max.apply(Math, distArray),
+            argmin = distArray.indexOf(minimum),
+            argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
+
+        return svl.util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
+    }
+
+    /**
+     * Get the compass angle
+     * @returns {number}
+     */
+    function getCompassAngle () {
+        var heading = svl.getPOV().heading,
+            targetAngle = getTargetAngle();
+        return heading - targetAngle;
+    }
+
+    /** Return the sum of square of lat and lng diffs */
+    function norm (lat1, lng1, lat2, lng2) { return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2); }
+
+    /**
+     * Update the compass visualization
+     */
+    function update () {
+        var compassAngle = getCompassAngle();
+        chart.transition(500).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
+    }
+
+    self.update = update;
     return self;
 }
 
@@ -5580,7 +5635,7 @@ function Main ($, params) {
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
         svl.labelFactory = new LabelFactory();
-
+        svl.compass = new Compass($);
 
 
         svl.form.disableSubmit();
@@ -5657,17 +5712,8 @@ var svl = svl || {};
 var panorama;
 svl.panorama = panorama;
 
-////////////////////////////////////////
-// Street View Global functions that can
-// be accessed from anywhere
-////////////////////////////////////////
-// Get the camera point-of-view (POV)
-// http://www.geocodezip.com/v3_Streetview_lookAt.html?lat=34.016673&lng=-118.501322&zoom=18&type=k
 
-
-//
-// Helper functions
-//
+/** Helper functions */
 function getPanoId() {
     if (svl.panorama) {
         var panoId = svl.panorama.getPano();
@@ -6220,6 +6266,10 @@ function Map ($, params) {
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
+
+        if ('compass' in svl) {
+            svl.compass.update();
+        }
     }
 
     /**
@@ -6242,6 +6292,10 @@ function Map ($, params) {
             if (svl.task.isAtEnd(position.lat(), position.lng(), 10)) {
                 svl.task.endTask();
             }
+        }
+
+        if ('compass' in svl) {
+            svl.compass.update();
         }
     }
 
@@ -6290,6 +6344,10 @@ function Map ($, params) {
                     showLinks();
                 });
             }
+        }
+
+        if ('compass' in svl) {
+            svl.compass.update();
         }
     }
 
@@ -10151,11 +10209,12 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Task ($) {
+function Task ($, turf) {
     var self = {className: 'Task'},
         taskSetting,
         previousTasks = [],
-        lat, lng;
+        lat, lng,
+        taskCompletionRate = 0;
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -10215,6 +10274,7 @@ function Task ($) {
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
         svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
         svl.tracker.push("TaskEnd");
+        taskCompletionRate = 0;
 
         // Push the data into the list
         previousTasks.push(taskSetting);
@@ -10270,6 +10330,13 @@ function Task ($) {
         nextTask(getStreetEdgeId());
     }
 
+    /** Get geometry */
+    function getGeometry () {
+        if (taskSetting) {
+            return taskSetting.features[0].geometry;
+        }
+    }
+
     /** Returns the street edge id of the current task. */
     function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
 
@@ -10297,22 +10364,157 @@ function Task ($) {
     }
 
     /** Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add */
+    //function render() {
+    //    if ('map' in svl && google) {
+    //        var featuresLen = taskSetting.features[0].geometry.coordinates.length,
+    //            lastCoordinate = taskSetting.features[0].geometry.coordinates[featuresLen - 1],
+    //            gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
+    //                return new google.maps.LatLng(coord[1], coord[0]);
+    //            }),
+    //            path = new google.maps.Polyline({
+    //                path: gCoordinates,
+    //                geodesic: true,
+    //                strokeColor: '#00FF00',
+    //                strokeOpacity: 1.0,
+    //                strokeWeight: 2
+    //            });
+    //
+    //        console.debug(lastCoordinate)
+    /** Return the sum of square of lat and lng diffs */
+    function norm (lat1, lng1, lat2, lng2) { return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2); }
+
+    /**
+     * Get a distance between a point and a segment
+     * @param point A Geojson Point feature
+     * @param segment A Geojson LineString feature with two points
+     * @returns {*}
+     */
+    function pointSegmentDistance(point, segment) {
+        var snapped = turf.pointOnLine(segment, point),
+            snappedLat = snapped.geometry.coordinates[0][1],
+            snappedLng = snapped.geometry.coordinates[0][0],
+            coords = segment.geometry.coordinates;
+        if (Math.min(coords[0][0], coords[1][0]) <= snappedLng &&
+            snappedLng <= Math.max(coords[0][0], coords[1][0]) &&
+            Math.min(coords[0][1], coords[1][1]) <= snappedLat &&
+            snappedLng <= Math.max(coords[0][1], coords[1][1])) {
+            return turf.distance(point, snapped);
+        } else {
+            var point1 = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [coords[0][0], coords[0][1]]
+                }
+            };
+            var point2 = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [coords[1][0], coords[1][1]]
+                }
+            };
+            return Math.min(turf.distance(point, point1), turf.distance(point, point2));
+        }
+    }
+
+    /**
+     * Get the index of the segment in the line that is closest to the point
+     * @param point A geojson Point feature
+     * @param line A geojson LineString Feature
+     */
+    function closestSegment(point, line) {
+        var coords = line.geometry.coordinates,
+            lenCoord = coords.length,
+            segment, lengthArray = [], minValue;
+
+        for (var i = 0; i < lenCoord - 1; i++) {
+            segment = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [coords[i][0], coords[i][1]],
+                        [coords[i + 1][0], coords[i + 1][1]]
+                    ]
+                }
+            };
+
+            lengthArray.push(pointSegmentDistance(point, segment));
+        }
+        minValue = Math.min.apply(null, lengthArray);
+        return lengthArray.indexOf(minValue);
+    }
+
+    /**
+     * References:
+     * http://turfjs.org/static/docs/module-turf_point-on-line.html
+     * http://turfjs.org/static/docs/module-turf_distance.html
+     * @param lat
+     * @param lng
+     */
+    function updateTaskCompletionRate (lat, lng) {
+        var line = taskSetting.features[0];
+        var currentPoint = {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "Point",
+                "coordinates": [lng, lat]
+            }
+        };
+        var snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            lenCoord = coords.length,
+            segment, cumSum = 0;
+        for (var i = 0; i < closestSegmentIndex; i++) {
+            segment = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [coords[i][0], coords[i][1]],
+                        [coords[i + 1][0], coords[i + 1][1]]
+                    ]
+                }
+            };
+            cumSum += turf.lineDistance(segment);
+        }
+        var point = {
+            "type": "Feature", "properties": {},
+            "geometry": {
+                "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
+            }
+        };
+        cumSum += turf.distance(snapped, point);
+        var lineLength = turf.lineDistance(line),
+            cumsumRate = cumSum / lineLength;
+
+        taskCompletionRate = taskCompletionRate < lineLength ? cumsumRate : taskCompletionRate;
+        console.debug(taskCompletionRate);
+    }
+    self.updateTaskCompletionRate = updateTaskCompletionRate;
+
+    /**
+     * Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
+     */
     function render() {
         if ('map' in svl && google) {
-            var featuresLen = taskSetting.features[0].geometry.coordinates.length,
-                lastCoordinate = taskSetting.features[0].geometry.coordinates[featuresLen - 1],
-                gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
-                    return new google.maps.LatLng(coord[1], coord[0]);
-                }),
-                path = new google.maps.Polyline({
-                    path: gCoordinates,
-                    geodesic: true,
-                    strokeColor: '#00FF00',
-                    strokeOpacity: 1.0,
-                    strokeWeight: 2
-                });
-
-            console.debug(lastCoordinate)
+            var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
+                return new google.maps.LatLng(coord[1], coord[0]);
+            });
+            var path = new google.maps.Polyline({
+                path: gCoordinates,
+                geodesic: true,
+                strokeColor: '#ff0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            });
             path.setMap(svl.map.getMap());
         }
     }
@@ -10325,6 +10527,7 @@ function Task ($) {
     }
 
     self.endTask = endTask;
+    self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
     self.load = load;
@@ -12970,26 +13173,20 @@ svl.util.math = {}
 
 /**
  * This method takes an angle value in radian and returns a value in degree
+ * http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
  * @param angleInRadian
  * @returns {number}
  */
-function toDegrees (angleInRadian) {
-    // This function converts the angle from radian to degree.
-    // http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
-    return angleInRadian * (180 / Math.PI);
-}
+function toDegrees (angleInRadian) { return angleInRadian * (180 / Math.PI); }
 svl.util.math.toDegrees = toDegrees;
 
 /**
  * This function takes an angle in degree and returns a value in radian
+ * http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
  * @param angleInDegree
  * @returns {number}
  */
-function toRadians (angleInDegree) {
-    // This function converts the angle from degree to radian.
-    // http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
-    return angleInDegree * (Math.PI / 180);
-}
+function toRadians (angleInDegree) { return angleInDegree * (Math.PI / 180); }
 svl.util.math.toRadians = toRadians;
 
 /**

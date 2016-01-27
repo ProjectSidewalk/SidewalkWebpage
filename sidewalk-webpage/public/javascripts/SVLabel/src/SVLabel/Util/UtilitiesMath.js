@@ -4,26 +4,20 @@ svl.util.math = {}
 
 /**
  * This method takes an angle value in radian and returns a value in degree
+ * http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
  * @param angleInRadian
  * @returns {number}
  */
-function toDegrees (angleInRadian) {
-    // This function converts the angle from radian to degree.
-    // http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
-    return angleInRadian * (180 / Math.PI);
-}
+function toDegrees (angleInRadian) { return angleInRadian * (180 / Math.PI); }
 svl.util.math.toDegrees = toDegrees;
 
 /**
  * This function takes an angle in degree and returns a value in radian
+ * http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
  * @param angleInDegree
  * @returns {number}
  */
-function toRadians (angleInDegree) {
-    // This function converts the angle from degree to radian.
-    // http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
-    return angleInDegree * (Math.PI / 180);
-}
+function toRadians (angleInDegree) { return angleInDegree * (Math.PI / 180); }
 svl.util.math.toRadians = toRadians;
 
 /**
