@@ -242,12 +242,9 @@ function Task ($, turf) {
      */
     function updateTaskCompletionRate (lat, lng) {
         var line = taskSetting.features[0];
-        var currentPoint = {
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "Point",
-                "coordinates": [lng, lat]
+        var currentPoint = { "type": "Feature", "properties": {},
+            geometry: {
+                "type": "Point", "coordinates": [lng, lat]
             }
         };
         var snapped = turf.pointOnLine(line, currentPoint),
@@ -273,7 +270,7 @@ function Task ($, turf) {
         completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
         incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
 
-        for (var i = closestSegmentIndex; i < coords.length - 1; i++) {
+        for (var i = closestSegmentIndex + 1; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
 
@@ -319,12 +316,21 @@ function Task ($, turf) {
     function render() {
         if ('map' in svl && google) {
             if (paths) {
-                // Remove the existing paths
-                for (var i = 0; i < paths.length; i++) { paths[i].setMap(null); }
 
+                var oldTaskCompletionRate = taskCompletionRate;
+                var oldPaths = paths;
                 var latlng = svl.getPosition();
                 var taskCompletion = updateTaskCompletionRate(latlng.lat, latlng.lng);
-                paths = taskCompletion.paths;
+
+                if (oldTaskCompletionRate < taskCompletionRate) {
+                    // Remove the existing paths and switch with the new ones
+                    for (var i = 0; i < paths.length; i++) {
+                        paths[i].setMap(null);
+                    }
+                    paths = taskCompletion.paths;
+                } else {
+                    paths = oldPaths;
+                }
             } else {
                 var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);
