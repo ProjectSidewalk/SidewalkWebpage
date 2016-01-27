@@ -2,17 +2,8 @@ var svl = svl || {};
 var panorama;
 svl.panorama = panorama;
 
-////////////////////////////////////////
-// Street View Global functions that can
-// be accessed from anywhere
-////////////////////////////////////////
-// Get the camera point-of-view (POV)
-// http://www.geocodezip.com/v3_Streetview_lookAt.html?lat=34.016673&lng=-118.501322&zoom=18&type=k
 
-
-//
-// Helper functions
-//
+/** Helper functions */
 function getPanoId() {
     if (svl.panorama) {
         var panoId = svl.panorama.getPano();
@@ -182,9 +173,6 @@ function Map ($, params) {
     var $spanModeSwitchDraw;
 
 
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
     if (params.panoramaPov) {

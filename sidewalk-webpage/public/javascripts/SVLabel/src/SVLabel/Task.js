@@ -8,11 +8,12 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Task ($) {
+function Task ($, turf) {
     var self = {className: 'Task'},
         taskSetting,
         previousTasks = [],
-        lat, lng;
+        lat, lng,
+        taskCompletionRate = 0;
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -72,6 +73,7 @@ function Task ($) {
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
         svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
         svl.tracker.push("TaskEnd");
+        taskCompletionRate = 0;
 
         // Push the data into the list
         previousTasks.push(taskSetting);
@@ -160,6 +162,126 @@ function Task ($) {
         }
     }
 
+    /** Return the sum of square of lat and lng diffs */
+    function norm (lat1, lng1, lat2, lng2) { return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2); }
+
+    /**
+     * Get a distance between a point and a segment
+     * @param point A Geojson Point feature
+     * @param segment A Geojson LineString feature with two points
+     * @returns {*}
+     */
+    function pointSegmentDistance(point, segment) {
+        var snapped = turf.pointOnLine(segment, point),
+            snappedLat = snapped.geometry.coordinates[0][1],
+            snappedLng = snapped.geometry.coordinates[0][0],
+            coords = segment.geometry.coordinates;
+        if (Math.min(coords[0][0], coords[1][0]) <= snappedLng &&
+            snappedLng <= Math.max(coords[0][0], coords[1][0]) &&
+            Math.min(coords[0][1], coords[1][1]) <= snappedLat &&
+            snappedLng <= Math.max(coords[0][1], coords[1][1])) {
+            return turf.distance(point, snapped);
+        } else {
+            var point1 = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [coords[0][0], coords[0][1]]
+                }
+            };
+            var point2 = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [coords[1][0], coords[1][1]]
+                }
+            };
+            return Math.min(turf.distance(point, point1), turf.distance(point, point2));
+        }
+    }
+
+    /**
+     * Get the index of the segment in the line that is closest to the point
+     * @param point A geojson Point feature
+     * @param line A geojson LineString Feature
+     */
+    function closestSegment(point, line) {
+        var coords = line.geometry.coordinates,
+            lenCoord = coords.length,
+            segment, lengthArray = [], minValue;
+
+        for (var i = 0; i < lenCoord - 1; i++) {
+            segment = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [coords[i][0], coords[i][1]],
+                        [coords[i + 1][0], coords[i + 1][1]]
+                    ]
+                }
+            };
+
+            lengthArray.push(pointSegmentDistance(point, segment));
+        }
+        minValue = Math.min.apply(null, lengthArray);
+        return lengthArray.indexOf(minValue);
+    }
+
+    /**
+     * References:
+     * http://turfjs.org/static/docs/module-turf_point-on-line.html
+     * http://turfjs.org/static/docs/module-turf_distance.html
+     * @param lat
+     * @param lng
+     */
+    function updateTaskCompletionRate (lat, lng) {
+        var line = taskSetting.features[0];
+        var currentPoint = {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "Point",
+                "coordinates": [lng, lat]
+            }
+        };
+        var snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            lenCoord = coords.length,
+            segment, cumSum = 0;
+        for (var i = 0; i < closestSegmentIndex; i++) {
+            segment = {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [coords[i][0], coords[i][1]],
+                        [coords[i + 1][0], coords[i + 1][1]]
+                    ]
+                }
+            };
+            cumSum += turf.lineDistance(segment);
+        }
+        var point = {
+            "type": "Feature", "properties": {},
+            "geometry": {
+                "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
+            }
+        };
+        cumSum += turf.distance(snapped, point);
+        var lineLength = turf.lineDistance(line),
+            cumsumRate = cumSum / lineLength;
+
+        taskCompletionRate = taskCompletionRate < lineLength ? cumsumRate : taskCompletionRate;
+        console.debug(taskCompletionRate);
+    }
+    self.updateTaskCompletionRate = updateTaskCompletionRate;
+
     /**
      * Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      */
@@ -171,7 +293,7 @@ function Task ($) {
             var path = new google.maps.Polyline({
                 path: gCoordinates,
                 geodesic: true,
-                strokeColor: '#00FF00',
+                strokeColor: '#ff0000',
                 strokeOpacity: 1.0,
                 strokeWeight: 2
             });
