@@ -13,7 +13,8 @@ function Task ($, turf) {
         taskSetting,
         previousTasks = [],
         lat, lng,
-        taskCompletionRate = 0;
+        taskCompletionRate = 0,
+        paths;
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -163,22 +164,6 @@ function Task ($, turf) {
     }
 
     /** Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add */
-    //function render() {
-    //    if ('map' in svl && google) {
-    //        var featuresLen = taskSetting.features[0].geometry.coordinates.length,
-    //            lastCoordinate = taskSetting.features[0].geometry.coordinates[featuresLen - 1],
-    //            gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
-    //                return new google.maps.LatLng(coord[1], coord[0]);
-    //            }),
-    //            path = new google.maps.Polyline({
-    //                path: gCoordinates,
-    //                geodesic: true,
-    //                strokeColor: '#00FF00',
-    //                strokeOpacity: 1.0,
-    //                strokeWeight: 2
-    //            });
-    //
-    //        console.debug(lastCoordinate)
     /** Return the sum of square of lat and lng diffs */
     function norm (lat1, lng1, lat2, lng2) { return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2); }
 
@@ -268,22 +253,30 @@ function Task ($, turf) {
         var snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
-            lenCoord = coords.length,
-            segment, cumSum = 0;
+            segment, cumSum = 0,
+            completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
+            incompletePath = [];
         for (var i = 0; i < closestSegmentIndex; i++) {
             segment = {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [
+                type: "Feature", properties: {},
+                geometry: {
+                    type: "LineString",
+                    coordinates: [
                         [coords[i][0], coords[i][1]],
                         [coords[i + 1][0], coords[i + 1][1]]
                     ]
                 }
             };
             cumSum += turf.lineDistance(segment);
+            completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
         }
+        completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+
+        for (var i = closestSegmentIndex; i < coords.length - 1; i++) {
+            incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
+        }
+
         var point = {
             "type": "Feature", "properties": {},
             "geometry": {
@@ -294,27 +287,63 @@ function Task ($, turf) {
         var lineLength = turf.lineDistance(line),
             cumsumRate = cumSum / lineLength;
 
-        taskCompletionRate = taskCompletionRate < lineLength ? cumsumRate : taskCompletionRate;
+        taskCompletionRate = taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
         console.debug(taskCompletionRate);
-    }
-    self.updateTaskCompletionRate = updateTaskCompletionRate;
 
-    /**
-     * Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
-     */
-    function render() {
-        if ('map' in svl && google) {
-            var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
-                return new google.maps.LatLng(coord[1], coord[0]);
-            });
-            var path = new google.maps.Polyline({
-                path: gCoordinates,
+        // Create paths
+        paths = [
+            new google.maps.Polyline({
+                path: completedPath,
+                geodesic: true,
+                strokeColor: '#00ff00',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            }),
+            new google.maps.Polyline({
+                path: incompletePath,
                 geodesic: true,
                 strokeColor: '#ff0000',
                 strokeOpacity: 1.0,
                 strokeWeight: 2
-            });
-            path.setMap(svl.map.getMap());
+            })
+        ];
+
+        return { taskCompletionRate: taskCompletionRate, paths: paths };
+    }
+
+    /**
+     * Reference:
+     * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
+     * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
+     */
+    function render() {
+        if ('map' in svl && google) {
+            if (paths) {
+                // Remove the existing paths
+                for (var i = 0; i < paths.length; i++) { paths[i].setMap(null); }
+
+                var latlng = svl.getPosition();
+                var taskCompletion = updateTaskCompletionRate(latlng.lat, latlng.lng);
+                paths = taskCompletion.paths;
+            } else {
+                var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
+                    return new google.maps.LatLng(coord[1], coord[0]);
+                });
+                paths = [
+                    new google.maps.Polyline({
+                        path: gCoordinates,
+                        geodesic: true,
+                        strokeColor: '#ff0000',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2
+                    })
+                ];
+            }
+
+            for (var i = 0; i < paths.length; i++) {
+                paths[i].setMap(svl.map.getMap());
+            }
+
         }
     }
 
@@ -329,12 +358,14 @@ function Task ($, turf) {
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.load = load;
-    self.set = set;
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
+    self.load = load;
+    self.nextTask = nextTask;
     self.render = render;
     self.save = save;
-    self.nextTask = nextTask;
+    self.set = set;
+    //self.updateTaskCompletionRate = updateTaskCompletionRate;
+
     return self;
 }

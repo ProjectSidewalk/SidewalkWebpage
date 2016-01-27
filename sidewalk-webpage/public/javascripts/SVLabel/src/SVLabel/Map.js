@@ -569,16 +569,10 @@ function Map ($, params) {
         var position = svl.panorama.getPosition();
         handlerPovChange(); // handle pov change
 
-        // Store the current status
-//        if ('storage' in svl) {
-//            svl.tracker.save();
-//            svl.labelContainer.save();
-//            svl.map.save();
-//            svl.task.save();
-//        }
 
         // End of the task if the user is close enough to the end point
         if ('task' in svl) {
+            svl.task.render();
             if (svl.task.isAtEnd(position.lat(), position.lng(), 10)) {
                 svl.task.endTask();
             }
