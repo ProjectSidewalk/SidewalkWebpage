@@ -14,7 +14,7 @@ function Task ($, turf) {
         previousTasks = [],
         lat, lng,
         taskCompletionRate = 0,
-        paths;
+        paths, previousPaths = [];
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -37,6 +37,7 @@ function Task ($, turf) {
             len = taskSetting.features[0].geometry.coordinates.length - 1,
             latEnd = taskSetting.features[0].geometry.coordinates[len][1],
             lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
+
         $.ajax({
             // async: false,
             // contentType: 'application/json; charset=utf-8',
@@ -78,6 +79,10 @@ function Task ($, turf) {
 
         // Push the data into the list
         previousTasks.push(taskSetting);
+
+        var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
+        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
+        paths = null;
 
         if (!('user' in svl)) {
             // Prompt a user who's not logged in to sign up/sign in.
@@ -346,6 +351,9 @@ function Task ($, turf) {
                 ];
             }
 
+            for (var i = 0; i < previousPaths.length; i++) {
+                previousPaths[i].setMap(svl.map.getMap());
+            }
             for (var i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
