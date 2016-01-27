@@ -153,28 +153,28 @@ function Task ($) {
         }
     }
 
-    /**
-     * Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
-     */
+    /** Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add */
     function render() {
         if ('map' in svl && google) {
-            var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
-                return new google.maps.LatLng(coord[1], coord[0]);
-            });
-            var path = new google.maps.Polyline({
-                path: gCoordinates,
-                geodesic: true,
-                strokeColor: '#00FF00',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            });
+            var featuresLen = taskSetting.features[0].geometry.coordinates.length,
+                lastCoordinate = taskSetting.features[0].geometry.coordinates[featuresLen - 1],
+                gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {
+                    return new google.maps.LatLng(coord[1], coord[0]);
+                }),
+                path = new google.maps.Polyline({
+                    path: gCoordinates,
+                    geodesic: true,
+                    strokeColor: '#00FF00',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2
+                });
+
+            console.debug(lastCoordinate)
             path.setMap(svl.map.getMap());
         }
     }
 
-    /**
-     * This method takes a task parameters in geojson format.
-     */
+    /** This method takes a task parameters in geojson format. */
     function set(json) {
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];

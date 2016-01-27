@@ -182,9 +182,6 @@ function Map ($, params) {
     var $spanModeSwitchDraw;
 
 
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
     if (params.panoramaPov) {
@@ -259,16 +256,12 @@ function Map ($, params) {
         self.properties = properties; // Make properties public.
         properties.browser = svl.util.getBrowser();
 
-        if ("overlayMessageBox" in params) {
-            overlayMessageBox = params.overlayMessageBox;
-        }
-
+        if ("overlayMessageBox" in params) { overlayMessageBox = params.overlayMessageBox; }
 
         // Set GSV panorama options
         // To not show StreetView controls, take a look at the following gpage
         // http://blog.mridey.com/2010/05/controls-in-maps-javascript-api-v3.html
-        //
-        // This is awesome... There is a hidden option called 'mode' in the SV panoramaOption.
+        // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
         if (params.taskPanoId) {
             panoramaOptions = {

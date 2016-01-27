@@ -88,9 +88,7 @@ function getLabelCursorImagePath() {
 svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 
 
-//
 // Returns image paths corresponding to each label type.
-//
 function getLabelIconImagePath(labelType) {
     return {
         Walk : {
