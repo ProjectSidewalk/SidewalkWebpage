@@ -245,7 +245,7 @@ function Task ($, turf) {
      * @param lat
      * @param lng
      */
-    function updateTaskCompletionRate (lat, lng) {
+    function getTaskCompletionRate (lat, lng) {
         var line = taskSetting.features[0];
         var currentPoint = { "type": "Feature", "properties": {},
             geometry: {
@@ -289,11 +289,8 @@ function Task ($, turf) {
         var lineLength = turf.lineDistance(line),
             cumsumRate = cumSum / lineLength;
 
-        taskCompletionRate = taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
-        console.debug(taskCompletionRate);
-
         // Create paths
-        paths = [
+        var newPaths = [
             new google.maps.Polyline({
                 path: completedPath,
                 geodesic: true,
@@ -310,7 +307,10 @@ function Task ($, turf) {
             })
         ];
 
-        return { taskCompletionRate: taskCompletionRate, paths: paths };
+        return {
+            taskCompletionRate: taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate,
+            paths: newPaths
+        };
     }
 
     /**
@@ -321,20 +321,17 @@ function Task ($, turf) {
     function render() {
         if ('map' in svl && google) {
             if (paths) {
+                // Remove the existing paths and switch with the new ones
+                for (var i = 0; i < paths.length; i++) {
+                    paths[i].setMap(null);
+                }
 
-                var oldTaskCompletionRate = taskCompletionRate;
-                var oldPaths = paths;
                 var latlng = svl.getPosition();
-                var taskCompletion = updateTaskCompletionRate(latlng.lat, latlng.lng);
+                var taskCompletion = getTaskCompletionRate(latlng.lat, latlng.lng);
 
-                if (oldTaskCompletionRate < taskCompletionRate) {
-                    // Remove the existing paths and switch with the new ones
-                    for (var i = 0; i < paths.length; i++) {
-                        paths[i].setMap(null);
-                    }
+                if (taskCompletionRate < taskCompletion.taskCompletionRate) {
+                    taskCompletionRate = taskCompletion.taskCompletionRate
                     paths = taskCompletion.paths;
-                } else {
-                    paths = oldPaths;
                 }
             } else {
                 var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {

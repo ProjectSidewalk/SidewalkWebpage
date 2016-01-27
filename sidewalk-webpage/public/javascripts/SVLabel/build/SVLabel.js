@@ -2351,7 +2351,7 @@ function Compass ($) {
     svg.attr('width', width + 2 * padding)
         .attr('height', height + 2 * padding)
         .style({ position: 'absolute', left: 660, top: 520 });
-    chart.attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
+    chart.transition(100).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
     chart.append('circle')
         .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
         .attr('fill', 'black');
@@ -2376,7 +2376,9 @@ function Compass ($) {
             argmin = distArray.indexOf(minimum),
             argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
 
-        return svl.util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
+        var goal = coordinates[coordinates.length - 1];
+        return svl.util.math.toDegrees(Math.atan2(goal[0] - latlng.lng, goal[1] - latlng.lat));
+        //return svl.util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
     }
 
     /**
@@ -2397,7 +2399,8 @@ function Compass ($) {
      */
     function update () {
         var compassAngle = getCompassAngle();
-        chart.transition(500).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
+        // chart.transition(100)
+            chart.attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
     }
 
     self.update = update;
@@ -10440,7 +10443,7 @@ function Task ($, turf) {
      * @param lat
      * @param lng
      */
-    function updateTaskCompletionRate (lat, lng) {
+    function getTaskCompletionRate (lat, lng) {
         var line = taskSetting.features[0];
         var currentPoint = { "type": "Feature", "properties": {},
             geometry: {
@@ -10484,11 +10487,8 @@ function Task ($, turf) {
         var lineLength = turf.lineDistance(line),
             cumsumRate = cumSum / lineLength;
 
-        taskCompletionRate = taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
-        console.debug(taskCompletionRate);
-
         // Create paths
-        paths = [
+        var newPaths = [
             new google.maps.Polyline({
                 path: completedPath,
                 geodesic: true,
@@ -10505,7 +10505,10 @@ function Task ($, turf) {
             })
         ];
 
-        return { taskCompletionRate: taskCompletionRate, paths: paths };
+        return {
+            taskCompletionRate: taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate,
+            paths: newPaths
+        };
     }
 
     /**
@@ -10516,20 +10519,17 @@ function Task ($, turf) {
     function render() {
         if ('map' in svl && google) {
             if (paths) {
+                // Remove the existing paths and switch with the new ones
+                for (var i = 0; i < paths.length; i++) {
+                    paths[i].setMap(null);
+                }
 
-                var oldTaskCompletionRate = taskCompletionRate;
-                var oldPaths = paths;
                 var latlng = svl.getPosition();
-                var taskCompletion = updateTaskCompletionRate(latlng.lat, latlng.lng);
+                var taskCompletion = getTaskCompletionRate(latlng.lat, latlng.lng);
 
-                if (oldTaskCompletionRate < taskCompletionRate) {
-                    // Remove the existing paths and switch with the new ones
-                    for (var i = 0; i < paths.length; i++) {
-                        paths[i].setMap(null);
-                    }
+                if (taskCompletionRate < taskCompletion.taskCompletionRate) {
+                    taskCompletionRate = taskCompletion.taskCompletionRate
                     paths = taskCompletion.paths;
-                } else {
-                    paths = oldPaths;
                 }
             } else {
                 var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) {

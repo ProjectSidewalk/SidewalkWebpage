@@ -13,7 +13,7 @@ function Compass ($) {
     svg.attr('width', width + 2 * padding)
         .attr('height', height + 2 * padding)
         .style({ position: 'absolute', left: 660, top: 520 });
-    chart.attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
+    chart.transition(100).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
     chart.append('circle')
         .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
         .attr('fill', 'black');
@@ -38,7 +38,9 @@ function Compass ($) {
             argmin = distArray.indexOf(minimum),
             argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
 
-        return svl.util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
+        var goal = coordinates[coordinates.length - 1];
+        return svl.util.math.toDegrees(Math.atan2(goal[0] - latlng.lng, goal[1] - latlng.lat));
+        //return svl.util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
     }
 
     /**
@@ -59,7 +61,8 @@ function Compass ($) {
      */
     function update () {
         var compassAngle = getCompassAngle();
-        chart.transition(500).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
+        // chart.transition(100)
+            chart.attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
     }
 
     self.update = update;
