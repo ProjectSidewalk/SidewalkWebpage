@@ -298,10 +298,10 @@ function Map ($, params) {
         status.availablePanoIds = params.availablePanoIds;
 
         // Attach listeners to dom elements
-        $divViewControlLayer.bind('mousedown', viewControlLayerMouseDown);
-        $divViewControlLayer.bind('mouseup', viewControlLayerMouseUp);
-        $divViewControlLayer.bind('mousemove', viewControlLayerMouseMove);
-        $divViewControlLayer.bind('mouseleave', viewControlLayerMouseLeave);
+        $divViewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
+        $divViewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
+        $divViewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
+        $divViewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
 
 
         // Add listeners to the SV panorama
@@ -635,6 +635,191 @@ function Map ($, params) {
     }
 
     /**
+     * This is a callback function that is fired with the mouse down event
+     * on the view control layer (where you control street view angle.)
+     * @param e
+     */
+    function handlerViewControlLayerMouseDown (e) {
+        mouseStatus.isLeftDown = true;
+        mouseStatus.leftDownX = mouseposition(e, this).x;
+        mouseStatus.leftDownY = mouseposition(e, this).y;
+
+        if (!status.disableWalking) {
+            // Setting a cursor
+            // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
+            try {
+                if (!svl.keyboard.isShiftDown()) {
+                    setViewControlLayerCursor('ClosedHand');
+                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                } else {
+                    setViewControlLayerCursor('ZoomOut');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Adding delegation on SVG elements
+        // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
+        // Or rather just attach a listener to svg and check it's target.
+        if (!status.panoLinkListenerSet) {
+            try {
+                $('svg')[0].addEventListener('click', function (e) {
+                    var targetPanoId = e.target.getAttribute('pano');
+                    if (targetPanoId) {
+                        svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
+                    }
+                });
+                status.panoLinkListenerSet = true;
+            } catch (err) {
+
+            }
+        }
+
+        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
+    }
+
+    /**
+     * This is a callback function that is called with mouse up event on
+     * the view control layer (where you change the Google Street view angle.
+     * @param e
+     */
+    function handlerViewControlLayerMouseUp (e) {
+        var currTime;
+
+        mouseStatus.isLeftDown = false;
+        mouseStatus.leftUpX = mouseposition(e, this).x;
+        mouseStatus.leftUpY = mouseposition(e, this).y;
+        svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
+
+        if (!status.disableWalking) {
+            // Setting a mouse cursor
+            // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
+            try {
+                if (!svl.keyboard.isShiftDown()) {
+                    setViewControlLayerCursor('OpenHand');
+                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                } else {
+                    setViewControlLayerCursor('ZoomOut');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        currTime = new Date().getTime();
+
+        if (currTime - mouseStatus.prevMouseUpTime < 300) {
+            // Double click
+            // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
+            if (!status.disableClickZoom) {
+                svl.tracker.push('ViewControl_DoubleClick');
+                if (svl.keyboard.isShiftDown()) {
+                    // If Shift is down, then zoom out with double click.
+                    svl.zoomControl.zoomOut();
+                    svl.tracker.push('ViewControl_ZoomOut');
+                } else {
+                    // If Shift is up, then zoom in wiht double click.
+                    // svl.zoomControl.zoomIn();
+                    svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
+                    svl.tracker.push('ViewControl_ZoomIn');
+                }
+            }
+
+        }
+        mouseStatus.prevMouseUpTime = currTime;
+    }
+
+    /**
+     * This is a callback function that is fired when a user moves a mouse on the
+     * view control layer where you change the pov.
+     */
+    function handlerViewControlLayerMouseMove (e) {
+        mouseStatus.currX = mouseposition(e, this).x;
+        mouseStatus.currY = mouseposition(e, this).y;
+
+        //
+        // Show a link and fade it out
+        if (!status.disableWalking) {
+            showLinks(2000);
+            if (!mouseStatus.isLeftDown) {
+                try {
+                    if (!svl.keyboard.isShiftDown()) {
+                        setViewControlLayerCursor('OpenHand');
+                        // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                    } else {
+                        setViewControlLayerCursor('ZoomOut');
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+
+            }
+        } else {
+            setViewControlLayerCursor('default');
+            // $divViewControlLayer.css("cursor", "default");
+        }
+
+        if (mouseStatus.isLeftDown &&
+            status.disableWalking === false) {
+            //
+            // If a mouse is being dragged on the control layer, move the sv image.
+            var dx = mouseStatus.currX - mouseStatus.prevX;
+            var dy = mouseStatus.currY - mouseStatus.prevY;
+            var pov = svl.getPOV();
+            var zoom = pov.zoom;
+            var zoomLevel = svl.zoomFactor[zoom];
+
+            dx = dx / (2 * zoomLevel);
+            dy = dy / (2 * zoomLevel);
+            dx *= 1.5;
+            dy *= 1.5;
+            updatePov(dx, dy);
+        }
+
+        // Show label delete menu
+        if ('canvas' in svl && svl.canvas) {
+            var item = svl.canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
+            if (item && item.className === "Point") {
+                var path = item.belongsTo();
+                var selectedLabel = path.belongsTo();
+
+                svl.canvas.setCurrentLabel(selectedLabel);
+                svl.canvas.showLabelTag(selectedLabel);
+                svl.canvas.clear();
+                svl.canvas.render2();
+            } else if (item && item.className === "Label") {
+                var selectedLabel = item;
+                svl.canvas.setCurrentLabel(selectedLabel);
+                svl.canvas.showLabelTag(selectedLabel);
+            } else if (item && item.className === "Path") {
+                var label = item.belongsTo();
+                svl.canvas.clear();
+                svl.canvas.render2();
+                svl.canvas.showLabelTag(label);
+            }
+            else {
+                // canvas.hideDeleteLabel();
+                svl.canvas.showLabelTag(undefined);
+                svl.canvas.setCurrentLabel(undefined);
+            }
+        }
+
+        mouseStatus.prevX = mouseposition(e, this).x;
+        mouseStatus.prevY = mouseposition(e, this).y;
+    }
+
+    /**
+     *
+     * @param e
+     */
+    function handlerViewControlLayerMouseLeave (e) {
+        mouseStatus.isLeftDown = false;
+    }
+
+
+    /**
      * This method locks status.disableWalking
      * @returns {lockDisableWalking}
      */
@@ -842,190 +1027,6 @@ function Map ($, params) {
         } else {
             throw self.className + ' updatePov(): panorama not defined!';
         }
-    }
-
-    /**
-     * This is a callback function that is fired with the mouse down event
-     * on the view control layer (where you control street view angle.)
-     * @param e
-     */
-    function viewControlLayerMouseDown (e) {
-        mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = mouseposition(e, this).x;
-        mouseStatus.leftDownY = mouseposition(e, this).y;
-
-        if (!status.disableWalking) {
-            // Setting a cursor
-            // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-            try {
-                if (!svl.keyboard.isShiftDown()) {
-                    setViewControlLayerCursor('ClosedHand');
-                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                } else {
-                    setViewControlLayerCursor('ZoomOut');
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // Adding delegation on SVG elements
-        // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
-        // Or rather just attach a listener to svg and check it's target.
-        if (!status.panoLinkListenerSet) {
-            try {
-                $('svg')[0].addEventListener('click', function (e) {
-                    var targetPanoId = e.target.getAttribute('pano');
-                    if (targetPanoId) {
-                        svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
-                    }
-                });
-                status.panoLinkListenerSet = true;
-            } catch (err) {
-
-            }
-        }
-
-        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
-    }
-
-    /**
-     * This is a callback function that is called with mouse up event on
-     * the view control layer (where you change the Google Street view angle.
-     * @param e
-     */
-    function viewControlLayerMouseUp (e) {
-        var currTime;
-
-        mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = mouseposition(e, this).x;
-        mouseStatus.leftUpY = mouseposition(e, this).y;
-        svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
-
-        if (!status.disableWalking) {
-            // Setting a mouse cursor
-            // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-            try {
-                if (!svl.keyboard.isShiftDown()) {
-                    setViewControlLayerCursor('OpenHand');
-                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                } else {
-                    setViewControlLayerCursor('ZoomOut');
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        currTime = new Date().getTime();
-
-        if (currTime - mouseStatus.prevMouseUpTime < 300) {
-            // Double click
-            // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
-            if (!status.disableClickZoom) {
-                svl.tracker.push('ViewControl_DoubleClick');
-                if (svl.keyboard.isShiftDown()) {
-                    // If Shift is down, then zoom out with double click.
-                    svl.zoomControl.zoomOut();
-                    svl.tracker.push('ViewControl_ZoomOut');
-                } else {
-                    // If Shift is up, then zoom in wiht double click.
-                    // svl.zoomControl.zoomIn();
-                    svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
-                    svl.tracker.push('ViewControl_ZoomIn');
-                }
-            }
-
-        }
-        mouseStatus.prevMouseUpTime = currTime;
-    }
-
-    /**
-     * This is a callback function that is fired when a user moves a mouse on the
-     * view control layer where you change the pov.
-     */
-    function viewControlLayerMouseMove (e) {
-        mouseStatus.currX = mouseposition(e, this).x;
-        mouseStatus.currY = mouseposition(e, this).y;
-
-        //
-        // Show a link and fade it out
-        if (!status.disableWalking) {
-            showLinks(2000);
-            if (!mouseStatus.isLeftDown) {
-                try {
-                    if (!svl.keyboard.isShiftDown()) {
-                        setViewControlLayerCursor('OpenHand');
-                        // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                    } else {
-                        setViewControlLayerCursor('ZoomOut');
-                    }
-            } catch (e) {
-                    console.error(e);
-                }
-            } else {
-
-            }
-        } else {
-            setViewControlLayerCursor('default');
-            // $divViewControlLayer.css("cursor", "default");
-        }
-
-        if (mouseStatus.isLeftDown &&
-            status.disableWalking === false) {
-            //
-            // If a mouse is being dragged on the control layer, move the sv image.
-            var dx = mouseStatus.currX - mouseStatus.prevX;
-            var dy = mouseStatus.currY - mouseStatus.prevY;
-            var pov = svl.getPOV();
-            var zoom = pov.zoom;
-            var zoomLevel = svl.zoomFactor[zoom];
-
-            dx = dx / (2 * zoomLevel);
-            dy = dy / (2 * zoomLevel);
-            dx *= 1.5;
-            dy *= 1.5;
-            updatePov(dx, dy);
-        }
-
-        // Show label delete menu
-        if ('canvas' in svl && svl.canvas) {
-            var item = svl.canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-            if (item && item.className === "Point") {
-                var path = item.belongsTo();
-                var selectedLabel = path.belongsTo();
-
-                svl.canvas.setCurrentLabel(selectedLabel);
-                svl.canvas.showLabelTag(selectedLabel);
-                svl.canvas.clear();
-                svl.canvas.render2();
-            } else if (item && item.className === "Label") {
-                var selectedLabel = item;
-                svl.canvas.setCurrentLabel(selectedLabel);
-                svl.canvas.showLabelTag(selectedLabel);
-            } else if (item && item.className === "Path") {
-                var label = item.belongsTo();
-                svl.canvas.clear();
-                svl.canvas.render2();
-                svl.canvas.showLabelTag(label);
-            }
-            else {
-                // canvas.hideDeleteLabel();
-                svl.canvas.showLabelTag(undefined);
-                svl.canvas.setCurrentLabel(undefined);
-            }
-        }
-
-        mouseStatus.prevX = mouseposition(e, this).x;
-        mouseStatus.prevY = mouseposition(e, this).y;
-    }
-
-    /**
-     *
-     * @param e
-     */
-    function viewControlLayerMouseLeave (e) {
-        mouseStatus.isLeftDown = false;
     }
 
     /**
