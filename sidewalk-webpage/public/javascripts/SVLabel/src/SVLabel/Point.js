@@ -197,9 +197,17 @@ function Point (x, y, pov, params) {
                 imageHeight = imageWidth = 2 * r - 3;
                 imageX =  x - r + 2;
                 imageY = y - r + 2;
+
                 //ctx.globalAlpha = 0.5;
                 imageObj.src = imagePath;
-                ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+
+                try {
+                    ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+                } catch (e) {
+                    // console.debug(e);
+                }
+
+                //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
             }
             ctx.restore();
         }

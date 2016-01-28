@@ -2157,22 +2157,7 @@ function Canvas ($, param) {
             if (label) {
                 label.setTagVisibility('visible');
                 isAnyVisible = true;
-
-                //for (i = 0; i < labelLen; i += 1) {
-                //    //if (labels[i] === label) {
-                //    if (labels[i].getLabelId() === label.getLabelId()) {
-                //        labels[i].setTagVisibility('visible');
-                //        isAnyVisible = true;
-                //    } else {
-                //        labels[i].setTagVisibility('hidden');
-                //        labels[i].resetTagCoordinate();
-                //    }
-                //}
             } else {
-                //for (i = 0; i < labelLen; i++) {
-                //    labels[i].setTagVisibility('hidden');
-                //    labels[i].resetTagCoordinate();
-                //}
                 $divHolderLabelDeleteIcon.css('visibility', 'hidden');
             }
             // If any of the tags is visible, show a deleting icon on it.
@@ -4282,28 +4267,31 @@ function Label (pathIn, params) {
     function init (param, pathIn) {
         try {
             if (!pathIn) {
-                var errMsg = 'The passed "path" is empty.';
-                throw errMsg;
+                throw 'The passed "path" is empty.';
             } else {
                 path = pathIn;
             }
 
-            for (var attrName in properties) {
-                // It is ok if some attributes are not passed as parameters
-                if ((attrName === 'tagHeight' ||
-                     attrName === 'tagWidth' ||
-                     attrName === 'tagX' ||
-                     attrName === 'tagY' ||
-                     attrName === 'labelerId' ||
-                     attrName === 'photographerPov' ||
-                     attrName === 'photographerHeading' ||
-                     attrName === 'photographerPitch' ||
-                            attrName === 'distanceThreshold'
-                    ) &&
-                    !param[attrName]) {
-                    continue;
-                }
+            //for (var attrName in properties) {
+            //    // It is ok if some attributes are not passed as parameters
+            //    if ((attrName === 'tagHeight' ||
+            //         attrName === 'tagWidth' ||
+            //         attrName === 'tagX' ||
+            //         attrName === 'tagY' ||
+            //         attrName === 'labelerId' ||
+            //         attrName === 'photographerPov' ||
+            //         attrName === 'photographerHeading' ||
+            //         attrName === 'photographerPitch' ||
+            //                attrName === 'distanceThreshold'
+            //        ) &&
+            //        !param[attrName]) {
+            //        continue;
+            //    }
+            //
+            //    properties[attrName] = param[attrName];
+            //}
 
+            for (var attrName in param) {
                 properties[attrName] = param[attrName];
             }
 
@@ -4843,21 +4831,21 @@ function Label (pathIn, params) {
         imageHeight = imageWidth = 25;
         imageX =  tagX + 5;
         imageY = tagY + 2;
+        try {
+            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+        } catch (e) {
+            
+        }
 
-        //imageObj.onload = function () {
-
-        ///            };
         // ctx.globalAlpha = 0.5;
         imageObj.src = iconImagePath;
-        ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+        //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
 
         for (var i = 0; i < messages.length; i += 1) {
             ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
         }
         // ctx.fillText(msg, tagX, tagY + 17);
         ctx.restore();
-
-        return;
     }
 
 
@@ -8031,9 +8019,17 @@ function Point (x, y, pov, params) {
                 imageHeight = imageWidth = 2 * r - 3;
                 imageX =  x - r + 2;
                 imageY = y - r + 2;
+
                 //ctx.globalAlpha = 0.5;
                 imageObj.src = imagePath;
-                ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+
+                try {
+                    ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+                } catch (e) {
+                    // console.debug(e);
+                }
+
+                //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
             }
             ctx.restore();
         }

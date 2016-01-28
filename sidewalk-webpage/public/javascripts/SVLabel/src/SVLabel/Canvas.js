@@ -1096,22 +1096,7 @@ function Canvas ($, param) {
             if (label) {
                 label.setTagVisibility('visible');
                 isAnyVisible = true;
-
-                //for (i = 0; i < labelLen; i += 1) {
-                //    //if (labels[i] === label) {
-                //    if (labels[i].getLabelId() === label.getLabelId()) {
-                //        labels[i].setTagVisibility('visible');
-                //        isAnyVisible = true;
-                //    } else {
-                //        labels[i].setTagVisibility('hidden');
-                //        labels[i].resetTagCoordinate();
-                //    }
-                //}
             } else {
-                //for (i = 0; i < labelLen; i++) {
-                //    labels[i].setTagVisibility('hidden');
-                //    labels[i].resetTagCoordinate();
-                //}
                 $divHolderLabelDeleteIcon.css('visibility', 'hidden');
             }
             // If any of the tags is visible, show a deleting icon on it.

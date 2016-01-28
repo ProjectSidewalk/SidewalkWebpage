@@ -58,28 +58,31 @@ function Label (pathIn, params) {
     function init (param, pathIn) {
         try {
             if (!pathIn) {
-                var errMsg = 'The passed "path" is empty.';
-                throw errMsg;
+                throw 'The passed "path" is empty.';
             } else {
                 path = pathIn;
             }
 
-            for (var attrName in properties) {
-                // It is ok if some attributes are not passed as parameters
-                if ((attrName === 'tagHeight' ||
-                     attrName === 'tagWidth' ||
-                     attrName === 'tagX' ||
-                     attrName === 'tagY' ||
-                     attrName === 'labelerId' ||
-                     attrName === 'photographerPov' ||
-                     attrName === 'photographerHeading' ||
-                     attrName === 'photographerPitch' ||
-                            attrName === 'distanceThreshold'
-                    ) &&
-                    !param[attrName]) {
-                    continue;
-                }
+            //for (var attrName in properties) {
+            //    // It is ok if some attributes are not passed as parameters
+            //    if ((attrName === 'tagHeight' ||
+            //         attrName === 'tagWidth' ||
+            //         attrName === 'tagX' ||
+            //         attrName === 'tagY' ||
+            //         attrName === 'labelerId' ||
+            //         attrName === 'photographerPov' ||
+            //         attrName === 'photographerHeading' ||
+            //         attrName === 'photographerPitch' ||
+            //                attrName === 'distanceThreshold'
+            //        ) &&
+            //        !param[attrName]) {
+            //        continue;
+            //    }
+            //
+            //    properties[attrName] = param[attrName];
+            //}
 
+            for (var attrName in param) {
                 properties[attrName] = param[attrName];
             }
 
@@ -619,21 +622,21 @@ function Label (pathIn, params) {
         imageHeight = imageWidth = 25;
         imageX =  tagX + 5;
         imageY = tagY + 2;
+        try {
+            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+        } catch (e) {
+            
+        }
 
-        //imageObj.onload = function () {
-
-        ///            };
         // ctx.globalAlpha = 0.5;
         imageObj.src = iconImagePath;
-        ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+        //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
 
         for (var i = 0; i < messages.length; i += 1) {
             ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
         }
         // ctx.fillText(msg, tagX, tagY + 17);
         ctx.restore();
-
-        return;
     }
 
 
