@@ -170,7 +170,9 @@ function Task ($, turf) {
 
     /** Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add */
     /** Return the sum of square of lat and lng diffs */
-    function norm (lat1, lng1, lat2, lng2) { return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2); }
+    function norm (lat1, lng1, lat2, lng2) {
+        return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
+    }
 
     /**
      * Get a distance between a point and a segment
@@ -180,8 +182,8 @@ function Task ($, turf) {
      */
     function pointSegmentDistance(point, segment) {
         var snapped = turf.pointOnLine(segment, point),
-            snappedLat = snapped.geometry.coordinates[0][1],
-            snappedLng = snapped.geometry.coordinates[0][0],
+            snappedLat = snapped.geometry.coordinates[1],
+            snappedLng = snapped.geometry.coordinates[0],
             coords = segment.geometry.coordinates;
         if (Math.min(coords[0][0], coords[1][0]) <= snappedLng &&
             snappedLng <= Math.max(coords[0][0], coords[1][0]) &&
@@ -275,7 +277,7 @@ function Task ($, turf) {
         completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
         incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
 
-        for (var i = closestSegmentIndex + 1; i < coords.length - 1; i++) {
+        for (var i = closestSegmentIndex; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
 

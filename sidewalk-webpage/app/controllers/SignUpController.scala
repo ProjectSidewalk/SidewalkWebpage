@@ -52,32 +52,26 @@ class SignUpController @Inject() (
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
             val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
-
-//            userService.retrieve(loginInfo).flatMap {
-//              case Some(user) =>
-//                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
-//              case None =>
-                val authInfo = passwordHasher.hash(data.password)
-                val user = User(
-                  userId = UUID.randomUUID(),
-                  loginInfo = loginInfo,
-                  username = data.username,
-                  email = data.email
-                )
-                for {
-                  user <- userService.save(user)
-                  authInfo <- authInfoService.save(loginInfo, authInfo)
-                  authenticator <- env.authenticatorService.create(user.loginInfo)
-                  value <- env.authenticatorService.init(authenticator)
-                  result <- env.authenticatorService.embed(value, Future.successful(
-                    Redirect(url)
-                  ))
-                } yield {
-                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
-                  env.eventBus.publish(LoginEvent(user, request, request2lang))
-                  result
-                }
-//            }
+            val authInfo = passwordHasher.hash(data.password)
+            val user = User(
+              userId = UUID.randomUUID(),
+              loginInfo = loginInfo,
+              username = data.username,
+              email = data.email
+            )
+            for {
+              user <- userService.save(user)
+              authInfo <- authInfoService.save(loginInfo, authInfo)
+              authenticator <- env.authenticatorService.create(user.loginInfo)
+              value <- env.authenticatorService.init(authenticator)
+              result <- env.authenticatorService.embed(value, Future.successful(
+                Redirect(url)
+              ))
+            } yield {
+              env.eventBus.publish(SignUpEvent(user, request, request2lang))
+              env.eventBus.publish(LoginEvent(user, request, request2lang))
+              result
+            }
         }
       }
     )
