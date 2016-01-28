@@ -998,8 +998,8 @@ function Canvas ($, param) {
         // Check if the user audited all the angles or not.
         if ('form' in svl) { svl.form.checkSubmittable(); }
 
-        // Update the completion rate
-        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
+        //// Update the completion rate
+        //if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
 
         // Update the landmark counts on the right side of the interface.
         if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }

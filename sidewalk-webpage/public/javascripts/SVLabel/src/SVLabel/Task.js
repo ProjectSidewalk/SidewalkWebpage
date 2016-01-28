@@ -247,7 +247,8 @@ function Task ($, turf) {
      * @param lat
      * @param lng
      */
-    function getTaskCompletionRate (lat, lng) {
+    function getTaskCompletionRate () {
+        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng;
         var line = taskSetting.features[0];
         var currentPoint = { "type": "Feature", "properties": {},
             geometry: {
@@ -328,8 +329,7 @@ function Task ($, turf) {
                     paths[i].setMap(null);
                 }
 
-                var latlng = svl.getPosition();
-                var taskCompletion = getTaskCompletionRate(latlng.lat, latlng.lng);
+                var taskCompletion = getTaskCompletionRate();
 
                 if (taskCompletionRate < taskCompletion.taskCompletionRate) {
                     taskCompletionRate = taskCompletion.taskCompletionRate
@@ -371,6 +371,7 @@ function Task ($, turf) {
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
+    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; }
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
     self.load = load;

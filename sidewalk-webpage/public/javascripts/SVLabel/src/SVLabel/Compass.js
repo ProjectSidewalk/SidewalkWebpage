@@ -4,16 +4,24 @@ function Compass ($) {
         status = {},
         properties = {};
 
-    var height = 50, width = 50, padding = 5,
+    var height = 50, width = 50, padding = {
+        top: 5,
+        right: 5,
+        bottom: 5,
+        left: 5
+    },
         needleRadius = 10,
         el = d3.select('#compass-holder'),
         svg = el.append('svg'),
-        chart = svg.append('g');
+        chart = svg.append('g'),
+        label = svg.append('g');
 
-    svg.attr('width', width + 2 * padding)
-        .attr('height', height + 2 * padding)
-        .style({ position: 'absolute', left: 660, top: 520 });
-    chart.transition(100).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
+    svg.attr('width', width + padding.left + padding.right)
+        .attr('height', height + padding.top + padding.bottom + 30)
+        .style({ position: 'absolute', left: 660, top: 510 });
+    chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
+    // label.attr('transform', 'translate(0, 0)');
+
     chart.append('circle')
         .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
         .attr('fill', 'black');
@@ -23,6 +31,18 @@ function Compass ($) {
     chart.append('path')
         .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L -10 9')
         .attr('fill', 'white');
+
+
+    //label.append('text')
+    //    .attr("x", 0)
+    //    .attr("y", 65)
+    //    .attr("dy", ".35em")
+    //    .text("Walking direction")
+    //    .style({
+    //        visibility: 'visible',
+    //        fill: 'white',
+    //        font: '10px sans-serif'
+    //    });
 
 
     /**
@@ -66,7 +86,7 @@ function Compass ($) {
     function update () {
         var compassAngle = getCompassAngle();
         // chart.transition(100)
-            chart.transition(100).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
+            chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
     }
 
     self.update = update;

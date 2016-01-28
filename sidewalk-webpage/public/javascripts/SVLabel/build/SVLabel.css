@@ -1173,6 +1173,9 @@ footer {
     color: #888;
     font-size: 8pt;
     width: 40px;
+    position: relative;
+    left: 120px;
+    bottom: 15px;
 }
 #progress-holder {
     position: relative;

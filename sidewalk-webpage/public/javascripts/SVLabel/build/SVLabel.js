@@ -2059,8 +2059,8 @@ function Canvas ($, param) {
         // Check if the user audited all the angles or not.
         if ('form' in svl) { svl.form.checkSubmittable(); }
 
-        // Update the completion rate
-        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
+        //// Update the completion rate
+        //if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
 
         // Update the landmark counts on the right side of the interface.
         if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
@@ -2342,16 +2342,24 @@ function Compass ($) {
         status = {},
         properties = {};
 
-    var height = 50, width = 50, padding = 5,
+    var height = 50, width = 50, padding = {
+        top: 5,
+        right: 5,
+        bottom: 5,
+        left: 5
+    },
         needleRadius = 10,
         el = d3.select('#compass-holder'),
         svg = el.append('svg'),
-        chart = svg.append('g');
+        chart = svg.append('g'),
+        label = svg.append('g');
 
-    svg.attr('width', width + 2 * padding)
-        .attr('height', height + 2 * padding)
-        .style({ position: 'absolute', left: 660, top: 520 });
-    chart.transition(100).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ')');
+    svg.attr('width', width + padding.left + padding.right)
+        .attr('height', height + padding.top + padding.bottom + 30)
+        .style({ position: 'absolute', left: 660, top: 510 });
+    chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
+    // label.attr('transform', 'translate(0, 0)');
+
     chart.append('circle')
         .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
         .attr('fill', 'black');
@@ -2361,6 +2369,18 @@ function Compass ($) {
     chart.append('path')
         .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L -10 9')
         .attr('fill', 'white');
+
+
+    //label.append('text')
+    //    .attr("x", 0)
+    //    .attr("y", 65)
+    //    .attr("dy", ".35em")
+    //    .text("Walking direction")
+    //    .style({
+    //        visibility: 'visible',
+    //        fill: 'white',
+    //        font: '10px sans-serif'
+    //    });
 
 
     /**
@@ -2404,7 +2424,7 @@ function Compass ($) {
     function update () {
         var compassAngle = getCompassAngle();
         // chart.transition(100)
-            chart.transition(100).attr('transform', 'translate(' + (height / 2) + ', ' + (width / 2) + ') rotate(' + (-compassAngle) + ')');
+            chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
     }
 
     self.update = update;
@@ -6295,9 +6315,8 @@ function Map ($, params) {
             }
         }
 
-        if ('compass' in svl) {
-            svl.compass.update();
-        }
+        if ('compass' in svl) { svl.compass.update(); }
+        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
     }
 
     /**
@@ -8600,27 +8619,23 @@ var svl = svl || {};
  * @constructor
  */
 function ProgressPov ($, param) {
-    var oPublic = {className: 'ProgressPov'};
+    var self = {className: 'ProgressPov'};
     var status = {
         currentCompletionRate: 0,
         previousHeading: 0,
         surveyedAngles: undefined
     };
-    var properties = {};
 
     var $divCurrentCompletionRate;
     var $divCurrentCompletionBar;
     var $divCurrentCompletionBarFiller;
 
-    ////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////
+
     function _init(param) {
         $divCurrentCompletionRate = svl.ui.progressPov.rate;
         $divCurrentCompletionBar = svl.ui.progressPov.bar;
         $divCurrentCompletionBarFiller = svl.ui.progressPov.filler;
 
-        //
         // Fill in the surveyed angles
         status.surveyedAngles = new Array(100);
         for (var i=0; i < 100; i++) {
@@ -8642,70 +8657,23 @@ function ProgressPov ($, param) {
         printCompletionRate();
     }
 
+    /**
+     * This method prints what percent of the intersection the user has observed.
+     * @returns {printCompletionRate}
+     */
     function printCompletionRate () {
-        // This method prints what percent of the intersection the user has observed.
-        var completionRate = oPublic.getCompletionRate() * 100;
+        var completionRate = getCompletionRate() * 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "%";
         $divCurrentCompletionRate.html(completionRate);
         return this;
     }
 
-    function oneDimensionalMorphology (arr, radius) {
-        if (!radius) {
-            radius = 5;
-        }
-
-        var newArr = new Array(arr.length);
-        var len = arr.length;
-        var i;
-        var r;
-        var rIndex;
-
-        for (i = 0; i < len; i++) {
-            newArr[i] = 0;
-        }
-
-        //
-        // Expand
-        for (i = 0; i < len; i++) {
-            if (arr[i] == 1) {
-                newArr[i] = 1;
-                for (r = 1; r < radius; r++) {
-                    rIndex = (i + r + len) % len;
-                    newArr[rIndex] = 1;
-                    rIndex = (i - r + len) % len;
-                    newArr[rIndex] = 1;
-                }
-            }
-        }
-
-        var arr = $.extend(true, [], newArr);
-
-        //
-        // Contract
-        for (i = 0; i < len; i++) {
-            if (arr[i] == 0) {
-                newArr[i] = 0;
-                for (r = 1; r < radius; r++) {
-                    rIndex = (i + r + len) % len;
-                    newArr[rIndex] = 0;
-                    rIndex = (i - r + len) % len;
-                    newArr[rIndex] = 0;
-                }
-            }
-        }
-
-        return newArr;
-    }
-
+    /**
+     * This method updates the filler of the completion bar
+     */
     function updateCompletionBar () {
-        // This method updates the filler of the completion bar
-        var completionRate = oPublic.getCompletionRate();
-        var r;
-        var g;
-        var color;
-
+        var r, g, color, completionRate = getCompletionRate();
         var colorIntensity = 255;
         if (completionRate < 0.5) {
             r = colorIntensity;
@@ -8716,7 +8684,6 @@ function ProgressPov ($, param) {
         }
 
         color = 'rgba(' + r + ',' + g + ',0,1)';
-
         completionRate *=  100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate -= 0.8;
@@ -8727,114 +8694,78 @@ function ProgressPov ($, param) {
         });
     }
 
+    /**
+     * This method updates the printed completion rate and the bar.
+     */
     function updateCompletionRate () {
-        // This method updates the printed completion rate and the bar.
         printCompletionRate();
         updateCompletionBar();
     }
 
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    oPublic.getCompletionRate = function () {
-        // This method returns what percent of the intersection the user has observed.
-        try {
-            if (status.currentCompletionRate < 1) {
-                var headingRange = 25;
-                var pov = svl.getPOV();
-                var heading = pov.heading;
-                var headingMin = (heading - headingRange + 360) % 360;
-                var headingMax = (heading + headingRange) % 360;
-                var indexMin = Math.floor(headingMin / 360 * 100);
-                var indexMax = Math.floor(headingMax / 360 * 100);
-                var i = 0;
-                if (indexMin < indexMax) {
-                    for (i = indexMin; i < indexMax; i++) {
-                        status.surveyedAngles[i] = 1;
-                    }
-                } else {
-                    for (i = indexMin; i < 100; i++) {
-                        status.surveyedAngles[i] = 1;
-                    }
-                    for (i = 0; i < indexMax; i++) {
-                        status.surveyedAngles[i] = 1;
-                    }
-                }
+    /**
+     * This method returns what percent of the intersection the user has observed.
+     * @returns {number}
+     */
+    function getCompletionRate () {
+        return ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
 
-                //
-                // Added Aug 28th.
-                // Todo. The part above is redundunt. Fix it later.
-                // Fill in gaps in surveyedAngles
-//                var indexCenter = Math.floor(heading / 360 * 100);
-//                var previousHeading = status.previousHeading;
-//                if (heading !== previousHeading) {
-//                    var previousIndex = Math.floor(previousHeading / 360 * 100);
-//                    var delta = heading - previousHeading;
-//                    // if ((delta > 0 && delta < 359) || delta < -359) {
-//                    if ((delta > 0 && delta < 300) || delta < -300) {
-//                        // Fill in the gap from left to right
-//                        for (i = previousIndex;;i++) {
-//                            if (i == status.surveyedAngles.length) {
-//                                i = 0;
-//                            }
-//                            status.surveyedAngles[i] = 1;
-//                            if (i == indexCenter) {
-//                                break;
-//                            }
-//
-//                        }
-//                    } else {
-//                        // Fill in the gap from right to left.
-//                        for (i = previousIndex;;i--) {
-//                            if (i == -1) {
-//                                i = status.surveyedAngles.length - 1;
-//                            }
-//                            status.surveyedAngles[i] = 1;
-//                            if (i == indexCenter) {
-//                                break;
-//                            }
-//
-//                        }
-//                    }
-//                }
+        //try {
+        //    if (status.currentCompletionRate < 1) {
+        //        var headingRange = 25;
+        //        var pov = svl.getPOV();
+        //        var heading = pov.heading;
+        //        var headingMin = (heading - headingRange + 360) % 360;
+        //        var headingMax = (heading + headingRange) % 360;
+        //        var indexMin = Math.floor(headingMin / 360 * 100);
+        //        var indexMax = Math.floor(headingMax / 360 * 100);
+        //        var i = 0;
+        //        if (indexMin < indexMax) {
+        //            for (i = indexMin; i < indexMax; i++) {
+        //                status.surveyedAngles[i] = 1;
+        //            }
+        //        } else {
+        //            for (i = indexMin; i < 100; i++) {
+        //                status.surveyedAngles[i] = 1;
+        //            }
+        //            for (i = 0; i < indexMax; i++) {
+        //                status.surveyedAngles[i] = 1;
+        //            }
+        //        }
+        //
+        //        var total = status.surveyedAngles.reduce(function(a, b) {return a + b});
+        //        status.currentCompletionRate = total / 100;
+        //
+        //        status.previousHeading = heading;
+        //        return total / 100;
+        //    } else {
+        //        return 1;
+        //    }
+        //} catch (e) {
+        //    return 0;
+        //}
+    }
 
-                // status.surveyedAngles = oneDimensionalMorphology(status.surveyedAngles);
 
-                var total = status.surveyedAngles.reduce(function(a, b) {return a + b});
-                status.currentCompletionRate = total / 100;
-
-                status.previousHeading = heading;
-                return total / 100;
-            } else {
-                return 1;
-            }
-        } catch (e) {
-            return 0;
-        }
-    };
-
-    oPublic.setCompletedHeading = function (range) {
-        // This method manipulates the surveyed angle
+    function setCompletedHeading (range) {
         var headingMin = range[0];
         var headingMax = range[1];
 
         var indexMin = Math.floor(headingMin / 360 * 100);
         var indexMax = Math.floor(headingMax / 360 * 100);
 
-        var i;
-        for (i = indexMin; i < indexMax; i++) {
+        for (var i = indexMin; i < indexMax; i++) {
             status.surveyedAngles[i] = 1;
         }
 
         return this;
-    };
+    }
 
-    oPublic.updateCompletionRate = function () {
-          return updateCompletionRate();
-    };
+    self.getCompletionRate = getCompletionRate;
+    self.setCompletedHeading = setCompletedHeading;
+    self.updateCompletionRate = updateCompletionRate;
 
     _init(param);
-    return oPublic;
+    return self;
 }
 
 var svl = svl || {};
@@ -10449,7 +10380,8 @@ function Task ($, turf) {
      * @param lat
      * @param lng
      */
-    function getTaskCompletionRate (lat, lng) {
+    function getTaskCompletionRate () {
+        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng;
         var line = taskSetting.features[0];
         var currentPoint = { "type": "Feature", "properties": {},
             geometry: {
@@ -10530,8 +10462,7 @@ function Task ($, turf) {
                     paths[i].setMap(null);
                 }
 
-                var latlng = svl.getPosition();
-                var taskCompletion = getTaskCompletionRate(latlng.lat, latlng.lng);
+                var taskCompletion = getTaskCompletionRate();
 
                 if (taskCompletionRate < taskCompletion.taskCompletionRate) {
                     taskCompletionRate = taskCompletion.taskCompletionRate
@@ -10573,6 +10504,7 @@ function Task ($, turf) {
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
+    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; }
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
     self.load = load;
@@ -10770,9 +10702,7 @@ function UI ($, params) {
     self.streetViewPane = {};
     params = params || {};
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
+
     function _init (params) {
       // Todo. Use better templating techniques rather so it's prettier!
 
@@ -10832,10 +10762,10 @@ function UI ($, params) {
       // ProgressPov
       self.progressPov = {};
       self.progressPov.holder = $("#progress-pov-holder");
-      self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Observed area:</div>");
+      self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Task completion rate:</div>");
       self.progressPov.holder.append("<div id='progress-pov-current-completion-bar'></div>");
       self.progressPov.holder.append("<div id='progress-pov-current-completion-bar-filler'></div>");
-      self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'>Hi</div>");
+      self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'></div>");
       self.progressPov.rate = $("#progress-pov-current-completion-rate");
       self.progressPov.bar = $("#progress-pov-current-completion-bar");
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");

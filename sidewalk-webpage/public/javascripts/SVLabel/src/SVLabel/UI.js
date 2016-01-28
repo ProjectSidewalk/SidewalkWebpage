@@ -13,9 +13,7 @@ function UI ($, params) {
     self.streetViewPane = {};
     params = params || {};
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
+
     function _init (params) {
       // Todo. Use better templating techniques rather so it's prettier!
 
@@ -75,10 +73,10 @@ function UI ($, params) {
       // ProgressPov
       self.progressPov = {};
       self.progressPov.holder = $("#progress-pov-holder");
-      self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Observed area:</div>");
+      self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Task completion rate:</div>");
       self.progressPov.holder.append("<div id='progress-pov-current-completion-bar'></div>");
       self.progressPov.holder.append("<div id='progress-pov-current-completion-bar-filler'></div>");
-      self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'>Hi</div>");
+      self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'></div>");
       self.progressPov.rate = $("#progress-pov-current-completion-rate");
       self.progressPov.bar = $("#progress-pov-current-completion-bar");
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
