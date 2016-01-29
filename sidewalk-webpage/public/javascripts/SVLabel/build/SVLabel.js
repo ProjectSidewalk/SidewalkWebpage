@@ -1164,7 +1164,7 @@ function Canvas ($, param) {
 
     // jQuery doms
     var $divLabelDrawingLayer = $("div#labelDrawingLayer").length === 0 ? null : $("div#labelDrawingLayer");
-    var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon").length === 0 ? null : $("#Holder_LabelDeleteIcon");
+    var $divHolderLabelDeleteIcon = $("#delete-icon-holder").length === 0 ? null : $("#delete-icon-holder");
     var $labelDeleteIcon = $("#LabelDeleteIcon").length === 0 ? null : $("#LabelDeleteIcon");
 
     // Initialization
@@ -4834,13 +4834,12 @@ function Label (pathIn, params) {
         try {
             ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
         } catch (e) {
-            
+
         }
 
         // ctx.globalAlpha = 0.5;
         imageObj.src = iconImagePath;
         //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-
         for (var i = 0; i < messages.length; i += 1) {
             ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
         }
@@ -5071,7 +5070,7 @@ function Label (pathIn, params) {
                 y = boundingBox.y;
 
             // Show a delete button
-            var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon");
+            var $divHolderLabelDeleteIcon = $("#delete-icon-holder");
             $divHolderLabelDeleteIcon.css({
                 visibility: 'visible',
                 left : x, // + width - 5,

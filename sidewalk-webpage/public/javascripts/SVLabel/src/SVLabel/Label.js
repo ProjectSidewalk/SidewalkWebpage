@@ -625,13 +625,12 @@ function Label (pathIn, params) {
         try {
             ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
         } catch (e) {
-            
+
         }
 
         // ctx.globalAlpha = 0.5;
         imageObj.src = iconImagePath;
         //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-
         for (var i = 0; i < messages.length; i += 1) {
             ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
         }
@@ -862,7 +861,7 @@ function Label (pathIn, params) {
                 y = boundingBox.y;
 
             // Show a delete button
-            var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon");
+            var $divHolderLabelDeleteIcon = $("#delete-icon-holder");
             $divHolderLabelDeleteIcon.css({
                 visibility: 'visible',
                 left : x, // + width - 5,

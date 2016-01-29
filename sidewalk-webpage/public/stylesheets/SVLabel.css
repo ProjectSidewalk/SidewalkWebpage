@@ -396,7 +396,7 @@ input#Text_BusStopAbsenceOtherReason {
 }
 
 
-#Holder_LabelDeleteIcon {
+#delete-icon-holder {
     cursor: pointer;
     visibility: hidden;
     /* Position */

@@ -22,14 +22,14 @@
 }
 
 
-#Holder_LabelDeleteIcon {
+#delete-icon-holder {
     cursor: pointer;
     visibility: hidden;
     /* Position */
     position: absolute;
     width: 30px;
     height: 30px;
-    left: 0px;
+    left: 0;
     top: 10px;
 }
 

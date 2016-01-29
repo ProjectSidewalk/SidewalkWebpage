@@ -531,14 +531,14 @@ input#Text_BusStopAbsenceOtherReason {
 }
 
 
-#Holder_LabelDeleteIcon {
+#delete-icon-holder {
     cursor: pointer;
     visibility: hidden;
     /* Position */
     position: absolute;
     width: 30px;
     height: 30px;
-    left: 0px;
+    left: 0;
     top: 10px;
 }
 
@@ -569,6 +569,37 @@ input#Text_BusStopAbsenceOtherReason {
     top:-100px;
     width: 200px;
     height: 370px;
+}
+#context-menu-holder {
+    position: relative;
+    top: 0;
+    left: 0;
+    /*width: 200px;*/
+    height: 150px;
+    background-color: white;
+}
+
+#severity-menu {
+    height: 50px;
+}
+
+#severity-menu .radio-inline {
+    font-size: 8pt;
+}
+
+#severity-menu .radio-inline label {
+    padding: 4px 0 0 0;
+}
+
+#severity-menu .radio-inline label div {
+    position: relative;
+    top: 20px;
+    left: -17px;
+}
+
+#severity-radio-holder span {
+    font-size: 8pt;
+    padding: 0 5px 0 5px;
 }
 #HolderTooltip {
     background: rgba(0,0,0,0.8);

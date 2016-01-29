@@ -95,11 +95,41 @@
                             <canvas id="label-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         </div>
                     </div>
-                    <div id="Holder_LabelDeleteIcon">
+                    <div id="delete-icon-holder">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="LabelDeleteIcon" />
                     </div>
                     <div id="Holder_LabelEditIcon">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Edit.png")' id="LabelEditIcon" />
+                    </div>
+                    <div id="context-menu-holder">
+                        <div id="severity-menu">
+                            <div id="severity-radio-holder">
+                                <span>Passable</span>
+                                <div class="radio-inline">
+                                    <label><input type="radio" name="problem-severity"><div>1</div></label>
+                                </div>
+                                <div class="radio-inline">
+                                    <label><input type="radio" name="problem-severity"><div>2</div></label>
+                                </div>
+                                <div class="radio-inline">
+                                    <label><input type="radio" name="problem-severity"><div>3</div></label>
+                                </div>
+                                <div class="radio-inline">
+                                    <label><input type="radio" name="problem-severity"><div>4</div></label>
+                                </div>
+                                <div class="radio-inline">
+                                    <label><input type="radio" name="problem-severity"><div>5</div></label>
+                                </div>
+                                <span>Not Passable</span>
+                            </div>
+                        </div>
+                        <div id="problem-property-menu">
+                            <div>
+                                <div class="checkbox-inline">
+                                    <label><input type="checkbox" value="">Temporary Problem</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="status-holder" class="Window_Feedback">

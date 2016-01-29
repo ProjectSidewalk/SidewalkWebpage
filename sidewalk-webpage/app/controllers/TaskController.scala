@@ -7,7 +7,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.{GeometryFactory, PrecisionModel, Coordinate, Point}
-import controllers.SidewalkController._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
 import models.User
@@ -15,7 +14,6 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
-import models.sidewalk.SidewalkEdgeTable
 import models.street.StreetEdgeAssignmentCountTable
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
@@ -38,7 +36,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def audit = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => {
+      case Some(user) =>
         // Check if s/he has gone through an onboarding.
         //        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
         //          case Some("completed") => AuditTaskTable.getNewTask(user.username)
@@ -46,8 +44,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         //        }
         val task: NewTask = AuditTaskTable.getNewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
-      }
-      case None => {
+      case None =>
         // Check if s/he has gone through an onboarding.
         val cookie = request.cookies.get("sidewalk-onboarding")
         val task: NewTask = AuditTaskTable.getNewTask
@@ -57,7 +54,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         //          case _ => AuditTaskTable.getOnboardingTask
         //        }
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
-      }
     }
   }
 
@@ -107,9 +103,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a next task.
-   * @param streetEdgeId
-   * @param lat
-   * @param lng
+   * @param streetEdgeId street edge id
+   * @param lat current latitude
+   * @param lng current longitude
    * @return
    */
   def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
@@ -118,7 +114,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a next task, but make sure the task is in the specified region.
-   * @param regionId
+   * @param regionId Region id
    * @return
    */
   def getTaskInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -156,7 +152,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
 
           // Check if there is auditTaskId
-          val auditTaskId: Int = if (data.auditTask.auditTaskId != None) {
+          val auditTaskId: Int = if (data.auditTask.auditTaskId.isDefined) {
             data.auditTask.auditTaskId.get
           } else {
             // Insert audit task

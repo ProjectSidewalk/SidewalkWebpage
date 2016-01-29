@@ -103,7 +103,7 @@ function Canvas ($, param) {
 
     // jQuery doms
     var $divLabelDrawingLayer = $("div#labelDrawingLayer").length === 0 ? null : $("div#labelDrawingLayer");
-    var $divHolderLabelDeleteIcon = $("#Holder_LabelDeleteIcon").length === 0 ? null : $("#Holder_LabelDeleteIcon");
+    var $divHolderLabelDeleteIcon = $("#delete-icon-holder").length === 0 ? null : $("#delete-icon-holder");
     var $labelDeleteIcon = $("#LabelDeleteIcon").length === 0 ? null : $("#LabelDeleteIcon");
 
     // Initialization
