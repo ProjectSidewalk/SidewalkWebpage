@@ -82,16 +82,24 @@ function UI ($, params) {
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
       // Ribbon menu DOMs
-      $divStreetViewHolder = $("#Holder_StreetView");
-      $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
-      $ribbonConnector = $("#StreetViewLabelRibbonConnection");
-      $spansModeSwitches = $('span.modeSwitch');
+      var $divStreetViewHolder = $("#Holder_StreetView");
+      var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+      var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+      var $spansModeSwitches = $('span.modeSwitch');
 
       self.ribbonMenu = {};
       self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
       self.ribbonMenu.buttons = $spansModeSwitches;
       self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
       self.ribbonMenu.connector = $ribbonConnector;
+
+
+          // Context menu
+          self.contextMenu = {};
+          self.contextMenu.holder = $("#context-menu-holder");
+        self.contextMenu.connector = $("#context-menu-vertical-connector");
+        self.contextMenu.radioButtons = $("input[name='problem-severity']");
+        self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
 
       // Zoom control
       self.zoomControl = {};

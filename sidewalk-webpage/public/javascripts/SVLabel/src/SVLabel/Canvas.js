@@ -191,8 +191,15 @@ function Canvas ($, param) {
         }
 
         status.currentLabel = svl.labelFactory.create(path, param);
-        labels.push(status.currentLabel);
+        labels.push(status.currentLabel);  // Todo. Delete this. I think this is not necessary.
         svl.labelContainer.push(status.currentLabel);
+
+        if ('contextMenu' in svl) {
+            svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
+                targetLabel: status.currentLabel,
+                targetLabelColor: labelColor.fillStyle
+            });
+        }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
         svl.actionStack.push('addLabel', status.currentLabel);

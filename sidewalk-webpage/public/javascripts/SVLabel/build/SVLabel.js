@@ -1252,8 +1252,15 @@ function Canvas ($, param) {
         }
 
         status.currentLabel = svl.labelFactory.create(path, param);
-        labels.push(status.currentLabel);
+        labels.push(status.currentLabel);  // Todo. Delete this. I think this is not necessary.
         svl.labelContainer.push(status.currentLabel);
+
+        if ('contextMenu' in svl) {
+            svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
+                targetLabel: status.currentLabel,
+                targetLabelColor: labelColor.fillStyle
+            });
+        }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
         svl.actionStack.push('addLabel', status.currentLabel);
@@ -2423,6 +2430,148 @@ function Compass ($) {
     return self;
 }
 
+function ContextMenu ($) {
+    var self = { className: "ContextMenu" },
+        status = {
+            targetLabel: null,
+            visibility: 'hidden'
+        };
+    var $menuWindow = svl.ui.contextMenu.holder,
+        $connector = svl.ui.contextMenu.connector,
+        $radioButtons = svl.ui.contextMenu.radioButtons,
+        $temporaryProblemCheckbox = svl.ui.contextMenu.temporaryProblemCheckbox,
+        windowWidth = $menuWindow.width();
+
+    document.addEventListener("mousedown", hide);
+    $menuWindow.on('mousedown', handleMenuWindowMouseDown);
+    $radioButtons.on('change', handleRadioChange);
+    $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
+
+
+    /**
+     * Returns a status
+     * @param key
+     * @returns {null}
+     */
+    function getStatus (key) {
+        return (key in status) ? status[key] : null;
+    }
+
+    /**
+     * Get the current target label
+     * @returns {null}
+     */
+    function getTargetLabel () {
+        return getStatus('targetLabel');
+    }
+
+    /**
+     * Combined with document.addEventListener("mousedown", hide), this method will close the context menu window
+     * when user clicks somewhere on the window except for the area on the context menu window.
+     * @param e
+     */
+    function handleMenuWindowMouseDown (e) {
+        e.stopPropagation();
+    }
+
+    /**
+     *
+     * @param e
+     */
+    function handleRadioChange (e) {
+        var severity = parseInt($(this).val(), 10),
+            label = getTargetLabel();
+
+        if (label) {
+            label.setProperty('severity', severity);
+        }
+    }
+
+    /**
+     *
+     * @param e
+     */
+    function handleTemporaryProblemCheckboxChange (e) {
+        var checked = $(this).is(":checked"),
+            label = getTargetLabel();
+        if (label) {
+            label.setProperty('temporaryProblem', checked);
+        }
+    }
+
+    /**
+     * Hide the context menu
+     * @returns {hide}
+     */
+    function hide () {
+        $menuWindow.css('visibility', 'hidden');
+        setBorderColor('black');
+        setStatus('visibility', 'hidden');
+        return this;
+    }
+
+    /**
+     * Checks if the menu is open or not
+     * @returns {boolean}
+     */
+    function isOpen() {
+        return getStatus('visibility') == 'visible';
+    }
+
+    /**
+     * Set the border color of the menu window
+     * @param color
+     */
+    function setBorderColor(color) {
+        $menuWindow.css('border-color', color);
+        $connector.css('background-color', color);
+    }
+
+    /**
+     * Sets a status
+     * @param key
+     * @param value
+     * @returns {setStatus}
+     */
+    function setStatus (key, value) {
+        status[key] = value;
+        return this;
+    }
+
+    /**
+     * Show the context menu
+     * @param x x-coordinate on the canvas pane
+     * @param y y-coordinate on the canvas pane
+     * @param param a parameter object
+     */
+    function show (x, y, param) {
+        setStatus('targetLabel', null);
+        $radioButtons.prop('checked', false);
+        $temporaryProblemCheckbox.prop('checked', false);
+        if (x && y && ('targetLabel' in param)) {
+            var labelType = param.targetLabel.getLabelType();
+            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle') {
+                setStatus('targetLabel', param.targetLabel);
+                $menuWindow.css({
+                    visibility: 'visible',
+                    left: x - windowWidth / 2,
+                    top: y + 20
+                });
+
+                if (param) {
+                    if ('targetLabelColor' in param) { setBorderColor(param.targetLabelColor); }
+                }
+
+                setStatus('visibility', 'visible');
+            }
+        }
+    }
+
+    self.hide = hide;
+    self.isOpen = isOpen;
+    self.show = show;
+    return self;
+}
 var svl = svl || {};
 
 /**
@@ -4250,7 +4399,9 @@ function Label (pathIn, params) {
         tagHeight: 20,
         tagWidth: 1,
         tagX: -1,
-        tagY: -1
+        tagY: -1,
+        severity: null,
+        temporaryProblem: null
     };
 
     var status = {
@@ -4847,8 +4998,6 @@ function Label (pathIn, params) {
         ctx.restore();
     }
 
-
-
     /**
      * This method turn the fill color of associated Path and Points into their original color.
      * @returns {resetFillStyle}
@@ -4892,7 +5041,6 @@ function Label (pathIn, params) {
         }
         return this;
     }
-
 
     /**
      * This function sets the icon path of the point this label holds.
@@ -5657,6 +5805,7 @@ function Main ($, params) {
         svl.tracker = new Tracker();
         svl.labelFactory = new LabelFactory();
         svl.compass = new Compass($);
+        svl.contextMenu = new ContextMenu($);
 
 
         svl.form.disableSubmit();
@@ -10774,16 +10923,24 @@ function UI ($, params) {
       self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
       // Ribbon menu DOMs
-      $divStreetViewHolder = $("#Holder_StreetView");
-      $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
-      $ribbonConnector = $("#StreetViewLabelRibbonConnection");
-      $spansModeSwitches = $('span.modeSwitch');
+      var $divStreetViewHolder = $("#Holder_StreetView");
+      var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+      var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+      var $spansModeSwitches = $('span.modeSwitch');
 
       self.ribbonMenu = {};
       self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
       self.ribbonMenu.buttons = $spansModeSwitches;
       self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
       self.ribbonMenu.connector = $ribbonConnector;
+
+
+          // Context menu
+          self.contextMenu = {};
+          self.contextMenu.holder = $("#context-menu-holder");
+        self.contextMenu.connector = $("#context-menu-vertical-connector");
+        self.contextMenu.radioButtons = $("input[name='problem-severity']");
+        self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
 
       // Zoom control
       self.zoomControl = {};
@@ -13861,31 +14018,31 @@ function SidewalkColorScheme2 () {
     return {
         Walk : {
             id : 'Walk',
-            fillStyle : 'rgba(0, 0, 0, 0.9)'
+            fillStyle : 'rgba(0, 0, 0, 1)'
         },
         CurbRamp: {
             id: 'CurbRamp',
-            fillStyle: 'rgba(0, 244, 38, 0.9)'
+            fillStyle: 'rgba(0, 244, 38, 1)'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            fillStyle: 'rgba(255, 39, 113, 0.9)'
+            fillStyle: 'rgba(255, 39, 113, 1)'
         },
         Obstacle: {
             id: 'Obstacle',
-            fillStyle: 'rgba(0, 161, 203, 0.9)'
+            fillStyle: 'rgba(0, 161, 203, 1)'
         },
         Other: {
             id: 'Other',
-            fillStyle: 'rgba(204, 204, 204, 0.9)'
+            fillStyle: 'rgba(204, 204, 204, 1)'
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
-            fillStyle: 'rgba(241, 141, 5, 0.9)'
+            fillStyle: 'rgba(241, 141, 5, 1)'
         },
         Void: {
             id: 'Void',
-            fillStyle: 'rgba(255, 255, 255, 0)'
+            fillStyle: 'rgba(255, 255, 255, 1)'
         },
         Unclear: {
             id: 'Unclear',
@@ -13894,8 +14051,10 @@ function SidewalkColorScheme2 () {
     }
 }
 
-//
-// http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
+/**
+ * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
+ * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}
+ */
 function colorScheme2 () {
     return {
         'Walk' : {

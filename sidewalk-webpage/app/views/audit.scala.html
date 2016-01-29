@@ -104,32 +104,40 @@
                     <div id="context-menu-holder">
                         <div id="severity-menu">
                             <div id="severity-radio-holder">
-                                <span>Passable</span>
-                                <div class="radio-inline">
-                                    <label><input type="radio" name="problem-severity"><div>1</div></label>
+                                <div class="radio-inline" id="column-passable">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible.png")' alt="Wheelchair accessible icon">
+                                    <div class="problem-severity-axis-label">Passable</div>
                                 </div>
                                 <div class="radio-inline">
-                                    <label><input type="radio" name="problem-severity"><div>2</div></label>
+                                    <label><input type="radio" name="problem-severity" value="1"><div>1</div></label>
                                 </div>
                                 <div class="radio-inline">
-                                    <label><input type="radio" name="problem-severity"><div>3</div></label>
+                                    <label><input type="radio" name="problem-severity" value="2"><div>2</div></label>
                                 </div>
                                 <div class="radio-inline">
-                                    <label><input type="radio" name="problem-severity"><div>4</div></label>
+                                    <label><input type="radio" name="problem-severity" value="3"><div>3</div></label>
                                 </div>
                                 <div class="radio-inline">
-                                    <label><input type="radio" name="problem-severity"><div>5</div></label>
+                                    <label><input type="radio" name="problem-severity" value="4"><div>4</div></label>
                                 </div>
-                                <span>Not Passable</span>
+                                <div class="radio-inline">
+                                    <label><input type="radio" name="problem-severity" value="5"><div>5</div></label>
+                                </div>
+                                <div class="radio-inline" id="column-not-passable">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")' alt="Wheelchair inaccessible icon">
+                                    <div class="problem-severity-axis-label">Not Passable</div>
+                                </div>
                             </div>
                         </div>
+                        <hr />
                         <div id="problem-property-menu">
                             <div>
                                 <div class="checkbox-inline">
-                                    <label><input type="checkbox" value="">Temporary Problem</label>
+                                    <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary Problem</label>
                                 </div>
                             </div>
                         </div>
+                        <div id="context-menu-vertical-connector"></div>
                     </div>
                 </div>
                 <div id="status-holder" class="Window_Feedback">

@@ -50,6 +50,7 @@ function Main ($, params) {
         svl.tracker = new Tracker();
         svl.labelFactory = new LabelFactory();
         svl.compass = new Compass($);
+        svl.contextMenu = new ContextMenu($);
 
 
         svl.form.disableSubmit();

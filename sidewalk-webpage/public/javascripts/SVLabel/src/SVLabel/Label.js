@@ -41,7 +41,9 @@ function Label (pathIn, params) {
         tagHeight: 20,
         tagWidth: 1,
         tagX: -1,
-        tagY: -1
+        tagY: -1,
+        severity: null,
+        temporaryProblem: null
     };
 
     var status = {
@@ -638,8 +640,6 @@ function Label (pathIn, params) {
         ctx.restore();
     }
 
-
-
     /**
      * This method turn the fill color of associated Path and Points into their original color.
      * @returns {resetFillStyle}
@@ -683,7 +683,6 @@ function Label (pathIn, params) {
         }
         return this;
     }
-
 
     /**
      * This function sets the icon path of the point this label holds.
