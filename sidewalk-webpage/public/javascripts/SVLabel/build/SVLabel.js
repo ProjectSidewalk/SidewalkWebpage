@@ -2550,7 +2550,7 @@ function ContextMenu ($) {
         $temporaryProblemCheckbox.prop('checked', false);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType();
-            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle') {
+            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle' || labelType == 'NoCurbRamp') {
                 setStatus('targetLabel', param.targetLabel);
                 $menuWindow.css({
                     visibility: 'visible',
@@ -2928,7 +2928,9 @@ function Form ($, params) {
                 panorama_lng: prop.panoramaLng,
                 temporary_label_id: label.getProperty('temporary_label_id'),
                 gsv_panorama_id : prop.panoId,
-                label_points : []
+                label_points : [],
+                severity: label.getProperty('severity'),
+                temporary_problem: label.getProperty('temporaryProblem')
             };
 
             for (var j = 0; j < pathLen; j += 1) {

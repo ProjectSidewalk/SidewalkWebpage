@@ -198,6 +198,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
                 point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
             }
+
+            // Insert temporariness and severity if they are set.
+            // Todo. Create a database, write model & dao, and write a code to insert data over here.
           }
 
           // Insert interaction
