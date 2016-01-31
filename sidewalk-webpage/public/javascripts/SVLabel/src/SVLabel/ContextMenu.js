@@ -129,8 +129,20 @@ function ContextMenu ($) {
                 if (param) {
                     if ('targetLabelColor' in param) { setBorderColor(param.targetLabelColor); }
                 }
-
                 setStatus('visibility', 'visible');
+
+                // Set the menu value if label has it's value set.
+                var severity = param.targetLabel.getProperty('severity'),
+                    temporaryProblem = param.targetLabel.getProperty('temporaryProblem');
+                if (severity) {
+                    $radioButtons.each(function (i, v) {
+                       if (severity == i + 1) { $(this).prop("checked", true); }
+                    });
+                }
+
+                if (temporaryProblem) {
+                    $temporaryProblemCheckbox.prop("checked", temporaryProblem);
+                }
             }
         }
     }

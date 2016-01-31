@@ -709,7 +709,22 @@ function Map ($, params) {
 
         currTime = new Date().getTime();
 
-        if (currTime - mouseStatus.prevMouseUpTime < 300) {
+        if ('canvas' in svl && svl.canvas) {
+            var item = svl.canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+            if (item && item.className === "Point") {
+                var path = item.belongsTo();
+                var selectedLabel = path.belongsTo();
+                var canvasCoordinate = item.getCanvasCoordinate(svl.getPOV());
+
+                svl.canvas.setCurrentLabel(selectedLabel);
+                if ('contextMenu' in svl) {
+                    svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
+                        targetLabel: selectedLabel,
+                        targetLabelColor: selectedLabel.getProperty("labelFillStyle")
+                    });
+                }
+            }
+        } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Double click
             // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
             if (!status.disableClickZoom) {
@@ -725,7 +740,6 @@ function Map ($, params) {
                     svl.tracker.push('ViewControl_ZoomIn');
                 }
             }
-
         }
         mouseStatus.prevMouseUpTime = currTime;
     }
@@ -763,7 +777,6 @@ function Map ($, params) {
 
         if (mouseStatus.isLeftDown &&
             status.disableWalking === false) {
-            //
             // If a mouse is being dragged on the control layer, move the sv image.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
