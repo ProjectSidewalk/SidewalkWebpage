@@ -863,8 +863,8 @@ function Label (pathIn, params) {
             var $divHolderLabelDeleteIcon = $("#delete-icon-holder");
             $divHolderLabelDeleteIcon.css({
                 visibility: 'visible',
-                left : x, // + width - 5,
-                top : y
+                left : x + 25, // + width - 5,
+                top : y - 20
             });
         }
     }

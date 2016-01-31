@@ -1401,10 +1401,10 @@ function Canvas ($, param) {
         if (!status.drawing) {
             var ret = isOn(mouseStatus.currX, mouseStatus.currY);
             if (ret && ret.className === 'Path') {
-                self.showLabelTag(status.currentLabel);
+                showLabelTag(status.currentLabel);
                 ret.renderBoundingBox(ctx);
             } else {
-                self.showLabelTag(undefined);
+                showLabelTag(undefined);
             }
         }
         self.clear();
@@ -5235,8 +5235,8 @@ function Label (pathIn, params) {
             var $divHolderLabelDeleteIcon = $("#delete-icon-holder");
             $divHolderLabelDeleteIcon.css({
                 visibility: 'visible',
-                left : x, // + width - 5,
-                top : y
+                left : x + 25, // + width - 5,
+                top : y - 20
             });
         }
     }

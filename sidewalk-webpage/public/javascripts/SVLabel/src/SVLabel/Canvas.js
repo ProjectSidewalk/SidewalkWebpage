@@ -340,10 +340,10 @@ function Canvas ($, param) {
         if (!status.drawing) {
             var ret = isOn(mouseStatus.currX, mouseStatus.currY);
             if (ret && ret.className === 'Path') {
-                self.showLabelTag(status.currentLabel);
+                showLabelTag(status.currentLabel);
                 ret.renderBoundingBox(ctx);
             } else {
-                self.showLabelTag(undefined);
+                showLabelTag(undefined);
             }
         }
         self.clear();
