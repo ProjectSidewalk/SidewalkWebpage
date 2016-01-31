@@ -200,7 +200,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
 
             // Insert temporariness and severity if they are set.
-            // Todo. Create a database, write model & dao, and write a code to insert data over here.
+            if (label.severity.isDefined) {
+              ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+            }
+
+            if (label.temporaryProblem.isDefined) {
+              val temporaryProblem = label.temporaryProblem.get.value
+              ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, temporaryProblem))
+            }
           }
 
           // Insert interaction
