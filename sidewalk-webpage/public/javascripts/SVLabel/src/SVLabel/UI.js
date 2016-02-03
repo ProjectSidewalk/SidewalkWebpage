@@ -124,6 +124,9 @@ function UI ($, params) {
         self.form.skipButton = $("#skip-button");
         self.form.submitButton = $("#submit-button");
 
+        self.task = {};
+        self.task.taskCompletionMessage = $("#task-completion-message-holder");
+
         self.onboarding = {};
         self.onboarding.holder = $("#onboarding-holder");
         if ("onboarding" in params && params.onboarding) {
