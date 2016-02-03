@@ -126,7 +126,6 @@ function RibbonMenu ($, params) {
                     }
                 }
             }
-            // Set border color
 
             if (svl.ui && svl.ui.ribbonMenu) {
               setModeSwitchBorderColors(labelType);

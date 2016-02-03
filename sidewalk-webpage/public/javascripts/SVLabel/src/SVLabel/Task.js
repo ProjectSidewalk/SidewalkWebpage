@@ -33,38 +33,60 @@ function Task ($, turf) {
 
     /**  Get a next task */
     function nextTask (streetEdgeId) {
-        var len = taskSetting.features[0].geometry.coordinates.length - 1,
-            latEnd = taskSetting.features[0].geometry.coordinates[len][1],
-            lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
+        if (streetEdgeId) {
+            // When the current street edge id is given (i.e., when you are simply walking around).
+            var len = taskSetting.features[0].geometry.coordinates.length - 1,
+                latEnd = taskSetting.features[0].geometry.coordinates[len][1],
+                lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
 
-        $.ajax({
-            // async: false,
-            // contentType: 'application/json; charset=utf-8',
-            url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
-            type: 'get',
-            success: function (task) {
-                var len = task.features[0].geometry.coordinates.length - 1,
-                    lat1 = task.features[0].geometry.coordinates[0][1],
-                    lng1 = task.features[0].geometry.coordinates[0][0],
-                    lat2 = task.features[0].geometry.coordinates[len][1],
-                    lng2 = task.features[0].geometry.coordinates[len][0],
-                    d1 = svl.util.math.haversine(lat1, lng1, latEnd, lngEnd),
-                    d2 = svl.util.math.haversine(lat2, lng2, latEnd, lngEnd);
+            $.ajax({
+                // async: false,
+                // contentType: 'application/json; charset=utf-8',
+                url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+                type: 'get',
+                success: function (task) {
+                    var len = task.features[0].geometry.coordinates.length - 1,
+                        lat1 = task.features[0].geometry.coordinates[0][1],
+                        lng1 = task.features[0].geometry.coordinates[0][0],
+                        lat2 = task.features[0].geometry.coordinates[len][1],
+                        lng2 = task.features[0].geometry.coordinates[len][0],
+                        d1 = svl.util.math.haversine(lat1, lng1, latEnd, lngEnd),
+                        d2 = svl.util.math.haversine(lat2, lng2, latEnd, lngEnd);
 
-                if (d1 > 10 && d2 > 10) {
-                    // If the starting point of the task is far away, jump there.
-                    svl.setPosition(lat1, lng1);
-                } else if (d2 < d1) {
-                    // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
-                    task.features[0].geometry.coordinates.reverse();
+                    if (d1 > 10 && d2 > 10) {
+                        // If the starting point of the task is far away, jump there.
+                        svl.setPosition(lat1, lng1);
+                    } else if (d2 < d1) {
+                        // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+                        task.features[0].geometry.coordinates.reverse();
+                    }
+                    set(task);
+                    renderTaskPath();
+                },
+                error: function (result) {
+                    throw result;
                 }
-                set(task);
-                render();
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
+            });
+        } else {
+            // No street edge id is provided (i.e., you skip a task or for some other reason get another task.
+            $.ajax({
+                // async: false,
+                // contentType: 'application/json; charset=utf-8',
+                url: "/audit/task",
+                type: 'get',
+                success: function (task) {
+                    var lat1 = task.features[0].geometry.coordinates[0][1],
+                        lng1 = task.features[0].geometry.coordinates[0][0];
+
+                    svl.setPosition(lat1, lng1);
+                    set(task);
+                    renderTaskPath();
+                },
+                error: function (result) {
+                    throw result;
+                }
+            });
+        }
     }
 
     function animateTaskCompletionMessage() {
@@ -149,11 +171,7 @@ function Task ($, turf) {
     }
 
     /** Get geometry */
-    function getGeometry () {
-        if (taskSetting) {
-            return taskSetting.features[0].geometry;
-        }
-    }
+    function getGeometry () { return taskSetting ? taskSetting.features[0].geometry : null; }
 
     /** Returns the street edge id of the current task. */
     function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
@@ -179,12 +197,6 @@ function Task ($, turf) {
             console.debug('Distance to the end:' , d);
             return d < threshold;
         }
-    }
-
-    /** Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add */
-    /** Return the sum of square of lat and lng diffs */
-    function norm (lat1, lng1, lat2, lng2) {
-        return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
     }
 
     /**
@@ -257,11 +269,9 @@ function Task ($, turf) {
      * References:
      * http://turfjs.org/static/docs/module-turf_point-on-line.html
      * http://turfjs.org/static/docs/module-turf_distance.html
-     * @param lat
-     * @param lng
      */
     function getTaskCompletionRate () {
-        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
             line = taskSetting.features[0],
             currentPoint = { "type": "Feature", "properties": {},
                 geometry: {
@@ -274,15 +284,11 @@ function Task ($, turf) {
             segment, cumSum = 0,
             completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
             incompletePath = [];
-        for (var i = 0; i < closestSegmentIndex; i++) {
+        for (i = 0; i < closestSegmentIndex; i++) {
             segment = {
-                type: "Feature", properties: {},
-                geometry: {
+                type: "Feature", properties: {}, geometry: {
                     type: "LineString",
-                    coordinates: [
-                        [coords[i][0], coords[i][1]],
-                        [coords[i + 1][0], coords[i + 1][1]]
-                    ]
+                    coordinates: [ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]
                 }
             };
             cumSum += turf.lineDistance(segment);
@@ -291,22 +297,22 @@ function Task ($, turf) {
         completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
         incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
 
-        for (var i = closestSegmentIndex; i < coords.length - 1; i++) {
+        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
 
-        var point = {
+        point = {
             "type": "Feature", "properties": {},
             "geometry": {
                 "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
             }
         };
         cumSum += turf.distance(snapped, point);
-        var lineLength = turf.lineDistance(line),
-            cumsumRate = cumSum / lineLength;
+        lineLength = turf.lineDistance(line);
+        cumsumRate = cumSum / lineLength;
 
         // Create paths
-        var newPaths = [
+        newPaths = [
             new google.maps.Polyline({
                 path: completedPath,
                 geodesic: true,
@@ -334,19 +340,18 @@ function Task ($, turf) {
      * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
      */
-    function render() {
+    function renderTaskPath() {
         if ('map' in svl && google) {
-            var i;
             if (paths) {
                 // Remove the existing paths and switch with the new ones
-                for (i = 0; i < paths.length; i++) {
+                for (var i = 0; i < paths.length; i++) {
                     paths[i].setMap(null);
                 }
 
                 var taskCompletion = getTaskCompletionRate();
 
                 if (taskCompletionRate < taskCompletion.taskCompletionRate) {
-                    taskCompletionRate = taskCompletion.taskCompletionRate
+                    taskCompletionRate = taskCompletion.taskCompletionRate;
                     paths = taskCompletion.paths;
                 }
             } else {
@@ -390,7 +395,7 @@ function Task ($, turf) {
     self.isAtEnd = isAtEnd;
     self.load = load;
     self.nextTask = nextTask;
-    self.render = render;
+    self.render = renderTaskPath;
     self.save = save;
     self.set = set;
     //self.updateTaskCompletionRate = updateTaskCompletionRate;

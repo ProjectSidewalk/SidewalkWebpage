@@ -177,17 +177,13 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
-//        if (data.labels.length === 0) {
-//            data.labelingTask.no_label = 0;
-//        }
-
         // Add the value in the comment field if there are any.
-        var comment = $textieldComment.val();
-        data.comment = undefined;
-        if (comment &&
-            comment !== $textieldComment.attr('title')) {
-            data.comment = $textieldComment.val();
-        }
+        //var comment = svl.ui.form.commentField.val();
+        //data.comment = null;
+        //if (comment !== svl.ui.form.commentField.attr('title')) {
+        //    data.comment = svl.ui.form.commentField.val();
+        //}
+
         return data;
     }
 
@@ -276,6 +272,27 @@ function Form ($, params) {
         }
     }
 
+    /**
+     * Callback function that is invoked when a user hits a submit button
+     * @param e
+     * @returns {boolean}
+     */
+    function handleFormSubmit (e) {
+        if (!properties.isAMTTask || properties.taskRemaining > 1) { e.preventDefault(); }
+
+        if (status.disableSubmit) {
+            showDisabledSubmitButtonMessage();
+            return false;
+        }
+
+        // Submit collected data if a user is not in onboarding mode.
+        if (!properties.onboarding) {
+            var data = compileSubmissionData();
+            submit(data);
+        }
+        return false;
+    }
+
     function handleSkipClick (e) {
         e.preventDefault();
         svl.tracker.push('Click_OpenSkipWindow');
@@ -289,191 +306,16 @@ function Form ($, params) {
 
     function lockDisableSkip () { lock.disableSkip = true; return this; }
 
+    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
 
+    /** This method sets the taskDescription */
+    function setTaskDescription (val) { properties.taskDescription = val; return this; }
 
-    /**
-      * Submit the data.
-      * @param data This can be an object of a compiled data for auditing, or an array of
-      * the auditing data.
-      */
-    function submit(data) {
-        svl.tracker.push('TaskSubmit');
-        svl.labelContainer.refresh();
+    /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
+    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
 
-        if (data.constructor !== Array) {
-            data = [data];
-        }
-
-        try {
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: properties.dataStoreUrl,
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                    if (result.error) {
-                        console.log(result.error);
-                    }
-                },
-                error: function (result) {
-                    throw result;
-                    // console.error(result);
-                }
-            });
-        } catch (e) {
-            console.error(e);
-            return false;
-        }
-//
-//        if (properties.taskRemaining > 1) {
-//            window.location.reload();
-//            return false;
-//        } else {
-//            if (properties.isAMTTask) {
-//                return true;
-//            } else {
-//                window.location.reload();
-//                //window.location = '/';
-//                return false;
-//            }
-//        }
-    }
-
-    /**
-     * Callback function that is invoked when a user hits a submit button
-     * @param e
-     * @returns {boolean}
-     */
-    function formSubmit (e) {
-        if (!properties.isAMTTask || properties.taskRemaining > 1) {
-            e.preventDefault();
-        }
-
-        var url = properties.dataStoreUrl;
-        var data = {};
-
-        if (status.disableSubmit) {
-            showDisabledSubmitButtonMessage();
-            return false;
-        }
-
-        // temp
-        // window.location.reload();
-
-        //
-        // If this is a task with ground truth labels, check if users made any mistake.
-//        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-//            var numMistakes = svl.goldenInsertion.reviewLabels();
-//            self.disableSubmit().lockDisableSubmit();
-//            self.disableSkip().lockDisableSkip();
-//            return false;
-//        }
-
-        //
-        // Disable a submit button and other buttons so turkers cannot submit labels more than once.
-        //$btnSubmit.attr('disabled', true);
-        //$btnSkip.attr('disabled', true);
-        //$btnConfirmSkip.attr('disabled', true);
-        //$pageOverlay.css('visibility', 'visible');
-
-
-
-        // Submit collected data if a user is not in onboarding mode.
-        if (!properties.onboarding) {
-            data = compileSubmissionData();
-            submit(data);
-//            svl.tracker.push('TaskSubmit');
-//
-//            data = compileSubmissionData();
-//
-//            if (status.taskDifficulty != undefined) {
-//                data.taskDifficulty = status.taskDifficulty;
-//                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
-//                if (status.taskDifficultyComment) {
-//                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
-//                }
-//            }
-//
-//            try {
-//                $.ajax({
-//                    async: false,
-//                    contentType: 'application/json; charset=utf-8',
-//                    url: url,
-//                    type: 'post',
-//                    data: JSON.stringify(data),
-//                    dataType: 'json',
-//                    success: function (result) {
-//                        if (result.error) {
-//                            console.log(result.error);
-//                        }
-//                    },
-//                    error: function (result) {
-//                        throw result;
-//                        // console.error(result);
-//                    }
-//                });
-//            } catch (e) {
-//                console.error(e);
-//                return false;
-//            }
-//
-//            if (properties.taskRemaining > 1) {
-//                window.location.reload();
-//                return false;
-//            } else {
-//                if (properties.isAMTTask) {
-//                    return true;
-//                } else {
-//                    window.location.reload();
-//                    //window.location = '/';
-//                    return false;
-//                }
-//            }
-        }
-        return false;
-    }
-
-    function goldenInsertionSubmit () {
-        // This method submits the labels that a user provided on golden insertion task and refreshes the page.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.tracker.push('GoldenInsertion_Submit');
-            var url = properties.dataStoreUrl;
-            var data;
-            svl.goldenInsertion.disableOkButton();
-
-            data = compileSubmissionData();
-            data.labelingTask.description = "GoldenInsertion";
-
-            try {
-                $.ajax({
-                    async: false,
-                    url: url,
-                    type: 'post',
-                    data: data,
-                    dataType: 'json',
-                    success: function (result) {
-                        if (((typeof result) == 'object') && ('error' in result) && result.error) {
-                            console.log(result.error);
-                        }
-                    },
-                    error: function (result) {
-                        throw result;
-                        // console.error(result);
-                    }
-                });
-            } catch (e) {
-                console.error(e);
-                return false;
-            }
-
-            window.location.reload();
-        } else {
-            throw self.className + ": This method cannot be called without GoldenInsertion";
-        }
-        return false;
-    }
+    /** This method sets the number of remaining tasks */
+    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
 
     /**
      *
@@ -489,9 +331,6 @@ function Form ($, params) {
 
             // Clear and render the onboarding canvas
             var $divOnboardingMessageBox = undefined; //
-            //messageCanvas.clear();
-            //messageCanvas.renderMessage(300, 250, message, 350, 140);
-            //messageCanvas.renderArrow(650, 282, 710, 282);
 
             if (status.disabledButtonMessageVisibility === 'hidden') {
                 status.disabledButtonMessageVisibility = 'visible';
@@ -510,53 +349,47 @@ function Form ($, params) {
     }
 
     /**
+     * Submit the data collected so far and move to another location.
      * @param dataIn. An object which has fields "issue_description", "lat", and "lng." E.g., {issue_description: "IWantToExplore", lat: 38.908628, lng: -77.08022499999998}
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
-        var url = properties.dataStoreUrl, data = {};
-
-        // Set a value for skipReasonDescription.
-        if (status.radioValue === 'Other:') {
-            status.skipReasonDescription = "Other: " + $textSkipOtherReason.val();
-        }
-
-        // Submit collected data if a user is not in oboarding mode.
-        if (!properties.onboarding) {
-            svl.tracker.push('TaskSubmitSkip');
-
-            // Compile the submission data with compileSubmissionData method, then overwrite a part of the compiled data.
-            data = compileSubmissionData();
-            data.incomplete = dataIn;
-            $.ajax({
-                url: url,
-                type: 'post',
-                data: data,
-                success: function (result) {
-                    if (result.error) {
-                        console.error(result.error);
-                    }
-                },
-                error: function (result) {
-                    console.error(result)
-                }
-            });
-        }
-
-
+        var data = compileSubmissionData();
+        data.incomplete = dataIn;
+        svl.tracker.push('TaskSkip');
+        submit(data);
+        svl.task.nextTask();
         return false;
     }
 
-    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
 
-    /** This method sets the taskDescription */
-    function setTaskDescription (val) { properties.taskDescription = val; return this; }
+    /**
+     * Submit the data.
+     * @param data This can be an object of a compiled data for auditing, or an array of
+     * the auditing data.
+     */
+    function submit(data) {
+        svl.tracker.push('TaskSubmit');
+        svl.labelContainer.refresh();
+        if (data.constructor !== Array) { data = [data]; }
 
-    /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
-    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
-
-    /** This method sets the number of remaining tasks */
-    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
+        $.ajax({
+            // async: false,
+            contentType: 'application/json; charset=utf-8',
+            url: properties.dataStoreUrl,
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                if (result.error) {
+                    console.log(result.error);
+                }
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
 
     /** Unlock disable submit */
     function unlockDisableSubmit () { lock.disableSubmit = false; return this; }
@@ -570,7 +403,6 @@ function Form ($, params) {
     self.disableSkip = disableSkip;
     self.enableSubmit = enableSubmit;
     self.enableSkip = enableSkip;
-    self.goldenInsertionSubmit = goldenInsertionSubmit;
     self.isPreviewMode = isPreviewMode;
     self.lockDisableSubmit = lockDisableSubmit;
     self.lockDisableSkip = lockDisableSkip;

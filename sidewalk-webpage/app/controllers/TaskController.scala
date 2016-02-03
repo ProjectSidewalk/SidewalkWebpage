@@ -165,7 +165,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 val user: Option[DBUser] = UserTable.find("anonymous")
                 AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(currentTimestamp))
             }
-            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
+
+            if (data.incomplete.isDefined) {
+              StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
+            }
             AuditTaskTable.save(auditTask)
           }
 

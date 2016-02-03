@@ -2911,17 +2911,13 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
-//        if (data.labels.length === 0) {
-//            data.labelingTask.no_label = 0;
-//        }
-
         // Add the value in the comment field if there are any.
-        var comment = $textieldComment.val();
-        data.comment = undefined;
-        if (comment &&
-            comment !== $textieldComment.attr('title')) {
-            data.comment = $textieldComment.val();
-        }
+        //var comment = svl.ui.form.commentField.val();
+        //data.comment = null;
+        //if (comment !== svl.ui.form.commentField.attr('title')) {
+        //    data.comment = svl.ui.form.commentField.val();
+        //}
+
         return data;
     }
 
@@ -3010,6 +3006,27 @@ function Form ($, params) {
         }
     }
 
+    /**
+     * Callback function that is invoked when a user hits a submit button
+     * @param e
+     * @returns {boolean}
+     */
+    function handleFormSubmit (e) {
+        if (!properties.isAMTTask || properties.taskRemaining > 1) { e.preventDefault(); }
+
+        if (status.disableSubmit) {
+            showDisabledSubmitButtonMessage();
+            return false;
+        }
+
+        // Submit collected data if a user is not in onboarding mode.
+        if (!properties.onboarding) {
+            var data = compileSubmissionData();
+            submit(data);
+        }
+        return false;
+    }
+
     function handleSkipClick (e) {
         e.preventDefault();
         svl.tracker.push('Click_OpenSkipWindow');
@@ -3023,191 +3040,16 @@ function Form ($, params) {
 
     function lockDisableSkip () { lock.disableSkip = true; return this; }
 
+    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
 
+    /** This method sets the taskDescription */
+    function setTaskDescription (val) { properties.taskDescription = val; return this; }
 
-    /**
-      * Submit the data.
-      * @param data This can be an object of a compiled data for auditing, or an array of
-      * the auditing data.
-      */
-    function submit(data) {
-        svl.tracker.push('TaskSubmit');
-        svl.labelContainer.refresh();
+    /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
+    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
 
-        if (data.constructor !== Array) {
-            data = [data];
-        }
-
-        try {
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: properties.dataStoreUrl,
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                    if (result.error) {
-                        console.log(result.error);
-                    }
-                },
-                error: function (result) {
-                    throw result;
-                    // console.error(result);
-                }
-            });
-        } catch (e) {
-            console.error(e);
-            return false;
-        }
-//
-//        if (properties.taskRemaining > 1) {
-//            window.location.reload();
-//            return false;
-//        } else {
-//            if (properties.isAMTTask) {
-//                return true;
-//            } else {
-//                window.location.reload();
-//                //window.location = '/';
-//                return false;
-//            }
-//        }
-    }
-
-    /**
-     * Callback function that is invoked when a user hits a submit button
-     * @param e
-     * @returns {boolean}
-     */
-    function formSubmit (e) {
-        if (!properties.isAMTTask || properties.taskRemaining > 1) {
-            e.preventDefault();
-        }
-
-        var url = properties.dataStoreUrl;
-        var data = {};
-
-        if (status.disableSubmit) {
-            showDisabledSubmitButtonMessage();
-            return false;
-        }
-
-        // temp
-        // window.location.reload();
-
-        //
-        // If this is a task with ground truth labels, check if users made any mistake.
-//        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-//            var numMistakes = svl.goldenInsertion.reviewLabels();
-//            self.disableSubmit().lockDisableSubmit();
-//            self.disableSkip().lockDisableSkip();
-//            return false;
-//        }
-
-        //
-        // Disable a submit button and other buttons so turkers cannot submit labels more than once.
-        //$btnSubmit.attr('disabled', true);
-        //$btnSkip.attr('disabled', true);
-        //$btnConfirmSkip.attr('disabled', true);
-        //$pageOverlay.css('visibility', 'visible');
-
-
-
-        // Submit collected data if a user is not in onboarding mode.
-        if (!properties.onboarding) {
-            data = compileSubmissionData();
-            submit(data);
-//            svl.tracker.push('TaskSubmit');
-//
-//            data = compileSubmissionData();
-//
-//            if (status.taskDifficulty != undefined) {
-//                data.taskDifficulty = status.taskDifficulty;
-//                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
-//                if (status.taskDifficultyComment) {
-//                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
-//                }
-//            }
-//
-//            try {
-//                $.ajax({
-//                    async: false,
-//                    contentType: 'application/json; charset=utf-8',
-//                    url: url,
-//                    type: 'post',
-//                    data: JSON.stringify(data),
-//                    dataType: 'json',
-//                    success: function (result) {
-//                        if (result.error) {
-//                            console.log(result.error);
-//                        }
-//                    },
-//                    error: function (result) {
-//                        throw result;
-//                        // console.error(result);
-//                    }
-//                });
-//            } catch (e) {
-//                console.error(e);
-//                return false;
-//            }
-//
-//            if (properties.taskRemaining > 1) {
-//                window.location.reload();
-//                return false;
-//            } else {
-//                if (properties.isAMTTask) {
-//                    return true;
-//                } else {
-//                    window.location.reload();
-//                    //window.location = '/';
-//                    return false;
-//                }
-//            }
-        }
-        return false;
-    }
-
-    function goldenInsertionSubmit () {
-        // This method submits the labels that a user provided on golden insertion task and refreshes the page.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.tracker.push('GoldenInsertion_Submit');
-            var url = properties.dataStoreUrl;
-            var data;
-            svl.goldenInsertion.disableOkButton();
-
-            data = compileSubmissionData();
-            data.labelingTask.description = "GoldenInsertion";
-
-            try {
-                $.ajax({
-                    async: false,
-                    url: url,
-                    type: 'post',
-                    data: data,
-                    dataType: 'json',
-                    success: function (result) {
-                        if (((typeof result) == 'object') && ('error' in result) && result.error) {
-                            console.log(result.error);
-                        }
-                    },
-                    error: function (result) {
-                        throw result;
-                        // console.error(result);
-                    }
-                });
-            } catch (e) {
-                console.error(e);
-                return false;
-            }
-
-            window.location.reload();
-        } else {
-            throw self.className + ": This method cannot be called without GoldenInsertion";
-        }
-        return false;
-    }
+    /** This method sets the number of remaining tasks */
+    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
 
     /**
      *
@@ -3223,9 +3065,6 @@ function Form ($, params) {
 
             // Clear and render the onboarding canvas
             var $divOnboardingMessageBox = undefined; //
-            //messageCanvas.clear();
-            //messageCanvas.renderMessage(300, 250, message, 350, 140);
-            //messageCanvas.renderArrow(650, 282, 710, 282);
 
             if (status.disabledButtonMessageVisibility === 'hidden') {
                 status.disabledButtonMessageVisibility = 'visible';
@@ -3244,53 +3083,47 @@ function Form ($, params) {
     }
 
     /**
+     * Submit the data collected so far and move to another location.
      * @param dataIn. An object which has fields "issue_description", "lat", and "lng." E.g., {issue_description: "IWantToExplore", lat: 38.908628, lng: -77.08022499999998}
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
-        var url = properties.dataStoreUrl, data = {};
-
-        // Set a value for skipReasonDescription.
-        if (status.radioValue === 'Other:') {
-            status.skipReasonDescription = "Other: " + $textSkipOtherReason.val();
-        }
-
-        // Submit collected data if a user is not in oboarding mode.
-        if (!properties.onboarding) {
-            svl.tracker.push('TaskSubmitSkip');
-
-            // Compile the submission data with compileSubmissionData method, then overwrite a part of the compiled data.
-            data = compileSubmissionData();
-            data.incomplete = dataIn;
-            $.ajax({
-                url: url,
-                type: 'post',
-                data: data,
-                success: function (result) {
-                    if (result.error) {
-                        console.error(result.error);
-                    }
-                },
-                error: function (result) {
-                    console.error(result)
-                }
-            });
-        }
-
-
+        var data = compileSubmissionData();
+        data.incomplete = dataIn;
+        svl.tracker.push('TaskSkip');
+        submit(data);
+        svl.task.nextTask();
         return false;
     }
 
-    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
 
-    /** This method sets the taskDescription */
-    function setTaskDescription (val) { properties.taskDescription = val; return this; }
+    /**
+     * Submit the data.
+     * @param data This can be an object of a compiled data for auditing, or an array of
+     * the auditing data.
+     */
+    function submit(data) {
+        svl.tracker.push('TaskSubmit');
+        svl.labelContainer.refresh();
+        if (data.constructor !== Array) { data = [data]; }
 
-    /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
-    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
-
-    /** This method sets the number of remaining tasks */
-    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
+        $.ajax({
+            // async: false,
+            contentType: 'application/json; charset=utf-8',
+            url: properties.dataStoreUrl,
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                if (result.error) {
+                    console.log(result.error);
+                }
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
 
     /** Unlock disable submit */
     function unlockDisableSubmit () { lock.disableSubmit = false; return this; }
@@ -3304,7 +3137,6 @@ function Form ($, params) {
     self.disableSkip = disableSkip;
     self.enableSubmit = enableSubmit;
     self.enableSkip = enableSkip;
-    self.goldenInsertionSubmit = goldenInsertionSubmit;
     self.isPreviewMode = isPreviewMode;
     self.lockDisableSubmit = lockDisableSubmit;
     self.lockDisableSkip = lockDisableSkip;
@@ -8894,7 +8726,6 @@ function RibbonMenu ($, params) {
                     }
                 }
             }
-            // Set border color
 
             if (svl.ui && svl.ui.ribbonMenu) {
               setModeSwitchBorderColors(labelType);
@@ -10106,38 +9937,60 @@ function Task ($, turf) {
 
     /**  Get a next task */
     function nextTask (streetEdgeId) {
-        var len = taskSetting.features[0].geometry.coordinates.length - 1,
-            latEnd = taskSetting.features[0].geometry.coordinates[len][1],
-            lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
+        if (streetEdgeId) {
+            // When the current street edge id is given (i.e., when you are simply walking around).
+            var len = taskSetting.features[0].geometry.coordinates.length - 1,
+                latEnd = taskSetting.features[0].geometry.coordinates[len][1],
+                lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
 
-        $.ajax({
-            // async: false,
-            // contentType: 'application/json; charset=utf-8',
-            url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
-            type: 'get',
-            success: function (task) {
-                var len = task.features[0].geometry.coordinates.length - 1,
-                    lat1 = task.features[0].geometry.coordinates[0][1],
-                    lng1 = task.features[0].geometry.coordinates[0][0],
-                    lat2 = task.features[0].geometry.coordinates[len][1],
-                    lng2 = task.features[0].geometry.coordinates[len][0],
-                    d1 = svl.util.math.haversine(lat1, lng1, latEnd, lngEnd),
-                    d2 = svl.util.math.haversine(lat2, lng2, latEnd, lngEnd);
+            $.ajax({
+                // async: false,
+                // contentType: 'application/json; charset=utf-8',
+                url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+                type: 'get',
+                success: function (task) {
+                    var len = task.features[0].geometry.coordinates.length - 1,
+                        lat1 = task.features[0].geometry.coordinates[0][1],
+                        lng1 = task.features[0].geometry.coordinates[0][0],
+                        lat2 = task.features[0].geometry.coordinates[len][1],
+                        lng2 = task.features[0].geometry.coordinates[len][0],
+                        d1 = svl.util.math.haversine(lat1, lng1, latEnd, lngEnd),
+                        d2 = svl.util.math.haversine(lat2, lng2, latEnd, lngEnd);
 
-                if (d1 > 10 && d2 > 10) {
-                    // If the starting point of the task is far away, jump there.
-                    svl.setPosition(lat1, lng1);
-                } else if (d2 < d1) {
-                    // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
-                    task.features[0].geometry.coordinates.reverse();
+                    if (d1 > 10 && d2 > 10) {
+                        // If the starting point of the task is far away, jump there.
+                        svl.setPosition(lat1, lng1);
+                    } else if (d2 < d1) {
+                        // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+                        task.features[0].geometry.coordinates.reverse();
+                    }
+                    set(task);
+                    renderTaskPath();
+                },
+                error: function (result) {
+                    throw result;
                 }
-                set(task);
-                render();
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
+            });
+        } else {
+            // No street edge id is provided (i.e., you skip a task or for some other reason get another task.
+            $.ajax({
+                // async: false,
+                // contentType: 'application/json; charset=utf-8',
+                url: "/audit/task",
+                type: 'get',
+                success: function (task) {
+                    var lat1 = task.features[0].geometry.coordinates[0][1],
+                        lng1 = task.features[0].geometry.coordinates[0][0];
+
+                    svl.setPosition(lat1, lng1);
+                    set(task);
+                    renderTaskPath();
+                },
+                error: function (result) {
+                    throw result;
+                }
+            });
+        }
     }
 
     function animateTaskCompletionMessage() {
@@ -10222,11 +10075,7 @@ function Task ($, turf) {
     }
 
     /** Get geometry */
-    function getGeometry () {
-        if (taskSetting) {
-            return taskSetting.features[0].geometry;
-        }
-    }
+    function getGeometry () { return taskSetting ? taskSetting.features[0].geometry : null; }
 
     /** Returns the street edge id of the current task. */
     function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
@@ -10252,12 +10101,6 @@ function Task ($, turf) {
             console.debug('Distance to the end:' , d);
             return d < threshold;
         }
-    }
-
-    /** Reference: https://developers.google.com/maps/documentation/javascript/shapes#polyline_add */
-    /** Return the sum of square of lat and lng diffs */
-    function norm (lat1, lng1, lat2, lng2) {
-        return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
     }
 
     /**
@@ -10330,11 +10173,9 @@ function Task ($, turf) {
      * References:
      * http://turfjs.org/static/docs/module-turf_point-on-line.html
      * http://turfjs.org/static/docs/module-turf_distance.html
-     * @param lat
-     * @param lng
      */
     function getTaskCompletionRate () {
-        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
             line = taskSetting.features[0],
             currentPoint = { "type": "Feature", "properties": {},
                 geometry: {
@@ -10347,15 +10188,11 @@ function Task ($, turf) {
             segment, cumSum = 0,
             completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
             incompletePath = [];
-        for (var i = 0; i < closestSegmentIndex; i++) {
+        for (i = 0; i < closestSegmentIndex; i++) {
             segment = {
-                type: "Feature", properties: {},
-                geometry: {
+                type: "Feature", properties: {}, geometry: {
                     type: "LineString",
-                    coordinates: [
-                        [coords[i][0], coords[i][1]],
-                        [coords[i + 1][0], coords[i + 1][1]]
-                    ]
+                    coordinates: [ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]
                 }
             };
             cumSum += turf.lineDistance(segment);
@@ -10364,22 +10201,22 @@ function Task ($, turf) {
         completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
         incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
 
-        for (var i = closestSegmentIndex; i < coords.length - 1; i++) {
+        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
 
-        var point = {
+        point = {
             "type": "Feature", "properties": {},
             "geometry": {
                 "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
             }
         };
         cumSum += turf.distance(snapped, point);
-        var lineLength = turf.lineDistance(line),
-            cumsumRate = cumSum / lineLength;
+        lineLength = turf.lineDistance(line);
+        cumsumRate = cumSum / lineLength;
 
         // Create paths
-        var newPaths = [
+        newPaths = [
             new google.maps.Polyline({
                 path: completedPath,
                 geodesic: true,
@@ -10407,19 +10244,18 @@ function Task ($, turf) {
      * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
      */
-    function render() {
+    function renderTaskPath() {
         if ('map' in svl && google) {
-            var i;
             if (paths) {
                 // Remove the existing paths and switch with the new ones
-                for (i = 0; i < paths.length; i++) {
+                for (var i = 0; i < paths.length; i++) {
                     paths[i].setMap(null);
                 }
 
                 var taskCompletion = getTaskCompletionRate();
 
                 if (taskCompletionRate < taskCompletion.taskCompletionRate) {
-                    taskCompletionRate = taskCompletion.taskCompletionRate
+                    taskCompletionRate = taskCompletion.taskCompletionRate;
                     paths = taskCompletion.paths;
                 }
             } else {
@@ -10463,7 +10299,7 @@ function Task ($, turf) {
     self.isAtEnd = isAtEnd;
     self.load = load;
     self.nextTask = nextTask;
-    self.render = render;
+    self.render = renderTaskPath;
     self.save = save;
     self.set = set;
     //self.updateTaskCompletionRate = updateTaskCompletionRate;
