@@ -14,7 +14,10 @@ function Task ($, turf) {
         previousTasks = [],
         lat, lng,
         taskCompletionRate = 0,
-        paths, previousPaths = [];
+        paths, previousPaths = [],
+        status = {
+            noAudio: false
+        };
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -95,7 +98,7 @@ function Task ($, turf) {
         svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
         setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000)
 
-        if ('audioEffect' in svl) {
+        if ('audioEffect' in svl && !getStatus('noAudio')) {
             svl.audioEffect.play('yay');
             svl.audioEffect.play('applause');
         }
@@ -173,6 +176,9 @@ function Task ($, turf) {
 
     /** Get geometry */
     function getGeometry () { return taskSetting ? taskSetting.features[0].geometry : null; }
+
+    /** Get status */
+    function getStatus (key) { return key in status ? status[key] : null; }
 
     /** Returns the street edge id of the current task. */
     function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
@@ -387,11 +393,14 @@ function Task ($, turf) {
         lng = taskSetting.features[0].geometry.coordinates[0][0];
     }
 
+    /** Set status */
+    function setStatus(key, value) { status[key] = value; return this; }
+
     self.endTask = endTask;
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; }
+    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; };
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
     self.load = load;
@@ -399,6 +408,7 @@ function Task ($, turf) {
     self.render = renderTaskPath;
     self.save = save;
     self.set = set;
+    self.setStatus = setStatus;
     //self.updateTaskCompletionRate = updateTaskCompletionRate;
 
     return self;

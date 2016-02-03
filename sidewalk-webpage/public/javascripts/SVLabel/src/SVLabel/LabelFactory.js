@@ -1,5 +1,5 @@
 function LabelFactory () {
-    var self = { className: "LabelFactory"},
+    var self = { className: "LabelFactory" },
         temporaryLabelId = 1;
 
     function create (path, param) {

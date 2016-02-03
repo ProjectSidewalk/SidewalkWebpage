@@ -5275,7 +5275,7 @@ function LabelCounter ($, d3) {
     return self;
 }
 function LabelFactory () {
-    var self = { className: "LabelFactory"},
+    var self = { className: "LabelFactory" },
         temporaryLabelId = 1;
 
     function create (path, param) {
@@ -5310,12 +5310,7 @@ function LabeledLandmarkFeedback ($, params) {
     var $labelCountNoCurbRamp;
     var $submittedLabelMessage;
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////////////////////////////////////////////
     function _init (params) {
-      //
-      // Initialize the jQuery DOM elements
       if (svl.ui && svl.ui.ribbonMenu) {
         $labelCountCurbRamp = svl.ui.labeledLandmark.curbRamp;
         $labelCountNoCurbRamp = svl.ui.labeledLandmark.noCurbRamp;
@@ -5326,40 +5321,44 @@ function LabeledLandmarkFeedback ($, params) {
       }
     }
 
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////////////////////////////////////////////
-    self.setLabelCount = function (labelCount) {
-        // This method takes labelCount object that holds label names with
-        // corresponding label counts. This function sets the label counts
-        // that appears in the feedback window.
+    /**
+     * This method takes labelCount object that holds label names with corresponding label counts. This function sets
+     * the label counts that appears in the feedback window.
+     * @param labelCount
+     * @returns {setLabelCount}
+     */
+    function setLabelCount (labelCount) {
         if (svl.ui && svl.ui.ribbonMenu) {
-          $labelCountCurbRamp.html(labelCount['CurbRamp']);
-          $labelCountNoCurbRamp.html(labelCount['NoCurbRamp']);
+            $labelCountCurbRamp.html(labelCount['CurbRamp']);
+            $labelCountNoCurbRamp.html(labelCount['NoCurbRamp']);
         }
         return this;
-    };
+    }
 
-    self.setSubmittedLabelMessage = function (param) {
-        // This method takes a param and sets the submittedLabelCount
-        if (!param) {
-            return this;
-        }
-        if (svl.ui && svl.ui.ribbonMenu) {
-          if ('message' in param) {
-              $submittedLabelMessage.html(message);
-          } else if ('numCurbRampLabels' in param && 'numMissingCurbRampLabels' in param) {
-              var message = "You've submitted <b>" +
-                  param.numCurbRampLabels +
-                  "</b> curb ramp labels and <br /><b>" +
-                  param.numMissingCurbRampLabels +
-                  "</b> missing curb ramp labels.";
-              $submittedLabelMessage.html(message);
-          }
+    /**
+     * This method takes a param and sets the submittedLabelCount
+     * @param param
+     * @returns {setSubmittedLabelMessage}
+     */
+    function setSubmittedLabelMessage (param) {
+        if (!param) { return this; }
+        else if (svl.ui && svl.ui.ribbonMenu) {
+            if ('message' in param) {
+                $submittedLabelMessage.html(message);
+            } else if ('numCurbRampLabels' in param && 'numMissingCurbRampLabels' in param) {
+                var message = "You've submitted <b>" +
+                    param.numCurbRampLabels +
+                    "</b> curb ramp labels and <br /><b>" +
+                    param.numMissingCurbRampLabels +
+                    "</b> missing curb ramp labels.";
+                $submittedLabelMessage.html(message);
+            }
         }
         return this;
-    };
+    }
+
+    self.setLabelCount = setLabelCount;
+    self.setSubmittedLabelMessage = setSubmittedLabelMessage;
 
     _init(params);
     return self;
@@ -9918,7 +9917,10 @@ function Task ($, turf) {
         previousTasks = [],
         lat, lng,
         taskCompletionRate = 0,
-        paths, previousPaths = [];
+        paths, previousPaths = [],
+        status = {
+            noAudio: false
+        };
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -9999,7 +10001,7 @@ function Task ($, turf) {
         svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
         setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000)
 
-        if ('audioEffect' in svl) {
+        if ('audioEffect' in svl && !getStatus('noAudio')) {
             svl.audioEffect.play('yay');
             svl.audioEffect.play('applause');
         }
@@ -10077,6 +10079,9 @@ function Task ($, turf) {
 
     /** Get geometry */
     function getGeometry () { return taskSetting ? taskSetting.features[0].geometry : null; }
+
+    /** Get status */
+    function getStatus (key) { return key in status ? status[key] : null; }
 
     /** Returns the street edge id of the current task. */
     function getStreetEdgeId () { return taskSetting.features[0].properties.street_edge_id; }
@@ -10291,11 +10296,14 @@ function Task ($, turf) {
         lng = taskSetting.features[0].geometry.coordinates[0][0];
     }
 
+    /** Set status */
+    function setStatus(key, value) { status[key] = value; return this; }
+
     self.endTask = endTask;
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; }
+    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; };
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
     self.load = load;
@@ -10303,6 +10311,7 @@ function Task ($, turf) {
     self.render = renderTaskPath;
     self.save = save;
     self.set = set;
+    self.setStatus = setStatus;
     //self.updateTaskCompletionRate = updateTaskCompletionRate;
 
     return self;
