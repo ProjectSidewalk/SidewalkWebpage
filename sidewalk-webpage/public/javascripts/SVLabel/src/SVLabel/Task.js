@@ -33,8 +33,7 @@ function Task ($, turf) {
 
     /**  Get a next task */
     function nextTask (streetEdgeId) {
-        var data = {street_edge_id: streetEdgeId },
-            len = taskSetting.features[0].geometry.coordinates.length - 1,
+        var len = taskSetting.features[0].geometry.coordinates.length - 1,
             latEnd = taskSetting.features[0].geometry.coordinates[len][1],
             lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
 

@@ -14,9 +14,6 @@ function Main ($, params) {
     var properties = {};
     var status = {};
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     function _init (params) {
         var currentProgress;
         var panoId = params.panoId;
@@ -57,68 +54,65 @@ function Main ($, params) {
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
-      //
-      // Set map parameters and instantiate it.
-      var mapParam = {};
-      mapParam.canvas = svl.canvas;
-      mapParam.overlayMessageBox = svl.overlayMessageBox;
+          // Set map parameters and instantiate it.
+        var mapParam = {};
+        mapParam.canvas = svl.canvas;
+        mapParam.overlayMessageBox = svl.overlayMessageBox;
 
 
-      var task = null;
-      var nearbyPanoIds = [];
-      var totalTaskCount = -1;
-      var taskPanoramaId = '';
-      var taskRemaining = -1;
-      var taskCompleted = -1;
-      var isFirstTask = false;
+        var task = null;
+        var nearbyPanoIds = [];
+        var totalTaskCount = -1;
+        var taskPanoramaId = '';
+        var taskRemaining = -1;
+        var taskCompleted = -1;
+        var isFirstTask = false;
 
-      totalTaskCount = 1; // taskSpecification.numAllTasks;
-      taskRemaining = 1; // taskSpecification.numTasksRemaining;
-      taskCompleted = totalTaskCount - taskRemaining;
-      currentProgress = taskCompleted / totalTaskCount;
+        totalTaskCount = 1; // taskSpecification.numAllTasks;
+        taskRemaining = 1; // taskSpecification.numTasksRemaining;
+        taskCompleted = totalTaskCount - taskRemaining;
+        currentProgress = taskCompleted / totalTaskCount;
 
-      svl.form.setTaskRemaining(taskRemaining);
-      svl.form.setTaskDescription('TestTask');
-      svl.form.setTaskPanoramaId(panoId);
+        svl.form.setTaskRemaining(taskRemaining);
+        svl.form.setTaskDescription('TestTask');
+        svl.form.setTaskPanoramaId(panoId);
 
 
-      mapParam.Lat = SVLat;
-      mapParam.Lng = SVLng;
-      mapParam.panoramaPov = {
-          heading: 0,
-          pitch: -10,
-          zoom: 1
-      };
-      mapParam.taskPanoId = panoId;
-      nearbyPanoIds = [mapParam.taskPanoId];
-      mapParam.availablePanoIds = nearbyPanoIds;
+        mapParam.Lat = SVLat;
+        mapParam.Lng = SVLng;
+        mapParam.panoramaPov = {
+            heading: 0,
+            pitch: -10,
+            zoom: 1
+        };
+        mapParam.taskPanoId = panoId;
+        nearbyPanoIds = [mapParam.taskPanoId];
+        mapParam.availablePanoIds = nearbyPanoIds;
 
-//      svl.statusMessage.setCurrentStatusDescription('Your mission is to ' +
-//          '<span class="bold">find and label</span> presence and absence of curb ramps at intersections.');
-      svl.statusMessage.restoreDefault();
-      // svl.statusMessage.setCurrentStatusDescription("Your mission is to find and label all the accessibility attributes in the sidewalks and streets.");
-      svl.progressFeedback.setProgress(currentProgress);
-      svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
-          " out of " + totalTaskCount + ".");
+//        svl.statusMessage.setCurrentStatusDescription('Your mission is to ' +
+//            '<span class="bold">find and label</span> presence and absence of curb ramps at intersections.');
+        svl.statusMessage.restoreDefault();
+        // svl.statusMessage.setCurrentStatusDescription("Your mission is to find and label all the accessibility attributes in the sidewalks and streets.");
+        svl.progressFeedback.setProgress(currentProgress);
+        svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
+            " out of " + totalTaskCount + ".");
 
-      if (isFirstTask) {
-          svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
-          svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +
-              "Now the actual task begins. Click OK to start the task.");
-          svl.popUpMessage.appendOKButton();
-          svl.popUpMessage.show();
-      } else {
-          svl.popUpMessage.hide();
-      }
+        if (isFirstTask) {
+            svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
+            svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +
+                "Now the actual task begins. Click OK to start the task.");
+            svl.popUpMessage.appendOKButton();
+            svl.popUpMessage.show();
+        } else {
+            svl.popUpMessage.hide();
+        }
 
-      // Instantiation
-      svl.map = new Map($, mapParam);
-      svl.map.disableClickZoom();
-      if ('task' in svl) {
-        google.maps.event.addDomListener(window, 'load', svl.task.render);
-      }
-
-      //svl.map.setStatus('hideNonavailablePanoLinks', true);
+        // Instantiation
+        svl.map = new Map($, mapParam);
+        svl.map.disableClickZoom();
+        if ('task' in svl) {
+          google.maps.event.addDomListener(window, 'load', svl.task.render);
+        }
     }
 
     _init(params);

@@ -9,55 +9,36 @@ var svl = svl || {};
  * @memberof svl
  */
 function Form ($, params) {
-    var self = {
-        'className' : 'Form'
-    };
-
-    var properties = {
-        commentFieldMessage: undefined,
-        isAMTTask : false,
-        isPreviewMode : false,
-        previousLabelingTaskId: undefined,
-        dataStoreUrl : undefined,
-        onboarding : false,
-        taskRemaining : 0,
-        taskDescription : undefined,
-        taskPanoramaId: undefined,
-        hitId : undefined,
-        assignmentId: undefined,
-        turkerId: undefined,
-        userExperiment: false
-    };
-    var status = {
-        disabledButtonMessageVisibility: 'hidden',
-        disableSkipButton : false,
-        disableSubmit : false,
-        radioValue: undefined,
-        skipReasonDescription: undefined,
-        submitType: undefined,
-        taskDifficulty: undefined,
-        taskDifficultyComment: undefined
-    };
-    var lock = {
-        disableSkipButton : false,
-        disableSubmit : false
-    };
-
-    // jQuery doms
-    //var $form;
-    //var $textieldComment;
-    //var $btnSubmit;
-    //var $btnSkip;
-    //var $btnConfirmSkip;
-    //var $btnCancelSkip;
-    //var $radioSkipReason;
-    //var $textSkipOtherReason;
-    //var $divSkipOptions;
-    //var $pageOverlay;
-    //var $taskDifficultyWrapper;
-    //var $taskDifficultyOKButton;
-
-    var messageCanvas;
+    var self = { className : 'Form'},
+        properties = {
+            commentFieldMessage: undefined,
+            isAMTTask : false,
+            isPreviewMode : false,
+            previousLabelingTaskId: undefined,
+            dataStoreUrl : undefined,
+            onboarding : false,
+            taskRemaining : 0,
+            taskDescription : undefined,
+            taskPanoramaId: undefined,
+            hitId : undefined,
+            assignmentId: undefined,
+            turkerId: undefined,
+            userExperiment: false
+        },
+        status = {
+            disabledButtonMessageVisibility: 'hidden',
+            disableSkipButton : false,
+            disableSubmit : false,
+            radioValue: undefined,
+            skipReasonDescription: undefined,
+            submitType: undefined,
+            taskDifficulty: undefined,
+            taskDifficultyComment: undefined
+        },
+        lock = {
+            disableSkipButton : false,
+            disableSubmit : false
+        };
 
     function _init (params) {
         var hasGroupId = getURLParameter('groupId') !== "";
@@ -79,29 +60,6 @@ function Form ($, params) {
             $('input[name="workerId"]').attr('value', properties.turkerId);
             $('input[name="hitId"]').attr('value', properties.hitId);
         }
-
-        //if (('userExperiment' in params) && params.userExperiment) {
-        //    properties.userExperiment = true;
-        //}
-
-        // initiailze jQuery elements.
-        //$form = $("#BusStopLabelerForm");
-        //$textieldComment = svl.ui.form.commentField; //$("#CommentField");
-        //$btnSubmit = svl.ui.form.submitButton;
-        //$btnSkip = svl.ui.form.skipButton;
-        //$btnConfirmSkip = $("#BusStopAbsence_Submit");
-        //$btnCancelSkip = $("#BusStopAbsence_Cancel");
-        //$radioSkipReason = $('.Radio_BusStopAbsence');
-        //$textSkipOtherReason = $("#Text_BusStopAbsenceOtherReason");
-        //$divSkipOptions = $("#Holder_SkipOptions");
-        //$pageOverlay = $("#page-overlay-holder");
-
-
-        //if (properties.userExperiment) {
-        //    $taskDifficultyOKButton = $("#task-difficulty-button");
-        //    $taskDifficultyWrapper = $("#task-difficulty-wrapper");
-        //}
-
 
         if (assignmentId && assignmentId === 'ASSIGNMENT_ID_NOT_AVAILABLE') {
             properties.isPreviewMode = true;
@@ -128,8 +86,7 @@ function Form ($, params) {
             }
         }
 
-        // Check if this is a preview and, if so, disable submission and show a message saying
-        // this is a preview.
+        // Check if this is a preview and, if so, disable submission and show a message saying this is a preview.
         if (properties.isAMTTask && properties.isPreviewMode) {
             var dom = '<div class="amt-preview-warning-holder">' +
                 '<div class="amt-preview-warning">' +
@@ -141,40 +98,7 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        // if (!('onboarding' in svl && svl.onboarding)) {
-        //     messageCanvas = new Onboarding(params, $)
-        // }
-
-        //
-        // Insert texts in a textfield
-        //properties.commentFieldMessage = $textieldComment.attr('title');
-        //$textieldComment.val(properties.commentFieldMessage);
-
-        //
-        // Disable Submit button so turkers cannot submit without selecting
-        // a reason for not being able to find the bus stop.
-        //disableConfirmSkip();
-
-        //
-        // Attach listeners
-        //$textieldComment.bind('focus', focusCallback); // focusCallback is in Utilities.js
-        //$textieldComment.bind('blur', blurCallback); // blurCallback is in Utilities.js
-        //$form.bind('submit', formSubmit);
-        //$btnSkip.bind('click', openSkipWindow);
-        //$btnConfirmSkip.on('click', skipSubmit);
-        //$btnCancelSkip.on('click', closeSkipWindow);
-        //$radioSkipReason.on('click', radioSkipReasonClicked);
-        // http://stackoverflow.com/questions/11189136/fire-oninput-event-with-jquery
-        //if ($textSkipOtherReason.get().length > 0) {
-        //    $textSkipOtherReason[0].oninput = skipOtherReasonInput;
-        //}
-        //
-        //if (properties.userExperiment) {
-        //    $taskDifficultyOKButton.bind('click', taskDifficultyOKButtonClicked);
-        //}
-
         svl.ui.form.skipButton.on('click', handleSkipClick);
-
     }
 
     /**
@@ -321,8 +245,9 @@ function Form ($, params) {
             // $btnSkip.attr('disabled', true);
             //$btnSkip.css('opacity', 0.5);
             return this;
+        } else {
+            return false;
         }
-        return false;
     }
 
     /**
@@ -332,9 +257,6 @@ function Form ($, params) {
     function enableSubmit () {
         if (!lock.disableSubmit) {
             status.disableSubmit = false;
-            // $btnSubmit.attr('disabled', false);
-            //$btnSubmit.css('opacity', 1);
-
             return this;
         } else {
             return false;
@@ -348,11 +270,10 @@ function Form ($, params) {
     function enableSkip () {
         if (!lock.disableSkip) {
             status.disableSkip = false;
-            // $btnSkip.attr('disabled', false);
-            //$btnSkip.css('opacity', 1);
             return this;
+        } else {
+            return false;
         }
-        return false;
     }
 
     function handleSkipClick (e) {
@@ -360,6 +281,15 @@ function Form ($, params) {
         svl.tracker.push('Click_OpenSkipWindow');
         svl.modalSkip.showSkipMenu();
     }
+
+    /** This method returns whether the task is in preview mode or not. */
+    function isPreviewMode () { return properties.isPreviewMode; }
+
+    function lockDisableSubmit () { lock.disableSubmit = true; return this; }
+
+    function lockDisableSkip () { lock.disableSkip = true; return this; }
+
+
 
     /**
       * Submit the data.
@@ -559,9 +489,9 @@ function Form ($, params) {
 
             // Clear and render the onboarding canvas
             var $divOnboardingMessageBox = undefined; //
-            messageCanvas.clear();
-            messageCanvas.renderMessage(300, 250, message, 350, 140);
-            messageCanvas.renderArrow(650, 282, 710, 282);
+            //messageCanvas.clear();
+            //messageCanvas.renderMessage(300, 250, message, 350, 140);
+            //messageCanvas.renderArrow(650, 282, 710, 282);
 
             if (status.disabledButtonMessageVisibility === 'hidden') {
                 status.disabledButtonMessageVisibility = 'visible';
@@ -572,7 +502,7 @@ function Form ($, params) {
                     //
                     // Remove the OK button and clear the message.
                     $OkBtn.remove();
-                    messageCanvas.clear();
+                    //messageCanvas.clear();
                     status.disabledButtonMessageVisibility = 'hidden';
                 })
             }
@@ -580,9 +510,7 @@ function Form ($, params) {
     }
 
     /**
-     *
-     * @param dataIn. An object which has fields "issue_description", "lat", and "lng."
-     *                E.g., {issue_description: "IWantToExplore", lat: 38.908628, lng: -77.08022499999998}
+     * @param dataIn. An object which has fields "issue_description", "lat", and "lng." E.g., {issue_description: "IWantToExplore", lat: 38.908628, lng: -77.08022499999998}
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
@@ -597,109 +525,44 @@ function Form ($, params) {
         if (!properties.onboarding) {
             svl.tracker.push('TaskSubmitSkip');
 
-            // Compile the submission data with compileSubmissionData method,
-            // then overwrite a part of the compiled data.
+            // Compile the submission data with compileSubmissionData method, then overwrite a part of the compiled data.
             data = compileSubmissionData();
-            data.noLabels = true;
-            data.labelingTask.no_label = 1;
-            data.labelingTask.description = status.skipReasonDescription;
-
-
-            try {
-                $.ajax({
-                    async: false,
-                    url: url,
-                    type: 'post',
-                    data: data,
-                    success: function (result) {
-                        if (result.error) {
-                            console.error(result.error);
-                        }
-                    },
-                    error: function (result) {
-                        throw result;
+            data.incomplete = dataIn;
+            $.ajax({
+                url: url,
+                type: 'post',
+                data: data,
+                success: function (result) {
+                    if (result.error) {
+                        console.error(result.error);
                     }
-                });
-            } catch (e) {
-                console.error(e);
-                return false;
-            }
-
-            if (properties.taskRemaining > 1) {
-                window.location.reload();
-                return false;
-            } else {
-                if (properties.isAMTTask) {
-                    // $form.submit();
-                    document.getElementById("BusStopLabelerForm").submit();
-                    return true;
-                } else {
-                    // window.location = '/';
-                    window.location.reload();
-                    return false;
+                },
+                error: function (result) {
+                    console.error(result)
                 }
-            }
-
+            });
         }
+
+
         return false;
     }
 
-
-    /**
-     * This method returns whether the task is in preview mode or not.
-     * @returns {boolean}
-     */
-    function isPreviewMode () { return properties.isPreviewMode; }
-
-    function lockDisableSubmit () {
-        lock.disableSubmit = true;
-        return this;
-    }
-
-    function lockDisableSkip () {
-        lock.disableSkip = true;
-        return this;
-    }
-
-    /**
-     * This method sets the labelingTaskId
-     * @param val
-     * @returns {setPreviousLabelingTaskId}
-     */
-    function setPreviousLabelingTaskId (val) {
-        properties.previousLabelingTaskId = val;
-        return this;
-    }
+    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
 
     /** This method sets the taskDescription */
-    function setTaskDescription (val) {
-        properties.taskDescription = val;
-        return this;
-    }
-
-    /** This method sets the number of remaining tasks */
-    function setTaskRemaining (val) {
-        properties.taskRemaining = val;
-        return this;
-    }
+    function setTaskDescription (val) { properties.taskDescription = val; return this; }
 
     /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
-    function setTaskPanoramaId (val) {
-        properties.taskPanoramaId = val;
-        return this;
-    }
+    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
+
+    /** This method sets the number of remaining tasks */
+    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
 
     /** Unlock disable submit */
-    function unlockDisableSubmit () {
-        lock.disableSubmit = false;
-        return this;
-    }
+    function unlockDisableSubmit () { lock.disableSubmit = false; return this; }
 
     /** Unlock disable skip */
-    function unlockDisableSkip () {
-        lock.disableSkipButton = false;
-        return this;
-    }
+    function unlockDisableSkip () { lock.disableSkipButton = false; return this; }
 
     self.checkSubmittable = checkSubmittable;
     self.compileSubmissionData = compileSubmissionData;

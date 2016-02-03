@@ -8,7 +8,7 @@ var svl = svl || {};
  * @constructor
  */
 function GoldenInsertion (param, $) {
-    var oPublic = {
+    var self = {
         className: 'GoldenInsertion'
     };
     var properties = {
@@ -55,7 +55,7 @@ function GoldenInsertion (param, $) {
         if ('form' in svl && svl.form) {
             svl.form.goldenInsertionSubmit();
         } else {
-            throw oPublic.className + ": Cannnot submit without a Form object.";
+            throw self.className + ": Cannnot submit without a Form object.";
         }
     }
 
@@ -523,24 +523,24 @@ function GoldenInsertion (param, $) {
     ////////////////////////////////////////////////////////////////////////////////
     // Public functions
     ////////////////////////////////////////////////////////////////////////////////
-    oPublic.disableOkButton = function () {
+    self.disableOkButton = function () {
         // This method disables the OK button.
         $("#GoldenInsertionOkButton").unbind('click');
         $("#GoldenInsertionOkButton").css('opacity', 0.7);
     };
 
-    oPublic.getGoldenLabelVisibility = function () {
+    self.getGoldenLabelVisibility = function () {
         // This method returns the visibility of golden labels.
         return properties.goldenLabelVisibility;
     };
 
-    oPublic.isRevisingLabels = function () {
+    self.isRevisingLabels = function () {
         // This function is called in Canvas to check whether the user should be revising
         // the false labels. See removeLabel amd closePath methods.
         return status.revisingLabels;
     };
 
-    oPublic.renderMessage = function () {
+    self.renderMessage = function () {
         // This is a function that is executed from Map.js's viewControlLayerMouseMove()
         if (status.currentLabel && status.boxMessage !== "") {
             showMessage();
@@ -548,13 +548,13 @@ function GoldenInsertion (param, $) {
         return;
     };
 
-    oPublic.reviewLabels = function () {
+    self.reviewLabels = function () {
         status.revisingLabels = true;
         return reviewLabels2();
     };
 
     _init(param);
-    return oPublic;
+    return self;
 }
 
 svl.formatRecordsToGoldenLabels = function (records) {
