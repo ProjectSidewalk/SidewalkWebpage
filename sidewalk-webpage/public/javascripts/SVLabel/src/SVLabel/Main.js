@@ -51,6 +51,8 @@ function Main ($, params) {
         svl.labelFactory = new LabelFactory();
         svl.compass = new Compass($);
         svl.contextMenu = new ContextMenu($);
+        svl.audioEffect = new AudioEffect();
+        svl.modalSkip = new ModalSkip($);
 
 
         svl.form.disableSubmit();

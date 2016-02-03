@@ -13,8 +13,6 @@ function ModalSkip ($) {
             disableClickOK: true
         };
 
-
-
     function _init () {
         disableClickOK();
 
@@ -76,6 +74,7 @@ function ModalSkip ($) {
      */
     function showSkipMenu () {
         svl.ui.modalSkip.holder.removeClass('hidden');
+        disableClickOK();
     }
 
 

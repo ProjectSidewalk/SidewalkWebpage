@@ -1059,6 +1059,25 @@ function ActionStack ($, params) {
     return self;
 }
 
+function AudioEffect () {
+    var audios = {
+        applause: new Audio(svl.rootDirectory + 'audio/applause.mp3'),
+        drip: new Audio(svl.rootDirectory + 'audio/drip.wav'),
+        glug1: new Audio(svl.rootDirectory + 'audio/glug1.wav'),
+        yay: new Audio(svl.rootDirectory + 'audio/yay.mp3')
+    };
+
+    function play (name) {
+        if (name in audios) {
+            audios[name].play();
+        }
+        return this;
+    }
+
+    return {
+        play: play
+    };
+}
 ////////////////////////////////////////////////////////////////////////////////
 // Global variables
 ////////////////////////////////////////////////////////////////////////////////
@@ -1265,6 +1284,11 @@ function Canvas ($, param) {
         svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
         svl.actionStack.push('addLabel', status.currentLabel);
 
+        // Sound effect
+        if ('audioEffect' in svl) {
+            svl.audioEffect.play('drip');
+        }
+
         // Initialize the tempPath
         tempPath = [];
         svl.ribbon.backToWalk();
@@ -1275,6 +1299,7 @@ function Canvas ($, param) {
             svl.goldenInsertion.isRevisingLabels()) {
             svl.goldenInsertion.reviewLabels();
         }
+
     }
 
     /**
@@ -2753,24 +2778,21 @@ function Form ($, params) {
     };
 
     // jQuery doms
-    var $form;
-    var $textieldComment;
-    var $btnSubmit;
-    var $btnSkip;
-    var $btnConfirmSkip;
-    var $btnCancelSkip;
-    var $radioSkipReason;
-    var $textSkipOtherReason;
-    var $divSkipOptions;
-    var $pageOverlay;
-    var $taskDifficultyWrapper;
-    var $taskDifficultyOKButton;
+    //var $form;
+    //var $textieldComment;
+    //var $btnSubmit;
+    //var $btnSkip;
+    //var $btnConfirmSkip;
+    //var $btnCancelSkip;
+    //var $radioSkipReason;
+    //var $textSkipOtherReason;
+    //var $divSkipOptions;
+    //var $pageOverlay;
+    //var $taskDifficultyWrapper;
+    //var $taskDifficultyOKButton;
 
     var messageCanvas;
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////////////////////////////////////////////
     function _init (params) {
         var hasGroupId = getURLParameter('groupId') !== "";
         var hasHitId = getURLParameter('hitId') !== "";
@@ -2780,50 +2802,46 @@ function Form ($, params) {
         properties.onboarding = params.onboarding;
         properties.dataStoreUrl = params.dataStoreUrl;
 
-        if (('assignmentId' in params) && params.assignmentId) {
+        if (('assignmentId' in params) && params.assignmentId &&
+            ('hitId' in params) && params.hitId &&
+            ('turkerId' in params) && params.turkerId
+        ) {
             properties.assignmentId = params.assignmentId;
-        }
-        if (('hitId' in params) && params.hitId) {
             properties.hitId = params.hitId;
-        }
-        if (('turkerId' in params) && params.turkerId) {
             properties.turkerId = params.turkerId;
+            $('input[name="assignmentId"]').attr('value', properties.assignmentId);
+            $('input[name="workerId"]').attr('value', properties.turkerId);
+            $('input[name="hitId"]').attr('value', properties.hitId);
         }
 
-        if (('userExperiment' in params) && params.userExperiment) {
-            properties.userExperiment = true;
-        }
+        //if (('userExperiment' in params) && params.userExperiment) {
+        //    properties.userExperiment = true;
+        //}
 
-        //
         // initiailze jQuery elements.
-        $form = $("#BusStopLabelerForm");
-        $textieldComment = svl.ui.form.commentField; //$("#CommentField");
-        $btnSubmit = svl.ui.form.submitButton;
-        $btnSkip = svl.ui.form.skipButton;
-        $btnConfirmSkip = $("#BusStopAbsence_Submit");
-        $btnCancelSkip = $("#BusStopAbsence_Cancel");
-        $radioSkipReason = $('.Radio_BusStopAbsence');
-        $textSkipOtherReason = $("#Text_BusStopAbsenceOtherReason");
-        $divSkipOptions = $("#Holder_SkipOptions");
-        $pageOverlay = $("#page-overlay-holder");
+        //$form = $("#BusStopLabelerForm");
+        //$textieldComment = svl.ui.form.commentField; //$("#CommentField");
+        //$btnSubmit = svl.ui.form.submitButton;
+        //$btnSkip = svl.ui.form.skipButton;
+        //$btnConfirmSkip = $("#BusStopAbsence_Submit");
+        //$btnCancelSkip = $("#BusStopAbsence_Cancel");
+        //$radioSkipReason = $('.Radio_BusStopAbsence');
+        //$textSkipOtherReason = $("#Text_BusStopAbsenceOtherReason");
+        //$divSkipOptions = $("#Holder_SkipOptions");
+        //$pageOverlay = $("#page-overlay-holder");
 
 
-        if (properties.userExperiment) {
-            $taskDifficultyOKButton = $("#task-difficulty-button");
-            $taskDifficultyWrapper = $("#task-difficulty-wrapper");
-        }
-
-
-        $('input[name="assignmentId"]').attr('value', properties.assignmentId);
-        $('input[name="workerId"]').attr('value', properties.turkerId);
-        $('input[name="hitId"]').attr('value', properties.hitId);
+        //if (properties.userExperiment) {
+        //    $taskDifficultyOKButton = $("#task-difficulty-button");
+        //    $taskDifficultyWrapper = $("#task-difficulty-wrapper");
+        //}
 
 
         if (assignmentId && assignmentId === 'ASSIGNMENT_ID_NOT_AVAILABLE') {
             properties.isPreviewMode = true;
             properties.isAMTTask = true;
-            self.unlockDisableSubmit().disableSubmit().lockDisableSubmit();
-            self.unlockDisableSkip().disableSkip().lockDisableSkip();
+            unlockDisableSubmit().disableSubmit().lockDisableSubmit();
+            unlockDisableSkip().disableSkip().lockDisableSkip();
         } else if (hasWorkerId && !assignmentId) {
             properties.isPreviewMode = false;
             properties.isAMTTask = false;
@@ -2835,7 +2853,6 @@ function Form ($, params) {
             properties.isAMTTask = true;
         }
 
-        //
         // Check if this is a sandbox task or not
         properties.isSandbox = false;
         if (properties.isAMTTask) {
@@ -2845,7 +2862,6 @@ function Form ($, params) {
             }
         }
 
-        //
         // Check if this is a preview and, if so, disable submission and show a message saying
         // this is a preview.
         if (properties.isAMTTask && properties.isPreviewMode) {
@@ -2855,8 +2871,8 @@ function Form ($, params) {
                 '</div>' +
                 '</div>';
             $("body").append(dom);
-            self.disableSubmit();
-            self.lockDisableSubmit();
+            disableSubmit();
+            lockDisableSubmit();
         }
 
         // if (!('onboarding' in svl && svl.onboarding)) {
@@ -2865,31 +2881,33 @@ function Form ($, params) {
 
         //
         // Insert texts in a textfield
-        properties.commentFieldMessage = $textieldComment.attr('title');
-        $textieldComment.val(properties.commentFieldMessage);
+        //properties.commentFieldMessage = $textieldComment.attr('title');
+        //$textieldComment.val(properties.commentFieldMessage);
 
         //
         // Disable Submit button so turkers cannot submit without selecting
         // a reason for not being able to find the bus stop.
-        disableConfirmSkip();
+        //disableConfirmSkip();
 
         //
         // Attach listeners
-        $textieldComment.bind('focus', focusCallback); // focusCallback is in Utilities.js
-        $textieldComment.bind('blur', blurCallback); // blurCallback is in Utilities.js
-        $form.bind('submit', formSubmit);
-        $btnSkip.bind('click', openSkipWindow);
-        $btnConfirmSkip.on('click', skipSubmit);
-        $btnCancelSkip.on('click', closeSkipWindow);
-        $radioSkipReason.on('click', radioSkipReasonClicked);
+        //$textieldComment.bind('focus', focusCallback); // focusCallback is in Utilities.js
+        //$textieldComment.bind('blur', blurCallback); // blurCallback is in Utilities.js
+        //$form.bind('submit', formSubmit);
+        //$btnSkip.bind('click', openSkipWindow);
+        //$btnConfirmSkip.on('click', skipSubmit);
+        //$btnCancelSkip.on('click', closeSkipWindow);
+        //$radioSkipReason.on('click', radioSkipReasonClicked);
         // http://stackoverflow.com/questions/11189136/fire-oninput-event-with-jquery
-        if ($textSkipOtherReason.get().length > 0) {
-            $textSkipOtherReason[0].oninput = skipOtherReasonInput;
-        }
+        //if ($textSkipOtherReason.get().length > 0) {
+        //    $textSkipOtherReason[0].oninput = skipOtherReasonInput;
+        //}
+        //
+        //if (properties.userExperiment) {
+        //    $taskDifficultyOKButton.bind('click', taskDifficultyOKButtonClicked);
+        //}
 
-        if (properties.userExperiment) {
-            $taskDifficultyOKButton.bind('click', taskDifficultyOKButtonClicked);
-        }
+        svl.ui.form.skipButton.on('click', handleSkipClick);
 
     }
 
@@ -2984,19 +3002,97 @@ function Form ($, params) {
     }
 
     /**
-     * This method disables the confirm skip button
+     * This method checks whether users can submit labels or skip this task by first checking if they assessed all
+     * the angles of the street view. Enable/disable form a submit button and a skip button.
+     * @returns {boolean}
      */
-    function disableConfirmSkip () {
-        $btnConfirmSkip.attr('disabled', true);
-        $btnConfirmSkip.css('color', 'rgba(96,96,96,0.5)');
+    function checkSubmittable () {
+        if ('progressPov' in svl && svl.progressPov) {
+            var completionRate = svl.progressPov.getCompletionRate();
+        } else {
+            var completionRate = 0;
+        }
+
+        var labelCount = svl.canvas.getNumLabels();
+
+        if (1 - completionRate < 0.01) {
+            if (labelCount > 0) {
+                enableSubmit();
+                disableSkip();
+            } else {
+                disableSubmit();
+                enableSkip();
+            }
+            return true;
+        } else {
+            disableSubmit();
+            disableSkip();
+            return false;
+        }
     }
 
     /**
-     * This method enables the confirm skip button
+     * Disable clicking the submit button
+     * @returns {*}
      */
-    function enableConfirmSkip () {
-        $btnConfirmSkip.attr('disabled', false);
-        $btnConfirmSkip.css('color', 'rgba(96,96,96,1)');
+    function disableSubmit () {
+        if (!lock.disableSubmit) {
+            status.disableSubmit = true;
+            //  $btnSubmit.attr('disabled', true);
+            //$btnSubmit.css('opacity', 0.5);
+            return this;
+        }
+        return false;
+    }
+
+    /**
+     * Disable clicking the skip button
+     * @returns {*}
+     */
+    function disableSkip () {
+        if (!lock.disableSkip) {
+            status.disableSkip = true;
+            // $btnSkip.attr('disabled', true);
+            //$btnSkip.css('opacity', 0.5);
+            return this;
+        }
+        return false;
+    }
+
+    /**
+     * Enable clicking the submit button
+     * @returns {*}
+     */
+    function enableSubmit () {
+        if (!lock.disableSubmit) {
+            status.disableSubmit = false;
+            // $btnSubmit.attr('disabled', false);
+            //$btnSubmit.css('opacity', 1);
+
+            return this;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Enable clicking the skip button
+     * @returns {*}
+     */
+    function enableSkip () {
+        if (!lock.disableSkip) {
+            status.disableSkip = false;
+            // $btnSkip.attr('disabled', false);
+            //$btnSkip.css('opacity', 1);
+            return this;
+        }
+        return false;
+    }
+
+    function handleSkipClick (e) {
+        e.preventDefault();
+        svl.tracker.push('Click_OpenSkipWindow');
+        svl.modalSkip.showSkipMenu();
     }
 
     /**
@@ -3083,21 +3179,11 @@ function Form ($, params) {
         // Disable a submit button and other buttons so turkers cannot submit labels more than once.
         //$btnSubmit.attr('disabled', true);
         //$btnSkip.attr('disabled', true);
-        $btnConfirmSkip.attr('disabled', true);
-        $pageOverlay.css('visibility', 'visible');
+        //$btnConfirmSkip.attr('disabled', true);
+        //$pageOverlay.css('visibility', 'visible');
 
 
-        //
-        // If this is a user experiment
-        if (properties.userExperiment) {
-            if (!status.taskDifficulty) {
-                status.submitType = 'submit';
-                $taskDifficultyWrapper.css('visibility', 'visible');
-                return false;
-            }
-        }
 
-        //
         // Submit collected data if a user is not in onboarding mode.
         if (!properties.onboarding) {
             data = compileSubmissionData();
@@ -3193,17 +3279,18 @@ function Form ($, params) {
         return false;
     }
 
+    /**
+     *
+     */
     function showDisabledSubmitButtonMessage () {
-        // This method is called from formSubmit method when a user clicks the submit button evne then have
-        // not looked around and inspected the entire panorama.
         var completionRate = parseInt(svl.progressPov.getCompletionRate() * 100, 10);
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {
-            var message = "You have inspected " + completionRate + "% of the scene. Let's inspect all the corners before you submit the task!";
-            var $OkBtn;
+            var message = "You have inspected " + completionRate +
+                "% of the scene. Let's inspect all the corners before you submit the task!",
+                $OkBtn;
 
-            //
             // Clear and render the onboarding canvas
             var $divOnboardingMessageBox = undefined; //
             messageCanvas.clear();
@@ -3226,48 +3313,15 @@ function Form ($, params) {
         }
     }
 
-    function skipSubmit (e) {
-        // To prevent a button in a form to fire form submission, add onclick="return false"
-        // http://stackoverflow.com/questions/932653/how-to-prevent-buttons-from-submitting-forms
-        if (!properties.isAMTTask || properties.taskRemaining > 1) {
-            e.preventDefault();
-        }
+    /**
+     *
+     * @param dataIn. An object which has fields "issue_description", "lat", and "lng."
+     *                E.g., {issue_description: "IWantToExplore", lat: 38.908628, lng: -77.08022499999998}
+     * @returns {boolean}
+     */
+    function skipSubmit (dataIn) {
+        var url = properties.dataStoreUrl, data = {};
 
-
-
-        var url = properties.dataStoreUrl;
-        var data = {};
-        //
-        // If this is a task with ground truth labels, check if users made any mistake.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            self.disableSubmit().lockDisableSubmit();
-            $btnSkip.attr('disabled', true);
-            $btnConfirmSkip.attr('disabled', true);
-            $divSkipOptions.css({
-                visibility: 'hidden'
-            });
-            var numMistakes = svl.goldenInsertion.reviewLabels()
-            return false;
-        }
-
-        //
-        // Disable a submit button.
-        $btnSubmit.attr('disabled', true);
-        $btnSkip.attr('disabled', true);
-        $btnConfirmSkip.attr('disabled', true);
-        $pageOverlay.css('visibility', 'visible');
-
-
-        //
-        // If this is a user experiment, run the following lines
-        if (properties.userExperiment) {
-            if (!status.taskDifficulty) {
-                status.submitType = 'skip';
-                $taskDifficultyWrapper.css('visibility', 'visible');
-                return false;
-            }
-        }
-        //
         // Set a value for skipReasonDescription.
         if (status.radioValue === 'Other:') {
             status.skipReasonDescription = "Other: " + $textSkipOtherReason.val();
@@ -3277,21 +3331,13 @@ function Form ($, params) {
         if (!properties.onboarding) {
             svl.tracker.push('TaskSubmitSkip');
 
-            //
             // Compile the submission data with compileSubmissionData method,
             // then overwrite a part of the compiled data.
-            data = compileSubmissionData()
+            data = compileSubmissionData();
             data.noLabels = true;
             data.labelingTask.no_label = 1;
             data.labelingTask.description = status.skipReasonDescription;
 
-            if (status.taskDifficulty != undefined) {
-                data.taskDifficulty = status.taskDifficulty;
-                data.labelingTask.description = "TaskDifficulty:" + status.taskDifficulty;
-                if (status.taskDifficultyComment) {
-                    data.comment = "TaskDifficultyCommentField:" + status.taskDifficultyComment + ";InterfaceCommentField:" + data.comment
-                }
-            }
 
             try {
                 $.ajax({
@@ -3301,12 +3347,11 @@ function Form ($, params) {
                     data: data,
                     success: function (result) {
                         if (result.error) {
-                            console.log(result.error);
+                            console.error(result.error);
                         }
                     },
                     error: function (result) {
                         throw result;
-                        // console.error(self.className, result);
                     }
                 });
             } catch (e) {
@@ -3334,221 +3379,79 @@ function Form ($, params) {
     }
 
 
-    function openSkipWindow (e) {
-        e.preventDefault();
+    /**
+     * This method returns whether the task is in preview mode or not.
+     * @returns {boolean}
+     */
+    function isPreviewMode () { return properties.isPreviewMode; }
 
-        if (status.disableSkip) {
-            showDisabledSubmitButtonMessage();
-        } else {
-            svl.tracker.push('Click_OpenSkipWindow');
-            $divSkipOptions.css({
-                visibility: 'visible'
-            });
-        }
-        return false;
-    }
-
-
-    function closeSkipWindow (e) {
-        // This method closes the skip menu.
-        e.preventDefault(); // Do not submit the form!
-
-        svl.tracker.push('Click_CloseSkipWindow');
-
-        $divSkipOptions.css({
-            visibility: 'hidden'
-        });
-        return false;
-    }
-
-
-    function radioSkipReasonClicked () {
-        // This function is invoked when one of a radio button is clicked.
-        // If the clicked radio button is 'Other', check if a user has entered a text.
-        // If the text is entered, then enable submit. Otherwise disable submit.
-        status.radioValue = $(this).attr('value');
-        svl.tracker.push('Click_SkipRadio', {RadioValue: status.radioValue});
-
-        if (status.radioValue !== 'Other:') {
-            status.skipReasonDescription = status.radioValue;
-            enableConfirmSkip();
-        } else {
-            var textValue = $textSkipOtherReason.val();
-            if (textValue) {
-                enableConfirmSkip();
-            } else {
-                disableConfirmSkip();
-            }
-        }
-    }
-
-    function skipOtherReasonInput () {
-        // This function is invoked when the text is entered in Other field.
-        if (status.radioValue && status.radioValue === 'Other:') {
-            var textValue = $textSkipOtherReason.val();
-            if (textValue) {
-                enableConfirmSkip();
-            } else {
-                disableConfirmSkip();
-            }
-        }
-    }
-
-    function taskDifficultyOKButtonClicked (e) {
-        // This is used in the user experiment script
-        // Get checked radio value
-        // http://stackoverflow.com/questions/4138859/jquery-how-to-get-selected-radio-button-value
-        status.taskDifficulty = parseInt($('input[name="taskDifficulty"]:radio:checked').val(), 10);
-        status.taskDifficultyComment = $("#task-difficulty-comment").val();
-        status.taskDifficultyComment = (status.taskDifficultyComment != "") ? status.taskDifficultyComment : undefined;
-        console.log(status.taskDifficultyComment);
-
-
-        if (status.taskDifficulty) {
-            if (('submitType' in status) && status.submitType == 'submit') {
-                formSubmit(e);
-            } else if (('submitType' in status) && status.submitType == 'skip') {
-                skipSubmit(e);
-            }
-        }
-    }
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////////////////////////////////////////////
-    self.checkSubmittable = function () {
-        // This method checks whether users can submit labels or skip this task by first checking if they
-        // assessed all the angles of the street view.
-        // Enable/disable form a submit button and a skip button
-        if ('progressPov' in svl && svl.progressPov) {
-            var completionRate = svl.progressPov.getCompletionRate();
-        } else {
-            var completionRate = 0;
-        }
-
-        var labelCount = svl.canvas.getNumLabels();
-
-        if (1 - completionRate < 0.01) {
-            if (labelCount > 0) {
-                self.enableSubmit();
-                self.disableSkip();
-            } else {
-                self.disableSubmit();
-                self.enableSkip();
-            }
-            return true;
-        } else {
-            self.disableSubmit();
-            self.disableSkip();
-            return false;
-        }
-    };
-
-    self.compileSubmissionData = function () {
-        // This method returns the return value of a private method compileSubmissionData();
-        return compileSubmissionData();
-    }
-
-    self.disableSubmit = function () {
-        if (!lock.disableSubmit) {
-            status.disableSubmit = true;
-            //  $btnSubmit.attr('disabled', true);
-            $btnSubmit.css('opacity', 0.5);
-            return this;
-        }
-        return false;
-    };
-
-
-    self.disableSkip = function () {
-        if (!lock.disableSkip) {
-            status.disableSkip = true;
-            // $btnSkip.attr('disabled', true);
-            $btnSkip.css('opacity', 0.5);
-            return this;
-        }
-        return false;
-    };
-
-
-    self.enableSubmit = function () {
-        if (!lock.disableSubmit) {
-            status.disableSubmit = false;
-            // $btnSubmit.attr('disabled', false);
-            $btnSubmit.css('opacity', 1);
-            return this;
-        }
-        return false;
-    };
-
-
-    self.enableSkip = function () {
-        if (!lock.disableSkip) {
-            status.disableSkip = false;
-            // $btnSkip.attr('disabled', false);
-            $btnSkip.css('opacity', 1);
-            return this;
-        }
-        return false;
-    };
-
-    self.goldenInsertionSubmit = function () {
-        // This method allows GoldenInsetion to submit the task.
-        return goldenInsertionSubmit();
-    };
-
-    self.isPreviewMode = function () {
-        // This method returns whether the task is in preview mode or not.
-        return properties.isPreviewMode;
-    };
-
-    self.lockDisableSubmit = function () {
+    function lockDisableSubmit () {
         lock.disableSubmit = true;
         return this;
-    };
+    }
 
-
-    self.lockDisableSkip = function () {
+    function lockDisableSkip () {
         lock.disableSkip = true;
         return this;
-    };
+    }
 
-    self.setPreviousLabelingTaskId = function (val) {
-        // This method sets the labelingTaskId
+    /**
+     * This method sets the labelingTaskId
+     * @param val
+     * @returns {setPreviousLabelingTaskId}
+     */
+    function setPreviousLabelingTaskId (val) {
         properties.previousLabelingTaskId = val;
         return this;
-    };
+    }
 
-    self.setTaskDescription = function (val) {
-        // This method sets the taskDescription
+    /** This method sets the taskDescription */
+    function setTaskDescription (val) {
         properties.taskDescription = val;
         return this;
-    };
+    }
 
-
-    self.setTaskRemaining = function (val) {
-        // This method sets the number of remaining tasks
+    /** This method sets the number of remaining tasks */
+    function setTaskRemaining (val) {
         properties.taskRemaining = val;
         return this;
-    };
+    }
 
-    self.setTaskPanoramaId = function (val) {
-        // This method sets the taskPanoramaId. Note it is not same as the GSV panorama id.
+    /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
+    function setTaskPanoramaId (val) {
         properties.taskPanoramaId = val;
         return this;
-    };
+    }
 
-
-    self.unlockDisableSubmit = function () {
+    /** Unlock disable submit */
+    function unlockDisableSubmit () {
         lock.disableSubmit = false;
         return this;
-    };
+    }
 
-
-    self.unlockDisableSkip = function () {
+    /** Unlock disable skip */
+    function unlockDisableSkip () {
         lock.disableSkipButton = false;
         return this;
-    };
+    }
 
+    self.checkSubmittable = checkSubmittable;
+    self.compileSubmissionData = compileSubmissionData;
+    self.disableSubmit = disableSubmit;
+    self.disableSkip = disableSkip;
+    self.enableSubmit = enableSubmit;
+    self.enableSkip = enableSkip;
+    self.goldenInsertionSubmit = goldenInsertionSubmit;
+    self.isPreviewMode = isPreviewMode;
+    self.lockDisableSubmit = lockDisableSubmit;
+    self.lockDisableSkip = lockDisableSkip;
+    self.setPreviousLabelingTaskId = setPreviousLabelingTaskId;
+    self.setTaskDescription = setTaskDescription;
+    self.setTaskRemaining = setTaskRemaining;
+    self.setTaskPanoramaId = setTaskPanoramaId;
+    self.skipSubmit = skipSubmit;
+    self.unlockDisableSubmit = unlockDisableSubmit;
+    self.unlockDisableSkip = unlockDisableSkip;
     self.submit = submit;
     self.compileSubmissionData = compileSubmissionData;
     _init(params);
@@ -5820,6 +5723,8 @@ function Main ($, params) {
         svl.labelFactory = new LabelFactory();
         svl.compass = new Compass($);
         svl.contextMenu = new ContextMenu($);
+        svl.audioEffect = new AudioEffect();
+        svl.modalSkip = new ModalSkip($);
 
 
         svl.form.disableSubmit();
@@ -7148,8 +7053,6 @@ function ModalSkip ($) {
             disableClickOK: true
         };
 
-
-
     function _init () {
         disableClickOK();
 
@@ -7211,6 +7114,7 @@ function ModalSkip ($) {
      */
     function showSkipMenu () {
         svl.ui.modalSkip.holder.removeClass('hidden');
+        disableClickOK();
     }
 
 
@@ -9036,12 +8940,7 @@ function RibbonMenu ($, params) {
     var $spansModeSwitches;
 
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     function _init () {
-        //
-        /// Set some of initial properties
         var browser = getBrowser();
         if (browser === 'mozilla') {
             properties.originalBackgroundColor = "-moz-linear-gradient(center top , #fff, #eee)";
@@ -9091,8 +8990,11 @@ function RibbonMenu ($, params) {
         }
     }
 
+    /**
+     * This is a callback method that is invoked with a ribbon menu button click
+     * @param mode
+     */
     function modeSwitch (mode) {
-        // This is a callback method that is invoked with a ribbon menu button click
         var labelType;
 
         if (typeof mode === 'string') {
@@ -9109,12 +9011,10 @@ function RibbonMenu ($, params) {
             var ribbonConnectorPositions;
             var borderColor;
 
-            //
             // Whenever the ribbon menu is clicked, cancel drawing.
             if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
                 svl.canvas.cancelDrawing();
             }
-
 
             labelColors = getLabelColors();
             ribbonConnectorPositions = getRibbonConnectionPositions();
@@ -9123,15 +9023,15 @@ function RibbonMenu ($, params) {
             if ('map' in svl && svl.map) {
                 if (labelType === 'Walk') {
                     // Switch to walking mode.
-                    self.setStatus('mode', 'Walk');
-                    self.setStatus('selectedLabelType', undefined);
+                    setStatus('mode', 'Walk');
+                    setStatus('selectedLabelType', undefined);
                     if (svl.map) {
                       svl.map.modeSwitchWalkClick();
                     }
                 } else {
                     // Switch to labeling mode.
-                    self.setStatus('mode', labelType);
-                    self.setStatus('selectedLabelType', labelType);
+                    setStatus('mode', labelType);
+                    setStatus('selectedLabelType', labelType);
                     if (svl.map) {
                       svl.map.modeSwitchLabelClick();
                     }
@@ -9151,6 +9051,10 @@ function RibbonMenu ($, params) {
             if (svl.overlayMessageBox) {
                 svl.overlayMessageBox.setMessage(labelType);
             }
+
+            if ('audioEffect' in svl) {
+                svl.audioEffect.play('glug1');
+            }
         }
     }
 
@@ -9159,17 +9063,16 @@ function RibbonMenu ($, params) {
             var labelType;
             labelType = $(this).attr('val');
 
-            //
             // If allowedMode is set, mode ('walk' or labelType) except for
             // the one set is not allowed
             if (status.allowedMode && status.allowedMode !== labelType) {
                 return false;
             }
 
-            //
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
             modeSwitch(labelType);
+
         }
     }
 
@@ -9266,108 +9169,96 @@ function RibbonMenu ($, params) {
         return this;
     }
 
-    ////////////////////////////////////////
-    // Public Functions
-    ////////////////////////////////////////
-    self.backToWalk = function () {
-        // This function simulates the click on Walk icon
+    /**
+     * Changes the mode to "walk"
+     * @returns {backToWalk}
+     */
+    function backToWalk () {
         modeSwitch('Walk');
         return this;
-    };
+    }
 
-
-    self.disableModeSwitch = function () {
+    function disableModeSwitch () {
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = true;
             if (svl.ui && svl.ui.ribbonMenu) {
-              $spansModeSwitches.css('opacity', 0.5);
+                $spansModeSwitches.css('opacity', 0.5);
             }
         }
         return this;
-    };
+    }
 
-    self.disableLandmarkLabels = function () {
-        // This function dims landmark labels and
-        // also set status.disableLandmarkLabels to true
+    /**
+     * This function dims landmark labels and also set status.disableLandmarkLabels to true
+     * @returns {disableLandmarkLabels}
+     */
+    function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
-          $.each($spansModeSwitches, function (i, v) {
-              var labelType = $(v).attr('val');
-              if (!(labelType === 'Walk' ||
-                  labelType === 'StopSign' ||
-                  labelType === 'Landmark_Shelter')
-                  ) {
-                  $(v).css('opacity', 0.5);
-              }
-          });
+            $.each($spansModeSwitches, function (i, v) {
+                var labelType = $(v).attr('val');
+                if (!(labelType === 'Walk' ||
+                    labelType === 'StopSign' ||
+                    labelType === 'Landmark_Shelter')
+                ) {
+                    $(v).css('opacity', 0.5);
+                }
+            });
         }
         status.disableLandmarkLabels = true;
         return this;
-    };
+    }
 
-    self.enableModeSwitch = function () {
+    function enableModeSwitch () {
         // This method enables mode switch.
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = false;
             if (svl.ui && svl.ui.ribbonMenu) {
-              $spansModeSwitches.css('opacity', 1);
+                $spansModeSwitches.css('opacity', 1);
             }
         }
         return this;
-    };
+    }
 
-    self.enableLandmarkLabels = function () {
-      if (svl.ui && svl.ui.ribbonMenu) {
-        $.each($spansModeSwitches, function (i, v) {
-            var labelType = $(v).attr('val');
-            $(v).css('opacity', 1);
-        });
-      }
-      status.disableLandmarkLabels = false;
-      return this;
-    };
+    function enableLandmarkLabels () {
+        if (svl.ui && svl.ui.ribbonMenu) {
+            $.each($spansModeSwitches, function (i, v) {
+                var labelType = $(v).attr('val');
+                $(v).css('opacity', 1);
+            });
+        }
+        status.disableLandmarkLabels = false;
+        return this;
+    }
 
-
-    self.lockDisableModeSwitch = function () {
+    function lockDisableModeSwitch () {
         status.lockDisableModeSwitch = true;
         return this;
-    };
+    }
 
-    self.modeSwitch = function (labelType) {
-        // This function simulates the click on a mode switch icon
-        modeSwitch(labelType);
-    };
+    function getStatus (key) {
+        if (key in status) {
+            return status[key];
+        } else {
+            console.warn(self.className, 'You cannot access a property "' + key + '".');
+            return undefined;
+        }
+    }
 
-    self.modeSwitchClick = function (labelType) {
-        // This function simulates the click on a mode switch icon
-        // Todo. Deprecated. Delete when you will refactor this code.
-        modeSwitch(labelType);
-    };
-
-
-    self.getStatus = function(key) {
-            if (key in status) {
-                return status[key];
-            } else {
-              console.warn(self.className, 'You cannot access a property "' + key + '".');
-              return undefined;
-            }
-    };
-
-    self.setAllowedMode = function (mode) {
+    function setAllowedMode (mode) {
         // This method sets the allowed mode.
         status.allowedMode = mode;
         return this;
-    };
+    }
 
-    self.setStatus = function(name, value) {
+    function setStatus (name, value) {
         try {
             if (name in status) {
                 if (name === 'disableModeSwitch') {
                     if (typeof value === 'boolean') {
                         if (value) {
-                            self.disableModeSwitch();
+                            disableModeSwitch();
                         } else {
-                            self.enableModeSwitch();
+                            enableModeSwitch();
                         }
                         return this;
                     } else {
@@ -9386,12 +9277,25 @@ function RibbonMenu ($, params) {
             return false;
         }
 
-    };
+    }
 
-    self.unlockDisableModeSwitch = function () {
+    function unlockDisableModeSwitch () {
         status.lockDisableModeSwitch = false;
         return this;
-    };
+    }
+
+    self.backToWalk = backToWalk;
+    self.disableModeSwitch = disableModeSwitch;
+    self.disableLandmarkLabels = disableLandmarkLabels;
+    self.enableModeSwitch = enableModeSwitch;
+    self.enableLandmarkLabels = enableLandmarkLabels;
+    self.lockDisableModeSwitch = lockDisableModeSwitch;
+    self.modeSwitch = modeSwitch;
+    self.modeSwitchClick = modeSwitch;
+    self.getStatus = getStatus;
+    self.setAllowedMode = setAllowedMode;
+    self.setStatus = setStatus;
+    self.unlockDisableModeSwitch = unlockDisableModeSwitch;
 
 
     _init(params);
@@ -10380,6 +10284,10 @@ function Task ($, turf) {
         });
     }
 
+    function animateTaskCompletionMessage() {
+        // Todo.
+    }
+
     /** End the current task */
     function endTask () {
         svl.statusMessage.animate();
@@ -10387,6 +10295,16 @@ function Task ($, turf) {
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
         svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
         svl.tracker.push("TaskEnd");
+
+        // Play audio effect
+        if ('audioEffect' in svl) {
+            svl.audioEffect.play('yay');
+            svl.audioEffect.play('applause');
+        }
+
+        // Todo. Animate the task completion message
+        animateTaskCompletionMessage();
+
         taskCompletionRate = 0;
 
         // Push the data into the list
@@ -10560,14 +10478,14 @@ function Task ($, turf) {
      * @param lng
      */
     function getTaskCompletionRate () {
-        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng;
-        var line = taskSetting.features[0];
-        var currentPoint = { "type": "Feature", "properties": {},
-            geometry: {
-                "type": "Point", "coordinates": [lng, lat]
-            }
-        };
-        var snapped = turf.pointOnLine(line, currentPoint),
+        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+            line = taskSetting.features[0],
+            currentPoint = { "type": "Feature", "properties": {},
+                geometry: {
+                    "type": "Point", "coordinates": [lng, lat]
+                }
+            },
+            snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
             segment, cumSum = 0,
@@ -10635,9 +10553,10 @@ function Task ($, turf) {
      */
     function render() {
         if ('map' in svl && google) {
+            var i;
             if (paths) {
                 // Remove the existing paths and switch with the new ones
-                for (var i = 0; i < paths.length; i++) {
+                for (i = 0; i < paths.length; i++) {
                     paths[i].setMap(null);
                 }
 
@@ -10662,10 +10581,10 @@ function Task ($, turf) {
                 ];
             }
 
-            for (var i = 0; i < previousPaths.length; i++) {
+            for (i = 0; i < previousPaths.length; i++) {
                 previousPaths[i].setMap(svl.map.getMap());
             }
-            for (var i = 0; i < paths.length; i++) {
+            for (i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
 
@@ -10869,7 +10788,8 @@ function Tracker () {
 var svl = svl || {};
 
 /**
- * A UI class
+ * A UI class.
+ * Todo. I don't like defining all the dom elements here...
  * @param $
  * @param params
  * @returns {{moduleName: string}}
@@ -10883,14 +10803,14 @@ function UI ($, params) {
 
 
     function _init (params) {
-      // Todo. Use better templating techniques rather so it's prettier!
+        // Todo. Use better templating techniques rather so it's prettier!
 
-      self.actionStack = {};
-      self.actionStack.holder = $("#action-stack-control-holder");
-      self.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br /><small>Undo</small></button>');
-      self.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br /><small>Redo</small></button>');
-      self.actionStack.redo = $("#redo-button");
-      self.actionStack.undo = $("#undo-button");
+        self.actionStack = {};
+        self.actionStack.holder = $("#action-stack-control-holder");
+        self.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br /><small>Undo</small></button>');
+        self.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br /><small>Redo</small></button>');
+        self.actionStack.redo = $("#redo-button");
+        self.actionStack.undo = $("#undo-button");
 
       // LabeledLandmarkFeedback DOMs
 //      $labelCountCurbRamp = $("#LabeledLandmarkCount_CurbRamp");
@@ -10901,95 +10821,101 @@ function UI ($, params) {
 //      self.labeledLandmark.curbRamp = $labelCountCurbRamp;
 //      self.labeledLandmark.noCurbRamp = $labelCountNoCurbRamp;
 //      self.labeledLandmark.submitted = $submittedLabelMessage;
-      self.counterHolder = $("#counter-holder");
-      self.labelCounter = $("#label-counter");
+        self.counterHolder = $("#counter-holder");
+        self.labelCounter = $("#label-counter");
 
-      // Map DOMs
-      self.map = {};
-      self.map.canvas = $("canvas#labelCanvas");
-      self.map.drawingLayer = $("div#labelDrawingLayer");
-      self.map.pano = $("div#pano");
-      self.map.streetViewHolder = $("div#streetViewHolder");
-      self.map.viewControlLayer = $("div#viewControlLayer");
-      self.map.modeSwitchWalk = $("span#modeSwitchWalk");
-      self.map.modeSwitchDraw = $("span#modeSwitchDraw");
-      self.googleMaps = {};
-      self.googleMaps.holder = $("#google-maps-holder");
-      self.googleMaps.holder.append('<div id="google-maps" class="google-maps-pane" style=""></div><div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>')
+        // Map DOMs
+        self.map = {};
+        self.map.canvas = $("canvas#labelCanvas");
+        self.map.drawingLayer = $("div#labelDrawingLayer");
+        self.map.pano = $("div#pano");
+        self.map.streetViewHolder = $("div#streetViewHolder");
+        self.map.viewControlLayer = $("div#viewControlLayer");
+        self.map.modeSwitchWalk = $("span#modeSwitchWalk");
+        self.map.modeSwitchDraw = $("span#modeSwitchDraw");
+        self.googleMaps = {};
+        self.googleMaps.holder = $("#google-maps-holder");
+        self.googleMaps.holder.append('<div id="google-maps" class="google-maps-pane" style=""></div><div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>')
 
-      // MissionDescription DOMs
-      self.statusMessage = {};
-      self.statusMessage.holder = $("#current-status-holder");
-      self.statusMessage.title = $("#current-status-title");
-      self.statusMessage.description = $("#current-status-description");
+        // MissionDescription DOMs
+        self.statusMessage = {};
+        self.statusMessage.holder = $("#current-status-holder");
+        self.statusMessage.title = $("#current-status-title");
+        self.statusMessage.description = $("#current-status-description");
 
-      // OverlayMessage
-      self.overlayMessage = {};
-      self.overlayMessage.holder = $("#overlay-message-holder");
-      self.overlayMessage.holder.append("<span id='overlay-message-box'><span id='overlay-message'>Walk</span></span>");
-      self.overlayMessage.box = $("#overlay-message-box");
-      self.overlayMessage.message = $("#overlay-message");
+        // OverlayMessage
+        self.overlayMessage = {};
+        self.overlayMessage.holder = $("#overlay-message-holder");
+        self.overlayMessage.holder.append("<span id='overlay-message-box'><span id='overlay-message'>Walk</span></span>");
+        self.overlayMessage.box = $("#overlay-message-box");
+        self.overlayMessage.message = $("#overlay-message");
 
-      // Pop up message
-      self.popUpMessage = {};
-      self.popUpMessage.holder = $("#pop-up-message-holder");
-      self.popUpMessage.box = $("#pop-up-message-box");
-      self.popUpMessage.background = $("#pop-up-message-background");
-      self.popUpMessage.title = $("#pop-up-message-title");
-      self.popUpMessage.content = $("#pop-up-message-content");
+        // Pop up message
+        self.popUpMessage = {};
+        self.popUpMessage.holder = $("#pop-up-message-holder");
+        self.popUpMessage.box = $("#pop-up-message-box");
+        self.popUpMessage.background = $("#pop-up-message-background");
+        self.popUpMessage.title = $("#pop-up-message-title");
+        self.popUpMessage.content = $("#pop-up-message-content");
 
-      // ProgressPov
-      self.progressPov = {};
-      self.progressPov.holder = $("#progress-pov-holder");
-      self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Task completion rate:</div>");
-      self.progressPov.holder.append("<div id='progress-pov-current-completion-bar'></div>");
-      self.progressPov.holder.append("<div id='progress-pov-current-completion-bar-filler'></div>");
-      self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'></div>");
-      self.progressPov.rate = $("#progress-pov-current-completion-rate");
-      self.progressPov.bar = $("#progress-pov-current-completion-bar");
-      self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
+        // ProgressPov
+        self.progressPov = {};
+        self.progressPov.holder = $("#progress-pov-holder");
+        self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Task completion rate:</div>");
+        self.progressPov.holder.append("<div id='progress-pov-current-completion-bar'></div>");
+        self.progressPov.holder.append("<div id='progress-pov-current-completion-bar-filler'></div>");
+        self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'></div>");
+        self.progressPov.rate = $("#progress-pov-current-completion-rate");
+        self.progressPov.bar = $("#progress-pov-current-completion-bar");
+        self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
-      // Ribbon menu DOMs
-      var $divStreetViewHolder = $("#Holder_StreetView");
-      var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
-      var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
-      var $spansModeSwitches = $('span.modeSwitch');
+        // Ribbon menu DOMs
+        var $divStreetViewHolder = $("#Holder_StreetView");
+        var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+        var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+        var $spansModeSwitches = $('span.modeSwitch');
 
-      self.ribbonMenu = {};
-      self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
-      self.ribbonMenu.buttons = $spansModeSwitches;
-      self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
-      self.ribbonMenu.connector = $ribbonConnector;
+        self.ribbonMenu = {};
+        self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
+        self.ribbonMenu.buttons = $spansModeSwitches;
+        self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
+        self.ribbonMenu.connector = $ribbonConnector;
 
-
-          // Context menu
-          self.contextMenu = {};
-          self.contextMenu.holder = $("#context-menu-holder");
+        // Context menu
+        self.contextMenu = {};
+        self.contextMenu.holder = $("#context-menu-holder");
         self.contextMenu.connector = $("#context-menu-vertical-connector");
         self.contextMenu.radioButtons = $("input[name='problem-severity']");
         self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
 
-      // Zoom control
-      self.zoomControl = {};
-      self.zoomControl.holder = $("#zoom-control-holder");
-      self.zoomControl.holder.append('<button id="zoom-in-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Zoom in"><br />Zoom In</button>');
-      self.zoomControl.holder.append('<button id="zoom-out-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomOut.svg" class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>');
-      self.zoomControl.zoomIn = $("#zoom-in-button");
-      self.zoomControl.zoomOut = $("#zoom-out-button");
+        // Modal
+        self.modalSkip = {};
+        self.modalSkip.holder = $("#modal-skip-holder");
+        self.modalSkip.ok = $("#modal-skip-ok-button");
+        self.modalSkip.cancel = $("#modal-skip-cancel-button");
+        self.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
 
-      // Form
-      self.form = {};
-      self.form.holder = $("#form-holder");
-      self.form.commentField = $("#comment-field");
-      self.form.skipButton = $("#skip-button");
-      self.form.submitButton = $("#submit-button");
 
-      self.onboarding = {};
-      self.onboarding.holder = $("#onboarding-holder");
-      if ("onboarding" in params && params.onboarding) {
-        self.onboarding.holder.append("<div id='Holder_OnboardingCanvas'><canvas id='onboardingCanvas' width='720px' height='480px'></canvas><div id='Holder_OnboardingMessageBox'><div id='Holder_OnboardingMessage'></div></div></div>");
-      }
+        // Zoom control
+        self.zoomControl = {};
+        self.zoomControl.holder = $("#zoom-control-holder");
+        self.zoomControl.holder.append('<button id="zoom-in-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Zoom in"><br />Zoom In</button>');
+        self.zoomControl.holder.append('<button id="zoom-out-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomOut.svg" class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>');
+        self.zoomControl.zoomIn = $("#zoom-in-button");
+        self.zoomControl.zoomOut = $("#zoom-out-button");
 
+        // Form
+        self.form = {};
+        self.form.holder = $("#form-holder");
+        self.form.commentField = $("#comment-field");
+        self.form.skipButton = $("#skip-button");
+        self.form.submitButton = $("#submit-button");
+
+        self.onboarding = {};
+        self.onboarding.holder = $("#onboarding-holder");
+        if ("onboarding" in params && params.onboarding) {
+          self.onboarding.holder.append("<div id='Holder_OnboardingCanvas'><canvas id='onboardingCanvas' width='720px' height='480px'></canvas><div id='Holder_OnboardingMessageBox'><div id='Holder_OnboardingMessage'></div></div></div>");
+        }
     }
 
     _init(params);

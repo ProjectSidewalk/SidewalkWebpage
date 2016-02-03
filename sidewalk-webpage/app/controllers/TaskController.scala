@@ -171,9 +171,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
-          data.incomplete match {
-            case Some(incomplete) => AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
-            case _ =>
+          if (data.incomplete.isDefined) {
+            val incomplete = data.incomplete.get
+            AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
           }
 
           // Insert labels

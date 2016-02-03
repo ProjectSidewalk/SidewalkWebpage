@@ -204,6 +204,11 @@ function Canvas ($, param) {
         svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
         svl.actionStack.push('addLabel', status.currentLabel);
 
+        // Sound effect
+        if ('audioEffect' in svl) {
+            svl.audioEffect.play('drip');
+        }
+
         // Initialize the tempPath
         tempPath = [];
         svl.ribbon.backToWalk();
@@ -214,6 +219,7 @@ function Canvas ($, param) {
             svl.goldenInsertion.isRevisingLabels()) {
             svl.goldenInsertion.reviewLabels();
         }
+
     }
 
     /**

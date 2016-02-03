@@ -68,6 +68,10 @@ function Task ($, turf) {
         });
     }
 
+    function animateTaskCompletionMessage() {
+        // Todo.
+    }
+
     /** End the current task */
     function endTask () {
         svl.statusMessage.animate();
@@ -75,6 +79,16 @@ function Task ($, turf) {
         svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
         svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
         svl.tracker.push("TaskEnd");
+
+        // Play audio effect
+        if ('audioEffect' in svl) {
+            svl.audioEffect.play('yay');
+            svl.audioEffect.play('applause');
+        }
+
+        // Todo. Animate the task completion message
+        animateTaskCompletionMessage();
+
         taskCompletionRate = 0;
 
         // Push the data into the list
@@ -248,14 +262,14 @@ function Task ($, turf) {
      * @param lng
      */
     function getTaskCompletionRate () {
-        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng;
-        var line = taskSetting.features[0];
-        var currentPoint = { "type": "Feature", "properties": {},
-            geometry: {
-                "type": "Point", "coordinates": [lng, lat]
-            }
-        };
-        var snapped = turf.pointOnLine(line, currentPoint),
+        var latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+            line = taskSetting.features[0],
+            currentPoint = { "type": "Feature", "properties": {},
+                geometry: {
+                    "type": "Point", "coordinates": [lng, lat]
+                }
+            },
+            snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
             segment, cumSum = 0,
@@ -323,9 +337,10 @@ function Task ($, turf) {
      */
     function render() {
         if ('map' in svl && google) {
+            var i;
             if (paths) {
                 // Remove the existing paths and switch with the new ones
-                for (var i = 0; i < paths.length; i++) {
+                for (i = 0; i < paths.length; i++) {
                     paths[i].setMap(null);
                 }
 
@@ -350,10 +365,10 @@ function Task ($, turf) {
                 ];
             }
 
-            for (var i = 0; i < previousPaths.length; i++) {
+            for (i = 0; i < previousPaths.length; i++) {
                 previousPaths[i].setMap(svl.map.getMap());
             }
-            for (var i = 0; i < paths.length; i++) {
+            for (i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
 

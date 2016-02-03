@@ -29,12 +29,7 @@ function RibbonMenu ($, params) {
     var $spansModeSwitches;
 
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     function _init () {
-        //
-        /// Set some of initial properties
         var browser = getBrowser();
         if (browser === 'mozilla') {
             properties.originalBackgroundColor = "-moz-linear-gradient(center top , #fff, #eee)";
@@ -84,8 +79,11 @@ function RibbonMenu ($, params) {
         }
     }
 
+    /**
+     * This is a callback method that is invoked with a ribbon menu button click
+     * @param mode
+     */
     function modeSwitch (mode) {
-        // This is a callback method that is invoked with a ribbon menu button click
         var labelType;
 
         if (typeof mode === 'string') {
@@ -102,12 +100,10 @@ function RibbonMenu ($, params) {
             var ribbonConnectorPositions;
             var borderColor;
 
-            //
             // Whenever the ribbon menu is clicked, cancel drawing.
             if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
                 svl.canvas.cancelDrawing();
             }
-
 
             labelColors = getLabelColors();
             ribbonConnectorPositions = getRibbonConnectionPositions();
@@ -116,15 +112,15 @@ function RibbonMenu ($, params) {
             if ('map' in svl && svl.map) {
                 if (labelType === 'Walk') {
                     // Switch to walking mode.
-                    self.setStatus('mode', 'Walk');
-                    self.setStatus('selectedLabelType', undefined);
+                    setStatus('mode', 'Walk');
+                    setStatus('selectedLabelType', undefined);
                     if (svl.map) {
                       svl.map.modeSwitchWalkClick();
                     }
                 } else {
                     // Switch to labeling mode.
-                    self.setStatus('mode', labelType);
-                    self.setStatus('selectedLabelType', labelType);
+                    setStatus('mode', labelType);
+                    setStatus('selectedLabelType', labelType);
                     if (svl.map) {
                       svl.map.modeSwitchLabelClick();
                     }
@@ -144,6 +140,10 @@ function RibbonMenu ($, params) {
             if (svl.overlayMessageBox) {
                 svl.overlayMessageBox.setMessage(labelType);
             }
+
+            if ('audioEffect' in svl) {
+                svl.audioEffect.play('glug1');
+            }
         }
     }
 
@@ -152,17 +152,16 @@ function RibbonMenu ($, params) {
             var labelType;
             labelType = $(this).attr('val');
 
-            //
             // If allowedMode is set, mode ('walk' or labelType) except for
             // the one set is not allowed
             if (status.allowedMode && status.allowedMode !== labelType) {
                 return false;
             }
 
-            //
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
             modeSwitch(labelType);
+
         }
     }
 
@@ -259,108 +258,96 @@ function RibbonMenu ($, params) {
         return this;
     }
 
-    ////////////////////////////////////////
-    // Public Functions
-    ////////////////////////////////////////
-    self.backToWalk = function () {
-        // This function simulates the click on Walk icon
+    /**
+     * Changes the mode to "walk"
+     * @returns {backToWalk}
+     */
+    function backToWalk () {
         modeSwitch('Walk');
         return this;
-    };
+    }
 
-
-    self.disableModeSwitch = function () {
+    function disableModeSwitch () {
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = true;
             if (svl.ui && svl.ui.ribbonMenu) {
-              $spansModeSwitches.css('opacity', 0.5);
+                $spansModeSwitches.css('opacity', 0.5);
             }
         }
         return this;
-    };
+    }
 
-    self.disableLandmarkLabels = function () {
-        // This function dims landmark labels and
-        // also set status.disableLandmarkLabels to true
+    /**
+     * This function dims landmark labels and also set status.disableLandmarkLabels to true
+     * @returns {disableLandmarkLabels}
+     */
+    function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
-          $.each($spansModeSwitches, function (i, v) {
-              var labelType = $(v).attr('val');
-              if (!(labelType === 'Walk' ||
-                  labelType === 'StopSign' ||
-                  labelType === 'Landmark_Shelter')
-                  ) {
-                  $(v).css('opacity', 0.5);
-              }
-          });
+            $.each($spansModeSwitches, function (i, v) {
+                var labelType = $(v).attr('val');
+                if (!(labelType === 'Walk' ||
+                    labelType === 'StopSign' ||
+                    labelType === 'Landmark_Shelter')
+                ) {
+                    $(v).css('opacity', 0.5);
+                }
+            });
         }
         status.disableLandmarkLabels = true;
         return this;
-    };
+    }
 
-    self.enableModeSwitch = function () {
+    function enableModeSwitch () {
         // This method enables mode switch.
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = false;
             if (svl.ui && svl.ui.ribbonMenu) {
-              $spansModeSwitches.css('opacity', 1);
+                $spansModeSwitches.css('opacity', 1);
             }
         }
         return this;
-    };
+    }
 
-    self.enableLandmarkLabels = function () {
-      if (svl.ui && svl.ui.ribbonMenu) {
-        $.each($spansModeSwitches, function (i, v) {
-            var labelType = $(v).attr('val');
-            $(v).css('opacity', 1);
-        });
-      }
-      status.disableLandmarkLabels = false;
-      return this;
-    };
+    function enableLandmarkLabels () {
+        if (svl.ui && svl.ui.ribbonMenu) {
+            $.each($spansModeSwitches, function (i, v) {
+                var labelType = $(v).attr('val');
+                $(v).css('opacity', 1);
+            });
+        }
+        status.disableLandmarkLabels = false;
+        return this;
+    }
 
-
-    self.lockDisableModeSwitch = function () {
+    function lockDisableModeSwitch () {
         status.lockDisableModeSwitch = true;
         return this;
-    };
+    }
 
-    self.modeSwitch = function (labelType) {
-        // This function simulates the click on a mode switch icon
-        modeSwitch(labelType);
-    };
+    function getStatus (key) {
+        if (key in status) {
+            return status[key];
+        } else {
+            console.warn(self.className, 'You cannot access a property "' + key + '".');
+            return undefined;
+        }
+    }
 
-    self.modeSwitchClick = function (labelType) {
-        // This function simulates the click on a mode switch icon
-        // Todo. Deprecated. Delete when you will refactor this code.
-        modeSwitch(labelType);
-    };
-
-
-    self.getStatus = function(key) {
-            if (key in status) {
-                return status[key];
-            } else {
-              console.warn(self.className, 'You cannot access a property "' + key + '".');
-              return undefined;
-            }
-    };
-
-    self.setAllowedMode = function (mode) {
+    function setAllowedMode (mode) {
         // This method sets the allowed mode.
         status.allowedMode = mode;
         return this;
-    };
+    }
 
-    self.setStatus = function(name, value) {
+    function setStatus (name, value) {
         try {
             if (name in status) {
                 if (name === 'disableModeSwitch') {
                     if (typeof value === 'boolean') {
                         if (value) {
-                            self.disableModeSwitch();
+                            disableModeSwitch();
                         } else {
-                            self.enableModeSwitch();
+                            enableModeSwitch();
                         }
                         return this;
                     } else {
@@ -379,12 +366,25 @@ function RibbonMenu ($, params) {
             return false;
         }
 
-    };
+    }
 
-    self.unlockDisableModeSwitch = function () {
+    function unlockDisableModeSwitch () {
         status.lockDisableModeSwitch = false;
         return this;
-    };
+    }
+
+    self.backToWalk = backToWalk;
+    self.disableModeSwitch = disableModeSwitch;
+    self.disableLandmarkLabels = disableLandmarkLabels;
+    self.enableModeSwitch = enableModeSwitch;
+    self.enableLandmarkLabels = enableLandmarkLabels;
+    self.lockDisableModeSwitch = lockDisableModeSwitch;
+    self.modeSwitch = modeSwitch;
+    self.modeSwitchClick = modeSwitch;
+    self.getStatus = getStatus;
+    self.setAllowedMode = setAllowedMode;
+    self.setStatus = setStatus;
+    self.unlockDisableModeSwitch = unlockDisableModeSwitch;
 
 
     _init(params);
