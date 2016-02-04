@@ -9961,7 +9961,6 @@ function Task ($, turf) {
         }
     }
 
-    self.animateTaskCompletionMessage = animateTaskCompletionMessage;  // Debug.
     function animateTaskCompletionMessage() {
         svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
         svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
@@ -10257,6 +10256,7 @@ function Task ($, turf) {
 
     /** This method takes a task parameters in geojson format. */
     function set(json) {
+        paths = null;
         taskSetting = json;
         lat = taskSetting.features[0].geometry.coordinates[0][1];
         lng = taskSetting.features[0].geometry.coordinates[0][0];
