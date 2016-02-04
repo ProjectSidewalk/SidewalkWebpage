@@ -786,7 +786,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function ActionStack ($, params) {
+function ActionStack () {
     var self = { className : 'ActionStack'},
         status = {
             actionStackCursor : 0, // This is an index of current state in actionStack
@@ -800,13 +800,12 @@ function ActionStack ($, params) {
         actionStack = [];
 
 
-    function init (params) {
+    function init () {
         // Initialization function
         if (svl.ui && svl.ui.actionStack) {
             svl.ui.actionStack.redo.css('opacity', 0.5);
             svl.ui.actionStack.undo.css('opacity', 0.5);
 
-            // Attach listeners to buttons
             svl.ui.actionStack.redo.bind('click', buttonRedoClick);
             svl.ui.actionStack.undo.bind('click', buttonUndoClick);
         }
@@ -1021,7 +1020,7 @@ function ActionStack ($, params) {
     self.getLock = getLock;
     self.updateOpacity = updateOpacity;
 
-    init(params);
+    init();
 
     return self;
 }
@@ -5369,7 +5368,7 @@ function Main ($, params) {
         svl.labelCounter = new LabelCounter($, d3);
         svl.qualificationBadges = undefined;
         svl.progressFeedback = new ProgressFeedback($);
-        svl.actionStack = new ActionStack($);
+        svl.actionStack = new ActionStack();
         svl.ribbon = new RibbonMenu($);
         svl.popUpMessage = new PopUpMessage($);
         svl.zoomControl = new ZoomControl($);

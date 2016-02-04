@@ -36,7 +36,7 @@ function Main ($, params) {
         svl.labelCounter = new LabelCounter($, d3);
         svl.qualificationBadges = undefined;
         svl.progressFeedback = new ProgressFeedback($);
-        svl.actionStack = new ActionStack($);
+        svl.actionStack = new ActionStack();
         svl.ribbon = new RibbonMenu($);
         svl.popUpMessage = new PopUpMessage($);
         svl.zoomControl = new ZoomControl($);
