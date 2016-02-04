@@ -787,158 +787,125 @@ var svl = svl || {};
  * @memberof svl
  */
 function ActionStack ($, params) {
-    var self = {
-        'className' : 'ActionStack'
-        };
-    var properties = {};
-    var status = {
+    var self = { className : 'ActionStack'},
+        status = {
             actionStackCursor : 0, // This is an index of current state in actionStack
             disableRedo : false,
             disableUndo : false
-        };
-    var lock = {
+        },
+        lock = {
             disableRedo : false,
             disableUndo : false
-        };
-    var actionStack = [];
-
-    // jQuery dom objects
-    var $buttonRedo;
-    var $buttonUndo;
+        },
+        actionStack = [];
 
 
-    ////////////////////////////////////////
-    // Private Functions
-    ////////////////////////////////////////
     function init (params) {
         // Initialization function
         if (svl.ui && svl.ui.actionStack) {
-          // $buttonRedo = $(params.domIds.redoButton);
-          // $buttonUndo = $(params.domIds.undoButton);
-          $buttonRedo = svl.ui.actionStack.redo;
-          $buttonUndo = svl.ui.actionStack.undo;
-          $buttonRedo.css('opacity', 0.5);
-          $buttonUndo.css('opacity', 0.5);
+            svl.ui.actionStack.redo.css('opacity', 0.5);
+            svl.ui.actionStack.undo.css('opacity', 0.5);
 
-          // Attach listeners to buttons
-          $buttonRedo.bind('click', buttonRedoClick);
-          $buttonUndo.bind('click', buttonUndoClick);
+            // Attach listeners to buttons
+            svl.ui.actionStack.redo.bind('click', buttonRedoClick);
+            svl.ui.actionStack.undo.bind('click', buttonUndoClick);
         }
     }
 
 
     function buttonRedoClick () {
         if (!status.disableRedo) {
-          if ('tracker' in svl) {
             svl.tracker.push('Click_Redo');
-          }
-            self.redo();
+            redo();
         }
     }
-
 
     function buttonUndoClick () {
         if (!status.disableUndo) {
-          if ('tracker' in svl) {
             svl.tracker.push('Click_Undo');
-          }
-            self.undo();
+            undo();
         }
     }
 
-    ////////////////////////////////////////
-    // Public methods
-    ////////////////////////////////////////
-    self.disableRedo = function () {
+    /** Disable redo */
+    function disableRedo () {
         if (!lock.disableRedo) {
             status.disableRedo = true;
             if (svl.ui && svl.ui.actionStack) {
-              $buttonRedo.css('opacity', 0.5);
+                svl.ui.actionStack.redo.css('opacity', 0.5);
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-
-    self.disableUndo = function () {
+    /** Disable undo */
+    function disableUndo () {
         if (!lock.disableUndo) {
             status.disableUndo = true;
             if (svl.ui && svl.ui.actionStack) {
-              $buttonUndo.css('opacity', 0.5);
+                svl.ui.actionStack.undo.css('opacity', 0.5);
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-
-    self.enableRedo = function () {
+    /** Enable redo */
+    function enableRedo () {
         if (!lock.disableRedo) {
             status.disableRedo = false;
             if (svl.ui && svl.ui.actionStack) {
-              $buttonRedo.css('opacity', 1);
+                svl.ui.actionStack.redo.css('opacity', 1);
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-
-    self.enableUndo = function () {
+    /** Enable undo */
+    function enableUndo () {
         if (!lock.disableUndo) {
             status.disableUndo = false;
             if (svl.ui && svl.ui.actionStack) {
-              $buttonUndo.css('opacity', 1);
+                svl.ui.actionStack.undo.css('opacity', 1);
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-    self.getStatus = function(key) {
-        if (!(key in status)) {
-            console.warn("You have passed an invalid key for status.")
-        }
-        return status[key];
-    };
+    function getStatus(key) { return (key in status) ? status[key] : null; }
 
-    self.lockDisableRedo = function () {
-        lock.disableRedo = true;
-        return this;
-    };
+    function lockDisableRedo () { lock.disableRedo = true; return this; }
 
+    function lockDisableUndo () { lock.disableUndo = true; return this; }
 
-    self.lockDisableUndo = function () {
-        lock.disableUndo = true;
-        return this;
-    };
-
-
-    self.pop = function () {
-        // Delete the last action
+    /** Pop an action */
+    function pop () {
         if (actionStack.length > 0) {
             status.actionStackCursor -= 1;
             actionStack.splice(status.actionStackCursor);
         }
         return this;
-    };
+    }
 
 
-    self.push = function (action, label) {
+    /** Push an action */
+    function push (action, label) {
         var availableActionList = ['addLabel', 'deleteLabel'];
         if (availableActionList.indexOf(action) === -1) {
             throw self.className + ": Illegal action.";
         }
 
         var actionItem = {
-            'action' : action,
-            'label' : label,
-            'index' : status.actionStackCursor
+            action : action,
+            label : label,
+            index : status.actionStackCursor
         };
         if (actionStack.length !== 0 &&
             actionStack.length > status.actionStackCursor) {
@@ -948,55 +915,51 @@ function ActionStack ($, params) {
         actionStack.push(actionItem);
         status.actionStackCursor += 1;
         return this;
-    };
+    }
 
-
-    self.redo = function () {
-        // Redo an action
+    /** Redo an action */
+    function redo () {
         if (!status.disableRedo) {
             if (actionStack.length > status.actionStackCursor) {
                 var actionItem = actionStack[status.actionStackCursor];
                 if (actionItem.action === 'addLabel') {
-                  if ('tracker' in svl) {
-                    svl.tracker.push('Redo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
-                  }
+                    if ('tracker' in svl) {
+                        svl.tracker.push('Redo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
+                    }
                     actionItem.label.setStatus('deleted', false);
                 } else if (actionItem.action === 'deleteLabel') {
-                  if ('tracker' in svl) {
-                    svl.tracker.push('Redo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
-                  }
+                    if ('tracker' in svl) {
+                        svl.tracker.push('Redo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
+                    }
                     actionItem.label.setStatus('deleted', true);
                     actionItem.label.setVisibility('hidden');
                 }
                 status.actionStackCursor += 1;
             }
             if ('canvas' in svl) {
-              svl.canvas.clear().render2();
+                svl.canvas.clear().render2();
             }
         }
-    };
+    }
 
-    self.size = function () {
-        // return the size of the stack
+    /** return the size of the stack */
+    function size () { return actionStack.length; }
 
-        return actionStack.length;
-    };
-
-    self.undo = function () {
-        // Undo an action
+    /** Undo an action */
+    function undo () {
         if (!status.disableUndo) {
             status.actionStackCursor -= 1;
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
                 if (actionItem.action === 'addLabel') {
-                  if ('tracker' in svl) {
-                    svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
-                  }
+                    if ('tracker' in svl) {
+                        svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
+                    }
                     actionItem.label.setStatus('deleted', true);
                 } else if (actionItem.action === 'deleteLabel') {
-                  if ('tracker' in svl) {
-                    svl.tracker.push('Undo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
-                  }
+                    if ('tracker' in svl) {
+                        svl.tracker.push('Undo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
+                    }
                     actionItem.label.setStatus('deleted', false);
                     actionItem.label.setVisibility('visible');
                 }
@@ -1005,54 +968,58 @@ function ActionStack ($, params) {
             }
 
             if ('canvas' in svl) {
-              svl.canvas.clear().render2();
+                svl.canvas.clear().render2();
             }
         }
-    };
+    }
 
+    function unlockDisableRedo () { lock.disableRedo = false; return this; }
 
-    self.unlockDisableRedo = function () {
-        lock.disableRedo = false;
-        return this;
-    };
+    function unlockDisableUndo () { lock.disableUndo = false; return this; }
 
+    function getLock (key) { return (key in lock) ? lock[key] : null; }
 
-    self.unlockDisableUndo = function () {
-        lock.disableUndo = false;
-        return this;
-    };
-
-    self.getLock = function(key) {
-        if (!(key in lock)) {
-          console.warn("You have passed an invalid key for status.")
-        }
-        return lock[key];
-    };
-
-    self.updateOpacity = function () {
-        // Change opacity
+    /** Change opacity */
+    function updateOpacity () {
         if (svl.ui && svl.ui.actionStack) {
-          if (status.actionStackCursor < actionStack.length) {
-              $buttonRedo.css('opacity', 1);
-          } else {
-              $buttonRedo.css('opacity', 0.5);
-          }
+            if (status.actionStackCursor < actionStack.length) {
+                svl.ui.actionStack.redo.css('opacity', 1);
+            } else {
+                svl.ui.actionStack.redo.css('opacity', 0.5);
+            }
 
-          if (status.actionStackCursor > 0) {
-              $buttonUndo.css('opacity', 1);
-          } else {
-              $buttonUndo.css('opacity', 0.5);
-          }
+            if (status.actionStackCursor > 0) {
+                svl.ui.actionStack.undo.css('opacity', 1);
+            } else {
+                svl.ui.actionStack.undo.css('opacity', 0.5);
+            }
 
-          // if the status is set to disabled, then set the opacity of buttons to 0.5 anyway.
-          if (status.disableUndo) {
-              $buttonUndo.css('opacity', 0.5);
-          }
-          if (status.disableRedo) {
-              $buttonRedo.css('opacity', 0.5);
-          }
+            // if the status is set to disabled, then set the opacity of buttons to 0.5 anyway.
+            if (status.disableUndo) {
+                svl.ui.actionStack.undo.css('opacity', 0.5);
+            }
+            if (status.disableRedo) {
+                svl.ui.actionStack.redo.css('opacity', 0.5);
+            }
         }
-    };
+    }
+
+    self.disableRedo = disableRedo;
+    self.disableUndo = disableUndo;
+    self.enableRedo = enableRedo;
+    self.enableUndo = enableUndo;
+    self.getStatus = getStatus;
+    self.lockDisableRedo = lockDisableRedo;
+    self.lockDisableUndo = lockDisableUndo;
+    self.pop = pop;
+    self.push = push;
+    self.redo = redo;
+    self.size = size;
+    self.undo = undo;
+    self.unlockDisableRedo = unlockDisableRedo;
+    self.unlockDisableUndo = unlockDisableUndo;
+    self.getLock = getLock;
+    self.updateOpacity = updateOpacity;
 
     init(params);
 
@@ -1410,7 +1377,7 @@ function Canvas ($, param) {
             var labelType = svl.ribbon.getStatus('mode');
             if (labelType) {
                 var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
-                var cursorUrl = "url(" + cursorImagePath + ") 6 25, auto";
+                var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
 
                 if (rightClickMenu && rightClickMenu.isAnyOpen()) {
                     cursorUrl = 'default';

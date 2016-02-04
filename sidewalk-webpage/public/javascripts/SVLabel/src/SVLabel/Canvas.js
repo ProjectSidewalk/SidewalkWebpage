@@ -330,7 +330,7 @@ function Canvas ($, param) {
             var labelType = svl.ribbon.getStatus('mode');
             if (labelType) {
                 var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
-                var cursorUrl = "url(" + cursorImagePath + ") 6 25, auto";
+                var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
 
                 if (rightClickMenu && rightClickMenu.isAnyOpen()) {
                     cursorUrl = 'default';
