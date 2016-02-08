@@ -479,8 +479,8 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
         var self = this,
             url;
 
-        url = "http://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
-
+        //url = "http://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
+        url = "https://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
         $.ajax({
                 url: url,
                 dataType: 'jsonp'
@@ -4102,18 +4102,21 @@ function Label (pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function createGoogleMapsMarker (labelType) {
-        var latlng = toLatLng(),
-            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-            imagePaths = svl.misc.getIconImagePaths(),
-            url = imagePaths[labelType].googleMapsIconImagePath
-
-        return new google.maps.Marker({
-            position: googleLatLng,
-            map: svl.map.getMap(),
-            title: "Hi!",
-            icon: url,
-            size: new google.maps.Size(20, 20)
-        });
+        var latlng = toLatLng();
+        if (latlng) {
+            var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+                imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath;
+            return new google.maps.Marker({
+                position: googleLatLng,
+                map: svl.map.getMap(),
+                title: "Hi!",
+                icon: url,
+                size: new google.maps.Size(20, 20)
+            });
+        } else {
+            return null;
+        }
     }
 
     /**
