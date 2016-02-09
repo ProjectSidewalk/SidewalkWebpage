@@ -456,7 +456,7 @@ GSVPANO.PanoLoader = function (parameters) {
                 self.throwError('Could not retrieve panorama for the following reason: ' + status);
             }
         });
-    }
+    };
     
     this.setZoom = function( z ) {
         _zoom = z;
@@ -481,6 +481,7 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
 
         //url = "http://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
         url = "https://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
+
         $.ajax({
                 url: url,
                 dataType: 'jsonp'
@@ -4102,21 +4103,18 @@ function Label (pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function createGoogleMapsMarker (labelType) {
-        var latlng = toLatLng();
-        if (latlng) {
-            var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-                imagePaths = svl.misc.getIconImagePaths(),
-                url = imagePaths[labelType].googleMapsIconImagePath;
-            return new google.maps.Marker({
-                position: googleLatLng,
-                map: svl.map.getMap(),
-                title: "Hi!",
-                icon: url,
-                size: new google.maps.Size(20, 20)
-            });
-        } else {
-            return null;
-        }
+        var latlng = toLatLng(),
+            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+            imagePaths = svl.misc.getIconImagePaths(),
+            url = imagePaths[labelType].googleMapsIconImagePath
+
+        return new google.maps.Marker({
+            position: googleLatLng,
+            map: svl.map.getMap(),
+            title: "Hi!",
+            icon: url,
+            size: new google.maps.Size(20, 20)
+        });
     }
 
     /**
@@ -5020,7 +5018,7 @@ function LabelCounter ($, d3) {
     var self = {className: 'LabelCounter'};
 
     var radius = 0.4, dR = radius / 2,
-        svgWidth = 800, svgHeight = 200,
+        svgWidth = 200, svgHeight = 200,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
@@ -8584,11 +8582,11 @@ function RibbonMenu ($, params) {
         originalBackgroundColor: "white"
     };
     var status = {
-            'disableModeSwitch' : false,
-            'lockDisableModeSwitch' : false,
-            'mode' : 'Walk',
-            'selectedLabelType' : undefined
-        };
+        disableModeSwitch: false,
+        lockDisableModeSwitch: false,
+        mode: 'Walk',
+        selectedLabelType: undefined
+    };
 
     // jQuery DOM elements
     var $divStreetViewHolder;
@@ -10543,7 +10541,8 @@ function UI ($, params) {
         // Ribbon menu DOMs
         var $divStreetViewHolder = $("#Holder_StreetView");
         var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
-        var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+        //var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+        var $ribbonConnector = $("#ribbon-street-view-connector");
         var $spansModeSwitches = $('span.modeSwitch');
 
         self.ribbonMenu = {};

@@ -1,22 +1,16 @@
-
-/*************************************************************
-* These styles are for the Ribbon Menu area.
-*************************************************************/
-/* This style is applied to a ribbon menu */
 #ribbon-menu-holder {
     position: absolute;
-    left: 0px;
-    top: 0px;
+    left: 0;
+    top: 0;
     height: 100px;
 }
 
-/* icon size */
 .Icon_RibbonMenuLarge {
     height: 50px;
-    margin: 0px;
+    margin: 0;
     padding: 4px;
     position: relative;
-    left: 0px;
+    left: 0;
     top: -4px;
 }
 
@@ -31,7 +25,7 @@
     background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
     border-color: rgba(200,200,200,0.75);
     border-style: solid;
-    border-width: 2px;
+    border-width: 1px;
     cursor: pointer;
     display: inline-block;
 
@@ -39,18 +33,14 @@
     height: 71px;
     width:71px;
 
-    border-radius: 3px 3px 0px 0px;
-    -webkit-border-radius: 3px 3px 0px 0px;
-    -moz-border-radius: 3px 3px 0px 0px;
-    /*
-    -webkit-box-shadow: 1px 1px 2px #E7E7E7;
-    -moz-box-shadow: 1px 1px 2px #E7E7E7;
-    */
+    border-radius: 3px 3px 0 0;
+    -webkit-border-radius: 3px 3px 0 0;
+    -moz-border-radius: 3px 3px 0 0;
 }
 
 .modeSwitch_Icon {
     position: absolute;
-    top: 0px;
+    top: 0;
     left: 8px;
 }
 
@@ -65,7 +55,7 @@
 
     position: absolute;
     top: 40px;
-    left: 0px;
+    left: 0;
     width: 100%;
 }
 
@@ -88,9 +78,6 @@
     left: -3px;
 }
 
-/*****************************************
-* Ribbon Menu Left Column
-*/
 #Holder_RibbonMenuLeftColumn {
     background: none;
 
@@ -102,11 +89,9 @@
 }
 
 #RibbonMenu_LeftColumnTitle {
-    /* border-bottom: 1px solid #ccc; */
     margin-left: 5px;
     margin-right: 5px;
     text-align: center;
-    /* Position */
     position: absolute;
     left: 0px;
     top: 0px;
@@ -124,9 +109,6 @@
     width: 100%;
 }
 
-/*****************************************
-* Ribbon Menu Landmark Column
-*/
 #landmark-holder {
     background: transparent;
 
@@ -164,11 +146,7 @@
     width: 470px;
 }
 
-
-
-
-
-#StreetViewLabelRibbonConnection {
+#ribbon-street-view-connector {
     border-left: 5px solid black;
     position: absolute;
     left: 25px;

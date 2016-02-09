@@ -138,7 +138,7 @@ GSVPANO.PanoLoader = function (parameters) {
                 self.throwError('Could not retrieve panorama for the following reason: ' + status);
             }
         });
-    }
+    };
     
     this.setZoom = function( z ) {
         _zoom = z;

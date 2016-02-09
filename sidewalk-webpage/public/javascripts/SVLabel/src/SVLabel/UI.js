@@ -85,7 +85,8 @@ function UI ($, params) {
         // Ribbon menu DOMs
         var $divStreetViewHolder = $("#Holder_StreetView");
         var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
-        var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+        //var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
+        var $ribbonConnector = $("#ribbon-street-view-connector");
         var $spansModeSwitches = $('span.modeSwitch');
 
         self.ribbonMenu = {};

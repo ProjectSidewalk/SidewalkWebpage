@@ -16,9 +16,6 @@
 }
 
 #modal-skip-box {
-    background: rgba(69,183,214,1);
-    border: 3px solid rgba(255,255,255,1);
-    color: white;
     background: rgba(255, 255, 255, 1);
     border: 3px solid rgba(200, 200, 200, 1);
     color: black;

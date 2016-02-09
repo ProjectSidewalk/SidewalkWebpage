@@ -16,11 +16,11 @@ function RibbonMenu ($, params) {
         originalBackgroundColor: "white"
     };
     var status = {
-            'disableModeSwitch' : false,
-            'lockDisableModeSwitch' : false,
-            'mode' : 'Walk',
-            'selectedLabelType' : undefined
-        };
+        disableModeSwitch: false,
+        lockDisableModeSwitch: false,
+        mode: 'Walk',
+        selectedLabelType: undefined
+    };
 
     // jQuery DOM elements
     var $divStreetViewHolder;

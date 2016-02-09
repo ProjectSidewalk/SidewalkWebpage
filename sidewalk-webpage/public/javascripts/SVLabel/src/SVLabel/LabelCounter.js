@@ -7,7 +7,7 @@ function LabelCounter ($, d3) {
     var self = {className: 'LabelCounter'};
 
     var radius = 0.4, dR = radius / 2,
-        svgWidth = 800, svgHeight = 200,
+        svgWidth = 200, svgHeight = 200,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,

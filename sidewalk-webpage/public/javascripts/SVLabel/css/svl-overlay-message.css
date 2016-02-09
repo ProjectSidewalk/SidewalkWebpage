@@ -1,8 +1,8 @@
 #overlay-message-box {
     background: rgba(0,0,0,0.75);
     position: absolute;
-    top: 0px;
-    left: 0px;
+    top: 0;
+    left: 0;
     height: 20px;
     width: 100%;
 }

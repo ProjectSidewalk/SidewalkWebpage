@@ -1,8 +1,3 @@
-
-/*******************************************
- This class is applied to those DIVs and CANVASes which overlap with
- a Street View panorama.
-*/
 #Holder_StreetView {
     border: 5px solid black;
     border-radius: 5px;

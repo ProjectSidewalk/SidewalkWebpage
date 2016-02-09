@@ -1,7 +1,3 @@
-/*******************************************
-* This class is applied to DIVs and CANVASes
-* which overlap with a Google Map.
-*/
 #google-maps-holder  {
     position: absolute;
     left: 735px;
