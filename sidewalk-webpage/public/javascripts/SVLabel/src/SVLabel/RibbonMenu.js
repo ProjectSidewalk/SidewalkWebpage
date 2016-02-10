@@ -77,6 +77,17 @@ function RibbonMenu ($, params) {
               'mouseleave': modeSwitchMouseLeave
           });
         }
+
+
+        // Disable mode switch when sign in modal is open
+        if ($("#sign-in-modal-container").length != 0) {
+            var $signInModalTextBoxes = $("#sign-in-modal-container input[type='text']"),
+                $signInModalPassword = $("#sign-in-modal-container input[type='password']");
+            $signInModalTextBoxes.on('focus', disableModeSwitch);
+            $signInModalTextBoxes.on('blur', enableModeSwitch);
+            $signInModalPassword.on('focus', disableModeSwitch);
+            $signInModalPassword.on('blur', enableModeSwitch);
+        }
     }
 
     /**

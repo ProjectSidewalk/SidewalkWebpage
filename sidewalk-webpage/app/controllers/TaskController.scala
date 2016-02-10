@@ -211,6 +211,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               val temporaryProblem = label.temporaryProblem.get.value
               ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, temporaryProblem))
             }
+
+            if (label.description.isDefined) {
+              ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+            }
           }
 
           // Insert interaction

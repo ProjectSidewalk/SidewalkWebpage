@@ -2432,12 +2432,16 @@ function ContextMenu ($) {
         $connector = svl.ui.contextMenu.connector,
         $radioButtons = svl.ui.contextMenu.radioButtons,
         $temporaryProblemCheckbox = svl.ui.contextMenu.temporaryProblemCheckbox,
+        $descriptionTextBox = svl.ui.contextMenu.textBox,
         windowWidth = $menuWindow.width();
 
     document.addEventListener("mousedown", hide);
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
     $radioButtons.on('change', handleRadioChange);
     $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
+    $descriptionTextBox.on('change', handleDescriptionTextBoxChange);
+    $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
+    $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
 
 
     /**
@@ -2464,6 +2468,22 @@ function ContextMenu ($) {
      */
     function handleMenuWindowMouseDown (e) {
         e.stopPropagation();
+    }
+
+    function handleDescriptionTextBoxChange(e) {
+        var description = $(this).val(),
+            label = getTargetLabel();
+        if (label) {
+            label.setProperty('description', description);
+        }
+    }
+
+    function handleDescriptionTextBoxBlur() {
+        svl.ribbon.enableModeSwitch();
+    }
+
+    function handleDescriptionTextBoxFocus() {
+        svl.ribbon.disableModeSwitch();
     }
 
     /**
@@ -2540,9 +2560,10 @@ function ContextMenu ($) {
         setStatus('targetLabel', null);
         $radioButtons.prop('checked', false);
         $temporaryProblemCheckbox.prop('checked', false);
+        $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType();
-            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle' || labelType == 'NoCurbRamp') {
+            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle' || labelType == 'NoCurbRamp' || labelType == 'CurbRamp') {
                 setStatus('targetLabel', param.targetLabel);
                 $menuWindow.css({
                     visibility: 'visible',
@@ -2557,7 +2578,8 @@ function ContextMenu ($) {
 
                 // Set the menu value if label has it's value set.
                 var severity = param.targetLabel.getProperty('severity'),
-                    temporaryProblem = param.targetLabel.getProperty('temporaryProblem');
+                    temporaryProblem = param.targetLabel.getProperty('temporaryProblem'),
+                    description = param.targetLabel.getProperty('description');
                 if (severity) {
                     $radioButtons.each(function (i, v) {
                        if (severity == i + 1) { $(this).prop("checked", true); }
@@ -2566,6 +2588,22 @@ function ContextMenu ($) {
 
                 if (temporaryProblem) {
                     $temporaryProblemCheckbox.prop("checked", temporaryProblem);
+                }
+
+                if (description) {
+                    $descriptionTextBox.val(description);
+                } else {
+                    var example = '', defaultText = "Description";
+                    if (labelType == 'CurbRamp') {
+                        example = " (e.g., narrow curb ramp)";
+                    } else if (labelType == 'NoCurbRamp') {
+                        example = "";
+                    } else if (labelType == 'Obstacle') {
+                        example = " (e.g., sidewalk construction)";
+                    } else if (labelType == 'SurfaceProblem') {
+                        example = " (e.g., a leveled surface due to a tree root)";
+                    }
+                    $descriptionTextBox.prop("placeholder", defaultText + example);
                 }
             }
         }
@@ -2851,7 +2889,8 @@ function Form ($, params) {
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
-                temporary_problem: label.getProperty('temporaryProblem')
+                temporary_problem: label.getProperty('temporaryProblem'),
+                description: label.getProperty('description')
             };
 
             for (var j = 0; j < pathLen; j += 1) {
@@ -3980,7 +4019,8 @@ function Label (pathIn, params) {
         tagX: -1,
         tagY: -1,
         severity: null,
-        temporaryProblem: null
+        temporaryProblem: null,
+        description: null
     };
 
     var status = {
@@ -8651,6 +8691,17 @@ function RibbonMenu ($, params) {
               'mouseleave': modeSwitchMouseLeave
           });
         }
+
+
+        // Disable mode switch when sign in modal is open
+        if ($("#sign-in-modal-container").length != 0) {
+            var $signInModalTextBoxes = $("#sign-in-modal-container input[type='text']"),
+                $signInModalPassword = $("#sign-in-modal-container input[type='password']");
+            $signInModalTextBoxes.on('focus', disableModeSwitch);
+            $signInModalTextBoxes.on('blur', enableModeSwitch);
+            $signInModalPassword.on('focus', disableModeSwitch);
+            $signInModalPassword.on('blur', enableModeSwitch);
+        }
     }
 
     /**
@@ -10568,6 +10619,7 @@ function UI ($, params) {
         self.contextMenu.connector = $("#context-menu-vertical-connector");
         self.contextMenu.radioButtons = $("input[name='problem-severity']");
         self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
+        self.contextMenu.textBox = $("#context-menu-problem-description-text-box");
 
         // Modal
         self.modalSkip = {};

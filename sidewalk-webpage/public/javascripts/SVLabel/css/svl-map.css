@@ -5,10 +5,10 @@
 }
 
 .google-maps-pane {
-    border: 1px solid black;
+    border: 0 solid black;
     position: absolute;
-    left: 0px;
-    top:0px;
+    left: 0;
+    top:0;
     width: 200px;
     height: 200px;
 }

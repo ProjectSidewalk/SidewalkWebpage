@@ -43,7 +43,8 @@ function Label (pathIn, params) {
         tagX: -1,
         tagY: -1,
         severity: null,
-        temporaryProblem: null
+        temporaryProblem: null,
+        description: null
     };
 
     var status = {

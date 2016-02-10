@@ -101,6 +101,7 @@ function UI ($, params) {
         self.contextMenu.connector = $("#context-menu-vertical-connector");
         self.contextMenu.radioButtons = $("input[name='problem-severity']");
         self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
+        self.contextMenu.textBox = $("#context-menu-problem-description-text-box");
 
         // Modal
         self.modalSkip = {};

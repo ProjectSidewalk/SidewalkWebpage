@@ -150,7 +150,8 @@ function Form ($, params) {
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
-                temporary_problem: label.getProperty('temporaryProblem')
+                temporary_problem: label.getProperty('temporaryProblem'),
+                description: label.getProperty('description')
             };
 
             for (var j = 0; j < pathLen; j += 1) {
