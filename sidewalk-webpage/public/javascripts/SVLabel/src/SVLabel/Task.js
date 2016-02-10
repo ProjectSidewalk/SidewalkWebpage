@@ -113,6 +113,9 @@ function Task ($, turf) {
 
         animateTaskCompletionMessage(); // Play the animation and audio effect after task completion.
 
+        // Reset the label counter
+        svl.labelCounter.reset();
+
         taskCompletionRate = 0;
 
         // Push the data into the list

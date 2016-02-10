@@ -104,6 +104,13 @@ function LabelCounter ($, d3) {
         .attr("class", "visible");
     }
 
+    /** Set label counts to 0 */
+    function reset () {
+        for (var key in dotPlots) {
+            set(key, 0);
+        }
+    }
+
     function update(key) {
       // If a key is given, udpate the dot plot for that specific data.
       // Otherwise update all.
@@ -228,5 +235,6 @@ function LabelCounter ($, d3) {
     self.increment = increment;
     self.decrement = decrement;
     self.set = set;
+    self.reset = reset;
     return self;
 }

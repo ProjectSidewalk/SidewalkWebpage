@@ -5115,6 +5115,13 @@ function LabelCounter ($, d3) {
         .attr("class", "visible");
     }
 
+    /** Set label counts to 0 */
+    function reset () {
+        for (var key in dotPlots) {
+            set(key, 0);
+        }
+    }
+
     function update(key) {
       // If a key is given, udpate the dot plot for that specific data.
       // Otherwise update all.
@@ -5239,6 +5246,7 @@ function LabelCounter ($, d3) {
     self.increment = increment;
     self.decrement = decrement;
     self.set = set;
+    self.reset = reset;
     return self;
 }
 function LabelFactory () {
@@ -9982,6 +9990,9 @@ function Task ($, turf) {
         svl.tracker.push("TaskEnd");
 
         animateTaskCompletionMessage(); // Play the animation and audio effect after task completion.
+
+        // Reset the label counter
+        svl.labelCounter.reset();
 
         taskCompletionRate = 0;
 
