@@ -52,6 +52,10 @@ text {
     padding-right: 5px;
     padding-top: 2px;
     width: 200px;
+
+    border-radius: 3px 3px 0 0;
+    -webkit-border-radius: 3px 3px 0 0;
+    -moz-border-radius: 3px 3px 0 0;
 }
 
 .bold {
@@ -726,6 +730,19 @@ footer {
     height: 10px;
     text-align: center;
     width: 100%;
+}
+#left-column-control-pane {
+    position: relative;
+    left: -55px;
+    top: 305px;
+}
+
+#left-column-button-holder .button {
+    text-align: center;
+    width: 60px;
+    height: 90px;
+    font-size: 8pt;
+    border: 2px #ccc solid;
 }
 #google-maps-holder  {
     position: absolute;

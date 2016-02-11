@@ -1,0 +1,13 @@
+#left-column-control-pane {
+    position: relative;
+    left: -55px;
+    top: 305px;
+}
+
+#left-column-button-holder .button {
+    text-align: center;
+    width: 60px;
+    height: 90px;
+    font-size: 8pt;
+    border: 2px #ccc solid;
+}
