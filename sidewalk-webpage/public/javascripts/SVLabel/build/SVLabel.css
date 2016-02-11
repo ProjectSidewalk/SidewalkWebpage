@@ -550,19 +550,6 @@ input#Text_BusStopAbsenceOtherReason {
     height: 20px;
     width: 20px;
 }
-
-
-#status-holder {
-    border: 3px dotted none;
-    margin: 0;
-    padding: 0;
-    
-    position: absolute;
-    left: 735px;
-    top:-100px;
-    width: 200px;
-    height: 370px;
-}
 #context-menu-holder {
     position: relative;
     top: 0;
@@ -1169,8 +1156,7 @@ footer {
 }
 #progress-pov-holder {
     height: 25px;
-    position: absolute;
-    top: 367px;
+    position: relative;
     width: 202px;
 }
 
@@ -1180,31 +1166,24 @@ footer {
 }
 
 #progress-pov-current-completion-bar {
-    background: #ffffff;
-    border: solid 1px #000;
-    bottom: 3px;
-    height: 5px;
-    left: 0px;
+    background: #EEEEEE;
+    height: 14px;
     position: absolute;
-    width: 200px;
+    width: 190px;
 }
 
 #progress-pov-current-completion-bar-filler {
     border-width: 0px;
-    bottom: 4px;
-    height: 3px;
-    left: 1px;
+    height: 14px;
     position: absolute;
-    width: 198px;
+    width: 190px;
 }
 
 #progress-pov-current-completion-rate {
-    color: #888;
+    color: white;
     font-size: 8pt;
-    width: 40px;
-    position: relative;
-    left: 120px;
-    bottom: 15px;
+    width: 100px;
+    padding-left: 5px;
 }
 #progress-holder {
     position: relative;
@@ -1266,6 +1245,18 @@ footer {
     height: 80px;
     width: 100px;
 }
+#status-holder {
+    border: 3px dotted transparent;
+    margin: 0;
+    padding: 0;
+
+    position: absolute;
+    left: 735px;
+    top: 0;
+    width: 200px;
+    height: 370px;
+}
+
 #status-pane-title {
     border-bottom: 1px solid #ccc;
     font-size: 1em;
@@ -1275,9 +1266,9 @@ footer {
 
 .status-box {
     border-bottom: 1px dotted #ccc;
-    font-size: 0.8em;
-    margin-bottom: 10px;
-    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    margin-top: 0px;
     text-align: left;
 }
 
@@ -1287,6 +1278,11 @@ footer {
 
 #current-status-title {
     font-weight: bold;
+}
+
+.status-holder-header-1 {
+    font-weight: bold;
+    color: rgb(127, 127, 127);
 }
 #task-completion-message-holder {
     position: relative;

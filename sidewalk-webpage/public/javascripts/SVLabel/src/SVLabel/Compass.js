@@ -10,27 +10,28 @@ function Compass ($) {
         bottom: 5,
         left: 5
     },
-        needleRadius = 10,
         el = d3.select('#compass-holder'),
         svg = el.append('svg'),
         chart = svg.append('g'),
-        label = svg.append('g');
+        needle;
 
     svg.attr('width', width + padding.left + padding.right)
         .attr('height', height + padding.top + padding.bottom + 30)
-        .style({ position: 'absolute', left: 660, top: 510 });
+        .style({ position: 'absolute', left: 660, top: 525 });
     chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
     // label.attr('transform', 'translate(0, 0)');
 
-    chart.append('circle')
-        .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
-        .attr('fill', 'black');
-    chart.append('circle')
-        .attr('cx', 0) .attr('cy', 10).attr('r', needleRadius)
-        .attr('fill', 'white');
-    chart.append('path')
-        .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L -10 9')
-        .attr('fill', 'white');
+    //chart.append('circle')
+    //    .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
+    //    .attr('fill', 'black');
+    //chart.append('circle')
+    //    .attr('cx', 0) .attr('cy', 10).attr('r', needleRadius)
+    //    .attr('fill', 'white');
+    needle = chart.append('path')
+        .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
+        .attr('fill', 'white')
+        .attr('stroke', 'white')
+        .attr('stroke-width', 1);
 
 
     //label.append('text')
@@ -84,9 +85,17 @@ function Compass ($) {
      * Update the compass visualization
      */
     function update () {
-        var compassAngle = getCompassAngle();
-        // chart.transition(100)
-            chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
+        var compassAngle = getCompassAngle(),
+            cosine = Math.cos(compassAngle / 360 * 2 * Math.PI),
+            val = (cosine + 1) / 2,
+            r = 229 - 185 * val, g = 245 - 83 * val, b = 249 - 154 * val, rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
+
+        // http://colorbrewer2.org/ (229,245,249), (44,162,95)
+
+        needle.transition(100)
+            .attr('fill', rgb);
+        chart.transition(100)
+            .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
     }
 
     self.update = update;

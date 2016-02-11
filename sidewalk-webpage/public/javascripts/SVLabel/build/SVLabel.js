@@ -2339,27 +2339,28 @@ function Compass ($) {
         bottom: 5,
         left: 5
     },
-        needleRadius = 10,
         el = d3.select('#compass-holder'),
         svg = el.append('svg'),
         chart = svg.append('g'),
-        label = svg.append('g');
+        needle;
 
     svg.attr('width', width + padding.left + padding.right)
         .attr('height', height + padding.top + padding.bottom + 30)
-        .style({ position: 'absolute', left: 660, top: 510 });
+        .style({ position: 'absolute', left: 660, top: 525 });
     chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
     // label.attr('transform', 'translate(0, 0)');
 
-    chart.append('circle')
-        .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
-        .attr('fill', 'black');
-    chart.append('circle')
-        .attr('cx', 0) .attr('cy', 10).attr('r', needleRadius)
-        .attr('fill', 'white');
-    chart.append('path')
-        .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L -10 9')
-        .attr('fill', 'white');
+    //chart.append('circle')
+    //    .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
+    //    .attr('fill', 'black');
+    //chart.append('circle')
+    //    .attr('cx', 0) .attr('cy', 10).attr('r', needleRadius)
+    //    .attr('fill', 'white');
+    needle = chart.append('path')
+        .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
+        .attr('fill', 'white')
+        .attr('stroke', 'white')
+        .attr('stroke-width', 1);
 
 
     //label.append('text')
@@ -2413,9 +2414,17 @@ function Compass ($) {
      * Update the compass visualization
      */
     function update () {
-        var compassAngle = getCompassAngle();
-        // chart.transition(100)
-            chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
+        var compassAngle = getCompassAngle(),
+            cosine = Math.cos(compassAngle / 360 * 2 * Math.PI),
+            val = (cosine + 1) / 2,
+            r = 229 - 185 * val, g = 245 - 83 * val, b = 249 - 154 * val, rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
+
+        // http://colorbrewer2.org/ (229,245,249), (44,162,95)
+
+        needle.transition(100)
+            .attr('fill', rgb);
+        chart.transition(100)
+            .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
     }
 
     self.update = update;
@@ -5058,7 +5067,7 @@ function LabelCounter ($, d3) {
     var self = {className: 'LabelCounter'};
 
     var radius = 0.4, dR = radius / 2,
-        svgWidth = 200, svgHeight = 200,
+        svgWidth = 200, svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
@@ -5077,19 +5086,21 @@ function LabelCounter ($, d3) {
         data: []
       },
       "NoCurbRamp": {
-        id: "NoCurbRamp",
-        description: "Missing Curb Ramp",
-        left: margin.left,
-        top: 2 * margin.top + margin.bottom + height,
-        fillColor: colorScheme["NoCurbRamp"].fillStyle,
-        count: 0,
-        data: []
+          id: "NoCurbRamp",
+          description: "Missing Curb Ramp",
+          left: margin.left + width / 2,
+          top: margin.top,
+          // top: 2 * margin.top + margin.bottom + height,
+          fillColor: colorScheme["NoCurbRamp"].fillStyle,
+          count: 0,
+          data: []
       },
       "Obstacle": {
         id: "Obstacle",
         description: "Obstacle in Path",
         left: margin.left,
-        top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+        // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+          top: 2 * margin.top + margin.bottom + height,
         fillColor: colorScheme["Obstacle"].fillStyle,
         count: 0,
         data: []
@@ -5097,12 +5108,22 @@ function LabelCounter ($, d3) {
       "SurfaceProblem": {
         id: "SurfaceProblem",
         description: "Surface Problem",
-        left: margin.left,
-        top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+        left: margin.left + width / 2,
+        //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+          top: 2 * margin.top + margin.bottom + height,
         fillColor: colorScheme["SurfaceProblem"].fillStyle,
         count: 0,
         data: []
-      }
+      },
+        "Other": {
+            id: "Other",
+            description: "Other",
+            left: margin.left,
+            top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            fillColor: colorScheme["Other"].fillStyle,
+            count: 0,
+            data: []
+        }
     };
 
     var x = d3.scale.linear()
@@ -5116,8 +5137,7 @@ function LabelCounter ($, d3) {
     var svg = d3.select('#label-counter')
                   .append('svg')
                   .attr('width', svgWidth)
-                  .attr('height', svgHeight)
-
+                  .attr('height', svgHeight);
 
     var chart = svg.append('g')
                   .attr('width', svgWidth)
@@ -5126,8 +5146,6 @@ function LabelCounter ($, d3) {
                   .attr('transform', function () {
                      return 'translate(0,0)';
                   });
-
-
 
     for (var key in dotPlots) {
       dotPlots[key].g = chart.append('g')
@@ -5146,13 +5164,13 @@ function LabelCounter ($, d3) {
         .style("font-size", "11px")
         .attr("class", "visible");
 
-      dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-        .data([0])
-        .enter()
-        .append("text")
-        .style("font-size", "11px")
-        .style("fill", "gray")
-        .attr("class", "visible");
+      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
+      //  .data([0])
+      //  .enter()
+      //  .append("text")
+      //  .style("font-size", "11px")
+      //  .style("fill", "gray")
+      //  .attr("class", "visible");
     }
 
     /** Set label counts to 0 */
@@ -5180,18 +5198,18 @@ function LabelCounter ($, d3) {
           count = firstDigit + higherDigits;
 
         // Update the label
-        dotPlots[key].countLabel
-          .transition().duration(1000)
-          .attr("x", function () {
-            return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-          })
-          .attr("y", function () {
-            return x(radius + dR - 0.05);
-          })
-          // .transition().duration(1000)
-          .text(function (d) {
-            return dotPlots[key].count;
-          });
+        //dotPlots[key].countLabel
+        //  .transition().duration(1000)
+        //  .attr("x", function () {
+        //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
+        //  })
+        //  .attr("y", function () {
+        //    return x(radius + dR - 0.05);
+        //  })
+        //  // .transition().duration(1000)
+        //  .text(function (d) {
+        //    return dotPlots[key].count;
+        //  });
 
         // Update the dot plot
         if (dotPlots[key].data.length >= count) {
@@ -5412,11 +5430,11 @@ function Main ($, params) {
         svl.form = new Form($, params.form);
         svl.examples = undefined;
         svl.overlayMessageBox = new OverlayMessageBox($);
-        svl.statusMessage = new StatusMessage($, params.missionDescription);
+        // svl.statusMessage = new StatusMessage($, params.missionDescription);
 //        svl.labeledLandmarkFeedback = new LabeledLandmarkFeedback($);
         svl.labelCounter = new LabelCounter($, d3);
         svl.qualificationBadges = undefined;
-        svl.progressFeedback = new ProgressFeedback($);
+        //svl.progressFeedback = new ProgressFeedback($);
         svl.actionStack = new ActionStack();
         svl.ribbon = new RibbonMenu($);
         svl.popUpMessage = new PopUpMessage($);
@@ -5472,11 +5490,11 @@ function Main ($, params) {
 
 //        svl.statusMessage.setCurrentStatusDescription('Your mission is to ' +
 //            '<span class="bold">find and label</span> presence and absence of curb ramps at intersections.');
-        svl.statusMessage.restoreDefault();
+        // svl.statusMessage.restoreDefault();
         // svl.statusMessage.setCurrentStatusDescription("Your mission is to find and label all the accessibility attributes in the sidewalks and streets.");
-        svl.progressFeedback.setProgress(currentProgress);
-        svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
-            " out of " + totalTaskCount + ".");
+        //svl.progressFeedback.setProgress(currentProgress);
+        //svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
+        //    " out of " + totalTaskCount + ".");
 
         if (isFirstTask) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
@@ -8439,7 +8457,6 @@ function ProgressPov ($, param) {
             }
         }
 
-
         printCompletionRate();
     }
 
@@ -8450,8 +8467,9 @@ function ProgressPov ($, param) {
     function printCompletionRate () {
         var completionRate = getCompletionRate() * 100;
         completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "%";
+        completionRate = completionRate + "% complete";
         $divCurrentCompletionRate.html(completionRate);
+        console.debug(completionRate)
         return this;
     }
 
@@ -8460,7 +8478,7 @@ function ProgressPov ($, param) {
      */
     function updateCompletionBar () {
         var r, g, color, completionRate = getCompletionRate();
-        var colorIntensity = 255;
+        var colorIntensity = 230;
         if (completionRate < 0.5) {
             r = colorIntensity;
             g = parseInt(colorIntensity * completionRate * 2);
@@ -8533,16 +8551,9 @@ function ProgressPov ($, param) {
 
 
     function setCompletedHeading (range) {
-        var headingMin = range[0];
-        var headingMax = range[1];
-
-        var indexMin = Math.floor(headingMin / 360 * 100);
-        var indexMax = Math.floor(headingMax / 360 * 100);
-
-        for (var i = indexMin; i < indexMax; i++) {
-            status.surveyedAngles[i] = 1;
-        }
-
+        var headingMin = range[0], headingMax = range[1],
+            indexMin = Math.floor(headingMin / 360 * 100), indexMax = Math.floor(headingMax / 360 * 100);
+        for (var i = indexMin; i < indexMax; i++) { status.surveyedAngles[i] = 1; }
         return this;
     }
 
@@ -10034,16 +10045,18 @@ function Task ($, turf) {
 
     /** End the current task */
     function endTask () {
-        svl.statusMessage.animate();
-        svl.statusMessage.setCurrentStatusTitle("Great!");
-        svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
-        svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
-        svl.tracker.push("TaskEnd");
+        if ('statusMessage' in svl) {
+            svl.statusMessage.animate();
+            svl.statusMessage.setCurrentStatusTitle("Great!");
+            svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
+            svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
+        }
+        if ('tracker' in svl) { svl.tracker.push("TaskEnd"); }
 
         animateTaskCompletionMessage(); // Play the animation and audio effect after task completion.
 
         // Reset the label counter
-        svl.labelCounter.reset();
+        if ('labelCounter' in svl) { svl.labelCounter.reset(); }
 
         taskCompletionRate = 0;
 
@@ -10592,10 +10605,10 @@ function UI ($, params) {
         // ProgressPov
         self.progressPov = {};
         self.progressPov.holder = $("#progress-pov-holder");
-        self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Task completion rate:</div>");
-        self.progressPov.holder.append("<div id='progress-pov-current-completion-bar'></div>");
-        self.progressPov.holder.append("<div id='progress-pov-current-completion-bar-filler'></div>");
-        self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'></div>");
+        //self.progressPov.holder.append("<div id='progress-pov-label' class='bold'>Task completion rate:</div>");
+        //self.progressPov.holder.append("<div id='progress-pov-current-completion-bar'></div>");
+        //self.progressPov.holder.append("<div id='progress-pov-current-completion-bar-filler'></div>");
+        //self.progressPov.holder.append("<div id='progress-pov-current-completion-rate'></div>");
         self.progressPov.rate = $("#progress-pov-current-completion-rate");
         self.progressPov.bar = $("#progress-pov-current-completion-bar");
         self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");

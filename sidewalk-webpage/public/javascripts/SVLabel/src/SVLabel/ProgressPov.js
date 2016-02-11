@@ -42,7 +42,6 @@ function ProgressPov ($, param) {
             }
         }
 
-
         printCompletionRate();
     }
 
@@ -53,8 +52,9 @@ function ProgressPov ($, param) {
     function printCompletionRate () {
         var completionRate = getCompletionRate() * 100;
         completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "%";
+        completionRate = completionRate + "% complete";
         $divCurrentCompletionRate.html(completionRate);
+        console.debug(completionRate)
         return this;
     }
 
@@ -63,7 +63,7 @@ function ProgressPov ($, param) {
      */
     function updateCompletionBar () {
         var r, g, color, completionRate = getCompletionRate();
-        var colorIntensity = 255;
+        var colorIntensity = 230;
         if (completionRate < 0.5) {
             r = colorIntensity;
             g = parseInt(colorIntensity * completionRate * 2);
@@ -136,16 +136,9 @@ function ProgressPov ($, param) {
 
 
     function setCompletedHeading (range) {
-        var headingMin = range[0];
-        var headingMax = range[1];
-
-        var indexMin = Math.floor(headingMin / 360 * 100);
-        var indexMax = Math.floor(headingMax / 360 * 100);
-
-        for (var i = indexMin; i < indexMax; i++) {
-            status.surveyedAngles[i] = 1;
-        }
-
+        var headingMin = range[0], headingMax = range[1],
+            indexMin = Math.floor(headingMin / 360 * 100), indexMax = Math.floor(headingMax / 360 * 100);
+        for (var i = indexMin; i < indexMax; i++) { status.surveyedAngles[i] = 1; }
         return this;
     }
 

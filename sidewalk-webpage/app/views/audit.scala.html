@@ -145,39 +145,50 @@
                         <div id="context-menu-vertical-connector"></div>
                     </div>
                 </div>
-                <div id="status-holder" class="Window_Feedback">
-                    <div id="status-pane-title">
-                        Status
+                <div id="status-holder">
+                    @*<div id="status-pane-title">*@
+                        @*Status*@
+                    @*</div>*@
+                    @*<div id="current-status-holder" class="status-box">*@
+                        @*<div id="current-status-title">*@
+                            @*Mission:*@
+                        @*</div>*@
+                        @*<div id="current-status-description">*@
+                            @*A description of a user's current mission.*@
+                        @*</div>*@
+                    @*</div>*@
+                    @*<div id="progress-holder" class="status-box">*@
+                        @*<div id="Progress_Title">*@
+                            @*<span class="bold">Progress:</span>*@
+                        @*</div>*@
+                        @*<div id="Progress_Description">*@
+                            @*<div id="ProgressBarContainer">*@
+                                @*<div id="ProgressBarFilled">*@
+                                @*</div>*@
+                            @*</div>*@
+                            @*<div id="Progress_Message">*@
+                                @*You are half way done with tutorials!*@
+                            @*</div>*@
+                        @*</div>*@
+                    @*</div>*@
+                    <div class="status-box">
+                        <span class="status-holder-header-1">Achievements</span>
+                        <div>Hi</div>
                     </div>
-                    <div id="current-status-holder" class="status-box">
-                        <div id="current-status-title">
-                            Mission:
-                        </div>
-                        <div id="current-status-description">
-                            A description of a user's current mission.
-                        </div>
-                    </div>
-                    <div id="progress-holder" class="status-box">
-                        <div id="Progress_Title">
-                            <span class="bold">Progress:</span>
-                        </div>
-                        <div id="Progress_Description">
-                            <div id="ProgressBarContainer">
-                                <div id="ProgressBarFilled">
+                    <div class="status-box">
+                        <span class="status-holder-header-1">Current Mission</span>
+                        <div id="progress-pov-holder">
+                            <div id='progress-pov-current-completion-bar'>
+                                <div id='progress-pov-current-completion-bar-filler'>
+                                    <div id='progress-pov-current-completion-rate'></div>
                                 </div>
                             </div>
-                            <div id="Progress_Message">
-                                You are half way done with tutorials!
-                            </div>
+                        </div>
+                        <div id="counter-holder">
+                            @*<div id="counter-title"><span class="bold">You have labeled:</span></div>*@
+                            <div id="label-counter"></div>
                         </div>
                     </div>
-                    <div id="counter-holder" class="status-box">
-                        <div id="counter-title">
-                            <span class="bold">You have labeled:</span>
-                        </div>
-                        <div id="label-counter"></div>
-                    </div>
-                    <div id="progress-pov-holder"></div>
                 </div>
                 <div id="google-maps-holder"></div>
             </div>

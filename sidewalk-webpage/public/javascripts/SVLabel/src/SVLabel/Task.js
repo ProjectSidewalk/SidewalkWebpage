@@ -105,16 +105,18 @@ function Task ($, turf) {
 
     /** End the current task */
     function endTask () {
-        svl.statusMessage.animate();
-        svl.statusMessage.setCurrentStatusTitle("Great!");
-        svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
-        svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
-        svl.tracker.push("TaskEnd");
+        if ('statusMessage' in svl) {
+            svl.statusMessage.animate();
+            svl.statusMessage.setCurrentStatusTitle("Great!");
+            svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
+            svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
+        }
+        if ('tracker' in svl) { svl.tracker.push("TaskEnd"); }
 
         animateTaskCompletionMessage(); // Play the animation and audio effect after task completion.
 
         // Reset the label counter
-        svl.labelCounter.reset();
+        if ('labelCounter' in svl) { svl.labelCounter.reset(); }
 
         taskCompletionRate = 0;
 

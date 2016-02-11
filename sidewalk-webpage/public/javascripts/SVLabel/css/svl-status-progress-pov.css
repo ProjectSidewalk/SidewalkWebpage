@@ -1,7 +1,6 @@
 #progress-pov-holder {
     height: 25px;
-    position: absolute;
-    top: 367px;
+    position: relative;
     width: 202px;
 }
 
@@ -11,30 +10,23 @@
 }
 
 #progress-pov-current-completion-bar {
-    background: #ffffff;
-    border: solid 1px #000;
-    bottom: 3px;
-    height: 5px;
-    left: 0px;
+    background: #EEEEEE;
+    height: 14px;
     position: absolute;
-    width: 200px;
+    width: 190px;
 }
 
 #progress-pov-current-completion-bar-filler {
     border-width: 0px;
-    bottom: 4px;
-    height: 3px;
-    left: 1px;
+    height: 14px;
     position: absolute;
-    width: 198px;
+    width: 190px;
 }
 
 #progress-pov-current-completion-rate {
-    color: #888;
+    color: white;
     font-size: 8pt;
-    width: 40px;
-    position: relative;
-    left: 120px;
-    bottom: 15px;
+    width: 100px;
+    padding-left: 5px;
 }
 

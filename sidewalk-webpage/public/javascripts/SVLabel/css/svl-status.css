@@ -1,3 +1,15 @@
+#status-holder {
+    border: 3px dotted transparent;
+    margin: 0;
+    padding: 0;
+
+    position: absolute;
+    left: 735px;
+    top: 0;
+    width: 200px;
+    height: 370px;
+}
+
 #status-pane-title {
     border-bottom: 1px solid #ccc;
     font-size: 1em;
@@ -7,9 +19,9 @@
 
 .status-box {
     border-bottom: 1px dotted #ccc;
-    font-size: 0.8em;
-    margin-bottom: 10px;
-    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    margin-top: 0px;
     text-align: left;
 }
 
@@ -19,4 +31,9 @@
 
 #current-status-title {
     font-weight: bold;
+}
+
+.status-holder-header-1 {
+    font-weight: bold;
+    color: rgb(127, 127, 127);
 }

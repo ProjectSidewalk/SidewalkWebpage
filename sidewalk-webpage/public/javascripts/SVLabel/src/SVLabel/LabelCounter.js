@@ -7,7 +7,7 @@ function LabelCounter ($, d3) {
     var self = {className: 'LabelCounter'};
 
     var radius = 0.4, dR = radius / 2,
-        svgWidth = 200, svgHeight = 200,
+        svgWidth = 200, svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
@@ -26,19 +26,21 @@ function LabelCounter ($, d3) {
         data: []
       },
       "NoCurbRamp": {
-        id: "NoCurbRamp",
-        description: "Missing Curb Ramp",
-        left: margin.left,
-        top: 2 * margin.top + margin.bottom + height,
-        fillColor: colorScheme["NoCurbRamp"].fillStyle,
-        count: 0,
-        data: []
+          id: "NoCurbRamp",
+          description: "Missing Curb Ramp",
+          left: margin.left + width / 2,
+          top: margin.top,
+          // top: 2 * margin.top + margin.bottom + height,
+          fillColor: colorScheme["NoCurbRamp"].fillStyle,
+          count: 0,
+          data: []
       },
       "Obstacle": {
         id: "Obstacle",
         description: "Obstacle in Path",
         left: margin.left,
-        top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+        // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+          top: 2 * margin.top + margin.bottom + height,
         fillColor: colorScheme["Obstacle"].fillStyle,
         count: 0,
         data: []
@@ -46,12 +48,22 @@ function LabelCounter ($, d3) {
       "SurfaceProblem": {
         id: "SurfaceProblem",
         description: "Surface Problem",
-        left: margin.left,
-        top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+        left: margin.left + width / 2,
+        //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+          top: 2 * margin.top + margin.bottom + height,
         fillColor: colorScheme["SurfaceProblem"].fillStyle,
         count: 0,
         data: []
-      }
+      },
+        "Other": {
+            id: "Other",
+            description: "Other",
+            left: margin.left,
+            top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            fillColor: colorScheme["Other"].fillStyle,
+            count: 0,
+            data: []
+        }
     };
 
     var x = d3.scale.linear()
@@ -65,8 +77,7 @@ function LabelCounter ($, d3) {
     var svg = d3.select('#label-counter')
                   .append('svg')
                   .attr('width', svgWidth)
-                  .attr('height', svgHeight)
-
+                  .attr('height', svgHeight);
 
     var chart = svg.append('g')
                   .attr('width', svgWidth)
@@ -75,8 +86,6 @@ function LabelCounter ($, d3) {
                   .attr('transform', function () {
                      return 'translate(0,0)';
                   });
-
-
 
     for (var key in dotPlots) {
       dotPlots[key].g = chart.append('g')
@@ -95,13 +104,13 @@ function LabelCounter ($, d3) {
         .style("font-size", "11px")
         .attr("class", "visible");
 
-      dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-        .data([0])
-        .enter()
-        .append("text")
-        .style("font-size", "11px")
-        .style("fill", "gray")
-        .attr("class", "visible");
+      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
+      //  .data([0])
+      //  .enter()
+      //  .append("text")
+      //  .style("font-size", "11px")
+      //  .style("fill", "gray")
+      //  .attr("class", "visible");
     }
 
     /** Set label counts to 0 */
@@ -129,18 +138,18 @@ function LabelCounter ($, d3) {
           count = firstDigit + higherDigits;
 
         // Update the label
-        dotPlots[key].countLabel
-          .transition().duration(1000)
-          .attr("x", function () {
-            return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-          })
-          .attr("y", function () {
-            return x(radius + dR - 0.05);
-          })
-          // .transition().duration(1000)
-          .text(function (d) {
-            return dotPlots[key].count;
-          });
+        //dotPlots[key].countLabel
+        //  .transition().duration(1000)
+        //  .attr("x", function () {
+        //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
+        //  })
+        //  .attr("y", function () {
+        //    return x(radius + dR - 0.05);
+        //  })
+        //  // .transition().duration(1000)
+        //  .text(function (d) {
+        //    return dotPlots[key].count;
+        //  });
 
         // Update the dot plot
         if (dotPlots[key].data.length >= count) {

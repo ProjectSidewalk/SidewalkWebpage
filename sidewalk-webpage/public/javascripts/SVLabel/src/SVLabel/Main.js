@@ -31,11 +31,11 @@ function Main ($, params) {
         svl.form = new Form($, params.form);
         svl.examples = undefined;
         svl.overlayMessageBox = new OverlayMessageBox($);
-        svl.statusMessage = new StatusMessage($, params.missionDescription);
+        // svl.statusMessage = new StatusMessage($, params.missionDescription);
 //        svl.labeledLandmarkFeedback = new LabeledLandmarkFeedback($);
         svl.labelCounter = new LabelCounter($, d3);
         svl.qualificationBadges = undefined;
-        svl.progressFeedback = new ProgressFeedback($);
+        //svl.progressFeedback = new ProgressFeedback($);
         svl.actionStack = new ActionStack();
         svl.ribbon = new RibbonMenu($);
         svl.popUpMessage = new PopUpMessage($);
@@ -91,11 +91,11 @@ function Main ($, params) {
 
 //        svl.statusMessage.setCurrentStatusDescription('Your mission is to ' +
 //            '<span class="bold">find and label</span> presence and absence of curb ramps at intersections.');
-        svl.statusMessage.restoreDefault();
+        // svl.statusMessage.restoreDefault();
         // svl.statusMessage.setCurrentStatusDescription("Your mission is to find and label all the accessibility attributes in the sidewalks and streets.");
-        svl.progressFeedback.setProgress(currentProgress);
-        svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
-            " out of " + totalTaskCount + ".");
+        //svl.progressFeedback.setProgress(currentProgress);
+        //svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
+        //    " out of " + totalTaskCount + ".");
 
         if (isFirstTask) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
