@@ -36,7 +36,6 @@ text {
 */
 .highlight {
     color: orange;
-    font-family: SegoeUISemiBold, 'Mono Sans', Helvetica, Arial;
     font-weight: bold;
 }
 
@@ -56,12 +55,10 @@ text {
 }
 
 .bold {
-    font-family: SegoeUISemiBold, 'Open Sans', 'Mono Sans', Helvetica, Arial;
     font-weight: bold;
 }
 
 b {
-    font-family: SegoeUISemiBold, 'Open Sans','Mono Sans', Helvetica, Arial;
     font-weight: bold;
 }
 

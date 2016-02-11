@@ -8,6 +8,22 @@
     top: 0;
     width: 200px;
     height: 370px;
+    color: rgb(127, 127, 127);
+
+}
+
+#status-achievements-holder {
+    height: 50px;
+}
+
+.status-column-half {
+    padding: 5px 0 5px 0;
+    margin: 5px 0 5px 0;
+    width: 50%;
+}
+
+.status-icon {
+    width: 25px;
 }
 
 #status-pane-title {
@@ -19,9 +35,9 @@
 
 .status-box {
     border-bottom: 1px dotted #ccc;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     padding-bottom: 5px;
-    margin-top: 0px;
+    margin-top: 0;
     text-align: left;
 }
 
@@ -35,5 +51,5 @@
 
 .status-holder-header-1 {
     font-weight: bold;
-    color: rgb(127, 127, 127);
+    font-size: 12pt;
 }
