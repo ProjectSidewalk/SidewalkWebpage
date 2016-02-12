@@ -126,6 +126,13 @@ function UI ($, params) {
         self.form.skipButton = $("#skip-button");
         self.form.submitButton = $("#submit-button");
 
+        self.leftColumn = {};
+        self.leftColumn.sound = $("#left-column-sound-button");
+        self.leftColumn.muteIcon = $("#left-column-mute-icon");
+        self.leftColumn.soundIcon = $("#left-column-sound-icon");
+        self.leftColumn.jump = $("#left-column-jump-button");
+        self.leftColumn.feedback = $("#left-column-feedback-button");
+
         self.task = {};
         self.task.taskCompletionMessage = $("#task-completion-message-holder");
 

@@ -60,9 +60,6 @@ function Fog(mapIn, params) {
 
     var map = mapIn;
 
-    ////////////////////////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////////////////////////
     function _init(params) {
         // This method initializes the object properties.
         if (!("center" in params) || !params.center) {
@@ -122,7 +119,6 @@ function Fog(mapIn, params) {
         properties.infiniteDistance = 1;        // 1 in latitude is enough.
     }
 
-    //
     // Unify the angel between 0 and 2PI
     function unifyAngel(radius) {
         var ans = radius;
@@ -131,7 +127,6 @@ function Fog(mapIn, params) {
         return ans;
     }
 
-    //
     // Calculate the angular bisector between 2 rays with directions.
     function midAngel(left, right, clockwise) {
         clockwise = typeof clockwise !== 'undefined' ? clockwise : true;
@@ -156,9 +151,6 @@ function Fog(mapIn, params) {
         return unifyAngel(ans);
     }
 
-    ////////////////////////////////////////////////////////////
-    // Public:
-    ////////////////////////////////////////////////////////////
     self.completionRate = function (strategy) {
         strategy = typeof strategy !== 'undefined' ? strategy : 0;
         return strategy == 0 ? m_completionRate : m_completionRate2;

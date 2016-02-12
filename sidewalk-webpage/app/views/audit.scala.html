@@ -14,18 +14,19 @@
         <div id="svl-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-                    <div id="left-column-jump-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")'  alt="Sound icon" align="">
+                    <div id="left-column-sound-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon" align="">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon" align="">
                         Sound
                     </div>
                     <div class="spacer10"></div>
-                    <div id="left-column-sound-button" class="button">
+                    <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
                         Jump
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Sound icon" align="">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
                         Feedback
                     </div>
                 </div>
