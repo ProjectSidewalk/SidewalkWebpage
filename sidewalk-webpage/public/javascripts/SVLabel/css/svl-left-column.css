@@ -10,4 +10,10 @@
     height: 90px;
     font-size: 8pt;
     border: 2px #ccc solid;
+    padding: 15px 0 0 0;
+}
+
+
+#left-column-button-holder img {
+    width: 30px;
 }

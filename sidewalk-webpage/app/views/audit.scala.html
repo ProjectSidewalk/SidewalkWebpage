@@ -15,14 +15,17 @@
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
                     <div id="left-column-jump-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")'  alt="Sound icon" align="">
                         Sound
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-sound-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
                         Jump
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Sound icon" align="">
                         Feedback
                     </div>
                 </div>
@@ -222,18 +225,18 @@
             </div>
             <div id="compass-holder"></div>
             <div id="form-holder">
-                <form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">
-                    <input type="hidden" name="assignmentId" value="" />
-                    <input type="hidden" name="workerId" value=""/>
-                    <input type="hidden" name="hitId" value="" />
-                    <div id="comment-field-holder">
-                        <textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>
-                    </div>
-                    <div id="form-buttons-holder">
-                        <button id="skip-button" class="button" onclick="return false;">Jump to another location</button>
-                        <!--<input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />-->
-                    </div>
-                </form>
+                @*<form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">*@
+                    @*<input type="hidden" name="assignmentId" value="" />*@
+                    @*<input type="hidden" name="workerId" value=""/>*@
+                    @*<input type="hidden" name="hitId" value="" />*@
+                    @*<div id="comment-field-holder">*@
+                        @*<textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>*@
+                    @*</div>*@
+                    @*<div id="form-buttons-holder">*@
+                        @*<button id="skip-button" class="button" onclick="return false;">Jump to another location</button>*@
+                        @*<!--<input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />-->*@
+                    @*</div>*@
+                @*</form>*@
             </div>
 
             <div id="page-overlay-holder">
