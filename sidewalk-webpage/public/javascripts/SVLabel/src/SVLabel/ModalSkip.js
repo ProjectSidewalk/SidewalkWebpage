@@ -55,13 +55,6 @@ function ModalSkip ($) {
     }
 
     /**
-     * Hide the background of the modal menu
-     */
-    function hidePageOverlay () {
-        svl.ui.modal.overlay.css('visibility', 'hidden');
-    }
-
-    /**
      * Hide a skip menu
      */
     function hideSkipMenu () {

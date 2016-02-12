@@ -2867,7 +2867,9 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        svl.ui.form.skipButton.on('click', handleSkipClick);
+        //svl.ui.form.skipButton.on('click', handleSkipClick);
+        svl.ui.leftColumn.jump.on('click', handleSkipClick);
+        svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
     }
 
     /**
@@ -3061,6 +3063,12 @@ function Form ($, params) {
             submit(data);
         }
         return false;
+    }
+
+    function handleFeedbackClick (e) {
+        e.preventDefault();
+        svl.tracker.push('Click_OpenCommentWindow');
+        svl.modal
     }
 
     function handleSkipClick (e) {
@@ -5461,12 +5469,16 @@ function Main ($, params) {
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat);
         var SVLng = parseFloat(params.initLng);
-        currentProgress = parseFloat(currentProgress);
 
         svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
-        // Instantiate objects
+
+        // Bind DOMs
+        //svl.ui = {};
         svl.ui = new UI($);
+
+
+        // Instantiate objects
         svl.labelContainer = new LabelContainer();
         svl.keyboard = new Keyboard($);
         svl.canvas = new Canvas($);
@@ -5492,7 +5504,7 @@ function Main ($, params) {
         svl.contextMenu = new ContextMenu($);
         svl.audioEffect = new AudioEffect();
         svl.modalSkip = new ModalSkip($);
-
+        svl.modalComment = new ModalComment($);
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
@@ -6802,6 +6814,67 @@ function Map ($, params) {
     return self;
 }
 
+function ModalComment ($) {
+    var self = { className: 'ModalComment'},
+        status = {
+            disableClickOK: true
+        };
+
+    function _init() {
+        disableClickOK();
+
+        svl.ui.modalComment.ok.on("click", handleClickOK);
+        svl.ui.modalComment.cancel.on("click", handleClickCancel);
+        svl.ui.leftColumn.feedback.on("click", showCommentMenu);
+        svl.ui.modalComment.textarea.on("focus", handleTextareaFocus);
+        svl.ui.modalComment.textarea.on("blur", handleTextareaBlur);
+    }
+
+    function handleClickOK (e) {
+        e.preventDefault();
+        hideCommentMenu();
+    }
+
+    function handleClickCancel (e) {
+        e.preventDefault();
+        hideCommentMenu();
+    }
+
+    function handleTextareaBlur() {
+        if ('ribbon' in svl) { svl.ribbon.enableModeSwitch(); }
+
+    }
+
+    function handleTextareaFocus() {
+        if ('ribbon' in svl) { svl.ribbon.disableModeSwitch(); }
+    }
+
+    function hideCommentMenu () {
+        svl.ui.modalComment.holder.addClass('hidden');
+    }
+
+    function showCommentMenu () {
+        svl.ui.modalComment.textarea.val("");
+        svl.ui.modalComment.holder.removeClass('hidden');
+        svl.ui.modalComment.ok.addClass("disabled");
+        disableClickOK();
+    }
+
+    function disableClickOK() {
+        svl.ui.modalComment.ok.attr("disabled", true);
+        svl.ui.modalComment.ok.addClass("disabled");
+        status.disableClickOK = true;
+    }
+
+    function enableClickOK () {
+        svl.ui.modalComment.ok.attr("disabled", false);
+        svl.ui.modalComment.ok.removeClass("disabled");
+        status.disableClickOK = false;
+    }
+
+    _init();
+    return self;
+}
 var svl = svl || {};
 
 /**
@@ -6856,13 +6929,6 @@ function ModalSkip ($) {
      */
     function handlerClickRadio (e) {
         enableClickOK();
-    }
-
-    /**
-     * Hide the background of the modal menu
-     */
-    function hidePageOverlay () {
-        svl.ui.modal.overlay.css('visibility', 'hidden');
     }
 
     /**
@@ -10575,13 +10641,7 @@ function Tracker () {
 var svl = svl || {};
 
 /**
- * A UI class.
- * Todo. I don't like defining all the dom elements here...
- * @param $
- * @param params
- * @returns {{moduleName: string}}
- * @constructor
- * @memberof svl
+ * Todo. Move what's in the UI to Main.
  */
 function UI ($, params) {
     var self = {moduleName: 'MainUI'};
@@ -10683,7 +10743,11 @@ function UI ($, params) {
         self.modalSkip.ok = $("#modal-skip-ok-button");
         self.modalSkip.cancel = $("#modal-skip-cancel-button");
         self.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
-
+        self.modalComment = {};
+        self.modalComment.holder = $("#modal-comment-holder");
+        self.modalComment.ok = $("#modal-comment-ok-button");
+        self.modalComment.cancel = $("#modal-comment-cancel-button");
+        self.modalComment.textarea = $("#modal-comment-textarea");
 
         // Zoom control
         self.zoomControl = {};

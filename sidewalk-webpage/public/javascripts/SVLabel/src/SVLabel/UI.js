@@ -1,13 +1,7 @@
 var svl = svl || {};
 
 /**
- * A UI class.
- * Todo. I don't like defining all the dom elements here...
- * @param $
- * @param params
- * @returns {{moduleName: string}}
- * @constructor
- * @memberof svl
+ * Todo. Move what's in the UI to Main.
  */
 function UI ($, params) {
     var self = {moduleName: 'MainUI'};
@@ -109,7 +103,11 @@ function UI ($, params) {
         self.modalSkip.ok = $("#modal-skip-ok-button");
         self.modalSkip.cancel = $("#modal-skip-cancel-button");
         self.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
-
+        self.modalComment = {};
+        self.modalComment.holder = $("#modal-comment-holder");
+        self.modalComment.ok = $("#modal-comment-ok-button");
+        self.modalComment.cancel = $("#modal-comment-cancel-button");
+        self.modalComment.textarea = $("#modal-comment-textarea");
 
         // Zoom control
         self.zoomControl = {};

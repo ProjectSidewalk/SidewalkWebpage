@@ -19,12 +19,16 @@ function Main ($, params) {
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat);
         var SVLng = parseFloat(params.initLng);
-        currentProgress = parseFloat(currentProgress);
 
         svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
-        // Instantiate objects
+
+        // Bind DOMs
+        //svl.ui = {};
         svl.ui = new UI($);
+
+
+        // Instantiate objects
         svl.labelContainer = new LabelContainer();
         svl.keyboard = new Keyboard($);
         svl.canvas = new Canvas($);
@@ -50,7 +54,7 @@ function Main ($, params) {
         svl.contextMenu = new ContextMenu($);
         svl.audioEffect = new AudioEffect();
         svl.modalSkip = new ModalSkip($);
-
+        svl.modalComment = new ModalComment($);
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');

@@ -98,7 +98,9 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        svl.ui.form.skipButton.on('click', handleSkipClick);
+        //svl.ui.form.skipButton.on('click', handleSkipClick);
+        svl.ui.leftColumn.jump.on('click', handleSkipClick);
+        svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
     }
 
     /**
@@ -292,6 +294,12 @@ function Form ($, params) {
             submit(data);
         }
         return false;
+    }
+
+    function handleFeedbackClick (e) {
+        e.preventDefault();
+        svl.tracker.push('Click_OpenCommentWindow');
+        svl.modal
     }
 
     function handleSkipClick (e) {

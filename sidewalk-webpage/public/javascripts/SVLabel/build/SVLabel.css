@@ -764,7 +764,7 @@ footer {
     width: 200px;
     height: 200px;
 }
-#modal-skip-holder {
+#modal-skip-holder, #modal-comment-holder {
     position: absolute;
     left: 0;
     top: 0;
@@ -772,16 +772,16 @@ footer {
     width: 100%;
 }
 
-#modal-skip-background {
+#modal-skip-background, #modal-comment-background {
     position: absolute;
-    left: 0;
+    left: -55px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
     height: 100%;
-    width: 100%;
+    width: 110%;
 }
 
-#modal-skip-box {
+#modal-skip-box, #modal-comment-box {
     background: rgba(255, 255, 255, 1);
     border: 3px solid rgba(200, 200, 200, 1);
     color: black;
@@ -789,10 +789,23 @@ footer {
     padding: 10px;
     position: relative;
     top: 35%;
-    left: 0;
+    left: 3px;
     visibility: visible;
-    /* width: 730px; */
+    width: 730px;
     z-index: 1;
+
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-comment-textarea {
+    height: 100px;
+    width: 100%;
+    margin: 5px 0 10px 0;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
 }
 #Holder_OnboardingMessageBox {
     background: rgba(69,183,214,0.95);
