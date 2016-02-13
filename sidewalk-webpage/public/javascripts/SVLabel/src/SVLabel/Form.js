@@ -296,12 +296,6 @@ function Form ($, params) {
         return false;
     }
 
-    //
-    //function handleSkipClick (e) {
-    //    e.preventDefault();
-    //    svl.tracker.push('Click_OpenSkipWindow');
-    //    svl.modalSkip.showSkipMenu();
-    //}
 
     /** This method returns whether the task is in preview mode or not. */
     function isPreviewMode () { return properties.isPreviewMode; }
@@ -418,7 +412,6 @@ function Form ($, params) {
     self.unlockDisableSubmit = unlockDisableSubmit;
     self.unlockDisableSkip = unlockDisableSkip;
     self.submit = submit;
-    self.compileSubmissionData = compileSubmissionData;
     _init(params);
     return self;
 }

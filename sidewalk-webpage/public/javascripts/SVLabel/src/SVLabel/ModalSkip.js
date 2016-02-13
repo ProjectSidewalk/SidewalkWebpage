@@ -34,6 +34,7 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickOK (e) {
+        svl.tracker.push("ModalSkip_ClickOK");
         var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
             position = svl.panorama.getPosition(),
             incomplete = {
@@ -42,7 +43,8 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        svl.form.skipSubmit(incomplete);
+        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
+        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
         hideSkipMenu();
     }
 
@@ -51,6 +53,7 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickCancel (e) {
+        svl.tracker.push("ModalSkip_ClickCancel");
         hideSkipMenu();
     }
 
@@ -59,6 +62,7 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickRadio (e) {
+        svl.tracker.push("ModalSkip_ClickRadio");
         enableClickOK();
     }
 

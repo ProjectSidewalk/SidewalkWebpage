@@ -3065,12 +3065,6 @@ function Form ($, params) {
         return false;
     }
 
-    //
-    //function handleSkipClick (e) {
-    //    e.preventDefault();
-    //    svl.tracker.push('Click_OpenSkipWindow');
-    //    svl.modalSkip.showSkipMenu();
-    //}
 
     /** This method returns whether the task is in preview mode or not. */
     function isPreviewMode () { return properties.isPreviewMode; }
@@ -3187,7 +3181,6 @@ function Form ($, params) {
     self.unlockDisableSubmit = unlockDisableSubmit;
     self.unlockDisableSkip = unlockDisableSkip;
     self.submit = submit;
-    self.compileSubmissionData = compileSubmissionData;
     _init(params);
     return self;
 }
@@ -6813,11 +6806,13 @@ function ModalComment ($) {
 
     function handleClickOK (e) {
         e.preventDefault();
+        svl.tracker.push("ModalComment_ClickOK");
         submitComment();
         hideCommentMenu();
     }
 
     function handleClickCancel (e) {
+        svl.tracker.push("ModalComment_ClickCancel");
         e.preventDefault();
         hideCommentMenu();
     }
@@ -6939,6 +6934,7 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickOK (e) {
+        svl.tracker.push("ModalSkip_ClickOK");
         var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
             position = svl.panorama.getPosition(),
             incomplete = {
@@ -6947,7 +6943,8 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        svl.form.skipSubmit(incomplete);
+        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
+        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
         hideSkipMenu();
     }
 
@@ -6956,6 +6953,7 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickCancel (e) {
+        svl.tracker.push("ModalSkip_ClickCancel");
         hideSkipMenu();
     }
 
@@ -6964,6 +6962,7 @@ function ModalSkip ($) {
      * @param e
      */
     function handlerClickRadio (e) {
+        svl.tracker.push("ModalSkip_ClickRadio");
         enableClickOK();
     }
 
@@ -10603,19 +10602,8 @@ function Tracker () {
         actions = [],
         prevActions = [];
 
-    /**
-     * Returns actions
-     */
-    function getActions () {
-        return actions;
-    }
-
-    /**
-     * Load the actions in storage
-     */
-    function load () {
-        actions = svl.storage.get("tracker");
-    }
+    /** Returns actions */
+    function getActions () { return actions; }
 
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
@@ -10699,6 +10687,9 @@ function Tracker () {
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         });
+
+        // Todo. Submit the data collected thus far if actions is too long.
+
         return this;
     }
 
@@ -10711,18 +10702,10 @@ function Tracker () {
         push("RefreshTracker");
     }
 
-    /**
-     * Save the actions in the storage
-     */
-    function save () {
-        svl.storage.set("tracker", actions);
-    }
 
     self.getActions = getActions;
-//    self.load = load;
     self.push = push;
     self.refresh = refresh;
-//    self.save = save;
     return self;
 }
 

@@ -16,11 +16,13 @@ function ModalComment ($) {
 
     function handleClickOK (e) {
         e.preventDefault();
+        svl.tracker.push("ModalComment_ClickOK");
         submitComment();
         hideCommentMenu();
     }
 
     function handleClickCancel (e) {
+        svl.tracker.push("ModalComment_ClickCancel");
         e.preventDefault();
         hideCommentMenu();
     }

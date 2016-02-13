@@ -11,19 +11,8 @@ function Tracker () {
         actions = [],
         prevActions = [];
 
-    /**
-     * Returns actions
-     */
-    function getActions () {
-        return actions;
-    }
-
-    /**
-     * Load the actions in storage
-     */
-    function load () {
-        actions = svl.storage.get("tracker");
-    }
+    /** Returns actions */
+    function getActions () { return actions; }
 
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
@@ -107,6 +96,9 @@ function Tracker () {
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         });
+
+        // Todo. Submit the data collected thus far if actions is too long.
+
         return this;
     }
 
@@ -119,17 +111,9 @@ function Tracker () {
         push("RefreshTracker");
     }
 
-    /**
-     * Save the actions in the storage
-     */
-    function save () {
-        svl.storage.set("tracker", actions);
-    }
 
     self.getActions = getActions;
-//    self.load = load;
     self.push = push;
     self.refresh = refresh;
-//    self.save = save;
     return self;
 }
