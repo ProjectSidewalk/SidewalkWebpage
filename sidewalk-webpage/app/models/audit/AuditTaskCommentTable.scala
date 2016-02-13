@@ -27,7 +27,7 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
     ((AuditTaskComment.apply _).tupled, AuditTaskComment.unapply)
 }
 
-object AuditTaskEnvironmentTable {
+object AuditTaskCommentTable {
   val db = play.api.db.slick.DB
   val auditTaskComments = TableQuery[AuditTaskCommentTable]
 

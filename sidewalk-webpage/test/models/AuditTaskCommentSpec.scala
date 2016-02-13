@@ -1,5 +1,6 @@
 package models
 
+
 import java.sql.Timestamp
 import java.util.{Calendar, Date}
 
@@ -10,26 +11,24 @@ import play.api.db.slick.DB
 import models.utils.MyPostgresDriver.simple._
 import play.api.test._
 
-
-class AuditTaskSpec extends Specification {
-  "AuditTask table" should {
+class AuditTaskCommentSpec extends Specification  {
+  "AuditTaskComment table" should {
     "be able to insert" in new WithApplication {
-      val auditTasks = TableQuery[AuditTaskTable]
+      val auditTaskComments = TableQuery[AuditTaskCommentTable]
 
       DB.withTransaction { implicit s: Session =>
         val calendar: Calendar = Calendar.getInstance
         val now: Date = calendar.getTime
         val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-        val task = AuditTask(-2, Some(-2), "c51d32f6-18cc-40c4-90c6-1a0da021e9f2", 1, currentTimestamp, Some(currentTimestamp))
 
-        auditTasks.insert(task)
+        val comment: AuditTaskComment = AuditTaskComment(0, 0, "test", "0.0.0.0", Some("test"), Some(0.0), Some(0.0), Some(1), currentTimestamp, "comment")
+        auditTaskComments.insert(comment)
 
-        val filtered = auditTasks.filter(_.amtAssignmentId.getOrElse(-1) === -2).list
+        val filtered = auditTaskComments.list
         filtered.length shouldEqual 1
 
         s.rollback
       }
     }
   }
-
 }
