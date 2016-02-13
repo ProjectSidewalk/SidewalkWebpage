@@ -6908,7 +6908,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function ModalSkip ($) {
-    var self = { className : 'Modal'},
+    var self = { className : 'ModalSkip' },
         status = {
             disableClickOK: true
         };
@@ -8778,28 +8778,24 @@ var svl = svl || {};
  * @memberof svl
  */
 function RibbonMenu ($, params) {
-    var self = { className: 'RibbonMenu' };
-    var properties = {
-        borderWidth : "3px",
-        modeSwitchDefaultBorderColor : "rgba(200,200,200,0.75)",
-        originalBackgroundColor: "white"
-    };
-    var status = {
-        disableModeSwitch: false,
-        lockDisableModeSwitch: false,
-        mode: 'Walk',
-        selectedLabelType: undefined
-    };
+    var self = { className: 'RibbonMenu'},
+        properties = {
+            borderWidth : "3px",
+            modeSwitchDefaultBorderColor : "rgba(200,200,200,0.75)",
+            originalBackgroundColor: "white"
+        },
+        status = {
+            disableModeSwitch: false,
+            lockDisableModeSwitch: false,
+            mode: 'Walk',
+            selectedLabelType: undefined
+        };
 
     // jQuery DOM elements
-    var $divStreetViewHolder;
-    var $ribbonButtonBottomLines;
-    var $ribbonConnector;
-    var $spansModeSwitches;
-
+    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches;
 
     function _init () {
-        var browser = getBrowser();
+        var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
         if (browser === 'mozilla') {
             properties.originalBackgroundColor = "-moz-linear-gradient(center top , #fff, #eee)";
         } else if (browser === 'msie') {
@@ -8808,23 +8804,14 @@ function RibbonMenu ($, params) {
             properties.originalBackgroundColor = "-webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee))";
         }
 
-
-        var labelColors = svl.misc.getLabelColors();
-
-        //
         // Initialize the jQuery DOM elements
         if (svl.ui && svl.ui.ribbonMenu) {
-          // $divStreetViewHolder = $("#Holder_StreetView");
 
           $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
-          // $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
           $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
-          // $ribbonConnector = $("#StreetViewLabelRibbonConnection");
           $ribbonConnector = svl.ui.ribbonMenu.connector;
-          // $spansModeSwitches = $('span.modeSwitch');
           $spansModeSwitches = svl.ui.ribbonMenu.buttons;
 
-          //
           // Initialize the color of the lines at the bottom of ribbon menu icons
           $.each($ribbonButtonBottomLines, function (i, v) {
               var labelType = $(v).attr("value");
@@ -8873,9 +8860,8 @@ function RibbonMenu ($, params) {
         }
 
         if (status.disableModeSwitch === false) {
-            // Check if a bus stop sign is labeled or not.
-            // If it is not, do not allow a user to switch to modes other than
-            // Walk and StopSign.
+            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other
+            // than Walk and StopSign.
             var labelColors;
             var ribbonConnectorPositions;
             var borderColor;
@@ -8940,7 +8926,6 @@ function RibbonMenu ($, params) {
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
             modeSwitch(labelType);
-
         }
     }
 
@@ -9164,7 +9149,6 @@ function RibbonMenu ($, params) {
     self.setAllowedMode = setAllowedMode;
     self.setStatus = setStatus;
     self.unlockDisableModeSwitch = unlockDisableModeSwitch;
-
 
     _init(params);
 

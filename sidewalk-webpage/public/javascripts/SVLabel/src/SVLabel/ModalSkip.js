@@ -8,7 +8,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function ModalSkip ($) {
-    var self = { className : 'Modal'},
+    var self = { className : 'ModalSkip' },
         status = {
             disableClickOK: true
         };
