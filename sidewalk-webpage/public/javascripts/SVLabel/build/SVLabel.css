@@ -1340,7 +1340,7 @@ footer {
 
 #task-completion-message-holder img {
     left: 120px;
-    top: 185px;
+    top: 0;
     width: 500px;
     position: relative;
 }

@@ -10,13 +10,25 @@ var svl = svl || {};
  */
 function User (param) {
     var self = {className: 'User'},
-        properties = {};
+        properties = {
+            username: null,
+            recordedAuditDistance: null  // miles.
+        };
 
     properties.username = param.username;
 
-    self.getProperty = function (key) {
-        return properties[key];
-    };
+    function _init() {
+
+    }
+
+    function getProperty (key) { return properties[key]; }
+
+    function setProperty (key, value) {
+        properties[key] = value;
+    }
+
+    self.getProperty = getProperty;
+    self.setProperty = setProperty;
 
     return self;
 }

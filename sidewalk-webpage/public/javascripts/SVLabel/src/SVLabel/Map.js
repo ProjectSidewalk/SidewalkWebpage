@@ -527,20 +527,10 @@ function Map ($, params) {
             if (svl.canvas) {
                 svl.canvas.clear();
                 svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
-                if (properties.mode === 'Evaluation') {
-                    myTables.updateCanvas();
-                }
                 svl.canvas.render2();
             }
 
-//            if ('storage' in svl) {
-//                svl.storage.set('currentPanorama', svl.panorama.getPano());
-//                svl.storage.set('currentPov', svl.panorama.getPov());
-//            }
-
-            if (fogSet) {
-                fogUpdate();
-            }
+            if (fogSet) { fogUpdate(); }
 
             // Attach listeners to svl.pointCloud
             if ('pointCloud' in svl && svl.pointCloud) {
@@ -598,10 +588,6 @@ function Map ($, params) {
             }
             status.currentPanoId = svl.getPanoId();
 
-
-            if (properties.mode === 'Evaluation') {
-                myTables.updateCanvas();
-            }
             svl.canvas.render2();
         }
 

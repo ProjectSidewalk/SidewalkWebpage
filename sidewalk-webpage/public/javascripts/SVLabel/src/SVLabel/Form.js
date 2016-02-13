@@ -99,8 +99,8 @@ function Form ($, params) {
         }
 
         //svl.ui.form.skipButton.on('click', handleSkipClick);
-        svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
+        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
     }
 
     /**
@@ -296,17 +296,12 @@ function Form ($, params) {
         return false;
     }
 
-    function handleFeedbackClick (e) {
-        e.preventDefault();
-        svl.tracker.push('Click_OpenCommentWindow');
-        svl.modal
-    }
-
-    function handleSkipClick (e) {
-        e.preventDefault();
-        svl.tracker.push('Click_OpenSkipWindow');
-        svl.modalSkip.showSkipMenu();
-    }
+    //
+    //function handleSkipClick (e) {
+    //    e.preventDefault();
+    //    svl.tracker.push('Click_OpenSkipWindow');
+    //    svl.modalSkip.showSkipMenu();
+    //}
 
     /** This method returns whether the task is in preview mode or not. */
     function isPreviewMode () { return properties.isPreviewMode; }

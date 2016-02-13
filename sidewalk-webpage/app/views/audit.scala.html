@@ -202,7 +202,7 @@
                             </div>
                             <div class="status-column-half inline">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/map.png")' class="status-icon" alt="Podium icon" align="">
-                                <span><span class="bold">4.4</span><small>miles</small></span>
+                                <span><span class="bold" id="status-audited-distance">0</span><small>miles</small></span>
                             </div>
                             <br class="clear">
                         </div>
@@ -305,10 +305,13 @@
         @if(user) {
         var userParam = { username : '@user.get.username' };
         svl.user = new User(userParam);
+        } else {
+        var userParam = { username : "anonymous" };
+        svl.user = new User(userParam);
         }
 
         @if(task) {
-            svl.task = new Task($, turf);
+            svl.task = new Task($, L, turf);
             svl.task.set(@Html(task.get.toJSON.toString));
         }
 
@@ -330,10 +333,8 @@
         });
 
         function init() {
-            var mainParam = {},
-                formParam = {},
-                initialLocation = svl.task.initialLocation();
-            formParam.dataStoreUrl = '@routes.TaskController.post'; // '<?php echo url_for("/api_post_labels");?>';
+            var mainParam = {}, formParam = {}, initialLocation = svl.task.initialLocation();
+            formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.hitId = '';
             formParam.assignmentId = '';
             formParam.turkerId = '';

@@ -19,7 +19,15 @@ function ModalSkip ($) {
         svl.ui.modalSkip.ok.bind("click", handlerClickOK);
         svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
         svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
+        svl.ui.leftColumn.jump.on('click', handleClickJump);
     }
+
+    function handleClickJump (e) {
+        e.preventDefault();
+        svl.tracker.push('Click_OpenSkipWindow');
+        svl.modalSkip.showSkipMenu();
+    }
+
 
     /**
      * This method handles a click OK event

@@ -2868,8 +2868,8 @@ function Form ($, params) {
         }
 
         //svl.ui.form.skipButton.on('click', handleSkipClick);
-        svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
+        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
     }
 
     /**
@@ -3065,17 +3065,12 @@ function Form ($, params) {
         return false;
     }
 
-    function handleFeedbackClick (e) {
-        e.preventDefault();
-        svl.tracker.push('Click_OpenCommentWindow');
-        svl.modal
-    }
-
-    function handleSkipClick (e) {
-        e.preventDefault();
-        svl.tracker.push('Click_OpenSkipWindow');
-        svl.modalSkip.showSkipMenu();
-    }
+    //
+    //function handleSkipClick (e) {
+    //    e.preventDefault();
+    //    svl.tracker.push('Click_OpenSkipWindow');
+    //    svl.modalSkip.showSkipMenu();
+    //}
 
     /** This method returns whether the task is in preview mode or not. */
     function isPreviewMode () { return properties.isPreviewMode; }
@@ -6102,20 +6097,10 @@ function Map ($, params) {
             if (svl.canvas) {
                 svl.canvas.clear();
                 svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
-                if (properties.mode === 'Evaluation') {
-                    myTables.updateCanvas();
-                }
                 svl.canvas.render2();
             }
 
-//            if ('storage' in svl) {
-//                svl.storage.set('currentPanorama', svl.panorama.getPano());
-//                svl.storage.set('currentPov', svl.panorama.getPov());
-//            }
-
-            if (fogSet) {
-                fogUpdate();
-            }
+            if (fogSet) { fogUpdate(); }
 
             // Attach listeners to svl.pointCloud
             if ('pointCloud' in svl && svl.pointCloud) {
@@ -6173,10 +6158,6 @@ function Map ($, params) {
             }
             status.currentPanoId = svl.getPanoId();
 
-
-            if (properties.mode === 'Evaluation') {
-                myTables.updateCanvas();
-            }
             svl.canvas.render2();
         }
 
@@ -6822,22 +6803,35 @@ function ModalComment ($) {
 
     function _init() {
         disableClickOK();
-
         svl.ui.modalComment.ok.on("click", handleClickOK);
         svl.ui.modalComment.cancel.on("click", handleClickCancel);
         svl.ui.leftColumn.feedback.on("click", showCommentMenu);
         svl.ui.modalComment.textarea.on("focus", handleTextareaFocus);
         svl.ui.modalComment.textarea.on("blur", handleTextareaBlur);
+        svl.ui.modalComment.textarea.on("input", handleTextareaChange);
     }
 
     function handleClickOK (e) {
         e.preventDefault();
+        submitComment();
         hideCommentMenu();
     }
 
     function handleClickCancel (e) {
         e.preventDefault();
         hideCommentMenu();
+    }
+
+    /**
+     * Handles changes in the comment field
+     */
+    function handleTextareaChange () {
+        var comment = svl.ui.modalComment.textarea.val();
+        if (comment.length > 0) {
+            enableClickOK();
+        } else {
+            disableClickOK();
+        }
     }
 
     function handleTextareaBlur() {
@@ -6872,6 +6866,40 @@ function ModalComment ($) {
         status.disableClickOK = false;
     }
 
+    function submitComment () {
+        if ('task' in svl) {
+            var streetEdgeId = svl.task.getStreetEdgeId(),
+                gsvPanoramaId = svl.panorama.getPano(),
+                pov = svl.getPOV(),
+                comment = svl.ui.modalComment.textarea.val();
+
+            var data = {
+                street_edge_id: streetEdgeId,
+                gsv_panorama_id: gsvPanoramaId,
+                heading: pov ? pov.heading : null,
+                pitch: pov ? pov.pitch : null,
+                zoom: pov ? pov.zoom : null,
+                comment: comment
+            };
+
+            $.ajax({
+                // async: false,
+                contentType: 'application/json; charset=utf-8',
+                url: "/audit/comment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                    if (result.error) {
+                        console.log(result.error);
+                    }
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });        }
+    }
+
     _init();
     return self;
 }
@@ -6896,7 +6924,15 @@ function ModalSkip ($) {
         svl.ui.modalSkip.ok.bind("click", handlerClickOK);
         svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
         svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
+        svl.ui.leftColumn.jump.on('click', handleClickJump);
     }
+
+    function handleClickJump (e) {
+        e.preventDefault();
+        svl.tracker.push('Click_OpenSkipWindow');
+        svl.modalSkip.showSkipMenu();
+    }
+
 
     /**
      * This method handles a click OK event
@@ -10057,7 +10093,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Task ($, turf) {
+function Task ($, L, turf) {
     var self = {className: 'Task'},
         taskSetting,
         previousTasks = [],
@@ -10067,6 +10103,46 @@ function Task ($, turf) {
         status = {
             noAudio: false
         };
+
+    function setAuditedDistance () {
+        var distance, sessionDistance = getSessionAuditDistance();
+
+        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
+            if (!svl.user.getProperty('recordedAuditDistance')) {
+                var i, distanceAudited = 0;
+                $.getJSON("/contribution/streets", function (data) {
+                    if (data && 'features' in data) {
+                        for (i = data.features.length - 1; i >= 0; i--) {
+                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
+                        }
+                    } else {
+                        distanceAudited = 0;
+                    }
+                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
+                    distance = sessionDistance + distanceAudited;
+                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+                });
+            } else {
+                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
+                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+            }
+        } else {
+            distance = sessionDistance;
+            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        }
+
+        return this;
+    }
+
+
+    function getSessionAuditDistance () {
+        var feature, i, len = previousTasks.length, distance = 0;
+        for (i = 0; i < len; i++) {
+            feature = previousTasks[i].features[0];
+            distance += turf.lineDistance(feature);
+        }
+        return distance;
+    }
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -10167,16 +10243,12 @@ function Task ($, turf) {
         // Reset the label counter
         if ('labelCounter' in svl) { svl.labelCounter.reset(); }
 
-        taskCompletionRate = 0;
+        // Update the audited miles
+        if ('ui' in svl) {
+            setAuditedDistance();
+        }
 
-        // Push the data into the list
-        previousTasks.push(taskSetting);
-
-        var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
-        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
-        paths = null;
-
-        if (!('user' in svl)) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && isFirstTask())) {
             // Prompt a user who's not logged in to sign up/sign in.
             svl.popUpMessage.setTitle("You've completed the first accessibility audit!");
             svl.popUpMessage.setMessage("Do you want to create an account to keep track of your progress?");
@@ -10192,8 +10264,9 @@ function Task ($, turf) {
                 $('#sign-in-modal-container').modal('show');
             });
             svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">Nope</button>', function () {
-                svl.user = new User({username: 'Anon accessibility auditor'});
+                if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
 
+                svl.user.setProperty('firstTask', false);
                 // Submit the data as an anonymous user.
                 var data = svl.form.compileSubmissionData();
                 svl.form.submit(data);
@@ -10224,6 +10297,16 @@ function Task ($, turf) {
                 svl.form.submit(data);
             }
         }
+
+        // Push the data into the list
+        previousTasks.push(taskSetting);
+
+        taskCompletionRate = 0;
+
+        var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
+        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
+        paths = null;
+
         nextTask(getStreetEdgeId());
     }
 
@@ -10254,10 +10337,13 @@ function Task ($, turf) {
 
             if (!threshold) { threshold = 10; } // 10 meters
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
-            console.debug('Distance to the end:' , d);
+            //console.debug('Distance to the end:' , d);
             return d < threshold;
         }
     }
+
+    /** Check if the current task is the first task in this session */
+    function isFirstTask () { return previousTasks.length == 0; }
 
     /**
      * Get a distance between a point and a segment
@@ -10449,6 +10535,8 @@ function Task ($, turf) {
 
     /** Set status */
     function setStatus(key, value) { status[key] = value; return this; }
+
+
 
     self.endTask = endTask;
     self.getGeometry = getGeometry;
@@ -10705,6 +10793,10 @@ function UI ($, params) {
         self.popUpMessage.title = $("#pop-up-message-title");
         self.popUpMessage.content = $("#pop-up-message-content");
 
+        // Progress
+        self.progress = {};
+        self.progress.auditedDistance = $("#status-audited-distance");
+
         // ProgressPov
         self.progressPov = {};
         self.progressPov.holder = $("#progress-pov-holder");
@@ -10797,13 +10889,25 @@ var svl = svl || {};
  */
 function User (param) {
     var self = {className: 'User'},
-        properties = {};
+        properties = {
+            username: null,
+            recordedAuditDistance: null  // miles.
+        };
 
     properties.username = param.username;
 
-    self.getProperty = function (key) {
-        return properties[key];
-    };
+    function _init() {
+
+    }
+
+    function getProperty (key) { return properties[key]; }
+
+    function setProperty (key, value) {
+        properties[key] = value;
+    }
+
+    self.getProperty = getProperty;
+    self.setProperty = setProperty;
 
     return self;
 }

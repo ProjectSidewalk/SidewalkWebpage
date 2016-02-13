@@ -65,6 +65,10 @@ function UI ($, params) {
         self.popUpMessage.title = $("#pop-up-message-title");
         self.popUpMessage.content = $("#pop-up-message-content");
 
+        // Progress
+        self.progress = {};
+        self.progress.auditedDistance = $("#status-audited-distance");
+
         // ProgressPov
         self.progressPov = {};
         self.progressPov.holder = $("#progress-pov-holder");

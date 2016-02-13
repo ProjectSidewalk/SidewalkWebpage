@@ -8,7 +8,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Task ($, turf) {
+function Task ($, L, turf) {
     var self = {className: 'Task'},
         taskSetting,
         previousTasks = [],
@@ -18,6 +18,46 @@ function Task ($, turf) {
         status = {
             noAudio: false
         };
+
+    function setAuditedDistance () {
+        var distance, sessionDistance = getSessionAuditDistance();
+
+        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
+            if (!svl.user.getProperty('recordedAuditDistance')) {
+                var i, distanceAudited = 0;
+                $.getJSON("/contribution/streets", function (data) {
+                    if (data && 'features' in data) {
+                        for (i = data.features.length - 1; i >= 0; i--) {
+                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
+                        }
+                    } else {
+                        distanceAudited = 0;
+                    }
+                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
+                    distance = sessionDistance + distanceAudited;
+                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+                });
+            } else {
+                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
+                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+            }
+        } else {
+            distance = sessionDistance;
+            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        }
+
+        return this;
+    }
+
+
+    function getSessionAuditDistance () {
+        var feature, i, len = previousTasks.length, distance = 0;
+        for (i = 0; i < len; i++) {
+            feature = previousTasks[i].features[0];
+            distance += turf.lineDistance(feature);
+        }
+        return distance;
+    }
 
     /** Save the task */
     function save () { svl.storage.set("task", taskSetting); }
@@ -118,16 +158,12 @@ function Task ($, turf) {
         // Reset the label counter
         if ('labelCounter' in svl) { svl.labelCounter.reset(); }
 
-        taskCompletionRate = 0;
+        // Update the audited miles
+        if ('ui' in svl) {
+            setAuditedDistance();
+        }
 
-        // Push the data into the list
-        previousTasks.push(taskSetting);
-
-        var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
-        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
-        paths = null;
-
-        if (!('user' in svl)) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && isFirstTask())) {
             // Prompt a user who's not logged in to sign up/sign in.
             svl.popUpMessage.setTitle("You've completed the first accessibility audit!");
             svl.popUpMessage.setMessage("Do you want to create an account to keep track of your progress?");
@@ -143,8 +179,9 @@ function Task ($, turf) {
                 $('#sign-in-modal-container').modal('show');
             });
             svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">Nope</button>', function () {
-                svl.user = new User({username: 'Anon accessibility auditor'});
+                if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
 
+                svl.user.setProperty('firstTask', false);
                 // Submit the data as an anonymous user.
                 var data = svl.form.compileSubmissionData();
                 svl.form.submit(data);
@@ -175,6 +212,16 @@ function Task ($, turf) {
                 svl.form.submit(data);
             }
         }
+
+        // Push the data into the list
+        previousTasks.push(taskSetting);
+
+        taskCompletionRate = 0;
+
+        var gCoordinates = taskSetting.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
+        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
+        paths = null;
+
         nextTask(getStreetEdgeId());
     }
 
@@ -205,10 +252,13 @@ function Task ($, turf) {
 
             if (!threshold) { threshold = 10; } // 10 meters
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
-            console.debug('Distance to the end:' , d);
+            //console.debug('Distance to the end:' , d);
             return d < threshold;
         }
     }
+
+    /** Check if the current task is the first task in this session */
+    function isFirstTask () { return previousTasks.length == 0; }
 
     /**
      * Get a distance between a point and a segment
@@ -400,6 +450,8 @@ function Task ($, turf) {
 
     /** Set status */
     function setStatus(key, value) { status[key] = value; return this; }
+
+
 
     self.endTask = endTask;
     self.getGeometry = getGeometry;
