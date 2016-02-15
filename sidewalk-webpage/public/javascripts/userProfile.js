@@ -156,7 +156,16 @@ function initializeAuditedStreets(map) {
 }
 
 function initializeSubmittedLabels(map) {
-    var colorMapping = svl.misc.getLabelColors();
+    var colorMapping = svl.misc.getLabelColors(),
+        geojsonMarkerOptions = {
+            radius: 5,
+            fillColor: "#ff7800",
+            color: "#ffffff",
+            weight: 1,
+            opacity: 0.5,
+            fillOpacity: 0.5,
+            "stroke-width": 1
+        };
 
     function onEachLabelFeature(feature, layer) {
         if (feature.properties && feature.properties.type) {
@@ -164,15 +173,7 @@ function initializeSubmittedLabels(map) {
         }
     }
 
-    var geojsonMarkerOptions = {
-        radius: 5,
-        fillColor: "#ff7800",
-        color: "#ffffff",
-        weight: 1,
-        opacity: 0.5,
-        fillOpacity: 0.5,
-        "stroke-width": 1,
-    };
+
 
     $.getJSON("/contribution/labels", function (data) {
         // Count a number of each label type
@@ -191,7 +192,13 @@ function initializeSubmittedLabels(map) {
         document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
         document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
 
-        // Render audited street segments
+        document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
+
+        // Render submitted labels
         L.geoJson(data, {
           pointToLayer: function (feature, latlng) {
             var style = $.extend(true, {}, geojsonMarkerOptions);
