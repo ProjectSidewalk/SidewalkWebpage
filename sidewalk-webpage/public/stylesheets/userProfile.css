@@ -3,8 +3,28 @@ svg {
     position: relative;
 }
 
+#map-holder {
+    position: relative;
+}
+
 #map {
     height: 70%;
+}
+
+#map-label-legend {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.75);
+    left: 15px;
+    width: 220px;
+    bottom: 30px;
+}
+
+#map-label-legend table td {
+    margin-bottom: 0;
+}
+
+#map-label-legend table td {
+    border-top: 0;
 }
 
 .leaflet-overlay-pane svg g:first-child path {
@@ -13,4 +33,11 @@ svg {
     stroke-width: 2px !important;
     stroke-opacity: 1 !important;
     stroke: #ffffff !important;
+}
+
+.c3-axis text {
+    fill: #888;
+}
+.c3-axis line, .c3-axis path {
+    stroke: #888;
 }

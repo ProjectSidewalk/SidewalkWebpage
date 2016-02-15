@@ -66,6 +66,7 @@ object AuditTaskTable {
   val streetEdges = TableQuery[StreetEdgeTable]
   val users = TableQuery[UserTable]
 
+  case class AuditCountPerDay(date: String, count: Int)
 
   def all: List[AuditTask] = db.withSession { implicit session =>
     auditTasks.list
@@ -73,7 +74,8 @@ object AuditTaskTable {
 
   /**
    * Get the last audit task that the user conducted
-   * @param userId
+    *
+    * @param userId
    * @return
    */
   def lastAuditTask(userId: UUID): Option[AuditTask] = db.withSession { implicit session =>
@@ -82,7 +84,8 @@ object AuditTaskTable {
 
   /**
    * Return an audited edges
-   * @param userId
+    *
+    * @param userId
    * @return
    */
   def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
@@ -91,6 +94,24 @@ object AuditTaskTable {
     } yield _streetEdges).filter(edge => edge.deleted === false)
 
     _streetEdges.list
+  }
+
+  /**
+    * Return audit counts for the last 31 days.
+    *
+    * @param userId
+    */
+  def auditCounts(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
+    val selectAuditCountQuery =  Q.query[String, (String, Int)](
+      """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
+        |FROM    generate_series(0, 30) n) AS calendar
+        |LEFT JOIN sidewalk.audit_task
+        |ON audit_task.task_start::date = calendar_date::date
+        |AND audit_task.user_id = ?
+        |GROUP BY calendar_date
+        |ORDER BY calendar_date""".stripMargin
+    )
+    selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
   }
 
   /**
@@ -130,7 +151,8 @@ object AuditTaskTable {
 
   /**
    * Get task without username
-   * @return
+    *
+    * @return
    */
   def getNewTask: NewTask = db.withSession { implicit session =>
     val calendar: Calendar = Calendar.getInstance
@@ -141,7 +163,7 @@ object AuditTaskTable {
       (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
         .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
     } yield _streetEdges).filter(edge => edge.deleted === false).take(100).list
-    assert(edges.length > 0)
+    assert(edges.nonEmpty)
 
     val e: StreetEdge = Random.shuffle(edges).head
 
@@ -158,7 +180,7 @@ object AuditTaskTable {
       (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
         .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
     } yield _streetEdges).filter(edge => edge.deleted === false && edge.streetEdgeId === streetEdgeId).list
-    assert(edges.length > 0)
+    assert(edges.nonEmpty)
 
     val e: StreetEdge = edges.head
 
@@ -169,7 +191,8 @@ object AuditTaskTable {
 
   /**
    * Get a task that is connected to the end point of the current task (street edge)
-   * @param streetEdgeId Street edge id
+    *
+    * @param streetEdgeId Street edge id
    */
   def getConnectedTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
@@ -210,7 +233,8 @@ object AuditTaskTable {
 
   /**
    * Get a task that is in a given region
-   * @param regionId
+    *
+    * @param regionId
    * @return
    */
   def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
@@ -243,7 +267,8 @@ object AuditTaskTable {
 
   /**
    * et a task that is in a given region
-   * @param regionId
+    *
+    * @param regionId
    * @param user
    * @return
    */
@@ -267,15 +292,13 @@ object AuditTaskTable {
 
     val edges: List[StreetEdge] = selectEdgeQuery((userId, regionId)).list
     edges match {
-      case edges if (edges.size > 0) => {
+      case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
-      }
-      case _ => {
+      case _ =>
         getNewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
-      }
     }
   }
 
@@ -289,7 +312,7 @@ object AuditTaskTable {
     val now: Date = calendar.getTime
     val currentTimestamp: Timestamp = new Timestamp(now.getTime)
     val onboardingEdges: List[StreetEdge] = streetEdges.filter(_.wayType === "onboarding").list
-    assert(onboardingEdges.length > 0)  // There should be more than one onboarding edges
+    assert(onboardingEdges.nonEmpty)  // There should be more than one onboarding edges
 
     val e: StreetEdge = onboardingEdges.head
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
@@ -300,7 +323,8 @@ object AuditTaskTable {
    *
    * Reference for rturning the last inserted item's id
    * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
-   * @param completedTask
+    *
+    * @param completedTask
    * @return
    */
   def save(completedTask: AuditTask): Int = db.withTransaction { implicit session =>

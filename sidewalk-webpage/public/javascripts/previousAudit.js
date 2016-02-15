@@ -40,7 +40,7 @@ $(document).ready(function () {
         var g = svg.append("g").attr("class", "leaflet-zoom-hide");  // The root group
 
         // Import the sample data and start animating
-        var geojsonURL = "/contribution/audits";
+        var geojsonURL = "/contribution/auditInteractions";
         d3.json(geojsonURL, function (collection) {
             animate(collection);
         });

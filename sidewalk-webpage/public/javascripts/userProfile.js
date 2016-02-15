@@ -31,6 +31,7 @@ $(document).ready(function () {
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
+    initializeAuditCountChart(c3);
 });
 
 /**
@@ -95,14 +96,11 @@ function initializeNeighborhoodPolygons(map) {
     $.getJSON("/geometry/neighborhoods", function (data) {
         L.geoJson(data, {
             style: function (feature) {
-              var style = $.extend(true, {}, neighborhoodPolygonStyle)
-              return style;
+              return $.extend(true, {}, neighborhoodPolygonStyle);
             },
             onEachFeature: onEachNeighborhoodFeature
           })
           .addTo(map);
-
-
     });
 
     // Catch click even in popups
@@ -196,13 +194,49 @@ function initializeSubmittedLabels(map) {
         // Render audited street segments
         L.geoJson(data, {
           pointToLayer: function (feature, latlng) {
-            var style = $.extend(true, {}, geojsonMarkerOptions),
-                rgba = colorMapping[feature.properties.label_type].fillStyle;
-            style.fillColor = rgba;
+            var style = $.extend(true, {}, geojsonMarkerOptions);
+            style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
             return L.circleMarker(latlng, style);
           },
             onEachFeature: onEachLabelFeature
         })
         .addTo(map);
+    });
+}
+
+function initializeAuditCountChart (c3) {
+    $.getJSON("/contribution/auditCounts", function (data) {
+        console.log(data);
+        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
+            counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
+        var chart = c3.generate({
+            bindto: "#audit-count-chart",
+            data: {
+                x: 'Date',
+                columns: [
+                    dates,
+                    counts
+                ],
+                types: {
+                    data1: 'line'
+                }
+            },
+            axis: {
+                x: {
+                    type: 'timeseries',
+                    tick: {
+                        format: '%Y-%m-%d'
+                    }
+                },
+                y: {
+                    label: "Street Audit Count",
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
     });
 }

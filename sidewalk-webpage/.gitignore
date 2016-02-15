@@ -60,11 +60,11 @@ target/
 lib_managed/
 src_managed/
 project/boot/
+project/sbt-ui.sbt
 project/plugins/project/
 project/.sbtserver
-project/sbt-ui.sbt
 project/.sbtserver.lock
-
+*\activator*
 
 # Scala-IDE specific
 .scala_dependencies

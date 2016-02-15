@@ -111,11 +111,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    */
   def getAuditTaskInteractions = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => {
+      case Some(user) =>
         AuditTaskTable.lastAuditTask(user.userId) match {
           case Some(auditTask) =>
             val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.auditInteractionsWithLabels(auditTask.auditTaskId)
-            val features: List[JsObject] = interactionsWithLabels.filter(_.lat != None).sortBy(_.timestamp.getTime).map { interaction =>
+            val features: List[JsObject] = interactionsWithLabels.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
               val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
               val properties = if (interaction.labelType.isEmpty) {
                 Json.obj(
@@ -143,7 +143,25 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
             "message" -> "There are no existing audit records."
           )))
         }
-      }
+      case None => Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "We could not find your username."
+      )))
+    }
+  }
+
+  /**
+    *
+    * @return
+    */
+  def getAuditCounts = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val auditCounts = AuditTaskTable.auditCounts(user.userId)
+        val json = Json.arr(auditCounts.map(x => Json.obj(
+          "date" -> x.date, "count" -> x.count
+        )))
+        Future.successful(Ok(json))
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "We could not find your username."
