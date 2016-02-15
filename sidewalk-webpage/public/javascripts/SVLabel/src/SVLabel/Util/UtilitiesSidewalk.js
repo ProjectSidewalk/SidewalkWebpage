@@ -2,11 +2,12 @@
 var svl = svl || {};
 svl.misc = {};
 
+
 /**
  *
  * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
 
- * Note: I realized I wrote a function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
+ * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
  * @param ix
  * @param iy
  * @param pov
@@ -130,10 +131,8 @@ function getLabelIconImagePath(labelType) {
 svl.misc.getIconImagePaths = getLabelIconImagePath;
 
 
-//
 // This function is used in OverlayMessageBox.js.
-//
-function getLabelInstructions () {
+svl.misc.getLabelInstructions = function () {
     return {
         'Walk' : {
             'id' : 'Walk',
@@ -211,10 +210,9 @@ function getLabelInstructions () {
             'textColor' : 'rgba(255,255,255,1)'
         }
     }
-}
-svl.misc.getLabelInstructions = getLabelInstructions;
+};
 
-function getRibbonConnectionPositions () {
+svl.misc.getRibbonConnectionPositions = function  () {
     return {
         'Walk' : {
             'id' : 'Walk',
@@ -287,8 +285,7 @@ function getRibbonConnectionPositions () {
     }
 }
 
-// Todo. Get rid of this global function.
-function getLabelDescriptions () {
+svl.misc.getLabelDescriptions = function () {
     return {
         'Walk' : {
             'id' : 'Walk',
@@ -303,16 +300,16 @@ function getLabelDescriptions () {
             text: 'Missing Curb Ramp'
         },
         Obstacle: {
-          id: 'Obstacle',
-          text: 'Obstacle in a Path'
+            id: 'Obstacle',
+            text: 'Obstacle in a Path'
         },
         Other: {
             id: 'Other',
             text: 'Other'
         },
         SurfaceProblem: {
-          id: 'SurfaceProblem',
-          text: 'Surface Problem'
+            id: 'SurfaceProblem',
+            text: 'Surface Problem'
         },
         Void: {
             id: 'Void',
@@ -363,145 +360,157 @@ function getLabelDescriptions () {
             'text' : 'Traffic Sign / Pole'
         }
     }
-}
-svl.misc.getLabelDescriptions = getLabelDescriptions;
+};
 
-// Todo. Get rid of this global function.
-function getLabelColors () {
-    return SidewalkColorScheme2();
-}
-svl.misc.getLabelColors = getLabelColors;
-
-
-function SidewalkColorScheme () {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            fillStyle: 'rgba(0, 244, 38, 0.9)'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            fillStyle: 'rgba(255, 39, 113, 0.9)'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          fillStyle: 'rgba(0, 161, 203, 0.9)'
-        },
-        Other: {
-            id: 'Other',
-            fillStyle: 'rgba(204, 204, 204, 0.9)'
-        },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          fillStyle: 'rgba(215, 0, 96, 0.9)'
-        },
-        Void: {
-            id: 'Void',
-            fillStyle: 'rgba(255, 255, 255, 0)'
-        },
-        Unclear: {
-            id: 'Unclear',
-            fillStyle: 'rgba(128, 128, 128, 0.5)'
+var ColorScheme = (function () {
+    function SidewalkColorScheme () {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'fillStyle' : 'rgba(0, 0, 0, 0.9)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                fillStyle: 'rgba(0, 244, 38, 0.9)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                fillStyle: 'rgba(255, 39, 113, 0.9)'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                fillStyle: 'rgba(0, 161, 203, 0.9)'
+            },
+            Other: {
+                id: 'Other',
+                fillStyle: 'rgba(204, 204, 204, 0.9)'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                fillStyle: 'rgba(215, 0, 96, 0.9)'
+            },
+            Void: {
+                id: 'Void',
+                fillStyle: 'rgba(255, 255, 255, 0)'
+            },
+            Unclear: {
+                id: 'Unclear',
+                fillStyle: 'rgba(128, 128, 128, 0.5)'
+            }
         }
     }
-}
 
-function SidewalkColorScheme2 () {
-    return {
-        Walk : {
-            id : 'Walk',
-            fillStyle : 'rgba(0, 0, 0, 1)'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            fillStyle: 'rgba(0, 244, 38, 1)'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            fillStyle: 'rgba(255, 39, 113, 1)'
-        },
-        Obstacle: {
-            id: 'Obstacle',
-            fillStyle: 'rgba(0, 161, 203, 1)'
-        },
-        Other: {
-            id: 'Other',
-            fillStyle: 'rgba(204, 204, 204, 1)'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            fillStyle: 'rgba(241, 141, 5, 1)'
-        },
-        Void: {
-            id: 'Void',
-            fillStyle: 'rgba(255, 255, 255, 1)'
-        },
-        Unclear: {
-            id: 'Unclear',
-            fillStyle: 'rgba(128, 128, 128, 0.5)'
+    function SidewalkColorScheme2 () {
+        return {
+            Walk : {
+                id : 'Walk',
+                fillStyle : 'rgba(0, 0, 0, 1)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                fillStyle: 'rgba(0, 222, 38, 1)'  // 'rgba(0, 244, 38, 1)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                fillStyle: 'rgba(233, 39, 113, 1)'  // 'rgba(255, 39, 113, 1)'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                fillStyle: 'rgba(0, 161, 203, 1)'
+            },
+            Other: {
+                id: 'Other',
+                fillStyle: 'rgba(204, 204, 204, 1)'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                fillStyle: 'rgba(241, 141, 5, 1)'
+            },
+            Void: {
+                id: 'Void',
+                fillStyle: 'rgba(255, 255, 255, 1)'
+            },
+            Unclear: {
+                id: 'Unclear',
+                fillStyle: 'rgba(128, 128, 128, 0.5)'
+            }
         }
     }
-}
 
-/**
- * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
- * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}
- */
-function colorScheme2 () {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            fillStyle: 'rgba(106, 230, 36, 0.9)'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            fillStyle: 'rgba(215, 0, 96, 0.9)'
-        },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'fillStyle' : 'rgba(215, 0, 96, 0.9)'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            // 'fillStyle' : 'rgba(229, 64, 40, 0.9)' // Kind of hard to distinguish from pink
-            // 'fillStyle' : 'rgba(209, 209, 2, 0.9)' // Puke-y
-            'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'fillStyle' : 'rgba(97, 174, 36, 0.9)'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'fillStyle' : 'rgba(67, 113, 190, 0.9)'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'fillStyle' : 'rgba(249, 79, 101, 0.9)'
+    /**
+     * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
+     * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}
+     */
+    function colorScheme2 () {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'fillStyle' : 'rgba(0, 0, 0, 0.9)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                fillStyle: 'rgba(106, 230, 36, 0.9)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                fillStyle: 'rgba(215, 0, 96, 0.9)'
+            },
+            'StopSign' : {
+                'id' : 'StopSign',
+                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
+            },
+            'StopSign_OneLeg' : {
+                'id' : 'StopSign_OneLeg',
+                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
+            },
+            'StopSign_TwoLegs' : {
+                'id' : 'StopSign_TwoLegs',
+                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
+            },
+            'StopSign_Column' : {
+                'id' : 'StopSign_Column',
+                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
+            },
+            'Landmark_Shelter' : {
+                'id' : 'Landmark_Shelter',
+                'fillStyle' : 'rgba(215, 0, 96, 0.9)'
+            },
+            'Landmark_Bench' : {
+                'id' : 'Landmark_Bench',
+                // 'fillStyle' : 'rgba(229, 64, 40, 0.9)' // Kind of hard to distinguish from pink
+                // 'fillStyle' : 'rgba(209, 209, 2, 0.9)' // Puke-y
+                'fillStyle' : 'rgba(252, 217, 32, 0.9)'
+            },
+            'Landmark_TrashCan' : {
+                'id' : 'Landmark_TrashCan',
+                'fillStyle' : 'rgba(97, 174, 36, 0.9)'
+            },
+            'Landmark_MailboxAndNewsPaperBox' : {
+                'id' : 'Landmark_MailboxAndNewsPaperBox',
+                'fillStyle' : 'rgba(67, 113, 190, 0.9)'
+            },
+            'Landmark_OtherPole' : {
+                'id' : 'Landmark_OtherPole',
+                'fillStyle' : 'rgba(249, 79, 101, 0.9)'
+            }
         }
     }
-}
+
+    return {
+        className: 'ColorScheme',
+        SidewalkColorScheme: SidewalkColorScheme,
+        SidewalkColorScheme2: SidewalkColorScheme2
+    };
+}());
+
+svl.misc.getLabelColors = ColorScheme.SidewalkColorScheme2;
+
+// Ajax without jQuery.
+// http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
+// http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
+svl.misc.reportNoStreetView = function (streetEdgeId) {
+    var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
+    x.open('POST', url, async);
+    x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
+};

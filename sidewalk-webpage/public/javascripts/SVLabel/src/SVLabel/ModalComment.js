@@ -8,10 +8,16 @@ function ModalComment ($) {
         disableClickOK();
         svl.ui.modalComment.ok.on("click", handleClickOK);
         svl.ui.modalComment.cancel.on("click", handleClickCancel);
-        svl.ui.leftColumn.feedback.on("click", showCommentMenu);
+        //svl.ui.leftColumn.feedback.on("click", showCommentMenu);
+        svl.ui.leftColumn.feedback.on("click", handleClickFeedback);
         svl.ui.modalComment.textarea.on("focus", handleTextareaFocus);
         svl.ui.modalComment.textarea.on("blur", handleTextareaBlur);
         svl.ui.modalComment.textarea.on("input", handleTextareaChange);
+    }
+
+    function handleClickFeedback (e) {
+        svl.tracker.push("ModalComment_ClickFeedback");
+        showCommentMenu();
     }
 
     function handleClickOK (e) {

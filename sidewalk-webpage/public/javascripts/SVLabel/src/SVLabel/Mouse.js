@@ -25,10 +25,6 @@ function Mouse ($) {
             isRightMB = e.which == 3;
         else if ("button" in e)  // IE, Opera
             isRightMB = e.button == 2;
-
-        if (isRightMB) {
-
-        }
     }
 
 

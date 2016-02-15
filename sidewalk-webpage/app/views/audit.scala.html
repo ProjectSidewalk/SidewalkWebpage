@@ -312,7 +312,27 @@
 
         @if(task) {
             svl.task = new Task($, L, turf);
-            svl.task.set(@Html(task.get.toJSON.toString));
+            var task = @Html(task.get.toJSON.toString);
+            var lat1 = task.features[0].geometry.coordinates[0][1],
+                lng1 = task.features[0].geometry.coordinates[0][0];
+
+            var streetViewService = new google.maps.StreetViewService();
+            var STREETVIEW_MAX_DISTANCE = 50;
+            var latLng = new google.maps.LatLng(lat1, lng1);
+            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    // Ok
+                    svl.task.set(task);
+                    console.debug(task);
+                    init();
+                } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    // no street view available in this range.
+                    location.reload();  // Todo. I need a better solution than this one.
+                } else {
+                    throw "Error loading Street View imagey.";
+                }
+
+            });
         }
 
         $(document).ready(function () {
@@ -324,12 +344,9 @@
         });
 
         $(document).ready(function(){
-            //
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
-
-            init()
         });
 
         function init() {

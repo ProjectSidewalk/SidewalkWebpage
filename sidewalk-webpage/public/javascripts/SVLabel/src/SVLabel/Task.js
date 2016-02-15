@@ -83,47 +83,54 @@ function Task ($, L, turf) {
                 lngEnd = taskSetting.features[0].geometry.coordinates[len][0];
 
             $.ajax({
-                // async: false,
-                // contentType: 'application/json; charset=utf-8',
                 url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
                 type: 'get',
                 success: function (task) {
-                    var len = task.features[0].geometry.coordinates.length - 1,
-                        lat1 = task.features[0].geometry.coordinates[0][1],
-                        lng1 = task.features[0].geometry.coordinates[0][0],
-                        lat2 = task.features[0].geometry.coordinates[len][1],
-                        lng2 = task.features[0].geometry.coordinates[len][0],
-                        d1 = svl.util.math.haversine(lat1, lng1, latEnd, lngEnd),
-                        d2 = svl.util.math.haversine(lat2, lng2, latEnd, lngEnd);
-
-                    if (d1 > 10 && d2 > 10) {
-                        // If the starting point of the task is far away, jump there.
-                        svl.setPosition(lat1, lng1);
-                    } else if (d2 < d1) {
-                        // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
-                        task.features[0].geometry.coordinates.reverse();
-                    }
-                    set(task);
-                    renderTaskPath();
+                    set(task, latEnd, lngEnd);
                 },
                 error: function (result) {
                     throw result;
                 }
             });
         } else {
-            // No street edge id is provided (i.e., you skip a task or for some other reason get another task.
+            // No street edge id is provided (i.e., the user skipped the task to explore another location.)
             $.ajax({
-                // async: false,
-                // contentType: 'application/json; charset=utf-8',
                 url: "/audit/task",
                 type: 'get',
                 success: function (task) {
-                    var lat1 = task.features[0].geometry.coordinates[0][1],
-                        lng1 = task.features[0].geometry.coordinates[0][0];
-
-                    svl.setPosition(lat1, lng1);
-                    set(task);
-                    renderTaskPath();
+                    // Check if Street View is available at the location. If it's not available, report it to the
+                    // server and go to the next task.
+                    // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
+                    // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
+                    var len = task.features[0].geometry.coordinates.length - 1,
+                        lat1 = task.features[0].geometry.coordinates[0][1],
+                        lng1 = task.features[0].geometry.coordinates[0][0],
+                        lat2 = task.features[0].geometry.coordinates[len][1],
+                        lng2 = task.features[0].geometry.coordinates[len][0];
+                    var streetViewService = new google.maps.StreetViewService();
+                    var STREETVIEW_MAX_DISTANCE = 50;
+                    var latLng = new google.maps.LatLng(lat1, lng1);
+                    streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                        if (status === google.maps.StreetViewStatus.OK) {
+                            set(task);
+                        } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                            // no street view available in this range.
+                            var latLng = new google.maps.LatLng(lat2, lng2);
+                            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                if (status === google.maps.StreetViewStatus.OK) {
+                                    task.features[0].geometry.coordinates.reverse();
+                                    set(task);
+                                } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                                    // Todo. Report lack of street view.
+                                    nextTask();
+                                } else {
+                                    throw "Error loading Street View imagey.";
+                                }
+                            });
+                        } else {
+                            throw "Error loading Street View imagey.";
+                        }
+                    });
                 },
                 error: function (result) {
                     throw result;
@@ -135,7 +142,7 @@ function Task ($, L, turf) {
     function animateTaskCompletionMessage() {
         svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
         svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
-        setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000)
+        setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
 
         if ('audioEffect' in svl && !getStatus('noAudio')) {
             svl.audioEffect.play('yay');
@@ -440,18 +447,50 @@ function Task ($, L, turf) {
         }
     }
 
-    /** This method takes a task parameters in geojson format. */
-    function set(json) {
-        paths = null;
-        taskSetting = json;
-        lat = taskSetting.features[0].geometry.coordinates[0][1];
-        lng = taskSetting.features[0].geometry.coordinates[0][0];
+    /**
+     * This method takes a task parameters and set up the current task.
+     * @param task Description of the next task in json format.
+     * @param currentLat Current latitude
+     * @param currentLng Current longitude
+     */
+    function set(task, currentLat, currentLng) {
+        var len = task.features[0].geometry.coordinates.length - 1,
+            lat1 = task.features[0].geometry.coordinates[0][1],
+            lng1 = task.features[0].geometry.coordinates[0][0],
+            lat2 = task.features[0].geometry.coordinates[len][1],
+            lng2 = task.features[0].geometry.coordinates[len][0];
+
+        if (currentLat && currentLng) {
+            // Continuing from the previous task (i.e., currentLat and currentLng exist).
+            var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
+                d2 = svl.util.math.haversine(lat2, lng2, currentLat, currentLng);
+
+            if (d1 > 10 && d2 > 10) {
+                // If the starting point of the task is far away, jump there.
+                svl.setPosition(lat1, lng1);
+            } else if (d2 < d1) {
+                // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+                task.features[0].geometry.coordinates.reverse();
+            }
+            svl.setPosition(lat1, lng1);
+            paths = null;
+            taskSetting = task;
+            lat = taskSetting.features[0].geometry.coordinates[0][1];
+            lng = taskSetting.features[0].geometry.coordinates[0][0];
+            renderTaskPath();
+        } else {
+            // Starting a new task.
+            svl.setPosition(lat1, lng1);
+            paths = null;
+            taskSetting = task;
+            lat = taskSetting.features[0].geometry.coordinates[0][1];
+            lng = taskSetting.features[0].geometry.coordinates[0][0];
+            renderTaskPath();
+        }
     }
 
     /** Set status */
     function setStatus(key, value) { status[key] = value; return this; }
-
-
 
     self.endTask = endTask;
     self.getGeometry = getGeometry;
@@ -466,7 +505,6 @@ function Task ($, L, turf) {
     self.save = save;
     self.set = set;
     self.setStatus = setStatus;
-    //self.updateTaskCompletionRate = updateTaskCompletionRate;
 
     return self;
 }

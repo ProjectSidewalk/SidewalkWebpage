@@ -51,7 +51,7 @@ function LabelCounter ($, d3) {
       },
       "SurfaceProblem": {
         id: "SurfaceProblem",
-        description: "Surface Problem",
+        description: "surface problem",
         left: margin.left + width / 2,
         //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
           top: 2 * margin.top + margin.bottom + height,

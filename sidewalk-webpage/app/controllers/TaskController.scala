@@ -270,4 +270,32 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
     )
   }
+
+  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[CommentSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+
+        val userId: String = request.identity match {
+          case Some(user) => user.userId.toString
+          case None =>
+            val user: Option[DBUser] = UserTable.find("anonymous")
+            user.get.userId.toString
+        }
+        val ipAddress: String = request.remoteAddress
+
+        val calendar: Calendar = Calendar.getInstance
+        val now: Date = calendar.getTime
+        val timestamp: Timestamp = new Timestamp(now.getTime)
+        val comment = AuditTaskComment(0, submission.streetEdgeId, userId, ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch, submission.zoom, timestamp, submission.comment)
+        val commentId: Int = AuditTaskCommentTable.save(comment)
+
+        Future.successful(Ok(Json.obj("comment_id" -> commentId)))
+      }
+    )
+  }
 }

@@ -493,7 +493,7 @@ function Onboarding_Walking (params) {
         myTracker.push('OnboardingWalking_MenuSelectBusStopTypeDoneBranch_BackToLabelType');
         // Ask a user to go back to label type selection.
         var MenuSelectBusStopTypeDoneBranch_BackToLabelTypeDone = false;
-        var subLabelType = getLabelDescriptions()[busStopTypeId].text;
+        var subLabelType = svl.misc.getLabelDescriptions()[busStopTypeId].text;
         var prop;
         var message;
 

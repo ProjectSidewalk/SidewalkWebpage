@@ -191,7 +191,7 @@ function RightClickMenu (params) {
         if (!status.disableMenuSelect) {
             // This function is invoked when a user click on a bus stop label menu
             var color, iconImagePath, subLabelType, $menuItem;
-            color = getLabelColors()['StopSign'].fillStyle;
+            color = svl.misc.getLabelColors()['StopSign'].fillStyle;
             // currentLabel.setStatus('visibilityTag', 'visible');
 
 
@@ -228,7 +228,7 @@ function RightClickMenu (params) {
 
     function divBusStopLabelMenuItemsMouseEnter () {
         if (!status.disableMenuSelect) {
-            var color = getLabelColors()['StopSign'].fillStyle;
+            var color = svl.misc.getLabelColors()['StopSign'].fillStyle;
             $(this).css({
                 'background': color,
                 'cursor' : 'pointer'
@@ -328,14 +328,11 @@ function RightClickMenu (params) {
     }
 
 
-    ////////////////////////////////////////
-    // Private Functions (Bus stop position menu)
-    ////////////////////////////////////////
     function divBusStopPositionMenuItemsMouseUp () {
         if (!status.disableMenuSelect) {
             // Set label values
             var busStopPosition, color, currentLabel, $menuItem;
-            color = getLabelColors()['StopSign'].fillStyle;
+            color = svl.misc.getLabelColors()['StopSign'].fillStyle;
 
             status.currentLabel.setStatus('visibilityTag', 'visible');
 
@@ -365,7 +362,7 @@ function RightClickMenu (params) {
 
     function divBusStopPositionMenuItemsMouseEnter () {
         if (!status.disableMenuSelect) {
-            var color = getLabelColors()['StopSign'].fillStyle;
+            var color = svl.misc.getLabelColors()['StopSign'].fillStyle;
             $(this).css({
                 'background': color,
                 'cursor' : 'pointer'
@@ -500,7 +497,7 @@ function RightClickMenu (params) {
 
         // Set the menu bar color
         $divBusStopPositionMenuBar.css({
-            'background' : getLabelColors()['StopSign'].fillStyle
+            'background' : svl.misc.getLabelColors()['StopSign'].fillStyle
         });
 
 
@@ -704,7 +701,7 @@ function RightClickMenu (params) {
 
             // Set the menu bar color
             $divLabelMenuBar.css({
-                'background' : getLabelColors()['StopSign'].fillStyle
+                'background' : svl.misc.getLabelColors()['StopSign'].fillStyle
             });
 
 

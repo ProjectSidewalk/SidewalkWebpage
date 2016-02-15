@@ -147,8 +147,8 @@ function Canvas ($, param) {
     function closeLabelPath() {
 
         var labelType = svl.ribbon.getStatus('selectedLabelType'),
-            labelColor = getLabelColors()[labelType],
-            labelDescription = getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
+            labelColor = svl.misc.getLabelColors()[labelType],
+            labelDescription = svl.misc.getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
             iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
@@ -430,7 +430,7 @@ function Canvas ($, param) {
         }
 
         var pathLen = tempPath.length,
-            labelColor = getLabelColors()[svl.ribbon.getStatus('selectedLabelType')],
+            labelColor = svl.misc.getLabelColors()[svl.ribbon.getStatus('selectedLabelType')],
             pointFill = labelColor.fillStyle,
             curr, prev, r;
         pointFill = svl.util.color.changeAlphaRGBA(pointFill, 0.5);

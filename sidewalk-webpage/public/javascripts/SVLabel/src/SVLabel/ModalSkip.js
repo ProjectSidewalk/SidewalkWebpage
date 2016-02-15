@@ -24,7 +24,7 @@ function ModalSkip ($) {
 
     function handleClickJump (e) {
         e.preventDefault();
-        svl.tracker.push('Click_OpenSkipWindow');
+        svl.tracker.push('ModalSkip_ClickJump');
         svl.modalSkip.showSkipMenu();
     }
 

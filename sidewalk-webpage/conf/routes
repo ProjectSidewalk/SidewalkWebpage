@@ -22,6 +22,7 @@ GET     /audit/task/region/:id      @controllers.TaskController.auditRegion(id: 
 GET     /audit/task/street/:id      @controllers.TaskController.auditStreet(id: Int)
 POST    /audit/task                 @controllers.TaskController.post
 POST    /audit/comment              @controllers.TaskController.postComment
+POST    /audit/nostreetview         @controllers.TaskController.postNoStreetView
 
 # Map Edit
 GET     /map/edit                   @controllers.MapController.edit

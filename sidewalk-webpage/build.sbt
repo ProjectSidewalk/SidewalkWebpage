@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "0.1"
+version := "0.3-2016xxxx"
 
 scalaVersion := "2.10.4"
 
@@ -59,3 +59,5 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(FormatXml, false)
   .setPreference(DoubleIndentClassDeclaration, false)
   .setPreference(PreserveDanglingCloseParenthesis, true)
+
+fork in run := true

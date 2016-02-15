@@ -755,7 +755,7 @@ function Label (pathIn, params) {
      * @returns {setSubLabelDescription}
      */
     function setSubLabelDescription (labelType) {
-        var labelDescriptions = getLabelDescriptions(),
+        var labelDescriptions = svl.misc.getLabelDescriptions(),
             labelDescription = labelDescriptions[labelType].text;
         properties.labelProperties.subLabelDescription = labelDescription;
         return this;

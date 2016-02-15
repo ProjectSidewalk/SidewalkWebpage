@@ -102,8 +102,8 @@ function RibbonMenu ($, params) {
                 svl.canvas.cancelDrawing();
             }
 
-            labelColors = getLabelColors();
-            ribbonConnectorPositions = getRibbonConnectionPositions();
+            labelColors = svl.misc.getLabelColors();
+            ribbonConnectorPositions = svl.misc.getRibbonConnectionPositions();
             borderColor = labelColors[labelType].fillStyle;
 
             if ('map' in svl && svl.map) {
@@ -194,7 +194,7 @@ function RibbonMenu ($, params) {
           var browser;
           var backgroundColor;
 
-          labelColors = getLabelColors();
+          labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
@@ -226,7 +226,7 @@ function RibbonMenu ($, params) {
         // This method sets the border color of the ribbon menu buttons
         if (svl.ui && svl.ui.ribbonMenu) {
           var labelType, labelColors, borderColor;
-          labelColors = getLabelColors();
+          labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
