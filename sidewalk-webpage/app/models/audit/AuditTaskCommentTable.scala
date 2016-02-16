@@ -9,7 +9,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskComment(auditTaskCommentId: Int, edgeId: Int, userId: String, ipAddress: String,
                             gsvPanoramaId: Option[String], heading: Option[Double], pitch: Option[Double],
-                            zoom: Option[Int], timestamp: Timestamp, comment: String)
+                            zoom: Option[Int], lat: Option[Double], lng: Option[Double], timestamp: Timestamp, comment: String)
 
 class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some("sidewalk"), "audit_task_comment") {
   def auditTaskCommentId = column[Int]("audit_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -20,10 +20,12 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
   def heading = column[Option[Double]]("heading", O.Nullable)
   def pitch = column[Option[Double]]("pitch", O.Nullable)
   def zoom = column[Option[Int]]("zoom", O.Nullable)
+  def lat = column[Option[Double]]("lat", O.Nullable)
+  def lng = column[Option[Double]]("lng", O.Nullable)
   def timestamp = column[Timestamp]("timestamp", O.NotNull)
   def comment = column[String]("comment", O.NotNull)
 
-  def * = (auditTaskCommentId, edgeId, userId, ipAddress, gsvPanoramaId, heading, pitch, zoom, timestamp, comment) <>
+  def * = (auditTaskCommentId, edgeId, userId, ipAddress, gsvPanoramaId, heading, pitch, zoom, lat, lng, timestamp, comment) <>
     ((AuditTaskComment.apply _).tupled, AuditTaskComment.unapply)
 }
 

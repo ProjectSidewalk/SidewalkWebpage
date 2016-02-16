@@ -6775,14 +6775,17 @@ function ModalComment ($) {
                 pov = svl.getPOV(),
                 comment = svl.ui.modalComment.textarea.val();
 
-            var data = {
-                street_edge_id: streetEdgeId,
-                gsv_panorama_id: gsvPanoramaId,
-                heading: pov ? pov.heading : null,
-                pitch: pov ? pov.pitch : null,
-                zoom: pov ? pov.zoom : null,
-                comment: comment
-            };
+            var latlng = svl.getPosition(),
+                data = {
+                    street_edge_id: streetEdgeId,
+                    gsv_panorama_id: gsvPanoramaId,
+                    heading: pov ? pov.heading : null,
+                    pitch: pov ? pov.pitch : null,
+                    zoom: pov ? pov.zoom : null,
+                    comment: comment,
+                    lat: latlng ? latlng.lat : null,
+                    lng: latlng ? latlng.lng : null
+                };
 
             $.ajax({
                 // async: false,
