@@ -834,9 +834,8 @@ function Map ($, params) {
         $divViewControlLayer.css('z-index', '1');
         $divLabelDrawingLayer.css('z-index','0');
         if (!status.disableWalking) {
-            // Show the link arrows on top of the panorama
+            // Show the link arrows on top of the panorama and make links clickable
             showLinks();
-            // Make links clickable
             makeLinksClickable();
         }
     }
@@ -849,11 +848,7 @@ function Map ($, params) {
         $divViewControlLayer.css('z-index', '0');
         // $divStreetViewHolder.append($divLabelDrawingLayer);
 
-        if (properties.browser === 'mozilla') {
-            // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divLabelDrawingLayer.append($canvas);
-        }
-
+        if (properties.browser === 'mozilla') { $divLabelDrawingLayer.append($canvas); }
         hideLinks();
     }
 
@@ -865,9 +860,7 @@ function Map ($, params) {
      */
     function plotMarkers () {
         if (canvas) {
-            var prop, labelType, latlng,
-                labels = canvas.getLabels(),
-                labelsLen = labels.length;
+            var prop, labelType, latlng, labels = canvas.getLabels(), labelsLen = labels.length;
 
             // Clear the map first, then plot markers
             for (var i = 0; i < markers.length; i++) { markers[i].setMap(null); }

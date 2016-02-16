@@ -81,17 +81,12 @@ function UI ($, params) {
         self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
-        var $divStreetViewHolder = $("#street-view-holder");
-        var $ribbonButtonBottomLines = $(".ribbon-menu-mode-switch-horizontal-line");
-        //var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
-        var $ribbonConnector = $("#ribbon-street-view-connector");
-        var $spansModeSwitches = $('span.modeSwitch');
-
         self.ribbonMenu = {};
-        self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
-        self.ribbonMenu.buttons = $spansModeSwitches;
-        self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
-        self.ribbonMenu.connector = $ribbonConnector;
+        self.ribbonMenu.streetViewHolder = $("#street-view-holder");
+        self.ribbonMenu.buttons = $('span.modeSwitch');
+        self.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
+        self.ribbonMenu.connector = $("#ribbon-street-view-connector");
+        self.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         self.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
 
         // Context menu

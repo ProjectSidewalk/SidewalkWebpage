@@ -138,8 +138,9 @@ function ContextMenu ($) {
         $temporaryProblemCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
-            var labelType = param.targetLabel.getLabelType();
-            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle' || labelType == 'NoCurbRamp' || labelType == 'CurbRamp') {
+            var labelType = param.targetLabel.getLabelType(),
+                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'NoSidewalk', 'Occlusion'];
+            if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
                 $menuWindow.css({
                     visibility: 'visible',

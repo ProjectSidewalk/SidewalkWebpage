@@ -23,7 +23,7 @@ function RibbonMenu ($, params) {
         };
 
     // jQuery DOM elements
-    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches;
+    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches, $subcategories, $subcategoryHolder;
 
     function _init () {
         var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
@@ -38,31 +38,33 @@ function RibbonMenu ($, params) {
         // Initialize the jQuery DOM elements
         if (svl.ui && svl.ui.ribbonMenu) {
 
-          $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
-          $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
-          $ribbonConnector = svl.ui.ribbonMenu.connector;
-          $spansModeSwitches = svl.ui.ribbonMenu.buttons;
+            $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
+            $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
+            $ribbonConnector = svl.ui.ribbonMenu.connector;
+            $spansModeSwitches = svl.ui.ribbonMenu.buttons;
+            $subcategories = svl.ui.ribbonMenu.subcategories;
+            $subcategoryHolder = svl.ui.ribbonMenu.subcategoryHolder;
 
-          // Initialize the color of the lines at the bottom of ribbon menu icons
-          $.each($ribbonButtonBottomLines, function (i, v) {
-              var labelType = $(v).attr("value");
-              var color = labelColors[labelType].fillStyle;
-              if (labelType === 'Walk') {
-                  $(v).css('width', '56px');
-              }
+            // Initialize the color of the lines at the bottom of ribbon menu icons
+            $.each($ribbonButtonBottomLines, function (i, v) {
+                var labelType = $(v).attr("value"), color = labelColors[labelType].fillStyle;
+                if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
-              $(v).css('border-top-color', color);
-              $(v).css('background', color);
-          });
+                $(v).css('border-top-color', color);
+                $(v).css('background', color);
+            });
 
-          setModeSwitchBorderColors(status.mode);
-          setModeSwitchBackgroundColors(status.mode);
+            setModeSwitchBorderColors(status.mode);
+            setModeSwitchBackgroundColors(status.mode);
 
-          $spansModeSwitches.bind('click', handleModeSwitchClickCallback);
-          $spansModeSwitches.bind({
-              'mouseenter': handleModeSwitchMouseEnter,
-              'mouseleave': handleModeSwitchMouseLeave
-          });
+            $spansModeSwitches.bind({
+                click: handleModeSwitchClickCallback,
+                mouseenter: handleModeSwitchMouseEnter,
+                mouseleave: handleModeSwitchMouseLeave
+            });
+            $subcategories.on({
+               click: handleSubcategoryClick
+            });
         }
 
         // Disable mode switch when sign in modal is open
@@ -81,18 +83,13 @@ function RibbonMenu ($, params) {
      * @param mode
      */
     function modeSwitch (mode) {
-        var labelType = (typeof mode === 'string') ? mode : $(this).attr('val'); // Do I need this???
+        var labelType = (typeof mode === 'string') ? mode : $(this).attr('value'); // Do I need this???
 
         if (status.disableModeSwitch === false) {
-            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other than Walk and StopSign.
-            var labelColors;
-            var ribbonConnectorPositions;
-            var borderColor;
+            var labelColors, ribbonConnectorPositions, borderColor;
 
             // Whenever the ribbon menu is clicked, cancel drawing.
-            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
-                svl.canvas.cancelDrawing();
-            }
+            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) { svl.canvas.cancelDrawing(); }
 
             labelColors = svl.misc.getLabelColors();
             ribbonConnectorPositions = svl.misc.getRibbonConnectionPositions();
@@ -103,25 +100,23 @@ function RibbonMenu ($, params) {
                     // Switch to walking mode.
                     setStatus('mode', 'Walk');
                     setStatus('selectedLabelType', undefined);
-                    if (svl.map) {
-                      svl.map.modeSwitchWalkClick();
-                    }
+                    if (svl.map) { svl.map.modeSwitchWalkClick(); }
                 } else {
                     // Switch to labeling mode.
                     setStatus('mode', labelType);
                     setStatus('selectedLabelType', labelType);
-                    if (svl.map) {
-                      svl.map.modeSwitchLabelClick();
-                    }
+                    if (svl.map) { svl.map.modeSwitchLabelClick(); }
                 }
             }
 
             if (svl.ui && svl.ui.ribbonMenu) {
-              setModeSwitchBorderColors(labelType);
-              setModeSwitchBackgroundColors(labelType);
-              $ribbonConnector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
-              $ribbonConnector.css("border-left-color", borderColor);
-              $divStreetViewHolder.css("border-color", borderColor);
+                setModeSwitchBorderColors(labelType);
+                setModeSwitchBackgroundColors(labelType);
+
+
+                $ribbonConnector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
+                $ribbonConnector.css("border-left-color", borderColor);
+                $divStreetViewHolder.css("border-color", borderColor);
             }
 
             // Set the instructional message
@@ -132,13 +127,22 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function handleSubcategoryClick (e) {
+        e.stopPropagation();
+        var subcategory = $(this).attr('value');
+        svl.tracker.push('Click_Subcategory_' + subcategory);
+        console.log("Subcategory", subcategory);
+        modeSwitch(subcategory);
+    }
+
     function handleModeSwitchClickCallback () {
         if (status.disableModeSwitch === false) {
-            var labelType = $(this).attr('val');
-            console.log(labelType);
+            var labelType = $(this).attr('value');
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) { return false; }
+
+            if (labelType === "Other") { return false; }  // Disable clicking "Other"
 
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
@@ -150,14 +154,14 @@ function RibbonMenu ($, params) {
         if (status.disableModeSwitch === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
-            var labelType = $(this).attr("val");
+            var labelType = $(this).attr("value");
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
+            if (status.allowedMode && status.allowedMode !== labelType) { return false; }
             setModeSwitchBackgroundColors(labelType);
             setModeSwitchBorderColors(labelType);
+
+            if (labelType === "Other") { showSubcategories(); }
         }
     }
 
@@ -165,7 +169,15 @@ function RibbonMenu ($, params) {
         if (status.disableModeSwitch === false) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
+            hideSubcategories();
         }
+    }
+
+    function showSubcategories () {
+        $subcategoryHolder.css('visibility', 'visible');
+    }
+    function hideSubcategories () {
+        $subcategoryHolder.css('visibility', 'hidden');
     }
 
     function setModeSwitchBackgroundColors (mode) {
@@ -182,7 +194,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('val');
+              labelType = $(v).attr('value');
               if (labelType === mode) {
                   if (labelType === 'Walk') {
                       backgroundColor = "#ccc";
@@ -214,7 +226,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('val');
+              labelType = $(v).attr('value');
               if (labelType=== mode) {
                   $(this).css({
                       "border-color" : borderColor,
@@ -263,7 +275,7 @@ function RibbonMenu ($, params) {
     function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each($spansModeSwitches, function (i, v) {
-                var labelType = $(v).attr('val');
+                var labelType = $(v).attr('value');
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
                     labelType === 'Landmark_Shelter')
@@ -290,7 +302,6 @@ function RibbonMenu ($, params) {
     function enableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each($spansModeSwitches, function (i, v) {
-                var labelType = $(v).attr('val');
                 $(v).css('opacity', 1);
             });
         }

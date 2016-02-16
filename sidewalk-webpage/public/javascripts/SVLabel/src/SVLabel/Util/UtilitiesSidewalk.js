@@ -83,6 +83,14 @@ function getLabelCursorImagePath() {
         Other: {
             id: 'Other',
             cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+        },
+        Occlusion: {
+            id: 'Occlusion',
+            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
         }
     }
 }
@@ -90,7 +98,7 @@ svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 
 
 // Returns image paths corresponding to each label type.
-function getLabelIconImagePath(category) {
+function getIconImagePaths(category) {
     var imagePaths = {
         Walk : {
             id : 'Walk',
@@ -122,6 +130,16 @@ function getLabelIconImagePath(category) {
             iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
         },
+        Occlusion: {
+            id: 'Occlusion',
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+        },
         Void: {
             id: 'Void',
             iconImagePath : null
@@ -130,7 +148,7 @@ function getLabelIconImagePath(category) {
 
     return category ? imagePaths[category] : imagePaths;
 }
-svl.misc.getIconImagePaths = getLabelIconImagePath;
+svl.misc.getIconImagePaths = getIconImagePaths;
 
 
 // This function is used in OverlayMessageBox.js.
@@ -161,55 +179,15 @@ svl.misc.getLabelInstructions = function () {
             instructionalText: 'Label mode',
             textColor: 'rgba(255,255,255,1)'
         },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          instructionalText: 'Label mode: Locate and draw an outline around a <span class="underline">sidewalk surface problem</span>',
-          textColor: 'rgba(255,255,255,1)'
+        Occlusion: {
+            id: 'Occlusion',
+            instructionalText: "Label mode: Can't see the sidewalk",
+            textColor: 'rgba(255,255,255,1)'
         },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">stop sign</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'instructionalText' :'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-            'textColor' :'rgba(255,255,255,1)'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus shelter</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bench</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">trash can</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">mailbox or news paper box</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of poles such as <span class="underline bold">traffic sign, traffic light, and light pole</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            instructionalText: 'Label mode: No Sidewalk',
+            textColor: 'rgba(255,255,255,1)'
         }
     }
 };
@@ -241,54 +219,19 @@ svl.misc.getRibbonConnectionPositions = function  () {
             id: 'Other',
             labelRibbonConnection: '396px'
         },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'text' : 'Stop Sign',
-            'labelRibbonConnection' : '112px'
+        Occlusion: {
+            id: 'Occlusion',
+            labelRibbonConnection: '396px'
         },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'text' : 'One-leg Stop Sign',
-            'labelRibbonConnection' : '112px'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'text' : 'Two-leg Stop Sign',
-            'labelRibbonConnection' : '112px'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'text' : 'Column Stop Sign',
-            'labelRibbonConnection' : '112px'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'text' : 'Bus Shelter',
-            'labelRibbonConnection' : '188px'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'text' : 'Bench',
-            'labelRibbonConnection' : '265px'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'text' : 'Trash Can',
-            'labelRibbonConnection' : '338px'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'labelRibbonConnection' : '411px'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'labelRibbonConnection' : '484px'
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            labelRibbonConnection: '396px'
         }
     }
-}
+};
 
-svl.misc.getLabelDescriptions = function () {
-    return {
+svl.misc.getLabelDescriptions = function (category) {
+    var descriptions = {
         'Walk' : {
             'id' : 'Walk',
             'text' : 'Walk'
@@ -309,6 +252,14 @@ svl.misc.getLabelDescriptions = function () {
             id: 'Other',
             text: 'Other'
         },
+        Occlusion: {
+            id: 'Occlusion',
+            text: "Can't see the sidewalk"
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            text: 'No Sidewalk'
+        },
         SurfaceProblem: {
             id: 'SurfaceProblem',
             text: 'Surface Problem'
@@ -320,48 +271,9 @@ svl.misc.getLabelDescriptions = function () {
         Unclear: {
             id: 'Unclear',
             text: 'Unclear'
-        },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'text' : 'Bus Stop Sign'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'text' : 'One-leg Stop Sign'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'text' : 'Two-leg Stop Sign'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'text' : 'Column Stop Sign'
-        },
-        'StopSign_None' : {
-            'id' : 'StopSign_None',
-            'text' : 'Not provided'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'text' : 'Bus Stop Shelter'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'text' : 'Bench'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'text' : 'Trash Can / Recycle Can'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'text' : 'Mailbox / News Paper Box'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'text' : 'Traffic Sign / Pole'
         }
-    }
+    };
+    return category ? descriptions[category] : descriptions;
 };
 
 var ColorScheme = (function () {
@@ -423,6 +335,14 @@ var ColorScheme = (function () {
             Other: {
                 id: 'Other',
                 fillStyle: 'rgba(179, 179, 179, 1)' //'rgba(204, 204, 204, 1)'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                fillStyle: 'rgba(179, 179, 179, 1)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                fillStyle: 'rgba(179, 179, 179, 1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',

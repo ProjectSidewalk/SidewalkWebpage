@@ -148,8 +148,8 @@ function Canvas ($, param) {
 
         var labelType = svl.ribbon.getStatus('selectedLabelType'),
             labelColor = svl.misc.getLabelColors()[labelType],
-            labelDescription = svl.misc.getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
-            iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
+            labelDescription = svl.misc.getLabelDescriptions(svl.ribbon.getStatus('selectedLabelType')),
+            iconImagePath = svl.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
@@ -326,8 +326,8 @@ function Canvas ($, param) {
         // Change a cursor according to the label type.
         // $(this).css('cursor', )
         if ('ribbon' in svl) {
-            var cursorImagePaths = svl.misc.getLabelCursorImagePath();
-            var labelType = svl.ribbon.getStatus('mode');
+            var cursorImagePaths = svl.misc.getLabelCursorImagePath(),
+                labelType = svl.ribbon.getStatus('mode');
             if (labelType) {
                 var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
                 var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";

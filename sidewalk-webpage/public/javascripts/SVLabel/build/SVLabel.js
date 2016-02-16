@@ -1216,8 +1216,8 @@ function Canvas ($, param) {
 
         var labelType = svl.ribbon.getStatus('selectedLabelType'),
             labelColor = svl.misc.getLabelColors()[labelType],
-            labelDescription = svl.misc.getLabelDescriptions()[svl.ribbon.getStatus('selectedLabelType')],
-            iconImagePath = getLabelIconImagePath()[labelDescription.id].iconImagePath;
+            labelDescription = svl.misc.getLabelDescriptions(svl.ribbon.getStatus('selectedLabelType')),
+            iconImagePath = svl.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
@@ -1394,8 +1394,8 @@ function Canvas ($, param) {
         // Change a cursor according to the label type.
         // $(this).css('cursor', )
         if ('ribbon' in svl) {
-            var cursorImagePaths = svl.misc.getLabelCursorImagePath();
-            var labelType = svl.ribbon.getStatus('mode');
+            var cursorImagePaths = svl.misc.getLabelCursorImagePath(),
+                labelType = svl.ribbon.getStatus('mode');
             if (labelType) {
                 var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
                 var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
@@ -2584,8 +2584,9 @@ function ContextMenu ($) {
         $temporaryProblemCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
-            var labelType = param.targetLabel.getLabelType();
-            if (labelType == 'SurfaceProblem' || labelType == 'Obstacle' || labelType == 'NoCurbRamp' || labelType == 'CurbRamp') {
+            var labelType = param.targetLabel.getLabelType(),
+                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'NoSidewalk', 'Occlusion'];
+            if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
                 $menuWindow.css({
                     visibility: 'visible',
@@ -6309,9 +6310,8 @@ function Map ($, params) {
         $divViewControlLayer.css('z-index', '1');
         $divLabelDrawingLayer.css('z-index','0');
         if (!status.disableWalking) {
-            // Show the link arrows on top of the panorama
+            // Show the link arrows on top of the panorama and make links clickable
             showLinks();
-            // Make links clickable
             makeLinksClickable();
         }
     }
@@ -6324,11 +6324,7 @@ function Map ($, params) {
         $divViewControlLayer.css('z-index', '0');
         // $divStreetViewHolder.append($divLabelDrawingLayer);
 
-        if (properties.browser === 'mozilla') {
-            // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divLabelDrawingLayer.append($canvas);
-        }
-
+        if (properties.browser === 'mozilla') { $divLabelDrawingLayer.append($canvas); }
         hideLinks();
     }
 
@@ -6340,9 +6336,7 @@ function Map ($, params) {
      */
     function plotMarkers () {
         if (canvas) {
-            var prop, labelType, latlng,
-                labels = canvas.getLabels(),
-                labelsLen = labels.length;
+            var prop, labelType, latlng, labels = canvas.getLabels(), labelsLen = labels.length;
 
             // Clear the map first, then plot markers
             for (var i = 0; i < markers.length; i++) { markers[i].setMap(null); }
@@ -8701,7 +8695,7 @@ function RibbonMenu ($, params) {
         };
 
     // jQuery DOM elements
-    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches;
+    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches, $subcategories, $subcategoryHolder;
 
     function _init () {
         var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
@@ -8716,31 +8710,33 @@ function RibbonMenu ($, params) {
         // Initialize the jQuery DOM elements
         if (svl.ui && svl.ui.ribbonMenu) {
 
-          $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
-          $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
-          $ribbonConnector = svl.ui.ribbonMenu.connector;
-          $spansModeSwitches = svl.ui.ribbonMenu.buttons;
+            $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
+            $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
+            $ribbonConnector = svl.ui.ribbonMenu.connector;
+            $spansModeSwitches = svl.ui.ribbonMenu.buttons;
+            $subcategories = svl.ui.ribbonMenu.subcategories;
+            $subcategoryHolder = svl.ui.ribbonMenu.subcategoryHolder;
 
-          // Initialize the color of the lines at the bottom of ribbon menu icons
-          $.each($ribbonButtonBottomLines, function (i, v) {
-              var labelType = $(v).attr("value");
-              var color = labelColors[labelType].fillStyle;
-              if (labelType === 'Walk') {
-                  $(v).css('width', '56px');
-              }
+            // Initialize the color of the lines at the bottom of ribbon menu icons
+            $.each($ribbonButtonBottomLines, function (i, v) {
+                var labelType = $(v).attr("value"), color = labelColors[labelType].fillStyle;
+                if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
-              $(v).css('border-top-color', color);
-              $(v).css('background', color);
-          });
+                $(v).css('border-top-color', color);
+                $(v).css('background', color);
+            });
 
-          setModeSwitchBorderColors(status.mode);
-          setModeSwitchBackgroundColors(status.mode);
+            setModeSwitchBorderColors(status.mode);
+            setModeSwitchBackgroundColors(status.mode);
 
-          $spansModeSwitches.bind('click', handleModeSwitchClickCallback);
-          $spansModeSwitches.bind({
-              'mouseenter': handleModeSwitchMouseEnter,
-              'mouseleave': handleModeSwitchMouseLeave
-          });
+            $spansModeSwitches.bind({
+                click: handleModeSwitchClickCallback,
+                mouseenter: handleModeSwitchMouseEnter,
+                mouseleave: handleModeSwitchMouseLeave
+            });
+            $subcategories.on({
+               click: handleSubcategoryClick
+            });
         }
 
         // Disable mode switch when sign in modal is open
@@ -8759,18 +8755,13 @@ function RibbonMenu ($, params) {
      * @param mode
      */
     function modeSwitch (mode) {
-        var labelType = (typeof mode === 'string') ? mode : $(this).attr('val'); // Do I need this???
+        var labelType = (typeof mode === 'string') ? mode : $(this).attr('value'); // Do I need this???
 
         if (status.disableModeSwitch === false) {
-            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other than Walk and StopSign.
-            var labelColors;
-            var ribbonConnectorPositions;
-            var borderColor;
+            var labelColors, ribbonConnectorPositions, borderColor;
 
             // Whenever the ribbon menu is clicked, cancel drawing.
-            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
-                svl.canvas.cancelDrawing();
-            }
+            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) { svl.canvas.cancelDrawing(); }
 
             labelColors = svl.misc.getLabelColors();
             ribbonConnectorPositions = svl.misc.getRibbonConnectionPositions();
@@ -8781,25 +8772,23 @@ function RibbonMenu ($, params) {
                     // Switch to walking mode.
                     setStatus('mode', 'Walk');
                     setStatus('selectedLabelType', undefined);
-                    if (svl.map) {
-                      svl.map.modeSwitchWalkClick();
-                    }
+                    if (svl.map) { svl.map.modeSwitchWalkClick(); }
                 } else {
                     // Switch to labeling mode.
                     setStatus('mode', labelType);
                     setStatus('selectedLabelType', labelType);
-                    if (svl.map) {
-                      svl.map.modeSwitchLabelClick();
-                    }
+                    if (svl.map) { svl.map.modeSwitchLabelClick(); }
                 }
             }
 
             if (svl.ui && svl.ui.ribbonMenu) {
-              setModeSwitchBorderColors(labelType);
-              setModeSwitchBackgroundColors(labelType);
-              $ribbonConnector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
-              $ribbonConnector.css("border-left-color", borderColor);
-              $divStreetViewHolder.css("border-color", borderColor);
+                setModeSwitchBorderColors(labelType);
+                setModeSwitchBackgroundColors(labelType);
+
+
+                $ribbonConnector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
+                $ribbonConnector.css("border-left-color", borderColor);
+                $divStreetViewHolder.css("border-color", borderColor);
             }
 
             // Set the instructional message
@@ -8810,13 +8799,22 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function handleSubcategoryClick (e) {
+        e.stopPropagation();
+        var subcategory = $(this).attr('value');
+        svl.tracker.push('Click_Subcategory_' + subcategory);
+        console.log("Subcategory", subcategory);
+        modeSwitch(subcategory);
+    }
+
     function handleModeSwitchClickCallback () {
         if (status.disableModeSwitch === false) {
-            var labelType = $(this).attr('val');
-            console.log(labelType);
+            var labelType = $(this).attr('value');
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) { return false; }
+
+            if (labelType === "Other") { return false; }  // Disable clicking "Other"
 
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
@@ -8828,14 +8826,14 @@ function RibbonMenu ($, params) {
         if (status.disableModeSwitch === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
-            var labelType = $(this).attr("val");
+            var labelType = $(this).attr("value");
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
+            if (status.allowedMode && status.allowedMode !== labelType) { return false; }
             setModeSwitchBackgroundColors(labelType);
             setModeSwitchBorderColors(labelType);
+
+            if (labelType === "Other") { showSubcategories(); }
         }
     }
 
@@ -8843,7 +8841,15 @@ function RibbonMenu ($, params) {
         if (status.disableModeSwitch === false) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
+            hideSubcategories();
         }
+    }
+
+    function showSubcategories () {
+        $subcategoryHolder.css('visibility', 'visible');
+    }
+    function hideSubcategories () {
+        $subcategoryHolder.css('visibility', 'hidden');
     }
 
     function setModeSwitchBackgroundColors (mode) {
@@ -8860,7 +8866,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('val');
+              labelType = $(v).attr('value');
               if (labelType === mode) {
                   if (labelType === 'Walk') {
                       backgroundColor = "#ccc";
@@ -8892,7 +8898,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('val');
+              labelType = $(v).attr('value');
               if (labelType=== mode) {
                   $(this).css({
                       "border-color" : borderColor,
@@ -8941,7 +8947,7 @@ function RibbonMenu ($, params) {
     function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each($spansModeSwitches, function (i, v) {
-                var labelType = $(v).attr('val');
+                var labelType = $(v).attr('value');
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
                     labelType === 'Landmark_Shelter')
@@ -8968,7 +8974,6 @@ function RibbonMenu ($, params) {
     function enableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each($spansModeSwitches, function (i, v) {
-                var labelType = $(v).attr('val');
                 $(v).css('opacity', 1);
             });
         }
@@ -10708,17 +10713,12 @@ function UI ($, params) {
         self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
-        var $divStreetViewHolder = $("#street-view-holder");
-        var $ribbonButtonBottomLines = $(".ribbon-menu-mode-switch-horizontal-line");
-        //var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
-        var $ribbonConnector = $("#ribbon-street-view-connector");
-        var $spansModeSwitches = $('span.modeSwitch');
-
         self.ribbonMenu = {};
-        self.ribbonMenu.streetViewHolder = $divStreetViewHolder;
-        self.ribbonMenu.buttons = $spansModeSwitches;
-        self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
-        self.ribbonMenu.connector = $ribbonConnector;
+        self.ribbonMenu.streetViewHolder = $("#street-view-holder");
+        self.ribbonMenu.buttons = $('span.modeSwitch');
+        self.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
+        self.ribbonMenu.connector = $("#ribbon-street-view-connector");
+        self.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         self.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
 
         // Context menu
@@ -13507,6 +13507,14 @@ function getLabelCursorImagePath() {
         Other: {
             id: 'Other',
             cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+        },
+        Occlusion: {
+            id: 'Occlusion',
+            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
         }
     }
 }
@@ -13514,7 +13522,7 @@ svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 
 
 // Returns image paths corresponding to each label type.
-function getLabelIconImagePath(category) {
+function getIconImagePaths(category) {
     var imagePaths = {
         Walk : {
             id : 'Walk',
@@ -13546,6 +13554,16 @@ function getLabelIconImagePath(category) {
             iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
         },
+        Occlusion: {
+            id: 'Occlusion',
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+        },
         Void: {
             id: 'Void',
             iconImagePath : null
@@ -13554,7 +13572,7 @@ function getLabelIconImagePath(category) {
 
     return category ? imagePaths[category] : imagePaths;
 }
-svl.misc.getIconImagePaths = getLabelIconImagePath;
+svl.misc.getIconImagePaths = getIconImagePaths;
 
 
 // This function is used in OverlayMessageBox.js.
@@ -13585,55 +13603,15 @@ svl.misc.getLabelInstructions = function () {
             instructionalText: 'Label mode',
             textColor: 'rgba(255,255,255,1)'
         },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          instructionalText: 'Label mode: Locate and draw an outline around a <span class="underline">sidewalk surface problem</span>',
-          textColor: 'rgba(255,255,255,1)'
+        Occlusion: {
+            id: 'Occlusion',
+            instructionalText: "Label mode: Can't see the sidewalk",
+            textColor: 'rgba(255,255,255,1)'
         },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">stop sign</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'instructionalText' :'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-            'textColor' :'rgba(255,255,255,1)'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus shelter</span>',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bench</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">trash can</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">mailbox or news paper box</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'instructionalText' : 'Label mode: Locate and click at the bottom of poles such as <span class="underline bold">traffic sign, traffic light, and light pole</span> nearby a bus stop',
-            'textColor' : 'rgba(255,255,255,1)'
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            instructionalText: 'Label mode: No Sidewalk',
+            textColor: 'rgba(255,255,255,1)'
         }
     }
 };
@@ -13665,54 +13643,19 @@ svl.misc.getRibbonConnectionPositions = function  () {
             id: 'Other',
             labelRibbonConnection: '396px'
         },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'text' : 'Stop Sign',
-            'labelRibbonConnection' : '112px'
+        Occlusion: {
+            id: 'Occlusion',
+            labelRibbonConnection: '396px'
         },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'text' : 'One-leg Stop Sign',
-            'labelRibbonConnection' : '112px'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'text' : 'Two-leg Stop Sign',
-            'labelRibbonConnection' : '112px'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'text' : 'Column Stop Sign',
-            'labelRibbonConnection' : '112px'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'text' : 'Bus Shelter',
-            'labelRibbonConnection' : '188px'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'text' : 'Bench',
-            'labelRibbonConnection' : '265px'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'text' : 'Trash Can',
-            'labelRibbonConnection' : '338px'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'labelRibbonConnection' : '411px'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'labelRibbonConnection' : '484px'
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            labelRibbonConnection: '396px'
         }
     }
-}
+};
 
-svl.misc.getLabelDescriptions = function () {
-    return {
+svl.misc.getLabelDescriptions = function (category) {
+    var descriptions = {
         'Walk' : {
             'id' : 'Walk',
             'text' : 'Walk'
@@ -13733,6 +13676,14 @@ svl.misc.getLabelDescriptions = function () {
             id: 'Other',
             text: 'Other'
         },
+        Occlusion: {
+            id: 'Occlusion',
+            text: "Can't see the sidewalk"
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            text: 'No Sidewalk'
+        },
         SurfaceProblem: {
             id: 'SurfaceProblem',
             text: 'Surface Problem'
@@ -13744,48 +13695,9 @@ svl.misc.getLabelDescriptions = function () {
         Unclear: {
             id: 'Unclear',
             text: 'Unclear'
-        },
-        'StopSign' : {
-            'id' : 'StopSign',
-            'text' : 'Bus Stop Sign'
-        },
-        'StopSign_OneLeg' : {
-            'id' : 'StopSign_OneLeg',
-            'text' : 'One-leg Stop Sign'
-        },
-        'StopSign_TwoLegs' : {
-            'id' : 'StopSign_TwoLegs',
-            'text' : 'Two-leg Stop Sign'
-        },
-        'StopSign_Column' : {
-            'id' : 'StopSign_Column',
-            'text' : 'Column Stop Sign'
-        },
-        'StopSign_None' : {
-            'id' : 'StopSign_None',
-            'text' : 'Not provided'
-        },
-        'Landmark_Shelter' : {
-            'id' : 'Landmark_Shelter',
-            'text' : 'Bus Stop Shelter'
-        },
-        'Landmark_Bench' : {
-            'id' : 'Landmark_Bench',
-            'text' : 'Bench'
-        },
-        'Landmark_TrashCan' : {
-            'id' : 'Landmark_TrashCan',
-            'text' : 'Trash Can / Recycle Can'
-        },
-        'Landmark_MailboxAndNewsPaperBox' : {
-            'id' : 'Landmark_MailboxAndNewsPaperBox',
-            'text' : 'Mailbox / News Paper Box'
-        },
-        'Landmark_OtherPole' : {
-            'id' : 'Landmark_OtherPole',
-            'text' : 'Traffic Sign / Pole'
         }
-    }
+    };
+    return category ? descriptions[category] : descriptions;
 };
 
 var ColorScheme = (function () {
@@ -13847,6 +13759,14 @@ var ColorScheme = (function () {
             Other: {
                 id: 'Other',
                 fillStyle: 'rgba(179, 179, 179, 1)' //'rgba(204, 204, 204, 1)'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                fillStyle: 'rgba(179, 179, 179, 1)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                fillStyle: 'rgba(179, 179, 179, 1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
