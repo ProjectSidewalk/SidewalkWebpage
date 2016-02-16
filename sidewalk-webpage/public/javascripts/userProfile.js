@@ -213,27 +213,19 @@ function initializeSubmittedLabels(map) {
 
 function initializeAuditCountChart (c3) {
     $.getJSON("/contribution/auditCounts", function (data) {
-        console.log(data);
         var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
             counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
         var chart = c3.generate({
             bindto: "#audit-count-chart",
             data: {
                 x: 'Date',
-                columns: [
-                    dates,
-                    counts
-                ],
-                types: {
-                    data1: 'line'
-                }
+                columns: [ dates, counts ],
+                types: { 'Audit Count': 'line' }
             },
             axis: {
                 x: {
                     type: 'timeseries',
-                    tick: {
-                        format: '%Y-%m-%d'
-                    }
+                    tick: { format: '%Y-%m-%d' }
                 },
                 y: {
                     label: "Street Audit Count",

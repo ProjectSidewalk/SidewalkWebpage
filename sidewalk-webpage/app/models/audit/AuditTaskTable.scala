@@ -74,8 +74,8 @@ object AuditTaskTable {
 
   /**
    * Get the last audit task that the user conducted
-    *
-    * @param userId
+   *
+   * @param userId
    * @return
    */
   def lastAuditTask(userId: UUID): Option[AuditTask] = db.withSession { implicit session =>
@@ -83,9 +83,20 @@ object AuditTaskTable {
   }
 
   /**
-   * Return an audited edges
-    *
-    * @param userId
+    * Return audited street edges
+    * @return
+    */
+  def auditedStreets: List[StreetEdge] = db.withSession { implicit session =>
+    val _streetEdges = (for {
+      (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _streetEdges).filter(edge => edge.deleted === false)
+    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
+  }
+
+  /**
+   * Return street edges audited by the given user
+   *
+   * @param userId User Id
    * @return
    */
   def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>

@@ -23,7 +23,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns an index page.
-   * @return
+    *
+    * @return
    */
   def index = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -34,7 +35,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns an about page
-   * @return
+    *
+    * @return
    */
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -42,4 +44,5 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None => Future.successful(Ok(views.html.about("Project Sidewalk - About")))
     }
   }
+
 }

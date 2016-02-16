@@ -45,18 +45,18 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Get a list of edges that are submitted by users.
+   * Get a list of edges that are audited by users.
     *
     * @return
    */
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => {
+      case Some(user) =>
         val streets = AuditTaskTable.auditedStreets(user.userId)
         val features: List[JsObject] = streets.map { edge =>
           val coordinates: Array[Coordinate] = edge.geom.getCoordinates
           val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-        val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
           val properties = Json.obj(
             "street_edge_id" -> edge.streetEdgeId,
             "source" -> edge.source,
@@ -65,15 +65,31 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           )
           Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
         }
-
         val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Future.successful(Ok(featureCollection))
-      }
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "We could not find your username in our system :("
       )))
     }
+  }
+
+  def getAllAuditedStreets = UserAwareAction.async { implicit request =>
+    val streets = AuditTaskTable.auditedStreets
+    val features: List[JsObject] = streets.map { edge =>
+      val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+      val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+      val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+      val properties = Json.obj(
+        "street_edge_id" -> edge.streetEdgeId,
+        "source" -> edge.source,
+        "target" -> edge.target,
+        "way_type" -> edge.wayType
+      )
+      Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+    }
+    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+    Future.successful(Ok(featureCollection))
   }
 
   /**

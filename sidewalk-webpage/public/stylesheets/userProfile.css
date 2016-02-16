@@ -17,6 +17,7 @@ svg {
     left: 15px;
     width: 220px;
     bottom: 30px;
+    border: solid 1px #ccc;
 }
 
 #map-label-legend .table {

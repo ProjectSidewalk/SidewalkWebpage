@@ -291,10 +291,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val calendar: Calendar = Calendar.getInstance
         val now: Date = calendar.getTime
         val timestamp: Timestamp = new Timestamp(now.getTime)
-        val comment = AuditTaskComment(0, submission.streetEdgeId, userId, ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch, submission.zoom, timestamp, submission.comment)
-        val commentId: Int = AuditTaskCommentTable.save(comment)
 
-        Future.successful(Ok(Json.obj("comment_id" -> commentId)))
+        // Todo
+
+        Future.successful(Ok)
       }
     )
   }
