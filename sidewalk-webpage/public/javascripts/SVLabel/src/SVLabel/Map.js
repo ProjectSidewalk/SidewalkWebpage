@@ -70,7 +70,6 @@ function getLinks () {
 }
 svl.getLinks = getLinks;
 
-//
 // Fog related variables.
 var fogMode = false;
 var fogSet = false;
@@ -150,10 +149,7 @@ function Map ($, params) {
         };
 
     // Maps variables
-    var fenway;
-    var map;
-    var mapOptions;
-    var mapStyleOptions;
+    var fenway, map, mapOptions, mapStyleOptions;
     var fogParam = {
         interval: undefined,
         ready: undefined
@@ -738,7 +734,6 @@ function Map ($, params) {
         mouseStatus.currX = mouseposition(e, this).x;
         mouseStatus.currY = mouseposition(e, this).y;
 
-        //
         // Show a link and fade it out
         if (!status.disableWalking) {
             showLinks(2000);

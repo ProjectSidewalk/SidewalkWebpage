@@ -1190,9 +1190,9 @@ function Canvas ($, param) {
 
         // Attach listeners to dom elements
         if ($divLabelDrawingLayer) {
-          $divLabelDrawingLayer.bind('mousedown', drawingLayerMouseDown);
-          $divLabelDrawingLayer.bind('mouseup', drawingLayerMouseUp);
-          $divLabelDrawingLayer.bind('mousemove', drawingLayerMouseMove);
+          $divLabelDrawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
+          $divLabelDrawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
+          $divLabelDrawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
         }
         if ($labelDeleteIcon) {
           $labelDeleteIcon.bind("click", labelDeleteIconClick);
@@ -1294,7 +1294,7 @@ function Canvas ($, param) {
      * This function is fired when at the time of mouse-down
      * @param e
      */
-    function drawingLayerMouseDown (e) {
+    function handleDrawingLayerMouseDown (e) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
@@ -1309,7 +1309,7 @@ function Canvas ($, param) {
     /**
      * This function is fired when at the time of mouse-up
      */
-    function drawingLayerMouseUp (e) {
+    function handleDrawingLayerMouseUp (e) {
         var currTime;
 
         mouseStatus.isLeftDown = false;
@@ -1386,7 +1386,7 @@ function Canvas ($, param) {
     /**
      * This function is fired when mouse cursor moves over the drawing layer.
      */
-    function drawingLayerMouseMove (e) {
+    function handleDrawingLayerMouseMove (e) {
         var mousePosition = mouseposition(e, this);
         mouseStatus.currX = mousePosition.x;
         mouseStatus.currY = mousePosition.y;
@@ -1420,8 +1420,8 @@ function Canvas ($, param) {
                 showLabelTag(undefined);
             }
         }
-        self.clear();
-        self.render2();
+        clear();
+        render2();
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
     }
@@ -1769,11 +1769,13 @@ function Canvas ($, param) {
     function insertLabel (labelPoints, target) {
         if (!target) { target = 'user'; }
 
-        var pointData, pov, point,
+        var pointData, pov, point, path, param = {},
             labelColors = svl.misc.getLabelColors(),
+            labelDescriptions = svl.misc.getLabelDescriptions(),
             iconImagePaths = svl.misc.getIconImagePaths(),
             length = labelPoints.length,
             points = [];
+
 
         for (var i = 0; i < length; i += 1) {
             pointData = labelPoints[i];
@@ -1812,10 +1814,6 @@ function Canvas ($, param) {
 
             points.push(point)
         }
-
-        var param = {};
-        var path;
-        var labelDescriptions = svl.misc.getLabelDescriptions();
 
         path = new Path(points);
 
@@ -1976,7 +1974,7 @@ function Canvas ($, param) {
      */
     function render2 () {
         if (!ctx) { return this; }
-        var i, label, lenLabels,
+        var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
         var labelCount = {
             Landmark_Bench : 0,
@@ -1999,7 +1997,6 @@ function Canvas ($, param) {
         if (!status.svImageCoordinatesAdjusted) {
             var currentPhotographerPov = svl.panorama.getPhotographerPov();
             if (currentPhotographerPov && 'heading' in currentPhotographerPov && 'pitch' in currentPhotographerPov) {
-                var j;
                 lenLabels = labels.length;
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
@@ -2048,12 +2045,7 @@ function Canvas ($, param) {
         lenLabels = labels.length;
         for (i = 0; i < lenLabels; i += 1) {
             label = labels[i];
-
-            if (properties.evaluationMode) {
-                label.render(ctx, pov, true);
-            } else {
-                label.render(ctx, pov);
-            }
+            label.render(ctx, pov);
 
             if (label.isVisible() && !label.isDeleted()) {
                 labelCount[label.getLabelType()] += 1;
@@ -4209,10 +4201,7 @@ function Label (pathIn, params) {
      * @returns {fill}
      */
     function fill (fillColor) {
-        var path = self.getPath(),
-            points = path.getPoints(),
-            len = points.length;
-
+        var path = self.getPath(), points = path.getPoints(), len = points.length;
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
         return this;
@@ -4234,7 +4223,8 @@ function Label (pathIn, params) {
      */
     function getCoordinate () {
         if (path && path.points.length > 0) {
-            var pov = path.getPOV();
+            //var pov = path.getPOV();
+            var pov = svl.getPOV();
             return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
         }
         return path;
@@ -4452,12 +4442,9 @@ function Label (pathIn, params) {
                 // Get a text to render (e.g, attribute type), and
                 // canvas coordinate to render the tag.
                 if(status.tagVisibility == 'visible') {
-                    if (!evaluationMode) {
-                        renderTag(ctx);
-                        path.renderBoundingBox(ctx);
-                        showDelete();
-                        //showDelete(path);
-                    }
+                    renderTag(ctx);
+                    // path.renderBoundingBox(ctx);
+                    showDelete();
                 }
 
                 // Render a path
@@ -4521,125 +4508,50 @@ function Label (pathIn, params) {
      * @returns {boolean}
      */
     function renderTag(ctx) {
-        if (arguments.length !== 3) {
-            return false;
-        }
-        var boundingBox = path.getBoundingBox();
-        var msg = properties.labelDescription;
-        var messages = msg.split('\n');
+        if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
 
-        if (properties.labelerId !== 'DefaultValue') {
-            messages.push('Labeler: ' + properties.labelerId);
-        }
+        var labelCoordinate = getCoordinate(),
+            cornerRadius = 3;
+        var i, w, height, width,
+            msg = properties.labelDescription,
+            messages = msg.split('\n');
+        var padding = { left: 12, right: 5, bottom: 0, top: 18};
 
+        if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
+
+        // Set rendering properties and draw a tag
+        ctx.save();
         ctx.font = '10.5pt Calibri';
-        var height = properties.tagHeight * messages.length;
-        var width = -1;
-        for (var i = 0; i < messages.length; i += 1) {
-            var w = ctx.measureText(messages[i]).width + 5;
-            if (width < w) {
-                width = w;
-            }
+        height = properties.tagHeight * messages.length;
+        width = -1;
+        for (i = 0; i < messages.length; i += 1) {
+            w = ctx.measureText(messages[i]).width + 5;
+            if (width < w) { width = w; }
         }
         properties.tagWidth = width;
 
-        var tagX;
-        var tagY;
-        ctx.save();
-        ctx.lineWidth = 3.5;
-        ctx.fillStyle = 'rgba(255,255,255,1)';
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.beginPath();
-        var connectorX = 15;
-        if (connectorX > boundingBox.width) {
-            connectorX = boundingBox.width - 1;
-        }
-
-        if (boundingBox.x < 5) {
-            tagX = 5;
-        } else {
-            tagX = boundingBox.x;
-        }
-
-        if (boundingBox.y + boundingBox.height < 400) {
-            ctx.moveTo(tagX + connectorX, boundingBox.y + boundingBox.height);
-            ctx.lineTo(tagX + connectorX, boundingBox.y + boundingBox.height + 10);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-            tagY = boundingBox.y + boundingBox.height + 10;
-        } else {
-            ctx.moveTo(tagX + connectorX, boundingBox.y);
-            ctx.lineTo(tagX + connectorX, boundingBox.y - 10);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-            // tagX = boundingBox.x;
-            tagY = boundingBox.y - height - 20;
-        }
-
-
-        var r = 3;
-        var paddingLeft = 16;
-        var paddingRight = 30;
-        var paddingBottom = 10;
-
-        // Set rendering properties
-        ctx.save();
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // point.getProperty('fillStyleInnerCircle');
-        ctx.strokeStyle = 'rgba(255,255,255,1)'; // point.getProperty('strokeStyleOuterCircle');
-        //point.getProperty('lineWidthOuterCircle');
+        ctx.fillStyle = svl.util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
 
-        // Draw a tag
+        // Tag background
         ctx.beginPath();
-        ctx.moveTo(tagX, tagY);
-        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY);
-        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY + height + paddingBottom);
-        ctx.lineTo(tagX, tagY + height + paddingBottom);
-        ctx.lineTo(tagX, tagY);
-//        ctx.moveTo(tagX, tagY - r);
-//        ctx.lineTo(tagX + width - r, tagY - r);
-//        ctx.arc(tagX + width, tagY, r, 3 * Math.PI / 2, 0, false); // Corner
-//        ctx.lineTo(tagX + width + r, tagY + height - r);
-//        ctx.arc(tagX + width, tagY + height, r, 0, Math.PI / 2, false); // Corner
-//        ctx.lineTo(tagX + r, tagY + height + r);
-//        ctx.arc(tagX, tagY + height, r, Math.PI / 2, Math.PI, false); // Corner
-//        ctx.lineTo(tagX - r, tagY); // Corner
-
+        ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
+        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
+        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + cornerRadius, cornerRadius, 3 * Math.PI / 2, 0, false); // Corner
+        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right + cornerRadius, labelCoordinate.y + height + padding.bottom);
+        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + height + cornerRadius, cornerRadius, 0, Math.PI / 2, false); // Corner
+        ctx.lineTo(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + 2 * cornerRadius);
+        ctx.arc(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
+        ctx.lineTo(labelCoordinate.x, labelCoordinate.y + cornerRadius);
         ctx.fill();
-        ctx.stroke()
+        ctx.stroke();
         ctx.closePath();
-        ctx.restore();
 
-        // Render an icon and a message
-        ctx.save();
-        ctx.fillStyle = '#000';
-        var labelType = properties.labelType;
-        var iconImagePath = getLabelIconImagePath()[labelType].iconImagePath;
-        var imageObj;
-        var imageHeight;
-        var imageWidth;
-        var imageX;
-        var imageY;
-        imageObj = new Image();
-        imageHeight = imageWidth = 25;
-        imageX =  tagX + 5;
-        imageY = tagY + 2;
-        try {
-            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-        } catch (e) {
-
-        }
-
-        // ctx.globalAlpha = 0.5;
-        imageObj.src = iconImagePath;
-        //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-        for (var i = 0; i < messages.length; i += 1) {
-            ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
-        }
-        // ctx.fillText(msg, tagX, tagY + 17);
+        // Tag text
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         ctx.restore();
     }
 
@@ -4955,7 +4867,7 @@ function Label (pathIn, params) {
     self.blink = blink;
     self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
-    self.getCoordinate = getCoordinate;
+    //self.getCoordinate = getCoordinate;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
@@ -5633,7 +5545,6 @@ function getLinks () {
 }
 svl.getLinks = getLinks;
 
-//
 // Fog related variables.
 var fogMode = false;
 var fogSet = false;
@@ -5713,10 +5624,7 @@ function Map ($, params) {
         };
 
     // Maps variables
-    var fenway;
-    var map;
-    var mapOptions;
-    var mapStyleOptions;
+    var fenway, map, mapOptions, mapStyleOptions;
     var fogParam = {
         interval: undefined,
         ready: undefined
@@ -6301,7 +6209,6 @@ function Map ($, params) {
         mouseStatus.currX = mouseposition(e, this).x;
         mouseStatus.currY = mouseposition(e, this).y;
 
-        //
         // Show a link and fade it out
         if (!status.disableWalking) {
             showLinks(2000);
@@ -8829,13 +8736,12 @@ function RibbonMenu ($, params) {
           setModeSwitchBorderColors(status.mode);
           setModeSwitchBackgroundColors(status.mode);
 
-          $spansModeSwitches.bind('click', modeSwitchClickCallback);
+          $spansModeSwitches.bind('click', handleModeSwitchClickCallback);
           $spansModeSwitches.bind({
-              'mouseenter': modeSwitchMouseEnter,
-              'mouseleave': modeSwitchMouseLeave
+              'mouseenter': handleModeSwitchMouseEnter,
+              'mouseleave': handleModeSwitchMouseLeave
           });
         }
-
 
         // Disable mode switch when sign in modal is open
         if ($("#sign-in-modal-container").length != 0) {
@@ -8853,17 +8759,10 @@ function RibbonMenu ($, params) {
      * @param mode
      */
     function modeSwitch (mode) {
-        var labelType;
-
-        if (typeof mode === 'string') {
-            labelType = mode;
-        } else {
-            labelType = $(this).attr('val');
-        }
+        var labelType = (typeof mode === 'string') ? mode : $(this).attr('val'); // Do I need this???
 
         if (status.disableModeSwitch === false) {
-            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other
-            // than Walk and StopSign.
+            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other than Walk and StopSign.
             var labelColors;
             var ribbonConnectorPositions;
             var borderColor;
@@ -8904,26 +8803,20 @@ function RibbonMenu ($, params) {
             }
 
             // Set the instructional message
-            if (svl.overlayMessageBox) {
-                svl.overlayMessageBox.setMessage(labelType);
-            }
+            if (svl.overlayMessageBox) { svl.overlayMessageBox.setMessage(labelType); }
 
-            if ('audioEffect' in svl) {
-                svl.audioEffect.play('glug1');
-            }
+            // Play an audio effect
+            if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
         }
     }
 
-    function modeSwitchClickCallback () {
+    function handleModeSwitchClickCallback () {
         if (status.disableModeSwitch === false) {
-            var labelType;
-            labelType = $(this).attr('val');
+            var labelType = $(this).attr('val');
+            console.log(labelType);
 
-            // If allowedMode is set, mode ('walk' or labelType) except for
-            // the one set is not allowed
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
+            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
+            if (status.allowedMode && status.allowedMode !== labelType) { return false; }
 
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
@@ -8931,15 +8824,13 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function modeSwitchMouseEnter () {
+    function handleModeSwitchMouseEnter () {
         if (status.disableModeSwitch === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
             var labelType = $(this).attr("val");
 
-            //
-            // If allowedMode is set, mode ('walk' or labelType) except for
-            // the one set is not allowed
+            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) {
                 return false;
             }
@@ -8948,7 +8839,7 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function modeSwitchMouseLeave () {
+    function handleModeSwitchMouseLeave () {
         if (status.disableModeSwitch === false) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
@@ -10817,8 +10708,8 @@ function UI ($, params) {
         self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
-        var $divStreetViewHolder = $("#Holder_StreetView");
-        var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+        var $divStreetViewHolder = $("#street-view-holder");
+        var $ribbonButtonBottomLines = $(".ribbon-menu-mode-switch-horizontal-line");
         //var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
         var $ribbonConnector = $("#ribbon-street-view-connector");
         var $spansModeSwitches = $('span.modeSwitch');
@@ -10828,6 +10719,7 @@ function UI ($, params) {
         self.ribbonMenu.buttons = $spansModeSwitches;
         self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
         self.ribbonMenu.connector = $ribbonConnector;
+        self.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
 
         // Context menu
         self.contextMenu = {};
@@ -13614,7 +13506,7 @@ function getLabelCursorImagePath() {
         },
         Other: {
             id: 'Other',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/pen.png'
+            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
         }
     }
 }
@@ -13622,8 +13514,8 @@ svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 
 
 // Returns image paths corresponding to each label type.
-function getLabelIconImagePath(labelType) {
-    return {
+function getLabelIconImagePath(category) {
+    var imagePaths = {
         Walk : {
             id : 'Walk',
             iconImagePath : null,
@@ -13651,14 +13543,16 @@ function getLabelIconImagePath(labelType) {
         },
         Other: {
             id: 'Other',
-            iconImagePath: null,
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
         },
         Void: {
             id: 'Void',
             iconImagePath : null
         }
-    }
+    };
+
+    return category ? imagePaths[category] : imagePaths;
 }
 svl.misc.getIconImagePaths = getLabelIconImagePath;
 
@@ -13932,8 +13826,8 @@ var ColorScheme = (function () {
         }
     }
 
-    function SidewalkColorScheme2 () {
-        return {
+    function SidewalkColorScheme2 (category) {
+        var colors = {
             Walk : {
                 id : 'Walk',
                 fillStyle : 'rgba(0, 0, 0, 1)'
@@ -13952,7 +13846,7 @@ var ColorScheme = (function () {
             },
             Other: {
                 id: 'Other',
-                fillStyle: 'rgba(204, 204, 204, 1)'
+                fillStyle: 'rgba(179, 179, 179, 1)' //'rgba(204, 204, 204, 1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
@@ -13966,7 +13860,8 @@ var ColorScheme = (function () {
                 id: 'Unclear',
                 fillStyle: 'rgba(128, 128, 128, 0.5)'
             }
-        }
+        };
+        return category ? colors[category].fillStyle : colors;
     }
 
     /**

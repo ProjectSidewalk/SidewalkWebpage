@@ -122,9 +122,9 @@ function Canvas ($, param) {
 
         // Attach listeners to dom elements
         if ($divLabelDrawingLayer) {
-          $divLabelDrawingLayer.bind('mousedown', drawingLayerMouseDown);
-          $divLabelDrawingLayer.bind('mouseup', drawingLayerMouseUp);
-          $divLabelDrawingLayer.bind('mousemove', drawingLayerMouseMove);
+          $divLabelDrawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
+          $divLabelDrawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
+          $divLabelDrawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
         }
         if ($labelDeleteIcon) {
           $labelDeleteIcon.bind("click", labelDeleteIconClick);
@@ -226,7 +226,7 @@ function Canvas ($, param) {
      * This function is fired when at the time of mouse-down
      * @param e
      */
-    function drawingLayerMouseDown (e) {
+    function handleDrawingLayerMouseDown (e) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
@@ -241,7 +241,7 @@ function Canvas ($, param) {
     /**
      * This function is fired when at the time of mouse-up
      */
-    function drawingLayerMouseUp (e) {
+    function handleDrawingLayerMouseUp (e) {
         var currTime;
 
         mouseStatus.isLeftDown = false;
@@ -318,7 +318,7 @@ function Canvas ($, param) {
     /**
      * This function is fired when mouse cursor moves over the drawing layer.
      */
-    function drawingLayerMouseMove (e) {
+    function handleDrawingLayerMouseMove (e) {
         var mousePosition = mouseposition(e, this);
         mouseStatus.currX = mousePosition.x;
         mouseStatus.currY = mousePosition.y;
@@ -352,8 +352,8 @@ function Canvas ($, param) {
                 showLabelTag(undefined);
             }
         }
-        self.clear();
-        self.render2();
+        clear();
+        render2();
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
     }
@@ -701,11 +701,13 @@ function Canvas ($, param) {
     function insertLabel (labelPoints, target) {
         if (!target) { target = 'user'; }
 
-        var pointData, pov, point,
+        var pointData, pov, point, path, param = {},
             labelColors = svl.misc.getLabelColors(),
+            labelDescriptions = svl.misc.getLabelDescriptions(),
             iconImagePaths = svl.misc.getIconImagePaths(),
             length = labelPoints.length,
             points = [];
+
 
         for (var i = 0; i < length; i += 1) {
             pointData = labelPoints[i];
@@ -744,10 +746,6 @@ function Canvas ($, param) {
 
             points.push(point)
         }
-
-        var param = {};
-        var path;
-        var labelDescriptions = svl.misc.getLabelDescriptions();
 
         path = new Path(points);
 
@@ -908,7 +906,7 @@ function Canvas ($, param) {
      */
     function render2 () {
         if (!ctx) { return this; }
-        var i, label, lenLabels,
+        var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
         var labelCount = {
             Landmark_Bench : 0,
@@ -931,7 +929,6 @@ function Canvas ($, param) {
         if (!status.svImageCoordinatesAdjusted) {
             var currentPhotographerPov = svl.panorama.getPhotographerPov();
             if (currentPhotographerPov && 'heading' in currentPhotographerPov && 'pitch' in currentPhotographerPov) {
-                var j;
                 lenLabels = labels.length;
                 for (i = 0; i < lenLabels; i += 1) {
                     // Check if the label comes from current SV panorama
@@ -980,12 +977,7 @@ function Canvas ($, param) {
         lenLabels = labels.length;
         for (i = 0; i < lenLabels; i += 1) {
             label = labels[i];
-
-            if (properties.evaluationMode) {
-                label.render(ctx, pov, true);
-            } else {
-                label.render(ctx, pov);
-            }
+            label.render(ctx, pov);
 
             if (label.isVisible() && !label.isDeleted()) {
                 labelCount[label.getLabelType()] += 1;

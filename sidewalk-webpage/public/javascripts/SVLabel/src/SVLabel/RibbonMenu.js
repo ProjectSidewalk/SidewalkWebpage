@@ -58,13 +58,12 @@ function RibbonMenu ($, params) {
           setModeSwitchBorderColors(status.mode);
           setModeSwitchBackgroundColors(status.mode);
 
-          $spansModeSwitches.bind('click', modeSwitchClickCallback);
+          $spansModeSwitches.bind('click', handleModeSwitchClickCallback);
           $spansModeSwitches.bind({
-              'mouseenter': modeSwitchMouseEnter,
-              'mouseleave': modeSwitchMouseLeave
+              'mouseenter': handleModeSwitchMouseEnter,
+              'mouseleave': handleModeSwitchMouseLeave
           });
         }
-
 
         // Disable mode switch when sign in modal is open
         if ($("#sign-in-modal-container").length != 0) {
@@ -82,17 +81,10 @@ function RibbonMenu ($, params) {
      * @param mode
      */
     function modeSwitch (mode) {
-        var labelType;
-
-        if (typeof mode === 'string') {
-            labelType = mode;
-        } else {
-            labelType = $(this).attr('val');
-        }
+        var labelType = (typeof mode === 'string') ? mode : $(this).attr('val'); // Do I need this???
 
         if (status.disableModeSwitch === false) {
-            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other
-            // than Walk and StopSign.
+            // Check if a bus stop sign is labeled or not. If it is not, do not allow a user to switch to modes other than Walk and StopSign.
             var labelColors;
             var ribbonConnectorPositions;
             var borderColor;
@@ -133,26 +125,20 @@ function RibbonMenu ($, params) {
             }
 
             // Set the instructional message
-            if (svl.overlayMessageBox) {
-                svl.overlayMessageBox.setMessage(labelType);
-            }
+            if (svl.overlayMessageBox) { svl.overlayMessageBox.setMessage(labelType); }
 
-            if ('audioEffect' in svl) {
-                svl.audioEffect.play('glug1');
-            }
+            // Play an audio effect
+            if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
         }
     }
 
-    function modeSwitchClickCallback () {
+    function handleModeSwitchClickCallback () {
         if (status.disableModeSwitch === false) {
-            var labelType;
-            labelType = $(this).attr('val');
+            var labelType = $(this).attr('val');
+            console.log(labelType);
 
-            // If allowedMode is set, mode ('walk' or labelType) except for
-            // the one set is not allowed
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
+            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
+            if (status.allowedMode && status.allowedMode !== labelType) { return false; }
 
             // Track the user action
             svl.tracker.push('Click_ModeSwitch_' + labelType);
@@ -160,15 +146,13 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function modeSwitchMouseEnter () {
+    function handleModeSwitchMouseEnter () {
         if (status.disableModeSwitch === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
             var labelType = $(this).attr("val");
 
-            //
-            // If allowedMode is set, mode ('walk' or labelType) except for
-            // the one set is not allowed
+            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) {
                 return false;
             }
@@ -177,7 +161,7 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function modeSwitchMouseLeave () {
+    function handleModeSwitchMouseLeave () {
         if (status.disableModeSwitch === false) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);

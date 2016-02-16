@@ -81,8 +81,8 @@ function UI ($, params) {
         self.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
-        var $divStreetViewHolder = $("#Holder_StreetView");
-        var $ribbonButtonBottomLines = $(".RibbonModeSwitchHorizontalLine");
+        var $divStreetViewHolder = $("#street-view-holder");
+        var $ribbonButtonBottomLines = $(".ribbon-menu-mode-switch-horizontal-line");
         //var $ribbonConnector = $("#StreetViewLabelRibbonConnection");
         var $ribbonConnector = $("#ribbon-street-view-connector");
         var $spansModeSwitches = $('span.modeSwitch');
@@ -92,6 +92,7 @@ function UI ($, params) {
         self.ribbonMenu.buttons = $spansModeSwitches;
         self.ribbonMenu.bottonBottomBorders = $ribbonButtonBottomLines;
         self.ribbonMenu.connector = $ribbonConnector;
+        self.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
 
         // Context menu
         self.contextMenu = {};

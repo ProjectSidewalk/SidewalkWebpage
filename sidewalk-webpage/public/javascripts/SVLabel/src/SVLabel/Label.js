@@ -207,10 +207,7 @@ function Label (pathIn, params) {
      * @returns {fill}
      */
     function fill (fillColor) {
-        var path = self.getPath(),
-            points = path.getPoints(),
-            len = points.length;
-
+        var path = self.getPath(), points = path.getPoints(), len = points.length;
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
         return this;
@@ -232,7 +229,8 @@ function Label (pathIn, params) {
      */
     function getCoordinate () {
         if (path && path.points.length > 0) {
-            var pov = path.getPOV();
+            //var pov = path.getPOV();
+            var pov = svl.getPOV();
             return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
         }
         return path;
@@ -450,12 +448,9 @@ function Label (pathIn, params) {
                 // Get a text to render (e.g, attribute type), and
                 // canvas coordinate to render the tag.
                 if(status.tagVisibility == 'visible') {
-                    if (!evaluationMode) {
-                        renderTag(ctx);
-                        path.renderBoundingBox(ctx);
-                        showDelete();
-                        //showDelete(path);
-                    }
+                    renderTag(ctx);
+                    // path.renderBoundingBox(ctx);
+                    showDelete();
                 }
 
                 // Render a path
@@ -519,125 +514,50 @@ function Label (pathIn, params) {
      * @returns {boolean}
      */
     function renderTag(ctx) {
-        if (arguments.length !== 3) {
-            return false;
-        }
-        var boundingBox = path.getBoundingBox();
-        var msg = properties.labelDescription;
-        var messages = msg.split('\n');
+        if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
 
-        if (properties.labelerId !== 'DefaultValue') {
-            messages.push('Labeler: ' + properties.labelerId);
-        }
+        var labelCoordinate = getCoordinate(),
+            cornerRadius = 3;
+        var i, w, height, width,
+            msg = properties.labelDescription,
+            messages = msg.split('\n');
+        var padding = { left: 12, right: 5, bottom: 0, top: 18};
 
+        if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
+
+        // Set rendering properties and draw a tag
+        ctx.save();
         ctx.font = '10.5pt Calibri';
-        var height = properties.tagHeight * messages.length;
-        var width = -1;
-        for (var i = 0; i < messages.length; i += 1) {
-            var w = ctx.measureText(messages[i]).width + 5;
-            if (width < w) {
-                width = w;
-            }
+        height = properties.tagHeight * messages.length;
+        width = -1;
+        for (i = 0; i < messages.length; i += 1) {
+            w = ctx.measureText(messages[i]).width + 5;
+            if (width < w) { width = w; }
         }
         properties.tagWidth = width;
 
-        var tagX;
-        var tagY;
-        ctx.save();
-        ctx.lineWidth = 3.5;
-        ctx.fillStyle = 'rgba(255,255,255,1)';
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.beginPath();
-        var connectorX = 15;
-        if (connectorX > boundingBox.width) {
-            connectorX = boundingBox.width - 1;
-        }
-
-        if (boundingBox.x < 5) {
-            tagX = 5;
-        } else {
-            tagX = boundingBox.x;
-        }
-
-        if (boundingBox.y + boundingBox.height < 400) {
-            ctx.moveTo(tagX + connectorX, boundingBox.y + boundingBox.height);
-            ctx.lineTo(tagX + connectorX, boundingBox.y + boundingBox.height + 10);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-            tagY = boundingBox.y + boundingBox.height + 10;
-        } else {
-            ctx.moveTo(tagX + connectorX, boundingBox.y);
-            ctx.lineTo(tagX + connectorX, boundingBox.y - 10);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-            // tagX = boundingBox.x;
-            tagY = boundingBox.y - height - 20;
-        }
-
-
-        var r = 3;
-        var paddingLeft = 16;
-        var paddingRight = 30;
-        var paddingBottom = 10;
-
-        // Set rendering properties
-        ctx.save();
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // point.getProperty('fillStyleInnerCircle');
-        ctx.strokeStyle = 'rgba(255,255,255,1)'; // point.getProperty('strokeStyleOuterCircle');
-        //point.getProperty('lineWidthOuterCircle');
+        ctx.fillStyle = svl.util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
 
-        // Draw a tag
+        // Tag background
         ctx.beginPath();
-        ctx.moveTo(tagX, tagY);
-        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY);
-        ctx.lineTo(tagX + width + paddingLeft + paddingRight, tagY + height + paddingBottom);
-        ctx.lineTo(tagX, tagY + height + paddingBottom);
-        ctx.lineTo(tagX, tagY);
-//        ctx.moveTo(tagX, tagY - r);
-//        ctx.lineTo(tagX + width - r, tagY - r);
-//        ctx.arc(tagX + width, tagY, r, 3 * Math.PI / 2, 0, false); // Corner
-//        ctx.lineTo(tagX + width + r, tagY + height - r);
-//        ctx.arc(tagX + width, tagY + height, r, 0, Math.PI / 2, false); // Corner
-//        ctx.lineTo(tagX + r, tagY + height + r);
-//        ctx.arc(tagX, tagY + height, r, Math.PI / 2, Math.PI, false); // Corner
-//        ctx.lineTo(tagX - r, tagY); // Corner
-
+        ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
+        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
+        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + cornerRadius, cornerRadius, 3 * Math.PI / 2, 0, false); // Corner
+        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right + cornerRadius, labelCoordinate.y + height + padding.bottom);
+        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + height + cornerRadius, cornerRadius, 0, Math.PI / 2, false); // Corner
+        ctx.lineTo(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + 2 * cornerRadius);
+        ctx.arc(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
+        ctx.lineTo(labelCoordinate.x, labelCoordinate.y + cornerRadius);
         ctx.fill();
-        ctx.stroke()
+        ctx.stroke();
         ctx.closePath();
-        ctx.restore();
 
-        // Render an icon and a message
-        ctx.save();
-        ctx.fillStyle = '#000';
-        var labelType = properties.labelType;
-        var iconImagePath = getLabelIconImagePath()[labelType].iconImagePath;
-        var imageObj;
-        var imageHeight;
-        var imageWidth;
-        var imageX;
-        var imageY;
-        imageObj = new Image();
-        imageHeight = imageWidth = 25;
-        imageX =  tagX + 5;
-        imageY = tagY + 2;
-        try {
-            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-        } catch (e) {
-
-        }
-
-        // ctx.globalAlpha = 0.5;
-        imageObj.src = iconImagePath;
-        //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-        for (var i = 0; i < messages.length; i += 1) {
-            ctx.fillText(messages[i], tagX + paddingLeft + 20, tagY + 20 + 20 * i);
-        }
-        // ctx.fillText(msg, tagX, tagY + 17);
+        // Tag text
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         ctx.restore();
     }
 
@@ -953,7 +873,7 @@ function Label (pathIn, params) {
     self.blink = blink;
     self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
-    self.getCoordinate = getCoordinate;
+    //self.getCoordinate = getCoordinate;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;

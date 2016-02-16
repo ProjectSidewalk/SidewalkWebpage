@@ -82,7 +82,7 @@ function getLabelCursorImagePath() {
         },
         Other: {
             id: 'Other',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/pen.png'
+            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
         }
     }
 }
@@ -90,8 +90,8 @@ svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
 
 
 // Returns image paths corresponding to each label type.
-function getLabelIconImagePath(labelType) {
-    return {
+function getLabelIconImagePath(category) {
+    var imagePaths = {
         Walk : {
             id : 'Walk',
             iconImagePath : null,
@@ -119,14 +119,16 @@ function getLabelIconImagePath(labelType) {
         },
         Other: {
             id: 'Other',
-            iconImagePath: null,
+            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
             googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
         },
         Void: {
             id: 'Void',
             iconImagePath : null
         }
-    }
+    };
+
+    return category ? imagePaths[category] : imagePaths;
 }
 svl.misc.getIconImagePaths = getLabelIconImagePath;
 
@@ -400,8 +402,8 @@ var ColorScheme = (function () {
         }
     }
 
-    function SidewalkColorScheme2 () {
-        return {
+    function SidewalkColorScheme2 (category) {
+        var colors = {
             Walk : {
                 id : 'Walk',
                 fillStyle : 'rgba(0, 0, 0, 1)'
@@ -420,7 +422,7 @@ var ColorScheme = (function () {
             },
             Other: {
                 id: 'Other',
-                fillStyle: 'rgba(204, 204, 204, 1)'
+                fillStyle: 'rgba(179, 179, 179, 1)' //'rgba(204, 204, 204, 1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
@@ -434,7 +436,8 @@ var ColorScheme = (function () {
                 id: 'Unclear',
                 fillStyle: 'rgba(128, 128, 128, 0.5)'
             }
-        }
+        };
+        return category ? colors[category].fillStyle : colors;
     }
 
     /**
