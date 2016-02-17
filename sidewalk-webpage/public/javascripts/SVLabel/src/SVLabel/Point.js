@@ -44,7 +44,6 @@ function Point (x, y, pov, params) {
             'visibilityIcon' : 'visible'
     };
 
-
     function _init (x, y, pov, params) {
         // Convert a canvas coordinate (x, y) into a sv image coordinate
         // Note, svImageCoordinate.x varies from 0 to svImageWidth and
@@ -267,43 +266,24 @@ function Point (x, y, pov, params) {
         return this;
     }
 
-    self.belongsTo = getParent;
-    self.getPOV = getPOV;
-    self.getCanvasCoordinate = getCanvasCoordinate;
-    self.getCanvasX = getCanvasX;
-    self.getCanvasY = getCanvasY;
-    self.getFill = getFill;
-    self.getFillStyle = getFillStyle;
-    self.getGSVImageCoordinate = getGSVImageCoordinate;
-    self.getProperty = getProperty;
-    self.getProperties = getProperties;
-    self.isOn = isOn;
-    self.render = render;
-    self.resetFillStyle = resetFillStyle;
-    self.resetSVImageCoordinate = resetSVImageCoordinate;
-    self.resetStrokeStyle = resetStrokeStyle;
-    self.setBelongsTo = setBelongsTo;
-    self.setFillStyle = setFillStyle;
-    self.setIconPath = setIconPath;
-
     /**
      * this method sets the photographerHeading and photographerPitch
      * @param heading
      * @param pitch
      * @returns {self}
      */
-    self.setPhotographerPov = function (heading, pitch) {
+    function setPhotographerPov (heading, pitch) {
         properties.photographerHeading = heading;
         properties.photographerPitch = pitch;
         return this;
-    };
+    }
 
     /**
      * This function resets all the properties specified in params.
      * @param params
      * @returns {self}
      */
-    self.setProperties = function (params) {
+    function setProperties (params) {
         for (var key in params) {
             if (key in properties) {
                 properties[key] = params[key];
@@ -335,21 +315,44 @@ function Point (x, y, pov, params) {
             properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
         }
         return this;
-    };
+    }
 
-    self.setStrokeStyle = function (val) {
+    function setStrokeStyle (val) {
         // This method sets the strokeStyle of an outer circle to val
         properties.strokeStyleOuterCircle = val;
         return this;
-    };
+    }
 
-    self.setVisibility = function (visibility) {
+    self.belongsTo = getParent;
+    self.getPOV = getPOV;
+    self.getCanvasCoordinate = getCanvasCoordinate;
+    self.getCanvasX = getCanvasX;
+    self.getCanvasY = getCanvasY;
+    self.getFill = getFill;
+    self.getFillStyle = getFillStyle;
+    self.getGSVImageCoordinate = getGSVImageCoordinate;
+    self.getProperty = getProperty;
+    self.getProperties = getProperties;
+    self.isOn = isOn;
+    self.render = render;
+    self.resetFillStyle = resetFillStyle;
+    self.resetSVImageCoordinate = resetSVImageCoordinate;
+    self.resetStrokeStyle = resetStrokeStyle;
+    self.setBelongsTo = setBelongsTo;
+    self.setFillStyle = setFillStyle;
+    self.setIconPath = setIconPath;
+    self.setPhotographerPov = setPhotographerPov;
+    self.setProperties = setProperties;
+    self.setStrokeStyle = setStrokeStyle;
+    self.setVisibility = setVisibility;
+
+    function setVisibility (visibility) {
         // This method sets the visibility of a path (and points that cons
         if (visibility === 'visible' || visibility === 'hidden') {
             status.visibility = visibility;
         }
         return this;
-    };
+    }
 
     // Todo. Deprecated method. Get rid of this later.
     self.resetProperties = self.setProperties;

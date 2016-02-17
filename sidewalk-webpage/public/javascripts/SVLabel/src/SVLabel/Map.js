@@ -134,6 +134,8 @@ function Map ($, params) {
         };
 
     var panoramaOptions;
+    var streetViewService = new google.maps.StreetViewService();
+    var STREETVIEW_MAX_DISTANCE = 50;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -332,8 +334,7 @@ function Map ($, params) {
 
         // Hide the dude on the top-left of the map.
         mapIconInterval = setInterval(removeIcon, 0.2);
-
-        //
+        
         // For Internet Explore, append an extra canvas in viewControlLayer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
@@ -692,11 +693,11 @@ function Map ($, params) {
         currTime = new Date().getTime();
 
         if ('canvas' in svl && svl.canvas) {
-            var item = svl.canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-            if (item && item.className === "Point") {
-                var path = item.belongsTo();
-                var selectedLabel = path.belongsTo();
-                var canvasCoordinate = item.getCanvasCoordinate(svl.getPOV());
+            var point = svl.canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+            if (point && point.className === "Point") {
+                var path = point.belongsTo(),
+                    selectedLabel = path.belongsTo(),
+                    canvasCoordinate = point.getCanvasCoordinate(svl.getPOV());
 
                 svl.canvas.setCurrentLabel(selectedLabel);
                 if ('contextMenu' in svl) {
@@ -705,25 +706,52 @@ function Map ($, params) {
                         targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                     });
                 }
-            }
-        } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
-            // Double click
-            // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
-            if (!status.disableClickZoom) {
+            } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
+                // Double click
+                // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
                 svl.tracker.push('ViewControl_DoubleClick');
-                if (svl.keyboard.isShiftDown()) {
-                    // If Shift is down, then zoom out with double click.
-                    svl.zoomControl.zoomOut();
-                    svl.tracker.push('ViewControl_ZoomOut');
+                if (!status.disableClickZoom) {
+
+                    if (svl.keyboard.isShiftDown()) {
+                        // If Shift is down, then zoom out with double click.
+                        svl.zoomControl.zoomOut();
+                        svl.tracker.push('ViewControl_ZoomOut');
+                    } else {
+                        // If Shift is up, then zoom in wiht double click.
+                        // svl.zoomControl.zoomIn();
+                        svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
+                        svl.tracker.push('ViewControl_ZoomIn');
+                    }
                 } else {
-                    // If Shift is up, then zoom in wiht double click.
-                    // svl.zoomControl.zoomIn();
-                    svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
-                    svl.tracker.push('ViewControl_ZoomIn');
+                    // Todo. Get latlng, see if there is street view image, and if there is, jump there.
+                    var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, svl.getPOV());
+                    var latlng = svl.getPosition();
+                    var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
+                    console.log(latlng);
+                    console.log(imageCoordinate);
+                    console.log(newLatlng);
+                    //imageCoordinateToLatLng()
+
+                    var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
+                    streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                        if (status === google.maps.StreetViewStatus.OK) {
+                            console.log(svl.getPanoId());
+                            console.log(streetViewPanoramaData.location.pano);
+                            svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                        }
+                    });
                 }
+
             }
         }
         mouseStatus.prevMouseUpTime = currTime;
+    }
+
+    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
+        var zoomFactor = svl.zoomFactor[pov.zoom];
+        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+        return { x: x, y: y };
     }
 
     /**
@@ -804,13 +832,26 @@ function Map ($, params) {
         mouseStatus.prevY = mouseposition(e, this).y;
     }
 
+    function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
+        var pc = svl.pointCloud.getPointCloud(svl.getPanoId());
+        if (pc) {
+            var p = svl.util.scaleImageCoordinate(imageX, imageY, 1 / 26),
+                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
+                dx = pc.pointCloud[idx],
+                dy = pc.pointCloud[idx + 1],
+                delta = svl.util.math.latlngOffset(lat, dx, dy);
+            return { lat: lat + delta.dlat, lng: lng + delta.dlng };
+        } else {
+            return null;
+        }
+    }
+
+
     /**
      *
      * @param e
      */
-    function handlerViewControlLayerMouseLeave (e) {
-        mouseStatus.isLeftDown = false;
-    }
+    function handlerViewControlLayerMouseLeave (e) { mouseStatus.isLeftDown = false; }
 
 
     /**

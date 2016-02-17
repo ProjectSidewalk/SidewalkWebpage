@@ -108,7 +108,7 @@ function Task ($, L, turf) {
                         lat2 = task.features[0].geometry.coordinates[len][1],
                         lng2 = task.features[0].geometry.coordinates[len][0];
                     var streetViewService = new google.maps.StreetViewService();
-                    var STREETVIEW_MAX_DISTANCE = 50;
+                    var STREETVIEW_MAX_DISTANCE = 25;
                     var latLng = new google.maps.LatLng(lat1, lng1);
                     streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                         if (status === google.maps.StreetViewStatus.OK) {
