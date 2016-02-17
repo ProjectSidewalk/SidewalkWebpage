@@ -334,7 +334,7 @@ function Map ($, params) {
 
         // Hide the dude on the top-left of the map.
         mapIconInterval = setInterval(removeIcon, 0.2);
-        
+
         // For Internet Explore, append an extra canvas in viewControlLayer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {

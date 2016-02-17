@@ -17,10 +17,6 @@ import formats.json.SidewalkFormats._
  * JTS GeometryFactory: http://programcreek.com/java-api-examples/index.php?api=com.vividsolutions.jts.geom.PrecisionModel
   */
 
-
-/**
- *
- */
 object SidewalkController extends Controller {
 
   val wkbReader = new WKBReader()

@@ -5,9 +5,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import models.audit.{NewTask, AuditTaskTable}
 import models.user.User
-import play.api.libs.json.Json
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
 
 import scala.concurrent.Future
