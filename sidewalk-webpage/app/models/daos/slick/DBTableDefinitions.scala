@@ -6,11 +6,7 @@ import scala.slick.driver.PostgresDriver.simple._
 
 object DBTableDefinitions {
 
-  case class DBUser (
-                      userId: String,
-                      username: String,
-                      email: String
-                      )
+  case class DBUser (userId: String, username: String, email: String )
 
   class UserTable(tag: Tag) extends Table[DBUser](tag, Some("sidewalk"), "user") {
     def userId = column[String]("user_id", O.PrimaryKey)
@@ -19,11 +15,7 @@ object DBTableDefinitions {
     def * = (userId, username, email) <> (DBUser.tupled, DBUser.unapply)
   }
 
-  case class DBLoginInfo (
-                           id: Option[Long],
-                           providerID: String,
-                           providerKey: String
-                           )
+  case class DBLoginInfo (id: Option[Long], providerID: String, providerKey: String )
 
   class LoginInfos(tag: Tag) extends Table[DBLoginInfo](tag, Some("sidewalk"), "login_info") {
     def loginInfoId = column[Long]("login_info_id", O.PrimaryKey, O.AutoInc)

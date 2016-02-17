@@ -10,9 +10,9 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import forms.SignUpForm
-import models.User
 import models.daos.slick.UserDAOSlick
 import models.services.UserService
+import models.user.User
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action

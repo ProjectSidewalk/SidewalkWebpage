@@ -13,10 +13,10 @@ import com.mohiva.play.silhouette.impl.providers.oauth2._
 import com.mohiva.play.silhouette.impl.providers.oauth2.state.{ DummyStateProvider, CookieStateProvider, CookieStateSettings }
 import com.mohiva.play.silhouette.impl.services._
 import com.mohiva.play.silhouette.impl.util._
-import models.User
 import models.daos._
 import models.daos.slick._
 import models.services.{ UserService, UserServiceImpl }
+import models.user.User
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Play
 import play.api.Play.current

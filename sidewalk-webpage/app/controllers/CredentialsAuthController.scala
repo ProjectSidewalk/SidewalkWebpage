@@ -10,8 +10,8 @@ import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import forms.SignInForm
-import models.User
 import models.services.UserService
+import models.user.User
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action

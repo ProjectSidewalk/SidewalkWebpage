@@ -1,4 +1,5 @@
-@(title: String, task: Option[models.audit.NewTask] = None, user: Option[models.User] = None)
+@import models.user.User
+@(title: String, task: Option[models.audit.NewTask] = None, user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))

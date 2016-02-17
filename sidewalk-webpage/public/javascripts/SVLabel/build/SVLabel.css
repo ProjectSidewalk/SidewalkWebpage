@@ -1069,8 +1069,8 @@ footer {
     background: none;
 
     position: absolute;
-    left: 0px;
-    top: 0px;
+    left: 0;
+    top: 0;
     height: 100px;
     width: 65px;
 }
@@ -1080,8 +1080,8 @@ footer {
     margin-right: 5px;
     text-align: center;
     position: absolute;
-    left: 0px;
-    top: 0px;
+    left: 0;
+    top: 0;
     height: 20px;
     width: 55px
 }
@@ -1090,7 +1090,7 @@ footer {
     margin-left: 5px;
     margin-right: 5px;
     position: absolute;
-    left: 0px;
+    left: 0;
     top: 25px;
     height: 75px;
     width: 100%;
@@ -1101,7 +1101,7 @@ footer {
 
     position: absolute;
     left: 64px;
-    top: 0px;
+    top: 0;
     height: 100px;
     width: 470px;
 }
@@ -1115,7 +1115,7 @@ footer {
     text-align: center;
 
     position: absolute;
-    left: 0px;
+    left: 0;
     top: 5px;
     height: 16px;
     width: 380px;
@@ -1127,7 +1127,7 @@ footer {
     margin-right: 10px;
 
     position: absolute;
-    left: 0px;
+    left: 0;
     top: 25px;
     height: 75px;
     width: 470px;
@@ -1139,14 +1139,14 @@ footer {
     left: 25px;
     top: -24px;
     height: 20px;
-    width: 0px;
+    width: 0;
 }
 
 #ribbon-menu-other-subcategory-holder {
     position: absolute;
     top: 66px;
     left: -3px;
-    width: 240px;
+    width: 250px;
     background: white;
     border-width: 3px;
     border-style: solid;

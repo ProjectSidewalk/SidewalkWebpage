@@ -3,8 +3,9 @@ package models.daos
 import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
-import models.User
 import models.daos.UserDAOImpl._
+import models.user.User
+
 // import models.daos.slick.DBTableDefinitions.UserTable
 
 import scala.collection.mutable

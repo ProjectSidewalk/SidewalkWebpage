@@ -8808,6 +8808,7 @@ function RibbonMenu ($, params) {
         svl.tracker.push('Click_Subcategory_' + subcategory);
         console.log("Subcategory", subcategory);
         modeSwitch(subcategory);
+        hideSubcategories();
     }
 
     function handleModeSwitchClickCallback () {

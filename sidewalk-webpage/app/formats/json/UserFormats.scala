@@ -2,10 +2,10 @@ package formats.json
 
 import java.util.UUID
 
+import models.user.User
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import com.mohiva.play.silhouette.api.LoginInfo
-import models.User
 
 object UserFormats {
   val restFormat = {

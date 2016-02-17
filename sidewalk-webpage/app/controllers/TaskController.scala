@@ -10,12 +10,12 @@ import com.vividsolutions.jts.geom.{GeometryFactory, PrecisionModel, Coordinate,
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
 import formats.json.CommentSubmissionFormats._
-import models.User
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
 import models.street.StreetEdgeAssignmentCountTable
+import models.user.User
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -33,6 +33,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Returns an audit page.
+ *
    * @return
    */
   def audit = UserAwareAction.async { implicit request =>
@@ -60,6 +61,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Audit a given region
+ *
    * @param regionId
    * @return
    */
@@ -80,6 +82,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Audit a given street
+ *
    * @param streetEdgeId
    * @return
    */
@@ -93,6 +96,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a task for a user.
+ *
    * @return
    */
   def getTask = UserAwareAction.async { implicit request =>
@@ -104,6 +108,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a next task.
+ *
    * @param streetEdgeId street edge id
    * @param lat current latitude
    * @param lng current longitude
@@ -115,6 +120,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a next task, but make sure the task is in the specified region.
+ *
    * @param regionId Region id
    * @return
    */
@@ -131,6 +137,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Parse the submitted data and insert them into tables.
+ *
    * @return
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
@@ -241,6 +248,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
     * Parse the submitted comment and insert it into the comment table
+ *
     * @return
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

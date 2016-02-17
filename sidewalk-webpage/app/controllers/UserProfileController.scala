@@ -8,9 +8,9 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
-import models.User
 import models.audit.{InteractionWithLabel, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
 import models.label.LabelTable
+import models.user.User
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
 import play.extras.geojson

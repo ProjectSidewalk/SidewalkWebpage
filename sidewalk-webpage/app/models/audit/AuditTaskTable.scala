@@ -3,8 +3,8 @@ package models.audit
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
 import java.util.{UUID, Calendar, Date}
-import models.User
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
+import models.user.User
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{UserTable, DBUser}
 import play.api.libs.json._
@@ -84,6 +84,7 @@ object AuditTaskTable {
 
   /**
     * Return audited street edges
+ *
     * @return
     */
   def auditedStreets: List[StreetEdge] = db.withSession { implicit session =>

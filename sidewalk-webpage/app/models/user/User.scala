@@ -1,10 +1,12 @@
-package models
+package models.user
 
 import java.util.UUID
-import com.mohiva.play.silhouette.api.{ Identity, LoginInfo }
+
+import com.mohiva.play.silhouette.api.{Identity, LoginInfo}
 
 /**
  * The user object.
+  * NOTE. See also models.dao.slick._
  *
  * @param userId The unique ID of the user.
  * @param loginInfo The linked login info.

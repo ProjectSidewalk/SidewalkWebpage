@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
-import models.User
+import models.user.User
 import play.api.libs.json.Json
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
 

@@ -1,7 +1,7 @@
 package models.services
 
 import com.mohiva.play.silhouette.api.services.IdentityService
-import models.User
+import models.user.User
 
 import scala.concurrent.Future
 
