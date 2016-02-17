@@ -4,9 +4,10 @@ import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.user.User
 
-// import models.daos.slick.DBTableDefinitions.UserTable
+import play.api.Play.current
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -54,11 +55,11 @@ class UserDAOImpl extends UserDAO {
  * The companion object.
  */
 object UserDAOImpl {
-
-  /**
-   * The list of users.
-   */
-//  val db = play.api.db.slick.DB
-//  val users = TableQuery[UserTable]
+  val db = play.api.db.slick.DB
+  val userTable = TableQuery[UserTable]
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
+
+  def size: Int = db.withTransaction { implicit session =>
+    userTable.list.size
+  }
 }

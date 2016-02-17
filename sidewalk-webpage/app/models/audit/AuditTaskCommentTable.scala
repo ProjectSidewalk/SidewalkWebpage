@@ -2,6 +2,7 @@ package models.audit
 
 import java.sql.Timestamp
 
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -32,10 +33,20 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
 object AuditTaskCommentTable {
   val db = play.api.db.slick.DB
   val auditTaskComments = TableQuery[AuditTaskCommentTable]
+  val users = TableQuery[UserTable]
 
   def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
     val auditTaskCommentId: Int =
       (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
     auditTaskCommentId
+  }
+
+  def takeRight(n: Integer): List[AuditTaskComment] = db.withTransaction { implicit session =>
+    val comments = (for {
+      (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
+    } yield (c.auditTaskCommentId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
+      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
+
+    comments.take(n)
   }
 }

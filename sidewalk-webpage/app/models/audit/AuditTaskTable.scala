@@ -72,6 +72,10 @@ object AuditTaskTable {
     auditTasks.list
   }
 
+  def size: Int = db.withSession { implicit session =>
+    auditTasks.list.size
+  }
+
   /**
    * Get the last audit task that the user conducted
    *
@@ -106,6 +110,18 @@ object AuditTaskTable {
     } yield _streetEdges).filter(edge => edge.deleted === false)
 
     _streetEdges.list
+  }
+
+  def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
+    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
+      """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
+        |FROM    generate_series(0, 30) n) AS calendar
+        |LEFT JOIN sidewalk.audit_task
+        |ON audit_task.task_start::date = calendar_date::date
+        |GROUP BY calendar_date
+        |ORDER BY calendar_date""".stripMargin
+    )
+    selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
   }
 
   /**

@@ -5,6 +5,8 @@ import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import scala.slick.jdbc.{StaticQuery => Q}
+
 
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -45,6 +47,12 @@ object LabelTable {
   val db = play.api.db.slick.DB
   val labels = TableQuery[LabelTable]
 
+  case class LabelCountPerDay(date: String, count: Int)
+
+  def size: Int = db.withTransaction( implicit session =>
+    labels.list.size
+  )
+
   /**
    * Saves a new labe in the table
    * @param label
@@ -75,6 +83,20 @@ object LabelTable {
 
     val labelLocationList: List[LabelLocation] = _labels.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
     labelLocationList
+  }
+
+  def labelCounts: List[LabelCountPerDay] = db.withSession { implicit session =>
+    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
+      """SELECT calendar_date::date, COUNT(label_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
+        |FROM    generate_series(0, 30) n) AS calendar
+        |LEFT JOIN sidewalk.audit_task
+        |ON audit_task.task_start::date = calendar_date::date
+        |LEFT JOIN sidewalk.label
+        |ON label.audit_task_id = audit_task.audit_task_id
+        |GROUP BY calendar_date
+        |ORDER BY calendar_date""".stripMargin
+    )
+    selectAuditCountQuery.list.map(x => LabelCountPerDay.tupled(x))
   }
 }
 

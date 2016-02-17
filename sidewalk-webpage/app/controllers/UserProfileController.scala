@@ -120,6 +120,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+
   /**
    * Get user interaction records
     *
@@ -183,5 +184,21 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         "message" -> "We could not find your username."
       )))
     }
+  }
+
+  def getAllAuditCounts = UserAwareAction.async { implicit request =>
+    val auditCounts = AuditTaskTable.auditCounts
+    val json = Json.arr(auditCounts.map(x => Json.obj(
+      "date" -> x.date, "count" -> x.count
+    )))
+    Future.successful(Ok(json))
+  }
+
+  def getAllLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.labelCounts
+    val json = Json.arr(labelCounts.map(x => Json.obj(
+      "date" -> x.date, "count" -> x.count
+    )))
+    Future.successful(Ok(json))
   }
 }
