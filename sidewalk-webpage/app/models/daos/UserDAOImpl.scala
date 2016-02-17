@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
 
 import play.api.Play.current
@@ -58,6 +58,10 @@ object UserDAOImpl {
   val db = play.api.db.slick.DB
   val userTable = TableQuery[UserTable]
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
+
+  def all: List[DBUser] = db.withTransaction { implicit session =>
+    userTable.list
+  }
 
   def size: Int = db.withTransaction { implicit session =>
     userTable.list.size
