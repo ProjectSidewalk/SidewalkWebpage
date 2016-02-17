@@ -15,6 +15,7 @@ POST    /signUp                         @controllers.SignUpController.signUp(url
 
 # Admin
 GET     /admin                          @controllers.AdminController.index
+GET     /admin/:username                @controllers.AdminController.userProfile(username: String)
 
 # Auditing tasks
 GET     /audit                          @controllers.TaskController.audit

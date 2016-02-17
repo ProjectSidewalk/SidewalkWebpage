@@ -35,6 +35,15 @@ object AuditTaskCommentTable {
   val auditTaskComments = TableQuery[AuditTaskCommentTable]
   val users = TableQuery[UserTable]
 
+  def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
+    val comments = (for {
+      (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
+    } yield (c.auditTaskCommentId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
+      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
+
+    Some(comments)
+  }
+
   def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
     val auditTaskCommentId: Int =
       (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment

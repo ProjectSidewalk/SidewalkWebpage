@@ -5,6 +5,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
 
@@ -23,6 +24,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def userProfile(username: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val user: Option[DBUser] = UserTable.find(username)
+      Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, user)))
     } else {
       Future.successful(Redirect("/"))
     }
