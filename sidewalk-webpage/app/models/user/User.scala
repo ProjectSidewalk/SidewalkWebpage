@@ -13,5 +13,5 @@ import com.mohiva.play.silhouette.api.{Identity, LoginInfo}
  * @param username Maybe the full name of the authenticated user.
  * @param email Maybe the email of the authenticated provider.
  */
-case class User (userId: UUID, loginInfo: LoginInfo, username: String, email: String) extends Identity
+case class User (userId: UUID, loginInfo: LoginInfo, username: String, email: String, roles: Option[Seq[String]]) extends Identity
 

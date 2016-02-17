@@ -13,6 +13,9 @@ GET     /signOut                        @controllers.UserController.signOut(url:
 POST    /authenticate/credentials       @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /signUp                         @controllers.SignUpController.signUp(url: String ?= "/")
 
+# Admin
+GET     /admin                          @controllers.AdminController.index
+
 # Auditing tasks
 GET     /audit                          @controllers.TaskController.audit
 GET     /audit/task                     @controllers.TaskController.getTask

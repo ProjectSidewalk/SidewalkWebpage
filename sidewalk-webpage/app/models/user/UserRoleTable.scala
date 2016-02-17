@@ -4,7 +4,6 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
-
 case class UserRole(userRoleId: Int, userId: String, roleId: Int)
 
 class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "user_role") {
@@ -19,14 +18,23 @@ class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "us
 object UserRoleTable {
   val db = play.api.db.slick.DB
   val userRoles = TableQuery[UserRoleTable]
+  val roles = TableQuery[RoleTable]
 
-  val roles = Map("User" -> 1, "Administrator" -> 2)
+  val roleMapping = Map("User" -> 1, "Administrator" -> 2)
 
 
   def addUserRole(userId: UUID): Int = db.withTransaction { implicit session =>
-    val userRole = UserRole(0, userId.toString, roles("User"))
+    val userRole = UserRole(0, userId.toString, roleMapping("User"))
     val userRoleId: Int =
       (userRoles returning userRoles.map(_.userRoleId)) += userRole
     userRoleId
   }
+
+  def getRoles(userId: UUID): Seq[String] = db.withSession { implicit session =>
+    val _roles = for {
+      (_userRoles, _roles) <- userRoles.innerJoin(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
+    } yield _roles
+    _roles.list.map(_.role)
+  }
+
 }

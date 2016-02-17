@@ -31,6 +31,13 @@
                                     Your dashboard
                                 </a>
                             </li>
+                            @if(user.get.roles.getOrElse(Seq("")).contains("Administrator")) {
+                                <li role="presentation">
+                                    <a href='@routes.AdminController.index' role="menuitem">
+                                        Admin
+                                    </a>
+                                </li>
+                            }
                             <li role="presentation">
                                 <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
                             </li>
