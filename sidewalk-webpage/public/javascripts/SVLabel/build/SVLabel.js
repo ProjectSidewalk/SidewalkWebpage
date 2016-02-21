@@ -5818,9 +5818,6 @@ function Map ($, params) {
         }
     }
 
-    /**
-     *
-     */
     function removeIcon() {
         var doms = $('.gmnoprint');
         if (doms.length > 0) {
@@ -6199,23 +6196,23 @@ function Map ($, params) {
                         svl.tracker.push('ViewControl_ZoomIn');
                     }
                 } else {
-                    // Todo. Get latlng, see if there is street view image, and if there is, jump there.
                     var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, svl.getPOV());
                     var latlng = svl.getPosition();
                     var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
-                    console.log(latlng);
-                    console.log(imageCoordinate);
-                    console.log(newLatlng);
-                    //imageCoordinateToLatLng()
-
-                    var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
-                    streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                        if (status === google.maps.StreetViewStatus.OK) {
-                            console.log(svl.getPanoId());
-                            console.log(streetViewPanoramaData.location.pano);
-                            svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                    if (newLatlng) {
+                        var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
+                        console.log(distance);
+                        if (distance < 25) {
+                            var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
+                            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                if (status === google.maps.StreetViewStatus.OK) {
+                                    console.log(svl.getPanoId());
+                                    console.log(streetViewPanoramaData.location.pano);
+                                    svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                                }
+                            });
                         }
-                    });
+                    }
                 }
 
             }
@@ -6479,8 +6476,6 @@ function Map ($, params) {
             }
         }
     }
-
-
 
     /**
      * Update POV of Street View as a user drag a mouse cursor.
@@ -12297,10 +12292,6 @@ Array.prototype.mean = function () {
 if(typeof JSON!=="object"){JSON={}}(function(){"use strict";function f(e){return e<10?"0"+e:e}function quote(e){escapable.lastIndex=0;return escapable.test(e)?'"'+e.replace(escapable,function(e){var t=meta[e];return typeof t==="string"?t:"\\u"+("0000"+e.charCodeAt(0).toString(16)).slice(-4)})+'"':'"'+e+'"'}function str(e,t){var n,r,i,s,o=gap,u,a=t[e];if(a&&typeof a==="object"&&typeof a.toJSON==="function"){a=a.toJSON(e)}if(typeof rep==="function"){a=rep.call(t,e,a)}switch(typeof a){case"string":return quote(a);case"number":return isFinite(a)?String(a):"null";case"boolean":case"null":return String(a);case"object":if(!a){return"null"}gap+=indent;u=[];if(Object.prototype.toString.apply(a)==="[object Array]"){s=a.length;for(n=0;n<s;n+=1){u[n]=str(n,a)||"null"}i=u.length===0?"[]":gap?"[\n"+gap+u.join(",\n"+gap)+"\n"+o+"]":"["+u.join(",")+"]";gap=o;return i}if(rep&&typeof rep==="object"){s=rep.length;for(n=0;n<s;n+=1){if(typeof rep[n]==="string"){r=rep[n];i=str(r,a);if(i){u.push(quote(r)+(gap?": ":":")+i)}}}}else{for(r in a){if(Object.prototype.hasOwnProperty.call(a,r)){i=str(r,a);if(i){u.push(quote(r)+(gap?": ":":")+i)}}}}i=u.length===0?"{}":gap?"{\n"+gap+u.join(",\n"+gap)+"\n"+o+"}":"{"+u.join(",")+"}";gap=o;return i}}if(typeof Date.prototype.toJSON!=="function"){Date.prototype.toJSON=function(e){return isFinite(this.valueOf())?this.getUTCFullYear()+"-"+f(this.getUTCMonth()+1)+"-"+f(this.getUTCDate())+"T"+f(this.getUTCHours())+":"+f(this.getUTCMinutes())+":"+f(this.getUTCSeconds())+"Z":null};String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(e){return this.valueOf()}}var cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,gap,indent,meta={"\b":"\\b","	":"\\t","\n":"\\n","\f":"\\f","\r":"\\r",'"':'\\"',"\\":"\\\\"},rep;if(typeof JSON.stringify!=="function"){JSON.stringify=function(e,t,n){var r;gap="";indent="";if(typeof n==="number"){for(r=0;r<n;r+=1){indent+=" "}}else if(typeof n==="string"){indent=n}rep=t;if(t&&typeof t!=="function"&&(typeof t!=="object"||typeof t.length!=="number")){throw new Error("JSON.stringify")}return str("",{"":e})}}if(typeof JSON.parse!=="function"){JSON.parse=function(text,reviver){function walk(e,t){var n,r,i=e[t];if(i&&typeof i==="object"){for(n in i){if(Object.prototype.hasOwnProperty.call(i,n)){r=walk(i,n);if(r!==undefined){i[n]=r}else{delete i[n]}}}}return reviver.call(e,t,i)}var j;text=String(text);cx.lastIndex=0;if(cx.test(text)){text=text.replace(cx,function(e){return"\\u"+("0000"+e.charCodeAt(0).toString(16)).slice(-4)})}if(/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,"@").replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,"]").replace(/(?:^|:|,)(?:\s*\[)+/g,""))){j=eval("("+text+")");return typeof reviver==="function"?walk({"":j},""):j}throw new SyntaxError("JSON.parse")}}})()
 
 
-////////////////////////////////////////////////////////////////////////////////
-// Browser related functions
-////////////////////////////////////////////////////////////////////////////////
-//
 // Get what browser the user is using.
 // This code was taken from an answer in the following SO page:
 // http://stackoverflow.com/questions/3303858/distinguish-chrome-from-safari-using-jquery-browser
@@ -12327,7 +12318,7 @@ function getBrowser() {
     for (b in $.browser) {
         if($.browser[b] === true) {
             return b;
-        };
+        }
     }
     return undefined;
 }
@@ -13256,7 +13247,7 @@ svl.util.math.latLngToAngle = latLngToAngle;
  * @returns {number} A distance in meters.
  */
 function haversine(lat1, lon1, lat2, lon2) {
-    //var radians = Array.prototype.map.call(arguments, function(deg) { return deg/180.0 * Math.PI; });
+    //var radians = Array.prototype.map.call(arguments, function(deg) { return deg / 180.0 * Math.PI; });
     //var lat1 = radians[0], lon1 = radians[1], lat2 = radians[2], lon2 = radians[3];
     lat1 = toRadians(lat1);
     lon1 = toRadians(lon1);
@@ -13466,7 +13457,6 @@ function lineWithRoundHead (ctx, x1, y1, r1, x2, y2, r2, sourceFormIn, sourceStr
         ctx.closePath();
         ctx.restore();
     }
-    return;
 }
 svl.util.shape.lineWithRoundHead = lineWithRoundHead;
 
@@ -13628,23 +13618,28 @@ svl.misc.getLabelInstructions = function () {
     return {
         'Walk' : {
             'id' : 'Walk',
-            'instructionalText' : 'Explore mode: Find and label curb ramps at this intersection.',
+            'instructionalText' : 'Audit the streets and find all the accessibility attributes',
             'textColor' : 'rgba(255,255,255,1)'
         },
         CurbRamp: {
             id: 'CurbRamp',
-            instructionalText: 'Label mode: Locate and draw an outline around the <span class="underline">curb ramp</span>',
+            instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
             textColor: 'rgba(255,255,255,1)'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            instructionalText: 'Label mode: Locate and draw an outline around where a <span class="underline">curb ramp is missing</span>',
+            instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
             textColor: 'rgba(255,255,255,1)'
         },
         Obstacle: {
           id: 'Obstacle',
-          instructionalText: 'Label mode: Locate and draw an outline around a <span class="underline">obstacle in path</span>',
+          instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
           textColor: 'rgba(255,255,255,1)'
+        },
+        SurfaceProblem: {
+            id: 'SurfaceProblem',
+            instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
+            textColor: 'rgba(255,255,255,1)'
         },
         Other: {
             id: 'Other',
@@ -13653,12 +13648,12 @@ svl.misc.getLabelInstructions = function () {
         },
         Occlusion: {
             id: 'Occlusion',
-            instructionalText: "Label mode: Can't see the sidewalk",
+            instructionalText: "Label a part of sidewalk that cannot be observed",
             textColor: 'rgba(255,255,255,1)'
         },
         NoSidewalk: {
             id: 'NoSidewalk',
-            instructionalText: 'Label mode: No Sidewalk',
+            instructionalText: 'Label missing sidewalk',
             textColor: 'rgba(255,255,255,1)'
         }
     }

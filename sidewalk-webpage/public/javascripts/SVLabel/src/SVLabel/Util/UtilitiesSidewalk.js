@@ -156,23 +156,28 @@ svl.misc.getLabelInstructions = function () {
     return {
         'Walk' : {
             'id' : 'Walk',
-            'instructionalText' : 'Explore mode: Find and label curb ramps at this intersection.',
+            'instructionalText' : 'Audit the streets and find all the accessibility attributes',
             'textColor' : 'rgba(255,255,255,1)'
         },
         CurbRamp: {
             id: 'CurbRamp',
-            instructionalText: 'Label mode: Locate and draw an outline around the <span class="underline">curb ramp</span>',
+            instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
             textColor: 'rgba(255,255,255,1)'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            instructionalText: 'Label mode: Locate and draw an outline around where a <span class="underline">curb ramp is missing</span>',
+            instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
             textColor: 'rgba(255,255,255,1)'
         },
         Obstacle: {
           id: 'Obstacle',
-          instructionalText: 'Label mode: Locate and draw an outline around a <span class="underline">obstacle in path</span>',
+          instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
           textColor: 'rgba(255,255,255,1)'
+        },
+        SurfaceProblem: {
+            id: 'SurfaceProblem',
+            instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
+            textColor: 'rgba(255,255,255,1)'
         },
         Other: {
             id: 'Other',
@@ -181,12 +186,12 @@ svl.misc.getLabelInstructions = function () {
         },
         Occlusion: {
             id: 'Occlusion',
-            instructionalText: "Label mode: Can't see the sidewalk",
+            instructionalText: "Label a part of sidewalk that cannot be observed",
             textColor: 'rgba(255,255,255,1)'
         },
         NoSidewalk: {
             id: 'NoSidewalk',
-            instructionalText: 'Label mode: No Sidewalk',
+            instructionalText: 'Label missing sidewalk',
             textColor: 'rgba(255,255,255,1)'
         }
     }

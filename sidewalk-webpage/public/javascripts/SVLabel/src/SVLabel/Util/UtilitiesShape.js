@@ -96,6 +96,5 @@ function lineWithRoundHead (ctx, x1, y1, r1, x2, y2, r2, sourceFormIn, sourceStr
         ctx.closePath();
         ctx.restore();
     }
-    return;
 }
 svl.util.shape.lineWithRoundHead = lineWithRoundHead;

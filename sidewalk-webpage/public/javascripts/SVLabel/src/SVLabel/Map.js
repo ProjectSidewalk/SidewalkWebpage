@@ -342,9 +342,6 @@ function Map ($, params) {
         }
     }
 
-    /**
-     *
-     */
     function removeIcon() {
         var doms = $('.gmnoprint');
         if (doms.length > 0) {
@@ -723,23 +720,23 @@ function Map ($, params) {
                         svl.tracker.push('ViewControl_ZoomIn');
                     }
                 } else {
-                    // Todo. Get latlng, see if there is street view image, and if there is, jump there.
                     var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, svl.getPOV());
                     var latlng = svl.getPosition();
                     var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
-                    console.log(latlng);
-                    console.log(imageCoordinate);
-                    console.log(newLatlng);
-                    //imageCoordinateToLatLng()
-
-                    var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
-                    streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                        if (status === google.maps.StreetViewStatus.OK) {
-                            console.log(svl.getPanoId());
-                            console.log(streetViewPanoramaData.location.pano);
-                            svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                    if (newLatlng) {
+                        var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
+                        console.log(distance);
+                        if (distance < 25) {
+                            var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
+                            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                if (status === google.maps.StreetViewStatus.OK) {
+                                    console.log(svl.getPanoId());
+                                    console.log(streetViewPanoramaData.location.pano);
+                                    svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                                }
+                            });
                         }
-                    });
+                    }
                 }
 
             }
@@ -1003,8 +1000,6 @@ function Map ($, params) {
             }
         }
     }
-
-
 
     /**
      * Update POV of Street View as a user drag a mouse cursor.

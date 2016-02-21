@@ -84,7 +84,7 @@ svl.util.math.latLngToAngle = latLngToAngle;
  * @returns {number} A distance in meters.
  */
 function haversine(lat1, lon1, lat2, lon2) {
-    //var radians = Array.prototype.map.call(arguments, function(deg) { return deg/180.0 * Math.PI; });
+    //var radians = Array.prototype.map.call(arguments, function(deg) { return deg / 180.0 * Math.PI; });
     //var lat1 = radians[0], lon1 = radians[1], lat2 = radians[2], lon2 = radians[3];
     lat1 = toRadians(lat1);
     lon1 = toRadians(lon1);
