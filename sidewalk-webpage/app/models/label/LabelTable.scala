@@ -55,7 +55,8 @@ object LabelTable {
 
   /**
    * Saves a new labe in the table
-   * @param label
+    *
+    * @param label
    * @return
    */
   def save(label: Label): Int = db.withTransaction { implicit session =>
@@ -65,23 +66,48 @@ object LabelTable {
   }
 
   /**
+    * This method returns all the submitted labels
+    * @return
+    */
+  def submittedLabels: List[LabelLocation] = db.withSession { implicit session =>
+    val auditTasks = TableQuery[AuditTaskTable]
+    val labelTypes = TableQuery[LabelTypeTable]
+    val labelPoints = TableQuery[LabelPointTable]
+
+    val _labels = for {
+      (_labels, _labelTypes) <- labels.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
+      if _labels.deleted === false
+    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
+
+    val _points = for {
+      (l, p) <- _labels.innerJoin(labelPoints).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
+
+    val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
+    labelLocationList
+  }
+
+  /**
    * This method retunrs a list of labels submitted by the given user.
-   * @param userId
+    *
+    * @param userId
    * @return
    */
   def submittedLabels(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
     val auditTasks = TableQuery[AuditTaskTable]
     val labelTypes = TableQuery[LabelTypeTable]
+    val labelPoints = TableQuery[LabelPointTable]
+
     val _labels = for {
       ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labels on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString && _labels.deleted === false
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
-//    val _labelsWithLatLng = for {
-//      (_labels, _labelTypes) <- labels innerJoin labelTypes on (_.labelTypeId === _.labelTypeId)
-//    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
+    val _points = for {
+      (l, p) <- _labels.innerJoin(labelPoints).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val labelLocationList: List[LabelLocation] = _labels.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
+    val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
     labelLocationList
   }
 

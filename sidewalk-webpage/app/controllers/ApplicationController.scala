@@ -37,4 +37,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  def map = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility", Some(user))))
+      case None => Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility")))
+    }
+  }
 }
