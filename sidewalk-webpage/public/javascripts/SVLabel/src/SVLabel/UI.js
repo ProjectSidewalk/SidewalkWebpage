@@ -131,6 +131,11 @@ function UI ($, params) {
         self.leftColumn.jump = $("#left-column-jump-button");
         self.leftColumn.feedback = $("#left-column-feedback-button");
 
+        self.compass = {};
+        self.compass.messageHolder = $("#compass-message-holder");
+        self.compass.message = $("#compass-message");
+
+
         self.task = {};
         self.task.taskCompletionMessage = $("#task-completion-message-holder");
 

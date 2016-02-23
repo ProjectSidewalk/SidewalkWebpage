@@ -15,36 +15,20 @@ function Compass ($) {
         chart = svg.append('g'),
         needle;
 
-    svg.attr('width', width + padding.left + padding.right)
-        .attr('height', height + padding.top + padding.bottom + 30)
-        .style({ position: 'absolute', left: 660, top: 525 });
-    chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
-    // label.attr('transform', 'translate(0, 0)');
+    function _init() {
+        svg.attr('width', width + padding.left + padding.right)
+            .attr('height', height + padding.top + padding.bottom + 30)
+            .style({ position: 'absolute', left: 0, top: 0 });
+        chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
 
-    //chart.append('circle')
-    //    .attr('cx', 0) .attr('cy', 0).attr('r', width / 2)
-    //    .attr('fill', 'black');
-    //chart.append('circle')
-    //    .attr('cx', 0) .attr('cy', 10).attr('r', needleRadius)
-    //    .attr('fill', 'white');
-    needle = chart.append('path')
-        .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
-        .attr('fill', 'white')
-        .attr('stroke', 'white')
-        .attr('stroke-width', 1);
+        needle = chart.append('path')
+            .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
+            .attr('fill', 'white')
+            .attr('stroke', 'white')
+            .attr('stroke-width', 1);
 
-
-    //label.append('text')
-    //    .attr("x", 0)
-    //    .attr("y", 65)
-    //    .attr("dy", ".35em")
-    //    .text("Walking direction")
-    //    .style({
-    //        visibility: 'visible',
-    //        fill: 'white',
-    //        font: '10px sans-serif'
-    //    });
-
+        hideMessage();
+    }
 
     /**
      * Get the angle to the next goal.
@@ -91,13 +75,52 @@ function Compass ($) {
             r = 229 - 185 * val, g = 245 - 83 * val, b = 249 - 154 * val, rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
 
         // http://colorbrewer2.org/ (229,245,249), (44,162,95)
-
         needle.transition(100)
             .attr('fill', rgb);
         chart.transition(100)
             .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
     }
 
+    function angleToDirection (angle) {
+        angle = (angle + 360) % 360;
+        if (angle < 20 || angle > 340)
+            return "Keep walking straight on";
+        else if (angle >= 20 && angle < 45)
+            return "Turn slightly right towards";
+        else if (angle <= 340 && angle > 315)
+            return "Turn slightly left towards";
+        else if (angle >= 35 && angle < 180)
+            return "Turn right towards";
+        else if (angle <= 315 && angle >= 180)
+            return "Turn left towards";
+        else {
+            console.debug("It shouldn't reach here.");
+        }
+    }
+
+    function setTurnMessage (angle, streetName) {
+        var message = angleToDirection(angle) + " " + streetName;
+        setMessage(message);
+    }
+
+    function setMessage (message) {
+        svl.ui.compass.message.html(message);
+    }
+
+    function showMessage () {
+        svl.ui.compass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
+    }
+
+    function hideMessage () {
+       svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
+    }
+
     self.update = update;
+    self.hideMessage = hideMessage;
+    self.showMessage = showMessage;
+    self.setTurnMessage = setTurnMessage;
+
+    _init();
+
     return self;
 }

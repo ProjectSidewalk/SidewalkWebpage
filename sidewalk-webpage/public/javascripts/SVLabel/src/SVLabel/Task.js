@@ -472,7 +472,7 @@ function Task ($, L, turf) {
                 // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                 task.features[0].geometry.coordinates.reverse();
             }
-            svl.setPosition(lat1, lng1);
+            // svl.setPosition(lat1, lng1);
             paths = null;
             taskSetting = task;
             lat = taskSetting.features[0].geometry.coordinates[0][1];
