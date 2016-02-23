@@ -2069,7 +2069,7 @@ function Canvas ($, param) {
         if (status.drawing) { renderTempPath(); }
 
         // Check if the user audited all the angles or not.
-        if ('form' in svl) { svl.form.checkSubmittable(); }
+        //if ('form' in svl) { svl.form.checkSubmittable(); }
 
         //// Update the completion rate
         //if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
@@ -2346,6 +2346,15 @@ function Compass ($) {
         status = {},
         properties = {};
 
+    var imageDirectories = {
+        leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
+        rightTurn: svl.rootDirectory + 'img/icons/ArrowRightTurn.png',
+        slightLeft: svl.rootDirectory + 'img/icons/ArrowSlightLeft.png',
+        slightRight: svl.rootDirectory + 'img/icons/ArrowSlightRight.png',
+        straight: svl.rootDirectory + 'img/icons/ArrowStraight.png',
+        uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
+    };
+
     var height = 50, width = 50, padding = {
         top: 5,
         right: 5,
@@ -2369,7 +2378,6 @@ function Compass ($) {
             .attr('stroke', 'white')
             .attr('stroke-width', 1);
 
-        hideMessage();
     }
 
     /**
@@ -2426,22 +2434,59 @@ function Compass ($) {
     function angleToDirection (angle) {
         angle = (angle + 360) % 360;
         if (angle < 20 || angle > 340)
-            return "Keep walking straight on";
+            return "straight";
         else if (angle >= 20 && angle < 45)
-            return "Turn slightly right towards";
+            return "left";  // return "slight-left";
         else if (angle <= 340 && angle > 315)
-            return "Turn slightly left towards";
+            return "right";  // return "slight-right";
         else if (angle >= 35 && angle < 180)
-            return "Turn right towards";
+            return "left";
         else if (angle <= 315 && angle >= 180)
-            return "Turn left towards";
+            return "right";
         else {
             console.debug("It shouldn't reach here.");
         }
     }
 
-    function setTurnMessage (angle, streetName) {
-        var message = angleToDirection(angle) + " " + streetName;
+    function directionToDirectionMessage(direction) {
+        switch (direction) {
+            case "straight":
+                return "Keep walking straight";
+            case "slight-right":
+                return "Turn slightly towards right";
+            case "slight-left":
+                return "Turn slightly towards left";
+            case "right":
+                return "Turn right";
+            case "left":
+                return "Turn left";
+            default:
+        }
+    }
+
+    function directionToImagePath(direction) {
+        switch (direction) {
+            case "straight":
+                return imageDirectories.straight;
+            case "slight-right":
+                return imageDirectories.slightRight;
+            case "slight-left":
+                return imageDirectories.slightLeft;
+            case "right":
+                return imageDirectories.rightTurn;
+            case "left":
+                return imageDirectories.leftTurn;
+            default:
+        }
+    }
+
+    function setTurnMessage (streetName) {
+        var imageFilePath, image, message,
+            angle = getCompassAngle(),
+            direction = angleToDirection(angle);
+
+        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
+        message =  image + directionToDirectionMessage(direction);
         setMessage(message);
     }
 
@@ -2457,10 +2502,15 @@ function Compass ($) {
        svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
     }
 
+    function updateMessage (streetName) {
+        setTurnMessage(streetName);
+    }
+
     self.update = update;
     self.hideMessage = hideMessage;
     self.showMessage = showMessage;
     self.setTurnMessage = setTurnMessage;
+    self.updateMessage = updateMessage;
 
     _init();
 
@@ -6052,7 +6102,6 @@ function Map ($, params) {
         var position = svl.panorama.getPosition();
         handlerPovChange(); // handle pov change
 
-
         // End of the task if the user is close enough to the end point
         if ('task' in svl) {
             svl.task.render();
@@ -8436,9 +8485,7 @@ var svl = svl || {};
  * @constructor
  */
 function ProgressFeedback ($, params) {
-    var self = {
-        className : 'ProgressFeedback'
-    };
+    var self = { className : 'ProgressFeedback' };
     var properties = {
         progressBarWidth : undefined
     };
@@ -8451,9 +8498,6 @@ function ProgressFeedback ($, params) {
     var $progressBarFilled;
     var $progressMessage;
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////////////////////////////////////////////
     function init (params) {
         $progressBarContainer = $("#ProgressBarContainer");
         $progressBarFilled = $("#ProgressBarFilled");
@@ -8471,9 +8515,6 @@ function ProgressFeedback ($, params) {
     }
 
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////////////////////////////////////////////
     self.setMessage = function (message) {
         // This function sets a message box in the feedback area.
         $progressMessage.html(message);
@@ -8581,7 +8622,6 @@ function ProgressPov ($, param) {
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         $divCurrentCompletionRate.html(completionRate);
-        console.debug(completionRate)
         return this;
     }
 
@@ -8623,7 +8663,16 @@ function ProgressPov ($, param) {
      * @returns {number}
      */
     function getCompletionRate () {
-        return ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
+        var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
+        if ('compass' in svl) {
+            svl.compass.update();
+            if (taskCompletionRate > 0.1) {
+                svl.compass.hideMessage();
+            } else {
+                svl.compass.updateMessage(" --- street name ---");
+            }
+        }
+        return taskCompletionRate;
 
         //try {
         //    if (status.currentCompletionRate < 1) {
@@ -10506,7 +10555,6 @@ function Task ($, L, turf) {
             taskSetting = task;
             lat = taskSetting.features[0].geometry.coordinates[0][1];
             lng = taskSetting.features[0].geometry.coordinates[0][0];
-            renderTaskPath();
         } else {
             // Starting a new task.
             svl.setPosition(lat1, lng1);
@@ -10514,7 +10562,12 @@ function Task ($, L, turf) {
             taskSetting = task;
             lat = taskSetting.features[0].geometry.coordinates[0][1];
             lng = taskSetting.features[0].geometry.coordinates[0][0];
-            renderTaskPath();
+        }
+        renderTaskPath();
+
+        if ('compass' in svl) {
+            svl.compass.setTurnMessage("--- street name ---");
+            svl.compass.showMessage();
         }
     }
 
@@ -10525,7 +10578,9 @@ function Task ($, L, turf) {
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; };
+    self.getTaskCompletionRate = function () {
+        return taskCompletionRate ? taskCompletionRate : 0;
+    };
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
     self.load = load;

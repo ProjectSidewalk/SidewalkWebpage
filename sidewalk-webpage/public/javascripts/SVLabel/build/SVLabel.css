@@ -562,9 +562,9 @@ input#Text_BusStopAbsenceOtherReason {
     right: 10px;
     top: 8px;
     background: #ffffff;
-    padding: 10px 5px 5px 5px;
+    padding: 10px 10px 10px 5px;
     height: 40px;
-    min-width: 160px;
+    min-width: 120px;
     white-space: nowrap;
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
@@ -584,6 +584,13 @@ input#Text_BusStopAbsenceOtherReason {
     border-radius: 0 1px 1px 0;
     -webkit-border-radius: 0 1px 1px 0;
     -moz-border-radius: 0 1px 1px 0;
+}
+
+.compass-turn-images {
+    position: relative;
+    bottom: 2px;
+    width: 25px;
+    margin: 0 10px 0 0
 }
 #context-menu-holder {
     position: relative;

@@ -54,7 +54,6 @@ function ProgressPov ($, param) {
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         $divCurrentCompletionRate.html(completionRate);
-        console.debug(completionRate)
         return this;
     }
 
@@ -96,7 +95,16 @@ function ProgressPov ($, param) {
      * @returns {number}
      */
     function getCompletionRate () {
-        return ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
+        var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
+        if ('compass' in svl) {
+            svl.compass.update();
+            if (taskCompletionRate > 0.1) {
+                svl.compass.hideMessage();
+            } else {
+                svl.compass.updateMessage(" --- street name ---");
+            }
+        }
+        return taskCompletionRate;
 
         //try {
         //    if (status.currentCompletionRate < 1) {

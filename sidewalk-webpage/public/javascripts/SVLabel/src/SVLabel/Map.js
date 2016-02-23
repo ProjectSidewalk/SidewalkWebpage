@@ -553,7 +553,6 @@ function Map ($, params) {
         var position = svl.panorama.getPosition();
         handlerPovChange(); // handle pov change
 
-
         // End of the task if the user is close enough to the end point
         if ('task' in svl) {
             svl.task.render();

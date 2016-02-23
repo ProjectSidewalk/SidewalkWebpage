@@ -4,6 +4,15 @@ function Compass ($) {
         status = {},
         properties = {};
 
+    var imageDirectories = {
+        leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
+        rightTurn: svl.rootDirectory + 'img/icons/ArrowRightTurn.png',
+        slightLeft: svl.rootDirectory + 'img/icons/ArrowSlightLeft.png',
+        slightRight: svl.rootDirectory + 'img/icons/ArrowSlightRight.png',
+        straight: svl.rootDirectory + 'img/icons/ArrowStraight.png',
+        uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
+    };
+
     var height = 50, width = 50, padding = {
         top: 5,
         right: 5,
@@ -27,7 +36,6 @@ function Compass ($) {
             .attr('stroke', 'white')
             .attr('stroke-width', 1);
 
-        hideMessage();
     }
 
     /**
@@ -84,22 +92,59 @@ function Compass ($) {
     function angleToDirection (angle) {
         angle = (angle + 360) % 360;
         if (angle < 20 || angle > 340)
-            return "Keep walking straight on";
+            return "straight";
         else if (angle >= 20 && angle < 45)
-            return "Turn slightly right towards";
+            return "left";  // return "slight-left";
         else if (angle <= 340 && angle > 315)
-            return "Turn slightly left towards";
+            return "right";  // return "slight-right";
         else if (angle >= 35 && angle < 180)
-            return "Turn right towards";
+            return "left";
         else if (angle <= 315 && angle >= 180)
-            return "Turn left towards";
+            return "right";
         else {
             console.debug("It shouldn't reach here.");
         }
     }
 
-    function setTurnMessage (angle, streetName) {
-        var message = angleToDirection(angle) + " " + streetName;
+    function directionToDirectionMessage(direction) {
+        switch (direction) {
+            case "straight":
+                return "Keep walking straight";
+            case "slight-right":
+                return "Turn slightly towards right";
+            case "slight-left":
+                return "Turn slightly towards left";
+            case "right":
+                return "Turn right";
+            case "left":
+                return "Turn left";
+            default:
+        }
+    }
+
+    function directionToImagePath(direction) {
+        switch (direction) {
+            case "straight":
+                return imageDirectories.straight;
+            case "slight-right":
+                return imageDirectories.slightRight;
+            case "slight-left":
+                return imageDirectories.slightLeft;
+            case "right":
+                return imageDirectories.rightTurn;
+            case "left":
+                return imageDirectories.leftTurn;
+            default:
+        }
+    }
+
+    function setTurnMessage (streetName) {
+        var imageFilePath, image, message,
+            angle = getCompassAngle(),
+            direction = angleToDirection(angle);
+
+        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
+        message =  image + directionToDirectionMessage(direction);
         setMessage(message);
     }
 
@@ -115,10 +160,15 @@ function Compass ($) {
        svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
     }
 
+    function updateMessage (streetName) {
+        setTurnMessage(streetName);
+    }
+
     self.update = update;
     self.hideMessage = hideMessage;
     self.showMessage = showMessage;
     self.setTurnMessage = setTurnMessage;
+    self.updateMessage = updateMessage;
 
     _init();
 

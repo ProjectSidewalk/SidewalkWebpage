@@ -8,9 +8,7 @@ var svl = svl || {};
  * @constructor
  */
 function ProgressFeedback ($, params) {
-    var self = {
-        className : 'ProgressFeedback'
-    };
+    var self = { className : 'ProgressFeedback' };
     var properties = {
         progressBarWidth : undefined
     };
@@ -23,9 +21,6 @@ function ProgressFeedback ($, params) {
     var $progressBarFilled;
     var $progressMessage;
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////////////////////////////////////////////
     function init (params) {
         $progressBarContainer = $("#ProgressBarContainer");
         $progressBarFilled = $("#ProgressBarFilled");
@@ -43,9 +38,6 @@ function ProgressFeedback ($, params) {
     }
 
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////////////////////////////////////////////
     self.setMessage = function (message) {
         // This function sets a message box in the feedback area.
         $progressMessage.html(message);

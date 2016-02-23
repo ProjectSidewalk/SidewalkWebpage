@@ -477,7 +477,6 @@ function Task ($, L, turf) {
             taskSetting = task;
             lat = taskSetting.features[0].geometry.coordinates[0][1];
             lng = taskSetting.features[0].geometry.coordinates[0][0];
-            renderTaskPath();
         } else {
             // Starting a new task.
             svl.setPosition(lat1, lng1);
@@ -485,7 +484,12 @@ function Task ($, L, turf) {
             taskSetting = task;
             lat = taskSetting.features[0].geometry.coordinates[0][1];
             lng = taskSetting.features[0].geometry.coordinates[0][0];
-            renderTaskPath();
+        }
+        renderTaskPath();
+
+        if ('compass' in svl) {
+            svl.compass.setTurnMessage("--- street name ---");
+            svl.compass.showMessage();
         }
     }
 
@@ -496,7 +500,9 @@ function Task ($, L, turf) {
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
-    self.getTaskCompletionRate = function () { return taskCompletionRate ? taskCompletionRate : 0; };
+    self.getTaskCompletionRate = function () {
+        return taskCompletionRate ? taskCompletionRate : 0;
+    };
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
     self.load = load;
