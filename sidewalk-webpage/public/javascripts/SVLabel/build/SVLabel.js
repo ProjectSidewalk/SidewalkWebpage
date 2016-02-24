@@ -1,13 +1,3 @@
-/**
- * Fog.js
- *
- * @Author: Ruofei Du
- * @InitialCreator: Sean Panella and Vicki Le & Kotaro (Aug 12th, 2013.)
- * @Date: Sep 17, 2013
- * @Comment: we don't need Fog/Clipper.js now
- *
- **/
-
  /** @namespace */
  var svl = svl || {};
  
@@ -2506,6 +2496,7 @@ function Compass ($) {
         setTurnMessage(streetName);
     }
 
+    self.getCompassAngle = getCompassAngle;
     self.update = update;
     self.hideMessage = hideMessage;
     self.showMessage = showMessage;
@@ -5683,6 +5674,7 @@ function Map ($, params) {
             svLinkArrowsLoaded : false
         };
 
+    var initialPositionUpdate = true;
     var panoramaOptions;
     var streetViewService = new google.maps.StreetViewService();
     var STREETVIEW_MAX_DISTANCE = 50;
@@ -6091,9 +6083,7 @@ function Map ($, params) {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
 
-        if ('compass' in svl) {
-            svl.compass.update();
-        }
+        if ('compass' in svl) { svl.compass.update(); }
     }
 
     /**
@@ -6111,6 +6101,15 @@ function Map ($, params) {
             }
         }
 
+        // Set the heading angle.
+        if (initialPositionUpdate && 'compass' in svl) {
+            var pov = svl.panorama.getPov(),
+                compassAngle = svl.compass.getCompassAngle();
+            pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
+            svl.panorama.setPov(pov);
+            initialPositionUpdate = false;
+
+        }
         if ('compass' in svl) { svl.compass.update(); }
         if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
     }
@@ -6130,7 +6129,6 @@ function Map ($, params) {
             	svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
             }
             status.currentPanoId = svl.getPanoId();
-
             svl.canvas.render2();
         }
 
@@ -6158,9 +6156,7 @@ function Map ($, params) {
             }
         }
 
-        if ('compass' in svl) {
-            svl.compass.update();
-        }
+        if ('compass' in svl) { svl.compass.update(); }
     }
 
     /**
@@ -8742,7 +8738,7 @@ function ProgressPov ($, param) {
             if (taskCompletionRate > 0.1) {
                 svl.compass.hideMessage();
             } else {
-                svl.compass.updateMessage(" --- street name ---");
+                svl.compass.updateMessage();
             }
         }
         return taskCompletionRate;
@@ -10639,8 +10635,9 @@ function Task ($, L, turf) {
         renderTaskPath();
 
         if ('compass' in svl) {
-            svl.compass.setTurnMessage("--- street name ---");
+            svl.compass.setTurnMessage();
             svl.compass.showMessage();
+            svl.compass.update();
         }
     }
 

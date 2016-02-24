@@ -101,7 +101,7 @@ function ProgressPov ($, param) {
             if (taskCompletionRate > 0.1) {
                 svl.compass.hideMessage();
             } else {
-                svl.compass.updateMessage(" --- street name ---");
+                svl.compass.updateMessage();
             }
         }
         return taskCompletionRate;

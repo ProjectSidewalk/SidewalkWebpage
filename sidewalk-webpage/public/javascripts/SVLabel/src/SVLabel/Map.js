@@ -133,6 +133,7 @@ function Map ($, params) {
             svLinkArrowsLoaded : false
         };
 
+    var initialPositionUpdate = true;
     var panoramaOptions;
     var streetViewService = new google.maps.StreetViewService();
     var STREETVIEW_MAX_DISTANCE = 50;
@@ -541,9 +542,7 @@ function Map ($, params) {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
 
-        if ('compass' in svl) {
-            svl.compass.update();
-        }
+        if ('compass' in svl) { svl.compass.update(); }
     }
 
     /**
@@ -561,6 +560,15 @@ function Map ($, params) {
             }
         }
 
+        // Set the heading angle.
+        if (initialPositionUpdate && 'compass' in svl) {
+            var pov = svl.panorama.getPov(),
+                compassAngle = svl.compass.getCompassAngle();
+            pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
+            svl.panorama.setPov(pov);
+            initialPositionUpdate = false;
+
+        }
         if ('compass' in svl) { svl.compass.update(); }
         if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
     }
@@ -580,7 +588,6 @@ function Map ($, params) {
             	svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
             }
             status.currentPanoId = svl.getPanoId();
-
             svl.canvas.render2();
         }
 
@@ -608,9 +615,7 @@ function Map ($, params) {
             }
         }
 
-        if ('compass' in svl) {
-            svl.compass.update();
-        }
+        if ('compass' in svl) { svl.compass.update(); }
     }
 
     /**

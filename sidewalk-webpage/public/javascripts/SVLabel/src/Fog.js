@@ -1,13 +1,3 @@
-/**
- * Fog.js
- *
- * @Author: Ruofei Du
- * @InitialCreator: Sean Panella and Vicki Le & Kotaro (Aug 12th, 2013.)
- * @Date: Sep 17, 2013
- * @Comment: we don't need Fog/Clipper.js now
- *
- **/
-
  /** @namespace */
  var svl = svl || {};
  

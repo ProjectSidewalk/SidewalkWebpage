@@ -164,6 +164,7 @@ function Compass ($) {
         setTurnMessage(streetName);
     }
 
+    self.getCompassAngle = getCompassAngle;
     self.update = update;
     self.hideMessage = hideMessage;
     self.showMessage = showMessage;

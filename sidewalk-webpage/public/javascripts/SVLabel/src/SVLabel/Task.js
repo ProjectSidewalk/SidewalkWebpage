@@ -488,8 +488,9 @@ function Task ($, L, turf) {
         renderTaskPath();
 
         if ('compass' in svl) {
-            svl.compass.setTurnMessage("--- street name ---");
+            svl.compass.setTurnMessage();
             svl.compass.showMessage();
+            svl.compass.update();
         }
     }
 
