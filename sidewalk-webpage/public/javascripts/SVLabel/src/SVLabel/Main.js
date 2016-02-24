@@ -57,6 +57,10 @@ function Main ($, params) {
         svl.modalComment = new ModalComment($);
         svl.modalMission = new ModalMission($);
 
+        svl.neighborhood = new Neighborhood();
+        svl.mission = new Mission();
+        svl.achievement = new Achievment();
+
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
           // Set map parameters and instantiate it.
