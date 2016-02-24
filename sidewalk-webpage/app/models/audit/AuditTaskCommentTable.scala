@@ -35,6 +35,11 @@ object AuditTaskCommentTable {
   val auditTaskComments = TableQuery[AuditTaskCommentTable]
   val users = TableQuery[UserTable]
 
+  /**
+    * Get all task records of the given user
+    * @param username
+    * @return
+    */
   def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
     val comments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
@@ -44,12 +49,22 @@ object AuditTaskCommentTable {
     Some(comments)
   }
 
+  /**
+    * Insert a task record
+    * @param comment
+    * @return
+    */
   def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
     val auditTaskCommentId: Int =
       (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
     auditTaskCommentId
   }
 
+  /**
+    * Take the last n items
+    * @param n
+    * @return
+    */
   def takeRight(n: Integer): List[AuditTaskComment] = db.withTransaction { implicit session =>
     val comments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
