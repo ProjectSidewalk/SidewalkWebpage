@@ -2147,12 +2147,6 @@ function Canvas ($, param) {
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) { renderTempPath(); }
 
-        // Check if the user audited all the angles or not.
-        //if ('form' in svl) { svl.form.checkSubmittable(); }
-
-        //// Update the completion rate
-        //if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
-
         // Update the landmark counts on the right side of the interface.
         if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
 
@@ -3113,8 +3107,8 @@ function Form ($, params) {
      * @returns {boolean}
      */
     function checkSubmittable () {
-        if ('progressPov' in svl && svl.progressPov) {
-            var completionRate = svl.progressPov.getCompletionRate();
+        if ('missionProgress' in svl && svl.missionProgress) {
+            var completionRate = svl.missionProgress.getCompletionRate();
         } else {
             var completionRate = 0;
         }
@@ -3236,7 +3230,7 @@ function Form ($, params) {
      *
      */
     function showDisabledSubmitButtonMessage () {
-        var completionRate = parseInt(svl.progressPov.getCompletionRate() * 100, 10);
+        var completionRate = parseInt(svl.missionProgress.getCompletionRate() * 100, 10);
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {
@@ -5552,7 +5546,7 @@ function Main ($, params) {
         svl.zoomControl = new ZoomControl($);
         svl.tooltip = undefined;
         svl.onboarding = undefined;
-        svl.progressPov = new ProgressPov($);
+        svl.missionProgress = new MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
         svl.labelFactory = new LabelFactory();
@@ -6206,7 +6200,7 @@ function Map ($, params) {
 
         }
         if ('compass' in svl) { svl.compass.update(); }
-        if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
+        if ('missionProgress' in svl) { svl.missionProgress.updateCompletionRate(); }
     }
 
     /**
@@ -6914,6 +6908,121 @@ function Mission() {
     self.getMissionIds = getMissionIds;
     return self;
 }
+var svl = svl || {};
+
+/**
+ *
+ * @param $
+ * @param param
+ * @returns {{className: string}}
+ * @constructor
+ */
+function MissionProgress () {
+    var self = {className: 'ProgressPov'};
+    var status = {
+        currentCompletionRate: 0,
+        previousHeading: 0,
+        surveyedAngles: undefined
+    };
+
+    var $divCurrentCompletionRate;
+    var $divCurrentCompletionBar;
+    var $divCurrentCompletionBarFiller;
+
+
+    function _init() {
+        $divCurrentCompletionRate = svl.ui.progressPov.rate;
+        $divCurrentCompletionBar = svl.ui.progressPov.bar;
+        $divCurrentCompletionBarFiller = svl.ui.progressPov.filler;
+
+        // Fill in the surveyed angles
+        status.surveyedAngles = new Array(100);
+        for (var i=0; i < 100; i++) {
+            status.surveyedAngles[i] = 0;
+        }
+
+
+        printCompletionRate();
+    }
+
+    /**
+     * This method prints what percent of the intersection the user has observed.
+     * @returns {printCompletionRate}
+     */
+    function printCompletionRate () {
+        var completionRate = getCompletionRate() * 100;
+        completionRate = completionRate.toFixed(0, 10);
+        completionRate = completionRate + "% complete";
+        $divCurrentCompletionRate.html(completionRate);
+        return this;
+    }
+
+    /**
+     * This method updates the filler of the completion bar
+     */
+    function updateCompletionBar () {
+        var r, g, color, completionRate = getCompletionRate();
+        var colorIntensity = 230;
+        if (completionRate < 0.5) {
+            r = colorIntensity;
+            g = parseInt(colorIntensity * completionRate * 2);
+        } else {
+            r = parseInt(colorIntensity * (1 - completionRate) * 2);
+            g = colorIntensity;
+        }
+
+        color = 'rgba(' + r + ',' + g + ',0,1)';
+        completionRate *=  100;
+        completionRate = completionRate.toFixed(0, 10);
+        completionRate -= 0.8;
+        completionRate = completionRate + "%";
+        $divCurrentCompletionBarFiller.css({
+            background: color,
+            width: completionRate
+        });
+    }
+
+    /**
+     * This method updates the printed completion rate and the bar.
+     */
+    function updateCompletionRate () {
+        printCompletionRate();
+        updateCompletionBar();
+    }
+
+    /**
+     * This method returns what percent of the intersection the user has observed.
+     * @returns {number}
+     */
+    function getCompletionRate () {
+        var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
+        if ('compass' in svl) {
+            svl.compass.update();
+            if (taskCompletionRate > 0.1) {
+                svl.compass.hideMessage();
+            } else {
+                svl.compass.updateMessage();
+            }
+        }
+        return taskCompletionRate;
+    }
+
+
+    function setCompletedHeading (range) {
+        var headingMin = range[0], headingMax = range[1],
+            indexMin = Math.floor(headingMin / 360 * 100), indexMax = Math.floor(headingMax / 360 * 100);
+        for (var i = indexMin; i < indexMax; i++) { status.surveyedAngles[i] = 1; }
+        return this;
+    }
+
+    self.getCompletionRate = getCompletionRate;
+    self.setCompletedHeading = setCompletedHeading;
+    self.updateCompletionRate = updateCompletionRate;
+
+    _init();
+    return self;
+}
+
 function ModalComment ($) {
     var self = { className: 'ModalComment'},
         status = {
@@ -8676,256 +8785,96 @@ function PopUpMessage ($, param) {
     return self;
 }
 
-var svl = svl || {};
-
-/**
- *
- * @param $
- * @param params
- * @returns {{className: string}}
- * @constructor
- */
-function ProgressFeedback ($, params) {
-    var self = { className : 'ProgressFeedback' };
-    var properties = {
-        progressBarWidth : undefined
-    };
-    var status = {
-        progress : undefined
-    };
-
-    // jQuery elements
-    var $progressBarContainer;
-    var $progressBarFilled;
-    var $progressMessage;
-
-    function init (params) {
-        $progressBarContainer = $("#ProgressBarContainer");
-        $progressBarFilled = $("#ProgressBarFilled");
-        $progressMessage = $("#Progress_Message");
-
-        properties.progressBarWidth = $progressBarContainer.width();
-
-        if (params && params.message) {
-            self.setMessage(params.message);
-        } else {
-            self.setMessage('');
-        }
-
-        self.setProgress(0);
-    }
-
-
-    self.setMessage = function (message) {
-        // This function sets a message box in the feedback area.
-        $progressMessage.html(message);
-    };
-
-
-    self.setProgress = function (progress) {
-        // Check if the passed argument is a number. If not, try parsing it as a
-        // float value. If it fails (if parseFloat returns NaN), then throw an error.
-        if (typeof progress !== "number") {
-            progress = parseFloat(progress);
-        }
-
-        if (progress === NaN) {
-            throw new TypeError(self.className + ': The passed value cannot be parsed.');
-        }
-
-        if (progress > 1) {
-            progress = 1.0;
-            console.error(self.className + ': You can not pass a value larger than 1 to setProgress.');
-        }
-
-        status.progress = progress;
-
-        if (properties.progressBarWidth) {
-            var r;
-            var g;
-            var color;
-
-            if (progress < 0.5) {
-                r = 255;
-                g = parseInt(255 * progress * 2);
-            } else {
-                r = parseInt(255 * (1 - progress) * 2);
-                g = 255;
-            }
-
-            color = 'rgba(' + r + ',' + g + ',0,1)';
-            $progressBarFilled.css({
-                background: color,
-                width: progress * properties.progressBarWidth
-            });
-        }
-
-        return this;
-    };
-
-    init(params);
-    return self;
-}
-
-var svl = svl || {};
-
-/**
- *
- * @param $
- * @param param
- * @returns {{className: string}}
- * @constructor
- */
-function ProgressPov ($, param) {
-    var self = {className: 'ProgressPov'};
-    var status = {
-        currentCompletionRate: 0,
-        previousHeading: 0,
-        surveyedAngles: undefined
-    };
-
-    var $divCurrentCompletionRate;
-    var $divCurrentCompletionBar;
-    var $divCurrentCompletionBarFiller;
-
-
-    function _init(param) {
-        $divCurrentCompletionRate = svl.ui.progressPov.rate;
-        $divCurrentCompletionBar = svl.ui.progressPov.bar;
-        $divCurrentCompletionBarFiller = svl.ui.progressPov.filler;
-
-        // Fill in the surveyed angles
-        status.surveyedAngles = new Array(100);
-        for (var i=0; i < 100; i++) {
-            status.surveyedAngles[i] = 0;
-        }
-
-        if (param && param.pov) {
-            status.previousHeading = param.pov.heading;
-        } else {
-            try {
-                var pov = svl.getPov();
-                status.previousHeading = pov.heading;
-            } catch (e) {
-                status.previousHeading = 0;
-            }
-        }
-
-        printCompletionRate();
-    }
-
-    /**
-     * This method prints what percent of the intersection the user has observed.
-     * @returns {printCompletionRate}
-     */
-    function printCompletionRate () {
-        var completionRate = getCompletionRate() * 100;
-        completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "% complete";
-        $divCurrentCompletionRate.html(completionRate);
-        return this;
-    }
-
-    /**
-     * This method updates the filler of the completion bar
-     */
-    function updateCompletionBar () {
-        var r, g, color, completionRate = getCompletionRate();
-        var colorIntensity = 230;
-        if (completionRate < 0.5) {
-            r = colorIntensity;
-            g = parseInt(colorIntensity * completionRate * 2);
-        } else {
-            r = parseInt(colorIntensity * (1 - completionRate) * 2);
-            g = colorIntensity;
-        }
-
-        color = 'rgba(' + r + ',' + g + ',0,1)';
-        completionRate *=  100;
-        completionRate = completionRate.toFixed(0, 10);
-        completionRate -= 0.8;
-        completionRate = completionRate + "%";
-        $divCurrentCompletionBarFiller.css({
-            background: color,
-            width: completionRate
-        });
-    }
-
-    /**
-     * This method updates the printed completion rate and the bar.
-     */
-    function updateCompletionRate () {
-        printCompletionRate();
-        updateCompletionBar();
-    }
-
-    /**
-     * This method returns what percent of the intersection the user has observed.
-     * @returns {number}
-     */
-    function getCompletionRate () {
-        var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
-        if ('compass' in svl) {
-            svl.compass.update();
-            if (taskCompletionRate > 0.1) {
-                svl.compass.hideMessage();
-            } else {
-                svl.compass.updateMessage();
-            }
-        }
-        return taskCompletionRate;
-
-        //try {
-        //    if (status.currentCompletionRate < 1) {
-        //        var headingRange = 25;
-        //        var pov = svl.getPOV();
-        //        var heading = pov.heading;
-        //        var headingMin = (heading - headingRange + 360) % 360;
-        //        var headingMax = (heading + headingRange) % 360;
-        //        var indexMin = Math.floor(headingMin / 360 * 100);
-        //        var indexMax = Math.floor(headingMax / 360 * 100);
-        //        var i = 0;
-        //        if (indexMin < indexMax) {
-        //            for (i = indexMin; i < indexMax; i++) {
-        //                status.surveyedAngles[i] = 1;
-        //            }
-        //        } else {
-        //            for (i = indexMin; i < 100; i++) {
-        //                status.surveyedAngles[i] = 1;
-        //            }
-        //            for (i = 0; i < indexMax; i++) {
-        //                status.surveyedAngles[i] = 1;
-        //            }
-        //        }
-        //
-        //        var total = status.surveyedAngles.reduce(function(a, b) {return a + b});
-        //        status.currentCompletionRate = total / 100;
-        //
-        //        status.previousHeading = heading;
-        //        return total / 100;
-        //    } else {
-        //        return 1;
-        //    }
-        //} catch (e) {
-        //    return 0;
-        //}
-    }
-
-
-    function setCompletedHeading (range) {
-        var headingMin = range[0], headingMax = range[1],
-            indexMin = Math.floor(headingMin / 360 * 100), indexMax = Math.floor(headingMax / 360 * 100);
-        for (var i = indexMin; i < indexMax; i++) { status.surveyedAngles[i] = 1; }
-        return this;
-    }
-
-    self.getCompletionRate = getCompletionRate;
-    self.setCompletedHeading = setCompletedHeading;
-    self.updateCompletionRate = updateCompletionRate;
-
-    _init(param);
-    return self;
-}
+//var svl = svl || {};
+//
+///**
+// *
+// * @param $
+// * @param params
+// * @returns {{className: string}}
+// * @constructor
+// */
+//function ProgressFeedback ($, params) {
+//    var self = { className : 'ProgressFeedback' };
+//    var properties = {
+//        progressBarWidth : undefined
+//    };
+//    var status = {
+//        progress : undefined
+//    };
+//
+//    // jQuery elements
+//    var $progressBarContainer;
+//    var $progressBarFilled;
+//    var $progressMessage;
+//
+//    function init (params) {
+//        $progressBarContainer = $("#ProgressBarContainer");
+//        $progressBarFilled = $("#ProgressBarFilled");
+//        $progressMessage = $("#Progress_Message");
+//
+//        properties.progressBarWidth = $progressBarContainer.width();
+//
+//        if (params && params.message) {
+//            self.setMessage(params.message);
+//        } else {
+//            self.setMessage('');
+//        }
+//
+//        self.setProgress(0);
+//    }
+//
+//
+//    self.setMessage = function (message) {
+//        // This function sets a message box in the feedback area.
+//        $progressMessage.html(message);
+//    };
+//
+//
+//    self.setProgress = function (progress) {
+//        // Check if the passed argument is a number. If not, try parsing it as a
+//        // float value. If it fails (if parseFloat returns NaN), then throw an error.
+//        if (typeof progress !== "number") {
+//            progress = parseFloat(progress);
+//        }
+//
+//        if (progress === NaN) {
+//            throw new TypeError(self.className + ': The passed value cannot be parsed.');
+//        }
+//
+//        if (progress > 1) {
+//            progress = 1.0;
+//            console.error(self.className + ': You can not pass a value larger than 1 to setProgress.');
+//        }
+//
+//        status.progress = progress;
+//
+//        if (properties.progressBarWidth) {
+//            var r;
+//            var g;
+//            var color;
+//
+//            if (progress < 0.5) {
+//                r = 255;
+//                g = parseInt(255 * progress * 2);
+//            } else {
+//                r = parseInt(255 * (1 - progress) * 2);
+//                g = 255;
+//            }
+//
+//            color = 'rgba(' + r + ',' + g + ',0,1)';
+//            $progressBarFilled.css({
+//                background: color,
+//                width: progress * properties.progressBarWidth
+//            });
+//        }
+//
+//        return this;
+//    };
+//
+//    init(params);
+//    return self;
+//}
 
 var svl = svl || {};
 

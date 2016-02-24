@@ -1000,12 +1000,6 @@ function Canvas ($, param) {
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) { renderTempPath(); }
 
-        // Check if the user audited all the angles or not.
-        //if ('form' in svl) { svl.form.checkSubmittable(); }
-
-        //// Update the completion rate
-        //if ('progressPov' in svl) { svl.progressPov.updateCompletionRate(); }
-
         // Update the landmark counts on the right side of the interface.
         if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
 

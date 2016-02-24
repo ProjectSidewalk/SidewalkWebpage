@@ -196,8 +196,8 @@ function Form ($, params) {
      * @returns {boolean}
      */
     function checkSubmittable () {
-        if ('progressPov' in svl && svl.progressPov) {
-            var completionRate = svl.progressPov.getCompletionRate();
+        if ('missionProgress' in svl && svl.missionProgress) {
+            var completionRate = svl.missionProgress.getCompletionRate();
         } else {
             var completionRate = 0;
         }
@@ -319,7 +319,7 @@ function Form ($, params) {
      *
      */
     function showDisabledSubmitButtonMessage () {
-        var completionRate = parseInt(svl.progressPov.getCompletionRate() * 100, 10);
+        var completionRate = parseInt(svl.missionProgress.getCompletionRate() * 100, 10);
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {

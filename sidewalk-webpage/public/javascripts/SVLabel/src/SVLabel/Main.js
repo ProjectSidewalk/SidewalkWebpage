@@ -46,7 +46,7 @@ function Main ($, params) {
         svl.zoomControl = new ZoomControl($);
         svl.tooltip = undefined;
         svl.onboarding = undefined;
-        svl.progressPov = new ProgressPov($);
+        svl.missionProgress = new MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = new Tracker();
         svl.labelFactory = new LabelFactory();
