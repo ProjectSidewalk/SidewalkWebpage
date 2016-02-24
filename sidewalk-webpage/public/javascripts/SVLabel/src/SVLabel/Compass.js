@@ -87,6 +87,8 @@ function Compass ($) {
             .attr('fill', rgb);
         chart.transition(100)
             .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
+
+        setTurnMessage();
     }
 
     function angleToDirection (angle) {
@@ -94,9 +96,9 @@ function Compass ($) {
         if (angle < 20 || angle > 340)
             return "straight";
         else if (angle >= 20 && angle < 45)
-            return "left";  // return "slight-left";
+            return "slight-left";
         else if (angle <= 340 && angle > 315)
-            return "right";  // return "slight-right";
+            return "slight-right";
         else if (angle >= 35 && angle < 180)
             return "left";
         else if (angle <= 315 && angle >= 180)
@@ -109,7 +111,7 @@ function Compass ($) {
     function directionToDirectionMessage(direction) {
         switch (direction) {
             case "straight":
-                return "Keep walking straight";
+                return "Walk straight";
             case "slight-right":
                 return "Turn slightly towards right";
             case "slight-left":
@@ -138,8 +140,8 @@ function Compass ($) {
         }
     }
 
-    function setTurnMessage (streetName) {
-        var imageFilePath, image, message,
+    function setTurnMessage () {
+        var image, message,
             angle = getCompassAngle(),
             direction = angleToDirection(angle);
 
