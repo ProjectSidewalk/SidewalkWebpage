@@ -5479,6 +5479,7 @@ function Main ($, params) {
         svl.audioEffect = new AudioEffect();
         svl.modalSkip = new ModalSkip($);
         svl.modalComment = new ModalComment($);
+        svl.modalMission = new ModalMission($);
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
@@ -6916,6 +6917,78 @@ function ModalComment ($) {
     _init();
     return self;
 }
+var svl = svl || {};
+
+function ModalMission ($) {
+    var self = { className : 'ModalMission'},
+        properties = {
+            boxTop: 180,
+            boxLeft: 45,
+            boxWidth: 640
+        };
+
+    function _init () {
+        //setMission("area-coverage", {
+        //    "modal-mission-area-coverage-rate": 10,
+        //    "modal-mission-area-coverage-left-column-image-src": svl.rootDirectory + "img/icons/AreaCoverage_10Percent.png"
+        //});
+
+        setMission("initial-mission-complete");
+    }
+
+    function getProperty (key) { return key in properties ? properties[key] : null; }
+
+    /**
+     * Hide a mission
+     */
+    function hideMission () {
+        svl.ui.modalMission.holder.addClass('hidden');
+
+        svl.ui.modalMission.box.css({
+            top: getProperty("boxTop"),
+            left: getProperty("boxLeft"),
+            width: getProperty("boxWidth")
+        })
+    }
+
+    /**
+     * Show a mission
+     */
+    function showMission () {
+        svl.ui.modalMission.holder.removeClass('hidden');
+    }
+
+    /**
+     *
+     * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
+     */
+    function setMission (mission, parameters) {
+        svl.ui.modalMission.box.html($("template.missions[val='" + mission + "']").html());
+
+        if (parameters) {
+            if ("modal-mission-area-coverage-left-column-image-src" in parameters) {
+                var image = "<img src='" + parameters["modal-mission-area-coverage-left-column-image-src"] + "' class='center-block modal-mission-left-column-images' alt='Area coverage mission icon' />";
+                $("#modal-mission-area-coverage-left-column").html(image);
+            }
+
+            if ("modal-mission-area-coverage-rate" in parameters) {
+                $("#modal-mission-area-coverage-rate").text(parameters["modal-mission-area-coverage-rate"]);
+            }
+        }
+
+        $("#modal-mission-holder .ok-button").on("click", hideMission);
+        showMission();
+    }
+
+
+    _init();
+
+    //self.showMission = showMission;
+    //self.hideMission = hideMission;
+    self.setMission = setMission;
+    return self;
+}
+
 var svl = svl || {};
 
 /**
@@ -8833,7 +8906,7 @@ function RibbonMenu ($, params) {
 
             // Initialize the color of the lines at the bottom of ribbon menu icons
             $.each($ribbonButtonBottomLines, function (i, v) {
-                var labelType = $(v).attr("value"), color = labelColors[labelType].fillStyle;
+                var labelType = $(v).attr("val"), color = labelColors[labelType].fillStyle;
                 if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
                 $(v).css('border-top-color', color);
@@ -8869,7 +8942,7 @@ function RibbonMenu ($, params) {
      * @param mode
      */
     function modeSwitch (mode) {
-        var labelType = (typeof mode === 'string') ? mode : $(this).attr('value'); // Do I need this???
+        var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
 
         if (status.disableModeSwitch === false) {
             var labelColors, ribbonConnectorPositions, borderColor;
@@ -8915,7 +8988,7 @@ function RibbonMenu ($, params) {
 
     function handleSubcategoryClick (e) {
         e.stopPropagation();
-        var subcategory = $(this).attr('value');
+        var subcategory = $(this).attr("val");
         svl.tracker.push('Click_Subcategory_' + subcategory);
         console.log("Subcategory", subcategory);
         modeSwitch(subcategory);
@@ -8924,7 +8997,7 @@ function RibbonMenu ($, params) {
 
     function handleModeSwitchClickCallback () {
         if (status.disableModeSwitch === false) {
-            var labelType = $(this).attr('value');
+            var labelType = $(this).attr('val');
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) { return false; }
@@ -8941,7 +9014,7 @@ function RibbonMenu ($, params) {
         if (status.disableModeSwitch === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
-            var labelType = $(this).attr("value");
+            var labelType = $(this).attr("val");
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) { return false; }
@@ -8981,7 +9054,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('value');
+              labelType = $(v).attr("val");
               if (labelType === mode) {
                   if (labelType === 'Walk') {
                       backgroundColor = "#ccc";
@@ -9013,7 +9086,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('value');
+              labelType = $(v).attr("val");
               if (labelType=== mode) {
                   $(this).css({
                       "border-color" : borderColor,
@@ -9062,7 +9135,7 @@ function RibbonMenu ($, params) {
     function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each($spansModeSwitches, function (i, v) {
-                var labelType = $(v).attr('value');
+                var labelType = $(v).attr("val");
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
                     labelType === 'Landmark_Shelter')
@@ -10862,6 +10935,11 @@ function UI ($, params) {
         self.modalComment.cancel = $("#modal-comment-cancel-button");
         self.modalComment.textarea = $("#modal-comment-textarea");
 
+        // Mission
+        self.modalMission = {};
+        self.modalMission.holder = $("#modal-mission-holder");
+        self.modalMission.box = $("#modal-mission-box");
+
         // Zoom control
         self.zoomControl = {};
         self.zoomControl.holder = $("#zoom-control-holder");
@@ -10949,7 +11027,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function Validator (param, $) {
-    var oPublic = {
+    var self = {
         'className' : 'Validator'
     };
     var properties = {
@@ -10987,9 +11065,6 @@ function Validator (param, $) {
     var $spanNumTotalTasks;
     var $divProgressBarFiller;
 
-    ////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////
     function currentLabelVisibilitySpanMousein (e) {
         // This is a mousein callback method for spans that hold ShowLabel/HideLabel radio buttons
         var $span = $(this);
@@ -11532,10 +11607,7 @@ function Validator (param, $) {
         mouse.menuBarMouseUpY = m.y;
     }
 
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    oPublic.disableAgreeButton = function () {
+    self.disableAgreeButton = function () {
         // This method disables the Agree button.
         status.disableAgreeButton = true;
         $btnAgree.css('opacity', '0.5');
@@ -11543,7 +11615,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.disableDisagreeButton = function () {
+    self.disableDisagreeButton = function () {
         // This method disables the Disagree button.
         status.disableDisagreeButton = true;
         $btnDisagree.css('opacity', '0.5');
@@ -11551,7 +11623,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.disableRadioButtons = function () {
+    self.disableRadioButtons = function () {
         // This method disables "Show label" and "Hide label" radio buttons
         status.disableRadioButtons = true;
         $radioValidationCurrentLabelVisibility.each(function (i, v) {
@@ -11560,7 +11632,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.enableAgreeButton = function () {
+    self.enableAgreeButton = function () {
         // This method enables the Agree button.
         status.disableAgreeButton = false;
         $btnAgree.css('opacity', '1');
@@ -11568,14 +11640,14 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.enableDisagreeButton = function () {
+    self.enableDisagreeButton = function () {
         // This method enables the Disagree button.
         status.disableDisagreeButton = false;
         $btnDisagree.css('opacity', '1');
         $btnDisagree.attr('disabled', false);
     };
 
-    oPublic.enableRadioButtons = function () {
+    self.enableRadioButtons = function () {
         // This method enables "Show label" and "Hide label" radio buttons
         status.disableRadioButtons = false;
         $radioValidationCurrentLabelVisibility.each(function (i, v) {
@@ -11584,18 +11656,18 @@ function Validator (param, $) {
         return;
     };
 
-    oPublic.getLabels = function () {
+    self.getLabels = function () {
         // This method returns validatorLabels
         return $.extend(true, [], labels);
     };
 
-    oPublic.hideDialogWindow = function () {
+    self.hideDialogWindow = function () {
         // This method hides a dialog window
         hideDialogWindow();
         return this;
     };
 
-    oPublic.insertLabels = function (labelPoints) {
+    self.insertLabels = function (labelPoints) {
         // This method takes a label data (i.e., a set of point coordinates, label types, etc) and
         // and insert it into the labels array so the Canvas will render it
         var labelDescriptions = svl.misc.getLabelDescriptions();
@@ -11630,25 +11702,25 @@ function Validator (param, $) {
         updateProgress();
     };
 
-    oPublic.setDialogWindowBorderWidth = function (width) {
+    self.setDialogWindowBorderWidth = function (width) {
         // This method sets the border width of the dialog window.
         $divValidationDialogWindow.css('border-width', width);
         return this;
     };
 
-    oPublic.setDialogWindowBorderColor = function (color) {
+    self.setDialogWindowBorderColor = function (color) {
         // This method sets the border color of the dialog window.
         $divValidationDialogWindow.css('border-color', color);
         return this;
     };
 
-    oPublic.showDialogWindow = function (timelapse) {
+    self.showDialogWindow = function (timelapse) {
         // This method shows a dialog window
         showDialogWindow(timelapse);
         return this;
     };
 
-    oPublic.sortLabels = function () {
+    self.sortLabels = function () {
         // This method sorts the labels by it's heading angle.
         // Sorting an array of objects
         // http://stackoverflow.com/questions/1129216/sorting-objects-in-an-array-by-a-field-value-in-javascript
@@ -11666,7 +11738,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.validateNext = function (timelapse) {
+    self.validateNext = function (timelapse) {
         // This method changes the heading angle so the next unvalidated label will be centered
         // on the canvas.
         // 0. Wait and see whether panorama is ready
@@ -11675,10 +11747,10 @@ function Validator (param, $) {
         // 3. Adjust the SV heading angle and pitch angle so the target label will be centered.
 
         if (!('map' in svl)) {
-            throw oPublic.className + ': Map is not defined.';
+            throw self.className + ': Map is not defined.';
         }
         if (!('canvas' in svl)) {
-            throw oPublic.className + ': Canvas is not defined.';
+            throw self.className + ': Canvas is not defined.';
         }
 
         currentLabel = getNextLabel();
@@ -11715,16 +11787,13 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.setOnboarding = function (val) {
+    self.setOnboarding = function (val) {
         properties.onboarding = val;
     };
 
-    ////////////////////////////////////////
-    // Initialize
-    ////////////////////////////////////////
     init(param);
 
-    return oPublic;
+    return self;
 }
 
 var svl = svl || {};

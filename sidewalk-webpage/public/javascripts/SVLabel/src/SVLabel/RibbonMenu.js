@@ -47,7 +47,7 @@ function RibbonMenu ($, params) {
 
             // Initialize the color of the lines at the bottom of ribbon menu icons
             $.each($ribbonButtonBottomLines, function (i, v) {
-                var labelType = $(v).attr("value"), color = labelColors[labelType].fillStyle;
+                var labelType = $(v).attr("val"), color = labelColors[labelType].fillStyle;
                 if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
                 $(v).css('border-top-color', color);
@@ -83,7 +83,7 @@ function RibbonMenu ($, params) {
      * @param mode
      */
     function modeSwitch (mode) {
-        var labelType = (typeof mode === 'string') ? mode : $(this).attr('value'); // Do I need this???
+        var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
 
         if (status.disableModeSwitch === false) {
             var labelColors, ribbonConnectorPositions, borderColor;
@@ -129,7 +129,7 @@ function RibbonMenu ($, params) {
 
     function handleSubcategoryClick (e) {
         e.stopPropagation();
-        var subcategory = $(this).attr('value');
+        var subcategory = $(this).attr("val");
         svl.tracker.push('Click_Subcategory_' + subcategory);
         console.log("Subcategory", subcategory);
         modeSwitch(subcategory);
@@ -138,7 +138,7 @@ function RibbonMenu ($, params) {
 
     function handleModeSwitchClickCallback () {
         if (status.disableModeSwitch === false) {
-            var labelType = $(this).attr('value');
+            var labelType = $(this).attr('val');
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) { return false; }
@@ -155,7 +155,7 @@ function RibbonMenu ($, params) {
         if (status.disableModeSwitch === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
-            var labelType = $(this).attr("value");
+            var labelType = $(this).attr("val");
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) { return false; }
@@ -195,7 +195,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('value');
+              labelType = $(v).attr("val");
               if (labelType === mode) {
                   if (labelType === 'Walk') {
                       backgroundColor = "#ccc";
@@ -227,7 +227,7 @@ function RibbonMenu ($, params) {
           borderColor = labelColors[mode].fillStyle;
 
           $.each($spansModeSwitches, function (i, v) {
-              labelType = $(v).attr('value');
+              labelType = $(v).attr("val");
               if (labelType=== mode) {
                   $(this).css({
                       "border-color" : borderColor,
@@ -276,7 +276,7 @@ function RibbonMenu ($, params) {
     function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each($spansModeSwitches, function (i, v) {
-                var labelType = $(v).attr('value');
+                var labelType = $(v).attr("val");
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
                     labelType === 'Landmark_Shelter')

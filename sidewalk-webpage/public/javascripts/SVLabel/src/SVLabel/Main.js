@@ -55,6 +55,7 @@ function Main ($, params) {
         svl.audioEffect = new AudioEffect();
         svl.modalSkip = new ModalSkip($);
         svl.modalComment = new ModalComment($);
+        svl.modalMission = new ModalMission($);
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');

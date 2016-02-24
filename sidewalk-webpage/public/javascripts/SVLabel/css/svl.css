@@ -123,17 +123,12 @@ input[type="radio"] {
 
 #svl-application-holder {
     background: rgba(255,255,255,1);
-    margin: 0px auto;
+    margin: 0 auto;
     position: relative;
-    height: 700px;
+    height: 640px;
     width: 960px;
 }
 
-
-/*************************************************************
-* This style applies to a wrapper that holds the ribbon menu,
-* Street View window, feedback window, and Google Map window.
-*************************************************************/
 #interaction-area-holder {
     border: 3px solid transparent;
     position: absolute;

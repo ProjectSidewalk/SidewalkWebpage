@@ -1,12 +1,13 @@
-#modal-skip-holder, #modal-comment-holder {
+#modal-skip-holder, #modal-comment-holder, #modal-mission-holder {
     position: absolute;
     left: 0;
     top: 0;
     height: 100%;
     width: 100%;
+    text-align: justify;
 }
 
-#modal-skip-background, #modal-comment-background {
+#modal-skip-background, #modal-comment-background, #modal-mission-background {
     position: absolute;
     left: -55px;
     top: 0;
@@ -15,7 +16,7 @@
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box {
+#modal-skip-box, #modal-comment-box, #modal-mission-box {
     background: rgba(255, 255, 255, 1);
     border: 3px solid rgba(200, 200, 200, 1);
     color: black;
@@ -33,6 +34,13 @@
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
+#modal-mission-box {
+    top: 180px;
+    left: 45px;
+    padding: 30px;
+    width: 640px;
+}
+
 #modal-comment-textarea {
     height: 100px;
     width: 100%;
@@ -40,4 +48,17 @@
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-mission-images {
+    width: 60%;
+}
+
+.modal-mission-left-column-images {
+    width: 100%;
+    padding: 25px 0 0 0;
+}
+
+#modal-mission-holder .button {
+    width: 100%;
 }

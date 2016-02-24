@@ -39,12 +39,12 @@
                 <span id="ribbon-menu-left-column-holder">
                     <div id="ribbon-menu-left-column-title"></div>
                     <div id="ribbon-menu-left-column-button-holder">
-                        <span class="modeSwitch" value="Walk" id="modeSwitchWalk" style="">
+                        <span class="modeSwitch" val="Walk" id="modeSwitchWalk" style="">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="icon-explore" class="icon-ribbon-menu-large" alt="Mode switch: Walk" align="">
                             </span>
                             <span class="modeSwitch_Name" style="position:absolute; left: 0px;"><u>E</u>xplore</span>
-                            <div id="ribbon-mode-switch-horizontal-line-walk" class="ribbon-menu-mode-switch-horizontal-line" value="Walk"></div>
+                            <div id="ribbon-mode-switch-horizontal-line-walk" class="ribbon-menu-mode-switch-horizontal-line" val="Walk"></div>
                         </span>
                     </div>
                 </span>
@@ -53,55 +53,55 @@
                         Find and label the following
                     </div>
                     <div id="ribbon-menu-landmark-button-holder">
-                        <span id="ModeSwitchButton_CurbRamp" class="modeSwitch" value="CurbRamp">
+                        <span id="ModeSwitchButton_CurbRamp" class="modeSwitch" val="CurbRamp">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <div class="modeSwitch_Name"><u>C</u>urb Ramp</div>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" value="CurbRamp"></div>
+                            <div class="ribbon-menu-mode-switch-horizontal-line" val="CurbRamp"></div>
                         </span>
-                        <span id="ModeSwitchButton_NoCurbRamp" class="modeSwitch" value="NoCurbRamp">
+                        <span id="ModeSwitchButton_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <span class="modeSwitch_Name"><u>M</u>issing Curb Ramp</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" value="NoCurbRamp"></div>
+                            <div class="ribbon-menu-mode-switch-horizontal-line" val="NoCurbRamp"></div>
                         </span>
 
-                        <span id="ModeSwitchButton_Obstacle" class="modeSwitch" value="Obstacle">
+                        <span id="ModeSwitchButton_Obstacle" class="modeSwitch" val="Obstacle">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> a Path</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" value="Obstacle"></div>
+                            <div class="ribbon-menu-mode-switch-horizontal-line" val="Obstacle"></div>
                         </span>
-                        <span id="ModeSwitchButton_SurfaceProblem" class="modeSwitch" value="SurfaceProblem">
+                        <span id="ModeSwitchButton_SurfaceProblem" class="modeSwitch" val="SurfaceProblem">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <span class="modeSwitch_Name"><u>S</u>urface Problem</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" value="SurfaceProblem"></div>
+                            <div class="ribbon-menu-mode-switch-horizontal-line" val="SurfaceProblem"></div>
                         </span>
-                        <span id="ModeSwitchButton_Other" class="modeSwitch" value="Other">
+                        <span id="ModeSwitchButton_Other" class="modeSwitch" val="Other">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other2.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <span class="modeSwitch_Name">
                                 Other
                             </span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" value="Other"></div>
+                            <div class="ribbon-menu-mode-switch-horizontal-line" val="Other"></div>
                             <div id="ribbon-menu-other-subcategory-holder">
-                                <div class="ribbon-menu-other-subcategories" value="Occlusion">
+                                <div class="ribbon-menu-other-subcategories" val="Occlusion">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
                                     Can't see the sidewalk
                                 </div>
                                 <hr>
-                                <div class="ribbon-menu-other-subcategories" value="NoSidewalk">
+                                <div class="ribbon-menu-other-subcategories" val="NoSidewalk">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.png")' class="icon-ribbon-menu-medium" alt="No sidewalk icon">
                                     No sidewalk
                                 </div>
                                 <hr>
-                                <div class="ribbon-menu-other-subcategories" value="Other">
+                                <div class="ribbon-menu-other-subcategories" val="Other">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
                                     Other
                                 </div>
@@ -245,7 +245,7 @@
                     <span id="compass-message"></span>
                 </div>
             </div>
-            <div id="form-holder">
+            @*<div id="form-holder">*@
                 @*<form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">*@
                     @*<input type="hidden" name="assignmentId" value="" />*@
                     @*<input type="hidden" name="workerId" value=""/>*@
@@ -258,7 +258,7 @@
                         @*<!--<input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />-->*@
                     @*</div>*@
                 @*</form>*@
-            </div>
+            @*</div>*@
 
             <div id="page-overlay-holder">
                 <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
@@ -308,15 +308,104 @@
                     </form>
                 </div>
             </div>
+            <div id="modal-mission-holder" class="hidden">
+                <div id="modal-mission-background"></div>
+                <div id="modal-mission-box">
+                </div>
+            </div>
             <div id="annotation-holder"></div>
             <div id="task-completion-message-holder">
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/GoodJob.png")' alt="Task completion message: Good Job!" />
             </div>
         </div>
-
     </div>
+
+    <template class="missions" val="initial-mission">
+        <div id="modal-mission-header">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Mission</h2>
+                </div>
+            </div>
+        </div>
+        <div class="spacer20"></div>
+        <div id="modal-mission-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/StreetAccessibility.png")' class="modal-mission-images center-block" alt="Street accessibility" />
+                </div>
+                <div class="col-md-6">
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    The sidewalk accessibility affects how people with
+                    mobility impairments move about the city.
+                </div>
+                <div class="col-md-6">
+                    Your mission is to <span class="bold">find all the accessibility attributes thataffect mobility impaired travelers.</span>
+                </div>
+            </div>
+        </div>
+        <div class="spacer30"></div>
+        <div id="modal-mission-footer">
+            <div class="row">
+                <div class="col-md-9"></div>
+                <div class="col-md-3"><button class="button ok-button">OK</button></div>
+            </div>
+        </div>
+    </template>
+    <template class="missions" val="initial-mission-complete">
+        <div id="modal-mission-body">
+            <div class="row">
+                <div class="col-md-2"></div>
+                <div class="col-md-8">
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+                </div>
+                <div class="col-md-2"></div>
+            </div>
+            <div class="spacer10"></div>
+            <div class="row">
+                <div class="col-md-1"></div>
+                <div class="col-md-10">
+                    Good job! You have successfully completed the first mission!
+                </div>
+                <div class="col-md-1"></div>
+            </div>
+        </div>
+        <div class="spacer10"></div>
+        <div id="modal-mission-footer">
+            <div class="row">
+                <div class="col-md-9"></div>
+                <div class="col-md-3"><button class="button ok-button">OK</button></div>
+            </div>
+        </div>
+    </template>
+    <template class="missions" val="area-coverage">
+        <div id="modal-mission-body">
+            <div class="row">
+                <div class="col-md-4" id="modal-mission-area-coverage-left-column">
+                </div>
+                <div class="col-md-8">
+                    <h2>Mission</h2>
+                    <p>
+                        Your goal is to <span class="bold">audit <span id="modal-mission-area-coverage-rate"></span>%
+                            of the entire streets in this neighborhood</span> and find all the accessibility attributes!
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div id="modal-mission-footer">
+            <div class="row">
+                <div class="col-md-9"></div>
+                <div class="col-md-3"><button class="button ok-button">OK</button></div>
+            </div>
+        </div>
+    </template>
+
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
-    <script>
+    <script type="text/javascript">
         var svl = svl || {};
 
         svl.storage = new Storage(JSON);
@@ -400,4 +489,5 @@
 
         }
     </script>
+
 }

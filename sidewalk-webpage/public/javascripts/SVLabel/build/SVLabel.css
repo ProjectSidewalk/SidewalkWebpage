@@ -123,17 +123,12 @@ input[type="radio"] {
 
 #svl-application-holder {
     background: rgba(255,255,255,1);
-    margin: 0px auto;
+    margin: 0 auto;
     position: relative;
-    height: 700px;
+    height: 640px;
     width: 960px;
 }
 
-
-/*************************************************************
-* This style applies to a wrapper that holds the ribbon menu,
-* Street View window, feedback window, and Google Map window.
-*************************************************************/
 #interaction-area-holder {
     border: 3px solid transparent;
     position: absolute;
@@ -805,15 +800,16 @@ footer {
     width: 200px;
     height: 200px;
 }
-#modal-skip-holder, #modal-comment-holder {
+#modal-skip-holder, #modal-comment-holder, #modal-mission-holder {
     position: absolute;
     left: 0;
     top: 0;
     height: 100%;
     width: 100%;
+    text-align: justify;
 }
 
-#modal-skip-background, #modal-comment-background {
+#modal-skip-background, #modal-comment-background, #modal-mission-background {
     position: absolute;
     left: -55px;
     top: 0;
@@ -822,7 +818,7 @@ footer {
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box {
+#modal-skip-box, #modal-comment-box, #modal-mission-box {
     background: rgba(255, 255, 255, 1);
     border: 3px solid rgba(200, 200, 200, 1);
     color: black;
@@ -840,6 +836,13 @@ footer {
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
+#modal-mission-box {
+    top: 180px;
+    left: 45px;
+    padding: 30px;
+    width: 640px;
+}
+
 #modal-comment-textarea {
     height: 100px;
     width: 100%;
@@ -847,6 +850,19 @@ footer {
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-mission-images {
+    width: 60%;
+}
+
+.modal-mission-left-column-images {
+    width: 100%;
+    padding: 25px 0 0 0;
+}
+
+#modal-mission-holder .button {
+    width: 100%;
 }
 #Holder_OnboardingMessageBox {
     background: rgba(69,183,214,0.95);

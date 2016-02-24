@@ -109,6 +109,11 @@ function UI ($, params) {
         self.modalComment.cancel = $("#modal-comment-cancel-button");
         self.modalComment.textarea = $("#modal-comment-textarea");
 
+        // Mission
+        self.modalMission = {};
+        self.modalMission.holder = $("#modal-mission-holder");
+        self.modalMission.box = $("#modal-mission-box");
+
         // Zoom control
         self.zoomControl = {};
         self.zoomControl.holder = $("#zoom-control-holder");

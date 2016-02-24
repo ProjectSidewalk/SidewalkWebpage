@@ -69,6 +69,15 @@ p {
 .spacer10 {
     height: 10px;
 }
+
+.spacer20 {
+    height: 20px;
+}
+
+.spacer30 {
+    height: 30px;
+}
+
 .btn {
     border-radius: 3px 3px 3px 3px;
 }

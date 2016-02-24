@@ -9,7 +9,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function Validator (param, $) {
-    var oPublic = {
+    var self = {
         'className' : 'Validator'
     };
     var properties = {
@@ -47,9 +47,6 @@ function Validator (param, $) {
     var $spanNumTotalTasks;
     var $divProgressBarFiller;
 
-    ////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////
     function currentLabelVisibilitySpanMousein (e) {
         // This is a mousein callback method for spans that hold ShowLabel/HideLabel radio buttons
         var $span = $(this);
@@ -592,10 +589,7 @@ function Validator (param, $) {
         mouse.menuBarMouseUpY = m.y;
     }
 
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    oPublic.disableAgreeButton = function () {
+    self.disableAgreeButton = function () {
         // This method disables the Agree button.
         status.disableAgreeButton = true;
         $btnAgree.css('opacity', '0.5');
@@ -603,7 +597,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.disableDisagreeButton = function () {
+    self.disableDisagreeButton = function () {
         // This method disables the Disagree button.
         status.disableDisagreeButton = true;
         $btnDisagree.css('opacity', '0.5');
@@ -611,7 +605,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.disableRadioButtons = function () {
+    self.disableRadioButtons = function () {
         // This method disables "Show label" and "Hide label" radio buttons
         status.disableRadioButtons = true;
         $radioValidationCurrentLabelVisibility.each(function (i, v) {
@@ -620,7 +614,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.enableAgreeButton = function () {
+    self.enableAgreeButton = function () {
         // This method enables the Agree button.
         status.disableAgreeButton = false;
         $btnAgree.css('opacity', '1');
@@ -628,14 +622,14 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.enableDisagreeButton = function () {
+    self.enableDisagreeButton = function () {
         // This method enables the Disagree button.
         status.disableDisagreeButton = false;
         $btnDisagree.css('opacity', '1');
         $btnDisagree.attr('disabled', false);
     };
 
-    oPublic.enableRadioButtons = function () {
+    self.enableRadioButtons = function () {
         // This method enables "Show label" and "Hide label" radio buttons
         status.disableRadioButtons = false;
         $radioValidationCurrentLabelVisibility.each(function (i, v) {
@@ -644,18 +638,18 @@ function Validator (param, $) {
         return;
     };
 
-    oPublic.getLabels = function () {
+    self.getLabels = function () {
         // This method returns validatorLabels
         return $.extend(true, [], labels);
     };
 
-    oPublic.hideDialogWindow = function () {
+    self.hideDialogWindow = function () {
         // This method hides a dialog window
         hideDialogWindow();
         return this;
     };
 
-    oPublic.insertLabels = function (labelPoints) {
+    self.insertLabels = function (labelPoints) {
         // This method takes a label data (i.e., a set of point coordinates, label types, etc) and
         // and insert it into the labels array so the Canvas will render it
         var labelDescriptions = svl.misc.getLabelDescriptions();
@@ -690,25 +684,25 @@ function Validator (param, $) {
         updateProgress();
     };
 
-    oPublic.setDialogWindowBorderWidth = function (width) {
+    self.setDialogWindowBorderWidth = function (width) {
         // This method sets the border width of the dialog window.
         $divValidationDialogWindow.css('border-width', width);
         return this;
     };
 
-    oPublic.setDialogWindowBorderColor = function (color) {
+    self.setDialogWindowBorderColor = function (color) {
         // This method sets the border color of the dialog window.
         $divValidationDialogWindow.css('border-color', color);
         return this;
     };
 
-    oPublic.showDialogWindow = function (timelapse) {
+    self.showDialogWindow = function (timelapse) {
         // This method shows a dialog window
         showDialogWindow(timelapse);
         return this;
     };
 
-    oPublic.sortLabels = function () {
+    self.sortLabels = function () {
         // This method sorts the labels by it's heading angle.
         // Sorting an array of objects
         // http://stackoverflow.com/questions/1129216/sorting-objects-in-an-array-by-a-field-value-in-javascript
@@ -726,7 +720,7 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.validateNext = function (timelapse) {
+    self.validateNext = function (timelapse) {
         // This method changes the heading angle so the next unvalidated label will be centered
         // on the canvas.
         // 0. Wait and see whether panorama is ready
@@ -735,10 +729,10 @@ function Validator (param, $) {
         // 3. Adjust the SV heading angle and pitch angle so the target label will be centered.
 
         if (!('map' in svl)) {
-            throw oPublic.className + ': Map is not defined.';
+            throw self.className + ': Map is not defined.';
         }
         if (!('canvas' in svl)) {
-            throw oPublic.className + ': Canvas is not defined.';
+            throw self.className + ': Canvas is not defined.';
         }
 
         currentLabel = getNextLabel();
@@ -775,14 +769,11 @@ function Validator (param, $) {
         return this;
     };
 
-    oPublic.setOnboarding = function (val) {
+    self.setOnboarding = function (val) {
         properties.onboarding = val;
     };
 
-    ////////////////////////////////////////
-    // Initialize
-    ////////////////////////////////////////
     init(param);
 
-    return oPublic;
+    return self;
 }
