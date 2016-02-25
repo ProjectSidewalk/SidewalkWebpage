@@ -41,7 +41,7 @@ object RegionTable {
    * @param regionType A type of regions (e.g., "city", "neighborhood")
    * @return
    */
-  def listRegionType(regionType: String): List[Region] = db.withSession { implicit session =>
+  def listRegionOfType(regionType: String): List[Region] = db.withSession { implicit session =>
     val regionTypes = TableQuery[RegionTypeTable]
     val _regions = for {
       (_regions, _regionTypes) <- regions.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.regionType === regionType

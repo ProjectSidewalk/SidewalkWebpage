@@ -12,6 +12,7 @@ function Mission() {
             levels: [5, 10, 25, 50, 100]
         }
     };
+    var tasks = [];
 
     /** Get a mission */
     function getMission (id) { return id in missions ? missions[id] : null; }

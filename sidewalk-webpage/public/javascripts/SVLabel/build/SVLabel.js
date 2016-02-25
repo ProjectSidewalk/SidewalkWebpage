@@ -6897,6 +6897,7 @@ function Mission() {
             levels: [5, 10, 25, 50, 100]
         }
     };
+    var tasks = [];
 
     /** Get a mission */
     function getMission (id) { return id in missions ? missions[id] : null; }
@@ -7158,7 +7159,7 @@ function ModalMission ($) {
         //    "modal-mission-area-coverage-left-column-image-src": svl.rootDirectory + "img/icons/AreaCoverage_10Percent.png"
         //});
 
-        setMission("initial-mission-complete");
+        //setMission("initial-mission-complete");
     }
 
     function getProperty (key) { return key in properties ? properties[key] : null; }
