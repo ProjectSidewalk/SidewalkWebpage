@@ -139,7 +139,7 @@ function ContextMenu ($) {
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType(),
-                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other'];
+                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'CurbRamp'];
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
                 $menuWindow.css({

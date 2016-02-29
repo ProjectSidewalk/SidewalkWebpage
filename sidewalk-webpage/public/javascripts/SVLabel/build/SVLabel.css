@@ -554,9 +554,9 @@ input#Text_BusStopAbsenceOtherReason {
 
 #compass-message-holder {
     position: absolute;
-    right: 10px;
+    right: 3px;
     top: 8px;
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.75);
     padding: 10px 10px 10px 5px;
     height: 40px;
     min-width: 120px;
@@ -567,7 +567,7 @@ input#Text_BusStopAbsenceOtherReason {
 }
 
 #compass-message-connector {
-    visibility: visible;
+    visibility: hidden;
     height: 2px;
     width: 20px;
     background: white;
