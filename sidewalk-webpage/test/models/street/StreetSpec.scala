@@ -1,6 +1,5 @@
-package models
+package models.street
 
-import models.street._
 import org.specs2.mutable._
 import play.api.db.slick.DB
 // import play.api.db.slick.Config.driver.simple._
@@ -12,11 +11,11 @@ import play.api.test._
   * http://www.typesafe.com/activator/template/play-slick-quickstart
   */
 class StreetSpec extends Specification {
-  "DB" should {
-    "work as expected" in new WithApplication {
+  "StreetTable" should {
+    "be able to insert" in new WithApplication {
       val streetEdges = TableQuery[StreetEdgeTable]
       DB.withTransaction { implicit s: Session =>
-
+        // Todo
       }
     }
   }

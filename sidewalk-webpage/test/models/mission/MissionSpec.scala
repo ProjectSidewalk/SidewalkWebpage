@@ -1,6 +1,5 @@
-package models
+package models.mission
 
-import models.mission.{MissionUser, MissionUserTable, Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import org.specs2.mutable._
 import play.api.db.slick.DB
@@ -34,6 +33,8 @@ class MissionSpec extends Specification {
         missionUsers.insert(missionUser)
         val length = missionUsers.list.size
         (length - originalLength) shouldEqual 1
+
+        s.rollback
       }
     }
   }
