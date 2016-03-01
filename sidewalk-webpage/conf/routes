@@ -31,6 +31,8 @@ POST    /audit/nostreetview             @controllers.TaskController.postNoStreet
 
 # Missions
 GET     /mission/all                    @controllers.MissionController.getAllMissions
+GET     /mission/complete               @controllers.MissionController.getCompletedMissions
+GET     /mission/incomplete             @controllers.MissionController.getIncompleteMissions
 
 # Map Edit
 GET     /map/edit                       @controllers.MapController.edit

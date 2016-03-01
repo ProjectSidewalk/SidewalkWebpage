@@ -22,11 +22,23 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     Future.successful(Ok(JsArray(missions)))
   }
 
-  def getIncompleteMissions = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(""))
+  def getCompletedMissions = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val missions = MissionTable.completed(user.userId).map(m => Json.toJson(m))
+        Future.successful(Ok(JsArray(missions)))
+      case _ =>
+        Future.successful(Ok(JsArray(Seq())))
+    }
   }
 
-  def getIncompleteMissions(regionId: Int) = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(""))
+  def getIncompleteMissions = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val missions = MissionTable.incomplete(user.userId).map(m => Json.toJson(m))
+        Future.successful(Ok(JsArray(missions)))
+      case _ =>
+        Future.successful(Ok(JsArray(Seq())))
+    }
   }
 }

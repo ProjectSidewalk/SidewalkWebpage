@@ -1,5 +1,7 @@
 package models.mission
 
+import java.util.UUID
+
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import play.api.Play.current
@@ -23,13 +25,30 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable]
+  val missionUsers = TableQuery[MissionUserTable]
 
   /**
     * Returns all the missions
+    *
     * @return A list of SidewalkEdge objects.
     */
   def all: List[Mission] = db.withSession { implicit session =>
-    missions.filter(_.deleted === false).sortBy(_.missionId).list
+    missions.filter(_.deleted === false).list
+  }
+
+  def completed(userId: UUID): List[Mission] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missions.innerJoin(missionUsers).on(_.missionId === _.missionId) if !_missions.deleted && _missionUsers.userId === userId.toString
+    } yield _missions
+    _missions.list
+  }
+
+  def incomplete(userId: UUID): List[Mission] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
+      if !_missions.deleted && _missionUsers.missionUserId.?.isEmpty
+    } yield _missions
+    _missions.list
   }
 
   def save(mission: Mission): Int = db.withTransaction { implicit session =>
