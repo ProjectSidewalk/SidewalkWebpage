@@ -43,12 +43,27 @@ object MissionTable {
     _missions.list
   }
 
+  def completed(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missions.innerJoin(missionUsers).on(_.missionId === _.missionId) if !_missions.deleted && _missionUsers.userId === userId.toString
+    } yield _missions
+    _missions.filter(_.regionId.getOrElse(-1) === regionId).list
+  }
+
   def incomplete(userId: UUID): List[Mission] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
       if !_missions.deleted && _missionUsers.missionUserId.?.isEmpty
     } yield _missions
     _missions.list
+  }
+
+  def incomplete(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
+      if !_missions.deleted && _missionUsers.missionUserId.?.isEmpty
+    } yield _missions
+    _missions.filter(_.regionId.getOrElse(-1) === regionId).list
   }
 
   def save(mission: Mission): Int = db.withTransaction { implicit session =>

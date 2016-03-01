@@ -32,10 +32,30 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  def getCompletedMissionsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val missions = MissionTable.completed(user.userId, regionId).map(m => Json.toJson(m))
+        Future.successful(Ok(JsArray(missions)))
+      case _ =>
+        Future.successful(Ok(JsArray(Seq())))
+    }
+  }
+
   def getIncompleteMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val missions = MissionTable.incomplete(user.userId).map(m => Json.toJson(m))
+        Future.successful(Ok(JsArray(missions)))
+      case _ =>
+        Future.successful(Ok(JsArray(Seq())))
+    }
+  }
+
+  def getIncompleteMissionsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val missions = MissionTable.incomplete(user.userId, regionId).map(m => Json.toJson(m))
         Future.successful(Ok(JsArray(missions)))
       case _ =>
         Future.successful(Ok(JsArray(Seq())))
