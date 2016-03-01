@@ -95,7 +95,6 @@ function ModalSkip ($) {
         status.disableClickOK = false;
     }
 
-
     _init();
 
     self.showSkipMenu = showSkipMenu;

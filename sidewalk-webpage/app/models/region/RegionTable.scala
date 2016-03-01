@@ -1,9 +1,12 @@
 package models.region
 
+import java.util.UUID
+
 import com.vividsolutions.jts.geom.Polygon
+import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
+import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon)
@@ -27,18 +30,66 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
 object RegionTable {
   val db = play.api.db.slick.DB
   val regions = TableQuery[RegionTable]
+  val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
   /**
    * Returns a list of all the sidewalk edges
-   * @return A list of SidewalkEdge objects.
+    *
+    * @return A list of SidewalkEdge objects.
    */
   def all: List[Region] = db.withSession { implicit session =>
     regions.list
   }
 
   /**
+    * Get the region specified by the region id
+    *
+    * @param regionId region id
+    * @return
+    */
+  def getRegion(regionId: Int): Option[Region] = db.withSession { implicit session =>
+    try {
+      Some(regions.filter(_.regionId === regionId).list.head)
+    } catch {
+      case e: NoSuchElementException => None
+      case _ => None  // Shouldn't reach here
+    }
+  }
+
+  /**
+    * Get the neighborhood that is currently assigned to the user.
+    *
+    * @param userId user id
+    * @return
+    */
+  def getCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
+    try {
+      val currentRegions = for {
+        (r, ucr) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+        if ucr.userId === userId.toString
+      } yield r
+      Some(currentRegions.list.head)
+    } catch {
+      case e: NoSuchElementException => None
+      case _ => None  // Shouldn't reach here
+    }
+  }
+
+  def getRegionsIntersectingStreet(streetEdgeId: Int): List[Region] = db.withSession { implicit session =>
+    val selectRegionQuery = Q.query[Int, Region](
+      """SELECT * FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge
+        |ON region.geom && street_edge.geom
+        |WHERE street_edge.street_edge_id = ?
+      """.stripMargin
+    )
+    selectRegionQuery(streetEdgeId).list
+  }
+
+  /**
    * Returns a list of regions of a given type.
-   * @param regionType A type of regions (e.g., "city", "neighborhood")
+    *
+    * @param regionType A type of regions (e.g., "city", "neighborhood")
    * @return
    */
   def listRegionOfType(regionType: String): List[Region] = db.withSession { implicit session =>
@@ -48,4 +99,7 @@ object RegionTable {
     } yield _regions
     _regions.list
   }
+
+
+//  def listNeighborhoods: List[Neighborhood] = listRegionOfType("neighborhood").map(r => Neighborhood(r.regionId, "neighborhood"))
 }

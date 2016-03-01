@@ -12,54 +12,47 @@ var svl = svl || {};
 function Main ($, params) {
     var self = {moduleName: 'Main'};
     var properties = {};
-    var status = {};
+    var status = {
+        currentNeighborhood: null,
+        isFirstTask: false
+    };
+    svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
+
+    function _initUI () {
+        // Todo. Move all the UI codes here.
+        svl.ui = new UI($);
+    }
 
     function _init (params) {
-        var currentProgress;
         var panoId = params.panoId;
-        var SVLat = parseFloat(params.initLat);
-        var SVLng = parseFloat(params.initLng);
-
-        svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
-
-
-        // Bind DOMs
-        //svl.ui = {};
-        svl.ui = new UI($);
-
+        var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
-        svl.labelContainer = new LabelContainer();
-        svl.keyboard = new Keyboard($);
-        svl.canvas = new Canvas($);
-        svl.form = new Form($, params.form);
-        svl.examples = undefined;
-        svl.overlayMessageBox = new OverlayMessageBox($);
-        // svl.statusMessage = new StatusMessage($, params.missionDescription);
-//        svl.labeledLandmarkFeedback = new LabeledLandmarkFeedback($);
-        svl.labelCounter = new LabelCounter($, d3);
-        svl.qualificationBadges = undefined;
-        //svl.progressFeedback = new ProgressFeedback($);
-        svl.actionStack = new ActionStack();
-        svl.ribbon = new RibbonMenu($);
-        svl.popUpMessage = new PopUpMessage($);
-        svl.zoomControl = new ZoomControl($);
-        svl.tooltip = undefined;
-        svl.onboarding = undefined;
-        svl.missionProgress = new MissionProgress($);
+        svl.labelContainer = LabelContainer();
+        svl.keyboard = Keyboard($);
+        svl.canvas = Canvas($);
+        svl.form = Form($, params.form);
+        svl.overlayMessageBox = OverlayMessageBox($);
+        svl.labelCounter = LabelCounter($, d3);
+        svl.actionStack = ActionStack();
+        svl.ribbon = RibbonMenu($);
+        //svl.popUpMessage = new PopUpMessage($);
+        svl.zoomControl = ZoomControl($);
+        svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
-        svl.tracker = new Tracker();
-        svl.labelFactory = new LabelFactory();
-        svl.compass = new Compass($);
-        svl.contextMenu = new ContextMenu($);
-        svl.audioEffect = new AudioEffect();
-        svl.modalSkip = new ModalSkip($);
-        svl.modalComment = new ModalComment($);
-        svl.modalMission = new ModalMission($);
+        svl.tracker = Tracker();
+        svl.labelFactory = LabelFactory();
+        svl.compass = Compass($);
+        svl.contextMenu = ContextMenu($);
+        svl.audioEffect = AudioEffect();
+        svl.modalSkip = ModalSkip($);
+        svl.modalComment = ModalComment($);
+        svl.modalMission = ModalMission($);
 
-        svl.neighborhood = new Neighborhood();
-        svl.mission = new Mission();
-        svl.achievement = new Achievment();
+        svl.neighborhoodContainer = NeighborhoodContainer();
+        svl.missionContainer = MissionContainer ();
+        //svl.mission = new Mission();
+        //svl.achievement = new Achievement();
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
@@ -69,20 +62,7 @@ function Main ($, params) {
         mapParam.overlayMessageBox = svl.overlayMessageBox;
 
 
-        var task = null;
-        var nearbyPanoIds = [];
-        var totalTaskCount = -1;
-        var taskPanoramaId = '';
-        var taskRemaining = -1;
-        var taskCompleted = -1;
-        var isFirstTask = false;
-
-        totalTaskCount = 1; // taskSpecification.numAllTasks;
-        taskRemaining = 1; // taskSpecification.numTasksRemaining;
-        taskCompleted = totalTaskCount - taskRemaining;
-        currentProgress = taskCompleted / totalTaskCount;
-
-        svl.form.setTaskRemaining(taskRemaining);
+        svl.form.setTaskRemaining(1);
         svl.form.setTaskDescription('TestTask');
         svl.form.setTaskPanoramaId(panoId);
 
@@ -98,15 +78,7 @@ function Main ($, params) {
         nearbyPanoIds = [mapParam.taskPanoId];
         mapParam.availablePanoIds = nearbyPanoIds;
 
-//        svl.statusMessage.setCurrentStatusDescription('Your mission is to ' +
-//            '<span class="bold">find and label</span> presence and absence of curb ramps at intersections.');
-        // svl.statusMessage.restoreDefault();
-        // svl.statusMessage.setCurrentStatusDescription("Your mission is to find and label all the accessibility attributes in the sidewalks and streets.");
-        //svl.progressFeedback.setProgress(currentProgress);
-        //svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
-        //    " out of " + totalTaskCount + ".");
-
-        if (isFirstTask) {
+        if (getStatus("isFirstTask")) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
             svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +
                 "Now the actual task begins. Click OK to start the task.");
@@ -116,7 +88,6 @@ function Main ($, params) {
             svl.popUpMessage.hide();
         }
 
-        // Instantiation
         svl.map = new Map($, mapParam);
         svl.map.disableClickZoom();
         if ('task' in svl) {
@@ -124,6 +95,9 @@ function Main ($, params) {
         }
     }
 
+    function getStatus (key) { return key in status ? status[key] : null; }
+
+    _initUI();
     _init(params);
     return self;
 }

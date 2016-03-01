@@ -1,5 +1,6 @@
 @import models.user.User
-@(title: String, task: Option[models.audit.NewTask] = None, user: Option[User] = None)
+@import models.region.Region
+@(title: String, task: Option[models.audit.NewTask] = None, region: Option[Region], user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))
@@ -439,6 +440,14 @@
                 }
 
             });
+        }
+
+        @if(neighborhoods) {
+
+        }
+
+        @if(missions) {
+
         }
 
         $(document).ready(function () {

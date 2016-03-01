@@ -14,8 +14,9 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
+import models.region._
 import models.street.StreetEdgeAssignmentCountTable
-import models.user.User
+import models.user.{UserCurrentRegionTable, User}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -39,58 +40,64 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   def audit = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        // Check if s/he has gone through an onboarding.
-        //        val task: NewTask = request.cookies.get("sidewalk-onboarding").getOrElse(None) match {
-        //          case Some("completed") => AuditTaskTable.getNewTask(user.username)
-        //          case _ => AuditTaskTable.getOnboardingTask
-        //        }
-        val task: NewTask = AuditTaskTable.getNewTask(user.username)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
+        val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+
+        // Check and make sure that the user has been assigned to any region or completed the region.
+        RegionTable.verifyStreetAvailability(user.userId)
+
+
+        val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         // Check if s/he has gone through an onboarding.
         val cookie = request.cookies.get("sidewalk-onboarding")
         val task: NewTask = AuditTaskTable.getNewTask
-        // Once you implement onboarding, use the following code to switch.
-        //        val task: NewTask = cookie.getOrElse(None) match {
-        //          case Some("completed") => AuditTaskTable.getNewTask
-        //          case _ => AuditTaskTable.getOnboardingTask
-        //        }
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None, None)))
     }
   }
 
   /**
    * Audit a given region
- *
-   * @param regionId
+   * @param regionId region id
    * @return
    */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    val region: Option[Region] = RegionTable.getRegion(regionId)
     request.identity match {
-      case Some(user) => {
+      case Some(user) =>
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
-      }
-      case None => {
+
+        // Update the currently assigned region for the user
+        UserCurrentRegionTable.update(user.userId, regionId)
+
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+      case None =>
         // Check if s/he has gone through an onboarding.
         val cookie = request.cookies.get("sidewalk-onboarding")
         val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
-      }
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }
 
   /**
    * Audit a given street
- *
-   * @param streetEdgeId
+   *
+   * @param streetEdgeId street edge id
    * @return
    */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+    val regions: List[Region] = RegionTable.getRegionsIntersectingStreet(streetEdgeId)
+    val region: Option[Region] = try {
+      Some(regions.head)
+    } catch {
+      case e: NoSuchElementException => None
+      case _ => None
+    }
+
     val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)
     request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(user))))
-      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None)))
+      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }
 
@@ -239,9 +246,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
 
+          // Todo. Check if there still are streets that are not audited
+
           Seq(auditTaskId, data.auditTask.streetEdgeId)
         }
-        Future.successful(Ok(Json.obj("audit_task_id" -> returnValue.head(0), "street_edge_id" -> returnValue.head(1))))
+        Future.successful(Ok(Json.obj("audit_task_id" -> returnValue.head.head, "street_edge_id" -> returnValue.head(1))))
       }
     )
   }

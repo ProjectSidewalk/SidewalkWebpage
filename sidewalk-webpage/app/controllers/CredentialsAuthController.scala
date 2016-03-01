@@ -11,7 +11,7 @@ import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import forms.SignInForm
 import models.services.UserService
-import models.user.User
+import models.user.{UserCurrentRegionTable, UserCurrentRegion, User}
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action
@@ -47,9 +47,11 @@ class CredentialsAuthController @Inject() (
         val result = Future.successful(Redirect(url))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
-            // If I want to extend the expiration time, follow this instruction.
+            // If you want to extend the expiration time, follow this instruction.
             // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
             // val newAuthenticator = authenticator.copy(expirationDate = XXX)
+            if (!UserCurrentRegionTable.isAssigned(user.userId)) { UserCurrentRegionTable.assign(user.userId) }
+
             Logger.debug(authenticator.expirationDate.toDate.toString)
             env.eventBus.publish(LoginEvent(user, request, request2lang))
             env.authenticatorService.init(authenticator).flatMap(v => env.authenticatorService.embed(v, result))

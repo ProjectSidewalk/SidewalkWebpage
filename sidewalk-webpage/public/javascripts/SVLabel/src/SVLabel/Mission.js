@@ -7,7 +7,7 @@ function Mission() {
             levels: null
         },
         "area-coverage": {
-            id: "area-coverage",
+            id: "area-coverage-challenge",
             label: "AreaCoverage",
             levels: [5, 10, 25, 50, 100]
         }

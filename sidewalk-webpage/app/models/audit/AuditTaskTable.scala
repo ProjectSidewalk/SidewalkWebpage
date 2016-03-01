@@ -347,12 +347,33 @@ object AuditTaskTable {
   }
 
   /**
+    * Verify if there are tasks available for the user in the given region
+    * @param userId user id
+    */
+  def isTaskAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
+    val selectAvailableTaskQuery = Q.query[(Int, String), AuditTask](
+      """
+        |SELECT audit_task.* FROM sidewalk.user_current_region
+        |INNER JOIN sidewalk.region
+        |ON user_current_region.region_id = ?
+        |INNER JOIN sidewalk.street_edge
+        |ON region.geom && street_edge.geom
+        |LEFT JOIN sidewalk.audit_task
+        |ON street_edge.street_edge_id = audit_task.street_edge_id
+        |WHERE user_current_region.user_id = ?
+        |AND audit_task.audit_task_id IS NULL
+      """.stripMargin
+    )
+    selectAvailableTaskQuery(regionId, userId.toString).list.nonEmpty
+  }
+
+  /**
    * Saves a new audit task.
    *
    * Reference for rturning the last inserted item's id
    * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
     *
-    * @param completedTask
+    * @param completedTask completed task
    * @return
    */
   def save(completedTask: AuditTask): Int = db.withTransaction { implicit session =>
