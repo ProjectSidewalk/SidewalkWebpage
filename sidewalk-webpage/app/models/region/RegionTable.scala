@@ -9,7 +9,7 @@ import scala.slick.lifted.ForeignKeyQuery
 case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
-  def regionId = column[Int]("region_id", O.PrimaryKey)
+  def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
   def regionTypeId = column[Int]("region_type_id", O.NotNull)
   def dataSource = column[String]("data_source", O.Nullable)
   def description = column[String]("description", O.Nullable)

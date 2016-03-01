@@ -14,15 +14,17 @@ class AuditTaskCommentSpec extends Specification  {
       val auditTaskComments = TableQuery[AuditTaskCommentTable]
 
       DB.withTransaction { implicit s: Session =>
+        val originalLength = auditTaskComments.list.size
         val calendar: Calendar = Calendar.getInstance
         val now: Date = calendar.getTime
         val currentTimestamp: Timestamp = new Timestamp(now.getTime)
 
-        val comment: AuditTaskComment = AuditTaskComment(0, 0, "test", "0.0.0.0", Some("test"), Some(0.0), Some(0.0), Some(1), currentTimestamp, "comment")
+        val comment: AuditTaskComment = AuditTaskComment(0, 0, "test", "0.0.0.0", Some("test"), Some(0.0), Some(0.0), Some(1), Some(0.0), Some(0.0), currentTimestamp, "comment")
         auditTaskComments.insert(comment)
 
-        val filtered = auditTaskComments.list
-        filtered.length shouldEqual 1
+        val length = auditTaskComments.list.size
+
+        (length - originalLength) shouldEqual 1
 
         s.rollback
       }
