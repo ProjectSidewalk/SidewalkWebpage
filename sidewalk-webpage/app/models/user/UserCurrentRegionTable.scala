@@ -1,5 +1,7 @@
 package models.user
 
+import models.audit.AuditTaskTable
+import models.mission.MissionTable
 import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -29,20 +31,31 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Assign a region to the given user.
- *
+    * Assign a region to the given user. This is used for the initial assignment.
+    *
     * @param userId user id
     * @return region id
     */
-  def assign(userId: UUID):Int = db.withTransaction { implicit session =>
+  def assign(userId: UUID): Int = db.withTransaction { implicit session =>
     val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
     save(userId, regionId)
     regionId
   }
 
   /**
+    * Select a region where the user hasn't completed all the missions and assign that region to them.
+    * @param userId
+    * @return
+    */
+  def assignNextRegion(userId: UUID): Int = db.withTransaction { implicit session =>
+    val regionIds = MissionTable.incompleteRegions(userId)
+    val regionId = scala.util.Random.shuffle(regionIds).head
+    update(userId, regionId)
+  }
+
+  /**
     * Check if a user has been assigned to some region.
- *
+    *
     * @param userId user id
     * @return
     */
@@ -59,14 +72,15 @@ object UserCurrentRegionTable {
     * @param userId user ID
     * @param regionId region id
     */
-  def update(userId: UUID, regionId: Int): Unit = db.withTransaction { implicit session =>
+  def update(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
     q.update(regionId)
+    regionId
   }
 
   /**
     * Returns the region id that is currently assigned to the given user
- *
+    *
     * @param userId user id
     * @return
     */
@@ -75,7 +89,7 @@ object UserCurrentRegionTable {
       Some(userCurrentRegions.filter(_.userId === userId.toString).list.map(_.regionId).head)
     } catch {
       case e: NoSuchElementException => None
-      case _ => None  // This shouldn't happen.
+      case _: Throwable => None  // This shouldn't happen.
     }
   }
 }

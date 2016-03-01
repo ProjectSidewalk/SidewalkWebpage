@@ -50,6 +50,7 @@ class CredentialsAuthController @Inject() (
             // If you want to extend the expiration time, follow this instruction.
             // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
             // val newAuthenticator = authenticator.copy(expirationDate = XXX)
+
             if (!UserCurrentRegionTable.isAssigned(user.userId)) { UserCurrentRegionTable.assign(user.userId) }
 
             Logger.debug(authenticator.expirationDate.toDate.toString)

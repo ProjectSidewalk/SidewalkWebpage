@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
 import models.user.UserCurrentRegionTable
+import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import scala.slick.jdbc.{StaticQuery => Q, GetResult}
@@ -28,6 +29,12 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
  * Data access object for the sidewalk_edge table
  */
 object RegionTable {
+  import MyPostgresDriver.plainImplicits._
+
+  implicit val regionConverter = GetResult[Region](r => {
+    Region(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon])
+  })
+
   val db = play.api.db.slick.DB
   val regions = TableQuery[RegionTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
@@ -52,7 +59,7 @@ object RegionTable {
       Some(regions.filter(_.regionId === regionId).list.head)
     } catch {
       case e: NoSuchElementException => None
-      case _ => None  // Shouldn't reach here
+      case _: Throwable => None  // Shouldn't reach here
     }
   }
 
@@ -71,7 +78,7 @@ object RegionTable {
       Some(currentRegions.list.head)
     } catch {
       case e: NoSuchElementException => None
-      case _ => None  // Shouldn't reach here
+      case _: Throwable => None  // Shouldn't reach here
     }
   }
 

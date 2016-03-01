@@ -5,15 +5,14 @@ import java.sql.Timestamp
 import java.util.{UUID, Calendar, Date}
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
 import models.user.User
+import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{UserTable, DBUser}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
-import play.api.db.slick._
-import scala.slick.jdbc.GetResult
-import scala.slick.jdbc.{StaticQuery => Q}
+import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
@@ -60,6 +59,12 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
  * Data access object for the audit_task table
  */
 object AuditTaskTable {
+  import MyPostgresDriver.plainImplicits._
+
+  implicit val auditTaskConverter = GetResult[AuditTask](r => {
+    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption)
+  })
+
   val db = play.api.db.slick.DB
   val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
@@ -247,22 +252,20 @@ object AuditTaskTable {
 
     val edges: List[StreetEdge] = selectEdgeQuery((lng, lat, streetEdgeId)).list
     edges match {
-      case edges if (edges.size > 0) => {
-        val e = edges(0)
+      case edges if edges.nonEmpty =>
+        val e = edges.head
 
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
-      }
-      case _ => {
+      case _ =>
         getNewTask // The list is empty for whatever the reason
-      }
     }
   }
 
   /**
    * Get a task that is in a given region
     *
-    * @param regionId
+    * @param regionId region id
    * @return
    */
   def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
@@ -281,22 +284,19 @@ object AuditTaskTable {
 
     val edges: List[StreetEdge] = selectEdgeQuery(regionId).list
     edges match {
-      case edges if (edges.size > 0) => {
+      case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
-      }
-      case _ => {
-        getNewTask // The list is empty for whatever the reason
-      }
+      case _ => getNewTask // The list is empty for whatever the reason
     }
   }
 
   /**
    * et a task that is in a given region
-    *
-    * @param regionId
+   *
+   * @param regionId region id
    * @param user
    * @return
    */
@@ -348,12 +348,12 @@ object AuditTaskTable {
 
   /**
     * Verify if there are tasks available for the user in the given region
+    *
     * @param userId user id
     */
   def isTaskAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
     val selectAvailableTaskQuery = Q.query[(Int, String), AuditTask](
-      """
-        |SELECT audit_task.* FROM sidewalk.user_current_region
+      """SELECT audit_task.* FROM sidewalk.user_current_region
         |INNER JOIN sidewalk.region
         |ON user_current_region.region_id = ?
         |INNER JOIN sidewalk.street_edge
@@ -364,7 +364,8 @@ object AuditTaskTable {
         |AND audit_task.audit_task_id IS NULL
       """.stripMargin
     )
-    selectAvailableTaskQuery(regionId, userId.toString).list.nonEmpty
+    val availableTasks = selectAvailableTaskQuery((regionId, userId.toString)).list
+    availableTasks.nonEmpty
   }
 
   /**

@@ -34,16 +34,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Returns an audit page.
- *
-   * @return
+    *
+    * @return
    */
   def audit = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
 
-        // Check and make sure that the user has been assigned to any region or completed the region.
-        RegionTable.verifyStreetAvailability(user.userId)
+        // Check and make sure that the user has been assigned to a region
+        if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
+
+        // Check if a user still has tasks available for them.
+        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
+          UserCurrentRegionTable.assignNextRegion(user.userId)
+        }
 
 
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
@@ -91,7 +96,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       Some(regions.head)
     } catch {
       case e: NoSuchElementException => None
-      case _ => None
+      case _: Throwable => None
     }
 
     val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)

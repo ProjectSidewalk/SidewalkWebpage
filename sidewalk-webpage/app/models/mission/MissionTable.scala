@@ -66,6 +66,15 @@ object MissionTable {
     _missions.filter(_.regionId.getOrElse(-1) === regionId).list
   }
 
+  def incompleteRegions(userId: UUID): Set[Int] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
+      if !_missions.deleted && _missionUsers.userId === userId.toString && _missions.regionId.nonEmpty
+    } yield _missions
+
+    _missions.list.map(_.regionId.get).toSet
+  }
+
   def save(mission: Mission): Int = db.withTransaction { implicit session =>
     val missionId: Int =
       (missions returning missions.map(_.missionId)) += mission

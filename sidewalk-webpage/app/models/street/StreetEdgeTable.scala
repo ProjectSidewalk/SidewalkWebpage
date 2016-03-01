@@ -42,7 +42,6 @@ object StreetEdgeTable {
     StreetEdge(r.nextInt, r.nextGeometry[LineString], r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean, r.nextTimestampOption)
   })
 
-
   val db = play.api.db.slick.DB
   val streetEdges = TableQuery[StreetEdgeTable]
 
