@@ -759,95 +759,95 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
 
 };
 
-function Achievment () {
-    var self = { className: "Achievement"},
-        initialAchievement = "incomplete",
-        achievements = {
-            "area-coverage": {}
-        };
-
-
-    function _init() {
-        // Initialize achievements
-        if ("neighborhood" in svl && "mission" in svl) {
-            var ids = svl.neighborhood.getNeighborhoodIds(),
-                len = ids.length,
-                areaCoverageMission = svl.mission.getMission("area-coverage"),
-                i, j;
-            for (i = 0; i < len; i++) {
-                for (j = areaCoverageMission.levels.length - 1; j >= 0; j--) {
-                    achievements["area-coverage"][i] = {};
-                    achievements["area-coverage"][i][areaCoverageMission.levels[j]] = "incomplete";
-                }
-            }
-        } else {
-            console.error("Neighborhood not defined");
-        }
-    }
-
-    /**
-     * Get the status of the achievement
-     * @param parameters
-     */
-    function getAchievement (parameters) {
-        if ("missionId" in parameters) {
-            if (parameters.missionId == "initial-mission") {
-                return initialAchievement;
-            } else if (parameters.missionId == "area-coverage" && "areaId" in parameters) {
-                if (!(parameters.areaId in achievements["area-coverage"])) {
-                    throw "Unknown NeighborhoodId";
-                } else if (!(parameters.level in achievements["area-coverage"][parameters.areaId])) {
-                    throw "Unknown mission level";
-                } else {
-                    var level = parseInt(parameters.level, 10);
-                    return achievements["area-coverage"][parameters.areaId][level];
-                }
-            } else {
-                throw "Check the parameters";
-            }
-        }
-    }
-
-    /**
-     * Set the status of the achievement
-     * @param parameters An object of parameters, which may specify "missionId", "areaId", "status", "level"
-     */
-    function setAchievement (parameters) {
-        if ("missionId" in parameters && "status" in parameters) {
-            if (parameters.missionId == "initial-mission") {
-                // Set the achievement for the "initial-mission"
-                initialAchievement = parameters.status;
-            } else if (parameters.missionId == "area-coverage" && "areaId" in parameters && parameters.areaId &&
-                "level" in parameters && parameters.level in achievements["area-coverage"][parameters.areaId]) {
-                // Set the achievement for the "area-coverage" mission.
-                if (!(parameters.areaId in achievements["area-coverage"])) {
-                    throw "Unknown NeighborhoodId";
-                } else if (!(parameters.level in achievements["area-coverage"][parameters.areaId])) {
-                    throw "Unknown mission level";
-                } else {
-                    var level = parseInt(parameters.level, 10);
-                    achievements["area-coverage"][parameters.areaId][level] = parameters.status;
-                }
-            }
-        }
-    }
-
-    /**
-     * Check if the given mission is completed or not.
-     * @param parameters
-     * @returns {boolean}
-     */
-    function isCompleted (parameters) {
-        return getAchievement(parameters) == "complete";
-    }
-
-    self.getAchievement = getAchievement;
-    self.isCompleted = isCompleted;
-    self.setAchievement = setAchievement;
-
-    _init();
-    return self;
-}
+//function Achievement () {
+//    var self = { className: "Achievement"},
+//        initialAchievement = "incomplete",
+//        achievements = {
+//            "area-coverage": {}
+//        };
+//
+//
+//    function _init() {
+//        // Initialize achievements
+//        if ("neighborhood" in svl && "mission" in svl) {
+//            var ids = svl.neighborhood.getNeighborhoodIds(),
+//                len = ids.length,
+//                areaCoverageMission = svl.mission.getMission("area-coverage"),
+//                i, j;
+//            for (i = 0; i < len; i++) {
+//                for (j = areaCoverageMission.levels.length - 1; j >= 0; j--) {
+//                    achievements["area-coverage"][i] = {};
+//                    achievements["area-coverage"][i][areaCoverageMission.levels[j]] = "incomplete";
+//                }
+//            }
+//        } else {
+//            console.error("Neighborhood not defined");
+//        }
+//    }
+//
+//    /**
+//     * Get the status of the achievement
+//     * @param parameters
+//     */
+//    function getAchievement (parameters) {
+//        if ("missionId" in parameters) {
+//            if (parameters.missionId == "initial-mission") {
+//                return initialAchievement;
+//            } else if (parameters.missionId == "area-coverage" && "areaId" in parameters) {
+//                if (!(parameters.areaId in achievements["area-coverage"])) {
+//                    throw "Unknown NeighborhoodId";
+//                } else if (!(parameters.level in achievements["area-coverage"][parameters.areaId])) {
+//                    throw "Unknown mission level";
+//                } else {
+//                    var level = parseInt(parameters.level, 10);
+//                    return achievements["area-coverage"][parameters.areaId][level];
+//                }
+//            } else {
+//                throw "Check the parameters";
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Set the status of the achievement
+//     * @param parameters An object of parameters, which may specify "missionId", "areaId", "status", "level"
+//     */
+//    function setAchievement (parameters) {
+//        if ("missionId" in parameters && "status" in parameters) {
+//            if (parameters.missionId == "initial-mission") {
+//                // Set the achievement for the "initial-mission"
+//                initialAchievement = parameters.status;
+//            } else if (parameters.missionId == "area-coverage" && "areaId" in parameters && parameters.areaId &&
+//                "level" in parameters && parameters.level in achievements["area-coverage"][parameters.areaId]) {
+//                // Set the achievement for the "area-coverage" mission.
+//                if (!(parameters.areaId in achievements["area-coverage"])) {
+//                    throw "Unknown NeighborhoodId";
+//                } else if (!(parameters.level in achievements["area-coverage"][parameters.areaId])) {
+//                    throw "Unknown mission level";
+//                } else {
+//                    var level = parseInt(parameters.level, 10);
+//                    achievements["area-coverage"][parameters.areaId][level] = parameters.status;
+//                }
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Check if the given mission is completed or not.
+//     * @param parameters
+//     * @returns {boolean}
+//     */
+//    function isCompleted (parameters) {
+//        return getAchievement(parameters) == "complete";
+//    }
+//
+//    self.getAchievement = getAchievement;
+//    self.isCompleted = isCompleted;
+//    self.setAchievement = setAchievement;
+//
+//    _init();
+//    return self;
+//}
 var svl = svl || {};
 
 /**
@@ -5504,7 +5504,7 @@ var svl = svl || {};
 /**
  * The main module of SVLabel
  * @param $: jQuery object
- * @param param: other parameters
+ * @param params: other parameters
  * @returns {{moduleName: string}}
  * @constructor
  * @memberof svl
@@ -5512,54 +5512,54 @@ var svl = svl || {};
 function Main ($, params) {
     var self = {moduleName: 'Main'};
     var properties = {};
-    var status = {};
+    var status = {
+        currentNeighborhood: null,
+        isFirstTask: false
+    };
+    svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
+
+    function _initUI () {
+        // Todo. Move all the UI codes here.
+        svl.ui = UI($);
+    }
 
     function _init (params) {
-        var currentProgress;
         var panoId = params.panoId;
-        var SVLat = parseFloat(params.initLat);
-        var SVLng = parseFloat(params.initLng);
-
-        svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
-
-
-        // Bind DOMs
-        //svl.ui = {};
-        svl.ui = new UI($);
-
+        var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
-        svl.labelContainer = new LabelContainer();
-        svl.keyboard = new Keyboard($);
-        svl.canvas = new Canvas($);
-        svl.form = new Form($, params.form);
-        svl.examples = undefined;
-        svl.overlayMessageBox = new OverlayMessageBox($);
-        // svl.statusMessage = new StatusMessage($, params.missionDescription);
-//        svl.labeledLandmarkFeedback = new LabeledLandmarkFeedback($);
-        svl.labelCounter = new LabelCounter($, d3);
-        svl.qualificationBadges = undefined;
-        //svl.progressFeedback = new ProgressFeedback($);
-        svl.actionStack = new ActionStack();
-        svl.ribbon = new RibbonMenu($);
-        svl.popUpMessage = new PopUpMessage($);
-        svl.zoomControl = new ZoomControl($);
-        svl.tooltip = undefined;
-        svl.onboarding = undefined;
-        svl.missionProgress = new MissionProgress($);
+        svl.labelContainer = LabelContainer();
+        svl.keyboard = Keyboard($);
+        svl.canvas = Canvas($);
+        svl.form = Form($, params.form);
+        svl.overlayMessageBox = OverlayMessageBox($);
+        svl.labelCounter = LabelCounter($, d3);
+        svl.actionStack = ActionStack();
+        svl.ribbon = RibbonMenu($);
+        svl.popUpMessage = PopUpMessage($);
+        svl.zoomControl = ZoomControl($);
+        svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
-        svl.tracker = new Tracker();
-        svl.labelFactory = new LabelFactory();
-        svl.compass = new Compass($);
-        svl.contextMenu = new ContextMenu($);
-        svl.audioEffect = new AudioEffect();
-        svl.modalSkip = new ModalSkip($);
-        svl.modalComment = new ModalComment($);
-        svl.modalMission = new ModalMission($);
+        svl.tracker = Tracker();
+        svl.labelFactory = LabelFactory();
+        svl.compass = Compass($);
+        svl.contextMenu = ContextMenu($);
+        svl.audioEffect = AudioEffect();
+        svl.modalSkip = ModalSkip($);
+        svl.modalComment = ModalComment($);
+        svl.modalMission = ModalMission($);
 
-        svl.neighborhood = new Neighborhood();
-        svl.mission = new Mission();
-        svl.achievement = new Achievment();
+        svl.neighborhoodFactory = NeighborhoodFactory();
+        svl.neighborhoodContainer = NeighborhoodContainer();
+        if ('neighborhoodId' in params) {
+            var neighborhood = svl.neighborhoodFactory.create(params.neighborhoodId);
+            svl.neighborhoodContainer.add(neighborhood);
+            setStatus("currentNeighborhood", neighborhood);
+        }
+
+        svl.missionContainer = MissionContainer ();
+        //svl.mission = new Mission();
+        //svl.achievement = new Achievement();
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
@@ -5568,24 +5568,9 @@ function Main ($, params) {
         mapParam.canvas = svl.canvas;
         mapParam.overlayMessageBox = svl.overlayMessageBox;
 
-
-        var task = null;
-        var nearbyPanoIds = [];
-        var totalTaskCount = -1;
-        var taskPanoramaId = '';
-        var taskRemaining = -1;
-        var taskCompleted = -1;
-        var isFirstTask = false;
-
-        totalTaskCount = 1; // taskSpecification.numAllTasks;
-        taskRemaining = 1; // taskSpecification.numTasksRemaining;
-        taskCompleted = totalTaskCount - taskRemaining;
-        currentProgress = taskCompleted / totalTaskCount;
-
-        svl.form.setTaskRemaining(taskRemaining);
+        svl.form.setTaskRemaining(1);
         svl.form.setTaskDescription('TestTask');
         svl.form.setTaskPanoramaId(panoId);
-
 
         mapParam.Lat = SVLat;
         mapParam.Lng = SVLng;
@@ -5598,15 +5583,7 @@ function Main ($, params) {
         nearbyPanoIds = [mapParam.taskPanoId];
         mapParam.availablePanoIds = nearbyPanoIds;
 
-//        svl.statusMessage.setCurrentStatusDescription('Your mission is to ' +
-//            '<span class="bold">find and label</span> presence and absence of curb ramps at intersections.');
-        // svl.statusMessage.restoreDefault();
-        // svl.statusMessage.setCurrentStatusDescription("Your mission is to find and label all the accessibility attributes in the sidewalks and streets.");
-        //svl.progressFeedback.setProgress(currentProgress);
-        //svl.progressFeedback.setMessage("You have finished " + (totalTaskCount - taskRemaining) +
-        //    " out of " + totalTaskCount + ".");
-
-        if (isFirstTask) {
+        if (getStatus("isFirstTask")) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
             svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +
                 "Now the actual task begins. Click OK to start the task.");
@@ -5616,15 +5593,22 @@ function Main ($, params) {
             svl.popUpMessage.hide();
         }
 
-        // Instantiation
         svl.map = new Map($, mapParam);
         svl.map.disableClickZoom();
+
         if ('task' in svl) {
           google.maps.event.addDomListener(window, 'load', svl.task.render);
         }
     }
 
+    function getStatus (key) { return key in status ? status[key] : null; }
+    function setStatus (key, value) { status[key] = value; return this; }
+
+    _initUI();
     _init(params);
+
+    self.getStatus = getStatus;
+    self.setStatus = setStatus;
     return self;
 }
 
@@ -6359,13 +6343,13 @@ function Map ($, params) {
                     var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                     if (newLatlng) {
                         var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                        console.log(distance);
+                        //console.log(distance);
                         if (distance < 25) {
                             var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
                             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
-                                    console.log(svl.getPanoId());
-                                    console.log(streetViewPanoramaData.location.pano);
+                                    //console.log(svl.getPanoId());
+                                    //console.log(streetViewPanoramaData.location.pano);
                                     svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                 }
                             });
@@ -6892,7 +6876,7 @@ function Mission() {
             levels: null
         },
         "area-coverage": {
-            id: "area-coverage",
+            id: "area-coverage-challenge",
             label: "AreaCoverage",
             levels: [5, 10, 25, 50, 100]
         }
@@ -6907,6 +6891,29 @@ function Mission() {
 
     self.getMission = getMission;
     self.getMissionIds = getMissionIds;
+    return self;
+}
+function MissionContainer (params) {
+    var self = { className: "MissionContainer"},
+        properties = {},
+        missions = {};
+
+    function _init (params) {
+        // Define and initialize all the missions.
+
+        // For those missions with neighborhood ids, tie them corresponding neiborhood objects.
+    }
+
+    function getMission (id) {
+        return id in missions ? missions[id] : null;
+    }
+
+    /** Return a list of neighborhood ids */
+    function getMissionIds () {
+        return Object.keys(missions).map(function (x) { return parseInt(x, 10); });
+    }
+
+    _init();
     return self;
 }
 var svl = svl || {};
@@ -7312,7 +7319,6 @@ function ModalSkip ($) {
         status.disableClickOK = false;
     }
 
-
     _init();
 
     self.showSkipMenu = showSkipMenu;
@@ -7354,17 +7360,87 @@ function Mouse ($) {
     return self;
 }
 
-function Neighborhood () {
-    var neighborhoods = [{"id":0},{"id":1},{"id":2},{"id":3},{"id":4},{"id":5},{"id":6},{"id":7},{"id":8},{"id":9},{"id":10},{"id":11},{"id":12},{"id":13},{"id":14},{"id":15},{"id":16},{"id":17},{"id":18},{"id":19},{"id":20},{"id":21},{"id":22},{"id":23},{"id":24},{"id":25},{"id":26},{"id":27},{"id":28},{"id":29},{"id":30},{"id":31},{"id":32},{"id":33},{"id":34},{"id":35},{"id":36},{"id":37},{"id":38},{"id":39},{"id":40},{"id":41},{"id":42},{"id":43},{"id":44},{"id":45},{"id":46},{"id":47},{"id":48},{"id":49},{"id":50},{"id":51},{"id":52},{"id":53},{"id":54},{"id":55},{"id":56},{"id":57},{"id":58},{"id":59},{"id":60},{"id":61},{"id":62},{"id":63},{"id":64},{"id":65},{"id":66},{"id":67},{"id":68},{"id":69},{"id":70},{"id":71},{"id":72},{"id":73},{"id":74},{"id":75},{"id":76},{"id":77},{"id":78},{"id":79},{"id":80},{"id":81},{"id":82},{"id":83},{"id":84},{"id":85},{"id":86},{"id":87},{"id":88},{"id":89},{"id":90},{"id":91},{"id":92},{"id":93},{"id":94},{"id":95},{"id":96},{"id":97},{"id":98},{"id":99},{"id":100},{"id":101},{"id":102},{"id":103},{"id":104},{"id":105},{"id":106},{"id":107},{"id":108},{"id":109},{"id":110},{"id":111},{"id":112},{"id":113},{"id":114},{"id":115},{"id":116},{"id":117},{"id":118},{"id":119},{"id":120},{"id":121},{"id":122},{"id":123},{"id":124},{"id":125},{"id":126},{"id":127},{"id":128},{"id":129},{"id":130},{"id":131},{"id":132},{"id":133},{"id":134},{"id":135},{"id":136},{"id":137},{"id":138},{"id":139},{"id":140},{"id":141},{"id":142},{"id":143},{"id":144},{"id":145},{"id":146},{"id":147},{"id":148},{"id":149},{"id":150},{"id":151},{"id":152},{"id":153},{"id":154},{"id":155},{"id":156},{"id":157},{"id":158},{"id":159},{"id":160},{"id":161},{"id":162},{"id":163},{"id":164},{"id":165},{"id":166},{"id":167},{"id":168},{"id":169},{"id":170},{"id":171},{"id":172},{"id":173},{"id":174},{"id":175},{"id":176},{"id":177},{"id":178},{"id":179},{"id":180},{"id":181},{"id":182},{"id":183},{"id":184},{"id":185},{"id":186},{"id":187},{"id":188},{"id":189},{"id":190},{"id":191}];
+function Neighborhood (parameters) {
+    var self = { className: "Neighborhood"},
+        properties = {
+            neighborhoodId: null
+        };
+
+    /** Initialize */
+    function _init (parameters) {
+        if ('neighborhoodId' in parameters) setProperty("neighborhoodId", parameters.neighborhoodId)
+    }
+
+    /** Get property */
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    /** Set property */
+    function setProperty (key, value) {
+        properties[key] = value;
+        return this;
+    }
+
+    _init(parameters);
+
+    self.getProperty = getProperty;
+    self.setProperty = setProperty;
+    return self;
+}
+
+function NeighborhoodFactory () {
+    var self = { className: "NeighborhoodFactory" };
+
+    /**
+     * Create a neighborhood instance.
+     * @param neighborhoodId
+     * @returns {Neighborhood}
+     */
+    function create (neighborhoodId) {
+        return new Neighborhood({neighborhoodId: neighborhoodId});
+    }
+
+    self.create = create;
+    return self;
+}
+
+function NeighborhoodContainer (parameters) {
+    var self = { className: "NeighborhoodContainer" },
+        neighborhoods = {};
+
+    function _init (parameters) {
+        //var i, len, neighborhoodArray = [{"id":0},{"id":1},{"id":2},{"id":3},{"id":4},{"id":5},{"id":6},{"id":7},{"id":8},{"id":9},{"id":10},{"id":11},{"id":12},{"id":13},{"id":14},{"id":15},{"id":16},{"id":17},{"id":18},{"id":19},{"id":20},{"id":21},{"id":22},{"id":23},{"id":24},{"id":25},{"id":26},{"id":27},{"id":28},{"id":29},{"id":30},{"id":31},{"id":32},{"id":33},{"id":34},{"id":35},{"id":36},{"id":37},{"id":38},{"id":39},{"id":40},{"id":41},{"id":42},{"id":43},{"id":44},{"id":45},{"id":46},{"id":47},{"id":48},{"id":49},{"id":50},{"id":51},{"id":52},{"id":53},{"id":54},{"id":55},{"id":56},{"id":57},{"id":58},{"id":59},{"id":60},{"id":61},{"id":62},{"id":63},{"id":64},{"id":65},{"id":66},{"id":67},{"id":68},{"id":69},{"id":70},{"id":71},{"id":72},{"id":73},{"id":74},{"id":75},{"id":76},{"id":77},{"id":78},{"id":79},{"id":80},{"id":81},{"id":82},{"id":83},{"id":84},{"id":85},{"id":86},{"id":87},{"id":88},{"id":89},{"id":90},{"id":91},{"id":92},{"id":93},{"id":94},{"id":95},{"id":96},{"id":97},{"id":98},{"id":99},{"id":100},{"id":101},{"id":102},{"id":103},{"id":104},{"id":105},{"id":106},{"id":107},{"id":108},{"id":109},{"id":110},{"id":111},{"id":112},{"id":113},{"id":114},{"id":115},{"id":116},{"id":117},{"id":118},{"id":119},{"id":120},{"id":121},{"id":122},{"id":123},{"id":124},{"id":125},{"id":126},{"id":127},{"id":128},{"id":129},{"id":130},{"id":131},{"id":132},{"id":133},{"id":134},{"id":135},{"id":136},{"id":137},{"id":138},{"id":139},{"id":140},{"id":141},{"id":142},{"id":143},{"id":144},{"id":145},{"id":146},{"id":147},{"id":148},{"id":149},{"id":150},{"id":151},{"id":152},{"id":153},{"id":154},{"id":155},{"id":156},{"id":157},{"id":158},{"id":159},{"id":160},{"id":161},{"id":162},{"id":163},{"id":164},{"id":165},{"id":166},{"id":167},{"id":168},{"id":169},{"id":170},{"id":171},{"id":172},{"id":173},{"id":174},{"id":175},{"id":176},{"id":177},{"id":178},{"id":179},{"id":180},{"id":181},{"id":182},{"id":183},{"id":184},{"id":185},{"id":186},{"id":187},{"id":188},{"id":189},{"id":190},{"id":191}];
+        //for (i = neighborhoodArray.length - 1; i >= 0; i--) {
+        //    neighborhoods[neighborhoodArray[i]] = new Neighborhood({
+        //        id: neighborhoodArray[i].id
+        //    });
+        //}
+    }
+
+    /** Get a neighborhood instance of the given id */
+    function get (id) {
+        return id in neighborhoods ? neighborhoods[id] : null;
+    }
 
     /** Return a list of neighborhood ids */
     function getNeighborhoodIds () {
-        return neighborhoods.map(function (x) { return x.id; })
+        return Object.keys(neighborhoods).map(function (x) { return parseInt(x, 10); });
     }
 
-    return {
-        getNeighborhoodIds: getNeighborhoodIds
-    };
+    /** Add the given neighborhood to the container */
+    function add(neighborhood) {
+        var id = neighborhood.getProperty("neighborhoodId");
+        neighborhoods[id] = neighborhood;
+    }
+
+    _init(parameters);
+
+    self.get = get;
+    self.getNeighborhoodIds = getNeighborhoodIds;
+    self.add = add;
+
+    return self;
 }
 var svl = svl || {};
 

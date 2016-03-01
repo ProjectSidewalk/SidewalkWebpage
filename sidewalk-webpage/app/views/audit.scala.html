@@ -442,9 +442,6 @@
             });
         }
 
-        @if(region) {
-
-        }
 
         $(document).ready(function () {
             var _pointCloudLoader = new GSVPANO.PanoPointCloudLoader();
@@ -481,13 +478,13 @@
 
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
-            mainParam.missionDescription = missionDescriptionParam
+            mainParam.missionDescription = missionDescriptionParam;
 
-            @if(task.get.edgeId == -1) {
-            // Initiate the onbaording task.
-            // svl.onboarding = new Onboarding($);
+            @if(region) {
+                mainParam.neighborhoodId = @region.get.regionId;
             }
-            svl.main = new Main($, mainParam);
+
+            svl.main = Main($, mainParam);
 
         }
     </script>

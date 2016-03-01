@@ -36,6 +36,11 @@ object MissionTable {
     missions.filter(_.deleted === false).list
   }
 
+  /**
+    * Get a list of all the completed tasks
+    * @param userId
+    * @return
+    */
   def completed(userId: UUID): List[Mission] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missions.innerJoin(missionUsers).on(_.missionId === _.missionId) if !_missions.deleted && _missionUsers.userId === userId.toString
@@ -43,6 +48,12 @@ object MissionTable {
     _missions.list
   }
 
+  /**
+    * Get the list of the completed tasks in the given region for the given user
+    * @param userId
+    * @param regionId
+    * @return
+    */
   def completed(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missions.innerJoin(missionUsers).on(_.missionId === _.missionId) if !_missions.deleted && _missionUsers.userId === userId.toString
@@ -50,6 +61,11 @@ object MissionTable {
     _missions.filter(_.regionId.getOrElse(-1) === regionId).list
   }
 
+  /**
+    * Get a list of the incomplete missions for the given user
+    * @param userId
+    * @return
+    */
   def incomplete(userId: UUID): List[Mission] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
@@ -58,6 +74,12 @@ object MissionTable {
     _missions.list
   }
 
+  /**
+    * Get a list of incomplete missions in the give region for the given user
+    * @param userId
+    * @param regionId
+    * @return
+    */
   def incomplete(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
@@ -66,6 +88,12 @@ object MissionTable {
     _missions.filter(_.regionId.getOrElse(-1) === regionId).list
   }
 
+  /**
+    * Get a set of regions where the user has not completed all the missions.
+    *
+    * @param userId
+    * @return
+    */
   def incompleteRegions(userId: UUID): Set[Int] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missions.leftJoin(missionUsers).on(_.missionId === _.missionId)
@@ -75,6 +103,11 @@ object MissionTable {
     _missions.list.map(_.regionId.get).toSet
   }
 
+  /**
+    * Save a mission. Irankunai?
+    * @param mission
+    * @return
+    */
   def save(mission: Mission): Int = db.withTransaction { implicit session =>
     val missionId: Int =
       (missions returning missions.map(_.missionId)) += mission

@@ -5,7 +5,7 @@ function MissionContainer (params) {
 
     function _init (params) {
         // Define and initialize all the missions.
-        params.missions;
+
         // For those missions with neighborhood ids, tie them corresponding neiborhood objects.
     }
 

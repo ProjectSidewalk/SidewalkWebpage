@@ -4,7 +4,7 @@ var svl = svl || {};
 /**
  * The main module of SVLabel
  * @param $: jQuery object
- * @param param: other parameters
+ * @param params: other parameters
  * @returns {{moduleName: string}}
  * @constructor
  * @memberof svl
@@ -20,7 +20,7 @@ function Main ($, params) {
 
     function _initUI () {
         // Todo. Move all the UI codes here.
-        svl.ui = new UI($);
+        svl.ui = UI($);
     }
 
     function _init (params) {
@@ -36,7 +36,7 @@ function Main ($, params) {
         svl.labelCounter = LabelCounter($, d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);
-        //svl.popUpMessage = new PopUpMessage($);
+        svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
@@ -49,7 +49,14 @@ function Main ($, params) {
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
 
+        svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
+        if ('neighborhoodId' in params) {
+            var neighborhood = svl.neighborhoodFactory.create(params.neighborhoodId);
+            svl.neighborhoodContainer.add(neighborhood);
+            setStatus("currentNeighborhood", neighborhood);
+        }
+
         svl.missionContainer = MissionContainer ();
         //svl.mission = new Mission();
         //svl.achievement = new Achievement();
@@ -61,11 +68,9 @@ function Main ($, params) {
         mapParam.canvas = svl.canvas;
         mapParam.overlayMessageBox = svl.overlayMessageBox;
 
-
         svl.form.setTaskRemaining(1);
         svl.form.setTaskDescription('TestTask');
         svl.form.setTaskPanoramaId(panoId);
-
 
         mapParam.Lat = SVLat;
         mapParam.Lng = SVLng;
@@ -90,14 +95,19 @@ function Main ($, params) {
 
         svl.map = new Map($, mapParam);
         svl.map.disableClickZoom();
+
         if ('task' in svl) {
           google.maps.event.addDomListener(window, 'load', svl.task.render);
         }
     }
 
     function getStatus (key) { return key in status ? status[key] : null; }
+    function setStatus (key, value) { status[key] = value; return this; }
 
     _initUI();
     _init(params);
+
+    self.getStatus = getStatus;
+    self.setStatus = setStatus;
     return self;
 }

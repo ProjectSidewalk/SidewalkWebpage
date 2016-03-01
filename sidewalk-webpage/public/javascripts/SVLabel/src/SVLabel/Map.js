@@ -729,13 +729,13 @@ function Map ($, params) {
                     var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                     if (newLatlng) {
                         var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                        console.log(distance);
+                        //console.log(distance);
                         if (distance < 25) {
                             var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
                             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
-                                    console.log(svl.getPanoId());
-                                    console.log(streetViewPanoramaData.location.pano);
+                                    //console.log(svl.getPanoId());
+                                    //console.log(streetViewPanoramaData.location.pano);
                                     svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                 }
                             });
