@@ -17,11 +17,19 @@ import scala.concurrent.Future
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+    * Return all the missions in a JSON array
+    * @return
+    */
   def getAllMissions = UserAwareAction.async { implicit request =>
     val missions = MissionTable.all.map(m => Json.toJson(m))
     Future.successful(Ok(JsArray(missions)))
   }
 
+  /**
+    * Return the completed missions in a JSON array
+    * @return
+    */
   def getCompletedMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -32,6 +40,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  /**
+    * Return the completed missions in the given area
+    * @param regionId Region id
+    * @return
+    */
   def getCompletedMissionsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -42,6 +55,10 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  /**
+    * Return incomplete missions
+    * @return
+    */
   def getIncompleteMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -52,6 +69,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  /**
+    * Return incomplete missions in the given region
+    * @param regionId Region id
+    * @return
+    */
   def getIncompleteMissionsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
