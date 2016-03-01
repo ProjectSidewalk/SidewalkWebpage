@@ -29,6 +29,9 @@ POST    /audit/task                     @controllers.TaskController.post
 POST    /audit/comment                  @controllers.TaskController.postComment
 POST    /audit/nostreetview             @controllers.TaskController.postNoStreetView
 
+# Missions
+GET     /mission/all                    @controllers.MissionController.getAllMissions
+
 # Map Edit
 GET     /map/edit                       @controllers.MapController.edit
 

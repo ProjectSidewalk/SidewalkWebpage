@@ -29,7 +29,7 @@ object MissionTable {
     * @return A list of SidewalkEdge objects.
     */
   def all: List[Mission] = db.withSession { implicit session =>
-    missions.filter(_.deleted === false).list
+    missions.filter(_.deleted === false).sortBy(_.missionId).list
   }
 
   def save(mission: Mission): Int = db.withTransaction { implicit session =>
