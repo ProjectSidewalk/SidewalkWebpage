@@ -31,10 +31,34 @@ function Mission(parameters) {
         return this;
     }
 
+    /** Compute the remaining audit distance till complete (in meters) */
+    function remainingAuditDistanceTillComplete () {
+        var label = getProperty("label");
+        if (label) {
+            var distance, cumulativeDistanceAudited = 0;  // Todo.
+            if (label == "initial-mission") {
+                distance = getProperty("level") * 1000;
+                return distance - cumulativeDistanceAudited;
+            } else if (label == "distance-mission") {
+                distance = getProperty("level") * 1000;
+                return distance - cumulativeDistanceAudited;
+            } else if (label == "area-coverage-mission") {
+                return Infinity;
+            } else if (label == "neighborhood-coverage-mission") {
+                return Infinity;  // Return infinity as this mission does not depend on distance traveled.
+            } else {
+                return Infinity;  // This should not happen...
+            }
+        } else {
+            return Infinity;  // The label is not specified.
+        }
+    }
+
     _init(parameters);
 
     self.getProperty = getProperty;
     self.setProperty = setProperty;
+    self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     return self;
 }
 
@@ -50,6 +74,9 @@ function MissionContainer (parameters) {
         completedMissions = [];
 
     function _init (parameters) {
+        if (parameters) {
+            if ("currentNeighborhood" in parameters) {}
+        }
     }
 
     /** Push the completed mission */
@@ -94,7 +121,9 @@ function MissionContainer (parameters) {
 function MissionFactory (parameters) {
     var self = { className: "MissionFactory"};
 
-    function _init (parameters) {    }
+    function _init (parameters) {
+        if (parameters) {}
+    }
 
     /** Create an instance of a mission object */
     function create (regionId, missionId, label, level) {
@@ -104,6 +133,7 @@ function MissionFactory (parameters) {
     /** Get the next mission */
     function nextMission () {
         console.debug("Query and create the next mission.");
+
     }
 
     _init(parameters);

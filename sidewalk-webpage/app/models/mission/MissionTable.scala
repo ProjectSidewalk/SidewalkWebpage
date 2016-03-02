@@ -7,15 +7,15 @@ import models.region._
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Double, deleted: Boolean) {
+case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double], coverage: Option[Double], deleted: Boolean) {
   def completed(status: MissionStatus): Boolean = label match {
     case "initial-mission" =>
-      if (this.level < status.currentRegionDistance) true else false
-    case "distance-challenge" =>
-      if (this.level < status.currentRegionDistance) true else false
-    case "area-coverage-challenge" =>
-      if (this.level < status.currentRegionCoverage) true else false
-    case "neighborhood-coverage-challenge" =>
+      if (this.distance.getOrElse(Double.PositiveInfinity) < status.currentRegionDistance) true else false
+    case "distance-mission" =>
+      if (this.distance.getOrElse(Double.PositiveInfinity) < status.currentRegionDistance) true else false
+    case "area-coverage-mission" =>
+      if (this.distance.getOrElse(Double.PositiveInfinity) < status.currentRegionDistance) true else false
+    case "neighborhood-coverage-mission" =>
       if (this.level <= status.totalNumberOfRegionsCompleted) true else false
     case _ => false
   }
@@ -27,10 +27,12 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def missionId = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
   def regionId = column[Option[Int]]("region_id", O.Nullable)
   def label = column[String]("label", O.NotNull)
-  def level = column[Double]("level", O.NotNull)
+  def level = column[Int]("level", O.NotNull)
+  def distance = column[Option[Double]]("distance", O.Nullable)
+  def coverage = column[Option[Double]]("coverage", O.Nullable)
   def deleted = column[Boolean]("deleted", O.NotNull)
 
-  def * = (missionId, regionId, label, level, deleted) <> ((Mission.apply _).tupled, Mission.unapply)
+  def * = (missionId, regionId, label, level, distance, coverage, deleted) <> ((Mission.apply _).tupled, Mission.unapply)
 
   def region: ForeignKeyQuery[RegionTable, Region] =
     foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)

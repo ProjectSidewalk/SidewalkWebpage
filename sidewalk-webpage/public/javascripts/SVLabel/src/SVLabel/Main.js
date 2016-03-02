@@ -57,7 +57,7 @@ function Main ($, params) {
             setStatus("currentNeighborhood", neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ();
+        svl.missionContainer = MissionContainer ({currentNeighborhood: getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
         //svl.mission = new Mission();;
         //svl.achievement = new Achievement();

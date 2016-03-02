@@ -341,7 +341,7 @@ function Form ($, params) {
                     $OkBtn.remove();
                     //messageCanvas.clear();
                     status.disabledButtonMessageVisibility = 'hidden';
-                })
+                });
             }
         }
     }
@@ -359,7 +359,6 @@ function Form ($, params) {
         svl.task.nextTask();
         return false;
     }
-
 
     /**
      * Submit the data.
@@ -395,9 +394,10 @@ function Form ($, params) {
                         svl.missionContainer.addCompletedMission(mission);
                         svl.missionProgress.complete(mission);
                     }
-                }
 
-                svl.missionFactory.nextMission();
+                    // If the current mission is completed, then create the next mission.
+                    svl.missionFactory.nextMission();
+                }
             },
             error: function (result) {
                 console.error(result);

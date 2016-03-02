@@ -9,7 +9,9 @@ object MissionFormats {
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "region_id").readNullable[Int] and
       (JsPath \ "label").read[String] and
-      (JsPath \ "level").read[Double] and
+      (JsPath \ "level").read[Int] and
+      (JsPath \ "distance").readNullable[Double] and
+      (JsPath \ "coverage").readNullable[Double] and
       (JsPath \ "deleted").read[Boolean]
     )(Mission.apply _)
 
@@ -17,7 +19,9 @@ object MissionFormats {
     (__ \ "missionId").write[Int] and
       (__ \ "regionId").writeNullable[Int] and
       (__ \ "label").write[String] and
-      (__ \ "level").write[Double] and
+      (__ \ "level").write[Int] and
+      (__ \ "distance").writeNullable[Double] and
+      (__ \ "coverage").writeNullable[Double] and
       (__ \ "deleted").write[Boolean]
     )(unlift(Mission.unapply _))
 }
