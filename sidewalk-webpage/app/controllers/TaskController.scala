@@ -6,14 +6,16 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Silhouette, Environment}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.{GeometryFactory, PrecisionModel, Coordinate, Point}
+import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.TaskSubmissionFormats._
+import formats.json.MissionFormats._
 import formats.json.CommentSubmissionFormats._
+import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
+import models.mission.{MissionStatus, Mission, MissionTable}
 import models.region._
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{UserCurrentRegionTable, User}
@@ -63,7 +65,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Audit a given region
-   * @param regionId region id
+    *
+    * @param regionId region id
    * @return
    */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -147,6 +150,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
   /**
    * Parse the submitted data and insert them into tables.
  *
@@ -162,7 +167,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val returnValue: Seq[Seq[Int]] = for (data <- submission) yield {
+        val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
@@ -251,18 +256,37 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
 
-          // Todo. Check if there still are streets that are not audited
+          // Check if the user has cleared any mission
+          val completed: List[Mission] = request.identity match {
+            case Some(user) =>
+              val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+              if (region.isDefined) {
+                val missions: List[Mission] = MissionTable.incomplete(user.userId, region.get.regionId)
+                val status = MissionStatus(0.0, 0.0, 0)
+                missions.filter(m => m.completed(status))
+                MissionTable.incomplete(user.userId, region.get.regionId) // debug
+              } else {
+                List()
+              }
+            case _ => List()
+          }
 
-          Seq(auditTaskId, data.auditTask.streetEdgeId)
+          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, completed)
         }
-        Future.successful(Ok(Json.obj("audit_task_id" -> returnValue.head.head, "street_edge_id" -> returnValue.head(1))))
+
+        val jsMissions: List[JsValue] = returnValues.head.completedMissions.map(m => Json.toJson(m))
+        Future.successful(Ok(Json.obj(
+          "audit_task_id" -> returnValues.head.auditTaskId,
+          "street_edge_id" -> returnValues.head.streetEdgeId,
+          "completed_missions" -> JsArray(jsMissions)
+        )))
       }
     )
   }
 
   /**
     * Parse the submitted comment and insert it into the comment table
- *
+    *
     * @return
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

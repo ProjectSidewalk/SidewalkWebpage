@@ -58,7 +58,8 @@ function Main ($, params) {
         }
 
         svl.missionContainer = MissionContainer ();
-        //svl.mission = new Mission();
+        svl.missionFactory = MissionFactory ();
+        //svl.mission = new Mission();;
         //svl.achievement = new Achievement();
 
         svl.form.disableSubmit();

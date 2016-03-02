@@ -1,5 +1,7 @@
 package models.mission
 
+import java.util.UUID
+
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current

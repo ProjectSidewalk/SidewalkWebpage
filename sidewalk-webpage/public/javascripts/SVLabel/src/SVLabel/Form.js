@@ -380,8 +380,24 @@ function Form ($, params) {
             dataType: 'json',
             success: function (result) {
                 if (result.error) {
-                    console.log(result.error);
+                    console.error(result.error);
                 }
+
+                if (result.completed_missions) {
+                    var mission, i, len = result.completed_missions.length;
+                    for (i = 0; i < len; i++) {
+                        mission = svl.missionFactory.create(
+                            result.completed_missions[i].regionId,
+                            result.completed_missions[i].missionId,
+                            result.completed_missions[i].label,
+                            result.completed_missions[i].level
+                        );
+                        svl.missionContainer.addCompletedMission(mission);
+                        svl.missionProgress.complete(mission);
+                    }
+                }
+
+                svl.missionFactory.nextMission();
             },
             error: function (result) {
                 console.error(result);

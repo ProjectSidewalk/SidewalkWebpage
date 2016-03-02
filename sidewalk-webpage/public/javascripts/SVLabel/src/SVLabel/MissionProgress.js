@@ -11,6 +11,7 @@ function MissionProgress () {
     var self = {className: 'ProgressPov'};
     var status = {
         currentCompletionRate: 0,
+        currentMission: null,
         previousHeading: 0,
         surveyedAngles: undefined
     };
@@ -31,8 +32,11 @@ function MissionProgress () {
             status.surveyedAngles[i] = 0;
         }
 
-
         printCompletionRate();
+    }
+
+    function complete (mission) {
+        console.log("Congratulations, you have completed the following mission:", mission);
     }
 
     /**
@@ -105,6 +109,7 @@ function MissionProgress () {
         return this;
     }
 
+    self.complete = complete;
     self.getCompletionRate = getCompletionRate;
     self.setCompletedHeading = setCompletedHeading;
     self.updateCompletionRate = updateCompletionRate;
