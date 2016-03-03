@@ -318,12 +318,6 @@ function Map ($, params) {
 
         _streetViewInit = setInterval(initStreetView, 100);
 
-        //if ("disableWalking" in params && params.disableWalking) {
-        //    disableWalking();
-        //} else {
-        //    enableWalking();
-        //}
-        //
         // Set the fog parameters
         // Comment out to disable the fog feature.
         if ("onboarding" in svl &&
@@ -550,7 +544,7 @@ function Map ($, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
-        handlerPovChange(); // handle pov change
+        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
 
         // End of the task if the user is close enough to the end point
         var task = svl.taskContainer.getCurrentTask();
@@ -571,7 +565,9 @@ function Map ($, params) {
 
         }
         if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) { svl.missionProgress.updateMissionCompletionRate(); }
+        if ('missionProgress' in svl) {
+            svl.missionProgress.update();
+        }
     }
 
     /**
@@ -579,44 +575,20 @@ function Map ($, params) {
      */
     function handlerPovChange () {
         // This is a callback function that is fired when pov is changed
-        if (svl.canvas) {
-            var latlng = getPosition();
-            var heading = svl.getPOV().heading;
+        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
+        if ("compass" in svl) { svl.compass.update(); }
+    }
 
-            svl.canvas.clear();
-
-            if (status.currentPanoId !== svl.getPanoId()) {
-            	svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
-            }
-            status.currentPanoId = svl.getPanoId();
-            svl.canvas.render2();
+    /**
+     * Update the canvas
+     */
+    function updateCanvas () {
+        svl.canvas.clear();
+        if (status.currentPanoId !== svl.getPanoId()) {
+            svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
         }
-
-        // Sean & Vicki Fog code
-        if (fogMode && "fog" in svl) {
-            current = svl.panorama.getPosition();
-            if (current) {
-                if (!fogSet) {
-
-                } else {
-                    fogUpdate();
-                    // var dir = heading * (Math.PI / 180);
-                    // fog.updateFromPOV(current, radius, dir, Math.PI/2);
-                }
-           }
-         }
-
-        // Add event listener to svg. Disable walking to far.
-        if ($('svg')[0]) {
-            if (!svgListenerAdded) {
-                svgListenerAdded = true;
-                $('svg')[0].addEventListener('mousedown', function (e) {
-                    showLinks();
-                });
-            }
-        }
-
-        if ('compass' in svl) { svl.compass.update(); }
+        status.currentPanoId = svl.getPanoId();
+        svl.canvas.render2();
     }
 
     /**

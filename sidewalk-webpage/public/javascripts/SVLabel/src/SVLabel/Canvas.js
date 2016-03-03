@@ -288,8 +288,8 @@ function Canvas ($, param) {
                     }
                 }
 
-                self.clear();
-                self.setVisibilityBasedOnLocation('visible', getPanoId());
+                clear();
+                setVisibilityBasedOnLocation('visible', getPanoId());
                 render2();
             } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
                 if (properties.drawingMode == "path") {
@@ -1126,21 +1126,20 @@ function Canvas ($, param) {
     }
 
     /**
-     * @method
+     * Set the visibility of the labels based on pano id.
      */
-    function setVisibilityBasedOnLocation (visibility) {
+    function setVisibilityBasedOnLocation (visibility, panoramaId) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
         for (var i = 0; i < labelLen; i += 1) {
-            labels[i].setVisibilityBasedOnLocation(visibility, getPanoId());
+            labels[i].setVisibilityBasedOnLocation(visibility, panoramaId);
         }
         return this;
     }
 
     /**
-     * This function should not be used in labeling interfaces, but only in evaluation interfaces.
-     * Set labels that are not in LabelerIds hidden
+     * Hide labels that are not in LabelerIds
      * @method
      */
     function setVisibilityBasedOnLabelerId (visibility, LabelerIds, included) {

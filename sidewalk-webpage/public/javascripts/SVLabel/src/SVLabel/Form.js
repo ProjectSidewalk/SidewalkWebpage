@@ -381,25 +381,6 @@ function Form ($, params) {
                 if (result.error) {
                     console.error(result.error);
                 }
-
-                if (result.completed_missions) {
-                    var mission, i, len = result.completed_missions.length;
-                    for (i = 0; i < len; i++) {
-                        mission = svl.missionFactory.create(
-                            result.completed_missions[i].regionId,
-                            result.completed_missions[i].missionId,
-                            result.completed_missions[i].label,
-                            result.completed_missions[i].level,
-                            result.completed_missions[i].distance,
-                            result.completed_missions[i].coverage
-                        );
-                        svl.missionContainer.addToCompletedMissions(mission);
-                        svl.missionProgress.complete(mission);
-                    }
-
-                    // If the current mission is completed, then create the next mission.
-                    //svl.missionFactory.nextMission();
-                }
             },
             error: function (result) {
                 console.error(result);

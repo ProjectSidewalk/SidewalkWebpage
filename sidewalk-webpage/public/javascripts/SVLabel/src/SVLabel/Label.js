@@ -115,7 +115,7 @@ function Label (pathIn, params) {
         }
         var interval;
         var highlighted = true;
-        var path = self.getPath();
+        var path = getPath();
         var points = path.getPoints();
 
         var i;
@@ -151,7 +151,7 @@ function Label (pathIn, params) {
                     svl.canvas.clear().render2();
                 }
 
-                self.setAlpha(0.05);
+                setAlpha(0.05);
                 svl.canvas.clear().render2();
                 window.clearInterval(interval);
             }
@@ -187,7 +187,7 @@ function Label (pathIn, params) {
      * @returns {fadeFillStyle}
      */
     function fadeFillStyle (mode) {
-        var path = self.getPath(),
+        var path = getPath(),
             points = path.getPoints(),
             len = points.length, fillStyle;
 
@@ -207,7 +207,7 @@ function Label (pathIn, params) {
      * @returns {fill}
      */
     function fill (fillColor) {
-        var path = self.getPath(), points = path.getPoints(), len = points.length;
+        var path = getPath(), points = path.getPoints(), len = points.length;
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
         return this;
@@ -219,8 +219,7 @@ function Label (pathIn, params) {
      * @returns {*}
      */
     function getBoundingBox (pov) {
-        var path = self.getPath();
-        return path.getBoundingBox(pov);
+        return getPath().getBoundingBox(pov);
     }
 
     /**
@@ -298,7 +297,7 @@ function Label (pathIn, params) {
     function getLabelPov () {
         var heading, pitch = parseInt(properties.panoramaPitch, 10),
             zoom = parseInt(properties.panoramaZoom, 10),
-            points = self.getPoints(),
+            points = getPoints(),
             svImageXs = points.map(function(point) { return point.svImageCoordinate.x; }),
             labelSvImageX;
 
@@ -350,7 +349,7 @@ function Label (pathIn, params) {
     /**
      * This method changes the fill color of the path and points to orange.
      */
-    function highlight () { return self.fill('rgba(255,165,0,0.8)'); }
+    function highlight () { return fill('rgba(255,165,0,0.8)'); }
 
     /**
      * Check if the label is deleted
@@ -409,7 +408,7 @@ function Label (pathIn, params) {
         if (mode !== "boundingbox") {
             throw self.className + ": " + mobede + " is not a valid option.";
         }
-        var path1 = self.getPath(),
+        var path1 = getPath(),
             path2 = label.getPath();
 
         return path1.overlap(path2, mode);
@@ -566,7 +565,7 @@ function Label (pathIn, params) {
      * @returns {resetFillStyle}
      */
     function resetFillStyle () {
-        var path = self.getPath(),
+        var path = getPath(),
             points = path.getPoints(),
             len = points.length;
         path.resetFillStyle();
@@ -592,7 +591,7 @@ function Label (pathIn, params) {
      * @returns {setAlpha}
      */
     function setAlpha (alpha) {
-        var path = self.getPath(),
+        var path = getPath(),
             points = path.getPoints(),
             len = points.length,
             fillColor = path.getFillStyle();
@@ -647,13 +646,10 @@ function Label (pathIn, params) {
      */
     function setStatus (key, value) {
         if (key in status) {
-            if (key === 'visibility' &&
-                (value === 'visible' || value === 'hidden')) {
-                // status[key] = value;
-                self.setVisibility(value);
-            } else if (key === 'tagVisibility' &&
-                (value === 'visible' || value === 'hidden')) {
-                self.setTagVisibility(value);
+            if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
+                setVisibility(value);
+            } else if (key === 'tagVisibility' && (value === 'visible' || value === 'hidden')) {
+                setTagVisibility(value);
             } else if (key === 'deleted' && typeof value === 'boolean') {
                 status[key] = value;
             }
@@ -691,19 +687,19 @@ function Label (pathIn, params) {
     function setVisibilityBasedOnLabelerId (visibility, labelerIds, included) {
         if (included === undefined) {
             if (labelerIds.indexOf(properties.labelerId) !== -1) {
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             } else {
                 visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             }
         } else {
             if (included) {
                 if (labelerIds.indexOf(properties.labelerId) !== -1) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             } else {
                 if (labelerIds.indexOf(properties.labelerId) === -1) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             }
         }
@@ -721,15 +717,19 @@ function Label (pathIn, params) {
         return this;
     }
 
-    function setVisibilityBasedOnLocation (visibility, panoId) {
+    /**
+     * Set visibility of labels
+     * @param visibility
+     * @param panoId
+     * @returns {setVisibilityBasedOnLocation}
+     */
+    function setVisibilityBasedOnLocation (visibility, panoramaId) {
         if (!status.deleted) {
-            if (panoId === properties.panoId) {
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
+            if (panoramaId === properties.panoId) {
+                setVisibility(visibility);
             } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
+                visibility = visibility == 'visible' ? 'hidden' : 'visible';
+                setVisibility(visibility);
             }
         }
         return this;
@@ -753,19 +753,19 @@ function Label (pathIn, params) {
         }
         if (included === undefined) {
             if (matched) {
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             } else {
                 visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             }
         } else {
             if (included) {
                 if (matched) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             } else {
                 if (!matched) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             }
         }

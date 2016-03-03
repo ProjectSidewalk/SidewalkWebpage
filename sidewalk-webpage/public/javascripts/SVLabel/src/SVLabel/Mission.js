@@ -24,11 +24,39 @@ function Mission(parameters) {
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
     }
 
+    /**
+     * Set the property to complete
+     */
+    function complete () {
+        setProperty("isCompleted", true);
+    }
+
+    /**
+     * Compute and return the mission completion rate
+     * @returns {number}
+     */
+    function getMissionCompletionRate () {
+        if ("taskContainer" in svl) {
+            var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var task = svl.taskContainer.getCurrentTask();
+
+            if (task) {
+                var cumulativeDistance = task.getCumulativeDistance("kilometers");
+                return cumulativeDistance / targetDistance;
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
     /** Returns a property */
     function getProperty (key) {
         return key in properties ? properties[key] : key;
     }
 
+    /** Check if the mission is completed or not */
     function isCompleted () {
         return getProperty("isCompleted");
     }
@@ -69,29 +97,14 @@ function Mission(parameters) {
             ", Completed: " + getProperty("isCompleted");
     }
 
-    function getMissionCompletionRate () {
-        if ("taskContainer" in svl) {
-            var targetDistance = getProperty("distance") / 1000;
-            var task = svl.taskContainer.getCurrentTask();
-
-            if (task) {
-                var cumulativeDistance = task.getCumulativeDistance("kilometers");
-                return cumulativeDistance / targetDistance;
-            } else {
-                return 0;
-            }
-        } else {
-            return 0;
-        }
-    }
-
     _init(parameters);
 
+    self.complete = complete;
     self.getProperty = getProperty;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.isCompleted = isCompleted;
-    self.setProperty = setProperty;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
+    self.setProperty = setProperty;
     self.toString = toString;
     return self;
 }
@@ -106,6 +119,7 @@ function MissionContainer ($, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
+        staged = [],
         currentMission = null;
 
     function _init (parameters) {
@@ -138,10 +152,15 @@ function MissionContainer ($, parameters) {
     }
 
     /** Set current missison */
-    function setCurrentMission (mission) { currentMission = mission; return this; }
+    function setCurrentMission (mission) {
+        currentMission = mission;
+        return this;
+    }
 
     /** Get current mission */
-    function getCurrentMission () { return currentMission; }
+    function getCurrentMission () {
+        return currentMission;
+    }
 
     /**
      * Adds a mission into data structure.
@@ -199,6 +218,14 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    /**
+     * Push the completed mission to the staged so it will be submitted to the server.
+     * @param mission
+     */
+    function stage (mission) {
+        staged.push(mission);
+    }
+
     _init(parameters);
 
     self.addToCompletedMissions = addToCompletedMissions;
@@ -207,6 +234,7 @@ function MissionContainer ($, parameters) {
     self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
+    self.stage = stage;
     return self;
 }
 

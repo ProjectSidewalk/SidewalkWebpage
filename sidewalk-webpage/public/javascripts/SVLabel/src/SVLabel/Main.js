@@ -13,7 +13,6 @@ function Main ($, params) {
     var self = {moduleName: 'Main'};
     var properties = {};
     var status = {
-        currentNeighborhood: null,
         isFirstTask: false
     };
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
@@ -54,10 +53,10 @@ function Main ($, params) {
         if ('regionId' in params) {
             var neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
-            setStatus("currentNeighborhood", neighborhood);
+            svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ($, {currentNeighborhood: getStatus("currentNeighborhood")});
+        svl.missionContainer = MissionContainer ($, {currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
         //svl.mission = new Mission();;
         //svl.achievement = new Achievement();

@@ -1435,8 +1435,8 @@ function Canvas ($, param) {
                     }
                 }
 
-                self.clear();
-                self.setVisibilityBasedOnLocation('visible', getPanoId());
+                clear();
+                setVisibilityBasedOnLocation('visible', getPanoId());
                 render2();
             } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
                 if (properties.drawingMode == "path") {
@@ -2273,21 +2273,20 @@ function Canvas ($, param) {
     }
 
     /**
-     * @method
+     * Set the visibility of the labels based on pano id.
      */
-    function setVisibilityBasedOnLocation (visibility) {
+    function setVisibilityBasedOnLocation (visibility, panoramaId) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
         for (var i = 0; i < labelLen; i += 1) {
-            labels[i].setVisibilityBasedOnLocation(visibility, getPanoId());
+            labels[i].setVisibilityBasedOnLocation(visibility, panoramaId);
         }
         return this;
     }
 
     /**
-     * This function should not be used in labeling interfaces, but only in evaluation interfaces.
-     * Set labels that are not in LabelerIds hidden
+     * Hide labels that are not in LabelerIds
      * @method
      */
     function setVisibilityBasedOnLabelerId (visibility, LabelerIds, included) {
@@ -3288,25 +3287,6 @@ function Form ($, params) {
                 if (result.error) {
                     console.error(result.error);
                 }
-
-                if (result.completed_missions) {
-                    var mission, i, len = result.completed_missions.length;
-                    for (i = 0; i < len; i++) {
-                        mission = svl.missionFactory.create(
-                            result.completed_missions[i].regionId,
-                            result.completed_missions[i].missionId,
-                            result.completed_missions[i].label,
-                            result.completed_missions[i].level,
-                            result.completed_missions[i].distance,
-                            result.completed_missions[i].coverage
-                        );
-                        svl.missionContainer.addToCompletedMissions(mission);
-                        svl.missionProgress.complete(mission);
-                    }
-
-                    // If the current mission is completed, then create the next mission.
-                    //svl.missionFactory.nextMission();
-                }
             },
             error: function (result) {
                 console.error(result);
@@ -4273,7 +4253,7 @@ function Label (pathIn, params) {
         }
         var interval;
         var highlighted = true;
-        var path = self.getPath();
+        var path = getPath();
         var points = path.getPoints();
 
         var i;
@@ -4309,7 +4289,7 @@ function Label (pathIn, params) {
                     svl.canvas.clear().render2();
                 }
 
-                self.setAlpha(0.05);
+                setAlpha(0.05);
                 svl.canvas.clear().render2();
                 window.clearInterval(interval);
             }
@@ -4345,7 +4325,7 @@ function Label (pathIn, params) {
      * @returns {fadeFillStyle}
      */
     function fadeFillStyle (mode) {
-        var path = self.getPath(),
+        var path = getPath(),
             points = path.getPoints(),
             len = points.length, fillStyle;
 
@@ -4365,7 +4345,7 @@ function Label (pathIn, params) {
      * @returns {fill}
      */
     function fill (fillColor) {
-        var path = self.getPath(), points = path.getPoints(), len = points.length;
+        var path = getPath(), points = path.getPoints(), len = points.length;
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
         return this;
@@ -4377,8 +4357,7 @@ function Label (pathIn, params) {
      * @returns {*}
      */
     function getBoundingBox (pov) {
-        var path = self.getPath();
-        return path.getBoundingBox(pov);
+        return getPath().getBoundingBox(pov);
     }
 
     /**
@@ -4456,7 +4435,7 @@ function Label (pathIn, params) {
     function getLabelPov () {
         var heading, pitch = parseInt(properties.panoramaPitch, 10),
             zoom = parseInt(properties.panoramaZoom, 10),
-            points = self.getPoints(),
+            points = getPoints(),
             svImageXs = points.map(function(point) { return point.svImageCoordinate.x; }),
             labelSvImageX;
 
@@ -4508,7 +4487,7 @@ function Label (pathIn, params) {
     /**
      * This method changes the fill color of the path and points to orange.
      */
-    function highlight () { return self.fill('rgba(255,165,0,0.8)'); }
+    function highlight () { return fill('rgba(255,165,0,0.8)'); }
 
     /**
      * Check if the label is deleted
@@ -4567,7 +4546,7 @@ function Label (pathIn, params) {
         if (mode !== "boundingbox") {
             throw self.className + ": " + mobede + " is not a valid option.";
         }
-        var path1 = self.getPath(),
+        var path1 = getPath(),
             path2 = label.getPath();
 
         return path1.overlap(path2, mode);
@@ -4724,7 +4703,7 @@ function Label (pathIn, params) {
      * @returns {resetFillStyle}
      */
     function resetFillStyle () {
-        var path = self.getPath(),
+        var path = getPath(),
             points = path.getPoints(),
             len = points.length;
         path.resetFillStyle();
@@ -4750,7 +4729,7 @@ function Label (pathIn, params) {
      * @returns {setAlpha}
      */
     function setAlpha (alpha) {
-        var path = self.getPath(),
+        var path = getPath(),
             points = path.getPoints(),
             len = points.length,
             fillColor = path.getFillStyle();
@@ -4805,13 +4784,10 @@ function Label (pathIn, params) {
      */
     function setStatus (key, value) {
         if (key in status) {
-            if (key === 'visibility' &&
-                (value === 'visible' || value === 'hidden')) {
-                // status[key] = value;
-                self.setVisibility(value);
-            } else if (key === 'tagVisibility' &&
-                (value === 'visible' || value === 'hidden')) {
-                self.setTagVisibility(value);
+            if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
+                setVisibility(value);
+            } else if (key === 'tagVisibility' && (value === 'visible' || value === 'hidden')) {
+                setTagVisibility(value);
             } else if (key === 'deleted' && typeof value === 'boolean') {
                 status[key] = value;
             }
@@ -4849,19 +4825,19 @@ function Label (pathIn, params) {
     function setVisibilityBasedOnLabelerId (visibility, labelerIds, included) {
         if (included === undefined) {
             if (labelerIds.indexOf(properties.labelerId) !== -1) {
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             } else {
                 visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             }
         } else {
             if (included) {
                 if (labelerIds.indexOf(properties.labelerId) !== -1) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             } else {
                 if (labelerIds.indexOf(properties.labelerId) === -1) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             }
         }
@@ -4879,15 +4855,19 @@ function Label (pathIn, params) {
         return this;
     }
 
-    function setVisibilityBasedOnLocation (visibility, panoId) {
+    /**
+     * Set visibility of labels
+     * @param visibility
+     * @param panoId
+     * @returns {setVisibilityBasedOnLocation}
+     */
+    function setVisibilityBasedOnLocation (visibility, panoramaId) {
         if (!status.deleted) {
-            if (panoId === properties.panoId) {
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
+            if (panoramaId === properties.panoId) {
+                setVisibility(visibility);
             } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                // self.setStatus('visibility', visibility);
-                self.setVisibility(visibility);
+                visibility = visibility == 'visible' ? 'hidden' : 'visible';
+                setVisibility(visibility);
             }
         }
         return this;
@@ -4911,19 +4891,19 @@ function Label (pathIn, params) {
         }
         if (included === undefined) {
             if (matched) {
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             } else {
                 visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                unlockVisibility().setVisibility(visibility).lockVisibility();
             }
         } else {
             if (included) {
                 if (matched) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             } else {
                 if (!matched) {
-                    self.unlockVisibility().setVisibility(visibility).lockVisibility();
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
                 }
             }
         }
@@ -5527,7 +5507,6 @@ function Main ($, params) {
     var self = {moduleName: 'Main'};
     var properties = {};
     var status = {
-        currentNeighborhood: null,
         isFirstTask: false
     };
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
@@ -5568,10 +5547,10 @@ function Main ($, params) {
         if ('regionId' in params) {
             var neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
-            setStatus("currentNeighborhood", neighborhood);
+            svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ($, {currentNeighborhood: getStatus("currentNeighborhood")});
+        svl.missionContainer = MissionContainer ($, {currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
         //svl.mission = new Mission();;
         //svl.achievement = new Achievement();
@@ -5948,12 +5927,6 @@ function Map ($, params) {
 
         _streetViewInit = setInterval(initStreetView, 100);
 
-        //if ("disableWalking" in params && params.disableWalking) {
-        //    disableWalking();
-        //} else {
-        //    enableWalking();
-        //}
-        //
         // Set the fog parameters
         // Comment out to disable the fog feature.
         if ("onboarding" in svl &&
@@ -6180,7 +6153,7 @@ function Map ($, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
-        handlerPovChange(); // handle pov change
+        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
 
         // End of the task if the user is close enough to the end point
         var task = svl.taskContainer.getCurrentTask();
@@ -6201,7 +6174,9 @@ function Map ($, params) {
 
         }
         if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) { svl.missionProgress.updateMissionCompletionRate(); }
+        if ('missionProgress' in svl) {
+            svl.missionProgress.update();
+        }
     }
 
     /**
@@ -6209,44 +6184,20 @@ function Map ($, params) {
      */
     function handlerPovChange () {
         // This is a callback function that is fired when pov is changed
-        if (svl.canvas) {
-            var latlng = getPosition();
-            var heading = svl.getPOV().heading;
+        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
+        if ("compass" in svl) { svl.compass.update(); }
+    }
 
-            svl.canvas.clear();
-
-            if (status.currentPanoId !== svl.getPanoId()) {
-            	svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
-            }
-            status.currentPanoId = svl.getPanoId();
-            svl.canvas.render2();
+    /**
+     * Update the canvas
+     */
+    function updateCanvas () {
+        svl.canvas.clear();
+        if (status.currentPanoId !== svl.getPanoId()) {
+            svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
         }
-
-        // Sean & Vicki Fog code
-        if (fogMode && "fog" in svl) {
-            current = svl.panorama.getPosition();
-            if (current) {
-                if (!fogSet) {
-
-                } else {
-                    fogUpdate();
-                    // var dir = heading * (Math.PI / 180);
-                    // fog.updateFromPOV(current, radius, dir, Math.PI/2);
-                }
-           }
-         }
-
-        // Add event listener to svg. Disable walking to far.
-        if ($('svg')[0]) {
-            if (!svgListenerAdded) {
-                svgListenerAdded = true;
-                $('svg')[0].addEventListener('mousedown', function (e) {
-                    showLinks();
-                });
-            }
-        }
-
-        if ('compass' in svl) { svl.compass.update(); }
+        status.currentPanoId = svl.getPanoId();
+        svl.canvas.render2();
     }
 
     /**
@@ -6910,11 +6861,39 @@ function Mission(parameters) {
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
     }
 
+    /**
+     * Set the property to complete
+     */
+    function complete () {
+        setProperty("isCompleted", true);
+    }
+
+    /**
+     * Compute and return the mission completion rate
+     * @returns {number}
+     */
+    function getMissionCompletionRate () {
+        if ("taskContainer" in svl) {
+            var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var task = svl.taskContainer.getCurrentTask();
+
+            if (task) {
+                var cumulativeDistance = task.getCumulativeDistance("kilometers");
+                return cumulativeDistance / targetDistance;
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
     /** Returns a property */
     function getProperty (key) {
         return key in properties ? properties[key] : key;
     }
 
+    /** Check if the mission is completed or not */
     function isCompleted () {
         return getProperty("isCompleted");
     }
@@ -6955,29 +6934,14 @@ function Mission(parameters) {
             ", Completed: " + getProperty("isCompleted");
     }
 
-    function getMissionCompletionRate () {
-        if ("taskContainer" in svl) {
-            var targetDistance = getProperty("distance") / 1000;
-            var task = svl.taskContainer.getCurrentTask();
-
-            if (task) {
-                var cumulativeDistance = task.getCumulativeDistance("kilometers");
-                return cumulativeDistance / targetDistance;
-            } else {
-                return 0;
-            }
-        } else {
-            return 0;
-        }
-    }
-
     _init(parameters);
 
+    self.complete = complete;
     self.getProperty = getProperty;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.isCompleted = isCompleted;
-    self.setProperty = setProperty;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
+    self.setProperty = setProperty;
     self.toString = toString;
     return self;
 }
@@ -6992,6 +6956,7 @@ function MissionContainer ($, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
+        staged = [],
         currentMission = null;
 
     function _init (parameters) {
@@ -7024,10 +6989,15 @@ function MissionContainer ($, parameters) {
     }
 
     /** Set current missison */
-    function setCurrentMission (mission) { currentMission = mission; return this; }
+    function setCurrentMission (mission) {
+        currentMission = mission;
+        return this;
+    }
 
     /** Get current mission */
-    function getCurrentMission () { return currentMission; }
+    function getCurrentMission () {
+        return currentMission;
+    }
 
     /**
      * Adds a mission into data structure.
@@ -7085,6 +7055,14 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    /**
+     * Push the completed mission to the staged so it will be submitted to the server.
+     * @param mission
+     */
+    function stage (mission) {
+        staged.push(mission);
+    }
+
     _init(parameters);
 
     self.addToCompletedMissions = addToCompletedMissions;
@@ -7093,6 +7071,7 @@ function MissionContainer ($, parameters) {
     self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
+    self.stage = stage;
     return self;
 }
 
@@ -7124,13 +7103,11 @@ var svl = svl || {};
 
 /**
  *
- * @param $
- * @param param
  * @returns {{className: string}}
  * @constructor
  */
 function MissionProgress () {
-    var self = {className: 'ProgressPov'};
+    var self = { className: 'MissionProgress' };
     var status = {
         currentCompletionRate: 0,
         currentMission: null,
@@ -7141,7 +7118,6 @@ function MissionProgress () {
     var $divCurrentCompletionRate;
     var $divCurrentCompletionBar;
     var $divCurrentCompletionBarFiller;
-
 
     function _init() {
         $divCurrentCompletionRate = svl.ui.progressPov.rate;
@@ -7157,77 +7133,112 @@ function MissionProgress () {
         printCompletionRate();
     }
 
-    function complete (mission, callback) {
-        console.log("Congratulations, you have completed the following mission:", mission);
-        if (callback) callback();
+    /**
+     * Finish the mission.
+     * @param mission
+     */
+    function complete (mission) {
+        if (mission) {
+            mission.complete();
+            svl.missionContainer.addToCompletedMissions(mission);
+            svl.missionContainer.stage(mission);
+
+            showMissionCompleteWindow(mission, function () {
+               console.log("Mission complete");
+            });
+        }
     }
 
     /**
      * This method prints what percent of the intersection the user has observed.
      * @returns {printCompletionRate}
      */
-    function printCompletionRate () {
-        if ("missionContainer" in svl) {
-            var mission = svl.missionContainer.getCurrentMission();
-            if (mission) {
-                var completionRate = mission.getMissionCompletionRate() * 100;
-                completionRate = completionRate.toFixed(0, 10);
-                completionRate = completionRate + "% complete";
-                $divCurrentCompletionRate.html(completionRate);
-            }
-        }
-
-        return this;
-    }
-
-    /**
-     * This method updates the filler of the completion bar
-     */
-    function updateMissionCompletionBar () {
-        if ("missionContainer" in svl) {
-            var mission = svl.missionContainer.getCurrentMission();
-            if (mission) {
-                var r, g, color, completionRate = mission.getMissionCompletionRate();
-                var colorIntensity = 230;
-                if (completionRate < 0.5) {
-                    r = colorIntensity;
-                    g = parseInt(colorIntensity * completionRate * 2);
-                } else {
-                    r = parseInt(colorIntensity * (1 - completionRate) * 2);
-                    g = colorIntensity;
-                }
-
-                color = 'rgba(' + r + ',' + g + ',0,1)';
-                completionRate *=  100;
-                completionRate = completionRate.toFixed(0, 10);
-                completionRate -= 0.8;
-                completionRate = completionRate + "%";
-                $divCurrentCompletionBarFiller.css({
-                    background: color,
-                    width: completionRate
-                });
-            }
+    function printCompletionRate (mission) {
+        if (mission) {
+            var completionRate = mission.getMissionCompletionRate() * 100;
+            completionRate = completionRate.toFixed(0, 10);
+            completionRate = completionRate + "% complete";
+            $divCurrentCompletionRate.html(completionRate);
         }
         return this;
     }
 
     /**
-     * This method updates the printed completion rate and the bar.
+     * Show a message to the user that they have completed the mission
      */
-    function updateMissionCompletionRate () {
-        printCompletionRate();
-        updateMissionCompletionBar();
-    }
-
-
     function showMission () {
         var currentMission = svl.missionContainer.getCurrentMission();
         if (currentMission) console.debug(currentMission);
     }
 
-    self.complete = complete;
-    self.updateMissionCompletionRate = updateMissionCompletionRate;
+    /**
+     * Show to the user that the mission is completed
+     * @param mission
+     * @param callback
+     */
+    function showMissionCompleteWindow (mission, callback) {
+        console.log("Congratulations, you have completed the following mission:", mission);
+        if (callback) callback();
+    }
+
+    /**
+     * This method updates the mission completion rate and its visualization.
+     */
+    function update () {
+        if ("missionContainer" in svl) {
+            // Todo. I think I should check not only the current mission but also all the incomplete missions
+            var i, len, missions,
+                currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
+                currentMission = svl.missionContainer.getCurrentMission(),
+                completionRate;
+            printCompletionRate(currentMission);
+            updateMissionCompletionBar(currentMission);
+
+            if (currentRegion) {
+                missions = svl.missionContainer.getMissionsByRegionId(currentRegion.getProperty("regionId"));
+                missions = missions.concat(svl.missionContainer.getMissionsByRegionId("noRegionId"));
+
+                len = missions.length;
+                for (i = 0; i < len; i++) {
+                    completionRate = missions[i].getMissionCompletionRate();
+                    if (completionRate >= 1.0) {
+                        complete(missions[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * This method updates the filler of the completion bar
+     */
+    function updateMissionCompletionBar (mission) {
+        if (mission) {
+            var r, g, color, completionRate = mission.getMissionCompletionRate();
+            var colorIntensity = 230;
+            if (completionRate < 0.5) {
+                r = colorIntensity;
+                g = parseInt(colorIntensity * completionRate * 2);
+            } else {
+                r = parseInt(colorIntensity * (1 - completionRate) * 2);
+                g = colorIntensity;
+            }
+            color = 'rgba(' + r + ',' + g + ',0,1)';
+            completionRate *=  100;
+            completionRate = completionRate.toFixed(0, 10);
+            completionRate -= 0.8;
+            completionRate = completionRate + "%";
+            $divCurrentCompletionBarFiller.css({
+                background: color,
+                width: completionRate
+            });
+        }
+        return this;
+    }
+
     self.showMission = showMission;
+    self.showMissionCompleteWindow = showMissionCompleteWindow;
+    self.update = update;
 
     _init();
     return self;
@@ -7594,20 +7605,14 @@ function Neighborhood (parameters) {
 
 function NeighborhoodContainer (parameters) {
     var self = { className: "NeighborhoodContainer" },
-        neighborhoods = {};
+        neighborhoods = {},
+        status = {
+            currentNeighborhood: null
+        };
 
     function _init (parameters) {
     }
 
-    /** Get a neighborhood instance of the given id */
-    function get (id) {
-        return id in neighborhoods ? neighborhoods[id] : null;
-    }
-
-    /** Return a list of neighborhood ids */
-    function getRegionIds () {
-        return Object.keys(neighborhoods).map(function (x) { return parseInt(x, 10); });
-    }
 
     /** Add the given neighborhood to the container */
     function add(neighborhood) {
@@ -7615,11 +7620,42 @@ function NeighborhoodContainer (parameters) {
         neighborhoods[id] = neighborhood;
     }
 
+    /** Get a neighborhood instance of the given id */
+    function get (id) {
+        return id in neighborhoods ? neighborhoods[id] : null;
+    }
+
+    function getCurrentNeighborhood () {
+        return getStatus("currentNeighborhood");
+    }
+
+    /** Return a list of neighborhood ids */
+    function getRegionIds () {
+        return Object.keys(neighborhoods).map(function (x) { return parseInt(x, 10); });
+    }
+
+    function getStatus (key) {
+        return status[key];
+    }
+
+    function setCurrentNeighborhood (neighborhood) {
+        setStatus("currentNeighborhood", neighborhood);
+    }
+
+    function setStatus (key, value) {
+        status[key] = value;
+    }
+
+
     _init(parameters);
 
-    self.get = get;
-    self.getRegionIds = getRegionIds;
     self.add = add;
+    self.get = get;
+    self.getCurrentNeighborhood = getCurrentNeighborhood;
+    self.getRegionIds = getRegionIds;
+    self.getStatus = getStatus;
+    self.setCurrentNeighborhood = setCurrentNeighborhood;
+    self.setStatus = setStatus;
 
     return self;
 }
