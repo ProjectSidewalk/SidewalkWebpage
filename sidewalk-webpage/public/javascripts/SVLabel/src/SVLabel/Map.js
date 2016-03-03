@@ -553,10 +553,11 @@ function Map ($, params) {
         handlerPovChange(); // handle pov change
 
         // End of the task if the user is close enough to the end point
-        if ('task' in svl) {
-            svl.task.render();
-            if (svl.task.isAtEnd(position.lat(), position.lng(), 10)) {
-                svl.task.endTask();
+        var task = svl.taskContainer.getCurrentTask();
+        if (task) {
+            task.render();
+            if (task.isAtEnd(position.lat(), position.lng(), 10)) {
+                svl.taskContainer.endTask(task);
             }
         }
 

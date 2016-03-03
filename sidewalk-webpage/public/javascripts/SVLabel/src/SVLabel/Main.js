@@ -97,8 +97,9 @@ function Main ($, params) {
         svl.map = new Map($, mapParam);
         svl.map.disableClickZoom();
 
-        if ('task' in svl) {
-          google.maps.event.addDomListener(window, 'load', svl.task.render);
+        var task = svl.taskContainer.getCurrentTask();
+        if (task) {
+          google.maps.event.addDomListener(window, 'load', task.render);
         }
     }
 

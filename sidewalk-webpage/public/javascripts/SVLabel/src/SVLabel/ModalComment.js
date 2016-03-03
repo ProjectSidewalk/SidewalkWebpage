@@ -79,7 +79,8 @@ function ModalComment ($) {
 
     function submitComment () {
         if ('task' in svl) {
-            var streetEdgeId = svl.task.getStreetEdgeId(),
+            var task = svl.taskContainer.getCurrentTask(),
+                streetEdgeId = task.getStreetEdgeId(),
                 gsvPanoramaId = svl.panorama.getPano(),
                 pov = svl.getPOV(),
                 comment = svl.ui.modalComment.textarea.val();

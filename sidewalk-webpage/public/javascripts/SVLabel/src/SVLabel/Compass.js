@@ -38,8 +38,9 @@ function Compass (d3) {
      * @returns {number}
      */
     function getTargetAngle () {
-        var latlng = svl.getPosition(),  // current position
-            geometry = svl.task.getGeometry(),  // get the street geometry of the current task
+        var task = svl.taskContainer.getCurrentTask(),
+            latlng = svl.getPosition(),  // current position
+            geometry = task.getGeometry(),  // get the street geometry of the current task
             coordinates = geometry.coordinates,  // get the latlng coordinates of the streets
             distArray = coordinates.map(function(o) { return Math.sqrt(norm(latlng.lat, latlng.lng, o[1], o[0])); }),
             minimum = Math.min.apply(Math, distArray),

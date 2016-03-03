@@ -419,13 +419,13 @@
         }
 
         @if(task) {
-            svl.taskFactory = TaskFactory();
+            svl.taskFactory = TaskFactory(turf);
             svl.taskContainer = TaskContainer(turf);
 
-            svl.task = new Task($, L, turf);
-            var task = @Html(task.get.toJSON.toString);
-            var lat1 = task.features[0].geometry.coordinates[0][1],
-                lng1 = task.features[0].geometry.coordinates[0][0];
+//            svl.task = new Task($, L, turf);
+            var geojson = @Html(task.get.toJSON.toString);
+            var lat1 = geojson.features[0].geometry.coordinates[0][1],
+                lng1 = geojson.features[0].geometry.coordinates[0][0];
 
             var streetViewService = new google.maps.StreetViewService();
             var STREETVIEW_MAX_DISTANCE = 25;
@@ -433,7 +433,9 @@
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
-                    svl.task.set(task);
+//                    svl.task.set(task);
+                    var newTask = svl.taskFactory.create(geojson, lat1, lng1);
+                    svl.taskContainer.setCurrentTask(newTask);
                     init();
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     // no street view available in this range.
@@ -461,7 +463,7 @@
         });
 
         function init() {
-            var mainParam = {}, formParam = {}, initialLocation = svl.task.initialLocation();
+            var mainParam = {}, formParam = {}, initialLocation = svl.taskContainer.getCurrentTask().initialLocation();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.hitId = '';
             formParam.assignmentId = '';

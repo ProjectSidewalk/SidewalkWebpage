@@ -110,9 +110,10 @@ function Form ($, params) {
     function compileSubmissionData () {
         var data = {};
 
+        var task = svl.taskContainer.getCurrentTask();
         data.audit_task = {
-            street_edge_id: svl.task.getStreetEdgeId(),
-            task_start: svl.task.getTaskStart()
+            street_edge_id: task.getStreetEdgeId(),
+            task_start: task.getTaskStart()
         };
 
         data.environment = {
@@ -356,7 +357,7 @@ function Form ($, params) {
         data.incomplete = dataIn;
         svl.tracker.push('TaskSkip');
         submit(data);
-        svl.task.nextTask();
+        svl.taskContainer.nextTask();
         return false;
     }
 
@@ -398,7 +399,7 @@ function Form ($, params) {
                     }
 
                     // If the current mission is completed, then create the next mission.
-                    svl.missionFactory.nextMission();
+                    //svl.missionFactory.nextMission();
                 }
             },
             error: function (result) {

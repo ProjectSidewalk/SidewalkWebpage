@@ -90,7 +90,8 @@ function MissionProgress () {
      * @returns {number}
      */
     function getMissionCompletionRate () {
-        var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
+        var task = svl.taskContainer.getCurrentTask();
+        var taskCompletionRate = task ? task.getTaskCompletionRate() : 0;
         if ('compass' in svl) {
             svl.compass.update();
             if (taskCompletionRate > 0.1) {
