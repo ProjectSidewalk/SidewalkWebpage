@@ -42,7 +42,7 @@ function Main ($, params) {
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = Tracker();
         svl.labelFactory = LabelFactory();
-        svl.compass = Compass($);
+        svl.compass = Compass(d3);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
@@ -51,13 +51,13 @@ function Main ($, params) {
 
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
-        if ('neighborhoodId' in params) {
-            var neighborhood = svl.neighborhoodFactory.create(params.neighborhoodId);
+        if ('regionId' in params) {
+            var neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
             setStatus("currentNeighborhood", neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ({currentNeighborhood: getStatus("currentNeighborhood")});
+        svl.missionContainer = MissionContainer ($, {currentNeighborhood: getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
         //svl.mission = new Mission();;
         //svl.achievement = new Achievement();

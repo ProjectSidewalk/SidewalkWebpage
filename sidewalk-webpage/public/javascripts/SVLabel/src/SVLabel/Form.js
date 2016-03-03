@@ -197,7 +197,7 @@ function Form ($, params) {
      */
     function checkSubmittable () {
         if ('missionProgress' in svl && svl.missionProgress) {
-            var completionRate = svl.missionProgress.getCompletionRate();
+            var completionRate = svl.missionProgress.getMissionCompletionRate();
         } else {
             var completionRate = 0;
         }
@@ -319,7 +319,7 @@ function Form ($, params) {
      *
      */
     function showDisabledSubmitButtonMessage () {
-        var completionRate = parseInt(svl.missionProgress.getCompletionRate() * 100, 10);
+        var completionRate = parseInt(svl.missionProgress.getMissionCompletionRate() * 100, 10);
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {
@@ -389,9 +389,11 @@ function Form ($, params) {
                             result.completed_missions[i].regionId,
                             result.completed_missions[i].missionId,
                             result.completed_missions[i].label,
-                            result.completed_missions[i].level
+                            result.completed_missions[i].level,
+                            result.completed_missions[i].distance,
+                            result.completed_missions[i].coverage
                         );
-                        svl.missionContainer.addCompletedMission(mission);
+                        svl.missionContainer.addToCompletedMissions(mission);
                         svl.missionProgress.complete(mission);
                     }
 

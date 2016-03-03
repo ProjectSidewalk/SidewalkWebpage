@@ -35,8 +35,9 @@ function MissionProgress () {
         printCompletionRate();
     }
 
-    function complete (mission) {
+    function complete (mission, callback) {
         console.log("Congratulations, you have completed the following mission:", mission);
+        if (callback) callback();
     }
 
     /**
@@ -44,7 +45,7 @@ function MissionProgress () {
      * @returns {printCompletionRate}
      */
     function printCompletionRate () {
-        var completionRate = getCompletionRate() * 100;
+        var completionRate = getMissionCompletionRate() * 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         $divCurrentCompletionRate.html(completionRate);
@@ -54,8 +55,8 @@ function MissionProgress () {
     /**
      * This method updates the filler of the completion bar
      */
-    function updateCompletionBar () {
-        var r, g, color, completionRate = getCompletionRate();
+    function updateMissionCompletionBar () {
+        var r, g, color, completionRate = getMissionCompletionRate();
         var colorIntensity = 230;
         if (completionRate < 0.5) {
             r = colorIntensity;
@@ -79,21 +80,21 @@ function MissionProgress () {
     /**
      * This method updates the printed completion rate and the bar.
      */
-    function updateCompletionRate () {
+    function updateMissionCompletionRate () {
         printCompletionRate();
-        updateCompletionBar();
+        updateMissionCompletionBar();
     }
 
     /**
      * This method returns what percent of the intersection the user has observed.
      * @returns {number}
      */
-    function getCompletionRate () {
+    function getMissionCompletionRate () {
         var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
         if ('compass' in svl) {
             svl.compass.update();
             if (taskCompletionRate > 0.1) {
-                svl.compass.hideMessage();
+                // svl.compass.hideMessage();
             } else {
                 svl.compass.updateMessage();
             }
@@ -101,18 +102,15 @@ function MissionProgress () {
         return taskCompletionRate;
     }
 
-
-    function setCompletedHeading (range) {
-        var headingMin = range[0], headingMax = range[1],
-            indexMin = Math.floor(headingMin / 360 * 100), indexMax = Math.floor(headingMax / 360 * 100);
-        for (var i = indexMin; i < indexMax; i++) { status.surveyedAngles[i] = 1; }
-        return this;
+    function showMission () {
+        var currentMission = svl.missionContainer.getCurrentMission();
+        if (currentMission) console.debug(currentMission);
     }
 
     self.complete = complete;
-    self.getCompletionRate = getCompletionRate;
-    self.setCompletedHeading = setCompletedHeading;
-    self.updateCompletionRate = updateCompletionRate;
+    self.getMissionCompletionRate = getMissionCompletionRate;
+    self.updateMissionCompletionRate = updateMissionCompletionRate;
+    self.showMission = showMission;
 
     _init();
     return self;

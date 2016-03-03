@@ -1,4 +1,4 @@
-function Compass ($) {
+function Compass (d3) {
     "use strict";
     var self = { className : 'Compass' },
         status = {},
@@ -13,12 +13,7 @@ function Compass ($) {
         uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
     };
 
-    var height = 50, width = 50, padding = {
-        top: 5,
-        right: 5,
-        bottom: 5,
-        left: 5
-    },
+    var height = 50, width = 50, padding = { top: 5, right: 5, bottom: 5, left: 5 },
         el = d3.select('#compass-holder'),
         svg = el.append('svg'),
         chart = svg.append('g'),

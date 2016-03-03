@@ -2413,7 +2413,7 @@ function Canvas ($, param) {
     return self;
 }
 
-function Compass ($) {
+function Compass (d3) {
     "use strict";
     var self = { className : 'Compass' },
         status = {},
@@ -2428,12 +2428,7 @@ function Compass ($) {
         uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
     };
 
-    var height = 50, width = 50, padding = {
-        top: 5,
-        right: 5,
-        bottom: 5,
-        left: 5
-    },
+    var height = 50, width = 50, padding = { top: 5, right: 5, bottom: 5, left: 5 },
         el = d3.select('#compass-holder'),
         svg = el.append('svg'),
         chart = svg.append('g'),
@@ -3108,7 +3103,7 @@ function Form ($, params) {
      */
     function checkSubmittable () {
         if ('missionProgress' in svl && svl.missionProgress) {
-            var completionRate = svl.missionProgress.getCompletionRate();
+            var completionRate = svl.missionProgress.getMissionCompletionRate();
         } else {
             var completionRate = 0;
         }
@@ -3230,7 +3225,7 @@ function Form ($, params) {
      *
      */
     function showDisabledSubmitButtonMessage () {
-        var completionRate = parseInt(svl.missionProgress.getCompletionRate() * 100, 10);
+        var completionRate = parseInt(svl.missionProgress.getMissionCompletionRate() * 100, 10);
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {
@@ -3300,9 +3295,11 @@ function Form ($, params) {
                             result.completed_missions[i].regionId,
                             result.completed_missions[i].missionId,
                             result.completed_missions[i].label,
-                            result.completed_missions[i].level
+                            result.completed_missions[i].level,
+                            result.completed_missions[i].distance,
+                            result.completed_missions[i].coverage
                         );
-                        svl.missionContainer.addCompletedMission(mission);
+                        svl.missionContainer.addToCompletedMissions(mission);
                         svl.missionProgress.complete(mission);
                     }
 
@@ -5558,7 +5555,7 @@ function Main ($, params) {
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = Tracker();
         svl.labelFactory = LabelFactory();
-        svl.compass = Compass($);
+        svl.compass = Compass(d3);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
@@ -5567,13 +5564,13 @@ function Main ($, params) {
 
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
-        if ('neighborhoodId' in params) {
-            var neighborhood = svl.neighborhoodFactory.create(params.neighborhoodId);
+        if ('regionId' in params) {
+            var neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
             setStatus("currentNeighborhood", neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ({currentNeighborhood: getStatus("currentNeighborhood")});
+        svl.missionContainer = MissionContainer ($, {currentNeighborhood: getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
         //svl.mission = new Mission();;
         //svl.achievement = new Achievement();
@@ -6201,7 +6198,7 @@ function Map ($, params) {
 
         }
         if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) { svl.missionProgress.updateCompletionRate(); }
+        if ('missionProgress' in svl) { svl.missionProgress.updateMissionCompletionRate(); }
     }
 
     /**
@@ -6896,7 +6893,8 @@ function Mission(parameters) {
             regionId: null,
             label: null,
             missionId: null,
-            level: null
+            level: null,
+            isCompleted: false
         };
 
     function _init(parameters) {
@@ -6904,11 +6902,18 @@ function Mission(parameters) {
         if ("label" in parameters) setProperty("label", parameters.label);
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
+        if ("distance" in parameters) setProperty("distance", parameters.distance);
+        if ("coverage" in parameters) setProperty("coverage", parameters.coverage);
+        if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
     }
 
     /** Returns a property */
     function getProperty (key) {
         return key in properties ? properties[key] : key;
+    }
+
+    function isCompleted () {
+        return getProperty("isCompleted");
     }
 
     /** Sets a property */
@@ -6940,11 +6945,20 @@ function Mission(parameters) {
         }
     }
 
+    function toString () {
+        return "Mission: " + getProperty("label") + ", Level: "+ getProperty("level") +
+            ", Distance: " + getProperty("distance") + ", Coverage " + getProperty("coverage") +
+            ", Mission Id: " + getProperty("missionId") + ", Region Id: " + getProperty("regionId") +
+            ", Completed: " + getProperty("isCompleted");
+    }
+
     _init(parameters);
 
     self.getProperty = getProperty;
+    self.isCompleted = isCompleted;
     self.setProperty = setProperty;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
+    self.toString = toString;
     return self;
 }
 
@@ -6954,26 +6968,70 @@ function Mission(parameters) {
  * @returns {{className: string}}
  * @constructor
  */
-function MissionContainer (parameters) {
+function MissionContainer ($, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
-        completedMissions = [];
+        completedMissions = [],
+        currentMission = null;
 
     function _init (parameters) {
-        if (parameters) {
-            if ("currentNeighborhood" in parameters) {}
+        // Query all the completed & incomplete missions.
+        $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(function (result1, result2) {
+            var i, len, mission, completed = result1[0], incomplete = result2[0], nm;
+
+            len = completed.length;
+            for (i = 0; i < len; i++) {
+                mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
+                    completed[i].level, completed[i].distance, completed[i].coverage, true);
+                add(completed[i].regionId, mission);
+                addToCompletedMissions(mission);
+            }
+
+            len = incomplete.length;
+            for (i = 0; i < len; i++) {
+                mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
+                    incomplete[i].level, incomplete[i].distance, incomplete[i].coverage, false);
+                add(incomplete[i].regionId, mission);
+            }
+
+            // Set the current mission.
+            if (parameters.currentNeighborhood) {
+                nm = nextMission(parameters.currentNeighborhood.getProperty("regionId"));
+                setCurrentMission(nm);
+                svl.missionProgress.showMission();
+            }
+        });
+    }
+
+    /** Set current missison */
+    function setCurrentMission (mission) { currentMission = mission; return this; }
+
+    /** Get current mission */
+    function getCurrentMission () { return currentMission; }
+
+    /**
+     * Adds a mission into data structure.
+     * @param regionId
+     * @param mission
+     */
+    function add(regionId, mission) {
+        if (regionId) {
+            if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
+        } else {
+            regionId = "noRegionId";
         }
+        missionStoreByRegionId[regionId].push(mission);
     }
 
     /** Push the completed mission */
-    function addCompletedMission (mission) {
+    function addToCompletedMissions (mission) {
         completedMissions.push(mission);
 
         if ("regionId" in mission) {
             // Add the region id to missionStoreByRegionId if it's not there already
             if (!getMissionsByRegionId(mission.regionId)) missionStoreByRegionId[mission.regionId] = [];
 
-            // Add the mission into missionStoreByRegionId if it's not there alread
+            // Add the mission into missionStoreByRegionId if it's not there already
             var missionIds = missionStoreByRegionId[mission.regionId].map(function (x) { return x.missionId; });
             if (missionIds.indexOf(mission.missionId) < 0) missionStoreByRegionId[regionId].push(mission);
         }
@@ -6990,11 +7048,31 @@ function MissionContainer (parameters) {
         return missionStoreByRegionId[regionId];
     }
 
+    function nextMission (regionId) {
+        var missions = getMissionsByRegionId (regionId);
+        missions = missions.filter(function (m) { return !m.isCompleted(); });
+
+        if (missions.length > 0) {
+            missions.sort(function (m1, m2) {
+                var d1 = m1.getProperty("distance"), d2 = m2.getProperty("distance");
+                if (d1 == d2) return 0;
+                else if (d1 < d2) return -1;
+                else return 1;
+            });
+            return missions[0];
+        } else {
+            return null;
+        }
+    }
+
     _init(parameters);
 
-    self.addCompletedMission = addCompletedMission;
+    self.addToCompletedMissions = addToCompletedMissions;
+    self.add = add;
     self.getCompletedMissions = getCompletedMissions;
+    self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
+    self.nextMission = nextMission;
     return self;
 }
 
@@ -7012,21 +7090,14 @@ function MissionFactory (parameters) {
     }
 
     /** Create an instance of a mission object */
-    function create (regionId, missionId, label, level) {
-        return new Mission({ regionId: regionId, missionId: missionId, label: label, level: level });
-    }
-
-    /** Get the next mission */
-    function nextMission () {
-        console.debug("Query and create the next mission.");
-
+    function create (regionId, missionId, label, level, distance, coverage, isCompleted) {
+        return new Mission({ regionId: regionId, missionId: missionId, label: label, level: level, distance: distance,
+            coverage: coverage, isCompleted: isCompleted });
     }
 
     _init(parameters);
 
     self.create = create;
-    self.nextMission = nextMission;
-
     return self;
 }
 var svl = svl || {};
@@ -7066,8 +7137,9 @@ function MissionProgress () {
         printCompletionRate();
     }
 
-    function complete (mission) {
+    function complete (mission, callback) {
         console.log("Congratulations, you have completed the following mission:", mission);
+        if (callback) callback();
     }
 
     /**
@@ -7075,7 +7147,7 @@ function MissionProgress () {
      * @returns {printCompletionRate}
      */
     function printCompletionRate () {
-        var completionRate = getCompletionRate() * 100;
+        var completionRate = getMissionCompletionRate() * 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         $divCurrentCompletionRate.html(completionRate);
@@ -7085,8 +7157,8 @@ function MissionProgress () {
     /**
      * This method updates the filler of the completion bar
      */
-    function updateCompletionBar () {
-        var r, g, color, completionRate = getCompletionRate();
+    function updateMissionCompletionBar () {
+        var r, g, color, completionRate = getMissionCompletionRate();
         var colorIntensity = 230;
         if (completionRate < 0.5) {
             r = colorIntensity;
@@ -7110,21 +7182,21 @@ function MissionProgress () {
     /**
      * This method updates the printed completion rate and the bar.
      */
-    function updateCompletionRate () {
+    function updateMissionCompletionRate () {
         printCompletionRate();
-        updateCompletionBar();
+        updateMissionCompletionBar();
     }
 
     /**
      * This method returns what percent of the intersection the user has observed.
      * @returns {number}
      */
-    function getCompletionRate () {
+    function getMissionCompletionRate () {
         var taskCompletionRate = ('task' in svl) ? svl.task.getTaskCompletionRate() : 0;
         if ('compass' in svl) {
             svl.compass.update();
             if (taskCompletionRate > 0.1) {
-                svl.compass.hideMessage();
+                // svl.compass.hideMessage();
             } else {
                 svl.compass.updateMessage();
             }
@@ -7132,18 +7204,15 @@ function MissionProgress () {
         return taskCompletionRate;
     }
 
-
-    function setCompletedHeading (range) {
-        var headingMin = range[0], headingMax = range[1],
-            indexMin = Math.floor(headingMin / 360 * 100), indexMax = Math.floor(headingMax / 360 * 100);
-        for (var i = indexMin; i < indexMax; i++) { status.surveyedAngles[i] = 1; }
-        return this;
+    function showMission () {
+        var currentMission = svl.missionContainer.getCurrentMission();
+        if (currentMission) console.debug(currentMission);
     }
 
     self.complete = complete;
-    self.getCompletionRate = getCompletionRate;
-    self.setCompletedHeading = setCompletedHeading;
-    self.updateCompletionRate = updateCompletionRate;
+    self.getMissionCompletionRate = getMissionCompletionRate;
+    self.updateMissionCompletionRate = updateMissionCompletionRate;
+    self.showMission = showMission;
 
     _init();
     return self;
@@ -7481,12 +7550,12 @@ function Mouse ($) {
 function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
-            neighborhoodId: null
+            regionId: null
         };
 
     /** Initialize */
     function _init (parameters) {
-        if ('neighborhoodId' in parameters) setProperty("neighborhoodId", parameters.neighborhoodId)
+        if ('regionId' in parameters) setProperty("regionId", parameters.regionId)
     }
 
     /** Get property */
@@ -7520,20 +7589,20 @@ function NeighborhoodContainer (parameters) {
     }
 
     /** Return a list of neighborhood ids */
-    function getNeighborhoodIds () {
+    function getRegionIds () {
         return Object.keys(neighborhoods).map(function (x) { return parseInt(x, 10); });
     }
 
     /** Add the given neighborhood to the container */
     function add(neighborhood) {
-        var id = neighborhood.getProperty("neighborhoodId");
+        var id = neighborhood.getProperty("regionId");
         neighborhoods[id] = neighborhood;
     }
 
     _init(parameters);
 
     self.get = get;
-    self.getNeighborhoodIds = getNeighborhoodIds;
+    self.getRegionIds = getRegionIds;
     self.add = add;
 
     return self;
@@ -7544,11 +7613,11 @@ function NeighborhoodFactory () {
 
     /**
      * Create a neighborhood instance.
-     * @param neighborhoodId
+     * @param regionId
      * @returns {Neighborhood}
      */
-    function create (neighborhoodId) {
-        return new Neighborhood({neighborhoodId: neighborhoodId});
+    function create (regionId) {
+        return new Neighborhood({regionId: regionId});
     }
 
     self.create = create;
@@ -10429,7 +10498,6 @@ var svl = svl || {};
 function Task ($, L, turf) {
     var self = {className: 'Task'},
         taskSetting,
-        previousTasks = [],
         lat, lng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
@@ -10437,48 +10505,11 @@ function Task ($, L, turf) {
             noAudio: false
         };
 
-    function setAuditedDistance () {
-        var distance, sessionDistance = getSessionAuditDistance();
-
-        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
-            if (!svl.user.getProperty('recordedAuditDistance')) {
-                var i, distanceAudited = 0;
-                $.getJSON("/contribution/streets", function (data) {
-                    if (data && 'features' in data) {
-                        for (i = data.features.length - 1; i >= 0; i--) {
-                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
-                        }
-                    } else {
-                        distanceAudited = 0;
-                    }
-                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
-                    distance = sessionDistance + distanceAudited;
-                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-                });
-            } else {
-                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
-                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-            }
-        } else {
-            distance = sessionDistance;
-            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-        }
-
-        return this;
-    }
-
-
-    function getSessionAuditDistance () {
-        var feature, i, len = previousTasks.length, distance = 0;
-        for (i = 0; i < len; i++) {
-            feature = previousTasks[i].features[0];
-            distance += turf.lineDistance(feature);
-        }
-        return distance;
-    }
 
     /** Save the task */
-    function save () { svl.storage.set("task", taskSetting); }
+    function save () {
+        svl.storage.set("task", taskSetting);
+    }
 
     /** Load the task */
     function load () {
@@ -10585,7 +10616,7 @@ function Task ($, L, turf) {
 
         // Update the audited miles
         if ('ui' in svl) {
-            setAuditedDistance();
+            svl.taskContainer.setAuditedDistance();
         }
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && isFirstTask())) {
@@ -10639,7 +10670,7 @@ function Task ($, L, turf) {
         }
 
         // Push the data into the list
-        previousTasks.push(taskSetting);
+        svl.taskContainer.push(taskSetting);
 
         taskCompletionRate = 0;
 
@@ -10683,7 +10714,9 @@ function Task ($, L, turf) {
     }
 
     /** Check if the current task is the first task in this session */
-    function isFirstTask () { return previousTasks.length == 0; }
+    function isFirstTask () {
+        return svl.taskContainer.length() == 0;
+    }
 
     /**
      * Get a distance between a point and a segment
@@ -10933,6 +10966,76 @@ function Task ($, L, turf) {
 
     return self;
 }
+
+function TaskContainer (turf) {
+    var self = { className: "TaskContainer"},
+        previousTasks = [],
+        currentTask = null;
+
+    function getCurrentTask () { return currentTask; }
+
+    function getCumulativeDistance () {
+        var feature, i, len = length(), distance = 0;
+        for (i = 0; i < len; i++) {
+            feature = previousTasks[i].features[0];
+            distance += turf.lineDistance(feature);
+        }
+        return distance;
+    }
+
+    function length () { return previousTasks.length; }
+
+    function push (task) {
+        previousTasks.push(task);
+    }
+
+    function setAuditedDistance () {
+        var distance, sessionDistance = getCumulativeDistance();
+
+        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
+            if (!svl.user.getProperty('recordedAuditDistance')) {
+                var i, distanceAudited = 0;
+                $.getJSON("/contribution/streets", function (data) {
+                    if (data && 'features' in data) {
+                        for (i = data.features.length - 1; i >= 0; i--) {
+                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
+                        }
+                    } else {
+                        distanceAudited = 0;
+                    }
+                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
+                    distance = sessionDistance + distanceAudited;
+                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+                });
+            } else {
+                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
+                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+            }
+        } else {
+            distance = sessionDistance;
+            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        }
+
+        return this;
+    }
+
+    function setCurrentTask (task) {
+        currentTask = task;
+    }
+
+    self.getCurrentTask = getCurrentTask;
+    self.getCumulativeDistance = getCumulativeDistance;
+    self.length = length;
+    self.push = push;
+    self.setAuditedDistance = setAuditedDistance;
+    self.setCurrentTask = setCurrentTask;
+    return self;
+}
+
+function TaskFactory () {
+    var self = { className: "TaskFactory" };
+}
+
 
 var svl = svl || {};
 

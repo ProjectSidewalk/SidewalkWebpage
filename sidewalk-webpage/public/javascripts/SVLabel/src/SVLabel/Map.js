@@ -570,7 +570,7 @@ function Map ($, params) {
 
         }
         if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) { svl.missionProgress.updateCompletionRate(); }
+        if ('missionProgress' in svl) { svl.missionProgress.updateMissionCompletionRate(); }
     }
 
     /**

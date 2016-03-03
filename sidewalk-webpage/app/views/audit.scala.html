@@ -419,6 +419,9 @@
         }
 
         @if(task) {
+            svl.taskFactory = TaskFactory();
+            svl.taskContainer = TaskContainer(turf);
+
             svl.task = new Task($, L, turf);
             var task = @Html(task.get.toJSON.toString);
             var lat1 = task.features[0].geometry.coordinates[0][1],
@@ -481,7 +484,7 @@
             mainParam.missionDescription = missionDescriptionParam;
 
             @if(region) {
-                mainParam.neighborhoodId = @region.get.regionId;
+                mainParam.regionId = @region.get.regionId;
             }
 
             svl.main = Main($, mainParam);

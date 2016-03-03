@@ -11,7 +11,6 @@ var svl = svl || {};
 function Task ($, L, turf) {
     var self = {className: 'Task'},
         taskSetting,
-        previousTasks = [],
         lat, lng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
@@ -19,48 +18,11 @@ function Task ($, L, turf) {
             noAudio: false
         };
 
-    function setAuditedDistance () {
-        var distance, sessionDistance = getSessionAuditDistance();
-
-        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
-            if (!svl.user.getProperty('recordedAuditDistance')) {
-                var i, distanceAudited = 0;
-                $.getJSON("/contribution/streets", function (data) {
-                    if (data && 'features' in data) {
-                        for (i = data.features.length - 1; i >= 0; i--) {
-                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
-                        }
-                    } else {
-                        distanceAudited = 0;
-                    }
-                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
-                    distance = sessionDistance + distanceAudited;
-                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-                });
-            } else {
-                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
-                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-            }
-        } else {
-            distance = sessionDistance;
-            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-        }
-
-        return this;
-    }
-
-
-    function getSessionAuditDistance () {
-        var feature, i, len = previousTasks.length, distance = 0;
-        for (i = 0; i < len; i++) {
-            feature = previousTasks[i].features[0];
-            distance += turf.lineDistance(feature);
-        }
-        return distance;
-    }
 
     /** Save the task */
-    function save () { svl.storage.set("task", taskSetting); }
+    function save () {
+        svl.storage.set("task", taskSetting);
+    }
 
     /** Load the task */
     function load () {
@@ -167,7 +129,7 @@ function Task ($, L, turf) {
 
         // Update the audited miles
         if ('ui' in svl) {
-            setAuditedDistance();
+            svl.taskContainer.setAuditedDistance();
         }
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && isFirstTask())) {
@@ -221,7 +183,7 @@ function Task ($, L, turf) {
         }
 
         // Push the data into the list
-        previousTasks.push(taskSetting);
+        svl.taskContainer.push(taskSetting);
 
         taskCompletionRate = 0;
 
@@ -265,7 +227,9 @@ function Task ($, L, turf) {
     }
 
     /** Check if the current task is the first task in this session */
-    function isFirstTask () { return previousTasks.length == 0; }
+    function isFirstTask () {
+        return svl.taskContainer.length() == 0;
+    }
 
     /**
      * Get a distance between a point and a segment
@@ -515,3 +479,73 @@ function Task ($, L, turf) {
 
     return self;
 }
+
+function TaskContainer (turf) {
+    var self = { className: "TaskContainer"},
+        previousTasks = [],
+        currentTask = null;
+
+    function getCurrentTask () { return currentTask; }
+
+    function getCumulativeDistance () {
+        var feature, i, len = length(), distance = 0;
+        for (i = 0; i < len; i++) {
+            feature = previousTasks[i].features[0];
+            distance += turf.lineDistance(feature);
+        }
+        return distance;
+    }
+
+    function length () { return previousTasks.length; }
+
+    function push (task) {
+        previousTasks.push(task);
+    }
+
+    function setAuditedDistance () {
+        var distance, sessionDistance = getCumulativeDistance();
+
+        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
+            if (!svl.user.getProperty('recordedAuditDistance')) {
+                var i, distanceAudited = 0;
+                $.getJSON("/contribution/streets", function (data) {
+                    if (data && 'features' in data) {
+                        for (i = data.features.length - 1; i >= 0; i--) {
+                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
+                        }
+                    } else {
+                        distanceAudited = 0;
+                    }
+                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
+                    distance = sessionDistance + distanceAudited;
+                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+                });
+            } else {
+                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
+                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+            }
+        } else {
+            distance = sessionDistance;
+            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        }
+
+        return this;
+    }
+
+    function setCurrentTask (task) {
+        currentTask = task;
+    }
+
+    self.getCurrentTask = getCurrentTask;
+    self.getCumulativeDistance = getCumulativeDistance;
+    self.length = length;
+    self.push = push;
+    self.setAuditedDistance = setAuditedDistance;
+    self.setCurrentTask = setCurrentTask;
+    return self;
+}
+
+function TaskFactory () {
+    var self = { className: "TaskFactory" };
+}
+

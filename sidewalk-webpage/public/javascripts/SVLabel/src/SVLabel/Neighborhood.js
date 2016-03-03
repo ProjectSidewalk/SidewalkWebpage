@@ -1,12 +1,12 @@
 function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
-            neighborhoodId: null
+            regionId: null
         };
 
     /** Initialize */
     function _init (parameters) {
-        if ('neighborhoodId' in parameters) setProperty("neighborhoodId", parameters.neighborhoodId)
+        if ('regionId' in parameters) setProperty("regionId", parameters.regionId)
     }
 
     /** Get property */
@@ -40,20 +40,20 @@ function NeighborhoodContainer (parameters) {
     }
 
     /** Return a list of neighborhood ids */
-    function getNeighborhoodIds () {
+    function getRegionIds () {
         return Object.keys(neighborhoods).map(function (x) { return parseInt(x, 10); });
     }
 
     /** Add the given neighborhood to the container */
     function add(neighborhood) {
-        var id = neighborhood.getProperty("neighborhoodId");
+        var id = neighborhood.getProperty("regionId");
         neighborhoods[id] = neighborhood;
     }
 
     _init(parameters);
 
     self.get = get;
-    self.getNeighborhoodIds = getNeighborhoodIds;
+    self.getRegionIds = getRegionIds;
     self.add = add;
 
     return self;
@@ -64,11 +64,11 @@ function NeighborhoodFactory () {
 
     /**
      * Create a neighborhood instance.
-     * @param neighborhoodId
+     * @param regionId
      * @returns {Neighborhood}
      */
-    function create (neighborhoodId) {
-        return new Neighborhood({neighborhoodId: neighborhoodId});
+    function create (regionId) {
+        return new Neighborhood({regionId: regionId});
     }
 
     self.create = create;
