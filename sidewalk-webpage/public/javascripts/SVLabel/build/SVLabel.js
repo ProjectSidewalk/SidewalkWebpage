@@ -10980,7 +10980,7 @@ function TaskContainer (turf) {
                     var latLng = new google.maps.LatLng(lat1, lng1);
                     streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                         if (status === google.maps.StreetViewStatus.OK) {
-                            var newTask = svl.taskFactory.create(json, lat1, lng1);
+                            var newTask = svl.taskFactory.create(json);
                             setCurrentTask(newTask);
                         } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                             // no street view available in this range.
@@ -10988,7 +10988,7 @@ function TaskContainer (turf) {
                             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
                                     json.features[0].geometry.coordinates.reverse();
-                                    var newTask = svl.taskFactory.create(json, lat1, lng1);
+                                    var newTask = svl.taskFactory.create(json);
                                     setCurrentTask(newTask);
                                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                                     // Todo. Report lack of street view.

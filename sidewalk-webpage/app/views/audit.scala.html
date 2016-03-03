@@ -422,7 +422,6 @@
             svl.taskFactory = TaskFactory(turf);
             svl.taskContainer = TaskContainer(turf);
 
-//            svl.task = new Task($, L, turf);
             var geojson = @Html(task.get.toJSON.toString);
             var lat1 = geojson.features[0].geometry.coordinates[0][1],
                 lng1 = geojson.features[0].geometry.coordinates[0][0];
@@ -433,7 +432,6 @@
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
-//                    svl.task.set(task);
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
@@ -446,7 +444,6 @@
 
             });
         }
-
 
         $(document).ready(function () {
             var _pointCloudLoader = new GSVPANO.PanoPointCloudLoader();
