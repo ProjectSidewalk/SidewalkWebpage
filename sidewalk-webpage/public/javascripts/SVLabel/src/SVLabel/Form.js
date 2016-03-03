@@ -196,30 +196,30 @@ function Form ($, params) {
      * the angles of the street view. Enable/disable form a submit button and a skip button.
      * @returns {boolean}
      */
-    function checkSubmittable () {
-        if ('missionProgress' in svl && svl.missionProgress) {
-            var completionRate = svl.missionProgress.getMissionCompletionRate();
-        } else {
-            var completionRate = 0;
-        }
-
-        var labelCount = svl.canvas.getNumLabels();
-
-        if (1 - completionRate < 0.01) {
-            if (labelCount > 0) {
-                enableSubmit();
-                disableSkip();
-            } else {
-                disableSubmit();
-                enableSkip();
-            }
-            return true;
-        } else {
-            disableSubmit();
-            disableSkip();
-            return false;
-        }
-    }
+    //function checkSubmittable () {
+    //    if ('missionProgress' in svl && svl.missionProgress) {
+    //        var completionRate = svl.missionProgress.getMissionCompletionRate();
+    //    } else {
+    //        var completionRate = 0;
+    //    }
+    //
+    //    var labelCount = svl.canvas.getNumLabels();
+    //
+    //    if (1 - completionRate < 0.01) {
+    //        if (labelCount > 0) {
+    //            enableSubmit();
+    //            disableSkip();
+    //        } else {
+    //            disableSubmit();
+    //            enableSkip();
+    //        }
+    //        return true;
+    //    } else {
+    //        disableSubmit();
+    //        disableSkip();
+    //        return false;
+    //    }
+    //}
 
     /**
      * Disable clicking the submit button
@@ -285,7 +285,6 @@ function Form ($, params) {
         if (!properties.isAMTTask || properties.taskRemaining > 1) { e.preventDefault(); }
 
         if (status.disableSubmit) {
-            showDisabledSubmitButtonMessage();
             return false;
         }
 
@@ -320,7 +319,7 @@ function Form ($, params) {
      *
      */
     function showDisabledSubmitButtonMessage () {
-        var completionRate = parseInt(svl.missionProgress.getMissionCompletionRate() * 100, 10);
+        var completionRate = 0;
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {
@@ -414,7 +413,7 @@ function Form ($, params) {
     /** Unlock disable skip */
     function unlockDisableSkip () { lock.disableSkipButton = false; return this; }
 
-    self.checkSubmittable = checkSubmittable;
+    //self.checkSubmittable = checkSubmittable;
     self.compileSubmissionData = compileSubmissionData;
     self.disableSubmit = disableSubmit;
     self.disableSkip = disableSkip;

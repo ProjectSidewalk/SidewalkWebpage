@@ -69,9 +69,26 @@ function Mission(parameters) {
             ", Completed: " + getProperty("isCompleted");
     }
 
+    function getMissionCompletionRate () {
+        if ("taskContainer" in svl) {
+            var targetDistance = getProperty("distance") / 1000;
+            var task = svl.taskContainer.getCurrentTask();
+
+            if (task) {
+                var cumulativeDistance = task.getCumulativeDistance("kilometers");
+                return cumulativeDistance / targetDistance;
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
     _init(parameters);
 
     self.getProperty = getProperty;
+    self.getMissionCompletionRate = getMissionCompletionRate;
     self.isCompleted = isCompleted;
     self.setProperty = setProperty;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;

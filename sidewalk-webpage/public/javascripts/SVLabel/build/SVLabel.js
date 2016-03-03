@@ -3103,30 +3103,30 @@ function Form ($, params) {
      * the angles of the street view. Enable/disable form a submit button and a skip button.
      * @returns {boolean}
      */
-    function checkSubmittable () {
-        if ('missionProgress' in svl && svl.missionProgress) {
-            var completionRate = svl.missionProgress.getMissionCompletionRate();
-        } else {
-            var completionRate = 0;
-        }
-
-        var labelCount = svl.canvas.getNumLabels();
-
-        if (1 - completionRate < 0.01) {
-            if (labelCount > 0) {
-                enableSubmit();
-                disableSkip();
-            } else {
-                disableSubmit();
-                enableSkip();
-            }
-            return true;
-        } else {
-            disableSubmit();
-            disableSkip();
-            return false;
-        }
-    }
+    //function checkSubmittable () {
+    //    if ('missionProgress' in svl && svl.missionProgress) {
+    //        var completionRate = svl.missionProgress.getMissionCompletionRate();
+    //    } else {
+    //        var completionRate = 0;
+    //    }
+    //
+    //    var labelCount = svl.canvas.getNumLabels();
+    //
+    //    if (1 - completionRate < 0.01) {
+    //        if (labelCount > 0) {
+    //            enableSubmit();
+    //            disableSkip();
+    //        } else {
+    //            disableSubmit();
+    //            enableSkip();
+    //        }
+    //        return true;
+    //    } else {
+    //        disableSubmit();
+    //        disableSkip();
+    //        return false;
+    //    }
+    //}
 
     /**
      * Disable clicking the submit button
@@ -3192,7 +3192,6 @@ function Form ($, params) {
         if (!properties.isAMTTask || properties.taskRemaining > 1) { e.preventDefault(); }
 
         if (status.disableSubmit) {
-            showDisabledSubmitButtonMessage();
             return false;
         }
 
@@ -3227,7 +3226,7 @@ function Form ($, params) {
      *
      */
     function showDisabledSubmitButtonMessage () {
-        var completionRate = parseInt(svl.missionProgress.getMissionCompletionRate() * 100, 10);
+        var completionRate = 0;
 
         if (!('onboarding' in svl && svl.onboarding) &&
             (completionRate < 100)) {
@@ -3321,7 +3320,7 @@ function Form ($, params) {
     /** Unlock disable skip */
     function unlockDisableSkip () { lock.disableSkipButton = false; return this; }
 
-    self.checkSubmittable = checkSubmittable;
+    //self.checkSubmittable = checkSubmittable;
     self.compileSubmissionData = compileSubmissionData;
     self.disableSubmit = disableSubmit;
     self.disableSkip = disableSkip;
@@ -6956,9 +6955,26 @@ function Mission(parameters) {
             ", Completed: " + getProperty("isCompleted");
     }
 
+    function getMissionCompletionRate () {
+        if ("taskContainer" in svl) {
+            var targetDistance = getProperty("distance") / 1000;
+            var task = svl.taskContainer.getCurrentTask();
+
+            if (task) {
+                var cumulativeDistance = task.getCumulativeDistance("kilometers");
+                return cumulativeDistance / targetDistance;
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
     _init(parameters);
 
     self.getProperty = getProperty;
+    self.getMissionCompletionRate = getMissionCompletionRate;
     self.isCompleted = isCompleted;
     self.setProperty = setProperty;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
@@ -7151,10 +7167,16 @@ function MissionProgress () {
      * @returns {printCompletionRate}
      */
     function printCompletionRate () {
-        var completionRate = getMissionCompletionRate() * 100;
-        completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "% complete";
-        $divCurrentCompletionRate.html(completionRate);
+        if ("missionContainer" in svl) {
+            var mission = svl.missionContainer.getCurrentMission();
+            if (mission) {
+                var completionRate = mission.getMissionCompletionRate() * 100;
+                completionRate = completionRate.toFixed(0, 10);
+                completionRate = completionRate + "% complete";
+                $divCurrentCompletionRate.html(completionRate);
+            }
+        }
+
         return this;
     }
 
@@ -7162,25 +7184,31 @@ function MissionProgress () {
      * This method updates the filler of the completion bar
      */
     function updateMissionCompletionBar () {
-        var r, g, color, completionRate = getMissionCompletionRate();
-        var colorIntensity = 230;
-        if (completionRate < 0.5) {
-            r = colorIntensity;
-            g = parseInt(colorIntensity * completionRate * 2);
-        } else {
-            r = parseInt(colorIntensity * (1 - completionRate) * 2);
-            g = colorIntensity;
-        }
+        if ("missionContainer" in svl) {
+            var mission = svl.missionContainer.getCurrentMission();
+            if (mission) {
+                var r, g, color, completionRate = mission.getMissionCompletionRate();
+                var colorIntensity = 230;
+                if (completionRate < 0.5) {
+                    r = colorIntensity;
+                    g = parseInt(colorIntensity * completionRate * 2);
+                } else {
+                    r = parseInt(colorIntensity * (1 - completionRate) * 2);
+                    g = colorIntensity;
+                }
 
-        color = 'rgba(' + r + ',' + g + ',0,1)';
-        completionRate *=  100;
-        completionRate = completionRate.toFixed(0, 10);
-        completionRate -= 0.8;
-        completionRate = completionRate + "%";
-        $divCurrentCompletionBarFiller.css({
-            background: color,
-            width: completionRate
-        });
+                color = 'rgba(' + r + ',' + g + ',0,1)';
+                completionRate *=  100;
+                completionRate = completionRate.toFixed(0, 10);
+                completionRate -= 0.8;
+                completionRate = completionRate + "%";
+                $divCurrentCompletionBarFiller.css({
+                    background: color,
+                    width: completionRate
+                });
+            }
+        }
+        return this;
     }
 
     /**
@@ -7191,23 +7219,6 @@ function MissionProgress () {
         updateMissionCompletionBar();
     }
 
-    /**
-     * This method returns what percent of the intersection the user has observed.
-     * @returns {number}
-     */
-    function getMissionCompletionRate () {
-        var task = svl.taskContainer.getCurrentTask();
-        var taskCompletionRate = task ? task.getTaskCompletionRate() : 0;
-        if ('compass' in svl) {
-            svl.compass.update();
-            if (taskCompletionRate > 0.1) {
-                // svl.compass.hideMessage();
-            } else {
-                svl.compass.updateMessage();
-            }
-        }
-        return taskCompletionRate;
-    }
 
     function showMission () {
         var currentMission = svl.missionContainer.getCurrentMission();
@@ -7215,7 +7226,6 @@ function MissionProgress () {
     }
 
     self.complete = complete;
-    self.getMissionCompletionRate = getMissionCompletionRate;
     self.updateMissionCompletionRate = updateMissionCompletionRate;
     self.showMission = showMission;
 
@@ -10571,6 +10581,51 @@ function Task (turf, geojson, currentLat, currentLng) {
     /** Returns the task start time */
     function getTaskStart () { return _geojson.features[0].properties.task_start; }
 
+    /**
+     * Get the cumulative distance
+     * Reference:
+     * turf-line-distance: https://github.com/turf-junkyard/turf-line-distance
+     *
+     * @params {units} String can be degrees, radians, miles, or kilometers
+     * @returns {number} distance in meters
+     */
+    function getCumulativeDistance (units) {
+        if (!units) units = "kilometers";
+
+        var distance = svl.taskContainer.getCompletedTaskDistance(units);
+
+        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+            line = _geojson.features[0],
+            currentPoint = { "type": "Feature", "properties": {},
+                geometry: {
+                    "type": "Point", "coordinates": [lng, lat]
+                }
+            },
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment, cumSum = 0;
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = {
+                type: "Feature", properties: {}, geometry: {
+                    type: "LineString",
+                    coordinates: [ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]
+                }
+            };
+            cumSum += turf.lineDistance(segment);
+        }
+        point = {
+            "type": "Feature", "properties": {},
+            "geometry": {
+                "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
+            }
+        };
+        cumSum += turf.distance(snapped, point);
+        distance += cumSum;
+
+        return distance;
+    }
+
     /** Returns the starting location */
     function initialLocation() { return _geojson ? { lat: lat, lng: lng } : null; }
 
@@ -10771,8 +10826,11 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
+
+
     _init (geojson, currentLat, currentLng);
 
+    self.getCumulativeDistance = getCumulativeDistance;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
@@ -10795,11 +10853,19 @@ function TaskContainer (turf) {
 
     function getCurrentTask () { return currentTask; }
 
-    function getCumulativeDistance () {
-        var feature, i, len = length(), distance = 0;
+    /**
+     * Get the total distance of completed segments
+     * @params {units} String can be degrees, radians, miles, or kilometers
+     * @returns {number} distance in meters
+     */
+    function getCompletedTaskDistance (units) {
+        if (!units) units = "kilometers";
+
+        var geojson, feature, i, len = length(), distance = 0;
         for (i = 0; i < len; i++) {
-            feature = previousTasks[i].features[0];
-            distance += turf.lineDistance(feature);
+            geojson = previousTasks[i].getGeoJSON();
+            feature = geojson.features[0];
+            distance += turf.lineDistance(feature, units);
         }
         return distance;
     }
@@ -10813,7 +10879,7 @@ function TaskContainer (turf) {
     }
 
     function updateAuditedDistance () {
-        var distance, sessionDistance = getCumulativeDistance();
+        var distance, sessionDistance = getCompletedTaskDistance();
 
         if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
             if (!svl.user.getProperty('recordedAuditDistance')) {
@@ -10933,7 +10999,7 @@ function TaskContainer (turf) {
         // Push the data into the list
         push(currentTask);
 
-
+        var _geojson = currentTask.getGeoJSON();
         var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
         previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
         paths = null;
@@ -10953,8 +11019,9 @@ function TaskContainer (turf) {
             $.ajax({
                 url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
                 type: 'get',
-                success: function (task) {
-                    set(task, latEnd, lngEnd);
+                success: function (json) {
+                    var newTask = svl.taskFactory.create(json, latEnd, lngEnd);
+                    setCurrentTask(newTask);
                 },
                 error: function (result) {
                     throw result;
@@ -11012,7 +11079,7 @@ function TaskContainer (turf) {
 
     self.endTask = endTask;
     self.getCurrentTask = getCurrentTask;
-    self.getCumulativeDistance = getCumulativeDistance;
+    self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = push;

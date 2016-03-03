@@ -78,6 +78,51 @@ function Task (turf, geojson, currentLat, currentLng) {
     /** Returns the task start time */
     function getTaskStart () { return _geojson.features[0].properties.task_start; }
 
+    /**
+     * Get the cumulative distance
+     * Reference:
+     * turf-line-distance: https://github.com/turf-junkyard/turf-line-distance
+     *
+     * @params {units} String can be degrees, radians, miles, or kilometers
+     * @returns {number} distance in meters
+     */
+    function getCumulativeDistance (units) {
+        if (!units) units = "kilometers";
+
+        var distance = svl.taskContainer.getCompletedTaskDistance(units);
+
+        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+            line = _geojson.features[0],
+            currentPoint = { "type": "Feature", "properties": {},
+                geometry: {
+                    "type": "Point", "coordinates": [lng, lat]
+                }
+            },
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment, cumSum = 0;
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = {
+                type: "Feature", properties: {}, geometry: {
+                    type: "LineString",
+                    coordinates: [ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]
+                }
+            };
+            cumSum += turf.lineDistance(segment);
+        }
+        point = {
+            "type": "Feature", "properties": {},
+            "geometry": {
+                "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
+            }
+        };
+        cumSum += turf.distance(snapped, point);
+        distance += cumSum;
+
+        return distance;
+    }
+
     /** Returns the starting location */
     function initialLocation() { return _geojson ? { lat: lat, lng: lng } : null; }
 
@@ -278,8 +323,11 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
+
+
     _init (geojson, currentLat, currentLng);
 
+    self.getCumulativeDistance = getCumulativeDistance;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;
@@ -302,11 +350,19 @@ function TaskContainer (turf) {
 
     function getCurrentTask () { return currentTask; }
 
-    function getCumulativeDistance () {
-        var feature, i, len = length(), distance = 0;
+    /**
+     * Get the total distance of completed segments
+     * @params {units} String can be degrees, radians, miles, or kilometers
+     * @returns {number} distance in meters
+     */
+    function getCompletedTaskDistance (units) {
+        if (!units) units = "kilometers";
+
+        var geojson, feature, i, len = length(), distance = 0;
         for (i = 0; i < len; i++) {
-            feature = previousTasks[i].features[0];
-            distance += turf.lineDistance(feature);
+            geojson = previousTasks[i].getGeoJSON();
+            feature = geojson.features[0];
+            distance += turf.lineDistance(feature, units);
         }
         return distance;
     }
@@ -320,7 +376,7 @@ function TaskContainer (turf) {
     }
 
     function updateAuditedDistance () {
-        var distance, sessionDistance = getCumulativeDistance();
+        var distance, sessionDistance = getCompletedTaskDistance();
 
         if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
             if (!svl.user.getProperty('recordedAuditDistance')) {
@@ -440,7 +496,7 @@ function TaskContainer (turf) {
         // Push the data into the list
         push(currentTask);
 
-
+        var _geojson = currentTask.getGeoJSON();
         var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
         previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
         paths = null;
@@ -460,8 +516,9 @@ function TaskContainer (turf) {
             $.ajax({
                 url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
                 type: 'get',
-                success: function (task) {
-                    set(task, latEnd, lngEnd);
+                success: function (json) {
+                    var newTask = svl.taskFactory.create(json, latEnd, lngEnd);
+                    setCurrentTask(newTask);
                 },
                 error: function (result) {
                     throw result;
@@ -519,7 +576,7 @@ function TaskContainer (turf) {
 
     self.endTask = endTask;
     self.getCurrentTask = getCurrentTask;
-    self.getCumulativeDistance = getCumulativeDistance;
+    self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = push;
