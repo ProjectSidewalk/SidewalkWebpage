@@ -190,6 +190,13 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    function commitStaged () {
+        if (staged.length > 0) {
+            console.debug("Todo. Submit completed missions");
+            staged = [];
+        }
+    }
+
     /** Get all the completed missions */
     function getCompletedMissions () {
         return completedMissions;
@@ -230,6 +237,7 @@ function MissionContainer ($, parameters) {
 
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = add;
+    self.commitStaged = commitStaged;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;

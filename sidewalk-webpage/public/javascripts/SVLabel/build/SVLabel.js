@@ -7027,6 +7027,13 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    function commitStaged () {
+        if (staged.length > 0) {
+            console.debug("Todo. Submit completed missions");
+            staged = [];
+        }
+    }
+
     /** Get all the completed missions */
     function getCompletedMissions () {
         return completedMissions;
@@ -7067,6 +7074,7 @@ function MissionContainer ($, parameters) {
 
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = add;
+    self.commitStaged = commitStaged;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
@@ -7109,11 +7117,11 @@ var svl = svl || {};
 function MissionProgress () {
     var self = { className: 'MissionProgress' };
     var status = {
-        currentCompletionRate: 0,
-        currentMission: null,
-        previousHeading: 0,
-        surveyedAngles: undefined
-    };
+            currentCompletionRate: 0,
+            currentMission: null,
+            previousHeading: 0,
+            surveyedAngles: undefined
+        };
 
     var $divCurrentCompletionRate;
     var $divCurrentCompletionBar;
@@ -7142,10 +7150,6 @@ function MissionProgress () {
             mission.complete();
             svl.missionContainer.addToCompletedMissions(mission);
             svl.missionContainer.stage(mission);
-
-            showMissionCompleteWindow(mission, function () {
-               console.log("Mission complete");
-            });
         }
     }
 
@@ -7172,13 +7176,24 @@ function MissionProgress () {
     }
 
     /**
-     * Show to the user that the mission is completed
+     * Show a window saying the mission(s) is completed.
      * @param mission
      * @param callback
      */
-    function showMissionCompleteWindow (mission, callback) {
-        console.log("Congratulations, you have completed the following mission:", mission);
-        if (callback) callback();
+    function showMissionCompleteWindow (missions) {
+        if (missions) {
+            var mission = missions.shift();
+
+            if (missions.length > 0) {
+                var _callback = function () {
+                    showMissionCompleteWindow(missions);
+                };
+                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission, callback: _callback });
+            } else {
+                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission });
+            }
+            console.log("Congratulations, you have completed the following mission:", mission);
+        }
     }
 
     /**
@@ -7186,7 +7201,6 @@ function MissionProgress () {
      */
     function update () {
         if ("missionContainer" in svl) {
-            // Todo. I think I should check not only the current mission but also all the incomplete missions
             var i, len, missions,
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
@@ -7195,16 +7209,27 @@ function MissionProgress () {
             updateMissionCompletionBar(currentMission);
 
             if (currentRegion) {
-                missions = svl.missionContainer.getMissionsByRegionId(currentRegion.getProperty("regionId"));
+                // Update mission completion rate.
+                var completedMissions = [],
+                    regionId = currentRegion.getProperty("regionId");
+                missions = svl.missionContainer.getMissionsByRegionId(regionId);
                 missions = missions.concat(svl.missionContainer.getMissionsByRegionId("noRegionId"));
 
                 len = missions.length;
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
-                    if (completionRate >= 1.0) {
+                    //if (completionRate >= 1.0) {
+                    if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {
                         complete(missions[i]);
+                        completedMissions.push(missions[i]);
                     }
                 }
+                // Submit the staged missions
+                svl.missionContainer.commitStaged();
+
+                // Present the mission completion messages.
+                showMissionCompleteWindow(completedMissions);
+
             }
         }
     }
@@ -7375,22 +7400,17 @@ function ModalMission ($) {
         };
 
     function _init () {
-        //setMission("area-coverage", {
-        //    "modal-mission-area-coverage-rate": 10,
-        //    "modal-mission-area-coverage-left-column-image-src": svl.rootDirectory + "img/icons/AreaCoverage_10Percent.png"
-        //});
-
-        //setMission("initial-mission-complete");
     }
 
-    function getProperty (key) { return key in properties ? properties[key] : null; }
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
 
     /**
      * Hide a mission
      */
     function hideMission () {
         svl.ui.modalMission.holder.addClass('hidden');
-
         svl.ui.modalMission.box.css({
             top: getProperty("boxTop"),
             left: getProperty("boxLeft"),
@@ -7421,12 +7441,20 @@ function ModalMission ($) {
             if ("modal-mission-area-coverage-rate" in parameters) {
                 $("#modal-mission-area-coverage-rate").text(parameters["modal-mission-area-coverage-rate"]);
             }
+
+            if ("mission_completion_message" in parameters) {
+                console.debug(parameters.mission_completion_message);
+            }
         }
 
-        $("#modal-mission-holder .ok-button").on("click", hideMission);
+        if (parameters && "callback" in parameters) {
+            $("#modal-mission-holder .ok-button").on("click", parameters.callback);
+        } else {
+            $("#modal-mission-holder .ok-button").on("click", hideMission);
+        }
+
         showMission();
     }
-
 
     _init();
 

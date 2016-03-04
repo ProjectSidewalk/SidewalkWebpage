@@ -9,22 +9,17 @@ function ModalMission ($) {
         };
 
     function _init () {
-        //setMission("area-coverage", {
-        //    "modal-mission-area-coverage-rate": 10,
-        //    "modal-mission-area-coverage-left-column-image-src": svl.rootDirectory + "img/icons/AreaCoverage_10Percent.png"
-        //});
-
-        //setMission("initial-mission-complete");
     }
 
-    function getProperty (key) { return key in properties ? properties[key] : null; }
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
 
     /**
      * Hide a mission
      */
     function hideMission () {
         svl.ui.modalMission.holder.addClass('hidden');
-
         svl.ui.modalMission.box.css({
             top: getProperty("boxTop"),
             left: getProperty("boxLeft"),
@@ -55,12 +50,20 @@ function ModalMission ($) {
             if ("modal-mission-area-coverage-rate" in parameters) {
                 $("#modal-mission-area-coverage-rate").text(parameters["modal-mission-area-coverage-rate"]);
             }
+
+            if ("mission_completion_message" in parameters) {
+                console.debug(parameters.mission_completion_message);
+            }
         }
 
-        $("#modal-mission-holder .ok-button").on("click", hideMission);
+        if (parameters && "callback" in parameters) {
+            $("#modal-mission-holder .ok-button").on("click", parameters.callback);
+        } else {
+            $("#modal-mission-holder .ok-button").on("click", hideMission);
+        }
+
         showMission();
     }
-
 
     _init();
 

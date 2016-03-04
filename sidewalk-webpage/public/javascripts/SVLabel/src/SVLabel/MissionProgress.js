@@ -8,11 +8,11 @@ var svl = svl || {};
 function MissionProgress () {
     var self = { className: 'MissionProgress' };
     var status = {
-        currentCompletionRate: 0,
-        currentMission: null,
-        previousHeading: 0,
-        surveyedAngles: undefined
-    };
+            currentCompletionRate: 0,
+            currentMission: null,
+            previousHeading: 0,
+            surveyedAngles: undefined
+        };
 
     var $divCurrentCompletionRate;
     var $divCurrentCompletionBar;
@@ -41,10 +41,6 @@ function MissionProgress () {
             mission.complete();
             svl.missionContainer.addToCompletedMissions(mission);
             svl.missionContainer.stage(mission);
-
-            showMissionCompleteWindow(mission, function () {
-               console.log("Mission complete");
-            });
         }
     }
 
@@ -71,13 +67,24 @@ function MissionProgress () {
     }
 
     /**
-     * Show to the user that the mission is completed
+     * Show a window saying the mission(s) is completed.
      * @param mission
      * @param callback
      */
-    function showMissionCompleteWindow (mission, callback) {
-        console.log("Congratulations, you have completed the following mission:", mission);
-        if (callback) callback();
+    function showMissionCompleteWindow (missions) {
+        if (missions) {
+            var mission = missions.shift();
+
+            if (missions.length > 0) {
+                var _callback = function () {
+                    showMissionCompleteWindow(missions);
+                };
+                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission, callback: _callback });
+            } else {
+                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission });
+            }
+            console.log("Congratulations, you have completed the following mission:", mission);
+        }
     }
 
     /**
@@ -85,7 +92,6 @@ function MissionProgress () {
      */
     function update () {
         if ("missionContainer" in svl) {
-            // Todo. I think I should check not only the current mission but also all the incomplete missions
             var i, len, missions,
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
@@ -94,16 +100,27 @@ function MissionProgress () {
             updateMissionCompletionBar(currentMission);
 
             if (currentRegion) {
-                missions = svl.missionContainer.getMissionsByRegionId(currentRegion.getProperty("regionId"));
+                // Update mission completion rate.
+                var completedMissions = [],
+                    regionId = currentRegion.getProperty("regionId");
+                missions = svl.missionContainer.getMissionsByRegionId(regionId);
                 missions = missions.concat(svl.missionContainer.getMissionsByRegionId("noRegionId"));
 
                 len = missions.length;
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
-                    if (completionRate >= 1.0) {
+                    //if (completionRate >= 1.0) {
+                    if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {
                         complete(missions[i]);
+                        completedMissions.push(missions[i]);
                     }
                 }
+                // Submit the staged missions
+                svl.missionContainer.commitStaged();
+
+                // Present the mission completion messages.
+                showMissionCompleteWindow(completedMissions);
+
             }
         }
     }
