@@ -6,8 +6,8 @@
 
 #compass-message-holder {
     position: absolute;
-    right: 3px;
-    top: 8px;
+    right: -60px;
+    top: 10px;
     background: rgba(255, 255, 255, 0.75);
     padding: 10px 10px 10px 5px;
     height: 40px;

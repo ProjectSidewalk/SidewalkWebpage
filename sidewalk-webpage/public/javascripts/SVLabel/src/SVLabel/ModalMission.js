@@ -27,9 +27,7 @@ function ModalMission ($) {
         })
     }
 
-    /**
-     * Show a mission
-     */
+    /** Show a mission */
     function showMission () {
         svl.ui.modalMission.holder.removeClass('hidden');
     }

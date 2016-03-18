@@ -136,7 +136,7 @@ function initializeAuditedStreets(map) {
           style: function(feature) {
             var style = $.extend(true, {}, streetLinestringStyle);
             var randomInt = Math.floor(Math.random() * 5);
-            style.color = "#000";
+            style.color = "rgba(128, 128, 128, 1.0)";
             style["stroke-width"] = 3;
             style.opacity = 0.75;
             style.weight = 3;
@@ -196,7 +196,7 @@ function initializeSubmittedLabels(map) {
         document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
         document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
         document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
-        document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
+        document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='rgba(128, 128, 128, 1.0)' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
         // Render submitted labels
         L.geoJson(data, {

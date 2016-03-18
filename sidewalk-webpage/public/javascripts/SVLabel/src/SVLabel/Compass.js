@@ -23,14 +23,15 @@ function Compass (d3) {
         svg.attr('width', width + padding.left + padding.right)
             .attr('height', height + padding.top + padding.bottom + 30)
             .style({ position: 'absolute', left: 0, top: 0 });
-        chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
+        if (false) {
+            chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
 
-        needle = chart.append('path')
-            .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
-            .attr('fill', 'white')
-            .attr('stroke', 'white')
-            .attr('stroke-width', 1);
-
+            needle = chart.append('path')
+                .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
+                .attr('fill', 'white')
+                .attr('stroke', 'white')
+                .attr('stroke-width', 1);
+        }
     }
 
     /**
@@ -46,11 +47,8 @@ function Compass (d3) {
             minimum = Math.min.apply(Math, distArray),
             argmin = distArray.indexOf(minimum),
             argTarget;
-        // argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
         argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
 
-        //var goal = coordinates[coordinates.length - 1];
-        //return svl.util.math.toDegrees(Math.atan2(goal[0] - latlng.lng, goal[1] - latlng.lat));
         return svl.util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
     }
 
@@ -79,10 +77,12 @@ function Compass (d3) {
             r = 229 - 185 * val, g = 245 - 83 * val, b = 249 - 154 * val, rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
 
         // http://colorbrewer2.org/ (229,245,249), (44,162,95)
-        needle.transition(100)
-            .attr('fill', rgb);
-        chart.transition(100)
-            .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
+        if (needle && chart) {
+            needle.transition(100)
+                .attr('fill', rgb);
+            chart.transition(100)
+                .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
+        }
 
         setTurnMessage();
     }
@@ -95,10 +95,13 @@ function Compass (d3) {
             return "slight-left";
         else if (angle <= 340 && angle > 315)
             return "slight-right";
-        else if (angle >= 35 && angle < 180)
+        else if (angle >= 35 && angle < 150)
             return "left";
-        else if (angle <= 315 && angle >= 180)
+        else if (angle <= 315 && angle > 210)
             return "right";
+        else if (angle <= 210 && angle >= 150) {
+            return "u-turn";
+        }
         else {
             console.debug("It shouldn't reach here.");
         }
@@ -116,6 +119,8 @@ function Compass (d3) {
                 return "Turn right";
             case "left":
                 return "Turn left";
+            case "u-turn":
+                return "U turn";
             default:
         }
     }
@@ -132,6 +137,8 @@ function Compass (d3) {
                 return imageDirectories.rightTurn;
             case "left":
                 return imageDirectories.leftTurn;
+            case "u-turn":
+                return imageDirectories.uTurn;
             default:
         }
     }
