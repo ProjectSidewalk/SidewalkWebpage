@@ -7029,6 +7029,10 @@ function MissionContainer ($, parameters) {
     /** Set current missison */
     function setCurrentMission (mission) {
         currentMission = mission;
+
+        if ("missionProgress" in svl) {
+            svl.missionProgress.update();
+        }
         return this;
     }
 
@@ -7137,6 +7141,7 @@ function MissionContainer ($, parameters) {
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
     self.stage = stage;
+    self.setCurrentMission = setCurrentMission;
     return self;
 }
 
@@ -7243,6 +7248,7 @@ function MissionProgress () {
                         var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood();
                         if (currentRegion) {
                             var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                            svl.missionContainer.setCurrentMission(nextMission);
                             showNextMission(nextMission);
                         }
                     }

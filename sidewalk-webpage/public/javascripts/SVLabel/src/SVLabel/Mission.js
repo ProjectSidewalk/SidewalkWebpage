@@ -185,6 +185,10 @@ function MissionContainer ($, parameters) {
     /** Set current missison */
     function setCurrentMission (mission) {
         currentMission = mission;
+
+        if ("missionProgress" in svl) {
+            svl.missionProgress.update();
+        }
         return this;
     }
 
@@ -293,6 +297,7 @@ function MissionContainer ($, parameters) {
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
     self.stage = stage;
+    self.setCurrentMission = setCurrentMission;
     return self;
 }
 
