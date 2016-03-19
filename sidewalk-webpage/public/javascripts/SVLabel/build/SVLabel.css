@@ -820,15 +820,15 @@ footer {
 
 #modal-skip-box, #modal-comment-box, #modal-mission-box {
     background: rgba(255, 255, 255, 1);
-    border: 3px solid rgba(200, 200, 200, 1);
-    color: black;
+    /*border: 3px solid rgba(200, 200, 200, 1);*/
+    color: rgba(80, 80, 80, 1);
     font-size: 14pt;
     padding: 10px;
     position: relative;
     top: 35%;
-    left: 3px;
+    left: 8px;
     visibility: visible;
-    width: 730px;
+    width: 720px;
     z-index: 1;
 
     border-radius: 3px 3px 3px 3px;
@@ -863,6 +863,11 @@ footer {
 
 #modal-mission-holder .button {
     width: 100%;
+}
+
+#mission-badge-holder img {
+    width: 150px;
+    margin-top: 17px;
 }
 #Holder_OnboardingMessageBox {
     background: rgba(69,183,214,0.95);

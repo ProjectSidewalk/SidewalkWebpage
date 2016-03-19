@@ -6855,17 +6855,49 @@ function Mission(parameters) {
             label: null,
             missionId: null,
             level: null,
-            isCompleted: false
+            isCompleted: false,
+            instruction: null,
+            completionMessage: null,
+            badgeURL: null,
+            distance: null,
+            coverage: null
         };
 
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
-        if ("label" in parameters) setProperty("label", parameters.label);
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("coverage" in parameters) setProperty("coverage", parameters.coverage);
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
+
+        if ("label" in parameters) {
+            var instruction, completionMessage, badgeURL;
+            setProperty("label", parameters.label);
+            self.label = parameters.label;  // debug. You don't actually need this.
+
+            if (parameters.label == "initial-mission") {
+                instruction = "Your goal is to <span class='bold'>audit 250 meters of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
+                badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
+            } else if (parameters.label == "distance-mission") {
+                var distance = 500,
+                    distanceString = distance + " meters";
+                instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
+                badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
+            } else if (parameters.label == "area-coverage-mission") {
+                var coverage = 25, coverageString = coverage + "%";
+                instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
+                badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
+            } else {
+                console.error("It shouldn't reach here.");
+            }
+            setProperty("instruction", instruction);
+            setProperty("completionMessage", completionMessage);
+            setProperty("badgeURL", badgeURL);
+        }
     }
 
     /**
@@ -6938,7 +6970,7 @@ function Mission(parameters) {
         return "Mission: " + getProperty("label") + ", Level: "+ getProperty("level") +
             ", Distance: " + getProperty("distance") + ", Coverage " + getProperty("coverage") +
             ", Mission Id: " + getProperty("missionId") + ", Region Id: " + getProperty("regionId") +
-            ", Completed: " + getProperty("isCompleted");
+            ", Completed: " + getProperty("isCompleted") + "\n";
     }
 
     _init(parameters);
@@ -6990,7 +7022,6 @@ function MissionContainer ($, parameters) {
             if (parameters.currentNeighborhood) {
                 nm = nextMission(parameters.currentNeighborhood.getProperty("regionId"));
                 setCurrentMission(nm);
-                svl.missionProgress.showMission();
             }
         });
     }
@@ -7034,9 +7065,9 @@ function MissionContainer ($, parameters) {
         }
     }
 
-    function commitStaged () {
+    function commit () {
+        console.debug("Todo. Submit completed missions");
         if (staged.length > 0) {
-            console.debug("Todo. Submit completed missions");
             staged = [];
         }
     }
@@ -7081,7 +7112,7 @@ function MissionContainer ($, parameters) {
 
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = add;
-    self.commitStaged = commitStaged;
+    self.commit = commit;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
@@ -7173,33 +7204,46 @@ function MissionProgress () {
         }
         return this;
     }
-
-    /**
-     * Show a message to the user that they have completed the mission
-     */
-    function showMission () {
-        var currentMission = svl.missionContainer.getCurrentMission();
-        if (currentMission) console.debug(currentMission);
-    }
-
+    
     /**
      * Show a window saying the mission(s) is completed.
-     * @param mission
-     * @param callback
+     * @param missions Completed missions
      */
     function showMissionCompleteWindow (missions) {
         if (missions) {
-            var mission = missions.shift();
+            var _callback, mission = missions.shift();
 
             if (missions.length > 0) {
-                var _callback = function () {
+                _callback = function () {
                     showMissionCompleteWindow(missions);
                 };
-                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission, callback: _callback });
+                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
             } else {
-                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission });
+                _callback = function () {
+                    if ("missionContainer" in svl) {
+                        var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood();
+                        if (currentRegion) {
+                            var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                            showNextMission(nextMission);
+                        }
+                    }
+                };
+                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
             }
-            console.log("Congratulations, you have completed the following mission:", mission);
+        }
+    }
+
+    /**
+     * @param mission Next mission
+     */
+    function showNextMission (mission) {
+        var label = mission.getProperty("label");
+        if (label == "distance-mission") {
+            svl.modalMission.setMission(label, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+        } else if (label == "area-coverage-mission") {
+            svl.modalMission.setMission(label, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+        } else {
+            console.error("It shouldn't reach here.");
         }
     }
 
@@ -7219,24 +7263,31 @@ function MissionProgress () {
                 // Update mission completion rate.
                 var completedMissions = [],
                     regionId = currentRegion.getProperty("regionId");
-                missions = svl.missionContainer.getMissionsByRegionId(regionId);
-                missions = missions.concat(svl.missionContainer.getMissionsByRegionId("noRegionId"));
+                missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
+                missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
+                missions.sort(function (a, b) {
+                    var distA = a.getProperty("distance"), distB = b.getProperty("distance");
+                    if (distA < distB) return -1;
+                    else if (distA > distB) return 1;
+                    else return 0;
+                });
 
                 len = missions.length;
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
-                    //if (completionRate >= 1.0) {
-                    if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {
+                    if (completionRate >= 1.0) {
+                    // if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {  // debug
                         complete(missions[i]);
                         completedMissions.push(missions[i]);
                     }
                 }
                 // Submit the staged missions
-                svl.missionContainer.commitStaged();
+                svl.missionContainer.commit();
 
                 // Present the mission completion messages.
-                showMissionCompleteWindow(completedMissions);
-
+                if (completedMissions.length > 0) {
+                    showMissionCompleteWindow(completedMissions);
+                }
             }
         }
     }
@@ -7268,7 +7319,7 @@ function MissionProgress () {
         return this;
     }
 
-    self.showMission = showMission;
+    self.showNextMission = showNextMission;
     self.showMissionCompleteWindow = showMissionCompleteWindow;
     self.update = update;
 
@@ -7426,46 +7477,73 @@ function ModalMission ($) {
     }
 
     /** Show a mission */
-    function showMission () {
+    function showMissionModal () {
         svl.ui.modalMission.holder.removeClass('hidden');
     }
 
     /**
      *
      * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
+     * @param parameters Object
      */
     function setMission (mission, parameters) {
-        svl.ui.modalMission.box.html($("template.missions[val='" + mission + "']").html());
+        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        svl.ui.modalMission.box.html(templateHTML);
 
         if (parameters) {
-            if ("modal-mission-area-coverage-left-column-image-src" in parameters) {
-                var image = "<img src='" + parameters["modal-mission-area-coverage-left-column-image-src"] + "' class='center-block modal-mission-left-column-images' alt='Area coverage mission icon' />";
-                $("#modal-mission-area-coverage-left-column").html(image);
+            if ("distance" in parameters) {
+                var distanceString = parameters.distance + " meters";
+                $("#mission-target-distance").html(distanceString);
             }
 
-            if ("modal-mission-area-coverage-rate" in parameters) {
-                $("#modal-mission-area-coverage-rate").text(parameters["modal-mission-area-coverage-rate"]);
+            if ("coverage" in parameters) {
+                var coverageString = parameters.coverage + "%";
+                $("#modal-mission-area-coverage-rate").html(coverageString);
             }
 
-            if ("mission_completion_message" in parameters) {
-                console.debug(parameters.mission_completion_message);
+            // Mission complete
+            if ("badgeURL" in parameters && parameters.badgeURL) {
+                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
+                $("#mission-badge-holder").html(badge);
             }
         }
 
         if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder .ok-button").on("click", parameters.callback);
+            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
         } else {
-            $("#modal-mission-holder .ok-button").on("click", hideMission);
+            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
         }
 
-        showMission();
+        showMissionModal();
+    }
+
+    function setMissionComplete (mission, parameters) {
+        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        svl.ui.modalMission.box.html(templateHTML);
+
+        if (parameters) {
+            if (mission == "mission-complete" && "missionCompletionMessage" in parameters && parameters.missionCompletionMessage &&
+                "badgeURL" in parameters && parameters.badgeURL) {
+                var message = "<h2>Mission Complete!!!</h2><p>" + parameters.missionCompletionMessage + "</p>";
+                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
+                $("#mission-completion-message").html(message);
+                $("#mission-badge-holder").html(badge);
+            }
+        }
+
+        if (parameters && "callback" in parameters) {
+            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+        } else {
+            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
+        }
+        
+        showMissionModal();
     }
 
     _init();
 
-    //self.showMission = showMission;
-    //self.hideMission = hideMission;
     self.setMission = setMission;
+    self.setMissionComplete = setMissionComplete;
     return self;
 }
 

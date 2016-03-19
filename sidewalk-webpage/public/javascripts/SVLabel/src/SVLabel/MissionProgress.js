@@ -57,33 +57,46 @@ function MissionProgress () {
         }
         return this;
     }
-
-    /**
-     * Show a message to the user that they have completed the mission
-     */
-    function showMission () {
-        var currentMission = svl.missionContainer.getCurrentMission();
-        if (currentMission) console.debug(currentMission);
-    }
-
+    
     /**
      * Show a window saying the mission(s) is completed.
-     * @param mission
-     * @param callback
+     * @param missions Completed missions
      */
     function showMissionCompleteWindow (missions) {
         if (missions) {
-            var mission = missions.shift();
+            var _callback, mission = missions.shift();
 
             if (missions.length > 0) {
-                var _callback = function () {
+                _callback = function () {
                     showMissionCompleteWindow(missions);
                 };
-                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission, callback: _callback });
+                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
             } else {
-                svl.modalMission.setMission("mission-completion", { mission_completion_message: mission });
+                _callback = function () {
+                    if ("missionContainer" in svl) {
+                        var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood();
+                        if (currentRegion) {
+                            var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                            showNextMission(nextMission);
+                        }
+                    }
+                };
+                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
             }
-            console.log("Congratulations, you have completed the following mission:", mission);
+        }
+    }
+
+    /**
+     * @param mission Next mission
+     */
+    function showNextMission (mission) {
+        var label = mission.getProperty("label");
+        if (label == "distance-mission") {
+            svl.modalMission.setMission(label, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+        } else if (label == "area-coverage-mission") {
+            svl.modalMission.setMission(label, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+        } else {
+            console.error("It shouldn't reach here.");
         }
     }
 
@@ -103,24 +116,31 @@ function MissionProgress () {
                 // Update mission completion rate.
                 var completedMissions = [],
                     regionId = currentRegion.getProperty("regionId");
-                missions = svl.missionContainer.getMissionsByRegionId(regionId);
-                missions = missions.concat(svl.missionContainer.getMissionsByRegionId("noRegionId"));
+                missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
+                missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
+                missions.sort(function (a, b) {
+                    var distA = a.getProperty("distance"), distB = b.getProperty("distance");
+                    if (distA < distB) return -1;
+                    else if (distA > distB) return 1;
+                    else return 0;
+                });
 
                 len = missions.length;
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
-                    //if (completionRate >= 1.0) {
-                    if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {
+                    if (completionRate >= 1.0) {
+                    // if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {  // debug
                         complete(missions[i]);
                         completedMissions.push(missions[i]);
                     }
                 }
                 // Submit the staged missions
-                svl.missionContainer.commitStaged();
+                svl.missionContainer.commit();
 
                 // Present the mission completion messages.
-                showMissionCompleteWindow(completedMissions);
-
+                if (completedMissions.length > 0) {
+                    showMissionCompleteWindow(completedMissions);
+                }
             }
         }
     }
@@ -152,7 +172,7 @@ function MissionProgress () {
         return this;
     }
 
-    self.showMission = showMission;
+    self.showNextMission = showNextMission;
     self.showMissionCompleteWindow = showMissionCompleteWindow;
     self.update = update;
 

@@ -28,45 +28,72 @@ function ModalMission ($) {
     }
 
     /** Show a mission */
-    function showMission () {
+    function showMissionModal () {
         svl.ui.modalMission.holder.removeClass('hidden');
     }
 
     /**
      *
      * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
+     * @param parameters Object
      */
     function setMission (mission, parameters) {
-        svl.ui.modalMission.box.html($("template.missions[val='" + mission + "']").html());
+        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        svl.ui.modalMission.box.html(templateHTML);
 
         if (parameters) {
-            if ("modal-mission-area-coverage-left-column-image-src" in parameters) {
-                var image = "<img src='" + parameters["modal-mission-area-coverage-left-column-image-src"] + "' class='center-block modal-mission-left-column-images' alt='Area coverage mission icon' />";
-                $("#modal-mission-area-coverage-left-column").html(image);
+            if ("distance" in parameters) {
+                var distanceString = parameters.distance + " meters";
+                $("#mission-target-distance").html(distanceString);
             }
 
-            if ("modal-mission-area-coverage-rate" in parameters) {
-                $("#modal-mission-area-coverage-rate").text(parameters["modal-mission-area-coverage-rate"]);
+            if ("coverage" in parameters) {
+                var coverageString = parameters.coverage + "%";
+                $("#modal-mission-area-coverage-rate").html(coverageString);
             }
 
-            if ("mission_completion_message" in parameters) {
-                console.debug(parameters.mission_completion_message);
+            // Mission complete
+            if ("badgeURL" in parameters && parameters.badgeURL) {
+                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
+                $("#mission-badge-holder").html(badge);
             }
         }
 
         if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder .ok-button").on("click", parameters.callback);
+            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
         } else {
-            $("#modal-mission-holder .ok-button").on("click", hideMission);
+            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
         }
 
-        showMission();
+        showMissionModal();
+    }
+
+    function setMissionComplete (mission, parameters) {
+        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        svl.ui.modalMission.box.html(templateHTML);
+
+        if (parameters) {
+            if (mission == "mission-complete" && "missionCompletionMessage" in parameters && parameters.missionCompletionMessage &&
+                "badgeURL" in parameters && parameters.badgeURL) {
+                var message = "<h2>Mission Complete!!!</h2><p>" + parameters.missionCompletionMessage + "</p>";
+                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
+                $("#mission-completion-message").html(message);
+                $("#mission-badge-holder").html(badge);
+            }
+        }
+
+        if (parameters && "callback" in parameters) {
+            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+        } else {
+            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
+        }
+        
+        showMissionModal();
     }
 
     _init();
 
-    //self.showMission = showMission;
-    //self.hideMission = hideMission;
     self.setMission = setMission;
+    self.setMissionComplete = setMissionComplete;
     return self;
 }

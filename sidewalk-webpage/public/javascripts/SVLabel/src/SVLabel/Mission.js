@@ -11,17 +11,49 @@ function Mission(parameters) {
             label: null,
             missionId: null,
             level: null,
-            isCompleted: false
+            isCompleted: false,
+            instruction: null,
+            completionMessage: null,
+            badgeURL: null,
+            distance: null,
+            coverage: null
         };
 
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
-        if ("label" in parameters) setProperty("label", parameters.label);
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("coverage" in parameters) setProperty("coverage", parameters.coverage);
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
+
+        if ("label" in parameters) {
+            var instruction, completionMessage, badgeURL;
+            setProperty("label", parameters.label);
+            self.label = parameters.label;  // debug. You don't actually need this.
+
+            if (parameters.label == "initial-mission") {
+                instruction = "Your goal is to <span class='bold'>audit 250 meters of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
+                badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
+            } else if (parameters.label == "distance-mission") {
+                var distance = 500,
+                    distanceString = distance + " meters";
+                instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
+                badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
+            } else if (parameters.label == "area-coverage-mission") {
+                var coverage = 25, coverageString = coverage + "%";
+                instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
+                badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
+            } else {
+                console.error("It shouldn't reach here.");
+            }
+            setProperty("instruction", instruction);
+            setProperty("completionMessage", completionMessage);
+            setProperty("badgeURL", badgeURL);
+        }
     }
 
     /**
@@ -94,7 +126,7 @@ function Mission(parameters) {
         return "Mission: " + getProperty("label") + ", Level: "+ getProperty("level") +
             ", Distance: " + getProperty("distance") + ", Coverage " + getProperty("coverage") +
             ", Mission Id: " + getProperty("missionId") + ", Region Id: " + getProperty("regionId") +
-            ", Completed: " + getProperty("isCompleted");
+            ", Completed: " + getProperty("isCompleted") + "\n";
     }
 
     _init(parameters);
@@ -146,7 +178,6 @@ function MissionContainer ($, parameters) {
             if (parameters.currentNeighborhood) {
                 nm = nextMission(parameters.currentNeighborhood.getProperty("regionId"));
                 setCurrentMission(nm);
-                svl.missionProgress.showMission();
             }
         });
     }
@@ -190,9 +221,9 @@ function MissionContainer ($, parameters) {
         }
     }
 
-    function commitStaged () {
+    function commit () {
+        console.debug("Todo. Submit completed missions");
         if (staged.length > 0) {
-            console.debug("Todo. Submit completed missions");
             staged = [];
         }
     }
@@ -237,7 +268,7 @@ function MissionContainer ($, parameters) {
 
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = add;
-    self.commitStaged = commitStaged;
+    self.commit = commit;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
