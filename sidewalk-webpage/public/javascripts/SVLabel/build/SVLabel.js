@@ -7041,6 +7041,7 @@ function MissionContainer ($, parameters) {
         return currentMission;
     }
 
+    /** Get a mission */
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
         var missions = missionStoreByRegionId[regionId],
@@ -7049,7 +7050,7 @@ function MissionContainer ($, parameters) {
             if (missions[i].getProperty("label") == label) {
                 if (level) {
                   if (level == missions[i].getProperty("level")) {
-                      return misssions[i];
+                      return missions[i];
                   }
                 } else {
                     return missions[i];
@@ -7302,7 +7303,6 @@ function MissionProgress () {
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
                     if (completionRate >= 1.0) {
-                    // if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {  // debug
                         complete(missions[i]);
                         completedMissions.push(missions[i]);
                     }

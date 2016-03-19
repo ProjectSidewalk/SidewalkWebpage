@@ -197,6 +197,7 @@ function MissionContainer ($, parameters) {
         return currentMission;
     }
 
+    /** Get a mission */
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
         var missions = missionStoreByRegionId[regionId],
@@ -205,7 +206,7 @@ function MissionContainer ($, parameters) {
             if (missions[i].getProperty("label") == label) {
                 if (level) {
                   if (level == missions[i].getProperty("level")) {
-                      return misssions[i];
+                      return missions[i];
                   }
                 } else {
                     return missions[i];

@@ -131,7 +131,6 @@ function MissionProgress () {
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
                     if (completionRate >= 1.0) {
-                    // if (completionRate >= 1.0 || missions[i].getProperty("label") == "initial-mission") {  // debug
                         complete(missions[i]);
                         completedMissions.push(missions[i]);
                     }
