@@ -37,13 +37,13 @@ function Mission(parameters) {
                 completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
-                var distance = 500,
+                var distance = parameters.distance,
                     distanceString = distance + " meters";
                 instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
             } else if (parameters.label == "area-coverage-mission") {
-                var coverage = 25, coverageString = coverage + "%";
+                var coverage = parameters.coverage, coverageString = coverage + "%";
                 instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
@@ -193,6 +193,24 @@ function MissionContainer ($, parameters) {
         return currentMission;
     }
 
+    function getMission(regionId, label, level) {
+        if (!regionId) regionId = "noRegionId";
+        var missions = missionStoreByRegionId[regionId],
+            i, len = missions.length;
+        for (i = 0; i < len; i++) {
+            if (missions[i].getProperty("label") == label) {
+                if (level) {
+                  if (level == missions[i].getProperty("level")) {
+                      return misssions[i];
+                  }
+                } else {
+                    return missions[i];
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Adds a mission into data structure.
      * @param regionId
@@ -271,6 +289,7 @@ function MissionContainer ($, parameters) {
     self.commit = commit;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
+    self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
     self.stage = stage;

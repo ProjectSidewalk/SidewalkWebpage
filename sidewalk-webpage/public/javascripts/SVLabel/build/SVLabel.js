@@ -6881,13 +6881,13 @@ function Mission(parameters) {
                 completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
-                var distance = 500,
+                var distance = parameters.distance,
                     distanceString = distance + " meters";
                 instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
             } else if (parameters.label == "area-coverage-mission") {
-                var coverage = 25, coverageString = coverage + "%";
+                var coverage = parameters.coverage, coverageString = coverage + "%";
                 instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
@@ -7037,6 +7037,24 @@ function MissionContainer ($, parameters) {
         return currentMission;
     }
 
+    function getMission(regionId, label, level) {
+        if (!regionId) regionId = "noRegionId";
+        var missions = missionStoreByRegionId[regionId],
+            i, len = missions.length;
+        for (i = 0; i < len; i++) {
+            if (missions[i].getProperty("label") == label) {
+                if (level) {
+                  if (level == missions[i].getProperty("level")) {
+                      return misssions[i];
+                  }
+                } else {
+                    return missions[i];
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Adds a mission into data structure.
      * @param regionId
@@ -7115,6 +7133,7 @@ function MissionContainer ($, parameters) {
     self.commit = commit;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
+    self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
     self.stage = stage;
@@ -7217,7 +7236,7 @@ function MissionProgress () {
                 _callback = function () {
                     showMissionCompleteWindow(missions);
                 };
-                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
+                svl.modalMission.setMissionComplete(mission, { callback: _callback });
             } else {
                 _callback = function () {
                     if ("missionContainer" in svl) {
@@ -7228,7 +7247,7 @@ function MissionProgress () {
                         }
                     }
                 };
-                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
+                svl.modalMission.setMissionComplete(mission, { callback: _callback });
             }
         }
     }
@@ -7239,9 +7258,9 @@ function MissionProgress () {
     function showNextMission (mission) {
         var label = mission.getProperty("label");
         if (label == "distance-mission") {
-            svl.modalMission.setMission(label, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMission(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
         } else if (label == "area-coverage-mission") {
-            svl.modalMission.setMission(label, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
             console.error("It shouldn't reach here.");
         }
@@ -7265,6 +7284,7 @@ function MissionProgress () {
                     regionId = currentRegion.getProperty("regionId");
                 missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
                 missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
+                missions = missions.filter(function (m) { return !m.isCompleted(); });
                 missions.sort(function (a, b) {
                     var distA = a.getProperty("distance"), distB = b.getProperty("distance");
                     if (distA < distB) return -1;
@@ -7482,31 +7502,25 @@ function ModalMission ($) {
     }
 
     /**
-     *
+     * Set the mission message in the modal window, then show the modal window.
      * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
      * @param parameters Object
      */
     function setMission (mission, parameters) {
-        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        var label = mission.getProperty("label"),
+            templateHTML = $("template.missions[val='" + label + "']").html();
         svl.ui.modalMission.box.html(templateHTML);
 
-        if (parameters) {
-            if ("distance" in parameters) {
-                var distanceString = parameters.distance + " meters";
-                $("#mission-target-distance").html(distanceString);
-            }
-
-            if ("coverage" in parameters) {
-                var coverageString = parameters.coverage + "%";
-                $("#modal-mission-area-coverage-rate").html(coverageString);
-            }
-
-            // Mission complete
-            if ("badgeURL" in parameters && parameters.badgeURL) {
-                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
-                $("#mission-badge-holder").html(badge);
-            }
+        if (label == "distance-mission") {
+            var distanceString = mission.getProperty("distance") + " meters";
+            $("#mission-target-distance").html(distanceString);
+        } else if (label == "area-coverage-mission") {
+            var coverageString = mission.getProperty("coverage") + "%";
+            $("#modal-mission-area-coverage-rate").html(coverageString);
         }
+
+        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+        $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
             $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
@@ -7517,19 +7531,19 @@ function ModalMission ($) {
         showMissionModal();
     }
 
+    /**
+     * Set the mission complete message in the modal window, then show the modal.
+     * @param mission
+     * @param parameters
+     */
     function setMissionComplete (mission, parameters) {
-        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        var templateHTML = $("template.missions[val='mission-complete']").html();
         svl.ui.modalMission.box.html(templateHTML);
 
-        if (parameters) {
-            if (mission == "mission-complete" && "missionCompletionMessage" in parameters && parameters.missionCompletionMessage &&
-                "badgeURL" in parameters && parameters.badgeURL) {
-                var message = "<h2>Mission Complete!!!</h2><p>" + parameters.missionCompletionMessage + "</p>";
-                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
-                $("#mission-completion-message").html(message);
-                $("#mission-badge-holder").html(badge);
-            }
-        }
+        var message = "<h2>Mission Complete!!!</h2><p>" + mission.getProperty("completionMessage") + "</p>";
+            var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+            $("#mission-completion-message").html(message);
+            $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
             $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);

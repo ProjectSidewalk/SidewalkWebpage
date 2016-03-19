@@ -70,7 +70,7 @@ function MissionProgress () {
                 _callback = function () {
                     showMissionCompleteWindow(missions);
                 };
-                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
+                svl.modalMission.setMissionComplete(mission, { callback: _callback });
             } else {
                 _callback = function () {
                     if ("missionContainer" in svl) {
@@ -81,7 +81,7 @@ function MissionProgress () {
                         }
                     }
                 };
-                svl.modalMission.setMissionComplete("mission-complete", { missionCompletionMessage: mission.getProperty("completionMessage"), badgeURL: mission.getProperty("badgeURL"), callback: _callback });
+                svl.modalMission.setMissionComplete(mission, { callback: _callback });
             }
         }
     }
@@ -92,9 +92,9 @@ function MissionProgress () {
     function showNextMission (mission) {
         var label = mission.getProperty("label");
         if (label == "distance-mission") {
-            svl.modalMission.setMission(label, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMission(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
         } else if (label == "area-coverage-mission") {
-            svl.modalMission.setMission(label, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
             console.error("It shouldn't reach here.");
         }
@@ -118,6 +118,7 @@ function MissionProgress () {
                     regionId = currentRegion.getProperty("regionId");
                 missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
                 missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
+                missions = missions.filter(function (m) { return !m.isCompleted(); });
                 missions.sort(function (a, b) {
                     var distA = a.getProperty("distance"), distB = b.getProperty("distance");
                     if (distA < distB) return -1;

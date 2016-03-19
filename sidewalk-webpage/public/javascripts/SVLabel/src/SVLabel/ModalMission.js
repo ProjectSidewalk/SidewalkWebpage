@@ -33,31 +33,25 @@ function ModalMission ($) {
     }
 
     /**
-     *
+     * Set the mission message in the modal window, then show the modal window.
      * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
      * @param parameters Object
      */
     function setMission (mission, parameters) {
-        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        var label = mission.getProperty("label"),
+            templateHTML = $("template.missions[val='" + label + "']").html();
         svl.ui.modalMission.box.html(templateHTML);
 
-        if (parameters) {
-            if ("distance" in parameters) {
-                var distanceString = parameters.distance + " meters";
-                $("#mission-target-distance").html(distanceString);
-            }
-
-            if ("coverage" in parameters) {
-                var coverageString = parameters.coverage + "%";
-                $("#modal-mission-area-coverage-rate").html(coverageString);
-            }
-
-            // Mission complete
-            if ("badgeURL" in parameters && parameters.badgeURL) {
-                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
-                $("#mission-badge-holder").html(badge);
-            }
+        if (label == "distance-mission") {
+            var distanceString = mission.getProperty("distance") + " meters";
+            $("#mission-target-distance").html(distanceString);
+        } else if (label == "area-coverage-mission") {
+            var coverageString = mission.getProperty("coverage") + "%";
+            $("#modal-mission-area-coverage-rate").html(coverageString);
         }
+
+        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+        $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
             $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
@@ -68,19 +62,19 @@ function ModalMission ($) {
         showMissionModal();
     }
 
+    /**
+     * Set the mission complete message in the modal window, then show the modal.
+     * @param mission
+     * @param parameters
+     */
     function setMissionComplete (mission, parameters) {
-        var templateHTML = $("template.missions[val='" + mission + "']").html();
+        var templateHTML = $("template.missions[val='mission-complete']").html();
         svl.ui.modalMission.box.html(templateHTML);
 
-        if (parameters) {
-            if (mission == "mission-complete" && "missionCompletionMessage" in parameters && parameters.missionCompletionMessage &&
-                "badgeURL" in parameters && parameters.badgeURL) {
-                var message = "<h2>Mission Complete!!!</h2><p>" + parameters.missionCompletionMessage + "</p>";
-                var badge = "<img src='" + parameters.badgeURL + "' class='img-responsive center-block' alt='badge'/>";
-                $("#mission-completion-message").html(message);
-                $("#mission-badge-holder").html(badge);
-            }
-        }
+        var message = "<h2>Mission Complete!!!</h2><p>" + mission.getProperty("completionMessage") + "</p>";
+            var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+            $("#mission-completion-message").html(message);
+            $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
             $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
