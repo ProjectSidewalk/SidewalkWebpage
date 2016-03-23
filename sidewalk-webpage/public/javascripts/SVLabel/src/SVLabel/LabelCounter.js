@@ -72,6 +72,8 @@ function LabelCounter ($, d3) {
         }
     };
 
+    var keys = Object.keys(dotPlots);
+
     var x = d3.scale.linear()
               .domain([0, 20])
               .range([0, width]);
@@ -150,6 +152,8 @@ function LabelCounter ($, d3) {
 
         // Actual update function
         function _update(key) {
+            if (keys.indexOf(key) == -1) { key = "Other"; }
+
             var firstDigit = dotPlots[key].count % 10,
               higherDigits = (dotPlots[key].count - firstDigit) / 10,
               count = firstDigit + higherDigits;
@@ -239,6 +243,7 @@ function LabelCounter ($, d3) {
 
     /**  Decrement the label count */
     function decrement(key) {
+        if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
@@ -246,6 +251,7 @@ function LabelCounter ($, d3) {
     }
     /** Increment the label count */
     function increment(key) {
+        if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);

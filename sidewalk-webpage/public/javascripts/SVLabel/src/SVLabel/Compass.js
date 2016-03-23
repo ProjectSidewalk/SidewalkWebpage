@@ -149,7 +149,7 @@ function Compass (d3) {
             direction = angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        message =  image + directionToDirectionMessage(direction);
+        message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
         setMessage(message);
     }
 

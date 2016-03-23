@@ -96,6 +96,7 @@ function UI ($, params) {
         self.contextMenu.radioButtons = $("input[name='problem-severity']");
         self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
         self.contextMenu.textBox = $("#context-menu-problem-description-text-box");
+        self.contextMenu.closeButton = $("#context-menu-close-button");
 
         // Modal
         self.modalSkip = {};
@@ -139,6 +140,14 @@ function UI ($, params) {
         self.compass = {};
         self.compass.messageHolder = $("#compass-message-holder");
         self.compass.message = $("#compass-message");
+
+        self.canvas = {};
+        self.canvas.drawingLayer = $("#labelDrawingLayer");
+        self.canvas.deleteIconHolder = $("#delete-icon-holder");
+        self.canvas.deleteIcon = $("#LabelDeleteIcon");
+
+        self.tracker = {};
+        self.tracker.itemHolder = $("#tracked-items-holder");
 
 
         self.task = {};

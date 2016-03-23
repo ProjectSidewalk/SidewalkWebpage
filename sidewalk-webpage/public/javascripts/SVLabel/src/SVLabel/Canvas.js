@@ -102,9 +102,9 @@ function Canvas ($, param) {
     var labels = [];
 
     // jQuery doms
-    var $divLabelDrawingLayer = $("div#labelDrawingLayer").length === 0 ? null : $("div#labelDrawingLayer");
-    var $divHolderLabelDeleteIcon = $("#delete-icon-holder").length === 0 ? null : $("#delete-icon-holder");
-    var $labelDeleteIcon = $("#LabelDeleteIcon").length === 0 ? null : $("#LabelDeleteIcon");
+    var $divLabelDrawingLayer = svl.ui.canvas.drawingLayer.length === 0 ? null : svl.ui.canvas.drawingLayer;
+    var $divHolderLabelDeleteIcon = svl.ui.canvas.deleteIconHolder.length === 0 ? null : svl.ui.canvas.deleteIconHolder;
+    var $labelDeleteIcon = svl.ui.canvas.deleteIcon.length === 0 ? null : svl.ui.canvas.deleteIcon;
 
     // Initialization
     function _init (param) {
@@ -125,6 +125,7 @@ function Canvas ($, param) {
           $divLabelDrawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
           $divLabelDrawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
           $divLabelDrawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
+            $divLabelDrawingLayer.on('mouseout', handleDrawingLayerMouseOut);
         }
         if ($labelDeleteIcon) {
           $labelDeleteIcon.bind("click", labelDeleteIconClick);
@@ -201,7 +202,12 @@ function Canvas ($, param) {
             });
         }
 
-        svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
+        svl.tracker.push('LabelingCanvas_FinishLabeling', {
+            'temporary_label_id': status.currentLabel.getProperty('temporary_label_id'),
+            'LabelType': labelDescription.id,
+            canvasX: tempPath[0].x,
+            canvasY: tempPath[0].y
+        });
         svl.actionStack.push('addLabel', status.currentLabel);
 
         // Sound effect
@@ -222,18 +228,21 @@ function Canvas ($, param) {
 
     }
 
+    function handleDrawingLayerMouseOut () {
+        svl.tracker.push('LabelingCanvas_MouseOut');
+        if ("ribbon" in svl) { svl.ribbon.backToWalk(); }
+    }
+
     /**
      * This function is fired when at the time of mouse-down
      * @param e
      */
     function handleDrawingLayerMouseDown (e) {
         mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = mouseposition(e, this).x;
-        mouseStatus.leftDownY = mouseposition(e, this).y;
+        mouseStatus.leftDownX = svl.util.mouseposition(e, this).x;
+        mouseStatus.leftDownY = svl.util.mouseposition(e, this).y;
 
-        if (!properties.evaluationMode) {
-            svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
-        }
+        svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
 
         mouseStatus.prevMouseDownTime = new Date().getTime();
     }
@@ -245,70 +254,67 @@ function Canvas ($, param) {
         var currTime;
 
         mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = mouseposition(e, this).x;
-        mouseStatus.leftUpY = mouseposition(e, this).y;
+        mouseStatus.leftUpX = svl.util.mouseposition(e, this).x;
+        mouseStatus.leftUpY = svl.util.mouseposition(e, this).y;
 
         currTime = new Date().getTime();
 
-        if (!properties.evaluationMode) {
-            if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-                if (properties.drawingMode == "point") {
-                    tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                    closeLabelPath();
-                } else if (properties.drawingMode == "path") {
-                    // Path labeling.
+        if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
+            if (properties.drawingMode == "point") {
+                tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                closeLabelPath();
+            } else if (properties.drawingMode == "path") {
+                // Path labeling.
 
-                    if ('ribbon' in svl && svl.ribbon) {
-                        // Define point parameters to draw
-                        if (!status.drawing) {
-                            // Start drawing a path if a user hasn't started to do so.
-                            status.drawing = true;
-                            if ('tracker' in svl && svl.tracker) {
-                                svl.tracker.push('LabelingCanvas_StartLabeling');
+                if ('ribbon' in svl && svl.ribbon) {
+                    // Define point parameters to draw
+                    if (!status.drawing) {
+                        // Start drawing a path if a user hasn't started to do so.
+                        status.drawing = true;
+                        if ('tracker' in svl && svl.tracker) {
+                            svl.tracker.push('LabelingCanvas_StartLabeling');
+                        }
+                        tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                    } else {
+                        // Close the current path if there are more than 2 points in the tempPath and
+                        // the user clicks on a point near the initial point.
+                        var closed = false;
+                        if (tempPath.length > 2) {
+                            var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
+                            if (r < properties.radiusThresh) {
+                                closed = true;
+                                status.drawing = false;
+                                closeLabelPath();
                             }
+                        }
+
+                        // Otherwise add a new point
+                        if (!closed) {
                             tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                        } else {
-                            // Close the current path if there are more than 2 points in the tempPath and
-                            // the user clicks on a point near the initial point.
-                            var closed = false;
-                            if (tempPath.length > 2) {
-                                var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
-                                if (r < properties.radiusThresh) {
-                                    closed = true;
-                                    status.drawing = false;
-                                    closeLabelPath();
-                                }
-                            }
-
-                            // Otherwise add a new point
-                            if (!closed) {
-                                tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                            }
                         }
                     }
                 }
+            }
 
-                clear();
-                setVisibilityBasedOnLocation('visible', getPanoId());
-                render2();
-            } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
-                if (properties.drawingMode == "path") {
-                    // This part is executed for a double click event
-                    // If the current status.drawing = true, then close the current path.
-                    var pathLen = tempPath.length;
-                    if (status.drawing && pathLen > 2) {
-                        status.drawing = false;
+            clear();
+            setVisibilityBasedOnLocation('visible', getPanoId());
+            render2();
+        } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
+            if (properties.drawingMode == "path") {
+                // This part is executed for a double click event
+                // If the current status.drawing = true, then close the current path.
+                var pathLen = tempPath.length;
+                if (status.drawing && pathLen > 2) {
+                    status.drawing = false;
 
-                        closeLabelPath();
-                        self.clear();
-                        self.setVisibilityBasedOnLocation('visible', getPanoId());
-                        self.render2();
-                    }
+                    closeLabelPath();
+                    self.clear();
+                    self.setVisibilityBasedOnLocation('visible', getPanoId());
+                    self.render2();
                 }
             }
-        } else {
-            // If it is an evaluation mode, do... (nothing)
         }
+
 
         svl.tracker.push('LabelingCanvas_MouseUp', {x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
         mouseStatus.prevMouseUpTime = new Date().getTime();

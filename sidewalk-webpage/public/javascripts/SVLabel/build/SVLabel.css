@@ -554,16 +554,21 @@ input#Text_BusStopAbsenceOtherReason {
 
 #compass-message-holder {
     position: absolute;
-    right: -60px;
-    top: 10px;
+    right: -65px;
+    top: 0;
     background: rgba(255, 255, 255, 0.75);
     padding: 10px 10px 10px 5px;
-    height: 40px;
+    height: 55px;
     min-width: 120px;
     white-space: nowrap;
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.compass-message-small {
+    font-size: 8pt;
+    margin: 5px;
 }
 
 #compass-message-connector {
@@ -656,6 +661,12 @@ input#Text_BusStopAbsenceOtherReason {
 #severity-radio-holder span {
     font-size: 10pt;
     padding: 0 5px 0 5px;
+}
+
+#context-menu-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
 }
 #HolderTooltip {
     background: rgba(0,0,0,0.8);
@@ -869,6 +880,14 @@ footer {
     width: 150px;
     margin-top: 17px;
 }
+#tracker-holder {
+    position: absolute;
+    top: 0;
+    left: 935px;
+}
+
+
+/*** Deprecated ***/
 #Holder_OnboardingMessageBox {
     background: rgba(69,183,214,0.95);
     border: 3px solid rgba(255,255,255,1);
@@ -946,9 +965,6 @@ footer {
 }
 
 
-/********************************************************************************
- * Quick check
- */
 #Holder_QuickCheck {
     background: rgba(60,60,60,1);
     border: 3px solid rgba(255,255,255,1);

@@ -68,3 +68,9 @@
     font-size: 10pt;
     padding: 0 5px 0 5px;
 }
+
+#context-menu-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
+}

@@ -15,6 +15,7 @@ function mouseposition (e, dom) {
     //}
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
+svl.util.mouseposition = mouseposition;
 
 
 //

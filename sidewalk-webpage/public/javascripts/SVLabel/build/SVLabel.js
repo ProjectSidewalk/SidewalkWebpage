@@ -1249,9 +1249,9 @@ function Canvas ($, param) {
     var labels = [];
 
     // jQuery doms
-    var $divLabelDrawingLayer = $("div#labelDrawingLayer").length === 0 ? null : $("div#labelDrawingLayer");
-    var $divHolderLabelDeleteIcon = $("#delete-icon-holder").length === 0 ? null : $("#delete-icon-holder");
-    var $labelDeleteIcon = $("#LabelDeleteIcon").length === 0 ? null : $("#LabelDeleteIcon");
+    var $divLabelDrawingLayer = svl.ui.canvas.drawingLayer.length === 0 ? null : svl.ui.canvas.drawingLayer;
+    var $divHolderLabelDeleteIcon = svl.ui.canvas.deleteIconHolder.length === 0 ? null : svl.ui.canvas.deleteIconHolder;
+    var $labelDeleteIcon = svl.ui.canvas.deleteIcon.length === 0 ? null : svl.ui.canvas.deleteIcon;
 
     // Initialization
     function _init (param) {
@@ -1272,6 +1272,7 @@ function Canvas ($, param) {
           $divLabelDrawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
           $divLabelDrawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
           $divLabelDrawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
+            $divLabelDrawingLayer.on('mouseout', handleDrawingLayerMouseOut);
         }
         if ($labelDeleteIcon) {
           $labelDeleteIcon.bind("click", labelDeleteIconClick);
@@ -1348,7 +1349,12 @@ function Canvas ($, param) {
             });
         }
 
-        svl.tracker.push('LabelingCanvas_FinishLabeling', { 'temporary_label_id': status.currentLabel.getProperty('temporary_label_id')});
+        svl.tracker.push('LabelingCanvas_FinishLabeling', {
+            'temporary_label_id': status.currentLabel.getProperty('temporary_label_id'),
+            'LabelType': labelDescription.id,
+            canvasX: tempPath[0].x,
+            canvasY: tempPath[0].y
+        });
         svl.actionStack.push('addLabel', status.currentLabel);
 
         // Sound effect
@@ -1369,18 +1375,21 @@ function Canvas ($, param) {
 
     }
 
+    function handleDrawingLayerMouseOut () {
+        svl.tracker.push('LabelingCanvas_MouseOut');
+        if ("ribbon" in svl) { svl.ribbon.backToWalk(); }
+    }
+
     /**
      * This function is fired when at the time of mouse-down
      * @param e
      */
     function handleDrawingLayerMouseDown (e) {
         mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = mouseposition(e, this).x;
-        mouseStatus.leftDownY = mouseposition(e, this).y;
+        mouseStatus.leftDownX = svl.util.mouseposition(e, this).x;
+        mouseStatus.leftDownY = svl.util.mouseposition(e, this).y;
 
-        if (!properties.evaluationMode) {
-            svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
-        }
+        svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
 
         mouseStatus.prevMouseDownTime = new Date().getTime();
     }
@@ -1392,70 +1401,67 @@ function Canvas ($, param) {
         var currTime;
 
         mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = mouseposition(e, this).x;
-        mouseStatus.leftUpY = mouseposition(e, this).y;
+        mouseStatus.leftUpX = svl.util.mouseposition(e, this).x;
+        mouseStatus.leftUpY = svl.util.mouseposition(e, this).y;
 
         currTime = new Date().getTime();
 
-        if (!properties.evaluationMode) {
-            if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-                if (properties.drawingMode == "point") {
-                    tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                    closeLabelPath();
-                } else if (properties.drawingMode == "path") {
-                    // Path labeling.
+        if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
+            if (properties.drawingMode == "point") {
+                tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                closeLabelPath();
+            } else if (properties.drawingMode == "path") {
+                // Path labeling.
 
-                    if ('ribbon' in svl && svl.ribbon) {
-                        // Define point parameters to draw
-                        if (!status.drawing) {
-                            // Start drawing a path if a user hasn't started to do so.
-                            status.drawing = true;
-                            if ('tracker' in svl && svl.tracker) {
-                                svl.tracker.push('LabelingCanvas_StartLabeling');
+                if ('ribbon' in svl && svl.ribbon) {
+                    // Define point parameters to draw
+                    if (!status.drawing) {
+                        // Start drawing a path if a user hasn't started to do so.
+                        status.drawing = true;
+                        if ('tracker' in svl && svl.tracker) {
+                            svl.tracker.push('LabelingCanvas_StartLabeling');
+                        }
+                        tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                    } else {
+                        // Close the current path if there are more than 2 points in the tempPath and
+                        // the user clicks on a point near the initial point.
+                        var closed = false;
+                        if (tempPath.length > 2) {
+                            var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
+                            if (r < properties.radiusThresh) {
+                                closed = true;
+                                status.drawing = false;
+                                closeLabelPath();
                             }
+                        }
+
+                        // Otherwise add a new point
+                        if (!closed) {
                             tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                        } else {
-                            // Close the current path if there are more than 2 points in the tempPath and
-                            // the user clicks on a point near the initial point.
-                            var closed = false;
-                            if (tempPath.length > 2) {
-                                var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
-                                if (r < properties.radiusThresh) {
-                                    closed = true;
-                                    status.drawing = false;
-                                    closeLabelPath();
-                                }
-                            }
-
-                            // Otherwise add a new point
-                            if (!closed) {
-                                tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                            }
                         }
                     }
                 }
+            }
 
-                clear();
-                setVisibilityBasedOnLocation('visible', getPanoId());
-                render2();
-            } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
-                if (properties.drawingMode == "path") {
-                    // This part is executed for a double click event
-                    // If the current status.drawing = true, then close the current path.
-                    var pathLen = tempPath.length;
-                    if (status.drawing && pathLen > 2) {
-                        status.drawing = false;
+            clear();
+            setVisibilityBasedOnLocation('visible', getPanoId());
+            render2();
+        } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
+            if (properties.drawingMode == "path") {
+                // This part is executed for a double click event
+                // If the current status.drawing = true, then close the current path.
+                var pathLen = tempPath.length;
+                if (status.drawing && pathLen > 2) {
+                    status.drawing = false;
 
-                        closeLabelPath();
-                        self.clear();
-                        self.setVisibilityBasedOnLocation('visible', getPanoId());
-                        self.render2();
-                    }
+                    closeLabelPath();
+                    self.clear();
+                    self.setVisibilityBasedOnLocation('visible', getPanoId());
+                    self.render2();
                 }
             }
-        } else {
-            // If it is an evaluation mode, do... (nothing)
         }
+
 
         svl.tracker.push('LabelingCanvas_MouseUp', {x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
         mouseStatus.prevMouseUpTime = new Date().getTime();
@@ -2563,7 +2569,7 @@ function Compass (d3) {
             direction = angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        message =  image + directionToDirectionMessage(direction);
+        message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
         setMessage(message);
     }
 
@@ -2615,6 +2621,7 @@ function ContextMenu ($) {
     $descriptionTextBox.on('change', handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
+    svl.ui.contextMenu.closeButton.on('click', handleCloseButtonClick);
 
 
     /**
@@ -2652,13 +2659,19 @@ function ContextMenu ($) {
     }
 
     function handleDescriptionTextBoxBlur() {
+        svl.tracker.push('ContextMenu_TextBoxBlur');
         svl.ribbon.enableModeSwitch();
     }
 
     function handleDescriptionTextBoxFocus() {
+        svl.tracker.push('ContextMenu_TextBoxFocus');
         svl.ribbon.disableModeSwitch();
     }
 
+    function handleCloseButtonClick () {
+        svl.tracker.push('ContextMenu_CloseButtonClick');
+        hide();
+    }
     /**
      *
      * @param e
@@ -2666,6 +2679,7 @@ function ContextMenu ($) {
     function handleRadioChange (e) {
         var severity = parseInt($(this).val(), 10),
             label = getTargetLabel();
+        svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
         if (label) {
             label.setProperty('severity', severity);
@@ -2679,6 +2693,8 @@ function ContextMenu ($) {
     function handleTemporaryProblemCheckboxChange (e) {
         var checked = $(this).is(":checked"),
             label = getTargetLabel();
+        svl.tracker.push('ContextMenu_CheckboxChange', { checked: checked });
+
         if (label) {
             label.setProperty('temporaryProblem', checked);
         }
@@ -5212,6 +5228,8 @@ function LabelCounter ($, d3) {
         }
     };
 
+    var keys = Object.keys(dotPlots);
+
     var x = d3.scale.linear()
               .domain([0, 20])
               .range([0, width]);
@@ -5290,6 +5308,8 @@ function LabelCounter ($, d3) {
 
         // Actual update function
         function _update(key) {
+            if (keys.indexOf(key) == -1) { key = "Other"; }
+
             var firstDigit = dotPlots[key].count % 10,
               higherDigits = (dotPlots[key].count - firstDigit) / 10,
               count = firstDigit + higherDigits;
@@ -5379,6 +5399,7 @@ function LabelCounter ($, d3) {
 
     /**  Decrement the label count */
     function decrement(key) {
+        if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
@@ -5386,6 +5407,7 @@ function LabelCounter ($, d3) {
     }
     /** Increment the label count */
     function increment(key) {
+        if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);
@@ -5415,11 +5437,13 @@ function LabelFactory () {
 
     function create (path, param) {
         var label = new Label(path, param);
-        if (!('labelId' in param)) {
-            label.setProperty("temporary_label_id", temporaryLabelId);
-            temporaryLabelId++;
+        if (label) {
+            if (!('labelId' in param)) {
+                label.setProperty("temporary_label_id", temporaryLabelId);
+                temporaryLabelId++;
+            }
+            return label;
         }
-        return label;
     }
 
     self.create = create;
@@ -5541,6 +5565,7 @@ function Main ($, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = Tracker();
+        svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3);
         svl.contextMenu = ContextMenu($);
@@ -6338,10 +6363,11 @@ function Map ($, params) {
     }
 
     function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        var zoomFactor = svl.zoomFactor[pov.zoom];
-        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-        return { x: x, y: y };
+        return svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+        // var zoomFactor = svl.zoomFactor[pov.zoom];
+        // var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+        // var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+        // return { x: x, y: y };
     }
 
     /**
@@ -8580,8 +8606,7 @@ function Point (x, y, pov, params) {
         // Convert a canvas coordinate (x, y) into a sv image coordinate
         // Note, svImageCoordinate.x varies from 0 to svImageWidth and
         // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-
-        //
+        
         // Adjust the zoom level
         var zoom = pov.zoom;
         var zoomFactor = svl.zoomFactor[zoom];
@@ -9509,7 +9534,6 @@ function RibbonMenu ($, params) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
         svl.tracker.push('Click_Subcategory_' + subcategory);
-        console.log("Subcategory", subcategory);
         modeSwitch(subcategory);
         hideSubcategories();
     }
@@ -11317,6 +11341,7 @@ function Tracker () {
         actions = [],
         prevActions = [];
 
+    
     /** Returns actions */
     function getActions () { return actions; }
 
@@ -11343,10 +11368,16 @@ function Tracker () {
                 note = param.quickCheckCorrectness;
             } else if ('labelId' in param) {
                 note = 'labelId:' + param.labelId;
+            } else if ("checked" in param) {
+                note = "checked:" + param.checked;
             } else {
                 note = "";
             }
 
+            if ("LabelType" in param && "canvasX" in param && "canvasY" in param) {
+                if (note.length != 0) { note += ","; }
+                note += "labelType:" + param.LabelType + ",canvasX:" + param.canvasX + ",canvasY:" + param.canvasY;
+            }
             if ('temporary_label_id' in param) {
                 temporaryLabelId = param.temporary_label_id;
             }
@@ -11390,7 +11421,7 @@ function Tracker () {
         var now = new Date(),
             timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
-        actions.push({
+        var item = {
             action : action,
             gsv_panorama_id: panoId,
             lat: latlng.lat,
@@ -11401,12 +11432,17 @@ function Tracker () {
             note: note,
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
-        });
+        };
+        actions.push(item);
 
         // Todo. Submit the data collected thus far if actions is too long.
         if (actions.length > 150) {
             var data = svl.form.compileSubmissionData();
             svl.form.submit(data);
+        }
+
+        if ("trackerViewer" in svl) {
+            svl.trackerViewer.add(item)
         }
 
         return this;
@@ -11425,6 +11461,65 @@ function Tracker () {
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;
+    return self;
+}
+
+function TrackerViewer () {
+    var self = { className: "TrackerViewer" },
+        items = [];
+    
+    function add (action) {
+        if (action.action == "LabelingCanvas_FinishLabeling") {
+            var notes = action.note.split(","),
+                pov = {heading: action.heading, pitch: action.pitch, zoom: action.zoom},
+                imageCoordinates;
+
+            var labelType, canvasX, canvasY, i, len = notes.length;
+            for (i = 0; i < len; i++) {
+                if (notes[i].indexOf("canvasX") >= 0) {
+                    canvasX = parseInt(notes[i].split(":")[1], 10);
+                } else if (notes[i].indexOf("canvasY") >= 0) {
+                    canvasY = parseInt(notes[i].split(":")[1], 10);
+                } else if (notes[i].indexOf("labelType") >= 0) {
+                    labelType = notes[i].split(":")[1];
+                }
+            }
+
+            imageCoordinates = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+
+            items.push({
+                action: action.action,
+                panoId: action.gsv_panorama_id,
+                labelType: labelType,
+                imageX: imageCoordinates.x,
+                imageY: imageCoordinates.y
+            });
+        }
+
+        update();
+    }
+
+    function dump () {
+        return items;
+    }
+
+    function update () {
+        var i, len, item, html = "";
+        len = items.length;
+
+        for (i = 0; i < len; i ++) {
+            item = items[i];
+            html += "<li><small>action:" + item.action +
+                ", panoId:" + item.panoId +
+                ", labelType:" + item.labelType +
+                ", imageX:" + Math.round(item.imageX) +
+                ", imageY:" + Math.round(item.imageY) + "</small></li>"
+        }
+        svl.ui.tracker.itemHolder.html(html);
+    }
+
+    self.add = add;
+    self.dump = dump;
     return self;
 }
 
@@ -11526,6 +11621,7 @@ function UI ($, params) {
         self.contextMenu.radioButtons = $("input[name='problem-severity']");
         self.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
         self.contextMenu.textBox = $("#context-menu-problem-description-text-box");
+        self.contextMenu.closeButton = $("#context-menu-close-button");
 
         // Modal
         self.modalSkip = {};
@@ -11569,6 +11665,14 @@ function UI ($, params) {
         self.compass = {};
         self.compass.messageHolder = $("#compass-message-holder");
         self.compass.message = $("#compass-message");
+
+        self.canvas = {};
+        self.canvas.drawingLayer = $("#labelDrawingLayer");
+        self.canvas.deleteIconHolder = $("#delete-icon-holder");
+        self.canvas.deleteIcon = $("#LabelDeleteIcon");
+
+        self.tracker = {};
+        self.tracker.itemHolder = $("#tracked-items-holder");
 
 
         self.task = {};
@@ -12909,6 +13013,7 @@ function mouseposition (e, dom) {
     //}
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
+svl.util.mouseposition = mouseposition;
 
 
 //
@@ -14213,6 +14318,13 @@ function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
 }
 svl.misc.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
 
+
+svl.misc.canvasCoordinateToImageCoordinate = function (canvasX, canvasY, pov) {
+    var zoomFactor = svl.zoomFactor[pov.zoom];
+    var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+    var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+    return { x: x, y: y };
+};
 //self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
 //self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
 

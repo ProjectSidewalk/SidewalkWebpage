@@ -141,6 +141,9 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Edit.png")' id="LabelEditIcon" />
                     </div>
                     <div id="context-menu-holder">
+                        <div id="context-menu-close-button-holder">
+                            <button type="button" id="context-menu-close-button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        </div>
                         <div id="severity-menu">
                             <div id="severity-radio-holder">
                                 <div class="radio-inline" id="column-passable">
@@ -185,31 +188,6 @@
                     </div>
                 </div>
                 <div id="status-holder">
-                    @*<div id="status-pane-title">*@
-                        @*Status*@
-                    @*</div>*@
-                    @*<div id="current-status-holder" class="status-box">*@
-                        @*<div id="current-status-title">*@
-                            @*Mission:*@
-                        @*</div>*@
-                        @*<div id="current-status-description">*@
-                            @*A description of a user's current mission.*@
-                        @*</div>*@
-                    @*</div>*@
-                    @*<div id="progress-holder" class="status-box">*@
-                        @*<div id="Progress_Title">*@
-                            @*<span class="bold">Progress:</span>*@
-                        @*</div>*@
-                        @*<div id="Progress_Description">*@
-                            @*<div id="ProgressBarContainer">*@
-                                @*<div id="ProgressBarFilled">*@
-                                @*</div>*@
-                            @*</div>*@
-                            @*<div id="Progress_Message">*@
-                                @*You are half way done with tutorials!*@
-                            @*</div>*@
-                        @*</div>*@
-                    @*</div>*@
                     <div class="status-box">
                         <span class="status-holder-header-1">Achievements</span>
                         <div id="status-achievements-holder">
@@ -247,20 +225,6 @@
                     <div id="compass-message-connector"></div>
                 </div>
             </div>
-            @*<div id="form-holder">*@
-                @*<form id="svl-form" method="Post" action="http://www.mturk.com/mturk/externalSubmit">*@
-                    @*<input type="hidden" name="assignmentId" value="" />*@
-                    @*<input type="hidden" name="workerId" value=""/>*@
-                    @*<input type="hidden" name="hitId" value="" />*@
-                    @*<div id="comment-field-holder">*@
-                        @*<textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>*@
-                    @*</div>*@
-                    @*<div id="form-buttons-holder">*@
-                        @*<button id="skip-button" class="button" onclick="return false;">Jump to another location</button>*@
-                        @*<!--<input type="submit" id="submit-button" class="button" style="margin-top: 3px; width:635px;" value="Submit" />-->*@
-                    @*</div>*@
-                @*</form>*@
-            @*</div>*@
 
             <div id="page-overlay-holder">
                 <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
@@ -318,6 +282,11 @@
             <div id="annotation-holder"></div>
             <div id="task-completion-message-holder">
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/GoodJob.png")' alt="Task completion message: Good Job!" />
+            </div>
+            <div id='tracker-holder'>
+                <span class='status-holder-header-1'>Tracker</span>
+                <ul id='tracked-items-holder'>
+                </ul>
             </div>
         </div>
     </div>
@@ -497,6 +466,7 @@
 
             svl.main = Main($, mainParam);
 
+//            OnboardingRecorder._init();
         }
     </script>
 

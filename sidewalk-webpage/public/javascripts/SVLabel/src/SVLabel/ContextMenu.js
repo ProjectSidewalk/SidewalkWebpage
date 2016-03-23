@@ -18,6 +18,7 @@ function ContextMenu ($) {
     $descriptionTextBox.on('change', handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
+    svl.ui.contextMenu.closeButton.on('click', handleCloseButtonClick);
 
 
     /**
@@ -55,13 +56,19 @@ function ContextMenu ($) {
     }
 
     function handleDescriptionTextBoxBlur() {
+        svl.tracker.push('ContextMenu_TextBoxBlur');
         svl.ribbon.enableModeSwitch();
     }
 
     function handleDescriptionTextBoxFocus() {
+        svl.tracker.push('ContextMenu_TextBoxFocus');
         svl.ribbon.disableModeSwitch();
     }
 
+    function handleCloseButtonClick () {
+        svl.tracker.push('ContextMenu_CloseButtonClick');
+        hide();
+    }
     /**
      *
      * @param e
@@ -69,6 +76,7 @@ function ContextMenu ($) {
     function handleRadioChange (e) {
         var severity = parseInt($(this).val(), 10),
             label = getTargetLabel();
+        svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
         if (label) {
             label.setProperty('severity', severity);
@@ -82,6 +90,8 @@ function ContextMenu ($) {
     function handleTemporaryProblemCheckboxChange (e) {
         var checked = $(this).is(":checked"),
             label = getTargetLabel();
+        svl.tracker.push('ContextMenu_CheckboxChange', { checked: checked });
+
         if (label) {
             label.setProperty('temporaryProblem', checked);
         }

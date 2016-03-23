@@ -24,6 +24,13 @@ function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
 }
 svl.misc.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
 
+
+svl.misc.canvasCoordinateToImageCoordinate = function (canvasX, canvasY, pov) {
+    var zoomFactor = svl.zoomFactor[pov.zoom];
+    var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+    var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+    return { x: x, y: y };
+};
 //self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
 //self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
 
