@@ -5565,7 +5565,7 @@ function Main ($, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
         svl.tracker = Tracker();
-        svl.trackerViewer = TrackerViewer();
+        // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3);
         svl.contextMenu = ContextMenu($);
