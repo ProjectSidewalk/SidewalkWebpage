@@ -12,7 +12,7 @@ module.exports = function(grunt) {
                     'lib/gsv/GSVPanoPointCloud.js',
                     'src/SVLabel/*.js',
                     'src/SVLabel/Util/*.js',
-                    'src/SVLabel/Onboarding/Recorder.js'
+                    'src/SVLabel/Onboarding/Onboarding.js'
                 ],
                 dest: 'build/SVLabel.js'
             }

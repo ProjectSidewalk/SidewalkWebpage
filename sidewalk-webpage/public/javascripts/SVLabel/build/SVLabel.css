@@ -886,6 +886,36 @@ footer {
     left: 935px;
 }
 
+#onboarding-holder {
+    visibility: hidden;
+}
+
+#onboarding-background {
+    width: 1025px;
+    height: 600px;
+    background: rgba(255, 255, 255, 0.5);
+    position: absolute;
+    top: -110px;
+    left: -65px;
+    z-index: 1;
+    visibility: hidden;
+}
+
+#onboarding-message-holder {
+    width: 300px;
+    background: rgba(255, 255, 255, 1);
+    margin: 5px;
+    padding: 10px;
+    position: absolute;
+    right: 0;
+    z-index: 1;
+    font-size: 14pt;
+
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
 
 /*** Deprecated ***/
 #Holder_OnboardingMessageBox {

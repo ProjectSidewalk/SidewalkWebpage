@@ -6,7 +6,6 @@
     @navbar(user, Some("/audit"))
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
-    <!--<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel/Onboarding/Onboarding.js")'></script>-->
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
 
@@ -119,7 +118,12 @@
                     <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
                     <div id="pano" class="Window_StreetView" style="z-index: 0;" ></div>
                     <div id="overlay-message-holder" class="Window_StreetView"></div>
-                    <div id="onboarding-holder" class="Window_StreetView"></div>
+                    <div id="onboarding-holder" class="Window_StreetView">
+                        <div id="onboarding-background"></div>
+                        <div id="onboarding-message-holder">
+                            <p>Hello world</p>
+                        </div>
+                    </div>
 
                     <div id="userControlLayer"  class="Window_StreetView" style="z-index: 0;">
                         <div id="viewControlLayer"  class="Window_StreetView" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
@@ -465,6 +469,8 @@
             }
 
             svl.main = Main($, mainParam);
+
+//             svl.onboarding = new Onboarding($, {});
 
         }
     </script>

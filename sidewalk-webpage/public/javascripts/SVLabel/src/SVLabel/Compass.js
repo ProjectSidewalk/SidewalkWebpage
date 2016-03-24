@@ -177,6 +177,5 @@ function Compass (d3) {
     self.updateMessage = updateMessage;
 
     _init();
-
     return self;
 }

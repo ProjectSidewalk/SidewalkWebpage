@@ -38,7 +38,7 @@ function Main ($, params) {
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
-        svl.pointCloud = new PointCloud($, {panoIds: [panoId]});
+        svl.pointCloud = new PointCloud($, { panoIds: [panoId] });
         svl.tracker = Tracker();
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();

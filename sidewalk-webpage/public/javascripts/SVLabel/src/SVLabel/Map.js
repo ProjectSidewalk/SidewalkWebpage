@@ -722,11 +722,11 @@ function Map ($, params) {
     }
 
     function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        return svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
-        // var zoomFactor = svl.zoomFactor[pov.zoom];
-        // var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-        // var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-        // return { x: x, y: y };
+        // return svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+        var zoomFactor = svl.zoomFactor[pov.zoom];
+        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+        return { x: x, y: y };
     }
 
     /**
@@ -826,7 +826,9 @@ function Map ($, params) {
      *
      * @param e
      */
-    function handlerViewControlLayerMouseLeave (e) { mouseStatus.isLeftDown = false; }
+    function handlerViewControlLayerMouseLeave (e) {
+        mouseStatus.isLeftDown = false;
+    }
 
 
     /**
