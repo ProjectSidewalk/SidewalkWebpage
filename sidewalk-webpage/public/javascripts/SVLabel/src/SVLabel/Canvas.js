@@ -230,7 +230,12 @@ function Canvas ($, param) {
 
     function handleDrawingLayerMouseOut () {
         svl.tracker.push('LabelingCanvas_MouseOut');
-        if ("ribbon" in svl) { svl.ribbon.backToWalk(); }
+        if (!("onboarding" in svl) || !svl.onboarding.isOnboarding()) {
+            if ("ribbon" in svl) {
+                svl.ribbon.backToWalk();
+            }
+        }
+
     }
 
     /**

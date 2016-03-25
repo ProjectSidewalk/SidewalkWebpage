@@ -125,9 +125,11 @@ function Map ($, params) {
         status = {
             availablePanoIds : undefined,
             currentPanoId: undefined,
+            disablePanning: false,
             disableWalking : false,
             disableClickZoom: false,
             hideNonavailablePanoLinks : false,
+            lockDisablePanning: false,
             lockDisableWalking : false,
             panoLinkListenerSet: false,
             svLinkArrowsLoaded : false
@@ -356,13 +358,18 @@ function Map ($, params) {
         status.disableClickZoom = true;
     }
 
+    function disablePanning () {
+        if (!status.lockDisablePanning) {
+            status.disablePanning = true;
+        }
+        return this;
+    }
+
     /**
      * This method disables walking by hiding links towards other Street View panoramas.
      * @returns {disableWalking}
      */
     function disableWalking () {
-
-        // This method hides links on SV and disables users from walking.
         if (!status.lockDisableWalking) {
             // Disable clicking links and changing POV
             hideLinks();
@@ -379,6 +386,13 @@ function Map ($, params) {
         status.disableClickZoom = false;
     }
 
+    function enablePanning () {
+        if (!status.lockDisablePanning) {
+            status.disablePanning = false;
+        }
+        return this;
+    }
+
     /**
      * This method enables walking to other panoramas by showing links.
      */
@@ -390,6 +404,7 @@ function Map ($, params) {
             $spanModeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
         }
+        return this;
     }
 
     function fogUpdate () {
@@ -696,21 +711,22 @@ function Map ($, params) {
                         svl.tracker.push('ViewControl_ZoomIn');
                     }
                 } else {
-                    var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, svl.getPOV());
-                    var latlng = svl.getPosition();
-                    var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
-                    if (newLatlng) {
-                        var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                        //console.log(distance);
-                        if (distance < 25) {
-                            var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
-                            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                if (status === google.maps.StreetViewStatus.OK) {
-                                    //console.log(svl.getPanoId());
-                                    //console.log(streetViewPanoramaData.location.pano);
-                                    svl.panorama.setPano(streetViewPanoramaData.location.pano);
-                                }
-                            });
+                    if (!status.disableWalking) {
+                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, svl.getPOV());
+                        var latlng = svl.getPosition();
+                        var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
+                        if (newLatlng) {
+                            var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
+                            if (distance < 25) {
+                                var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
+                                streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                    if (status === google.maps.StreetViewStatus.OK) {
+                                        //console.log(svl.getPanoId());
+                                        //console.log(streetViewPanoramaData.location.pano);
+                                        svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -759,7 +775,7 @@ function Map ($, params) {
         }
 
         if (mouseStatus.isLeftDown &&
-            status.disableWalking === false) {
+            status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
@@ -829,6 +845,10 @@ function Map ($, params) {
         mouseStatus.isLeftDown = false;
     }
 
+    function lockDisablePanning () {
+        status.lockDisablePanning = true;
+        return this;
+    }
 
     /**
      * This method locks status.disableWalking
@@ -1194,13 +1214,25 @@ function Map ($, params) {
         }
     }
 
+    function unlockDisablePanning () {
+        status.lockDisablePanning = false;
+        return this;
+    }
 
-    function unlockDisableWalking () { status.lockDisableWalking = false; return this; }
-    function unlockRenderLabels () { lock.renderLabels = false; return this; }
+    function unlockDisableWalking () {
+        status.lockDisableWalking = false;
+        return this;
+    }
 
+    function unlockRenderLabels () {
+        lock.renderLabels = false;
+        return this;
+    }
 
+    self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
     self.disableClickZoom = disableClickZoom;
+    self.enablePanning = enablePanning;
     self.enableClickZoom = enableClickZoom;
     self.enableWalking = enableWalking;
     self.getInitialPanoId = getInitialPanoId;
@@ -1210,6 +1242,7 @@ function Map ($, params) {
     self.getProperty = getProperty;
     self.hideLinks = hideLinks;
     self.load = load;
+    self.lockDisablePanning = lockDisablePanning;
     self.lockDisableWalking = lockDisableWalking;
     self.lockRenderLabels = lockRenderLabels;
     self.modeSwitchLabelClick = modeSwitchLabelClick;
@@ -1222,6 +1255,7 @@ function Map ($, params) {
     self.setPov = setPov;
     self.setStatus = setStatus;
     self.unlockDisableWalking = unlockDisableWalking;
+    self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
 
     _init(params);

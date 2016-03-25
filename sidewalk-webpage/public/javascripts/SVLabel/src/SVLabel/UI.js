@@ -159,6 +159,7 @@ function UI ($, params) {
         self.onboarding.messageHolder = $("#onboarding-message-holder");
         self.onboarding.background = $("#onboarding-background");
         self.onboarding.canvas = $("#onboarding-canvas");
+        self.onboarding.handGestureHolder = $("#hand-gesture-holder");
         if ("onboarding" in params && params.onboarding) {
           self.onboarding.holder.append("<div id='Holder_OnboardingCanvas'><canvas id='onboardingCanvas' width='720px' height='480px'></canvas><div id='Holder_OnboardingMessageBox'><div id='Holder_OnboardingMessage'></div></div></div>");
         }

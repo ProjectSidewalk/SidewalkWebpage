@@ -377,9 +377,9 @@ function RibbonMenu ($, params) {
             blinkInterval = window.setInterval(function () {
                 if (highlighted) {
                     highlighted = !highlighted;
-                    $(button).css("background", "yellow");
+                    $(button).css("background", "rgba(255, 255, 166, 1)");
                     if (dropdown) {
-                        $(dropdown).css("background", "yellow");
+                        $(dropdown).css("background", "rgba(255, 255, 166, 1)");
                     }
                 } else {
                     highlighted = !highlighted;

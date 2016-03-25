@@ -3,7 +3,8 @@ function Onboarding ($, params) {
         ctx, canvasWidth = 720, canvasHeight = 480,
         properties = {},
         status = {
-            state: 0
+            state: 0,
+            isOnboarding: true
         },
         states = [
             {
@@ -72,7 +73,8 @@ function Onboarding ($, params) {
                 "message": {
                     "message": 'On this context menu, <span class="bold">you can rate the quality of the curb ramp, ' +
                     'where 1 is passable and 5 is not passable for a wheelchair user.</span> This is a large curb ramp ' +
-                    'and it is not degraded (e.g., cracked), so <span class="bold">let’s rate it as 1, passable.</span>',
+                    'and it is not degraded (e.g., cracked), so <span class="bold">let’s rate it as 1, passable.</span> ' +
+                    'You can click on the label to reopen the context menu and change the rating.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -241,7 +243,24 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 2170,
+                        "y": -650,
+                        "length": 50,
+                        "angle": 30,
+                        "text": null,
+                        "fill": "white"
+                    },
+                    {
+                        "x": 3218,
+                        "y": -900,
+                        "length": 50,
+                        "angle": -30,
+                        "text": null,
+                        "fill": "white"
+                    }
+                ]
             },
             {
                 "action": {
@@ -257,7 +276,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 2170,
+                        "y": -650,
+                        "length": 50,
+                        "angle": 30,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ]
             },
             {
                 "action": {
@@ -284,7 +312,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 3218,
+                        "y": -900,
+                        "length": 50,
+                        "angle": -30,
+                        "text": null,
+                        "fill": "white"
+                    }
+                ]
             },
             {
                 "action": {
@@ -300,7 +337,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 3218,
+                        "y": -900,
+                        "length": 50,
+                        "angle": -30,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ]
             },
             {
                 "action": {
@@ -345,7 +391,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 1800,
+                        "y": -580,
+                        "length": 50,
+                        "angle": 120,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ]
             },
             {
                 "action": {
@@ -462,22 +517,75 @@ function Onboarding ($, params) {
 
     function _init (params) {
         // svl.compass.hideMessage();
+        status.isOnboarding = true;
         svl.ui.onboarding.holder.css("visibility", "visible");
+        svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
         ctx = svl.ui.onboarding.canvas.get(0).getContext('2d');
         visit(0);
+
+        initializeHandAnimation();
+    }
+
+    function clear () {
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        return this;
+    }
+
+    function drawArrow (x1, y1, x2, y2, parameters) {
+        var lineWidth = 1,
+            fill = 'rgba(255,255,255,1)',
+            lineCap = 'round',
+            headSize = 5,
+            arrowWidth = 3,
+            strokeStyle  = 'rgba(96, 96, 96, 1)',
+            dx, dy, theta;
+
+        if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+
+        dx = x2 - x1;
+        dy = y2 - y1;
+        theta = Math.atan2(dy, dx);
+
+        ctx.save();
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = lineCap;
+
+        ctx.translate(x1, y1);
+        ctx.beginPath();
+        ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+        ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+
+        // Draw an arrow head
+        ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+        ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+        ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+
+        ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+        ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+        ctx.restore();
+        return this;
     }
 
     function getState(stateIndex) {
         return states[stateIndex];
     }
 
-
     function hideMessage () {
-
+        svl.ui.onboarding.messageHolder.css("visibility", "hidden");
     }
 
-    function next () {
-        status.state += 1;
+    function next (stateIndex) {
+        if (stateIndex) {
+            status.state = stateIndex + 1;
+        } else {
+            status.state += 1;
+        }
         visit(status.state);
     }
 
@@ -485,23 +593,27 @@ function Onboarding ($, params) {
         if (!position) {
             position = "top-right";
         }
-
-        svl.ui.onboarding.messageHolder.css("visibility", "visible");
+        svl.ui.onboarding.messageHolder.toggleClass("yellow-background");
+        setTimeout(function () {svl.ui.onboarding.messageHolder.toggleClass("yellow-background");}, 10);
 
         if (position == "top-left") {
             svl.ui.onboarding.messageHolder.css({
                 top: 0,
                 left: 0,
+                right: "",
                 width: 300
             });
         } else {
             svl.ui.onboarding.messageHolder.css({
                 top: 0,
                 right: 0,
+                left: "",
                 width: 300
             });
         }
+        svl.ui.onboarding.messageHolder.css("visibility", "visible");
         svl.ui.onboarding.background.css("visibility", "hidden");
+
 
         if (parameters) {
             if ("width" in parameters) {
@@ -518,6 +630,7 @@ function Onboarding ($, params) {
     function visit(stateIndex) {
         var action, message, callback, state = getState(stateIndex), annotationListener;
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
+        hideMessage();
 
         if ("message" in state && state.message) {
             showMessage(state.message.message, state.message.position, state.message.parameters);
@@ -632,15 +745,18 @@ function Onboarding ($, params) {
                     if ((360 + state.action.heading - pov.heading) % 360 < state.action.tolerance) {
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
+                        hideGrabAndDragAnimation();
                         next();
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
             } else if (state.action.action == "WalkTowards") {
+                svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
                 callback = function () {
                     var panoId = svl.getPanoId();
                     if (state.action.panoId == panoId) {
+                        svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         next();
@@ -653,59 +769,123 @@ function Onboarding ($, params) {
 
     }
 
+    var layer, stage, OpenHand, ClosedHand, OpenHandReady = false, ClosedHandReady = false,
+        ImageObjOpenHand = new Image(), ImageObjClosedHand = new Image(), handAnimationInterval;
+
+
+    function initializeHandAnimation () {
+        hideGrabAndDragAnimation();
+        stage = new Kinetic.Stage({
+            container: "hand-gesture-holder",
+            width: 578,
+            height: 200
+        });
+        layer = new Kinetic.Layer();
+        stage.add(layer);
+        ImageObjOpenHand.onload = function () {
+            OpenHand = new Kinetic.Image({
+                x: 0,
+                y: stage.getHeight() / 2 - 59,
+                image: ImageObjOpenHand,
+                width: 128,
+                height: 128
+            });
+            OpenHand.hide();
+            layer.add(OpenHand);
+            OpenHandReady = true;
+        };
+        ImageObjOpenHand.src = svl.rootDirectory + "img/misc/HandOpen.png";
+
+        ImageObjClosedHand.onload = function () {
+            ClosedHand = new Kinetic.Image({
+                x: 300,
+                y: stage.getHeight() / 2 - 59,
+                image: ImageObjClosedHand,
+                width: 96,
+                height: 96
+            });
+            ClosedHand.hide();
+            layer.add(ClosedHand);
+            ClosedHandReady = true;
+        };
+        ImageObjClosedHand.src = svl.rootDirectory + "img/misc/HandClosed.png";
+    }
+
+    /**
+     * References:
+     * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
+     * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
+     */
+    function animateHand(direction) {
+        if (direction === 'left-to-right') {
+            ClosedHand.hide();
+            OpenHand.setPosition(50,100);
+            OpenHand.show();
+            OpenHand.transitionTo({
+                x: 50,
+                y: 30,
+                duration : 0.5,
+                callback : function () {
+                    setTimeout(function () {
+                        OpenHand.hide();
+                        ClosedHand.setPosition(100, 60);
+                        ClosedHand.show();
+                        ClosedHand.transitionTo({
+                            x: 250,
+                            y: 60,
+                            duration: 1
+                        });
+                    }, 300);
+                }
+            });
+        } else {
+            ClosedHand.hide();
+            OpenHand.setPosition(200,100);
+            OpenHand.show();
+            OpenHand.transitionTo({
+                x: 200,
+                y: 0,
+                duration : 0.5,
+                callback : function () {
+                    setTimeout(function () {
+                        OpenHand.hide();
+                        ClosedHand.setPosition(200, 30);
+                        ClosedHand.show();
+                        ClosedHand.transitionTo({
+                            x: 0,
+                            y: 30,
+                            duration: 1
+                        });
+                    }, 300);
+                }
+            });
+        }
+    }
+
     function showGrabAndDragAnimation (parameters) {
-        
+        if (ClosedHandReady && OpenHandReady) {
+            svl.ui.onboarding.handGestureHolder.css("visibility", "visible");
+            animateHand("left-to-right");
+            handAnimationInterval = setInterval(animateHand.bind(null, "left-to-right"), 2000);
+        }
     }
 
-    function clear () {
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        return this;
+    function hideGrabAndDragAnimation () {
+        clearInterval(handAnimationInterval);
+        svl.ui.onboarding.handGestureHolder.css("visibility", "hidden");
     }
 
-    function drawArrow (x1, y1, x2, y2, parameters) {
-        var lineWidth = 1,
-            fill = 'rgba(255,255,255,1)',
-            lineCap = 'round',
-            headSize = 5,
-            arrowWidth = 3,
-            strokeStyle  = 'rgba(96, 96, 96, 1)',
-            dx, dy, theta;
-
-        if ("fill" in parameters && parameters.fill) fill = parameters.fill;
-
-        dx = x2 - x1;
-        dy = y2 - y1;
-        theta = Math.atan2(dy, dx);
-
-        ctx.save();
-        ctx.fillStyle = fill;
-        ctx.strokeStyle = strokeStyle;
-        ctx.lineWidth = lineWidth;
-        ctx.lineCap = lineCap;
-
-        ctx.translate(x1, y1);
-        ctx.beginPath();
-        ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
-        ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
-
-        // Draw an arrow head
-        ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
-        ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
-        ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
-
-        ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
-        ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
-
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-        ctx.restore();
-        return this;
+    function isOnboarding () {
+        return status.isOnboarding;
     }
 
     self.clear = clear;
     self.drawArrow = drawArrow;
     self.next = next;
+    self.isOnboarding = isOnboarding;
+    self.showMessage = showMessage;
+    self.hideMessage = hideMessage;
+
 
     _init(params);
 

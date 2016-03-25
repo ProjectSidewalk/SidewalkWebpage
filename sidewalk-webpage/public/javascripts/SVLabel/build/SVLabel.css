@@ -903,7 +903,6 @@ footer {
 
 #onboarding-message-holder {
     width: 300px;
-    background: rgba(255, 255, 255, 1);
     margin: 5px;
     padding: 10px;
     position: absolute;
@@ -916,6 +915,23 @@ footer {
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
+.white-background {
+    background: rgba(255, 255, 255, 1);
+    -webkit-transition:background 0.5s;
+    -moz-transition:background 0.5s;
+    -ms-transition:background 0.5s;
+    -o-transition:background 0.5s;
+    transition:background 0.5s;
+}
+
+.yellow-background {
+    background: rgba(255, 255, 166, 1);
+    -webkit-transition:background 0s;
+    -moz-transition:background 0s;
+    -ms-transition:background 0s;
+    -o-transition:background 0s;
+    transition:background 0s;
+}
 
 /*** Deprecated ***/
 #Holder_OnboardingMessageBox {
