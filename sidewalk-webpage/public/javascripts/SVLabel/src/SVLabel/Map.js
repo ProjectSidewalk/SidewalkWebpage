@@ -268,7 +268,6 @@ function Map ($, params) {
                 pov: properties.panoramaPov
             };
 
-            // throw self.className + ' init(): Specifying a dropping point with a latlng coordinate is no longer a good idea. It does not drop the pegman on the specified position.';
         } else {
             throw self.className + ' init(): The pano id nor panorama position is give. Cannot initialize the panorama.';
         }
