@@ -5564,7 +5564,7 @@ function Main ($, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, { panoIds: [panoId] });
         svl.tracker = Tracker();
-        // svl.trackerViewer = TrackerViewer();
+        svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3);
         svl.contextMenu = ContextMenu($);
@@ -9424,7 +9424,8 @@ function RibbonMenu ($, params) {
             lockDisableModeSwitch: false,
             mode: 'Walk',
             selectedLabelType: undefined
-        };
+        },
+        blinkInterval;
 
     // jQuery DOM elements
     var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches, $subcategories, $subcategoryHolder;
@@ -9727,6 +9728,10 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function getProperty(key) {
+        return key in properties ? properties[key] : null;
+    }
+
     function setAllowedMode (mode) {
         // This method sets the allowed mode.
         status.allowedMode = mode;
@@ -9762,6 +9767,40 @@ function RibbonMenu ($, params) {
 
     }
 
+    function startBlinking (labelType, subLabelType) {
+        var highlighted = false,
+            button = svl.ui.ribbonMenu.holder.find('[val="' + labelType + '"]').get(0),
+            dropdown;
+
+        if (subLabelType) {
+            dropdown = svl.ui.ribbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
+        }
+
+        stopBlinking();
+        if (button) {
+            blinkInterval = window.setInterval(function () {
+                if (highlighted) {
+                    highlighted = !highlighted;
+                    $(button).css("background", "yellow");
+                    if (dropdown) {
+                        $(dropdown).css("background", "yellow");
+                    }
+                } else {
+                    highlighted = !highlighted;
+                    $(button).css("background", getProperty("originalBackgroundColor"));
+                    if (dropdown) {
+                        $(dropdown).css("background", "white");
+                    }
+                }
+            }, 500);
+        }
+    }
+
+    function stopBlinking () {
+        clearInterval(blinkInterval);
+        svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
+    }
+
     function unlockDisableModeSwitch () {
         status.lockDisableModeSwitch = false;
         return this;
@@ -9778,7 +9817,10 @@ function RibbonMenu ($, params) {
     self.getStatus = getStatus;
     self.setAllowedMode = setAllowedMode;
     self.setStatus = setStatus;
+    self.startBlinking = startBlinking;
+    self.stopBlinking = stopBlinking;
     self.unlockDisableModeSwitch = unlockDisableModeSwitch;
+
 
     _init(params);
 
@@ -11608,6 +11650,7 @@ function UI ($, params) {
 
         // Ribbon menu DOMs
         self.ribbonMenu = {};
+        self.ribbonMenu.holder = $("#ribbon-menu-landmark-button-holder");
         self.ribbonMenu.streetViewHolder = $("#street-view-holder");
         self.ribbonMenu.buttons = $('span.modeSwitch');
         self.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
@@ -14754,64 +14797,254 @@ function Onboarding ($, params) {
         },
         states = [
             {
-                "action":"Ribbon_ClickCurbRamp",
+                "action": {
+                    "action": "SelectLabelType",
+                    "labelType": "CurbRamp"
+                },
                 "message": {
                     "message": 'In this Street View image, we can see a curb ramp. Let’s <span class="bold">click the "Curb Ramp" button</span> to label it!',
                     "position": "top-right",
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType": null,
-                "imageX": null,
-                "imageY": null
+                "annocations": []
             },
             {
-                "action":"LabelingCanvas_FinishLabeling",
+                "action": {
+                    "action" : "LabelAccessibilityAttribute",
+                    "labelType": "CurbRamp",
+                    "imageX": 10280,
+                    "imageY": -525,
+                    "tolerance": 300
+                },
                 "message": {
-                    "message": 'Now, <span class="bold">click the curb ramp in the image to label it.',
+                    "message": 'Good! Now, <span class="bold">click the curb ramp in the image to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType":"CurbRamp",
-                "imageX":10232.066666666668,
-                "imageY":-521.1111111111111
+                "annotations": []
             },
             {
-                "action":"LabelingCanvas_FinishLabeling",
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'On this context menu, <span class="bold">you can rate the quality of the curb ramp, ' +
+                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> This is a large curb ramp ' +
+                    'and it is not degraded (e.g., cracked), so <span class="bold">let’s rate it as 1, passable.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType":"CurbRamp",
-                "imageX":8618.6,
-                "imageY":-526.0111111111112
+                "annotations": null
             },
             {
-                "action":"LabelingCanvas_FinishLabeling",
+                "action": {
+                    "action": "AdjustHeadingAngle",
+                    "heading": 230,
+                    "tolerance": 20
+                },
+                "message": {
+                    "message": 'Great! Let’s adjust the view to look at another corner of the intersection on the left. ' +
+                    '<span class="bold">Grab and drag the Street View image.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType":"NoCurbRamp",
-                "imageX":8184.933333333333,
-                "imageY":-600.661111111111
+                "annotations": null
             },
             {
-                "action":"LabelingCanvas_FinishLabeling",
+                "action": {
+                    "action": "SelectLabelType",
+                    "labelType": "CurbRamp"
+                },
+                "message": {
+                    "message": 'Here, we see a curb ramp. Let’s label it. First <span class="bold">click the "Curb Ramp" button.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType":"CurbRamp",
-                "imageX":3148.6666666666665,
-                "imageY":-1155.5777777777778
+                "annotations": []
             },
             {
-                "action":"LabelingCanvas_FinishLabeling",
+                "action": {
+                    "action" : "LabelAccessibilityAttribute",
+                    "labelType": "CurbRamp",
+                    "imageX": 8720,
+                    "imageY": -549,
+                    "tolerance": 300
+                },
+                "message": {
+                    "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType":"CurbRamp",
-                "imageX":2137.133333333333,
-                "imageY":-866.6611111111112
+                "annotations": []
             },
             {
-                "action":"LabelingCanvas_FinishLabeling",
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": null
+                },
+                "message": {
+                    "message": 'Good! <span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "labelType":"NoSidewalk",
-                "imageX":1891.6666666666667,
-                "imageY":-452.6111111111111
+                "annotations": null
             },
+            {
+                "action": {
+                    "action": "SelectLabelType",
+                    "labelType": "NoCurbRamp"
+                },
+                "message": {
+                    "message": 'There is no curb ramp at the end of this cross walk. Let’s <span class="bold">click the “Missing Curb Ramp” button to label it.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": []
+            },
+            {
+                "action": {
+                    "action" : "LabelAccessibilityAttribute",
+                    "labelType": "NoCurbRamp",
+                    "imageX": 8237,
+                    "imageY": -600,
+                    "tolerance": 300
+                },
+                "message": {
+                    "message": '<span class="bold">Click the end of the crosswalk to label it.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": []
+            },
+            {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'Let’s rate the severity of the problem. Since there is one curb ramp right next to the missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 1.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null
+            },
+            {
+                "action": {
+                    "action": "AdjustHeadingAngle",
+                    "heading": 75,
+                    "tolerance": 20
+                },
+                "message": {
+                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null
+            },
+            {
+                "action": {
+                    "action": "SelectLabelType",
+                    "labelType": "CurbRamp"
+                },
+                "message": {
+                    "message": 'Good! Here, we can see two curb ramps. <span class="bold">Click the "Curb Ramp" button on the menu</span> to label them both!',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": []
+            },
+            {
+                "action": {
+                    "action" : "LabelAccessibilityAttribute",
+                    "labelType": "CurbRamp",
+                    "imageX": 2170,
+                    "imageY": -900,
+                    "tolerance": 300
+                },
+                "message": {
+                    "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": []
+            },
+            {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": null
+                },
+                "message": {
+                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null
+            },
+            {
+                "action": {
+                    "action": "SelectLabelType",
+                    "labelType": "CurbRamp"
+                },
+                "message": {
+                    "message": 'Good! <span class="bold">Click the "Curb Ramp" button on the menu</span> to label another curb ramp.!',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": []
+            },
+            {
+                "action": {
+                    "action" : "LabelAccessibilityAttribute",
+                    "labelType": "CurbRamp",
+                    "imageX": 3218,
+                    "imageY": -1203,
+                    "tolerance": 300
+                },
+                "message": {
+                    "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": []
+            },
+            {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": null
+                },
+                "message": {
+                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null
+            },
+            // Done till here
+
+
             {
                 "action":"LabelingCanvas_FinishLabeling",
                 "panoId":"bdmGHJkiSgmO7_80SnbzXw",
@@ -14824,19 +15057,21 @@ function Onboarding ($, params) {
     function _init (params) {
         // svl.compass.hideMessage();
         svl.ui.onboarding.holder.css("visibility", "visible");
-        visit(1);
+        visit(0);
     }
 
-    function visit(state) {
-        var message, st = getState(state);
-        if ("message" in st && st.message) {
-            message = st.message.message;
-            showMessage(message, "top-right", st.message.parameters);
-        }
+    function getState(stateIndex) {
+        return states[stateIndex];
     }
 
-    function getState(state) {
-        return states[state];
+
+    function hideMessage () {
+
+    }
+
+    function next () {
+        status.state += 1;
+        visit(status.state);
     }
 
     function showMessage (message, position, parameters) {
@@ -14873,9 +15108,89 @@ function Onboarding ($, params) {
         svl.ui.onboarding.messageHolder.html(message);
     }
 
-    function hideMessage () {
 
+
+    function visit(stateIndex) {
+        var action, message, callback, state = getState(stateIndex);
+        if ("action" in state) {
+            var $target, labelType, subcategory;
+            if (state.action.action == "SelectLabelType") {
+                // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
+                // Move on to the next state if they click the button.
+                labelType = state.action.labelType;
+
+                if ("ribbon" in svl) {
+                    svl.ribbon.startBlinking(labelType);
+                }
+
+                if (subcategory) {
+                    $target = $(svl.ui.ribbonMenu.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
+                } else {
+                    $target = $(svl.ui.ribbonMenu.holder.find('[val="' + labelType + '"]').get(0));
+                }
+
+                callback = function () {
+                    svl.ribbon.stopBlinking();
+                    $target.off("click", callback); // Remove the handler
+                    next();
+                };
+                $target.on("click", callback);
+            } else if (state.action.action == "LabelAccessibilityAttribute") {
+                // Tell the user to label the target attribute.
+                var imageX = state.action.imageX,
+                    imageY = state.action.imageY,
+                    tolerance = state.action.tolerance;
+                labelType = state.action.labelType;
+                $target = svl.ui.canvas.drawingLayer;
+
+                callback = function (e) {
+                    // Check if the point that the user clicked is close enough to the given ground truth point.
+                    var clickCoordinate = mouseposition(e, this),
+                        pov = svl.getPOV(),
+                        canvasX = clickCoordinate.x,
+                        canvasY = clickCoordinate.y,
+                        imageCoordinate = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
+                        distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) + (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
+
+                    if (distance < tolerance * tolerance) {
+                        $target.off("click", callback);
+                        next();
+                    }
+                };
+                $target.on("click", callback);
+            } else if (state.action.action == "RateSeverity") {
+                var severity = state.action.severity;
+                $target = svl.ui.contextMenu.radioButtons;
+                labelType = state.action.labelType;
+                callback = function () {
+
+                    if (!severity || severity == parseInt($(this).attr("value"), 10)) {
+                        $target.off("click", callback);
+                        next();
+                    }
+                };
+                $target.on("click", callback);
+            } else if (state.action.action == "AdjustHeadingAngle") {
+                // Tell them to remove a label.
+                callback = function () {
+                    var pov = svl.getPOV();
+                    console.log(pov, (360 + state.action.heading - pov.heading) % 360);
+                    if ((360 + state.action.heading - pov.heading) % 360 < state.action.tolerance) {
+                        google.maps.event.removeListener($target);
+                        next();
+                    }
+                };
+                // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
+                $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
+            }
+        }
+
+        if ("message" in state && state.message) {
+            showMessage(state.message.message, "top-right", state.message.parameters);
+        }
     }
+
+    self.next = next;
 
     _init(params);
 

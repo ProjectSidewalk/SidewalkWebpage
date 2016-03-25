@@ -82,6 +82,7 @@ function UI ($, params) {
 
         // Ribbon menu DOMs
         self.ribbonMenu = {};
+        self.ribbonMenu.holder = $("#ribbon-menu-landmark-button-holder");
         self.ribbonMenu.streetViewHolder = $("#street-view-holder");
         self.ribbonMenu.buttons = $('span.modeSwitch');
         self.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");

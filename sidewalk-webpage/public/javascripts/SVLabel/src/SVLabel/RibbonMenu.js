@@ -20,7 +20,8 @@ function RibbonMenu ($, params) {
             lockDisableModeSwitch: false,
             mode: 'Walk',
             selectedLabelType: undefined
-        };
+        },
+        blinkInterval;
 
     // jQuery DOM elements
     var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches, $subcategories, $subcategoryHolder;
@@ -323,6 +324,10 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function getProperty(key) {
+        return key in properties ? properties[key] : null;
+    }
+
     function setAllowedMode (mode) {
         // This method sets the allowed mode.
         status.allowedMode = mode;
@@ -358,6 +363,40 @@ function RibbonMenu ($, params) {
 
     }
 
+    function startBlinking (labelType, subLabelType) {
+        var highlighted = false,
+            button = svl.ui.ribbonMenu.holder.find('[val="' + labelType + '"]').get(0),
+            dropdown;
+
+        if (subLabelType) {
+            dropdown = svl.ui.ribbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
+        }
+
+        stopBlinking();
+        if (button) {
+            blinkInterval = window.setInterval(function () {
+                if (highlighted) {
+                    highlighted = !highlighted;
+                    $(button).css("background", "yellow");
+                    if (dropdown) {
+                        $(dropdown).css("background", "yellow");
+                    }
+                } else {
+                    highlighted = !highlighted;
+                    $(button).css("background", getProperty("originalBackgroundColor"));
+                    if (dropdown) {
+                        $(dropdown).css("background", "white");
+                    }
+                }
+            }, 500);
+        }
+    }
+
+    function stopBlinking () {
+        clearInterval(blinkInterval);
+        svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
+    }
+
     function unlockDisableModeSwitch () {
         status.lockDisableModeSwitch = false;
         return this;
@@ -374,7 +413,10 @@ function RibbonMenu ($, params) {
     self.getStatus = getStatus;
     self.setAllowedMode = setAllowedMode;
     self.setStatus = setStatus;
+    self.startBlinking = startBlinking;
+    self.stopBlinking = stopBlinking;
     self.unlockDisableModeSwitch = unlockDisableModeSwitch;
+
 
     _init(params);
 
