@@ -58,7 +58,8 @@ function Onboarding ($, params) {
                         "y": -385,
                         "length": 50,
                         "angle": 30,
-                        "text": null
+                        "text": null,
+                        "fill": "yellow"
                     }
                 ]
             },
@@ -104,7 +105,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 8550,
+                        "y": -400,
+                        "length": 50,
+                        "angle": 30,
+                        "text": null,
+                        "fill": null
+                    }
+                ]
             },
             {
                 "action": {
@@ -120,7 +130,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 8550,
+                        "y": -400,
+                        "length": 50,
+                        "angle": 30,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ]
             },
             {
                 "action": {
@@ -147,7 +166,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 8300,
+                        "y": -500,
+                        "length": 50,
+                        "angle": -30,
+                        "text": null,
+                        "fill": null
+                    }
+                ]
             },
             {
                 "action": {
@@ -163,7 +191,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "annotations": [
+                    {
+                        "x": 8300,
+                        "y": -500,
+                        "length": 50,
+                        "angle": -30,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ]
             },
             {
                 "action": {
@@ -478,8 +515,6 @@ function Onboarding ($, params) {
         svl.ui.onboarding.messageHolder.html(message);
     }
 
-
-
     function visit(stateIndex) {
         var action, message, callback, state = getState(stateIndex), annotationListener;
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
@@ -505,11 +540,15 @@ function Onboarding ($, params) {
                     y2 = coordinate.y;
                     x1 = x2 - lineLength * Math.sin(svl.util.math.toRadians(lineAngle));
                     y1 = y2 - lineLength * Math.cos(svl.util.math.toRadians(lineAngle));
-                    drawArrow(x1, y1, x2, y2);
+                    drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
                 }
             };
             drawArrows();
             annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawArrows);
+        }
+
+        function removeAnnotationListener () {
+            if (annotationListener) google.maps.event.removeListener(annotationListener);
         }
 
         if ("action" in state) {
@@ -522,7 +561,7 @@ function Onboarding ($, params) {
                     svl.panorama.setPov(pov);
                     svl.panorama.setPano(state.panoId);
                     google.maps.event.removeListener($target);
-                    if (annotationListener) google.maps.event.removeListener(annotationListener);
+                    removeAnnotationListener();
                     next();
                 };
                 $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
@@ -544,7 +583,7 @@ function Onboarding ($, params) {
                 callback = function () {
                     svl.ribbon.stopBlinking();
                     $target.off("click", callback); // Remove the handler
-                    if (annotationListener) google.maps.event.removeListener(annotationListener);
+                    removeAnnotationListener();
                     next();
                 };
                 $target.on("click", callback);
@@ -567,7 +606,7 @@ function Onboarding ($, params) {
 
                     if (distance < tolerance * tolerance) {
                         $target.off("click", callback);
-                        if (annotationListener) google.maps.event.removeListener(annotationListener);
+                        removeAnnotationListener();
                         next();
                     }
                 };
@@ -580,18 +619,19 @@ function Onboarding ($, params) {
 
                     if (!severity || severity == parseInt($(this).attr("value"), 10)) {
                         $target.off("click", callback);
-                        if (annotationListener) google.maps.event.removeListener(annotationListener);
+                        removeAnnotationListener();
                         next();
                     }
                 };
                 $target.on("click", callback);
             } else if (state.action.action == "AdjustHeadingAngle") {
                 // Tell them to remove a label.
+                showGrabAndDragAnimation({direction: "left-to-right"});
                 callback = function () {
                     var pov = svl.getPOV();
                     if ((360 + state.action.heading - pov.heading) % 360 < state.action.tolerance) {
                         google.maps.event.removeListener($target);
-                        if (annotationListener) google.maps.event.removeListener(annotationListener);
+                        removeAnnotationListener();
                         next();
                     }
                 };
@@ -602,7 +642,7 @@ function Onboarding ($, params) {
                     var panoId = svl.getPanoId();
                     if (state.action.panoId == panoId) {
                         google.maps.event.removeListener($target);
-                        if (annotationListener) google.maps.event.removeListener(annotationListener);
+                        removeAnnotationListener();
                         next();
                     }
                 };
@@ -613,27 +653,32 @@ function Onboarding ($, params) {
 
     }
 
+    function showGrabAndDragAnimation (parameters) {
+        
+    }
+
     function clear () {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         return this;
     }
 
-    function drawArrow (x1, y1, x2, y2, param) {
-        param = param || {};
+    function drawArrow (x1, y1, x2, y2, parameters) {
         var lineWidth = 1,
-            fillStyle = 'rgba(255,255,255,1)',
+            fill = 'rgba(255,255,255,1)',
             lineCap = 'round',
             headSize = 5,
             arrowWidth = 3,
             strokeStyle  = 'rgba(96, 96, 96, 1)',
             dx, dy, theta;
 
+        if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+
         dx = x2 - x1;
         dy = y2 - y1;
         theta = Math.atan2(dy, dx);
 
         ctx.save();
-        ctx.fillStyle = fillStyle;
+        ctx.fillStyle = fill;
         ctx.strokeStyle = strokeStyle;
         ctx.lineWidth = lineWidth;
         ctx.lineCap = lineCap;
