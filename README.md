@@ -4,7 +4,10 @@ The webpage
 ## Setup
 * Set up JDK, Scala, and Postgres. See [the instruction page.](https://github.com/ProjectSidewalk/Instructions)
 
-## Upload
+## Running the Application Locally
+1. run `sbt run` or `activator run` on the directory where `build.sbt` is located.
+
+## Running the Application Remotely
 1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist
 2. Upload the zip file to the web server
 3. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
