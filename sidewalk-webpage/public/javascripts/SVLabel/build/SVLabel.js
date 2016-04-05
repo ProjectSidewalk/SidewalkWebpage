@@ -15318,7 +15318,7 @@ function Onboarding ($, params) {
                         "length": 50,
                         "angle": 0,
                         "text": null,
-                        "fill": "yellow"
+                        "fill": "white"
                     }
                 ],
                 "transition": "label-attribute-7"
@@ -15339,8 +15339,8 @@ function Onboarding ($, params) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": [
                     {
-                        "x": 1800,
-                        "y": -580,
+                        "x": 1500,
+                        "y": -650,
                         "length": 50,
                         "angle": 0,
                         "text": null,
@@ -15418,7 +15418,7 @@ function Onboarding ($, params) {
             fill = 'rgba(255,255,255,1)',
             lineCap = 'round',
             headSize = 5,
-            arrowWidth = 3,
+            arrowWidth = 6,
             strokeStyle  = 'rgba(96, 96, 96, 1)',
             dx, dy, theta;
 
