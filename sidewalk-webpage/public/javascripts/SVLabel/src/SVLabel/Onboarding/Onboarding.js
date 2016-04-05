@@ -392,7 +392,16 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": [],
+                "annotations": [
+                    {
+                        "x": 1966,
+                        "y": -500,
+                        "length": 50,
+                        "angle": 0,
+                        "text": null,
+                        "fill": "white"
+                    }
+                ],
                 "transition": "label-attribute-6"
             },
             "label-attribute-6": {
@@ -581,7 +590,6 @@ function Onboarding ($, params) {
         var lineWidth = 1,
             fill = 'rgba(255,255,255,1)',
             lineCap = 'round',
-            headSize = 5,
             arrowWidth = 6,
             strokeStyle  = 'rgba(96, 96, 96, 1)',
             dx, dy, theta;
@@ -623,7 +631,6 @@ function Onboarding ($, params) {
     }
 
 
-
     function hideMessage () {
         if (svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.hide();
     }
@@ -647,17 +654,22 @@ function Onboarding ($, params) {
         svl.ui.onboarding.messageHolder.toggleClass("yellow-background");
         setTimeout(function () { svl.ui.onboarding.messageHolder.toggleClass("yellow-background"); }, 100);
 
-        if (position == "top-left") {
-            svl.ui.onboarding.messageHolder.css({
-                top: 0,
-                left: 0
-            });
-        } else {
-            svl.ui.onboarding.messageHolder.css({
-                top: 0,
-                left: 410
-            });
-        }
+        svl.ui.onboarding.messageHolder.css({
+            top: 0,
+            left: 0
+        });
+
+        // if (position == "top-left") {
+        //     svl.ui.onboarding.messageHolder.css({
+        //         top: 0,
+        //         left: 0
+        //     });
+        // } else {
+        //     svl.ui.onboarding.messageHolder.css({
+        //         top: 0,
+        //         left: 410
+        //     });
+        // }
         if (!svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.show();
 
 
@@ -817,15 +829,17 @@ function Onboarding ($, params) {
         }
     }
 
+
+    // Code for hand animation.
+    // Todo. Clean up.
     var layer, stage, OpenHand, ClosedHand, OpenHandReady = false, ClosedHandReady = false,
         ImageObjOpenHand = new Image(), ImageObjClosedHand = new Image(), handAnimationInterval;
-
 
     function initializeHandAnimation () {
         hideGrabAndDragAnimation();
         stage = new Kinetic.Stage({
             container: "hand-gesture-holder",
-            width: 578,
+            width: 720,
             height: 200
         });
         layer = new Kinetic.Layer();
@@ -867,19 +881,19 @@ function Onboarding ($, params) {
     function animateHand(direction) {
         if (direction === 'left-to-right') {
             ClosedHand.hide();
-            OpenHand.setPosition(50,100);
+            OpenHand.setPosition(350,100);
             OpenHand.show();
             OpenHand.transitionTo({
-                x: 50,
+                x: 350,
                 y: 30,
                 duration : 0.5,
                 callback : function () {
                     setTimeout(function () {
                         OpenHand.hide();
-                        ClosedHand.setPosition(100, 60);
+                        ClosedHand.setPosition(400, 60);
                         ClosedHand.show();
                         ClosedHand.transitionTo({
-                            x: 250,
+                            x: 550,
                             y: 60,
                             duration: 1
                         });
