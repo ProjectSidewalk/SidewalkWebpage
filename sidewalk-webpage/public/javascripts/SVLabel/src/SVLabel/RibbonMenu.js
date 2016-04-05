@@ -399,6 +399,7 @@ function RibbonMenu ($, params) {
     function stopBlinking () {
         clearInterval(blinkInterval);
         svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
+        svl.ui.ribbonMenu.subcategories.css("background", "white");
     }
 
     function unlockDisableModeSwitch () {

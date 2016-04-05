@@ -79,7 +79,7 @@ var previousPoints = [];
 var radius = .1;
 var isNotfirst = 0;
 var paths;
-svl.fog = undefined;;
+svl.fog = undefined;
 var au = [];
 var pty = [];
 //au = adjustFog(fog, current.lat(), current.lng(), radius);

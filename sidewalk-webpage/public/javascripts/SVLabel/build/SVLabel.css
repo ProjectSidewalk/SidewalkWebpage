@@ -893,7 +893,7 @@ footer {
 #onboarding-background {
     width: 1025px;
     height: 600px;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.9);
     position: absolute;
     top: -110px;
     left: -65px;
@@ -907,13 +907,17 @@ footer {
     padding: 10px;
     position: absolute;
     top: 0;
-    left: 0px;
-    z-index: 1;
+    left: 0;
+    z-index: 2;
     font-size: 14pt;
 
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#onboarding-message-holder .button {
+    width: 100%;
 }
 
 .white-background {
@@ -932,6 +936,10 @@ footer {
     -ms-transition:background 0s;
     -o-transition:background 0s;
     transition:background 0s;
+}
+
+#onboarding-example-image-1, #onboarding-example-image-2 {
+    width: 980px;
 }
 
 /*** Deprecated ***/

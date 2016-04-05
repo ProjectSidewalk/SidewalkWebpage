@@ -390,6 +390,61 @@
         </div>
     </template>
 
+    <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Help Us Improve Street and Sidewalk Accessibility</h2>
+                <p>
+                    Hi, we’re exploring new ways to find accessibility problems in cities,
+                    and we need your help! We want you to use this web interface to
+                    <span class="bold">find and label accessibility attributes that significantly affect how wheelchair
+                        users move about the city.</span> Accessibility attributes include:
+                </p>
+                <p>
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures01.png")' id="onboarding-example-image-1"
+                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in a path, and a surface problem.">
+                </p>
+                <p>
+                    <span class="bold">We’ll begin with a short, interactive tutorial to get you started.</span>
+                    If you’ve taken the tutorial before, click “Skip.” Thanks for your help in improving the accessibility of the cities.
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8"></div>
+            <div class="col-md-2">
+                <button class="button" id="onboarding-ok-button">OK</button>
+            </div>
+            <div class="col-md-2">
+                <button class="button">Skip</button>
+            </div>
+        </div>
+    </template>
+    <template class="onboarding" val="outro" id="onboarding-outro">
+        <div class="row">
+            <div class="col-md-12">
+                <p>
+                    Great! You’ve learned how to use the interface! Now, go a head and
+                    <span class="bold">label the following accessibility attributes in Google Street View</span> that
+                        significantly affect how wheelchair users move about the city:
+                </p>
+                <p>
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
+                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in a path, and a surface problem.">
+                </p>
+                <p>
+                    Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-10"></div>
+            <div class="col-md-2">
+                <button class="button" id="onboarding-ok-button">OK</button>
+            </div>
+        </div>
+    </template>
+
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script type="text/javascript">
         var svl = svl || {};

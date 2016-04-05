@@ -5858,7 +5858,7 @@ var previousPoints = [];
 var radius = .1;
 var isNotfirst = 0;
 var paths;
-svl.fog = undefined;;
+svl.fog = undefined;
 var au = [];
 var pty = [];
 //au = adjustFog(fog, current.lat(), current.lng(), radius);
@@ -9975,6 +9975,7 @@ function RibbonMenu ($, params) {
     function stopBlinking () {
         clearInterval(blinkInterval);
         svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
+        svl.ui.ribbonMenu.subcategories.css("background", "white");
     }
 
     function unlockDisableModeSwitch () {
@@ -14806,19 +14807,29 @@ function Onboarding ($, params) {
         },
         states = {
             "initialize": {
-                "action": {
-                    "action": "Initialize",
+                "properties": {
+                    "action": "Introduction",
                     "heading": 280,
                     "pitch": -6,
                     "zoom": 1
                 },
-                "message": null,
+                "message": {
+                    "message": function () {
+                            return document.getElementById("onboarding-initial-instruction").innerHTML;
+                        },
+                    "position": "center",
+                    "width": 1000,
+                    "top": -10,
+                    "padding": "100px 10px 100px 10px",
+                    "left": -70,
+                    "background": true
+                },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": "select-label-type-1"
             },
             "select-label-type-1": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
                 },
@@ -14840,7 +14851,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-1"
             },
             "label-attribute-1": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 10280,
@@ -14866,7 +14877,7 @@ function Onboarding ($, params) {
                 "transition": "rate-attribute-1"
             },
             "rate-attribute-1": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -14887,7 +14898,7 @@ function Onboarding ($, params) {
                 }
             },
             "redo-rate-attribute-1": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -14907,7 +14918,7 @@ function Onboarding ($, params) {
                 }
             },
             "adjust-heading-angle-1": {
-                "action": {
+                "properties": {
                     "action": "AdjustHeadingAngle",
                     "heading": 230,
                     "tolerance": 20
@@ -14923,7 +14934,7 @@ function Onboarding ($, params) {
                 "transition": "select-label-type-2"
             },
             "select-label-type-2": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
                 },
@@ -14946,7 +14957,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-2"
             },
             "label-attribute-2": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 8720,
@@ -14972,7 +14983,7 @@ function Onboarding ($, params) {
                 "transition": "rate-severity-2"
             },
             "rate-severity-2": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -14990,7 +15001,7 @@ function Onboarding ($, params) {
                 }
             },
             "redo-rate-attribute-2": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -15010,7 +15021,7 @@ function Onboarding ($, params) {
                 }
             },
             "select-label-type-3": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "NoCurbRamp"
                 },
@@ -15033,7 +15044,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-3"
             },
             "label-attribute-3": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "NoCurbRamp",
                     "imageX": 8237,
@@ -15059,7 +15070,7 @@ function Onboarding ($, params) {
                 "transition": "rate-severity-3"
             },
             "rate-severity-3": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "NoCurbRamp",
                     "severity": 3
@@ -15078,7 +15089,7 @@ function Onboarding ($, params) {
                 }
             },
             "redo-rate-attribute-3": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "NoCurbRamp",
                     "severity": 3
@@ -15098,7 +15109,7 @@ function Onboarding ($, params) {
                 }
             },
             "adjust-heading-angle-2": {
-                "action": {
+                "properties": {
                     "action": "AdjustHeadingAngle",
                     "heading": 75,
                     "tolerance": 20
@@ -15113,7 +15124,7 @@ function Onboarding ($, params) {
                 "transition": "select-label-type-4"
             },
             "select-label-type-4": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
                 },
@@ -15144,7 +15155,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-4"
             },
             "label-attribute-4": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 2170,
@@ -15170,7 +15181,7 @@ function Onboarding ($, params) {
                 "transition": "rate-severity-4"
             },
             "rate-severity-4": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": null
@@ -15188,7 +15199,7 @@ function Onboarding ($, params) {
                 }
             },
             "redo-rate-attribute-4": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -15208,7 +15219,7 @@ function Onboarding ($, params) {
                 }
             },
             "select-label-type-5": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
                 },
@@ -15231,7 +15242,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-5"
             },
             "label-attribute-5": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 3218,
@@ -15257,7 +15268,7 @@ function Onboarding ($, params) {
                 "transition": "rate-severity-5"
             },
             "rate-severity-5": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": null
@@ -15275,7 +15286,7 @@ function Onboarding ($, params) {
                 }
             },
             "redo-rate-attribute-5": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -15295,7 +15306,7 @@ function Onboarding ($, params) {
                 }
             },
             "select-label-type-6": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "Other",
                     "subcategory": "NoSidewalk"
@@ -15319,7 +15330,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-6"
             },
             "label-attribute-6": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "Other",
                     "subcategory": "NoSidewalk",
@@ -15346,7 +15357,7 @@ function Onboarding ($, params) {
                 "transition": "adjust-heading-angle-3"
             },
             "adjust-heading-angle-3": {
-                "action": {
+                "properties": {
                     "action": "AdjustHeadingAngle",
                     "heading": 17,
                     "tolerance": 20
@@ -15361,7 +15372,7 @@ function Onboarding ($, params) {
                 "transition": "walk-1"
             },
             "walk-1": {
-                "action": {
+                "properties": {
                     "action": "WalkTowards",
                     "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                     "imageX": -341,
@@ -15389,7 +15400,7 @@ function Onboarding ($, params) {
                 "transition": "select-label-type-7"
             },
             "select-label-type-7": {
-                "action": {
+                "properties": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
                 },
@@ -15413,7 +15424,7 @@ function Onboarding ($, params) {
                 "transition": "label-attribute-7"
             },
             "label-attribute-7": {
-                "action": {
+                "properties": {
                     "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 1492,
@@ -15440,7 +15451,7 @@ function Onboarding ($, params) {
                 "transition": "rate-severity-7"
             },
             "rate-severity-7": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": null
@@ -15458,7 +15469,7 @@ function Onboarding ($, params) {
                 }
             },
             "redo-rate-attribute-7": {
-                "action": {
+                "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
                     "severity": 1
@@ -15478,7 +15489,7 @@ function Onboarding ($, params) {
                 }
             },
             "adjust-heading-angle-4": {
-                "action": {
+                "properties": {
                     "action": "AdjustHeadingAngle",
                     "heading": 267,
                     "tolerance": 20
@@ -15493,7 +15504,7 @@ function Onboarding ($, params) {
                 "transition": "instruction-1"
             },
             "instruction-1": {
-                "action": {
+                "properties": {
                     "action": "Instruction"
                 },
                 "message": {
@@ -15503,13 +15514,37 @@ function Onboarding ($, params) {
                     "parameters": null
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
-                "annotations": null
+                "annotations": null,
+                "transition": "outro"
+            },
+            "outro": {
+                "properties": {
+                    "action": "Instruction",
+                    "heading": 280,
+                    "pitch": -6,
+                    "zoom": 1
+                },
+                "message": {
+                    "message": function () {
+                        return document.getElementById("onboarding-outro").innerHTML;
+                    },
+                    "position": "center",
+                    "width": 1000,
+                    "top": -10,
+                    "padding": "100px 10px 100px 10px",
+                    "left": -70,
+                    "background": true
+                },
+                "okButton": false,
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": null
             }
             // Done till here
 
         };
 
-    function _init (params) {
+    function _init () {
         // svl.compass.hideMessage();
         status.isOnboarding = true;
         svl.ui.onboarding.holder.css("visibility", "visible");
@@ -15588,7 +15623,8 @@ function Onboarding ($, params) {
     }
 
 
-    function showMessage (message, position, parameters) {
+    function showMessage (parameters) {
+        var message = parameters.message, position = parameters.position;
         if (!position) position = "top-right";
 
         svl.ui.onboarding.messageHolder.toggleClass("yellow-background");
@@ -15596,9 +15632,11 @@ function Onboarding ($, params) {
 
         svl.ui.onboarding.messageHolder.css({
             top: 0,
-            left: 0
+            left: 0,
+            width: 300
         });
 
+        // The following code is broken due to Chrome's bug. It does not properly re-render the text box.
         // if (position == "top-left") {
         //     svl.ui.onboarding.messageHolder.css({
         //         top: 0,
@@ -15618,13 +15656,21 @@ function Onboarding ($, params) {
             if ("width" in parameters) {
                 svl.ui.onboarding.messageHolder.css("width", parameters.width);
             }
-            if ("background" in parameter && parameter.background) {
+
+            if ("left" in parameters) {
+                svl.ui.onboarding.messageHolder.css("left", parameters.left);
+            }
+
+            if ("top" in parameters) {
+                svl.ui.onboarding.messageHolder.css("top", parameters.top);
+            }
+
+            if ("background" in parameters && parameters.background) {
                 svl.ui.onboarding.background.css("visibility", "visible");
             }
         }
 
-        svl.ui.onboarding.messageHolder.html(message);
-
+        svl.ui.onboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
     function visit(state) {
@@ -15633,10 +15679,12 @@ function Onboarding ($, params) {
         hideMessage();
         if (!state) return;
 
+        // Show user a message box.
         if ("message" in state && state.message) {
-            showMessage(state.message.message, state.message.position, state.message.parameters);
+            showMessage(state.message);
         }
 
+        // Draw arrows to annotate target accessibility attributes
         if ("annotations" in state && state.annotations) {
             var i, len, coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.getPOV(), drawArrows;
             len = state.annotations.length;
@@ -15661,29 +15709,39 @@ function Onboarding ($, params) {
             annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawArrows);
         }
 
+        // A nested function responsible for detaching events from google maps
         function removeAnnotationListener () {
             if (annotationListener) google.maps.event.removeListener(annotationListener);
         }
-
-        if ("action" in state) {
+        
+        // Change behavior based on the current state.
+        if ("properties" in state) {
             var $target, labelType, subcategory;
-            if (state.action.action == "Initialize") {
-                // Set the initial pov.
-                var pov = { heading: state.action.heading, pitch: state.action.pitch, zoom: state.action.zoom };
+            if (state.properties.action == "Introduction") {
+                var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom };
 
+                // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
+                // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
+                // When they click OK, then the POV changes.
                 callback = function () {
-                    svl.panorama.setPov(pov);
                     svl.panorama.setPano(state.panoId);
                     google.maps.event.removeListener($target);
-                    removeAnnotationListener();
-                    next(state.transition);
+                    $target = $("#onboarding-ok-button");
+
+                    callback = function () {
+                        svl.map.setPov(pov);
+                        $target.off("click", callback);
+                        removeAnnotationListener();
+                        next.call(this, state.transition);
+                    };
+                    $target.on("click", callback);
                 };
                 $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
-            } else if (state.action.action == "SelectLabelType") {
+            } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
-                labelType = state.action.labelType;
-                subcategory = "subcategory" in state.action ? state.action.subcategory : null;
+                labelType = state.properties.labelType;
+                subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
                 if ("ribbon" in svl) {
                     svl.ribbon.startBlinking(labelType, subcategory);
                 }
@@ -15701,12 +15759,12 @@ function Onboarding ($, params) {
                     next(state.transition);
                 };
                 $target.on("click", callback);
-            } else if (state.action.action == "LabelAccessibilityAttribute") {
+            } else if (state.properties.action == "LabelAccessibilityAttribute") {
                 // Tell the user to label the target attribute.
-                var imageX = state.action.imageX,
-                    imageY = state.action.imageY,
-                    tolerance = state.action.tolerance;
-                labelType = state.action.labelType;
+                var imageX = state.properties.imageX,
+                    imageY = state.properties.imageY,
+                    tolerance = state.properties.tolerance;
+                labelType = state.properties.labelType;
                 $target = svl.ui.canvas.drawingLayer;
 
                 callback = function (e) {
@@ -15725,22 +15783,22 @@ function Onboarding ($, params) {
                     }
                 };
                 $target.on("click", callback);
-            } else if (state.action.action == "RateSeverity" || state.action.action == "RedoRateSeverity") {
-                var severity = state.action.severity;
+            } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
+                var severity = state.properties.severity;
                 $target = svl.ui.contextMenu.radioButtons;
-                labelType = state.action.labelType;
+                labelType = state.properties.labelType;
                 callback = function () {
                     $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
                 };
                 $target.on("click", callback);
-            } else if (state.action.action == "AdjustHeadingAngle") {
+            } else if (state.properties.action == "AdjustHeadingAngle") {
                 // Tell them to remove a label.
                 showGrabAndDragAnimation({direction: "left-to-right"});
                 callback = function () {
                     var pov = svl.getPOV();
-                    if ((360 + state.action.heading - pov.heading) % 360 < state.action.tolerance) {
+                    if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         hideGrabAndDragAnimation();
@@ -15749,11 +15807,11 @@ function Onboarding ($, params) {
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
-            } else if (state.action.action == "WalkTowards") {
+            } else if (state.properties.action == "WalkTowards") {
                 svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
                 callback = function () {
                     var panoId = svl.getPanoId();
-                    if (state.action.panoId == panoId) {
+                    if (state.properties.panoId == panoId) {
                         svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
@@ -15761,7 +15819,21 @@ function Onboarding ($, params) {
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-                $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
+                // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
+                $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+            } else if (state.properties.action == "Instruction") {
+                if (!("okButton" in state) || state.okButton) {
+                    // Insert an ok button.
+                    svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button'>OK</button>");
+                }
+                $target = $("#onboarding-ok-button");
+
+                callback = function () {
+                    $target.off("click", callback);
+                    removeAnnotationListener();
+                    next.call(this, state.transition);
+                };
+                $target.on("click", callback);
             }
         }
     }
