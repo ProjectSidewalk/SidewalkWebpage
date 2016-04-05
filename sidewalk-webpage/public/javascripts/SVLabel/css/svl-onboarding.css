@@ -24,7 +24,8 @@
     margin: 5px;
     padding: 10px;
     position: absolute;
-    right: 0;
+    top: 0;
+    left: 410px;
     z-index: 1;
     font-size: 14pt;
 

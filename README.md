@@ -15,5 +15,6 @@ Run `sbt run` or `activator run` on the directory where `build.sbt` is located.
 
 ## Building JavaScript
 SVLabel--the image labeling interface to annotate Street View imagery--needs to be built before being used on the web application.
+
 1. Go to the directory where `Gruntfile.js` is located (i.e., public/javascripts/SVLabel/).
 2. Run `grunt watch`, which reacts to changes in the source code and builds the source code under the SVLabel directory.

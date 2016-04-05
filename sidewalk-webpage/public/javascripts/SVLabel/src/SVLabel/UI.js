@@ -10,7 +10,7 @@ function UI ($, params) {
 
 
     function _init (params) {
-        // Todo. Use better templating techniques rather so it's prettier!
+        // Todo. Try using a better template engine so I don't have to write dom elements here!
 
         self.actionStack = {};
         self.actionStack.holder = $("#action-stack-control-holder");
@@ -158,6 +158,7 @@ function UI ($, params) {
         self.onboarding.holder = $("#onboarding-holder");
         self.onboarding.messageHolder = $("#onboarding-message-holder");
         self.onboarding.background = $("#onboarding-background");
+        self.onboarding.foreground = $("#onboarding-foreground");
         self.onboarding.canvas = $("#onboarding-canvas");
         self.onboarding.handGestureHolder = $("#hand-gesture-holder");
         if ("onboarding" in params && params.onboarding) {

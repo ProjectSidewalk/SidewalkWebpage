@@ -6,8 +6,8 @@ function Onboarding ($, params) {
             state: 0,
             isOnboarding: true
         },
-        states = [
-            {
+        states = {
+            "initialize": {
                 "action": {
                     "action": "Initialize",
                     "heading": 280,
@@ -15,10 +15,11 @@ function Onboarding ($, params) {
                     "zoom": 1
                 },
                 "message": null,
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "select-label-type-1"
             },
-            {
+            "select-label-type-1": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
@@ -28,20 +29,21 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 10280,
                         "y": -385,
                         "length": 50,
-                        "angle": 30,
+                        "angle": 0,
                         "text": null
                     }
-                ]
+                ],
+                "transition": "label-attribute-1"
             },
-            {
+            "label-attribute-1": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 10280,
                     "imageY": -425,
@@ -52,19 +54,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 10280,
                         "y": -385,
                         "length": 50,
-                        "angle": 30,
+                        "angle": 0,
                         "text": null,
                         "fill": "yellow"
                     }
-                ]
+                ],
+                "transition": "rate-attribute-1"
             },
-            {
+            "rate-attribute-1": {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -78,10 +81,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "adjust-heading-angle-1"
             },
-            {
+            "adjust-heading-angle-1": {
                 "action": {
                     "action": "AdjustHeadingAngle",
                     "heading": 230,
@@ -93,10 +97,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "select-label-type-2"
             },
-            {
+            "select-label-type-2": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
@@ -106,21 +111,22 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 8550,
                         "y": -400,
                         "length": 50,
-                        "angle": 30,
+                        "angle": 0,
                         "text": null,
                         "fill": null
                     }
-                ]
+                ],
+                "transition": "label-attribute-2"
             },
-            {
+            "label-attribute-2": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 8720,
                     "imageY": -549,
@@ -131,19 +137,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 8550,
                         "y": -400,
                         "length": 50,
-                        "angle": 30,
+                        "angle": 0,
                         "text": null,
                         "fill": "yellow"
                     }
-                ]
+                ],
+                "transition": "rate-severity-2"
             },
-            {
+            "rate-severity-2": {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -154,10 +161,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "select-label-type-3"
             },
-            {
+            "select-label-type-3": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "NoCurbRamp"
@@ -167,21 +175,22 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 8300,
                         "y": -500,
                         "length": 50,
-                        "angle": -30,
+                        "angle": 0,
                         "text": null,
                         "fill": null
                     }
-                ]
+                ],
+                "transition": "label-attribute-3"
             },
-            {
+            "label-attribute-3": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "NoCurbRamp",
                     "imageX": 8237,
                     "imageY": -600,
@@ -192,19 +201,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 8300,
                         "y": -500,
                         "length": 50,
-                        "angle": -30,
+                        "angle": 0,
                         "text": null,
                         "fill": "yellow"
                     }
-                ]
+                ],
+                "transition": "rate-severity-3"
             },
-            {
+            "rate-severity-3": {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -215,10 +225,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "adjust-heading-angle-2"
             },
-            {
+            "adjust-heading-angle-2": {
                 "action": {
                     "action": "AdjustHeadingAngle",
                     "heading": 75,
@@ -229,10 +240,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "select-label-type-4"
             },
-            {
+            "select-label-type-4": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
@@ -242,13 +254,13 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 2170,
                         "y": -650,
                         "length": 50,
-                        "angle": 30,
+                        "angle": 0,
                         "text": null,
                         "fill": "white"
                     },
@@ -256,15 +268,16 @@ function Onboarding ($, params) {
                         "x": 3218,
                         "y": -900,
                         "length": 50,
-                        "angle": -30,
+                        "angle": 0,
                         "text": null,
                         "fill": "white"
                     }
-                ]
+                ],
+                "transition": "label-attribute-4"
             },
-            {
+            "label-attribute-4": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 2170,
                     "imageY": -900,
@@ -275,19 +288,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 2170,
                         "y": -650,
                         "length": 50,
-                        "angle": 30,
+                        "angle": 0,
                         "text": null,
                         "fill": "yellow"
                     }
-                ]
+                ],
+                "transition": "rate-severity-4"
             },
-            {
+            "rate-severity-4": {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -298,10 +312,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "select-label-type-5"
             },
-            {
+            "select-label-type-5": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
@@ -311,21 +326,22 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 3218,
                         "y": -900,
                         "length": 50,
-                        "angle": -30,
+                        "angle": 0,
                         "text": null,
                         "fill": "white"
                     }
-                ]
+                ],
+                "transition": "label-attribute-5"
             },
-            {
+            "label-attribute-5": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
                     "imageX": 3218,
                     "imageY": -1203,
@@ -336,19 +352,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
                         "x": 3218,
                         "y": -900,
                         "length": 50,
-                        "angle": -30,
+                        "angle": 0,
                         "text": null,
                         "fill": "yellow"
                     }
-                ]
+                ],
+                "transition": "rate-severity-5"
             },
-            {
+            "rate-severity-5": {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -359,10 +376,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "select-label-type-6"
             },
-            {
+            "select-label-type-6": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "Other",
@@ -373,12 +391,13 @@ function Onboarding ($, params) {
                     "position": "top-left",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": []
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": [],
+                "transition": "label-attribute-6"
             },
-            {
+            "label-attribute-6": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "Other",
                     "subcategory": "NoSidewalk",
                     "imageX": 1996,
@@ -390,19 +409,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
-                        "x": 1800,
-                        "y": -580,
+                        "x": 1966,
+                        "y": -500,
                         "length": 50,
-                        "angle": 120,
+                        "angle": 0,
                         "text": null,
                         "fill": "yellow"
                     }
-                ]
+                ],
+                "transition": "adjust-heading-angle-3"
             },
-            {
+            "adjust-heading-angle-3": {
                 "action": {
                     "action": "AdjustHeadingAngle",
                     "heading": 17,
@@ -413,13 +433,14 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": "walk-1"
             },
-            {
+            "walk-1": {
                 "action": {
                     "action": "WalkTowards",
-                    "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+                    "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                     "imageX": -341,
                     "tolerance": -703
                 },
@@ -430,28 +451,48 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": null
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": [
+                    {
+                        "x": 700,
+                        "y": -400,
+                        "length": 50,
+                        "angle": 0,
+                        "text": null,
+                        "fill": "white"
+                    }
+                ],
+                "transition": "select-label-type-7"
             },
-            {
+            "select-label-type-7": {
                 "action": {
                     "action": "SelectLabelType",
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! There is a curb ramp. Click the "Curb Ramp" button on the menu to label it!',
+                    "message": 'Good! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"bdmGHJkiSgmO7_80SnbzXw",
-                "annotations": []
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": [
+                    {
+                        "x": 1500,
+                        "y": -650,
+                        "length": 50,
+                        "angle": 0,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ],
+                "transition": "label-attribute-7"
             },
-            {
+            "label-attribute-7": {
                 "action": {
-                    "action" : "LabelAccessibilityAttribute",
+                    "action": "LabelAccessibilityAttribute",
                     "labelType": "CurbRamp",
-                    "imageX": 3218,
-                    "imageY": -1203,
+                    "imageX": 1492,
+                    "imageY": -783,
                     "tolerance": 300
                 },
                 "message": {
@@ -459,10 +500,20 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"bdmGHJkiSgmO7_80SnbzXw",
-                "annotations": []
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": [
+                    {
+                        "x": 1800,
+                        "y": -580,
+                        "length": 50,
+                        "angle": 0,
+                        "text": null,
+                        "fill": "yellow"
+                    }
+                ],
+                "transition": "rate-severity-7"
             },
-            {
+            "rate-severity-7": {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -473,10 +524,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"bdmGHJkiSgmO7_80SnbzXw",
-                "annotations": null
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "adjust-heading-angle-4"
             },
-            {
+            "adjust-heading-angle-4": {
                 "action": {
                     "action": "AdjustHeadingAngle",
                     "heading": 267,
@@ -487,10 +539,11 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"bdmGHJkiSgmO7_80SnbzXw",
-                "annotations": null
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-1"
             },
-            {
+            "instruction-1": {
                 "action": {
                     "action": "Instruction"
                 },
@@ -500,20 +553,12 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId":"bdmGHJkiSgmO7_80SnbzXw",
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null
-            },
+            }
             // Done till here
 
-
-            {
-                "action":"LabelingCanvas_FinishLabeling",
-                "panoId":"bdmGHJkiSgmO7_80SnbzXw",
-                "labelType":"CurbRamp",
-                "imageX":1301.4,
-                "imageY":-756.1444444444445
-            }
-        ];
+        };
 
     function _init (params) {
         // svl.compass.hideMessage();
@@ -521,7 +566,8 @@ function Onboarding ($, params) {
         svl.ui.onboarding.holder.css("visibility", "visible");
         svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
         ctx = svl.ui.onboarding.canvas.get(0).getContext('2d');
-        visit(0);
+        status.state = getState("initialize");
+        visit(status.state);
 
         initializeHandAnimation();
     }
@@ -576,45 +622,46 @@ function Onboarding ($, params) {
         return states[stateIndex];
     }
 
+
+
     function hideMessage () {
-        svl.ui.onboarding.messageHolder.css("visibility", "hidden");
+        if (svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.hide();
     }
 
-    function next (stateIndex) {
-        if (stateIndex) {
-            status.state = stateIndex + 1;
+    function next (nextState) {
+        if (typeof nextState == "function") {
+            status.state = getState(nextState());
+            visit(status.state);
+        } else if (nextState in states) {
+            status.state = getState(nextState);
+            visit(status.state);
         } else {
-            status.state += 1;
+            throw "next state is not defined";
         }
-        visit(status.state);
     }
+
 
     function showMessage (message, position, parameters) {
-        if (!position) {
-            position = "top-right";
-        }
+        if (!position) position = "top-right";
+
         svl.ui.onboarding.messageHolder.toggleClass("yellow-background");
-        setTimeout(function () {svl.ui.onboarding.messageHolder.toggleClass("yellow-background");}, 10);
+        setTimeout(function () { svl.ui.onboarding.messageHolder.toggleClass("yellow-background"); }, 100);
 
         if (position == "top-left") {
             svl.ui.onboarding.messageHolder.css({
                 top: 0,
-                left: 0,
-                right: "",
-                width: 300
+                left: 0
             });
         } else {
             svl.ui.onboarding.messageHolder.css({
                 top: 0,
-                right: 0,
-                left: "",
-                width: 300
+                left: 410
             });
         }
-        svl.ui.onboarding.messageHolder.css("visibility", "visible");
+        if (!svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.show();
+
+
         svl.ui.onboarding.background.css("visibility", "hidden");
-
-
         if (parameters) {
             if ("width" in parameters) {
                 svl.ui.onboarding.messageHolder.css("width", parameters.width);
@@ -625,12 +672,14 @@ function Onboarding ($, params) {
         }
 
         svl.ui.onboarding.messageHolder.html(message);
+
     }
 
-    function visit(stateIndex) {
-        var action, message, callback, state = getState(stateIndex), annotationListener;
+    function visit(state) {
+        var action, message, callback, annotationListener;
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         hideMessage();
+        if (!state) return;
 
         if ("message" in state && state.message) {
             showMessage(state.message.message, state.message.position, state.message.parameters);
@@ -675,7 +724,7 @@ function Onboarding ($, params) {
                     svl.panorama.setPano(state.panoId);
                     google.maps.event.removeListener($target);
                     removeAnnotationListener();
-                    next();
+                    next(state.transition);
                 };
                 $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
             } else if (state.action.action == "SelectLabelType") {
@@ -697,7 +746,7 @@ function Onboarding ($, params) {
                     svl.ribbon.stopBlinking();
                     $target.off("click", callback); // Remove the handler
                     removeAnnotationListener();
-                    next();
+                    next(state.transition);
                 };
                 $target.on("click", callback);
             } else if (state.action.action == "LabelAccessibilityAttribute") {
@@ -720,7 +769,7 @@ function Onboarding ($, params) {
                     if (distance < tolerance * tolerance) {
                         $target.off("click", callback);
                         removeAnnotationListener();
-                        next();
+                        next(state.transition);
                     }
                 };
                 $target.on("click", callback);
@@ -733,7 +782,7 @@ function Onboarding ($, params) {
                     if (!severity || severity == parseInt($(this).attr("value"), 10)) {
                         $target.off("click", callback);
                         removeAnnotationListener();
-                        next();
+                        next(state.transition);
                     }
                 };
                 $target.on("click", callback);
@@ -746,7 +795,7 @@ function Onboarding ($, params) {
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         hideGrabAndDragAnimation();
-                        next();
+                        next(state.transition);
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
@@ -759,14 +808,13 @@ function Onboarding ($, params) {
                         svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
-                        next();
+                        next(state.transition);
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
             }
         }
-
     }
 
     var layer, stage, OpenHand, ClosedHand, OpenHandReady = false, ClosedHandReady = false,
@@ -882,10 +930,10 @@ function Onboarding ($, params) {
     self.clear = clear;
     self.drawArrow = drawArrow;
     self.next = next;
+    self.visit = visit;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;
     self.hideMessage = hideMessage;
-
 
     _init(params);
 

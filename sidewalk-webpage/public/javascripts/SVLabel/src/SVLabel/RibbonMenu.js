@@ -377,10 +377,14 @@ function RibbonMenu ($, params) {
             blinkInterval = window.setInterval(function () {
                 if (highlighted) {
                     highlighted = !highlighted;
-                    $(button).css("background", "rgba(255, 255, 166, 1)");
+                    $(button).css("background", "rgba(255, 255, 0, 1)");
                     if (dropdown) {
-                        $(dropdown).css("background", "rgba(255, 255, 166, 1)");
+                        $(dropdown).css("background", "rgba(255, 255, 0, 1)");
                     }
+                    // $(button).css("background", "rgba(255, 255, 166, 1)");
+                    // if (dropdown) {
+                    //     $(dropdown).css("background", "rgba(255, 255, 166, 1)");
+                    // }
                 } else {
                     highlighted = !highlighted;
                     $(button).css("background", getProperty("originalBackgroundColor"));
