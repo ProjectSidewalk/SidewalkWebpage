@@ -7,10 +7,10 @@
 #compass-message-holder {
     position: absolute;
     right: -65px;
-    top: 0;
+    top: 15px;
     background: rgba(255, 255, 255, 0.75);
     padding: 10px 10px 10px 5px;
-    height: 55px;
+    height: 40px;
     min-width: 120px;
     white-space: nowrap;
     border-radius: 3px 3px 3px 3px;
