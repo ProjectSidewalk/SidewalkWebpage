@@ -10,8 +10,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function Main ($, params) {
-    var self = {moduleName: 'Main'};
-    var properties = {};
+    var self = { className: 'Main' };
     var status = {
         isFirstTask: false
     };
@@ -198,8 +197,6 @@ function Main ($, params) {
 
         svl.missionContainer = MissionContainer ($, {currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
-        //svl.mission = new Mission();;
-        //svl.achievement = new Achievement();
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');

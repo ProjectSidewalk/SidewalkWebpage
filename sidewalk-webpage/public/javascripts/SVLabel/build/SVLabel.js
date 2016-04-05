@@ -5537,8 +5537,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function Main ($, params) {
-    var self = {moduleName: 'Main'};
-    var properties = {};
+    var self = { className: 'Main' };
     var status = {
         isFirstTask: false
     };
@@ -5725,8 +5724,6 @@ function Main ($, params) {
 
         svl.missionContainer = MissionContainer ($, {currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood")});
         svl.missionFactory = MissionFactory ();
-        //svl.mission = new Mission();;
-        //svl.achievement = new Achievement();
 
         svl.form.disableSubmit();
         svl.tracker.push('TaskStart');
@@ -14876,15 +14873,38 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'On this context menu, <span class="bold">you can rate the quality of the curb ramp, ' +
-                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> This is a large curb ramp ' +
-                    'and it is not degraded (e.g., cracked), so <span class="bold">let’s rate it as 1, passable.</span> ' +
-                    'You can click on the label to reopen the context menu and change the rating.',
+                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
+                    '<span class="bold">Let’s rate it as 1, passable.</span> ' +
+                    '[Add a GIF animation]',
                     "position": "top-right",
                     "parameters": null
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "adjust-heading-angle-1"
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                }
+            },
+            "redo-rate-attribute-1": {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
+                    '<span class="bold">Let\s click "1" to set its quality.</span> ' +
+                    '[Add a GIF animation]',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                }
             },
             "adjust-heading-angle-1": {
                 "action": {
@@ -14955,7 +14975,7 @@ function Onboarding ($, params) {
                 "action": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
-                    "severity": null
+                    "severity": 1
                 },
                 "message": {
                     "message": 'Good! <span class="bold">Let’s rate the quality of the curb ramp.</span>',
@@ -14964,7 +14984,30 @@ function Onboarding ($, params) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-3"
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
+                }
+            },
+            "redo-rate-attribute-2": {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
+                    '<span class="bold">Let\s click "1" to set its quality.</span> ' +
+                    '[Add a GIF animation]',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
+                }
             },
             "select-label-type-3": {
                 "action": {
@@ -15018,17 +15061,41 @@ function Onboarding ($, params) {
             "rate-severity-3": {
                 "action": {
                     "action": "RateSeverity",
-                    "labelType": "CurbRamp",
-                    "severity": 1
+                    "labelType": "NoCurbRamp",
+                    "severity": 3
                 },
                 "message": {
-                    "message": 'Let’s rate the severity of the problem. Since there is one curb ramp right next to the missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 1.</span>',
+                    "message": 'Since there is one curb ramp right next to the ' +
+                    'missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 3.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "adjust-heading-angle-2"
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
+                }
+            },
+            "redo-rate-attribute-3": {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "NoCurbRamp",
+                    "severity": 3
+                },
+                "message": {
+                    "message": 'Hmm, this is a slightly severe problem. ' +
+                    '<span class="bold">Let\s click "3" to change the severity of the missing curb ramp.</span> ' +
+                    '[Add a GIF animation]',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
+                }
             },
             "adjust-heading-angle-2": {
                 "action": {
@@ -15115,7 +15182,30 @@ function Onboarding ($, params) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-5"
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
+                }
+            },
+            "redo-rate-attribute-4": {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                    '<span class="bold">Let\s click "1" to change its rating.</span> ' +
+                    '[Add a GIF animation]',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
+                }
             },
             "select-label-type-5": {
                 "action": {
@@ -15179,7 +15269,30 @@ function Onboarding ($, params) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-6"
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
+                }
+            },
+            "redo-rate-attribute-5": {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                    '<span class="bold">Let\s click "1" to change its rating.</span> ' +
+                    '[Add a GIF animation]',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
+                }
             },
             "select-label-type-6": {
                 "action": {
@@ -15264,6 +15377,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 700,
                         "y": -400,
                         "length": 50,
@@ -15287,6 +15401,7 @@ function Onboarding ($, params) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 1500,
                         "y": -650,
                         "length": 50,
@@ -15313,6 +15428,7 @@ function Onboarding ($, params) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 1500,
                         "y": -650,
                         "length": 50,
@@ -15336,7 +15452,30 @@ function Onboarding ($, params) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "adjust-heading-angle-4"
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
+                }
+            },
+            "redo-rate-attribute-7": {
+                "action": {
+                    "action": "RateSeverity",
+                    "labelType": "CurbRamp",
+                    "severity": 1
+                },
+                "message": {
+                    "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                    '<span class="bold">Let\s click "1" to change its rating.</span> ' +
+                    '[Add a GIF animation]',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "annotations": null,
+                "transition": function () {
+                    var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                    return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
+                }
             },
             "adjust-heading-angle-4": {
                 "action": {
@@ -15438,7 +15577,7 @@ function Onboarding ($, params) {
 
     function next (nextState) {
         if (typeof nextState == "function") {
-            status.state = getState(nextState());
+            status.state = getState(nextState.call(this));
             visit(status.state);
         } else if (nextState in states) {
             status.state = getState(nextState);
@@ -15586,17 +15725,14 @@ function Onboarding ($, params) {
                     }
                 };
                 $target.on("click", callback);
-            } else if (state.action.action == "RateSeverity") {
+            } else if (state.action.action == "RateSeverity" || state.action.action == "RedoRateSeverity") {
                 var severity = state.action.severity;
                 $target = svl.ui.contextMenu.radioButtons;
                 labelType = state.action.labelType;
                 callback = function () {
-
-                    if (!severity || severity == parseInt($(this).attr("value"), 10)) {
-                        $target.off("click", callback);
-                        removeAnnotationListener();
-                        next(state.transition);
-                    }
+                    $target.off("click", callback);
+                    removeAnnotationListener();
+                    next.call(this, state.transition);
                 };
                 $target.on("click", callback);
             } else if (state.action.action == "AdjustHeadingAngle") {
@@ -15745,7 +15881,6 @@ function Onboarding ($, params) {
     self.clear = clear;
     self.drawArrow = drawArrow;
     self.next = next;
-    self.visit = visit;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;
     self.hideMessage = hideMessage;
