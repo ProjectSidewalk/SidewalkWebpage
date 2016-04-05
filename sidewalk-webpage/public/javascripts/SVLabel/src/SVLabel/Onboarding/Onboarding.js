@@ -42,6 +42,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 10280,
                         "y": -385,
                         "length": 50,
@@ -67,6 +68,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 10280,
                         "y": -385,
                         "length": 50,
@@ -147,6 +149,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 8550,
                         "y": -400,
                         "length": 50,
@@ -173,6 +176,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 8550,
                         "y": -400,
                         "length": 50,
@@ -234,6 +238,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 8300,
                         "y": -500,
                         "length": 50,
@@ -260,6 +265,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 8300,
                         "y": -500,
                         "length": 50,
@@ -337,6 +343,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 2170,
                         "y": -650,
                         "length": 50,
@@ -345,6 +352,7 @@ function Onboarding ($, params) {
                         "fill": "white"
                     },
                     {
+                        "type": "arrow",
                         "x": 3218,
                         "y": -900,
                         "length": 50,
@@ -371,6 +379,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 2170,
                         "y": -650,
                         "length": 50,
@@ -432,6 +441,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 3218,
                         "y": -900,
                         "length": 50,
@@ -458,6 +468,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 3218,
                         "y": -900,
                         "length": 50,
@@ -520,6 +531,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 1966,
                         "y": -500,
                         "length": 50,
@@ -547,6 +559,7 @@ function Onboarding ($, params) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
+                        "type": "arrow",
                         "x": 1966,
                         "y": -500,
                         "length": 50,
@@ -575,9 +588,7 @@ function Onboarding ($, params) {
             "walk-1": {
                 "properties": {
                     "action": "WalkTowards",
-                    "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
-                    "imageX": -341,
-                    "tolerance": -703
+                    "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
                 },
                 "message": {
                     "message": 'It seems like there is a curb ramp at the end of the cross walk, but it’s hard to see ' +
@@ -596,6 +607,12 @@ function Onboarding ($, params) {
                         "angle": 0,
                         "text": null,
                         "fill": "white"
+                    },
+                    {
+                        "type": "double-click",
+                        "x": -341,
+                        "y": -703,
+                        "width": 100
                     }
                 ],
                 "transition": "select-label-type-7"
@@ -762,6 +779,15 @@ function Onboarding ($, params) {
         return this;
     }
 
+    function drawDoubleClickIcon (x, y) {
+        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
+        var image = document.getElementById("double-click-icon");
+        ctx.save();
+        ctx.drawImage(image, x - 50, y - 50, 100, 100);
+        ctx.restore();
+        return this;
+    }
+
     function drawArrow (x1, y1, x2, y2, parameters) {
         var lineWidth = 1,
             fill = 'rgba(255,255,255,1)',
@@ -887,27 +913,44 @@ function Onboarding ($, params) {
 
         // Draw arrows to annotate target accessibility attributes
         if ("annotations" in state && state.annotations) {
-            var i, len, coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.getPOV(), drawArrows;
+            var i, len, coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.getPOV(), drawAnnotations;
             len = state.annotations.length;
 
-            drawArrows = function () {
+            drawAnnotations = function () {
                 clear();
                 for (i = 0; i < len; i++) {
                     imX = state.annotations[i].x;
                     imY = state.annotations[i].y;
                     currentPOV = svl.getPOV();
+
+                    // Map an image coordinate to a canvas coordinate
+                    if (currentPOV.heading < 180) {
+                        if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                            imX -= svl.svImageWidth;
+                        }
+                    } else {
+                        if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                            imX += svl.svImageWidth;
+                        }
+                    }
                     coordinate = svl.misc.imageCoordinateToCanvasCoordinate(imX, imY, currentPOV);
-                    lineLength = state.annotations[i].length;
-                    lineAngle = state.annotations[i].angle;
-                    x2 = coordinate.x;
-                    y2 = coordinate.y;
-                    x1 = x2 - lineLength * Math.sin(svl.util.math.toRadians(lineAngle));
-                    y1 = y2 - lineLength * Math.cos(svl.util.math.toRadians(lineAngle));
-                    drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
+
+                    if (state.annotations[i].type == "arrow") {
+                        lineLength = state.annotations[i].length;
+                        lineAngle = state.annotations[i].angle;
+                        x2 = coordinate.x;
+                        y2 = coordinate.y;
+                        x1 = x2 - lineLength * Math.sin(svl.util.math.toRadians(lineAngle));
+                        y1 = y2 - lineLength * Math.cos(svl.util.math.toRadians(lineAngle));
+                        drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
+                    } else if (state.annotations[i].type == "double-click") {
+                        drawDoubleClickIcon(coordinate.x, coordinate.y);
+                    }
+
                 }
             };
-            drawArrows();
-            annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawArrows);
+            drawAnnotations();
+            annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawAnnotations);
         }
 
         // A nested function responsible for detaching events from google maps
@@ -1066,7 +1109,7 @@ function Onboarding ($, params) {
             layer.add(OpenHand);
             OpenHandReady = true;
         };
-        ImageObjOpenHand.src = svl.rootDirectory + "img/misc/HandOpen.png";
+        ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
 
         ImageObjClosedHand.onload = function () {
             ClosedHand = new Kinetic.Image({
@@ -1080,7 +1123,7 @@ function Onboarding ($, params) {
             layer.add(ClosedHand);
             ClosedHandReady = true;
         };
-        ImageObjClosedHand.src = svl.rootDirectory + "img/misc/HandClosed.png";
+        ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
     }
 
     /**

@@ -18,6 +18,7 @@ function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
     if (!zoomFactor) {
         zoomFactor = 1;
     }
+
     var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
     var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
     return {x: canvasX, y: canvasY};

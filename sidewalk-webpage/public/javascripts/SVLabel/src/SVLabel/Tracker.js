@@ -126,8 +126,7 @@ function Tracker () {
         actions = [];
         push("RefreshTracker");
     }
-
-
+    
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;

@@ -135,18 +135,20 @@ function Main ($, params) {
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
 
+        // Navigation compass
         svl.ui.compass = {};
         svl.ui.compass.messageHolder = $("#compass-message-holder");
         svl.ui.compass.message = $("#compass-message");
 
+        // Canvas for the labeling area
         svl.ui.canvas = {};
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
         svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
 
+        // Interaction viewer
         svl.ui.tracker = {};
         svl.ui.tracker.itemHolder = $("#tracked-items-holder");
-
 
         svl.ui.task = {};
         svl.ui.task.taskCompletionMessage = $("#task-completion-message-holder");
@@ -178,7 +180,7 @@ function Main ($, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = new PointCloud($, { panoIds: [panoId] });
         svl.tracker = Tracker();
-        svl.trackerViewer = TrackerViewer();
+        // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3);
         svl.contextMenu = ContextMenu($);

@@ -32,18 +32,6 @@ function Path (points, params) {
         visibility: 'visible'
     };
 
-//    function assemble () {
-//        var p = [];
-//        for (var i = 0; i < self.points.length; i++) {
-//            p.push(self.points[i].assemble());
-//        }
-//        return {
-//            properties: properties,
-//            status: status,
-//            points: p
-//        }
-//    }
-//    self.assemble = assemble;
 
     function _init(points, params) {
         var lenPoints;
@@ -179,7 +167,6 @@ function Path (points, params) {
         }
       }
 
-      //
       // If the path is on boundary, swap xMax and xMin.
       if (boundary) {
         return {
@@ -207,13 +194,7 @@ function Path (points, params) {
      */
     function getCanvasCoordinates (pov) {
         // Get canvas coordinates of points that constitute the path.
-        var imCoords = getImageCoordinates();
-        var i;
-        var len = imCoords.length;
-        var canvasCoord;
-        var canvasCoords = [];
-        var min = 10000000;
-        var max = -1;
+        var imCoords = getImageCoordinates(), i, len = imCoords.length, canvasCoord, canvasCoords = [], min = 10000000, max = -1;
 
         for (i = 0; i < len; i += 1) {
             if (min > imCoords[i].x) {
@@ -289,9 +270,6 @@ function Path (points, params) {
         ctx.restore();
     }
 
-    ////////////////////////////////////////
-    // self functions
-    ////////////////////////////////////////
     self.belongsTo = function () {
         // This function returns which object (i.e. Label) this Path
         // belongs to.
@@ -361,20 +339,17 @@ function Path (points, params) {
     };
 
 
+    /**
+     * This function checks if a mouse cursor is on any of a points and return a point if the cursor is indeed on the
+     * point. Otherwise, this function checks if the mouse cursor is on a bounding box of this path. If the cursor is
+     * on the bounding box, then this function returns this path object.
+     * @param x
+     * @param y
+     * @returns {*}
+     */
     self.isOn = function (x, y) {
-        // This function checks if a mouse cursor is on any of a points and return
-        // a point if the cursor is indeed on the point.
-        // Otherwise, this function checks if the mouse cursor is on a bounding box
-        // of this path. If the cursor is on the bounding box, then this function
-        // returns this path object.
-        var boundingBox;
-        var i;
-        var j;
-        var point;
-        var pointsLen;
-        var result;
+        var boundingBox, i, j, point, pointsLen, result;
 
-        //
         // Check if the passed point (x, y) is on any of points.
         pointsLen = self.points.length;
         for (j = 0; j < pointsLen; j += 1) {
@@ -385,7 +360,6 @@ function Path (points, params) {
             }
         }
 
-        //
         // Check if the passed point (x, y) is on a path bounding box
         boundingBox = getBoundingBox();
         if (boundingBox.x < x &&
@@ -504,9 +478,7 @@ function Path (points, params) {
      */
     self.render = function (pov, ctx) {
         if (status.visibility === 'visible') {
-            var pathLen;
-            var point;
-            var j;
+            var j, pathLen, point, currCoord, prevCoord;
 
             pathLen = self.points.length;
 
@@ -547,11 +519,11 @@ function Path (points, params) {
                 // Render segments
                 for (j = 0; j < pathLen; j += 1) {
                     if (j > 0) {
-                        var currCoord = canvasCoords[j];
-                        var prevCoord = canvasCoords[j - 1];
+                        currCoord = canvasCoords[j];
+                        prevCoord = canvasCoords[j - 1];
                     } else {
-                        var currCoord = canvasCoords[j];
-                        var prevCoord = canvasCoords[pathLen - 1];
+                        currCoord = canvasCoords[j];
+                        prevCoord = canvasCoords[pathLen - 1];
                     }
                     var r = point.getProperty('radiusInnerCircle');
                     ctx.save();

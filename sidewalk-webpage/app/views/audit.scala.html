@@ -124,7 +124,10 @@
                         <div id="hand-gesture-holder"></div>
                         <div id="onboarding-background"></div>
                         <div id="onboarding-message-holder" class="white-background">
-                            <p>.</p>
+                            <p></p>
+                        </div>
+                        <div style="display:none;">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClick.png")' id="double-click-icon" width="200" alt="Double click icon"/>
                         </div>
                     </div>
 
@@ -291,9 +294,7 @@
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/GoodJob.png")' alt="Task completion message: Good Job!" />
             </div>
             <div id='tracker-holder'>
-                <span class='status-holder-header-1'>Tracker</span>
-                <ul id='tracked-items-holder'>
-                </ul>
+                <ul id='tracked-items-holder'></ul>
             </div>
         </div>
     </div>
