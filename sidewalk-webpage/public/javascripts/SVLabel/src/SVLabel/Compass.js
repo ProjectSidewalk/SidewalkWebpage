@@ -23,15 +23,13 @@ function Compass (d3) {
         svg.attr('width', width + padding.left + padding.right)
             .attr('height', height + padding.top + padding.bottom + 30)
             .style({ position: 'absolute', left: 0, top: 0 });
-        if (false) {
-            chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
 
-            needle = chart.append('path')
-                .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
-                .attr('fill', 'white')
-                .attr('stroke', 'white')
-                .attr('stroke-width', 1);
-        }
+        // chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
+        // needle = chart.append('path')
+        //         .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
+        //         .attr('fill', 'white')
+        //         .attr('stroke', 'white')
+        //         .attr('stroke-width', 1);
     }
 
     /**
@@ -57,8 +55,7 @@ function Compass (d3) {
      * @returns {number}
      */
     function getCompassAngle () {
-        var heading = svl.getPOV().heading,
-            targetAngle = getTargetAngle();
+        var heading = svl.getPOV().heading, targetAngle = getTargetAngle();
         return heading - targetAngle;
     }
 

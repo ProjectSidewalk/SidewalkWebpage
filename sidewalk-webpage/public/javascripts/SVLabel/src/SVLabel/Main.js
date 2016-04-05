@@ -17,9 +17,148 @@ function Main ($, params) {
     };
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
+    /**
+     * Store jQuery DOM elements under svl.ui
+     * @private
+     */
     function _initUI () {
-        // Todo. Move all the UI codes here.
-        svl.ui = UI($);
+        svl.ui = {};
+        svl.ui.actionStack = {};
+        svl.ui.actionStack.holder = $("#action-stack-control-holder");
+        svl.ui.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br /><small>Undo</small></button>');
+        svl.ui.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br /><small>Redo</small></button>');
+        svl.ui.actionStack.redo = $("#redo-button");
+        svl.ui.actionStack.undo = $("#undo-button");
+
+        svl.ui.counterHolder = $("#counter-holder");
+        svl.ui.labelCounter = $("#label-counter");
+
+        // Map DOMs
+        svl.ui.map = {};
+        svl.ui.map.canvas = $("canvas#labelCanvas");
+        svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
+        svl.ui.map.pano = $("div#pano");
+        svl.ui.map.streetViewHolder = $("div#streetViewHolder");
+        svl.ui.map.viewControlLayer = $("div#viewControlLayer");
+        svl.ui.map.modeSwitchWalk = $("span#modeSwitchWalk");
+        svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
+        svl.ui.googleMaps = {};
+        svl.ui.googleMaps.holder = $("#google-maps-holder");
+        svl.ui.googleMaps.holder.append('<div id="google-maps" class="google-maps-pane" style=""></div><div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>')
+
+        // MissionDescription DOMs
+        svl.ui.statusMessage = {};
+        svl.ui.statusMessage.holder = $("#current-status-holder");
+        svl.ui.statusMessage.title = $("#current-status-title");
+        svl.ui.statusMessage.description = $("#current-status-description");
+
+        // OverlayMessage
+        svl.ui.overlayMessage = {};
+        svl.ui.overlayMessage.holder = $("#overlay-message-holder");
+        svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'><span id='overlay-message'>Walk</span></span>");
+        svl.ui.overlayMessage.box = $("#overlay-message-box");
+        svl.ui.overlayMessage.message = $("#overlay-message");
+
+        // Pop up message
+        svl.ui.popUpMessage = {};
+        svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
+        svl.ui.popUpMessage.box = $("#pop-up-message-box");
+        svl.ui.popUpMessage.background = $("#pop-up-message-background");
+        svl.ui.popUpMessage.title = $("#pop-up-message-title");
+        svl.ui.popUpMessage.content = $("#pop-up-message-content");
+
+        // Progress
+        svl.ui.progress = {};
+        svl.ui.progress.auditedDistance = $("#status-audited-distance");
+
+        // ProgressPov
+        svl.ui.progressPov = {};
+        svl.ui.progressPov.holder = $("#progress-pov-holder");
+        svl.ui.progressPov.rate = $("#progress-pov-current-completion-rate");
+        svl.ui.progressPov.bar = $("#progress-pov-current-completion-bar");
+        svl.ui.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
+
+        // Ribbon menu DOMs
+        svl.ui.ribbonMenu = {};
+        svl.ui.ribbonMenu.holder = $("#ribbon-menu-landmark-button-holder");
+        svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
+        svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
+        svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
+        svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
+        svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
+        svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
+
+        // Context menu
+        svl.ui.contextMenu = {};
+        svl.ui.contextMenu.holder = $("#context-menu-holder");
+        svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
+        svl.ui.contextMenu.radioButtons = $("input[name='problem-severity']");
+        svl.ui.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
+        svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
+        svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
+
+        // Modal
+        svl.ui.modalSkip = {};
+        svl.ui.modalSkip.holder = $("#modal-skip-holder");
+        svl.ui.modalSkip.ok = $("#modal-skip-ok-button");
+        svl.ui.modalSkip.cancel = $("#modal-skip-cancel-button");
+        svl.ui.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
+        svl.ui.modalComment = {};
+        svl.ui.modalComment.holder = $("#modal-comment-holder");
+        svl.ui.modalComment.ok = $("#modal-comment-ok-button");
+        svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
+        svl.ui.modalComment.textarea = $("#modal-comment-textarea");
+
+        // Mission
+        svl.ui.modalMission = {};
+        svl.ui.modalMission.holder = $("#modal-mission-holder");
+        svl.ui.modalMission.box = $("#modal-mission-box");
+
+        // Zoom control
+        svl.ui.zoomControl = {};
+        svl.ui.zoomControl.holder = $("#zoom-control-holder");
+        svl.ui.zoomControl.holder.append('<button id="zoom-in-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Zoom in"><br /><u>Z</u>oom In</button>');
+        svl.ui.zoomControl.holder.append('<button id="zoom-out-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomOut.svg" class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>');
+        svl.ui.zoomControl.zoomIn = $("#zoom-in-button");
+        svl.ui.zoomControl.zoomOut = $("#zoom-out-button");
+
+        // Form
+        svl.ui.form = {};
+        svl.ui.form.holder = $("#form-holder");
+        svl.ui.form.commentField = $("#comment-field");
+        svl.ui.form.skipButton = $("#skip-button");
+        svl.ui.form.submitButton = $("#submit-button");
+
+        svl.ui.leftColumn = {};
+        svl.ui.leftColumn.sound = $("#left-column-sound-button");
+        svl.ui.leftColumn.muteIcon = $("#left-column-mute-icon");
+        svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
+        svl.ui.leftColumn.jump = $("#left-column-jump-button");
+        svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+
+        svl.ui.compass = {};
+        svl.ui.compass.messageHolder = $("#compass-message-holder");
+        svl.ui.compass.message = $("#compass-message");
+
+        svl.ui.canvas = {};
+        svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
+        svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
+        svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
+
+        svl.ui.tracker = {};
+        svl.ui.tracker.itemHolder = $("#tracked-items-holder");
+
+
+        svl.ui.task = {};
+        svl.ui.task.taskCompletionMessage = $("#task-completion-message-holder");
+
+        svl.ui.onboarding = {};
+        svl.ui.onboarding.holder = $("#onboarding-holder");
+        svl.ui.onboarding.messageHolder = $("#onboarding-message-holder");
+        svl.ui.onboarding.background = $("#onboarding-background");
+        svl.ui.onboarding.foreground = $("#onboarding-foreground");
+        svl.ui.onboarding.canvas = $("#onboarding-canvas");
+        svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
     function _init (params) {
