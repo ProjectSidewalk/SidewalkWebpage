@@ -88,8 +88,8 @@ function Onboarding ($, params) {
                 "message": {
                     "message": 'On this context menu, <span class="bold">you can rate the quality of the curb ramp, ' +
                     'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
-                    '<span class="bold">Let’s rate it as 1, passable.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -108,8 +108,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
-                    '<span class="bold">Let\s click "1" to set its quality.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let\s click "1" to set its quality.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -194,7 +194,8 @@ function Onboarding ($, params) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'Good! <span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "message": 'Good! <span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -213,8 +214,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
-                    '<span class="bold">Let\s click "1" to set its quality.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let\s click "1" to set its quality.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -284,7 +285,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Since there is one curb ramp right next to the ' +
-                    'missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 3.</span>',
+                    'missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 3.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -303,8 +305,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Hmm, this is a slightly severe problem. ' +
-                    '<span class="bold">Let\s click "3" to change the severity of the missing curb ramp.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let\s click "3" to change the severity of the missing curb ramp.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -397,7 +399,8 @@ function Onboarding ($, params) {
                     "severity": null
                 },
                 "message": {
-                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -416,8 +419,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                    '<span class="bold">Let\s click "1" to change its rating.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -486,7 +489,8 @@ function Onboarding ($, params) {
                     "severity": null
                 },
                 "message": {
-                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -505,8 +509,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                    '<span class="bold">Let\s click "1" to change its rating.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -675,7 +679,8 @@ function Onboarding ($, params) {
                     "severity": null
                 },
                 "message": {
-                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span>',
+                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -694,8 +699,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                    '<span class="bold">Let\s click "1" to change its rating.</span> ' +
-                    '[Add a GIF animation]',
+                    '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 0px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -729,7 +734,10 @@ function Onboarding ($, params) {
                 "message": {
                     "message": 'Great! You have already labeled the curb ramp at this corner from the previous angle, ' +
                     'so <span class="bold">you do not need to label it again!</span>',
-                    "position": "top-right",
+                    "position": function () {
+                        svl.compass.showMessage();
+                        return "top-right";
+                    },
                     "parameters": null
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
@@ -743,7 +751,7 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
-                    '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" alt="Navigation message: walk straight">) ' +
+                    '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.',
                     "position": "top-right",
                     "parameters": null
@@ -758,7 +766,7 @@ function Onboarding ($, params) {
                     "blinks": ["status-field"]
                 },
                 "message": {
-                    "message": 'Your progress will be tracked and shown on the right of the interface.',
+                    "message": 'Your progress will be tracked and shown on the right side of the interface.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -827,10 +835,10 @@ function Onboarding ($, params) {
         };
 
     function _init () {
-        // svl.compass.hideMessage();
         status.isOnboarding = true;
         svl.ui.onboarding.holder.css("visibility", "visible");
         svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
+        svl.compass.hideMessage();
         ctx = svl.ui.onboarding.canvas.get(0).getContext('2d');
         status.state = getState("initialize");
         visit(status.state);
@@ -1151,7 +1159,7 @@ function Onboarding ($, params) {
                 var i, len;
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.
-                    svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button'>OK</button>");
+                    svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
                 }
 
                 // Blink parts of the interface
