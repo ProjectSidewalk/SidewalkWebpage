@@ -2,13 +2,12 @@ var svl = svl || {};
 
 /**
  * Label Counter module. 
- * @param $
- * @param d3
+ * @param d3 d3 module
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function LabelCounter ($, d3) {
+function LabelCounter (d3) {
     var self = {className: 'LabelCounter'};
 
     var radius = 0.4, dR = radius / 2,
@@ -137,13 +136,19 @@ function LabelCounter ($, d3) {
       //  .attr("class", "visible");
     }
 
-    /** Set label counts to 0 */
+    /**
+     * Set label counts to 0
+     */
     function reset () {
         for (var key in dotPlots) {
             set(key, 0);
         }
     }
 
+    /**
+     * Update the label count visualization.
+     * @param key {string} Label type
+     */
     function update(key) {
         // If a key is given, udpate the dot plot for that specific data.
         // Otherwise update all.
@@ -245,8 +250,10 @@ function LabelCounter ($, d3) {
         }
     }
 
-
-    /**  Decrement the label count */
+    /**
+     * Decrement the label count
+     * @param key {string} Label type
+     */
     function decrement(key) {
         if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
@@ -254,7 +261,11 @@ function LabelCounter ($, d3) {
         }
         update(key);
     }
-    /** Increment the label count */
+
+    /**
+     * Increment the label count
+     * @param key {string} Label type
+     */
     function increment(key) {
         if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots) {
@@ -265,6 +276,8 @@ function LabelCounter ($, d3) {
 
     /**
      * Set the number of label count
+     * @param key {string} Label type
+     * @param num {number} Label type count
      */
     function set(key, num) {
         dotPlots[key].count = num;

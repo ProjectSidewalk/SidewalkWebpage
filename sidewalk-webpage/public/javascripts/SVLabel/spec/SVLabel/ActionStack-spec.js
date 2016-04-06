@@ -56,7 +56,7 @@ describe("The ActionStack module's basic API", function () {
       stack.pop();
       expect(0).toBe(stack.size());
     })
-  })
+  });
 
   describe("Test push", function () {
     it("Stack size should be 2", function() {
@@ -212,9 +212,4 @@ describe("The ActionStack module's basic API", function () {
       stack.unlockDisableUndo();
     });
   });
-
-
-
-
-
 });

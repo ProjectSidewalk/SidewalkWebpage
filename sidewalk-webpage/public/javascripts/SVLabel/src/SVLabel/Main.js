@@ -177,7 +177,7 @@ function Main ($, params) {
         svl.form = Form($, params.form);
         svl.overlayMessageBox = OverlayMessageBox($);
         svl.statusField = StatusField();
-        svl.labelCounter = LabelCounter($, d3);
+        svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);
         svl.popUpMessage = PopUpMessage($);

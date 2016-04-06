@@ -32,6 +32,18 @@ module.exports = function(grunt) {
                 dest: 'build/SVLabel.css'
             }
         },
+        jasmine: {
+            src: [
+                'src/SVLabel/*.js'
+            ],
+            options: {
+                specs: [
+                    'spec/SVLabel/*.js'
+                ],
+                helpers: 'spec/SpecHelper.js',
+                vendor: ['lib/jquery-2.1.4.min.js']
+            }
+        },
         jsdoc : {
             dist : {
                 src: 'src/SVLabel/*.js'
@@ -54,6 +66,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-jsdoc');
     grunt.loadNpmTasks('grunt-contrib-watch');
+    grunt.loadNpmTasks('grunt-contrib-jasmine');
 
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.

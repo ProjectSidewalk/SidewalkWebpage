@@ -2,7 +2,7 @@ var svl = svl || {};
 
 /**
  * A Keyboard module
- * @param $
+ * @param $ jQuery
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -142,7 +142,7 @@ function Keyboard ($) {
             }
         }
     }
-    
+
     /**
      * This is a callback function called when any of the text field is blurred.
      * @private
