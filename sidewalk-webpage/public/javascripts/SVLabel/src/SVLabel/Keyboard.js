@@ -46,6 +46,11 @@ function Keyboard ($) {
         $(document).bind('keydown', documentKeyDown);
     }
 
+    /**
+     * This is a callback for a key down event
+     * @param {object} e An event object
+     * @private
+     */
     function documentKeyDown(e) {
         // The callback method that is triggered with a keyUp event.
         if (!status.focusOnTextField) {
@@ -62,8 +67,9 @@ function Keyboard ($) {
     }
 
     /**
-     * This method is fired with keyup.
-     * @param e
+     * This is a callback for a key up event.
+     * @param {object} e An event object
+     * @private
      */
     function documentKeyUp (e) {
         // console.log(e.keyCode);
@@ -136,36 +142,60 @@ function Keyboard ($) {
             }
         }
     }
-
-
+    
+    /**
+     * This is a callback function called when any of the text field is blurred.
+     * @private
+     */
     function textFieldBlur () {
-        // This is a callback function called when any of the text field is blurred.
         status.focusOnTextField = false
     }
 
+    /**
+     * This is a callback function called when any of the text field is focused.
+     * @private
+     */
     function textFieldFocus () {
-        // This is a callback function called when any of the text field is focused.
         status.focusOnTextField = true;
     }
 
-    self.getStatus = function (key) {
+    /**
+     * Get status
+     * @param {string} key Field name
+     * @returns {*}
+     */
+    function getStatus (key) {
         if (!(key in status)) {
-          console.warn("You have passed an invalid key for status.")
+            console.warn("You have passed an invalid key for status.")
         }
         return status[key];
-    };
+    }
 
-    self.isShiftDown = function () {
-        // This method returns whether a shift key is currently pressed or not.
+    /**
+     * This method returns whether a shift key is currently pressed or not.
+     * @returns {boolean}
+     */
+    function isShiftDown () {
         return status.shiftDown;
-    };
+    }
 
-    self.setStatus = function (key, value) {
-      if (key in status) {
-        status[key] = value;
-      }
-      return this;
-    };
+    /**
+     * Set status
+     * @param key Field name
+     * @param value Field value
+     * @returns {setStatus}
+     */
+    function setStatus (key, value) {
+        if (key in status) {
+            status[key] = value;
+        }
+        return this;
+    }
+
+
+    self.getStatus = getStatus;
+    self.isShiftDown = isShiftDown;
+    self.setStatus = setStatus;
 
     init();
     return self;

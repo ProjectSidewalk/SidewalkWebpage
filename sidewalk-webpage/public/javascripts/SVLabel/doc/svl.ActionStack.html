@@ -29,10 +29,7 @@
 <header>
     
         <h2>
-            <span class="ancestors"><a href="svl.html">svl</a>.</span>
-        
-        ActionStack
-        </h2>
+            <span class="ancestors"><a href="svl.html">svl</a>.</span>ActionStack</h2>
         
     
 </header>
@@ -51,7 +48,7 @@
 
 
 <div class="description">
-    ActionStack keeps track of user's actions.
+    ActionStack keeps track of user's actions so you can undo/redo labeling.
 </div>
 
 
@@ -227,6 +224,1358 @@
     
 
     
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id="~blink"><span class="type-signature">(inner) </span>blink<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Blink undo and redo buttons
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line40">line 40</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~disableRedo"><span class="type-signature">(inner) </span>disableRedo<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Disable redo
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line52">line 52</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~disableUndo"><span class="type-signature">(inner) </span>disableUndo<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Disable undo
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line65">line 65</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~enableRedo"><span class="type-signature">(inner) </span>enableRedo<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Enable redo
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line78">line 78</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~enableUndo"><span class="type-signature">(inner) </span>enableUndo<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Enable undo
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line91">line 91</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~handleButtonRedoClick"><span class="type-signature">(inner) </span>handleButtonRedoClick<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    This is a callback for redo button click
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line108">line 108</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~handleButtonUndoClick"><span class="type-signature">(inner) </span>handleButtonUndoClick<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    This is a callback for undo button click
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line118">line 118</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~lockDisableRedo"><span class="type-signature">(inner) </span>lockDisableRedo<span class="signature">()</span><span class="type-signature"> &rarr; {lockDisableRedo}</span></h4>
+
+    
+
+
+
+<div class="description">
+    Lock disable redo
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line129">line 129</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">lockDisableRedo</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~lockDisableUndo"><span class="type-signature">(inner) </span>lockDisableUndo<span class="signature">()</span><span class="type-signature"> &rarr; {lockDisableUndo}</span></h4>
+
+    
+
+
+
+<div class="description">
+    Lock disable undo
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line138">line 138</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">lockDisableUndo</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~pop"><span class="type-signature">(inner) </span>pop<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Pop an action
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line146">line 146</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~push"><span class="type-signature">(inner) </span>push<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Push an action
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line158">line 158</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~redo"><span class="type-signature">(inner) </span>redo<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Redo an action
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line182">line 182</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~size"><span class="type-signature">(inner) </span>size<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    return the size of the stack
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line207">line 207</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~stopBlinking"><span class="type-signature">(inner) </span>stopBlinking<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Stop blinking undo and redo buttons
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line214">line 214</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~undo"><span class="type-signature">(inner) </span>undo<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Undo an action
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line221">line 221</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~updateOpacity"><span class="type-signature">(inner) </span>updateOpacity<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Change opacity
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ActionStack.js.html">ActionStack.js</a>, <a href="ActionStack.js.html#line255">line 255</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    
 
     
 
@@ -241,13 +1590,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="GoldenInsertion.html">GoldenInsertion</a></li><li><a href="ProgressFeedback.html">ProgressFeedback</a></li><li><a href="ProgressPov.html">ProgressPov</a></li><li><a href="svl.ActionStack.html">ActionStack</a></li><li><a href="svl.Canvas.html">Canvas</a></li><li><a href="svl.ExampleWindow.html">ExampleWindow</a></li><li><a href="svl.Form.html">Form</a></li><li><a href="svl.Keyboard.html">Keyboard</a></li><li><a href="svl.Label.html">Label</a></li><li><a href="svl.LabeledLandmarkFeedback.html">LabeledLandmarkFeedback</a></li><li><a href="svl.Main.html">Main</a></li><li><a href="svl.Map.html">Map</a></li><li><a href="svl.MessageBox.html">MessageBox</a></li><li><a href="svl.MissionDescription.html">MissionDescription</a></li><li><a href="svl.OverlayMessageBox.html">OverlayMessageBox</a></li><li><a href="svl.Path.html">Path</a></li><li><a href="svl.Point.html">Point</a></li><li><a href="svl.QualificationBadges.html">QualificationBadges</a></li><li><a href="svl.RibbonMenu.html">RibbonMenu</a></li><li><a href="svl.RightClickMenu.html">RightClickMenu</a></li><li><a href="svl.Tooltip.html">Tooltip</a></li><li><a href="svl.Tracker.html">Tracker</a></li><li><a href="svl.UI.html">UI</a></li><li><a href="svl.Validator.html">Validator</a></li><li><a href="svl.ValidatorForm.html">ValidatorForm</a></li><li><a href="svl.ZoomControl.html">ZoomControl</a></li></ul><h3>Namespaces</h3><ul><li><a href="svl.html">svl</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Mission.html">Mission</a></li><li><a href="MissionContainer.html">MissionContainer</a></li><li><a href="MissionFactory.html">MissionFactory</a></li><li><a href="MissionProgress.html">MissionProgress</a></li><li><a href="PointCloud.html">PointCloud</a></li><li><a href="svl.ActionStack.html">ActionStack</a></li><li><a href="svl.Canvas.html">Canvas</a></li><li><a href="svl.ExampleWindow.html">ExampleWindow</a></li><li><a href="svl.Form.html">Form</a></li><li><a href="svl.Keyboard.html">Keyboard</a></li><li><a href="svl.Label.html">Label</a></li><li><a href="svl.LabeledLandmarkFeedback.html">LabeledLandmarkFeedback</a></li><li><a href="svl.Main.html">Main</a></li><li><a href="svl.Map.html">Map</a></li><li><a href="svl.ModalSkip.html">ModalSkip</a></li><li><a href="svl.Mouse.html">Mouse</a></li><li><a href="svl.OverlayMessageBox.html">OverlayMessageBox</a></li><li><a href="svl.Path.html">Path</a></li><li><a href="svl.Point.html">Point</a></li><li><a href="svl.PopUpMessage.html">PopUpMessage</a></li><li><a href="svl.QualificationBadges.html">QualificationBadges</a></li><li><a href="svl.RibbonMenu.html">RibbonMenu</a></li><li><a href="svl.RightClickMenu.html">RightClickMenu</a></li><li><a href="svl.StatusMessage.html">StatusMessage</a></li><li><a href="svl.Task.html">Task</a></li><li><a href="svl.Tooltip.html">Tooltip</a></li><li><a href="svl.Tracker.html">Tracker</a></li><li><a href="svl.User.html">User</a></li><li><a href="svl.ZoomControl.html">ZoomControl</a></li></ul><h3>Namespaces</h3><ul><li><a href="svl.html">svl</a></li></ul><h3>Global</h3><ul><li><a href="global.html#getPanoId">getPanoId</a></li><li><a href="global.html#LabelContainer">LabelContainer</a></li><li><a href="global.html#LabelCounter">LabelCounter</a></li><li><a href="global.html#Storage">Storage</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.2</a> on Mon Jul 06 2015 00:17:33 GMT-0400 (EDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Wed Apr 06 2016 18:12:12 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

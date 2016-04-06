@@ -16,8 +16,7 @@ function Task (turf, geojson, currentLat, currentLng) {
         lat, lng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
-        status = {
-        };
+        status = { };
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -40,7 +39,7 @@ function Task (turf, geojson, currentLat, currentLng) {
 
             if (d1 > 10 && d2 > 10) {
                 // If the starting point of the task is far away, jump there.
-                svl.setPosition(lat1, lng1);
+                svl.map.setPosition(lat1, lng1);
             } else if (d2 < d1) {
                 // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                 geojson.features[0].geometry.coordinates.reverse();
@@ -51,7 +50,7 @@ function Task (turf, geojson, currentLat, currentLng) {
             lng = geojson.features[0].geometry.coordinates[0][0];
         } else {
             // Starting a new task.
-            svl.setPosition(lat1, lng1);
+            svl.map.setPosition(lat1, lng1);  // It is weird that the task has to set the position. 
             paths = null;
             lat = geojson.features[0].geometry.coordinates[0][1];
             lng = geojson.features[0].geometry.coordinates[0][0];
@@ -66,17 +65,28 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
-
+    /**
+     * Get geojson
+     * @returns {*}
+     */
     function getGeoJSON () { return _geojson; }
 
-    /** Get geometry */
-    function getGeometry () { return _geojson ? _geojson.features[0].geometry : null; }
+    /**
+     * Get geometry
+     * */
+    function getGeometry () {
+        return _geojson ? _geojson.features[0].geometry : null;
+    }
 
     /** Returns the street edge id of the current task. */
-    function getStreetEdgeId () { return _geojson.features[0].properties.street_edge_id; }
+    function getStreetEdgeId () {
+        return _geojson.features[0].properties.street_edge_id;
+    }
 
     /** Returns the task start time */
-    function getTaskStart () { return _geojson.features[0].properties.task_start; }
+    function getTaskStart () {
+        return _geojson.features[0].properties.task_start;
+    }
 
     /**
      * Get the cumulative distance
@@ -280,6 +290,8 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
+     * Render the task path on the Google Maps pane.
+     * Todo. This should be Map.js's responsibility.
      * Reference:
      * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
@@ -405,8 +417,6 @@ function TaskContainer (turf) {
         return this;
     }
 
-
-
     /** Check if the current task is the first task in this session */
     function isFirstTask () {
         return length() == 0;
@@ -415,7 +425,6 @@ function TaskContainer (turf) {
     function setCurrentTask (task) {
         currentTask = task;
     }
-
 
     /** End the current task */
     function endTask () {
@@ -506,8 +515,8 @@ function TaskContainer (turf) {
 
     function nextTask (task) {
         if (task) {
-            var streetEdgeId = task.getStreetEdgeId();
-            var _geojson = task.getGeoJSON();
+            var streetEdgeId = task.getStreetEdgeId(),
+                _geojson = task.getGeoJSON();
             // When the current street edge id is given (i.e., when you are simply walking around).
             var len = _geojson.features[0].geometry.coordinates.length - 1,
                 latEnd = _geojson.features[0].geometry.coordinates[len][1],

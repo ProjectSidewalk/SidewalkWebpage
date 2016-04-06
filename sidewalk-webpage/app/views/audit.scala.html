@@ -415,13 +415,20 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-md-8"></div>
-            <div class="col-md-2">
-                <button class="button" id="onboarding-ok-button">OK</button>
-            </div>
-            <div class="col-md-2">
-                <button class="button">Skip</button>
-            </div>
+            @if(user) {
+                <div class="col-md-10"></div>
+                <div class="col-md-2">
+                    <button class="button" id="onboarding-ok-button" value="OK">OK</button>
+                </div>
+            } else {
+                <div class="col-md-8"></div>
+                <div class="col-md-2">
+                    <button class="button" id="onboarding-ok-button" value="OK">OK</button>
+                </div>
+                <div class="col-md-2">
+                    <button class="button" value="Skip">Skip</button>
+                </div>
+            }
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">

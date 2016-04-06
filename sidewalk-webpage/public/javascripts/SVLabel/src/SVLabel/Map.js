@@ -988,6 +988,17 @@ function Map ($, params) {
     }
 
     /**
+     * Set map position
+     * @param lat
+     * @param lng
+     */
+    function setPosition (lat, lng) {
+        var latlng = new google.maps.LatLng(lat, lng);
+        svl.panorama.setPosition(latlng);
+        properties.map.setCenter(latlng);
+    }
+
+    /**
      * Stop blinking google maps
      */
     function stopBlinkingGoogleMaps () {
@@ -1369,6 +1380,7 @@ function Map ($, params) {
     self.setHeadingRange = setHeadingRange;
     self.setMode = setMode;
     self.setPitchRange = setPitchRange;
+    self.setPosition = setPosition;
     self.setPov = setPov;
     self.setStatus = setStatus;
     self.unlockDisableWalking = unlockDisableWalking;

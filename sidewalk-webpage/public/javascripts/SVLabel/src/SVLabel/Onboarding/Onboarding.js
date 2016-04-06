@@ -12,7 +12,9 @@ function Onboarding ($, params) {
                     "action": "Introduction",
                     "heading": 280,
                     "pitch": -6,
-                    "zoom": 1
+                    "zoom": 1,
+                    "lat": 38.94042608,
+                    "lng": -77.06766133
                 },
                 "message": {
                     "message": function () {
@@ -27,7 +29,9 @@ function Onboarding ($, params) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-1"
+                "transition": function () {
+                    return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
+                }
             },
             "select-label-type-1": {
                 "properties": {
@@ -734,15 +738,15 @@ function Onboarding ($, params) {
                 "message": {
                     "message": 'Great! You have already labeled the curb ramp at this corner from the previous angle, ' +
                     'so <span class="bold">you do not need to label it again!</span>',
-                    "position": function () {
-                        svl.compass.showMessage();
-                        return "top-right";
-                    },
+                    "position": "top-right",
                     "parameters": null
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-2"
+                "transition": function () {
+                    svl.compass.showMessage();
+                    return "instruction-2";
+                }
             },
             "instruction-2": {
                 "properties": {
@@ -928,7 +932,7 @@ function Onboarding ($, params) {
             status.state = getState(nextState);
             visit(status.state);
         } else {
-            throw "next state is not defined";
+            visit(null);
         }
     }
 
@@ -991,10 +995,15 @@ function Onboarding ($, params) {
      * @param state
      */
     function visit(state) {
-        var message, callback, annotationListener;
+        var i, len, message, callback, annotationListener;
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         hideMessage();
-        if (!state) return;
+        if (!state) {
+            // End of onboarding. Transition to the actual task.
+            svl.ui.onboarding.background.css("visibility", "hidden");
+            console.debug("Move on to the task.")
+            return;
+        }
 
         // Show user a message box.
         if ("message" in state && state.message) {
@@ -1003,7 +1012,7 @@ function Onboarding ($, params) {
 
         // Draw arrows to annotate target accessibility attributes
         if ("annotations" in state && state.annotations) {
-            var i, len, coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.getPOV(), drawAnnotations;
+            var coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.getPOV(), drawAnnotations;
             len = state.annotations.length;
 
             drawAnnotations = function () {
@@ -1053,17 +1062,18 @@ function Onboarding ($, params) {
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
                 var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom };
-
+                
                 // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
                 // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
                 // When they click OK, then the POV changes.
                 callback = function () {
                     svl.panorama.setPano(state.panoId);
                     google.maps.event.removeListener($target);
-                    $target = $("#onboarding-ok-button");
+                    $target = $("#onboarding-message-holder").find("button");
 
                     callback = function () {
                         svl.map.setPov(pov);
+                        svl.map.setPosition(state.properties.lat, state.properties.lng);
                         $target.off("click", callback);
                         removeAnnotationListener();
                         next.call(this, state.transition);
@@ -1146,7 +1156,7 @@ function Onboarding ($, params) {
                 callback = function () {
                     var panoId = svl.getPanoId();
                     if (state.properties.panoId == panoId) {
-                        svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
+                        window.setTimeout(function () { svl.map.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         next(state.transition);
@@ -1156,7 +1166,6 @@ function Onboarding ($, params) {
                 // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
                 $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
             } else if (state.properties.action == "Instruction") {
-                var i, len;
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.
                     svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");

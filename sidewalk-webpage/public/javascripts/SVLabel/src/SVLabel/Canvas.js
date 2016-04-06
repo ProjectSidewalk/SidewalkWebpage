@@ -235,7 +235,6 @@ function Canvas ($, param) {
                 svl.ribbon.backToWalk();
             }
         }
-
     }
 
     /**

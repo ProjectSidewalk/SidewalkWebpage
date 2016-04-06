@@ -348,7 +348,7 @@ function Form ($, params) {
 
     /**
      * Submit the data collected so far and move to another location.
-     * @param dataIn. An object which has fields "issue_description", "lat", and "lng." E.g., {issue_description: "IWantToExplore", lat: 38.908628, lng: -77.08022499999998}
+     * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {

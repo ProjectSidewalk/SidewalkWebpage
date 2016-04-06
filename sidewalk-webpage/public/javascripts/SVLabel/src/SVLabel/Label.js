@@ -66,25 +66,6 @@ function Label (pathIn, params) {
                 path = pathIn;
             }
 
-            //for (var attrName in properties) {
-            //    // It is ok if some attributes are not passed as parameters
-            //    if ((attrName === 'tagHeight' ||
-            //         attrName === 'tagWidth' ||
-            //         attrName === 'tagX' ||
-            //         attrName === 'tagY' ||
-            //         attrName === 'labelerId' ||
-            //         attrName === 'photographerPov' ||
-            //         attrName === 'photographerHeading' ||
-            //         attrName === 'photographerPitch' ||
-            //                attrName === 'distanceThreshold'
-            //        ) &&
-            //        !param[attrName]) {
-            //        continue;
-            //    }
-            //
-            //    properties[attrName] = param[attrName];
-            //}
-
             for (var attrName in param) {
                 properties[attrName] = param[attrName];
             }
@@ -819,7 +800,7 @@ function Label (pathIn, params) {
 
     /**
      * Get the label latlng position
-     * @returns {lat: labelLat, lng: labelLng}
+     * @returns {labelLatLng}
      */
     function toLatLng() {
         if (!properties.labelLat) {

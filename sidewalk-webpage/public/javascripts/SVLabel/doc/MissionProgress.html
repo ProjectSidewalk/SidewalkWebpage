@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Class: Keyboard</title>
+    <title>JSDoc: Class: MissionProgress</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Class: Keyboard</h1>
+    <h1 class="page-title">Class: MissionProgress</h1>
 
     
 
@@ -28,8 +28,7 @@
 
 <header>
     
-        <h2>
-            <span class="ancestors"><a href="svl.html">svl</a>.</span>Keyboard</h2>
+        <h2>MissionProgress</h2>
         
     
 </header>
@@ -41,66 +40,18 @@
 
     
 
-    <h4 class="name" id="Keyboard"><span class="type-signature"></span>new Keyboard<span class="signature">($)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id="MissionProgress"><span class="type-signature"></span>new MissionProgress<span class="signature">()</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
 
 
-<div class="description">
-    A Keyboard module
-</div>
 
 
 
 
 
 
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>$</code></td>
-            
-
-            <td class="type">
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -136,7 +87,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line10">line 10</a>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line8">line 8</a>
     </li></ul></dd>
     
 
@@ -203,14 +154,14 @@
 
     
 
-    <h4 class="name" id="~documentKeyDown"><span class="type-signature">(private, inner) </span>documentKeyDown<span class="signature">(e)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="~complete"><span class="type-signature">(inner) </span>complete<span class="signature">(mission)</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    This is a callback for a key down event
+    Finish the mission.
 </div>
 
 
@@ -246,15 +197,10 @@
 
         <tr>
             
-                <td class="name"><code>e</code></td>
+                <td class="name"><code>mission</code></td>
             
 
             <td class="type">
-            
-                
-<span class="param-type">object</span>
-
-
             
             </td>
 
@@ -262,7 +208,7 @@
 
             
 
-            <td class="description last">An event object</td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -303,7 +249,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line54">line 54</a>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line39">line 39</a>
     </li></ul></dd>
     
 
@@ -334,14 +280,14 @@
 
     
 
-    <h4 class="name" id="~documentKeyUp"><span class="type-signature">(private, inner) </span>documentKeyUp<span class="signature">(e)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="~printCompletionRate"><span class="type-signature">(inner) </span>printCompletionRate<span class="signature">()</span><span class="type-signature"> &rarr; {printCompletionRate}</span></h4>
 
     
 
 
 
 <div class="description">
-    This is a callback for a key up event.
+    This method prints what percent of the intersection the user has observed.
 </div>
 
 
@@ -350,55 +296,6 @@
 
 
 
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>e</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">An event object</td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -434,138 +331,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line74">line 74</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="~getStatus"><span class="type-signature">(inner) </span>getStatus<span class="signature">(key)</span><span class="type-signature"> &rarr; {*}</span></h4>
-
-    
-
-
-
-<div class="description">
-    Get status
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">Field name</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line167">line 167</a>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line51">line 51</a>
     </li></ul></dd>
     
 
@@ -599,7 +365,7 @@
     </dt>
     <dd>
         
-<span class="param-type">*</span>
+<span class="param-type">printCompletionRate</span>
 
 
     </dd>
@@ -614,114 +380,14 @@
 
     
 
-    <h4 class="name" id="~isShiftDown"><span class="type-signature">(inner) </span>isShiftDown<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    <h4 class="name" id="~showMissionCompleteWindow"><span class="type-signature">(inner) </span>showMissionCompleteWindow<span class="signature">(missions)</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    This method returns whether a shift key is currently pressed or not.
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line178">line 178</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">boolean</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="~setStatus"><span class="type-signature">(inner) </span>setStatus<span class="signature">(key, value)</span><span class="type-signature"> &rarr; {setStatus}</span></h4>
-
-    
-
-
-
-<div class="description">
-    Set status
+    Show a window saying the mission(s) is completed.
 </div>
 
 
@@ -757,7 +423,7 @@
 
         <tr>
             
-                <td class="name"><code>key</code></td>
+                <td class="name"><code>missions</code></td>
             
 
             <td class="type">
@@ -768,25 +434,7 @@
 
             
 
-            <td class="description last">Field name</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>value</code></td>
-            
-
-            <td class="type">
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">Field value</td>
+            <td class="description last">Completed missions</td>
         </tr>
 
     
@@ -827,7 +475,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line188">line 188</a>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line65">line 65</a>
     </li></ul></dd>
     
 
@@ -850,24 +498,6 @@
 
 
 
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">setStatus</span>
-
-
-    </dd>
-</dl>
-
-    
 
 
 
@@ -876,14 +506,136 @@
 
     
 
-    <h4 class="name" id="~textFieldBlur"><span class="type-signature">(private, inner) </span>textFieldBlur<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="~showNextMission"><span class="type-signature">(inner) </span>showNextMission<span class="signature">(mission)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>mission</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Next mission</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line93">line 93</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="~update"><span class="type-signature">(inner) </span>update<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    This is a callback function called when any of the text field is blurred.
+    This method updates the mission completion rate and its visualization.
 </div>
 
 
@@ -927,7 +679,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line150">line 150</a>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line107">line 107</a>
     </li></ul></dd>
     
 
@@ -958,14 +710,14 @@
 
     
 
-    <h4 class="name" id="~textFieldFocus"><span class="type-signature">(private, inner) </span>textFieldFocus<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="~updateMissionCompletionBar"><span class="type-signature">(inner) </span>updateMissionCompletionBar<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    This is a callback function called when any of the text field is focused.
+    This method updates the filler of the completion bar
 </div>
 
 
@@ -1009,7 +761,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="Keyboard.js.html">Keyboard.js</a>, <a href="Keyboard.js.html#line158">line 158</a>
+        <a href="MissionProgress.js.html">MissionProgress.js</a>, <a href="MissionProgress.js.html#line152">line 152</a>
     </li></ul></dd>
     
 

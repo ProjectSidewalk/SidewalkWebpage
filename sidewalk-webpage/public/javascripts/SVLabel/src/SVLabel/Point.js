@@ -5,7 +5,7 @@ var svl = svl || {};
  *
  * @param x x-coordinate of the point on a canvas
  * @param y y-coordinate of the point on a canvas
- * @param pov Point of view that looks like {heading: h, pitch: p, zoom: z}
+ * @param pov Point of view that looks like
  * @param params
  * @returns {{className: string, svImageCoordinate: undefined, canvasCoordinate: undefined, originalCanvasCoordinate: undefined, pov: undefined, originalPov: undefined}}
  * @constructor
