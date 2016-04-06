@@ -723,11 +723,28 @@ function Onboarding ($, params) {
             },
             "instruction-1": {
                 "properties": {
-                    "action": "Instruction"
+                    "action": "Instruction",
+                    "blinks": null
                 },
                 "message": {
                     "message": 'Great! You have already labeled the curb ramp at this corner from the previous angle, ' +
                     'so <span class="bold">you do not need to label it again!</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-2"
+            },
+            "instruction-2": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["google-maps", "compass"]
+                },
+                "message": {
+                    "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
+                    '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" alt="Navigation message: walk straight">) ' +
+                    'and the red line on the map.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -828,15 +845,26 @@ function Onboarding ($, params) {
         return this;
     }
 
+    /**
+     * Get a state
+     * @param stateIndex
+     * @returns {*}
+     */
     function getState(stateIndex) {
         return states[stateIndex];
     }
 
-
+    /**
+     * Hide the message box.
+     */
     function hideMessage () {
         if (svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.hide();
     }
 
+    /**
+     * Transition to the next state
+     * @param nextState
+     */
     function next (nextState) {
         if (typeof nextState == "function") {
             status.state = getState(nextState.call(this));
@@ -849,7 +877,10 @@ function Onboarding ($, params) {
         }
     }
 
-
+    /**
+     * Show a message box
+     * @param parameters
+     */
     function showMessage (parameters) {
         var message = parameters.message, position = parameters.position;
         if (!position) position = "top-right";
@@ -900,8 +931,12 @@ function Onboarding ($, params) {
         svl.ui.onboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
+    /**
+     * Execute an instruction based on the current state.
+     * @param state
+     */
     function visit(state) {
-        var action, message, callback, annotationListener;
+        var message, callback, annotationListener;
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         hideMessage();
         if (!state) return;
@@ -1066,16 +1101,37 @@ function Onboarding ($, params) {
                 // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
                 $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
             } else if (state.properties.action == "Instruction") {
+                var i, len;
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.
                     svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button'>OK</button>");
                 }
-                $target = $("#onboarding-ok-button");
 
+                // Blink parts of the interface
+                if ("blinks" in state.properties && state.properties.blinks) {
+                    len = state.properties.blinks.length;
+                    for (i = 0; i < len; i++) {
+                        switch (state.properties.blinks[i]) {
+                            case "google-maps":
+                                svl.map.blinkGoogleMaps();
+                                break;
+                            case "compass":
+                                svl.compass.blink();
+                                break;
+                        }
+                    }
+                }
+
+                $target = $("#onboarding-ok-button");
                 callback = function () {
                     $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
+
+                    if ("blinks" in state.properties && state.properties.blinks) {
+                        svl.map.stopBlinkingGoogleMaps();
+                        svl.compass.stopBlinking();
+                    }
                 };
                 $target.on("click", callback);
             }

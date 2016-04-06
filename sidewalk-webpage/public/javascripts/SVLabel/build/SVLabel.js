@@ -1979,6 +1979,7 @@ function Canvas ($, param) {
     }
 
     /**
+     * Lock disable label delete
      * @method
      */
     function lockDisableLabelDelete () {
@@ -1987,6 +1988,7 @@ function Canvas ($, param) {
     }
 
     /**
+     * Lock disable label edit
      * @method
      */
     function lockDisableLabelEdit () {
@@ -1995,6 +1997,7 @@ function Canvas ($, param) {
     }
 
     /**
+     * Lock disable labeling
      * @method
      */
     function lockDisableLabeling () {
@@ -2426,8 +2429,7 @@ function Canvas ($, param) {
 function Compass (d3) {
     "use strict";
     var self = { className : 'Compass' },
-        status = {},
-        properties = {};
+        blinkInterval;
 
     var imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
@@ -2458,6 +2460,88 @@ function Compass (d3) {
     }
 
     /**
+     * Mapping from an angle to a direction
+     * @param angle
+     * @returns {*}
+     */
+    function angleToDirection (angle) {
+        angle = (angle + 360) % 360;
+        if (angle < 20 || angle > 340)
+            return "straight";
+        else if (angle >= 20 && angle < 45)
+            return "slight-left";
+        else if (angle <= 340 && angle > 315)
+            return "slight-right";
+        else if (angle >= 35 && angle < 150)
+            return "left";
+        else if (angle <= 315 && angle > 210)
+            return "right";
+        else if (angle <= 210 && angle >= 150) {
+            return "u-turn";
+        }
+        else {
+            console.debug("It shouldn't reach here.");
+        }
+    }
+
+    /**
+     * Blink the compass message
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.compass.messageHolder.toggleClass("white-background-75");
+            svl.ui.compass.messageHolder.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Mapping from direction to a description of the direction
+     * @param direction
+     * @returns {*}
+     */
+    function directionToDirectionMessage(direction) {
+        switch (direction) {
+            case "straight":
+                return "Walk straight";
+            case "slight-right":
+                return "Turn slightly towards right";
+            case "slight-left":
+                return "Turn slightly towards left";
+            case "right":
+                return "Turn right";
+            case "left":
+                return "Turn left";
+            case "u-turn":
+                return "U turn";
+            default:
+        }
+    }
+
+    /**
+     * Mapping from a direction to an image path of direction icons.
+     * @param direction
+     * @returns {string|*}
+     */
+    function directionToImagePath(direction) {
+        switch (direction) {
+            case "straight":
+                return imageDirectories.straight;
+            case "slight-right":
+                return imageDirectories.slightRight;
+            case "slight-left":
+                return imageDirectories.slightLeft;
+            case "right":
+                return imageDirectories.rightTurn;
+            case "left":
+                return imageDirectories.leftTurn;
+            case "u-turn":
+                return imageDirectories.uTurn;
+            default:
+        }
+    }
+
+    /**
      * Get the angle to the next goal.
      * @returns {number}
      */
@@ -2484,9 +2568,48 @@ function Compass (d3) {
         return heading - targetAngle;
     }
 
-    /** Return the sum of square of lat and lng diffs */
+    /**
+     * Hide a message
+     */
+    function hideMessage () {
+        svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
+    }
+
+    /**
+     * Return the sum of square of lat and lng diffs
+     * */
     function norm (lat1, lng1, lat2, lng2) {
         return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
+    }
+
+    /**
+     * Set the compass message.
+     */
+    function setTurnMessage () {
+        var image, message,
+            angle = getCompassAngle(),
+            direction = angleToDirection(angle);
+
+        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
+        // message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        svl.ui.compass.message.html(message);
+    }
+
+    /**
+     * Show a message
+     */
+    function showMessage () {
+        svl.ui.compass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
+    }
+
+    /**
+     * Stop blinking the compass message.
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.compass.messageHolder.addClass("white-background-75");
+        svl.ui.compass.messageHolder.removeClass("highlight-50");
     }
 
     /**
@@ -2509,95 +2632,22 @@ function Compass (d3) {
         setTurnMessage();
     }
 
-    function angleToDirection (angle) {
-        angle = (angle + 360) % 360;
-        if (angle < 20 || angle > 340)
-            return "straight";
-        else if (angle >= 20 && angle < 45)
-            return "slight-left";
-        else if (angle <= 340 && angle > 315)
-            return "slight-right";
-        else if (angle >= 35 && angle < 150)
-            return "left";
-        else if (angle <= 315 && angle > 210)
-            return "right";
-        else if (angle <= 210 && angle >= 150) {
-            return "u-turn";
-        }
-        else {
-            console.debug("It shouldn't reach here.");
-        }
-    }
-
-    function directionToDirectionMessage(direction) {
-        switch (direction) {
-            case "straight":
-                return "Walk straight";
-            case "slight-right":
-                return "Turn slightly towards right";
-            case "slight-left":
-                return "Turn slightly towards left";
-            case "right":
-                return "Turn right";
-            case "left":
-                return "Turn left";
-            case "u-turn":
-                return "U turn";
-            default:
-        }
-    }
-
-    function directionToImagePath(direction) {
-        switch (direction) {
-            case "straight":
-                return imageDirectories.straight;
-            case "slight-right":
-                return imageDirectories.slightRight;
-            case "slight-left":
-                return imageDirectories.slightLeft;
-            case "right":
-                return imageDirectories.rightTurn;
-            case "left":
-                return imageDirectories.leftTurn;
-            case "u-turn":
-                return imageDirectories.uTurn;
-            default:
-        }
-    }
-
-    function setTurnMessage () {
-        var image, message,
-            angle = getCompassAngle(),
-            direction = angleToDirection(angle);
-
-        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        // message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
-        message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
-        setMessage(message);
-    }
-
-    function setMessage (message) {
-        svl.ui.compass.message.html(message);
-    }
-
-    function showMessage () {
-        svl.ui.compass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
-    }
-
-    function hideMessage () {
-       svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
-    }
-
+    /**
+     * Update the message
+     * @param streetName
+     */
     function updateMessage (streetName) {
         setTurnMessage(streetName);
     }
 
+    self.blink = blink;
     self.getCompassAngle = getCompassAngle;
-    self.update = update;
     self.hideMessage = hideMessage;
     self.showMessage = showMessage;
     self.setTurnMessage = setTurnMessage;
+    self.stopBlinking = stopBlinking;
     self.updateMessage = updateMessage;
+    self.update = update;
 
     _init();
     return self;
@@ -4928,7 +4978,7 @@ function Main ($, params) {
         svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
-        svl.ui.googleMaps.holder.append('<div id="google-maps" class="google-maps-pane" style=""></div><div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>')
+        svl.ui.googleMaps.overlay = $("#google-maps-overlay");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -5141,7 +5191,7 @@ var svl = svl || {};
 var panorama;
 svl.panorama = panorama;
 
-
+// Todo. Move some of these functions to util
 /** Helper functions */
 function getPanoId() {
     if (svl.panorama) {
@@ -5209,6 +5259,7 @@ function getLinks () {
 }
 svl.getLinks = getLinks;
 
+// Todo. Clean this up. Or rather, maybe I no longer need it???
 // Fog related variables.
 var fogMode = false;
 var fogSet = false;
@@ -5226,7 +5277,7 @@ var polys = [];
 
 
 /**
- * The Map module.
+ * The Map module. This module is responsible for the interaction with Street View and Google Maps.
  * @param params {object} Other parameters
  * @returns {{className: string}}
  * @constructor
@@ -5278,6 +5329,7 @@ function Map ($, params) {
     var panoramaOptions;
     var streetViewService = new google.maps.StreetViewService();
     var STREETVIEW_MAX_DISTANCE = 50;
+    var googleMapsPaneBlinkInterval;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -5446,7 +5498,6 @@ function Map ($, params) {
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
         google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
-//        google.maps.event.addListener(svl.panorama, "position_changed", handlerPovChange);
         google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
         google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
 
@@ -5468,7 +5519,7 @@ function Map ($, params) {
         fogParam.interval = setInterval(initFog, 250);
 
         // Hide the dude on the top-left of the map.
-        mapIconInterval = setInterval(removeIcon, 0.2);
+        mapIconInterval = setInterval(_removeIcon, 0.2);
 
         // For Internet Explore, append an extra canvas in viewControlLayer.
         properties.isInternetExplore = $.browser['msie'];
@@ -5477,17 +5528,44 @@ function Map ($, params) {
         }
     }
 
-    function removeIcon() {
-        var doms = $('.gmnoprint');
+    /**
+     * Remove icons on Google Maps
+     */
+    function _removeIcon() {
+        var doms = $('.gmnoprint'), $images;
         if (doms.length > 0) {
             window.clearInterval(mapIconInterval);
             $.each($('.gmnoprint'), function (i, v) {
-                var $images = $(v).find('img');
-                if ($images) {
-                    $images.css('visibility', 'hidden');
-                }
+                $images = $(v).find('img');
+                if ($images) $images.css('visibility', 'hidden');
             });
         }
+    }
+
+    /**
+     * Blink google maps pane
+     */
+    function blinkGoogleMaps () {
+        var highlighted = false;
+        stopBlinkingGoogleMaps();
+        googleMapsPaneBlinkInterval = window.setInterval(function () {
+            svl.ui.googleMaps.overlay.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * This function maps canvas coordinate to image coordinate
+     * @param canvasX
+     * @param canvasY
+     * @param pov
+     * @returns {{x: number, y: number}}
+     */
+    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
+        // return svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+        var zoomFactor = svl.zoomFactor[pov.zoom];
+        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+        return { x: x, y: y };
     }
 
     /**
@@ -5497,6 +5575,10 @@ function Map ($, params) {
         status.disableClickZoom = true;
     }
 
+    /**
+     * Disable panning on Street View
+     * @returns {disablePanning}
+     */
     function disablePanning () {
         if (!status.lockDisablePanning) {
             status.disablePanning = true;
@@ -5525,6 +5607,10 @@ function Map ($, params) {
         status.disableClickZoom = false;
     }
 
+    /**
+     * Enable panning on Street View
+     * @returns {enablePanning}
+     */
     function enablePanning () {
         if (!status.lockDisablePanning) {
             status.disablePanning = false;
@@ -5557,104 +5643,61 @@ function Map ($, params) {
     }
 
 
-    function getMap() { return properties.map; }
-    function getInitialPanoId () { return properties.initialPanoId; }
-    function getMaxPitch () { return properties.maxPitch; }
-    function getMinPitch () { return properties.minPitch; }
+    /**
+     * Get the initial panorama id.
+     * @returns {undefined|*}
+     */
+    function getInitialPanoId () {
+        return properties.initialPanoId;
+    }
+
+    /**
+     * Get the google map
+     * @returns {null}
+     */
+    function getMap() {
+        return properties.map;
+    }
+
+    /**
+     * Get the max pitch
+     * @returns {number}
+     */
+    function getMaxPitch () {
+        return properties.maxPitch;
+    }
+
+    /**
+     * Get the minimum pitch
+     * @returns {number|*}
+     */
+    function getMinPitch () {
+        return properties.minPitch;
+    }
+
+    /**
+     * Returns a panorama dom element that is dynamically created by GSV API
+     * @returns {*}
+     */
+    function getPanoramaLayer () {
+        return $divPano.children(':first').children(':first').children(':first').children(':eq(5)');
+    }
 
     /**
      * This method returns a value of a specified property.
      * @param prop
      * @returns {*}
      */
-    function getProperty (prop) { return (prop in properties) ? properties[prop] : false; }
-
-    /**
-     * Returns a panorama dom element that is dynamically created by GSV API
-     * @returns {*}
-     */
-    function getPanoramaLayer () { return $divPano.children(':first').children(':first').children(':first').children(':eq(5)'); }
+    function getProperty (prop) {
+        return (prop in properties) ? properties[prop] : false;
+    }
 
     /**
      * Get svg element (arrows) in Street View.
      * @returns {*}
      */
-    function getLinkLayer () { return $divPano.find('svg').parent(); }
-
-    /**
-     * This method hides links to neighboring Street View images by changing the
-     * svg path elements.
-     *
-     * @returns {hideLinks} This object.
-     */
-    function hideLinks () {
-        if (properties.browser === 'chrome') {
-            // Somehow chrome does not allow me to select path
-            // and fadeOut. Instead, I'm just manipulating path's style
-            // and making it hidden.
-            $('path').css('visibility', 'hidden');
-        } else {
-            // $('path').fadeOut(1000);
-            $('path').css('visibility', 'hidden');
-        }
-        return this;
-    }
-
-    /**
-     * Save
-     */
-    function save () {
-        svl.storage.set("map", {"pov": svl.getPOV(), "latlng": svl.getPosition(), "panoId": svl.getPanoId() });
-    }
-
-    /**
-     * Load
-     */
-    function load () { return svl.storage.get("map"); }
-
-    /**
-     * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
-     */
-    function makeLinksClickable () {
-        // Bring the layer with arrows forward.
-        var $links = getLinkLayer();
-        $divViewControlLayer.append($links);
-
-        if (properties.browser === 'mozilla') {
-            // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divViewControlLayer.append($canvas);
-        } else if (properties.browser === 'msie') {
-            $divViewControlLayer.insertBefore($divLabelDrawingLayer);
-        }
-    }
-
-    /**
-     * Initializes fog.
-     */
-    function initFog () {
-        // Initialize the fog on top of the map.
-        if (current) {
-            fogParam.center = current;
-            fogParam.radius = 200;
-
-            current = svl.panorama.getPosition();
-            svl.fog = new Fog(map, fogParam);
-            fogSet = true;
-            window.clearInterval(fogParam.interval);
-            fogUpdate();
-        }
-    }
-
-    /**
-     * Initailize Street View
-     */
-    function initStreetView () {
-        // Initialize the Street View interface
-        var numPath = $divViewControlLayer.find("path").length;
-        if (numPath !== 0) {
-            status.svLinkArrowsLoaded = true;
-            window.clearTimeout(_streetViewInit);
-        }
+    function getLinkLayer () {
+        return $divPano.find('svg').parent();
     }
 
     /**
@@ -5730,18 +5773,6 @@ function Map ($, params) {
         // This is a callback function that is fired when pov is changed
         if ("canvas" in svl && svl.canvas) { updateCanvas(); }
         if ("compass" in svl) { svl.compass.update(); }
-    }
-
-    /**
-     * Update the canvas
-     */
-    function updateCanvas () {
-        svl.canvas.clear();
-        if (status.currentPanoId !== svl.getPanoId()) {
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
-        }
-        status.currentPanoId = svl.getPanoId();
-        svl.canvas.render2();
     }
 
     /**
@@ -5875,12 +5906,12 @@ function Map ($, params) {
         mouseStatus.prevMouseUpTime = currTime;
     }
 
-    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        // return svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
-        var zoomFactor = svl.zoomFactor[pov.zoom];
-        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-        return { x: x, y: y };
+    /**
+     *
+     * @param e
+     */
+    function handlerViewControlLayerMouseLeave (e) {
+        mouseStatus.isLeftDown = false;
     }
 
     /**
@@ -5913,8 +5944,7 @@ function Map ($, params) {
             // $divViewControlLayer.css("cursor", "default");
         }
 
-        if (mouseStatus.isLeftDown &&
-            status.disablePanning === false) {
+        if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
@@ -5961,6 +5991,34 @@ function Map ($, params) {
         mouseStatus.prevY = mouseposition(e, this).y;
     }
 
+
+    /**
+     * This method hides links to neighboring Street View images by changing the
+     * svg path elements.
+     *
+     * @returns {hideLinks} This object.
+     */
+    function hideLinks () {
+        if (properties.browser === 'chrome') {
+            // Somehow chrome does not allow me to select path
+            // and fadeOut. Instead, I'm just manipulating path's style
+            // and making it hidden.
+            $('path').css('visibility', 'hidden');
+        } else {
+            // $('path').fadeOut(1000);
+            $('path').css('visibility', 'hidden');
+        }
+        return this;
+    }
+
+    /**
+     * This method takes an image coordinate and map it to the corresponding latlng position
+     * @param imageX image x coordinate
+     * @param imageY image y coordinate
+     * @param lat current latitude of where you are standing
+     * @param lng current longitude of where you are standing
+     * @returns {*}
+     */
     function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
         var pc = svl.pointCloud.getPointCloud(svl.getPanoId());
         if (pc) {
@@ -5975,15 +6033,46 @@ function Map ($, params) {
         }
     }
 
-
     /**
-     *
-     * @param e
+     * Initializes fog.
      */
-    function handlerViewControlLayerMouseLeave (e) {
-        mouseStatus.isLeftDown = false;
+    function initFog () {
+        // Initialize the fog on top of the map.
+        if (current) {
+            fogParam.center = current;
+            fogParam.radius = 200;
+
+            current = svl.panorama.getPosition();
+            svl.fog = new Fog(map, fogParam);
+            fogSet = true;
+            window.clearInterval(fogParam.interval);
+            fogUpdate();
+        }
     }
 
+    /**
+     * Initailize Street View
+     */
+    function initStreetView () {
+        // Initialize the Street View interface
+        var numPath = $divViewControlLayer.find("path").length;
+        if (numPath !== 0) {
+            status.svLinkArrowsLoaded = true;
+            window.clearTimeout(_streetViewInit);
+        }
+    }
+
+    /**
+     * Load the state of the map
+     */
+    function load () {
+        return svl.storage.get("map");
+    }
+
+    /**
+     * Lock disable panning
+     * @returns {lockDisablePanning}
+     */
     function lockDisablePanning () {
         status.lockDisablePanning = true;
         return this;
@@ -5998,9 +6087,38 @@ function Map ($, params) {
         return this;
     }
 
+    /** Lock render labreling */
     function lockRenderLabels () {
         lock.renderLabels = true;
         return this;
+    }
+
+    /**
+     * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
+     */
+    function makeLinksClickable () {
+        // Bring the layer with arrows forward.
+        var $links = getLinkLayer();
+        $divViewControlLayer.append($links);
+
+        if (properties.browser === 'mozilla') {
+            // A bug in Firefox? The canvas in the div element with the largest z-index.
+            $divViewControlLayer.append($canvas);
+        } else if (properties.browser === 'msie') {
+            $divViewControlLayer.insertBefore($divLabelDrawingLayer);
+        }
+    }
+
+    /**
+     *
+     */
+    function modeSwitchLabelClick () {
+        $divLabelDrawingLayer.css('z-index','1');
+        $divViewControlLayer.css('z-index', '0');
+        // $divStreetViewHolder.append($divLabelDrawingLayer);
+
+        if (properties.browser === 'mozilla') { $divLabelDrawingLayer.append($canvas); }
+        hideLinks();
     }
 
     /**
@@ -6016,17 +6134,6 @@ function Map ($, params) {
         }
     }
 
-    /**
-     *
-     */
-    function modeSwitchLabelClick () {
-        $divLabelDrawingLayer.css('z-index','1');
-        $divViewControlLayer.css('z-index', '0');
-        // $divStreetViewHolder.append($divLabelDrawingLayer);
-
-        if (properties.browser === 'mozilla') { $divLabelDrawingLayer.append($canvas); }
-        hideLinks();
-    }
 
     /**
      * Plot markers on the Google Maps pane
@@ -6060,6 +6167,33 @@ function Map ($, params) {
                 );
             }
         }
+    }
+
+    /**
+     * Save the state of the map
+     */
+    function save () {
+        svl.storage.set("map", {"pov": svl.getPOV(), "latlng": svl.getPosition(), "panoId": svl.getPanoId() });
+    }
+
+    /**
+     * Stop blinking google maps
+     */
+    function stopBlinkingGoogleMaps () {
+        window.clearInterval(googleMapsPaneBlinkInterval);
+        svl.ui.googleMaps.overlay.removeClass("highlight-50");
+    }
+
+    /**
+     * Update the canvas
+     */
+    function updateCanvas () {
+        svl.canvas.clear();
+        if (status.currentPanoId !== svl.getPanoId()) {
+            svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
+        }
+        status.currentPanoId = svl.getPanoId();
+        svl.canvas.render2();
     }
 
     /**
@@ -6201,7 +6335,15 @@ function Map ($, params) {
         return this;
     }
 
-    function setMode (modeIn) { properties.mode = modeIn; return this; }
+    /**
+     * Set mode.
+     * @param modeIn
+     * @returns {setMode}
+     */
+    function setMode (modeIn) {
+        properties.mode = modeIn;
+        return this;
+    }
 
     /**
      * This method sets the minimum and maximum pitch angle that users can adjust the Street View camera.
@@ -6214,9 +6356,17 @@ function Map ($, params) {
         return this;
     }
 
+    /**
+     * This method changes the Street View pov. If a transition duration is given, the function smoothly updates the
+     * pov over the time.
+     * @param pov Target pov
+     * @param duration Transition duration in milli-seconds
+     * @param callback Callback function executed after updating pov.
+     * @returns {setPov}
+     */
     function setPov (pov, duration, callback) {
         // Change the pov.
-        // If a transition duration is set, smoothly change the pov over the time specified (milli-sec)
+        //
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var end = false;
@@ -6343,6 +6493,9 @@ function Map ($, params) {
         return false;
     }
 
+    /**
+     * Show delete menu
+     */
     function showDeleteLabelMenu () {
         var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
         if (item && item.className === "Point") {
@@ -6353,21 +6506,35 @@ function Map ($, params) {
         }
     }
 
+    /**
+     * Unlock disable panning
+     * @returns {unlockDisablePanning}
+     */
     function unlockDisablePanning () {
         status.lockDisablePanning = false;
         return this;
     }
 
+    /**
+     * Unlock disable walking
+     * @returns {unlockDisableWalking}
+     */
     function unlockDisableWalking () {
         status.lockDisableWalking = false;
         return this;
     }
 
+    /**
+     * Unlock render lables
+     * @returns {unlockRenderLabels}
+     */
     function unlockRenderLabels () {
         lock.renderLabels = false;
         return this;
     }
 
+    self.blinkGoogleMaps = blinkGoogleMaps;
+    self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
     self.disableClickZoom = disableClickZoom;
@@ -14854,11 +15021,28 @@ function Onboarding ($, params) {
             },
             "instruction-1": {
                 "properties": {
-                    "action": "Instruction"
+                    "action": "Instruction",
+                    "blinks": null
                 },
                 "message": {
                     "message": 'Great! You have already labeled the curb ramp at this corner from the previous angle, ' +
                     'so <span class="bold">you do not need to label it again!</span>',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-2"
+            },
+            "instruction-2": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["google-maps", "compass"]
+                },
+                "message": {
+                    "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
+                    '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" alt="Navigation message: walk straight">) ' +
+                    'and the red line on the map.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -14959,15 +15143,26 @@ function Onboarding ($, params) {
         return this;
     }
 
+    /**
+     * Get a state
+     * @param stateIndex
+     * @returns {*}
+     */
     function getState(stateIndex) {
         return states[stateIndex];
     }
 
-
+    /**
+     * Hide the message box.
+     */
     function hideMessage () {
         if (svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.hide();
     }
 
+    /**
+     * Transition to the next state
+     * @param nextState
+     */
     function next (nextState) {
         if (typeof nextState == "function") {
             status.state = getState(nextState.call(this));
@@ -14980,7 +15175,10 @@ function Onboarding ($, params) {
         }
     }
 
-
+    /**
+     * Show a message box
+     * @param parameters
+     */
     function showMessage (parameters) {
         var message = parameters.message, position = parameters.position;
         if (!position) position = "top-right";
@@ -15031,8 +15229,12 @@ function Onboarding ($, params) {
         svl.ui.onboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
+    /**
+     * Execute an instruction based on the current state.
+     * @param state
+     */
     function visit(state) {
-        var action, message, callback, annotationListener;
+        var message, callback, annotationListener;
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         hideMessage();
         if (!state) return;
@@ -15197,16 +15399,37 @@ function Onboarding ($, params) {
                 // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
                 $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
             } else if (state.properties.action == "Instruction") {
+                var i, len;
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.
                     svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button'>OK</button>");
                 }
-                $target = $("#onboarding-ok-button");
 
+                // Blink parts of the interface
+                if ("blinks" in state.properties && state.properties.blinks) {
+                    len = state.properties.blinks.length;
+                    for (i = 0; i < len; i++) {
+                        switch (state.properties.blinks[i]) {
+                            case "google-maps":
+                                svl.map.blinkGoogleMaps();
+                                break;
+                            case "compass":
+                                svl.compass.blink();
+                                break;
+                        }
+                    }
+                }
+
+                $target = $("#onboarding-ok-button");
                 callback = function () {
                     $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
+
+                    if ("blinks" in state.properties && state.properties.blinks) {
+                        svl.map.stopBlinkingGoogleMaps();
+                        svl.compass.stopBlinking();
+                    }
                 };
                 $target.on("click", callback);
             }

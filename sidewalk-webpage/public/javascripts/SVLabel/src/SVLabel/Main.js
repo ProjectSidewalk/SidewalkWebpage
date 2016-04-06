@@ -43,7 +43,7 @@ function Main ($, params) {
         svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
-        svl.ui.googleMaps.holder.append('<div id="google-maps" class="google-maps-pane" style=""></div><div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>')
+        svl.ui.googleMaps.overlay = $("#google-maps-overlay");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};

@@ -12,31 +12,18 @@ text {
 .visible {
     visibility: visible;
 }
-/*
-#Footer {
-    position: absolute;
-    top: 100%;
-    width: 100%;
-}
 
-#FooterMessageBox {
-    background: rgba(0, 161, 203, 0.9);
-    color: white;
-    font-size: 12px;
-
-    position: absolute;
-    top:-20px;
-    height: 20px;
-    width: 100%;
-}
-
-#FooterMessage {
-    margin: 5px;
-}
-*/
 .highlight {
     color: orange;
     font-weight: bold;
+}
+
+.highlight-50 {
+    background: rgba(255, 255, 0, 0.5);
+}
+
+.white-background-75 {
+    background: rgba(255, 255, 255, 0.75);
 }
 
 .button {
@@ -556,7 +543,7 @@ input#Text_BusStopAbsenceOtherReason {
     position: absolute;
     right: -65px;
     top: 15px;
-    background: rgba(255, 255, 255, 0.75);
+    /*background: rgba(255, 255, 255, 0.75);*/
     padding: 10px 10px 10px 5px;
     height: 40px;
     min-width: 120px;

@@ -1,8 +1,7 @@
 function Compass (d3) {
     "use strict";
     var self = { className : 'Compass' },
-        status = {},
-        properties = {};
+        blinkInterval;
 
     var imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
@@ -33,6 +32,88 @@ function Compass (d3) {
     }
 
     /**
+     * Mapping from an angle to a direction
+     * @param angle
+     * @returns {*}
+     */
+    function angleToDirection (angle) {
+        angle = (angle + 360) % 360;
+        if (angle < 20 || angle > 340)
+            return "straight";
+        else if (angle >= 20 && angle < 45)
+            return "slight-left";
+        else if (angle <= 340 && angle > 315)
+            return "slight-right";
+        else if (angle >= 35 && angle < 150)
+            return "left";
+        else if (angle <= 315 && angle > 210)
+            return "right";
+        else if (angle <= 210 && angle >= 150) {
+            return "u-turn";
+        }
+        else {
+            console.debug("It shouldn't reach here.");
+        }
+    }
+
+    /**
+     * Blink the compass message
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.compass.messageHolder.toggleClass("white-background-75");
+            svl.ui.compass.messageHolder.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Mapping from direction to a description of the direction
+     * @param direction
+     * @returns {*}
+     */
+    function directionToDirectionMessage(direction) {
+        switch (direction) {
+            case "straight":
+                return "Walk straight";
+            case "slight-right":
+                return "Turn slightly towards right";
+            case "slight-left":
+                return "Turn slightly towards left";
+            case "right":
+                return "Turn right";
+            case "left":
+                return "Turn left";
+            case "u-turn":
+                return "U turn";
+            default:
+        }
+    }
+
+    /**
+     * Mapping from a direction to an image path of direction icons.
+     * @param direction
+     * @returns {string|*}
+     */
+    function directionToImagePath(direction) {
+        switch (direction) {
+            case "straight":
+                return imageDirectories.straight;
+            case "slight-right":
+                return imageDirectories.slightRight;
+            case "slight-left":
+                return imageDirectories.slightLeft;
+            case "right":
+                return imageDirectories.rightTurn;
+            case "left":
+                return imageDirectories.leftTurn;
+            case "u-turn":
+                return imageDirectories.uTurn;
+            default:
+        }
+    }
+
+    /**
      * Get the angle to the next goal.
      * @returns {number}
      */
@@ -59,9 +140,48 @@ function Compass (d3) {
         return heading - targetAngle;
     }
 
-    /** Return the sum of square of lat and lng diffs */
+    /**
+     * Hide a message
+     */
+    function hideMessage () {
+        svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
+    }
+
+    /**
+     * Return the sum of square of lat and lng diffs
+     * */
     function norm (lat1, lng1, lat2, lng2) {
         return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
+    }
+
+    /**
+     * Set the compass message.
+     */
+    function setTurnMessage () {
+        var image, message,
+            angle = getCompassAngle(),
+            direction = angleToDirection(angle);
+
+        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
+        // message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        svl.ui.compass.message.html(message);
+    }
+
+    /**
+     * Show a message
+     */
+    function showMessage () {
+        svl.ui.compass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
+    }
+
+    /**
+     * Stop blinking the compass message.
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.compass.messageHolder.addClass("white-background-75");
+        svl.ui.compass.messageHolder.removeClass("highlight-50");
     }
 
     /**
@@ -84,95 +204,22 @@ function Compass (d3) {
         setTurnMessage();
     }
 
-    function angleToDirection (angle) {
-        angle = (angle + 360) % 360;
-        if (angle < 20 || angle > 340)
-            return "straight";
-        else if (angle >= 20 && angle < 45)
-            return "slight-left";
-        else if (angle <= 340 && angle > 315)
-            return "slight-right";
-        else if (angle >= 35 && angle < 150)
-            return "left";
-        else if (angle <= 315 && angle > 210)
-            return "right";
-        else if (angle <= 210 && angle >= 150) {
-            return "u-turn";
-        }
-        else {
-            console.debug("It shouldn't reach here.");
-        }
-    }
-
-    function directionToDirectionMessage(direction) {
-        switch (direction) {
-            case "straight":
-                return "Walk straight";
-            case "slight-right":
-                return "Turn slightly towards right";
-            case "slight-left":
-                return "Turn slightly towards left";
-            case "right":
-                return "Turn right";
-            case "left":
-                return "Turn left";
-            case "u-turn":
-                return "U turn";
-            default:
-        }
-    }
-
-    function directionToImagePath(direction) {
-        switch (direction) {
-            case "straight":
-                return imageDirectories.straight;
-            case "slight-right":
-                return imageDirectories.slightRight;
-            case "slight-left":
-                return imageDirectories.slightLeft;
-            case "right":
-                return imageDirectories.rightTurn;
-            case "left":
-                return imageDirectories.leftTurn;
-            case "u-turn":
-                return imageDirectories.uTurn;
-            default:
-        }
-    }
-
-    function setTurnMessage () {
-        var image, message,
-            angle = getCompassAngle(),
-            direction = angleToDirection(angle);
-
-        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        // message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
-        message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
-        setMessage(message);
-    }
-
-    function setMessage (message) {
-        svl.ui.compass.message.html(message);
-    }
-
-    function showMessage () {
-        svl.ui.compass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
-    }
-
-    function hideMessage () {
-       svl.ui.compass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
-    }
-
+    /**
+     * Update the message
+     * @param streetName
+     */
     function updateMessage (streetName) {
         setTurnMessage(streetName);
     }
 
+    self.blink = blink;
     self.getCompassAngle = getCompassAngle;
-    self.update = update;
     self.hideMessage = hideMessage;
     self.showMessage = showMessage;
     self.setTurnMessage = setTurnMessage;
+    self.stopBlinking = stopBlinking;
     self.updateMessage = updateMessage;
+    self.update = update;
 
     _init();
     return self;

@@ -832,6 +832,7 @@ function Canvas ($, param) {
     }
 
     /**
+     * Lock disable label delete
      * @method
      */
     function lockDisableLabelDelete () {
@@ -840,6 +841,7 @@ function Canvas ($, param) {
     }
 
     /**
+     * Lock disable label edit
      * @method
      */
     function lockDisableLabelEdit () {
@@ -848,6 +850,7 @@ function Canvas ($, param) {
     }
 
     /**
+     * Lock disable labeling
      * @method
      */
     function lockDisableLabeling () {
