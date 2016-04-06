@@ -20,7 +20,7 @@ function Onboarding ($, params) {
                         },
                     "position": "center",
                     "width": 1000,
-                    "top": -10,
+                    "top": -50,
                     "padding": "100px 10px 100px 10px",
                     "left": -70,
                     "background": true
@@ -528,7 +528,6 @@ function Onboarding ($, params) {
                     "position": "top-left",
                     "parameters": null
                 },
-<<<<<<< Updated upstream
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
@@ -542,19 +541,6 @@ function Onboarding ($, params) {
                     }
                 ],
                 "transition": "label-attribute-6"
-=======
-                "panoId":"OgLbmLAuC4urfE5o7GP_JQ",
-                "annotations": [
-                    {
-                        "x": 1800,
-                        "y": -580,
-                        "length": 50,
-                        "angle": 120,
-                        "text": null,
-                        "fill": null
-                    }
-                ]
->>>>>>> Stashed changes
             },
             "label-attribute-6": {
                 "properties": {
@@ -641,7 +627,6 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-<<<<<<< Updated upstream
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": [
                     {
@@ -655,10 +640,6 @@ function Onboarding ($, params) {
                     }
                 ],
                 "transition": "label-attribute-7"
-=======
-                "panoId":"9xq0EwrjxGwQqNmzNaQTNA",
-                "annotations": []
->>>>>>> Stashed changes
             },
             "label-attribute-7": {
                 "properties": {
@@ -673,7 +654,6 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-<<<<<<< Updated upstream
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": [
                     {
@@ -687,10 +667,6 @@ function Onboarding ($, params) {
                     }
                 ],
                 "transition": "rate-severity-7"
-=======
-                "panoId":"9xq0EwrjxGwQqNmzNaQTNA",
-                "annotations": []
->>>>>>> Stashed changes
             },
             "rate-severity-7": {
                 "properties": {
@@ -703,17 +679,12 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-<<<<<<< Updated upstream
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
-=======
-                "panoId":"9xq0EwrjxGwQqNmzNaQTNA",
-                "annotations": null
->>>>>>> Stashed changes
             },
             "redo-rate-attribute-7": {
                 "properties": {
@@ -746,14 +717,9 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-<<<<<<< Updated upstream
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": "instruction-1"
-=======
-                "panoId":"9xq0EwrjxGwQqNmzNaQTNA",
-                "annotations": null
->>>>>>> Stashed changes
             },
             "instruction-1": {
                 "properties": {
@@ -766,7 +732,6 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-<<<<<<< Updated upstream
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": "instruction-2"
@@ -833,10 +798,6 @@ function Onboarding ($, params) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": "outro"
-=======
-                "panoId":"9xq0EwrjxGwQqNmzNaQTNA",
-                "annotations": null
->>>>>>> Stashed changes
             },
             "outro": {
                 "properties": {
@@ -1078,15 +1039,9 @@ function Onboarding ($, params) {
         function removeAnnotationListener () {
             if (annotationListener) google.maps.event.removeListener(annotationListener);
         }
-<<<<<<< Updated upstream
-        
+
         // Change behavior based on the current state.
         if ("properties" in state) {
-=======
-
-
-        if ("action" in state) {
->>>>>>> Stashed changes
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
                 var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom };
