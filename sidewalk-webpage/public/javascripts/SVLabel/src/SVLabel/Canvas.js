@@ -159,13 +159,13 @@ function Canvas ($, param) {
 
         var pathLen = tempPath.length,
             points = [],
-            pov = svl.getPOV();
+            pov = svl.map.getPov();
 
         for (var i = 0; i < pathLen; i++) {
             points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
-        var latlng = getPosition();
+        var latlng = svl.map.getPosition();
         var param = {
             canvasWidth: svl.canvasWidth,
             canvasHeight: svl.canvasHeight,
@@ -175,7 +175,7 @@ function Canvas ($, param) {
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             labelFillStyle: labelColor.fillStyle,
-            panoId: getPanoId(),
+            panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
             panoramaLng: latlng.lng,
             panoramaHeading: pov.heading,
@@ -301,7 +301,7 @@ function Canvas ($, param) {
             }
 
             clear();
-            setVisibilityBasedOnLocation('visible', getPanoId());
+            setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
             render2();
         } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
             if (properties.drawingMode == "path") {
@@ -313,7 +313,7 @@ function Canvas ($, param) {
 
                     closeLabelPath();
                     self.clear();
-                    self.setVisibilityBasedOnLocation('visible', getPanoId());
+                    self.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
                     self.render2();
                 }
             }
@@ -932,7 +932,7 @@ function Canvas ($, param) {
             NoCurbRamp: 0
         };
         status.totalLabelCount = 0;
-        var pov = svl.getPOV();
+        var pov = svl.map.getPov();
 
 
         var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;

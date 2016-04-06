@@ -126,7 +126,7 @@ function Compass (d3) {
      */
     function getTargetAngle () {
         var task = svl.taskContainer.getCurrentTask(),
-            latlng = svl.getPosition(),  // current position
+            latlng = svl.map.getPosition(),  // current position
             geometry = task.getGeometry(),  // get the street geometry of the current task
             coordinates = geometry.coordinates,  // get the latlng coordinates of the streets
             distArray = coordinates.map(function(o) { return Math.sqrt(norm(latlng.lat, latlng.lng, o[1], o[0])); }),
@@ -143,7 +143,7 @@ function Compass (d3) {
      * @returns {number}
      */
     function getCompassAngle () {
-        var heading = svl.getPOV().heading, targetAngle = getTargetAngle();
+        var heading = svl.map.getPov().heading, targetAngle = getTargetAngle();
         return heading - targetAngle;
     }
 

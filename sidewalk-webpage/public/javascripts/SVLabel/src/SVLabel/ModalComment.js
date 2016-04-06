@@ -116,10 +116,10 @@ function ModalComment ($) {
             var task = svl.taskContainer.getCurrentTask(),
                 streetEdgeId = task.getStreetEdgeId(),
                 gsvPanoramaId = svl.panorama.getPano(),
-                pov = svl.getPOV(),
+                pov = svl.map.getPov(),
                 comment = svl.ui.modalComment.textarea.val();
 
-            var latlng = svl.getPosition(),
+            var latlng = svl.map.getPosition(),
                 data = {
                     street_edge_id: streetEdgeId,
                     gsv_panorama_id: gsvPanoramaId,

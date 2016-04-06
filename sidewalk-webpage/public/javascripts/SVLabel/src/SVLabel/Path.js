@@ -87,7 +87,7 @@ function Path (points, params) {
      * @returns {{x: number, y: number, width: number, height: number}}
      */
     function getBoundingBox(povIn) {
-        var pov = povIn ? povIn : svl.getPOV();
+        var pov = povIn ? povIn : svl.map.getPov();
         var canvasCoords = getCanvasCoordinates(pov);
         var xMin, xMax, yMin, yMax, width, height;
         if (points.length > 2) {

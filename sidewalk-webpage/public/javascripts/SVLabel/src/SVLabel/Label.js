@@ -209,8 +209,7 @@ function Label (pathIn, params) {
      */
     function getCoordinate () {
         if (path && path.points.length > 0) {
-            //var pov = path.getPOV();
-            var pov = svl.getPOV();
+            var pov = svl.map.getPov();
             return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
         }
         return path;

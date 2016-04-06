@@ -44,7 +44,6 @@ function Task (turf, geojson, currentLat, currentLng) {
                 // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
                 geojson.features[0].geometry.coordinates.reverse();
             }
-            // svl.setPosition(lat1, lng1);
             paths = null;
             lat = geojson.features[0].geometry.coordinates[0][1];
             lng = geojson.features[0].geometry.coordinates[0][0];
@@ -57,7 +56,6 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
 
         render();
-
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
             svl.compass.showMessage();
@@ -101,7 +99,7 @@ function Task (turf, geojson, currentLat, currentLng) {
 
         var distance = svl.taskContainer.getCompletedTaskDistance(units);
 
-        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.map.getPosition(), lat = latlng.lat, lng = latlng.lng,
             line = _geojson.features[0],
             currentPoint = { "type": "Feature", "properties": {},
                 geometry: {
@@ -225,7 +223,7 @@ function Task (turf, geojson, currentLat, currentLng) {
      * http://turfjs.org/static/docs/module-turf_distance.html
      */
     function getTaskCompletionRate () {
-        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.getPosition(), lat = latlng.lat, lng = latlng.lng,
+        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.map.getPosition(), lat = latlng.lat, lng = latlng.lng,
             line = _geojson.features[0],
             currentPoint = { "type": "Feature", "properties": {},
                 geometry: {

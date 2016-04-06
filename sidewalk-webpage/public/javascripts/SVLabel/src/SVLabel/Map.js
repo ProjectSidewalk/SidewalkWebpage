@@ -1,95 +1,7 @@
-var svl = svl || {};
-var panorama;
-svl.panorama = panorama;
-
-// Todo. Move some of these functions to util
-/** Helper functions */
-function getPanoId() {
-    if (svl.panorama) {
-        var panoId = svl.panorama.getPano();
-        return panoId;
-    } else {
-        throw 'getPanoId() (in Map.js): panorama not defined.'
-    }
-}
-svl.getPanoId = getPanoId;
-
-
-function getPosition() {
-    if (svl.panorama) {
-        var pos = svl.panorama.getPosition();
-        if (pos) {
-            var ret = {
-                'lat' : pos.lat(),
-                'lng' : pos.lng()
-            };
-            return ret;
-        }
-    } else {
-        throw 'getPosition() (in Map.js): panorama not defined.';
-    }
-}
-svl.getPosition = getPosition;
-
-function setPosition(lat, lng) {
-    if (svl.panorama) {
-        var pos = new google.maps.LatLng(lat, lng);
-        svl.panorama.setPosition(pos);
-    }
-}
-svl.setPosition = setPosition;
-
-function getPOV() {
-    if (svl.panorama) {
-        var pov = svl.panorama.getPov();
-
-        // Pov can be less than 0. So adjust it.
-        while (pov.heading < 0) {
-            pov.heading += 360;
-        }
-
-        // Pov can be more than 360. Adjust it.
-        while (pov.heading > 360) {
-            pov.heading -= 360;
-        }
-        return pov;
-    } else {
-        throw 'getPOV() (in Map.js): panoarama not defined.';
-    }
-}
-svl.getPOV = getPOV;
-
-
-function getLinks () {
-    if (svl.panorama) {
-        var links = svl.panorama.getLinks();
-        return links;
-    } else {
-        throw 'getLinks() (in Map.js): panorama not defined.';
-    }
-}
-svl.getLinks = getLinks;
-
-// Todo. Clean this up. Or rather, maybe I no longer need it???
-// Fog related variables.
-var fogMode = false;
-var fogSet = false;
-var current;
-var first;
-var previousPoints = [];
-var radius = .1;
-var isNotfirst = 0;
-var paths;
-svl.fog = undefined;
-var au = [];
-var pty = [];
-//au = adjustFog(fog, current.lat(), current.lng(), radius);
-var polys = [];
-
-
 /**
  * The Map module. This module is responsible for the interaction with Street View and Google Maps.
- * @param params {object} Other parameters
+ * @param $ {object} jQuery object
+ * @param params {object} parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -157,10 +69,6 @@ function Map ($, params) {
 
     // Maps variables
     var fenway, map, mapOptions, mapStyleOptions;
-    var fogParam = {
-        interval: undefined,
-        ready: undefined
-    };
     var svgListenerAdded = false;
 
     // Street View variables
@@ -320,15 +228,6 @@ function Map ($, params) {
 
         _streetViewInit = setInterval(initStreetView, 100);
 
-        // Set the fog parameters
-        // Comment out to disable the fog feature.
-        if ("onboarding" in svl &&
-            svl.onboarding &&
-            svl.onboarding.className === "Onboarding_LabelingCurbRampsDifficultScene") { //"zoomViewAngles" in params) {
-            fogParam.zoomViewAngles = [Math.PI / 2, Math.PI / 4, Math.PI / 8];
-        }
-        fogParam.interval = setInterval(initFog, 250);
-
         // Hide the dude on the top-left of the map.
         mapIconInterval = setInterval(_removeIcon, 0.2);
 
@@ -443,17 +342,6 @@ function Map ($, params) {
         return this;
     }
 
-    function fogUpdate () {
-        var pov = svl.getPOV();
-
-        if (pov) {
-            var heading = pov.heading;
-            var dir = heading * (Math.PI / 180);
-            svl.fog.updateFromPOV(current, radius, dir, Math.PI/2);
-        }
-    }
-
-
     /**
      * Get the initial panorama id.
      * @returns {undefined|*}
@@ -495,6 +383,42 @@ function Map ($, params) {
     }
 
     /**
+     * Get the current panorama id.
+     * @returns {string} Google Street View panorama id
+     */
+    function getPanoId () {
+        return svl.panorama.getPano();
+    }
+
+    /**
+     * Get the current latlng coordinate
+     * @returns {{lat: number, lng: number}}
+     */
+    function getPosition () {
+        var pos = svl.panorama.getPosition();
+        return { 'lat' : pos.lat(), 'lng' : pos.lng() };
+    }
+
+    /**
+     * Get the current point of view
+     * @returns {object} pov
+     */
+    function getPov () {
+        var pov = svl.panorama.getPov();
+
+        // Pov can be less than 0. So adjust it.
+        while (pov.heading < 0) {
+            pov.heading += 360;
+        }
+
+        // Pov can be more than 360. Adjust it.
+        while (pov.heading > 360) {
+            pov.heading -= 360;
+        }
+        return pov;
+    }
+
+    /**
      * This method returns a value of a specified property.
      * @param prop
      * @returns {*}
@@ -522,18 +446,16 @@ function Map ($, params) {
 
             if (svl.canvas) {
                 svl.canvas.clear();
-                svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
+                svl.canvas.setVisibilityBasedOnLocation('visible', getPanoId());
                 svl.canvas.render2();
             }
 
-            if (fogSet) { fogUpdate(); }
-
             // Attach listeners to svl.pointCloud
             if ('pointCloud' in svl && svl.pointCloud) {
-                var panoId = svl.getPanoId();
+                var panoId = getPanoId();
                 var pointCloud = svl.pointCloud.getPointCloud(panoId);
                 if (!pointCloud) {
-                    svl.pointCloud.createPointCloud(svl.getPanoId());
+                    svl.pointCloud.createPointCloud(getPanoId());
                     // svl.pointCloud.ready(panoId, function () {
                         // console.log(svl.pointCloud.getPointCloud(panoId));
                     //});
@@ -666,7 +588,7 @@ function Map ($, params) {
             if (point && point.className === "Point") {
                 var path = point.belongsTo(),
                     selectedLabel = path.belongsTo(),
-                    canvasCoordinate = point.getCanvasCoordinate(svl.getPOV());
+                    canvasCoordinate = point.getCanvasCoordinate(getPov());
 
                 svl.canvas.setCurrentLabel(selectedLabel);
                 if ('contextMenu' in svl) {
@@ -693,8 +615,8 @@ function Map ($, params) {
                     }
                 } else {
                     if (!status.disableWalking) {
-                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, svl.getPOV());
-                        var latlng = svl.getPosition();
+                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov());
+                        var latlng = getPosition();
                         var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                         if (newLatlng) {
                             var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
@@ -702,8 +624,6 @@ function Map ($, params) {
                                 var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
                                 streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                     if (status === google.maps.StreetViewStatus.OK) {
-                                        //console.log(svl.getPanoId());
-                                        //console.log(streetViewPanoramaData.location.pano);
                                         svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                     }
                                 });
@@ -759,7 +679,7 @@ function Map ($, params) {
             // If a mouse is being dragged on the control layer, move the sv image.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
-            var pov = svl.getPOV();
+            var pov = getPov();
             var zoom = pov.zoom;
             var zoomLevel = svl.zoomFactor[zoom];
 
@@ -831,7 +751,7 @@ function Map ($, params) {
      * @returns {*}
      */
     function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
-        var pc = svl.pointCloud.getPointCloud(svl.getPanoId());
+        var pc = svl.pointCloud.getPointCloud(getPanoId());
         if (pc) {
             var p = svl.util.scaleImageCoordinate(imageX, imageY, 1 / 26),
                 idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
@@ -844,22 +764,7 @@ function Map ($, params) {
         }
     }
 
-    /**
-     * Initializes fog.
-     */
-    function initFog () {
-        // Initialize the fog on top of the map.
-        if (current) {
-            fogParam.center = current;
-            fogParam.radius = 200;
 
-            current = svl.panorama.getPosition();
-            svl.fog = new Fog(map, fogParam);
-            fogSet = true;
-            window.clearInterval(fogParam.interval);
-            fogUpdate();
-        }
-    }
 
     /**
      * Initailize Street View
@@ -984,7 +889,7 @@ function Map ($, params) {
      * Save the state of the map
      */
     function save () {
-        svl.storage.set("map", {"pov": svl.getPOV(), "latlng": svl.getPosition(), "panoId": svl.getPanoId() });
+        svl.storage.set("map", {"pov": getPov(), "latlng": getPosition(), "panoId": getPanoId() });
     }
 
     /**
@@ -996,6 +901,7 @@ function Map ($, params) {
         var latlng = new google.maps.LatLng(lat, lng);
         svl.panorama.setPosition(latlng);
         properties.map.setCenter(latlng);
+        return this;
     }
 
     /**
@@ -1011,10 +917,10 @@ function Map ($, params) {
      */
     function updateCanvas () {
         svl.canvas.clear();
-        if (status.currentPanoId !== svl.getPanoId()) {
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.getPanoId());
+        if (status.currentPanoId !== getPanoId()) {
+            svl.canvas.setVisibilityBasedOnLocation('visible', getPanoId());
         }
-        status.currentPanoId = svl.getPanoId();
+        status.currentPanoId = getPanoId();
         svl.canvas.render2();
     }
 
@@ -1367,7 +1273,10 @@ function Map ($, params) {
     self.getMap = getMap;
     self.getMaxPitch = getMaxPitch;
     self.getMinPitch = getMinPitch;
+    self.getPanoId = getPanoId;
     self.getProperty = getProperty;
+    self.getPosition = getPosition;
+    self.getPov = getPov;
     self.hideLinks = hideLinks;
     self.load = load;
     self.lockDisablePanning = lockDisablePanning;

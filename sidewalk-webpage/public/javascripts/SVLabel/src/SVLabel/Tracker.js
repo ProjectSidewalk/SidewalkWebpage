@@ -58,7 +58,7 @@ function Tracker () {
         // Initialize variables. Note you cannot get pov, panoid, or position
         // before the map and SV load.
         try {
-            pov = svl.getPOV();
+            pov = svl.map.getPov();
         } catch (err) {
             pov = {
                 heading: null,

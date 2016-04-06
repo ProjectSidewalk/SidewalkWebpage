@@ -1012,7 +1012,7 @@ function Onboarding ($, params) {
 
         // Draw arrows to annotate target accessibility attributes
         if ("annotations" in state && state.annotations) {
-            var coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.getPOV(), drawAnnotations;
+            var coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.map.getPov(), drawAnnotations;
             len = state.annotations.length;
 
             drawAnnotations = function () {
@@ -1020,7 +1020,7 @@ function Onboarding ($, params) {
                 for (i = 0; i < len; i++) {
                     imX = state.annotations[i].x;
                     imY = state.annotations[i].y;
-                    currentPOV = svl.getPOV();
+                    currentPOV = svl.map.getPov();
 
                     // Map an image coordinate to a canvas coordinate
                     if (currentPOV.heading < 180) {
@@ -1062,7 +1062,7 @@ function Onboarding ($, params) {
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
                 var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom };
-                
+
                 // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
                 // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
                 // When they click OK, then the POV changes.
@@ -1114,7 +1114,7 @@ function Onboarding ($, params) {
                 callback = function (e) {
                     // Check if the point that the user clicked is close enough to the given ground truth point.
                     var clickCoordinate = mouseposition(e, this),
-                        pov = svl.getPOV(),
+                        pov = svl.map.getPov(),
                         canvasX = clickCoordinate.x,
                         canvasY = clickCoordinate.y,
                         imageCoordinate = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
@@ -1141,7 +1141,7 @@ function Onboarding ($, params) {
                 // Tell them to remove a label.
                 showGrabAndDragAnimation({direction: "left-to-right"});
                 callback = function () {
-                    var pov = svl.getPOV();
+                    var pov = svl.map.getPov();
                     if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                         google.maps.event.removeListener($target);
                         removeAnnotationListener();
@@ -1154,7 +1154,7 @@ function Onboarding ($, params) {
             } else if (state.properties.action == "WalkTowards") {
                 svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
                 callback = function () {
-                    var panoId = svl.getPanoId();
+                    var panoId = svl.map.getPanoId();
                     if (state.properties.panoId == panoId) {
                         window.setTimeout(function () { svl.map.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
                         google.maps.event.removeListener($target);

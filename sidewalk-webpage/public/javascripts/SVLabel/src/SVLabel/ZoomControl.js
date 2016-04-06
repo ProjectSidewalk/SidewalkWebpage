@@ -286,7 +286,7 @@ function ZoomControl ($, param) {
     }
 
     function updateOpacity () {
-        var pov = svl.getPOV();
+        var pov = svl.map.getPov();
 
         if (pov) {
             var zoom = pov.zoom;
