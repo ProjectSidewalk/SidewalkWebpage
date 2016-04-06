@@ -11,7 +11,8 @@ function ModalSkip ($) {
     var self = { className : 'ModalSkip' },
         status = {
             disableClickOK: true
-        };
+        },
+        blinkInterval;
 
     function _init () {
         disableClickOK();
@@ -22,6 +23,20 @@ function ModalSkip ($) {
         svl.ui.leftColumn.jump.on('click', handleClickJump);
     }
 
+    /**
+     * Blink the jump button
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.jump.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Callback for clicking jump button
+     * @param e
+     */
     function handleClickJump (e) {
         e.preventDefault();
         svl.tracker.push('ModalSkip_ClickJump');
@@ -95,9 +110,16 @@ function ModalSkip ($) {
         status.disableClickOK = false;
     }
 
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.jump.removeClass("highlight-50");
+    }
+
     _init();
 
+    self.blink = blink;
     self.showSkipMenu = showSkipMenu;
     self.hideSkipMenu = hideSkipMenu;
+    self.stopBlinking = stopBlinking;
     return self;
 }

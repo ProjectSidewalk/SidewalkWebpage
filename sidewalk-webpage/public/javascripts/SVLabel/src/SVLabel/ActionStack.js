@@ -1,7 +1,7 @@
 var svl = svl || {};
 
 /**
- * ActionStack keeps track of user's actions.
+ * ActionStack keeps track of user's actions so you can undo/redo labeling.
  * @param {object} $ jQuery ojbect
  * @param {object} params Other parameters
  * @returns {{className: string}}
@@ -19,7 +19,8 @@ function ActionStack () {
             disableRedo : false,
             disableUndo : false
         },
-        actionStack = [];
+        actionStack = [],
+        blinkInterval;
 
 
     function init () {
@@ -28,27 +29,26 @@ function ActionStack () {
             svl.ui.actionStack.redo.css('opacity', 0.5);
             svl.ui.actionStack.undo.css('opacity', 0.5);
 
-            svl.ui.actionStack.redo.bind('click', buttonRedoClick);
-            svl.ui.actionStack.undo.bind('click', buttonUndoClick);
+            svl.ui.actionStack.redo.bind('click', handleButtonRedoClick);
+            svl.ui.actionStack.undo.bind('click', handleButtonUndoClick);
         }
     }
 
-
-    function buttonRedoClick () {
-        if (!status.disableRedo) {
-            svl.tracker.push('Click_Redo');
-            redo();
-        }
+    /**
+     * Blink undo and redo buttons
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.actionStack.redo.toggleClass("highlight-50");
+            svl.ui.actionStack.undo.toggleClass("highlight-50");
+        }, 500);
     }
 
-    function buttonUndoClick () {
-        if (!status.disableUndo) {
-            svl.tracker.push('Click_Undo');
-            undo();
-        }
-    }
 
-    /** Disable redo */
+    /**
+     * Disable redo
+     */
     function disableRedo () {
         if (!lock.disableRedo) {
             status.disableRedo = true;
@@ -102,11 +102,47 @@ function ActionStack () {
 
     function getStatus(key) { return (key in status) ? status[key] : null; }
 
-    function lockDisableRedo () { lock.disableRedo = true; return this; }
+    /**
+     * This is a callback for redo button click
+     */
+    function handleButtonRedoClick () {
+        if (!status.disableRedo) {
+            svl.tracker.push('Click_Redo');
+            redo();
+        }
+    }
 
-    function lockDisableUndo () { lock.disableUndo = true; return this; }
+    /**
+     * This is a callback for undo button click
+     */
+    function handleButtonUndoClick () {
+        if (!status.disableUndo) {
+            svl.tracker.push('Click_Undo');
+            undo();
+        }
+    }
 
-    /** Pop an action */
+    /**
+     * Lock disable redo
+     * @returns {lockDisableRedo}
+     */
+    function lockDisableRedo () {
+        lock.disableRedo = true;
+        return this;
+    }
+
+    /**
+     * Lock disable undo
+     * @returns {lockDisableUndo}
+     */
+    function lockDisableUndo () {
+        lock.disableUndo = true;
+        return this;
+    }
+
+    /**
+     * Pop an action
+     */
     function pop () {
         if (actionStack.length > 0) {
             status.actionStackCursor -= 1;
@@ -116,7 +152,9 @@ function ActionStack () {
     }
 
 
-    /** Push an action */
+    /**
+     * Push an action
+     */
     function push (action, label) {
         var availableActionList = ['addLabel', 'deleteLabel'];
         if (availableActionList.indexOf(action) === -1) {
@@ -138,7 +176,9 @@ function ActionStack () {
         return this;
     }
 
-    /** Redo an action */
+    /**
+     * Redo an action
+     */
     function redo () {
         if (!status.disableRedo) {
             if (actionStack.length > status.actionStackCursor) {
@@ -164,7 +204,18 @@ function ActionStack () {
     }
 
     /** return the size of the stack */
-    function size () { return actionStack.length; }
+    function size () {
+        return actionStack.length;
+    }
+
+    /**
+     * Stop blinking undo and redo buttons
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.actionStack.redo.removeClass("highlight-50");
+        svl.ui.actionStack.undo.removeClass("highlight-50");
+    }
 
     /** Undo an action */
     function undo () {
@@ -225,6 +276,7 @@ function ActionStack () {
         }
     }
 
+    self.blink = blink;
     self.disableRedo = disableRedo;
     self.disableUndo = disableUndo;
     self.enableRedo = enableRedo;
@@ -240,6 +292,7 @@ function ActionStack () {
     self.unlockDisableRedo = unlockDisableRedo;
     self.unlockDisableUndo = unlockDisableUndo;
     self.getLock = getLock;
+    self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
 
     init();

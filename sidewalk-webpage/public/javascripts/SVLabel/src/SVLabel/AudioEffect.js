@@ -8,12 +8,26 @@ function AudioEffect () {
         },
         status = {
             mute: false
-        };
+        },
+        blinkInterval;
 
     if (svl && 'ui' in svl) {
         svl.ui.leftColumn.sound.on('click', handleClickSound);
     }
 
+    /**
+     * Blink
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.sound.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Callback for button click
+     */
     function handleClickSound () {
         if (status.mute) {
             // Unmute
@@ -32,8 +46,19 @@ function AudioEffect () {
         }
     }
 
-    function mute () { status.mute = true; }
+    /**
+     * Mute
+     */
+    function mute () {
+        status.mute = true;
+    }
 
+
+    /**
+     * Play a sound effect
+     * @param name Name of the sound effect
+     * @returns {play}
+     */
     function play (name) {
         if (name in audios && !status.mute) {
             audios[name].play();
@@ -41,8 +66,23 @@ function AudioEffect () {
         return this;
     }
 
-    function unmute () { status.mute = false; }
+    /**
+     * Stop blinking the button
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.sound.removeClass("highlight-50");
+    }
 
+    /**
+     * Unmute
+     */
+    function unmute () {
+        status.mute = false;
+    }
+
+    self.blink = blink;
     self.play = play;
+    self.stopBlinking = stopBlinking;
     return self;
 }

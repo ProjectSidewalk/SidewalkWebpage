@@ -699,7 +699,7 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
@@ -745,6 +745,53 @@ function Onboarding ($, params) {
                     "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-3"
+            },
+            "instruction-3": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["status-field"]
+                },
+                "message": {
+                    "message": 'Your progress will be tracked and shown on the right of the interface.',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-4"
+            },
+            "instruction-4": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["zoom", "action-stack"]
+                },
+                "message": {
+                    "message": 'Other interface features include: <br>' +
+                    '<span class="bold">Zoom In/Out:</span> Zoom in or out the Street View image<br> ' +
+                    '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-5"
+            },
+            "instruction-5": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["sound", "jump", "feedback"]
+                },
+                "message": {
+                    "message": 'Other interface features include: <br>' +
+                    '<span class="bold">Sound:</span> Turn on/off the sound effects <br> ' +
+                    '<span class="bold">Jump:</span> Click if you want to audit a different street <br>' +
+                    '<span class="bold">Feedback:</span> Provide comments <br>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -1118,6 +1165,24 @@ function Onboarding ($, params) {
                             case "compass":
                                 svl.compass.blink();
                                 break;
+                            case "status-field":
+                                svl.statusField.blink();
+                                break;
+                            case "zoom":
+                                svl.zoomControl.blink();
+                                break;
+                            case "action-stack":
+                                svl.actionStack.blink();
+                                break;
+                            case "sound":
+                                svl.audioEffect.blink();
+                                break;
+                            case "jump":
+                                svl.modalSkip.blink();
+                                break;
+                            case "feedback":
+                                svl.modalComment.blink();
+                                break;
                         }
                     }
                 }
@@ -1126,12 +1191,19 @@ function Onboarding ($, params) {
                 callback = function () {
                     $target.off("click", callback);
                     removeAnnotationListener();
-                    next.call(this, state.transition);
 
                     if ("blinks" in state.properties && state.properties.blinks) {
                         svl.map.stopBlinkingGoogleMaps();
                         svl.compass.stopBlinking();
+                        svl.statusField.stopBlinking();
+                        svl.zoomControl.stopBlinking();
+                        svl.actionStack.stopBlinking();
+                        svl.audioEffect.stopBlinking();
+                        svl.modalSkip.stopBlinking();
+                        svl.modalComment.stopBlinking();
                     }
+
+                    next.call(this, state.transition);
                 };
                 $target.on("click", callback);
             }

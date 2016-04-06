@@ -45,6 +45,10 @@ function Main ($, params) {
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
 
+        // Status holder
+        svl.ui.status = {};
+        svl.ui.status.holder = $("#status-holder");
+
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
         svl.ui.statusMessage.holder = $("#current-status-holder");
@@ -172,6 +176,7 @@ function Main ($, params) {
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
         svl.overlayMessageBox = OverlayMessageBox($);
+        svl.statusField = StatusField();
         svl.labelCounter = LabelCounter($, d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);

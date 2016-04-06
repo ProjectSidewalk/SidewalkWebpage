@@ -851,7 +851,7 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
 var svl = svl || {};
 
 /**
- * ActionStack keeps track of user's actions.
+ * ActionStack keeps track of user's actions so you can undo/redo labeling.
  * @param {object} $ jQuery ojbect
  * @param {object} params Other parameters
  * @returns {{className: string}}
@@ -869,7 +869,8 @@ function ActionStack () {
             disableRedo : false,
             disableUndo : false
         },
-        actionStack = [];
+        actionStack = [],
+        blinkInterval;
 
 
     function init () {
@@ -878,27 +879,26 @@ function ActionStack () {
             svl.ui.actionStack.redo.css('opacity', 0.5);
             svl.ui.actionStack.undo.css('opacity', 0.5);
 
-            svl.ui.actionStack.redo.bind('click', buttonRedoClick);
-            svl.ui.actionStack.undo.bind('click', buttonUndoClick);
+            svl.ui.actionStack.redo.bind('click', handleButtonRedoClick);
+            svl.ui.actionStack.undo.bind('click', handleButtonUndoClick);
         }
     }
 
-
-    function buttonRedoClick () {
-        if (!status.disableRedo) {
-            svl.tracker.push('Click_Redo');
-            redo();
-        }
+    /**
+     * Blink undo and redo buttons
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.actionStack.redo.toggleClass("highlight-50");
+            svl.ui.actionStack.undo.toggleClass("highlight-50");
+        }, 500);
     }
 
-    function buttonUndoClick () {
-        if (!status.disableUndo) {
-            svl.tracker.push('Click_Undo');
-            undo();
-        }
-    }
 
-    /** Disable redo */
+    /**
+     * Disable redo
+     */
     function disableRedo () {
         if (!lock.disableRedo) {
             status.disableRedo = true;
@@ -952,11 +952,47 @@ function ActionStack () {
 
     function getStatus(key) { return (key in status) ? status[key] : null; }
 
-    function lockDisableRedo () { lock.disableRedo = true; return this; }
+    /**
+     * This is a callback for redo button click
+     */
+    function handleButtonRedoClick () {
+        if (!status.disableRedo) {
+            svl.tracker.push('Click_Redo');
+            redo();
+        }
+    }
 
-    function lockDisableUndo () { lock.disableUndo = true; return this; }
+    /**
+     * This is a callback for undo button click
+     */
+    function handleButtonUndoClick () {
+        if (!status.disableUndo) {
+            svl.tracker.push('Click_Undo');
+            undo();
+        }
+    }
 
-    /** Pop an action */
+    /**
+     * Lock disable redo
+     * @returns {lockDisableRedo}
+     */
+    function lockDisableRedo () {
+        lock.disableRedo = true;
+        return this;
+    }
+
+    /**
+     * Lock disable undo
+     * @returns {lockDisableUndo}
+     */
+    function lockDisableUndo () {
+        lock.disableUndo = true;
+        return this;
+    }
+
+    /**
+     * Pop an action
+     */
     function pop () {
         if (actionStack.length > 0) {
             status.actionStackCursor -= 1;
@@ -966,7 +1002,9 @@ function ActionStack () {
     }
 
 
-    /** Push an action */
+    /**
+     * Push an action
+     */
     function push (action, label) {
         var availableActionList = ['addLabel', 'deleteLabel'];
         if (availableActionList.indexOf(action) === -1) {
@@ -988,7 +1026,9 @@ function ActionStack () {
         return this;
     }
 
-    /** Redo an action */
+    /**
+     * Redo an action
+     */
     function redo () {
         if (!status.disableRedo) {
             if (actionStack.length > status.actionStackCursor) {
@@ -1014,7 +1054,18 @@ function ActionStack () {
     }
 
     /** return the size of the stack */
-    function size () { return actionStack.length; }
+    function size () {
+        return actionStack.length;
+    }
+
+    /**
+     * Stop blinking undo and redo buttons
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.actionStack.redo.removeClass("highlight-50");
+        svl.ui.actionStack.undo.removeClass("highlight-50");
+    }
 
     /** Undo an action */
     function undo () {
@@ -1075,6 +1126,7 @@ function ActionStack () {
         }
     }
 
+    self.blink = blink;
     self.disableRedo = disableRedo;
     self.disableUndo = disableUndo;
     self.enableRedo = enableRedo;
@@ -1090,6 +1142,7 @@ function ActionStack () {
     self.unlockDisableRedo = unlockDisableRedo;
     self.unlockDisableUndo = unlockDisableUndo;
     self.getLock = getLock;
+    self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
 
     init();
@@ -1107,12 +1160,26 @@ function AudioEffect () {
         },
         status = {
             mute: false
-        };
+        },
+        blinkInterval;
 
     if (svl && 'ui' in svl) {
         svl.ui.leftColumn.sound.on('click', handleClickSound);
     }
 
+    /**
+     * Blink
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.sound.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Callback for button click
+     */
     function handleClickSound () {
         if (status.mute) {
             // Unmute
@@ -1131,8 +1198,19 @@ function AudioEffect () {
         }
     }
 
-    function mute () { status.mute = true; }
+    /**
+     * Mute
+     */
+    function mute () {
+        status.mute = true;
+    }
 
+
+    /**
+     * Play a sound effect
+     * @param name Name of the sound effect
+     * @returns {play}
+     */
     function play (name) {
         if (name in audios && !status.mute) {
             audios[name].play();
@@ -1140,9 +1218,24 @@ function AudioEffect () {
         return this;
     }
 
-    function unmute () { status.mute = false; }
+    /**
+     * Stop blinking the button
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.sound.removeClass("highlight-50");
+    }
 
+    /**
+     * Unmute
+     */
+    function unmute () {
+        status.mute = false;
+    }
+
+    self.blink = blink;
     self.play = play;
+    self.stopBlinking = stopBlinking;
     return self;
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -4980,6 +5073,10 @@ function Main ($, params) {
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
 
+        // Status holder
+        svl.ui.status = {};
+        svl.ui.status.holder = $("#status-holder");
+
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
         svl.ui.statusMessage.holder = $("#current-status-holder");
@@ -5107,6 +5204,7 @@ function Main ($, params) {
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
         svl.overlayMessageBox = OverlayMessageBox($);
+        svl.statusField = StatusField();
         svl.labelCounter = LabelCounter($, d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);
@@ -7083,7 +7181,8 @@ function ModalComment ($) {
     var self = { className: 'ModalComment'},
         status = {
             disableClickOK: true
-        };
+        },
+        blinkInterval;
 
     function _init() {
         disableClickOK();
@@ -7096,6 +7195,20 @@ function ModalComment ($) {
         svl.ui.modalComment.textarea.on("input", handleTextareaChange);
     }
 
+    /**
+     * Blink the feedback button on the left
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.feedback.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * A callback function for clicking the feedback button on the left
+     * @param e
+     */
     function handleClickFeedback (e) {
         svl.tracker.push("ModalComment_ClickFeedback");
         showCommentMenu();
@@ -7127,8 +7240,9 @@ function ModalComment ($) {
     }
 
     function handleTextareaBlur() {
-        if ('ribbon' in svl) { svl.ribbon.enableModeSwitch(); }
-
+        if ('ribbon' in svl) {
+            svl.ribbon.enableModeSwitch();
+        }
     }
 
     function handleTextareaFocus() {
@@ -7158,6 +7272,17 @@ function ModalComment ($) {
         status.disableClickOK = false;
     }
 
+    /**
+     * Stop blinking the feedback button on the left column
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.feedback.removeClass("highlight-50");
+    }
+
+    /**
+     * Submit the comment
+     */
     function submitComment () {
         if ('task' in svl) {
             var task = svl.taskContainer.getCurrentTask(),
@@ -7197,6 +7322,10 @@ function ModalComment ($) {
     }
 
     _init();
+
+    self.blink = blink;
+    self.stopBlinking = stopBlinking;
+
     return self;
 }
 var svl = svl || {};
@@ -7306,7 +7435,8 @@ function ModalSkip ($) {
     var self = { className : 'ModalSkip' },
         status = {
             disableClickOK: true
-        };
+        },
+        blinkInterval;
 
     function _init () {
         disableClickOK();
@@ -7317,6 +7447,20 @@ function ModalSkip ($) {
         svl.ui.leftColumn.jump.on('click', handleClickJump);
     }
 
+    /**
+     * Blink the jump button
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.jump.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Callback for clicking jump button
+     * @param e
+     */
     function handleClickJump (e) {
         e.preventDefault();
         svl.tracker.push('ModalSkip_ClickJump');
@@ -7390,10 +7534,17 @@ function ModalSkip ($) {
         status.disableClickOK = false;
     }
 
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.jump.removeClass("highlight-50");
+    }
+
     _init();
 
+    self.blink = blink;
     self.showSkipMenu = showSkipMenu;
     self.hideSkipMenu = hideSkipMenu;
+    self.stopBlinking = stopBlinking;
     return self;
 }
 
@@ -8924,97 +9075,6 @@ function PopUpMessage ($, param) {
     return self;
 }
 
-//var svl = svl || {};
-//
-///**
-// *
-// * @param $
-// * @param params
-// * @returns {{className: string}}
-// * @constructor
-// */
-//function ProgressFeedback ($, params) {
-//    var self = { className : 'ProgressFeedback' };
-//    var properties = {
-//        progressBarWidth : undefined
-//    };
-//    var status = {
-//        progress : undefined
-//    };
-//
-//    // jQuery elements
-//    var $progressBarContainer;
-//    var $progressBarFilled;
-//    var $progressMessage;
-//
-//    function init (params) {
-//        $progressBarContainer = $("#ProgressBarContainer");
-//        $progressBarFilled = $("#ProgressBarFilled");
-//        $progressMessage = $("#Progress_Message");
-//
-//        properties.progressBarWidth = $progressBarContainer.width();
-//
-//        if (params && params.message) {
-//            self.setMessage(params.message);
-//        } else {
-//            self.setMessage('');
-//        }
-//
-//        self.setProgress(0);
-//    }
-//
-//
-//    self.setMessage = function (message) {
-//        // This function sets a message box in the feedback area.
-//        $progressMessage.html(message);
-//    };
-//
-//
-//    self.setProgress = function (progress) {
-//        // Check if the passed argument is a number. If not, try parsing it as a
-//        // float value. If it fails (if parseFloat returns NaN), then throw an error.
-//        if (typeof progress !== "number") {
-//            progress = parseFloat(progress);
-//        }
-//
-//        if (progress === NaN) {
-//            throw new TypeError(self.className + ': The passed value cannot be parsed.');
-//        }
-//
-//        if (progress > 1) {
-//            progress = 1.0;
-//            console.error(self.className + ': You can not pass a value larger than 1 to setProgress.');
-//        }
-//
-//        status.progress = progress;
-//
-//        if (properties.progressBarWidth) {
-//            var r;
-//            var g;
-//            var color;
-//
-//            if (progress < 0.5) {
-//                r = 255;
-//                g = parseInt(255 * progress * 2);
-//            } else {
-//                r = parseInt(255 * (1 - progress) * 2);
-//                g = 255;
-//            }
-//
-//            color = 'rgba(' + r + ',' + g + ',0,1)';
-//            $progressBarFilled.css({
-//                background: color,
-//                width: progress * properties.progressBarWidth
-//            });
-//        }
-//
-//        return this;
-//    };
-//
-//    init(params);
-//    return self;
-//}
-
 var svl = svl || {};
 
 /**
@@ -10289,6 +10349,30 @@ function RightClickMenu (params) {
 
 var svl = svl || {};
 
+function StatusField () {
+    var self = { className: "StatusField" },
+        blinkInterval;
+
+    // Blink the status field
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.status.holder.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    // Stop blinking
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.status.holder.removeClass("highlight-50");
+    }
+
+    self.blink = blink;
+    self.stopBlinking = stopBlinking;
+
+    return self;
+}
+
 /**
  * A MissionDescription module
  * @param $
@@ -10298,9 +10382,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function StatusMessage ($, params) {
-    var self = { className : 'StatusMessage' },
-        properties = {},
-        status = {};
+    var self = { className : 'StatusMessage' };
 
     function _init (params) {    }
 
@@ -12238,9 +12320,7 @@ var svl = svl || {};
  * @memberof svl
  */
 function ZoomControl ($, param) {
-    var self = {
-        'className' : 'ZoomControl'
-        },
+    var self = { 'className' : 'ZoomControl' },
         properties = {
             maxZoomLevel: 3,
             minZoomLevel: 1
@@ -12252,7 +12332,8 @@ function ZoomControl ($, param) {
         lock = {
             disableZoomIn: false,
             disableZoomOut: false
-        };
+        },
+        blinkInterval;
 
     // jQuery dom objects
     var $buttonZoomIn;
@@ -12266,102 +12347,20 @@ function ZoomControl ($, param) {
           $buttonZoomIn = svl.ui.zoomControl.zoomIn;
           $buttonZoomOut = svl.ui.zoomControl.zoomOut;
 
-          $buttonZoomIn.bind('click', buttonZoomInClick);
-          $buttonZoomOut.bind('click', buttonZoomOutClick);
+          $buttonZoomIn.bind('click', handleZoomInButtonClick);
+          $buttonZoomOut.bind('click', handleZoomOutButtonClick);
         }
     }
 
-
-    function buttonZoomInClick () {
-        // This is a callback function for zoom-in button. This function increments a sv zoom level.
-        if ('tracker' in svl) {
-          svl.tracker.push('Click_ZoomIn');
-        }
-
-        if (!status.disableZoomIn) {
-            var pov = svl.panorama.getPov();
-            setZoom(pov.zoom + 1);
-            svl.canvas.clear().render2();
-        }
-    }
-
-    function buttonZoomOutClick () {
-        // This is a callback function for zoom-out button. This function decrements a sv zoom level.
-        if ('traker' in svl) {
-          svl.tracker.push('Click_ZoomOut');
-        }
-
-        if (!status.disableZoomOut) {
-            var pov = svl.panorama.getPov();
-            setZoom(pov.zoom - 1);
-            svl.canvas.clear().render2();
-        }
-    }
-
-    function pointZoomIn (x, y) {
-        // This method takes a (x, y) canvas point and sets a zoom level.
-        if (!status.disableZoomIn) {
-            // Cancel drawing when zooming in or out.
-            if ('canvas' in svl) {
-              svl.canvas.cancelDrawing();
-            }
-            if ('panorama' in svl) {
-                var currentPov = svl.panorama.getPov();
-                var currentZoomLevel = currentPov.zoom;
-
-                if (currentZoomLevel >= properties.maxZoomLevel) {
-                    return false;
-                }
-
-                var width = svl.canvasWidth, height = svl.canvasHeight,
-                    minPitch = svl.map.getProperty('minPitch'), maxPitch = svl.map.getProperty('maxPitch');
-
-                var zoomFactor = currentZoomLevel; // This needs to be fixed as it wouldn't work above level 3.
-                var deltaHeading = (x - (width / 2)) / width * (90 / zoomFactor); // Ugh. Hard coding.
-                var deltaPitch = - (y - (height / 2)) / height * (70 / zoomFactor); // Ugh. Hard coding.
-
-                var pov = {};
-                pov.zoom = currentZoomLevel + 1;
-                pov.heading = currentPov.heading + deltaHeading;
-                pov.pitch = currentPov.pitch + deltaPitch;
-
-                // Adjust the pitch angle.
-                var maxPitch = svl.map.getMaxPitch();
-                var minPitch = svl.map.getMinPitch();
-                if (pov.pitch > maxPitch) {
-                    pov.pitch = maxPitch;
-                } else if (pov.pitch < minPitch) {
-                    pov.pitch = minPitch;
-                }
-
-                // Adjust the pitch so it won't exceed max/min pitch.
-                svl.panorama.setPov(pov);
-                return currentZoomLevel;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    /** This method sets the zoom level of the Street View. */
-    function setZoom (zoomLevelIn) {
-        if (typeof zoomLevelIn !== "number") { return false; }
-
-        // Cancel drawing when zooming in or out.
-        if ('canvas' in svl) { svl.canvas.cancelDrawing(); }
-
-        // Set the zoom level and change the panorama properties.
-        var zoomLevel = undefined;
-        zoomLevelIn = parseInt(zoomLevelIn);
-        if (zoomLevelIn < 1) {
-            zoomLevel = 1;
-        } else if (zoomLevelIn > properties.maxZoomLevel) {
-            zoomLevel = properties.maxZoomLevel;
-        } else {
-            zoomLevel = zoomLevelIn;
-        }
-        svl.panorama.setZoom(zoomLevel);
-        return zoomLevel;
+    /**
+     * Blink the zoom in and zoom-out buttons
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.zoomControl.zoomIn.toggleClass("highlight-50");
+            svl.ui.zoomControl.zoomOut.toggleClass("highlight-50");
+        }, 500);
     }
 
     /**
@@ -12370,7 +12369,6 @@ function ZoomControl ($, param) {
      * @returns {self}
      */
     function disableZoomIn () {
-        // Enable zoom in.
         if (!lock.disableZoomIn) {
             status.disableZoomIn = true;
             if ($buttonZoomIn) {
@@ -12380,7 +12378,9 @@ function ZoomControl ($, param) {
         return this;
     }
 
-    /** Enable zoom out */
+    /**
+     * Enable zoom out
+     */
     function disableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = true;
@@ -12391,7 +12391,9 @@ function ZoomControl ($, param) {
         return this;
     }
 
-    /** Enable zoom in */
+    /**
+     * Enable zoom in
+     */
     function enableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = false;
@@ -12402,7 +12404,9 @@ function ZoomControl ($, param) {
         return this;
     }
 
-    /** Enable zoom out */
+    /**
+     * Enable zoom out
+     */
     function enableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = false;
@@ -12413,6 +12417,11 @@ function ZoomControl ($, param) {
         return this;
     }
 
+    /**
+     * Get lock
+     * @param name
+     * @returns {*}
+     */
     function getLock (name) {
         if (name in lock) {
             return lock[name];
@@ -12421,7 +12430,11 @@ function ZoomControl ($, param) {
         }
     }
 
-
+    /**
+     * Get status
+     * @param name
+     * @returns {*}
+     */
     function getStatus (name) {
         if (name in status) {
             return status[name];
@@ -12451,6 +12464,138 @@ function ZoomControl ($, param) {
         return this;
     }
 
+    /**
+     * This is a callback function for zoom-in button. This function increments a sv zoom level.
+     */
+    function handleZoomInButtonClick () {
+        if ('tracker' in svl)  svl.tracker.push('Click_ZoomIn');
+
+        if (!status.disableZoomIn) {
+            var pov = svl.panorama.getPov();
+            setZoom(pov.zoom + 1);
+            svl.canvas.clear().render2();
+        }
+    }
+
+    /**
+     * This is a callback function for zoom-out button. This function decrements a sv zoom level.
+     */
+    function handleZoomOutButtonClick () {
+        if ('traker' in svl)  svl.tracker.push('Click_ZoomOut');
+
+        if (!status.disableZoomOut) {
+            var pov = svl.panorama.getPov();
+            setZoom(pov.zoom - 1);
+            svl.canvas.clear().render2();
+        }
+    }
+
+    /**
+     * This method takes a (x, y) canvas point and zoom in to that point.
+     * @param x canvaz x coordinate
+     * @param y canvas y coordinate
+     * @returns {*}
+     */
+    function pointZoomIn (x, y) {
+        if (!status.disableZoomIn) {
+            // Cancel drawing when zooming in or out.
+            if ('canvas' in svl) {
+              svl.canvas.cancelDrawing();
+            }
+            if ('panorama' in svl) {
+                var currentPov = svl.panorama.getPov(),
+                    currentZoomLevel = currentPov.zoom,
+                    width = svl.canvasWidth, height = svl.canvasHeight,
+                    minPitch, maxPitch,
+                    zoomFactor, deltaHeading, deltaPitch, pov = {};
+                if (currentZoomLevel >= properties.maxZoomLevel) return false;
+
+                zoomFactor = currentZoomLevel; // This needs to be fixed as it wouldn't work above level 3.
+                deltaHeading = (x - (width / 2)) / width * (90 / zoomFactor); // Ugh. Hard coding.
+                deltaPitch = - (y - (height / 2)) / height * (70 / zoomFactor); // Ugh. Hard coding.
+
+                pov.zoom = currentZoomLevel + 1;
+                pov.heading = currentPov.heading + deltaHeading;
+                pov.pitch = currentPov.pitch + deltaPitch;
+
+                // Adjust the pitch angle.
+                maxPitch = svl.map.getMaxPitch();
+                minPitch = svl.map.getMinPitch();
+                if (pov.pitch > maxPitch) {
+                    pov.pitch = maxPitch;
+                } else if (pov.pitch < minPitch) {
+                    pov.pitch = minPitch;
+                }
+
+                // Adjust the pitch so it won't exceed max/min pitch.
+                svl.panorama.setPov(pov);
+                return currentZoomLevel;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * This method sets the zoom level of the Street View.
+     */
+    function setZoom (zoomLevelIn) {
+        if (typeof zoomLevelIn !== "number") { return false; }
+
+        // Cancel drawing when zooming in or out.
+        if ('canvas' in svl) { svl.canvas.cancelDrawing(); }
+
+        // Set the zoom level and change the panorama properties.
+        var zoomLevel = undefined;
+        zoomLevelIn = parseInt(zoomLevelIn);
+        if (zoomLevelIn < 1) {
+            zoomLevel = 1;
+        } else if (zoomLevelIn > properties.maxZoomLevel) {
+            zoomLevel = properties.maxZoomLevel;
+        } else {
+            zoomLevel = zoomLevelIn;
+        }
+        svl.panorama.setZoom(zoomLevel);
+        return zoomLevel;
+    }
+
+    /**
+     * Stop blinking the zoom-in and zoom-out buttons
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.zoomControl.zoomIn.removeClass("highlight-50");
+        svl.ui.zoomControl.zoomOut.removeClass("highlight-50");
+    }
+
+
+
+    /**
+     * This method sets the maximum zoom level.
+     */
+    function setMaxZoomLevel (zoomLevel) {
+        properties.maxZoomLevel = zoomLevel;
+        return this;
+    }
+
+    /** This method sets the minimum zoom level. */
+    function setMinZoomLevel (zoomLevel) {
+        properties.minZoomLevel = zoomLevel;
+        return this;
+    }
+
+    /** Lock zoom in */
+    function unlockDisableZoomIn () {
+        lock.disableZoomIn = false;
+        return this;
+    }
+
+    /** Lock zoom out */
+    function unlockDisableZoomOut () {
+        lock.disableZoomOut = false;
+        return this;
+    }
+
     function updateOpacity () {
         var pov = svl.getPOV();
 
@@ -12472,30 +12617,6 @@ function ZoomControl ($, param) {
         // If zoom in and out are disabled, fade them out anyway.
         if (status.disableZoomIn) { $buttonZoomIn.css('opacity', 0.5); }
         if (status.disableZoomOut) { $buttonZoomOut.css('opacity', 0.5); }
-        return this;
-    }
-
-    /** This method sets the maximum zoom level. */
-    function setMaxZoomLevel (zoomLevel) {
-        properties.maxZoomLevel = zoomLevel;
-        return this;
-    }
-
-    /** This method sets the minimum zoom level. */
-    function setMinZoomLevel (zoomLevel) {
-        properties.minZoomLevel = zoomLevel;
-        return this;
-    }
-
-    /** Lock zoom in */
-    function unlockDisableZoomIn () {
-        lock.disableZoomIn = false;
-        return this;
-    }
-
-    /** Lock zoom out */
-    function unlockDisableZoomOut () {
-        lock.disableZoomOut = false;
         return this;
     }
 
@@ -12525,6 +12646,7 @@ function ZoomControl ($, param) {
         }
     }
 
+    self.blink = blink;
     self.disableZoomIn = disableZoomIn;
     self.disableZoomOut = disableZoomOut;
     self.enableZoomIn = enableZoomIn;
@@ -12534,6 +12656,7 @@ function ZoomControl ($, param) {
     self.getProperties = getProperty; // Todo. Change getProperties to getProperty.
     self.lockDisableZoomIn = lockDisableZoomIn;
     self.lockDisableZoomOut = lockDisableZoomOut;
+    self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
     self.pointZoomIn = pointZoomIn;
     self.setMaxZoomLevel = setMaxZoomLevel;
@@ -14997,7 +15120,7 @@ function Onboarding ($, params) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
@@ -15043,6 +15166,53 @@ function Onboarding ($, params) {
                     "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-3"
+            },
+            "instruction-3": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["status-field"]
+                },
+                "message": {
+                    "message": 'Your progress will be tracked and shown on the right of the interface.',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-4"
+            },
+            "instruction-4": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["zoom", "action-stack"]
+                },
+                "message": {
+                    "message": 'Other interface features include: <br>' +
+                    '<span class="bold">Zoom In/Out:</span> Zoom in or out the Street View image<br> ' +
+                    '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
+                    "position": "top-right",
+                    "parameters": null
+                },
+                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "annotations": null,
+                "transition": "instruction-5"
+            },
+            "instruction-5": {
+                "properties": {
+                    "action": "Instruction",
+                    "blinks": ["sound", "jump", "feedback"]
+                },
+                "message": {
+                    "message": 'Other interface features include: <br>' +
+                    '<span class="bold">Sound:</span> Turn on/off the sound effects <br> ' +
+                    '<span class="bold">Jump:</span> Click if you want to audit a different street <br>' +
+                    '<span class="bold">Feedback:</span> Provide comments <br>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -15416,6 +15586,24 @@ function Onboarding ($, params) {
                             case "compass":
                                 svl.compass.blink();
                                 break;
+                            case "status-field":
+                                svl.statusField.blink();
+                                break;
+                            case "zoom":
+                                svl.zoomControl.blink();
+                                break;
+                            case "action-stack":
+                                svl.actionStack.blink();
+                                break;
+                            case "sound":
+                                svl.audioEffect.blink();
+                                break;
+                            case "jump":
+                                svl.modalSkip.blink();
+                                break;
+                            case "feedback":
+                                svl.modalComment.blink();
+                                break;
                         }
                     }
                 }
@@ -15424,12 +15612,19 @@ function Onboarding ($, params) {
                 callback = function () {
                     $target.off("click", callback);
                     removeAnnotationListener();
-                    next.call(this, state.transition);
 
                     if ("blinks" in state.properties && state.properties.blinks) {
                         svl.map.stopBlinkingGoogleMaps();
                         svl.compass.stopBlinking();
+                        svl.statusField.stopBlinking();
+                        svl.zoomControl.stopBlinking();
+                        svl.actionStack.stopBlinking();
+                        svl.audioEffect.stopBlinking();
+                        svl.modalSkip.stopBlinking();
+                        svl.modalComment.stopBlinking();
                     }
+
+                    next.call(this, state.transition);
                 };
                 $target.on("click", callback);
             }

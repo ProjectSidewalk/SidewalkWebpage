@@ -2,7 +2,8 @@ function ModalComment ($) {
     var self = { className: 'ModalComment'},
         status = {
             disableClickOK: true
-        };
+        },
+        blinkInterval;
 
     function _init() {
         disableClickOK();
@@ -15,6 +16,20 @@ function ModalComment ($) {
         svl.ui.modalComment.textarea.on("input", handleTextareaChange);
     }
 
+    /**
+     * Blink the feedback button on the left
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.feedback.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * A callback function for clicking the feedback button on the left
+     * @param e
+     */
     function handleClickFeedback (e) {
         svl.tracker.push("ModalComment_ClickFeedback");
         showCommentMenu();
@@ -46,8 +61,9 @@ function ModalComment ($) {
     }
 
     function handleTextareaBlur() {
-        if ('ribbon' in svl) { svl.ribbon.enableModeSwitch(); }
-
+        if ('ribbon' in svl) {
+            svl.ribbon.enableModeSwitch();
+        }
     }
 
     function handleTextareaFocus() {
@@ -77,6 +93,17 @@ function ModalComment ($) {
         status.disableClickOK = false;
     }
 
+    /**
+     * Stop blinking the feedback button on the left column
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.feedback.removeClass("highlight-50");
+    }
+
+    /**
+     * Submit the comment
+     */
     function submitComment () {
         if ('task' in svl) {
             var task = svl.taskContainer.getCurrentTask(),
@@ -116,5 +143,9 @@ function ModalComment ($) {
     }
 
     _init();
+
+    self.blink = blink;
+    self.stopBlinking = stopBlinking;
+
     return self;
 }

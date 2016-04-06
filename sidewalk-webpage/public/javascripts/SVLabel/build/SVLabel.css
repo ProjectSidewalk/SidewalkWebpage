@@ -19,7 +19,7 @@ text {
 }
 
 .highlight-50 {
-    background: rgba(255, 255, 0, 0.5);
+    background: rgba(255, 255, 0, 0.5) !important;
 }
 
 .white-background-75 {
@@ -147,7 +147,7 @@ input[type="radio"] {
     left: 600px;
     top: 54px;
     height: 50px;
-    width: 160px;
+    width: 135px;
 }
 
 .action-stack-button {
@@ -1450,7 +1450,7 @@ footer {
     left: 735px;
     top: 0;
     width: 200px;
-    height: 370px;
+    height: 280px;
     color: rgb(127, 127, 127);
 
 }
