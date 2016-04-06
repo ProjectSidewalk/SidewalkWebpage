@@ -1,3 +1,10 @@
+/**
+ * Compass module
+ * @param d3 d3 module
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function Compass (d3) {
     "use strict";
     var self = { className : 'Compass' },

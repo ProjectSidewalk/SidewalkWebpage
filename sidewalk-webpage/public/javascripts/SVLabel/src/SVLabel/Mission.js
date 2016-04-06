@@ -3,6 +3,7 @@
  * @param parameters
  * @returns {{className: string}}
  * @constructor
+ * @memberof svl
  */
 function Mission(parameters) {
     var self = { className: "Mission" },
@@ -146,6 +147,7 @@ function Mission(parameters) {
  * @param parameters
  * @returns {{className: string}}
  * @constructor
+ * @memberof svl
  */
 function MissionContainer ($, parameters) {
     var self = { className: "MissionContainer" },
@@ -307,6 +309,7 @@ function MissionContainer ($, parameters) {
  * @param parameters
  * @returns {{className: string}}
  * @constructor
+ * @memberof svl
  */
 function MissionFactory (parameters) {
     var self = { className: "MissionFactory"};

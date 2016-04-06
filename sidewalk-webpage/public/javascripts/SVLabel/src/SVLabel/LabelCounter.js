@@ -1,7 +1,12 @@
 var svl = svl || {};
 
 /**
- * LabelCounter class constructor
+ * Label Counter module. 
+ * @param $
+ * @param d3
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
  */
 function LabelCounter ($, d3) {
     var self = {className: 'LabelCounter'};

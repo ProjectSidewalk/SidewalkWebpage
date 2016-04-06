@@ -1,9 +1,10 @@
 var svl = svl || {};
 
 /**
- *
+ * MissionProgress module.
  * @returns {{className: string}}
  * @constructor
+ * @memberof svl
  */
 function MissionProgress () {
     var self = { className: 'MissionProgress' };

@@ -1,8 +1,13 @@
 var svl = svl || {};
 
+
 /**
- * @memberof svl
+ * Example window module
+ * @param $
+ * @param params
+ * @returns {{className: string}}
  * @constructor
+ * @memberof svl
  */
 function ExampleWindow ($, params) {
     var self = { className : 'ExampleWindow'},
@@ -23,9 +28,7 @@ function ExampleWindow ($, params) {
     var $divExampleAwayFromCurb;
     var exampleWindows = {};
 
-    ////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////
+
     function init (params) {
         // Initialize jQuery elements
         $divHolderExampleWindow = $(params.domIds.holder);
@@ -113,10 +116,7 @@ function ExampleWindow ($, params) {
 
         return this;
     };
-
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
+    
     init(params);
     return self;
 }

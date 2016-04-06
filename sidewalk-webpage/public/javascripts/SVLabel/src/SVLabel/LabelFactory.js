@@ -1,3 +1,9 @@
+/**
+ * LabelFactory module.
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function LabelFactory () {
     var self = { className: "LabelFactory" },
         temporaryLabelId = 1;

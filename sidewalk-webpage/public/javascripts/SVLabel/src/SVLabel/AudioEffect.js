@@ -1,3 +1,9 @@
+/**
+ * Audio Effect module.
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function AudioEffect () {
     var self = { className: 'AudioEffect' },
         audios = {

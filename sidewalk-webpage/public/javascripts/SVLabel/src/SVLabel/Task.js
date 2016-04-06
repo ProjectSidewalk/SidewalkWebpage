@@ -1,7 +1,7 @@
 var svl = svl || {};
 
 /**
- * Task constructor
+ * Task module.
  * @param turf
  * @param geojson
  * @param currentLat
@@ -354,6 +354,13 @@ function Task (turf, geojson, currentLat, currentLng) {
     return self;
 }
 
+/**
+ * TaskContainer module.
+ * @param turf
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function TaskContainer (turf) {
     var self = { className: "TaskContainer"},
         previousTasks = [],
@@ -596,6 +603,13 @@ function TaskContainer (turf) {
     return self;
 }
 
+/**
+ * TaskFactory module
+ * @param turf
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function TaskFactory (turf) {
     var self = { className: "TaskFactory" };
 

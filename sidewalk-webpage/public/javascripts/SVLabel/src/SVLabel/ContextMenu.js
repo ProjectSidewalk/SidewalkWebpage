@@ -1,3 +1,10 @@
+/**
+ * ContextMenu module
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function ContextMenu ($) {
     var self = { className: "ContextMenu" },
         status = {

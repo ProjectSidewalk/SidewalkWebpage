@@ -1,3 +1,10 @@
+/**
+ * ModalComment module.
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function ModalComment ($) {
     var self = { className: 'ModalComment'},
         status = {

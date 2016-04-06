@@ -1,5 +1,11 @@
 var svl = svl || {};
 
+/**
+ *
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function StatusField () {
     var self = { className: "StatusField" },
         blinkInterval;

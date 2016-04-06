@@ -9,76 +9,68 @@ var svl = svl || {};
  * @memberof svl
  */
 function OverlayMessageBox ($, params) {
-    var self = {
-            'className' : 'OverlayMessageBox'
-        };
-    var properties = {
-            'visibility' : 'visible'
-        };
-    var status = {};
+    var self = { 'className' : 'OverlayMessageBox' },
+        properties = { 'visibility' : 'visible' };
 
-    var $divOverlayMessage;
-    var $divOverlayMessageBox;
-
-    ////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////
     function init() {
-        // Initialization function.
         if (svl.ui && svl.ui.overlayMessage) {
-          $divOverlayMessage = svl.ui.overlayMessage.message;
-          $divOverlayMessageBox = svl.ui.overlayMessage.box;
-
-          self.setMessage('Walk');
+          setMessage('Walk');
         }
 
     }
 
-    ////////////////////////////////////////
-    // Public functions
-    ////////////////////////////////////////
-    self.setMessage = function (mode, message) {
+    /**
+     * Set the message in the overlay box
+     * @param mode
+     * @param message
+     * @returns {*}
+     */
+    function setMessage (mode, message) {
         var instructions = svl.misc.getLabelInstructions(),
             labelColors = svl.misc.getLabelColors();
 
-        if ((mode in instructions) &&
-            (mode in labelColors)) {
+        if ((mode in instructions) && (mode in labelColors)) {
             // Set the box color.
             var modeColor = labelColors[mode];
             var backgroundColor = changeAlphaRGBA(modeColor.fillStyle, 0.85);
             backgroundColor = changeDarknessRGBA(backgroundColor, 0.35);
-            $divOverlayMessageBox.css({
+            svl.ui.overlayMessage.box.css({
                 'background' : backgroundColor
             });
-            $divOverlayMessage.css({
+            svl.ui.overlayMessage.message.css({
                 'color' : instructions[mode].textColor
             });
 
             // Set the instructional message.
             if (message) {
                 // Manually set a message.
-                $divOverlayMessage.html(message);
+                svl.ui.overlayMessage.message.html(message);
             } else {
                 // Otherwise use the pre set message
-                $divOverlayMessage.html('<strong>' + instructions[mode].instructionalText + '</strong>');
+                svl.ui.overlayMessage.message.html('<strong>' + instructions[mode].instructionalText + '</strong>');
             }
             return this;
         } else {
             return false;
         }
-    };
+    }
 
-    self.setVisibility = function (val) {
-        // Set the visibility to visible or hidden.
+
+    /**
+     * Set the visibility to visible or hidden.
+     * @param val
+     * @returns {setVisibility}
+     */
+    function setVisibility (val) {
         if (val === 'visible' || val === 'hidden') {
             properties.visibility = val;
         }
         return this;
-    };
+    }
 
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
+    self.setMessage = setMessage;
+    self.setVisibility = setVisibility;
+
     init();
 
     return self;

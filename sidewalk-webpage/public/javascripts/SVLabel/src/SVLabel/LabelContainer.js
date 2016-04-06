@@ -1,7 +1,10 @@
 var svl = svl || {};
 
 /**
- * LabelContainer class constructor
+ * Label Container module. This is responsible of storing the label objects that were created in the current session.
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
  */
 function LabelContainer() {
     var self = {className: 'LabelContainer'};

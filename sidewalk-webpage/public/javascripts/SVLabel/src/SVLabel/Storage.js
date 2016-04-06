@@ -1,9 +1,12 @@
 var svl = svl || {};
 
 /**
- * LocalStorage class constructor
+ * Storage module. 
  * @param JSON
  * @param params
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
  */
 function Storage(JSON, params) {
     var self = {'className': 'Storage'};

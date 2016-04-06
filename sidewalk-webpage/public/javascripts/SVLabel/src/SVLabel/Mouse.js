@@ -1,7 +1,7 @@
 var svl = svl || {};
 
 /**
- * A Mouse module
+ * A Mouse module. 
  * @param $
  * @returns {{className: string}}
  * @constructor

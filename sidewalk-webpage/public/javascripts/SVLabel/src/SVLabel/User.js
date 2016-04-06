@@ -1,7 +1,8 @@
 var svl = svl || {};
 
 /**
- * User class constructor
+ * User module.
+ * Todo. Need to move user related information here.
  * @param $
  * @param param
  * @returns {{className: string}}
@@ -17,9 +18,6 @@ function User (param) {
 
     properties.username = param.username;
 
-    function _init() {
-
-    }
 
     function getProperty (key) { return properties[key]; }
 

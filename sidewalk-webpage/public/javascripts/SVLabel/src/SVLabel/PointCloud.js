@@ -1,9 +1,10 @@
 var svl = svl || {};
 
 /**
- *
+ * PointCloud module
  * @param $
  * @constructor
+ * @memberof svl
  */
 function PointCloud ($, params) {
     var self = {};

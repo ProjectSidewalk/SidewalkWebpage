@@ -1,5 +1,12 @@
 var svl = svl || {};
 
+/**
+ * ModalMission module
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function ModalMission ($) {
     var self = { className : 'ModalMission'},
         properties = {

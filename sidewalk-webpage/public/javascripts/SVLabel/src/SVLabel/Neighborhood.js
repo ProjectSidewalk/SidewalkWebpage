@@ -1,3 +1,10 @@
+/**
+ * Neighborhood module.
+ * @param parameters
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
@@ -27,6 +34,13 @@ function Neighborhood (parameters) {
     return self;
 }
 
+/**
+ * NeighborhoodContainer module
+ * @param parameters
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function NeighborhoodContainer (parameters) {
     var self = { className: "NeighborhoodContainer" },
         neighborhoods = {},
@@ -84,6 +98,12 @@ function NeighborhoodContainer (parameters) {
     return self;
 }
 
+/**
+ * Neighborhood factory module
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
 function NeighborhoodFactory () {
     var self = { className: "NeighborhoodFactory" };
 

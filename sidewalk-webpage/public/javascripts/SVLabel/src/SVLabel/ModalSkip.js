@@ -1,7 +1,7 @@
 var svl = svl || {};
 
 /**
- * A Modal module
+ * A ModalSkip module
  * @param $
  * @returns {{className: string}}
  * @constructor

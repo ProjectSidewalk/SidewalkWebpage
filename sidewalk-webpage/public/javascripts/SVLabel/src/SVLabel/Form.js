@@ -1,7 +1,7 @@
 var svl = svl || {};
 
 /**
- * A form module
+ * A form module. This module is responsible for communicating with the server side for submitting collected data.
  * @param $ {object} jQuery object
  * @param params {object} Other parameters
  * @returns {{className: string}}
