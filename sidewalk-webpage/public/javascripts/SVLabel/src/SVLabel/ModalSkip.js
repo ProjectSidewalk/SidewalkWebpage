@@ -97,19 +97,27 @@ function ModalSkip ($) {
         disableClickOK();
     }
 
-
+    /**
+     * Disable clicking the ok button
+     */
     function disableClickOK () {
         svl.ui.modalSkip.ok.attr("disabled", true);
         svl.ui.modalSkip.ok.addClass("disabled");
         status.disableClickOK = true;
     }
 
+    /**
+     * Enable clicking the ok button
+     */
     function enableClickOK () {
         svl.ui.modalSkip.ok.attr("disabled", false);
         svl.ui.modalSkip.ok.removeClass("disabled");
         status.disableClickOK = false;
     }
 
+    /**
+     * Stop blinking the jump button
+     */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
         svl.ui.leftColumn.jump.removeClass("highlight-50");
