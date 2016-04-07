@@ -24,4 +24,6 @@ object MissionFormats {
       (__ \ "coverage").writeNullable[Double] and
       (__ \ "deleted").write[Boolean]
     )(unlift(Mission.unapply _))
+
+  
 }
