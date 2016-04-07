@@ -19,11 +19,11 @@ GET     /admin                          @controllers.AdminController.index
 GET     /admin/:username                @controllers.AdminController.userProfile(username: String)
 
 # Auditing tasks
-GET     /audit                          @controllers.TaskController.audit
-GET     /audit/region/:id               @controllers.TaskController.auditRegion(id: Int)
-GET     /audit/street/:id               @controllers.TaskController.auditStreet(id: Int)
-POST    /audit/comment                  @controllers.TaskController.postComment
-POST    /audit/nostreetview             @controllers.TaskController.postNoStreetView
+GET     /audit                          @controllers.AuditController.audit
+GET     /audit/region/:id               @controllers.AuditController.auditRegion(id: Int)
+GET     /audit/street/:id               @controllers.AuditController.auditStreet(id: Int)
+POST    /audit/comment                  @controllers.AuditController.postComment
+POST    /audit/nostreetview             @controllers.AuditController.postNoStreetView
 
 # Task API.
 GET     /task                           @controllers.TaskController.getTask
@@ -39,6 +39,7 @@ GET     /mission/complete               @controllers.MissionController.getComple
 GET     /mission/complete/:regionId     @controllers.MissionController.getCompletedMissionsInRegion(regionId: Int)
 GET     /mission/incomplete             @controllers.MissionController.getIncompleteMissions
 GET     /mission/incomplete/:regionId   @controllers.MissionController.getIncompleteMissionsInRegion(regionId: Int)
+POST    /mission                        @controllers.MissionController.post
 
 # Map Edit
 GET     /map/edit                       @controllers.MapController.edit

@@ -5,6 +5,8 @@ import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import play.api.Play.current
+import play.api.libs.json.{JsObject, Json}
+
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double], coverage: Option[Double], deleted: Boolean) {
@@ -18,6 +20,10 @@ case class Mission(missionId: Int, regionId: Option[Int], label: String, level: 
     case "neighborhood-coverage-mission" =>
       if (this.level <= status.totalNumberOfRegionsCompleted) true else false
     case _ => false
+  }
+
+  def toJSON: JsObject = {
+    Json.obj("mission_id" -> missionId, "region_id" -> regionId, "label" -> label, "level" -> level, "distance" -> distance, "coverage" -> coverage)
   }
 }
 

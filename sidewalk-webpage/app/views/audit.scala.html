@@ -1,5 +1,7 @@
 @import models.user.User
 @import models.region.Region
+@import models.mission.MissionTable
+@import play.api.libs.json.Json
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[Region], user: Option[User] = None)
 
 @main(title) {
@@ -462,7 +464,10 @@
         svl.storage = new Storage(JSON);
 
         @if(user) {
-        var userParam = { username : '@user.get.username' };
+        var userParam = {
+            username : '@user.get.username',
+            completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.completed(user.get.userId).map(_.toJSON))))
+        };
         svl.user = new User(userParam);
         } else {
         var userParam = { username : "anonymous" };

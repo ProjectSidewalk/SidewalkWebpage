@@ -6693,6 +6693,8 @@ function Mission(parameters) {
                 instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
+            } else if (parameters.label == "onboarding") {
+
             } else {
                 console.error("It shouldn't reach here.");
             }
@@ -6907,8 +6909,23 @@ function MissionContainer ($, parameters) {
     function commit () {
         console.debug("Todo. Submit completed missions");
         if (staged.length > 0) {
-            staged = [];
+            $.ajax({
+                // async: false,
+                contentType: 'application/json; charset=utf-8',
+                url: "/mission",
+                type: 'post',
+                data: JSON.stringify(staged),
+                dataType: 'json',
+                success: function (result) {
+                    staged = [];
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
         }
+        return this;
     }
 
     /** Get all the completed missions */
@@ -6945,6 +6962,7 @@ function MissionContainer ($, parameters) {
      */
     function stage (mission) {
         staged.push(mission);
+        return this;
     }
 
     _init(parameters);
@@ -6976,15 +6994,36 @@ function MissionFactory (parameters) {
         if (parameters) {}
     }
 
-    /** Create an instance of a mission object */
+    /**
+     * Create an instance of a mission object
+     * @param regionId
+     * @param missionId
+     * @param label The label of the mission
+     * @param level The level of the mission
+     * @param distance
+     * @param coverage
+     * @param isCompleted A flag indicating if this mission is completed
+     * @returns {svl.Mission}
+     */
     function create (regionId, missionId, label, level, distance, coverage, isCompleted) {
         return new Mission({ regionId: regionId, missionId: missionId, label: label, level: level, distance: distance,
             coverage: coverage, isCompleted: isCompleted });
     }
 
+    /**
+     * Create the onboarding mission
+     * @param level The level of the mission
+     * @param isCompleted {boolean} A flag indicating if this mission is completed
+     * @returns {svl.Mission}
+     */
+    function createOnboardingMission(level, isCompleted) {
+        return new Mission({label: "onboarding", level: level, isCompleted: isCompleted});
+    }
+
     _init(parameters);
 
     self.create = create;
+    self.createOnboardingMission = createOnboardingMission;
     return self;
 }
 var svl = svl || {};
@@ -14643,6 +14682,12 @@ function Onboarding ($, params) {
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
+
+            if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
+                var onboardingMission = svl.missionFactory.createOnboardingMission(1, true);
+                svl.missionContainer.stage(onboardingMission).commit();
+            }
+
             svl.taskFactory.getTask({}, svl.taskContainer.setCurrentTask);
             return;
         }

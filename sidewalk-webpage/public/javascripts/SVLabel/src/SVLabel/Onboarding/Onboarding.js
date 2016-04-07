@@ -1025,6 +1025,12 @@ function Onboarding ($, params) {
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
+
+            if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
+                var onboardingMission = svl.missionFactory.createOnboardingMission(1, true);
+                svl.missionContainer.stage(onboardingMission).commit();
+            }
+
             svl.taskFactory.getTask({}, svl.taskContainer.setCurrentTask);
             return;
         }
