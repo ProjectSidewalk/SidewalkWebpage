@@ -23,7 +23,6 @@ import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Play.current
-import play.extras.geojson
 
 import scala.concurrent.Future
 
