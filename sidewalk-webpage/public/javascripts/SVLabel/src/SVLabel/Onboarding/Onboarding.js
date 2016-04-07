@@ -755,7 +755,7 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
-                    '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
+                    '(<img src="' + svl.rootDirectory + "img/onboarding/Compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.<br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps">',
                     "position": "top-right",
