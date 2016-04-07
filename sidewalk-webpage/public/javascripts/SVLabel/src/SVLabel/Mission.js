@@ -101,7 +101,7 @@ function Mission(parameters) {
 
     /** Returns a property */
     function getProperty (key) {
-        return key in properties ? properties[key] : key;
+        return key in properties ? properties[key] : null;
     }
 
     /** Check if the mission is completed or not */
@@ -138,11 +138,31 @@ function Mission(parameters) {
         }
     }
 
+    /**
+     * Return a string describing this data
+     * @returns {string}
+     */
     function toString () {
         return "Mission: " + getProperty("label") + ", Level: "+ getProperty("level") +
             ", Distance: " + getProperty("distance") + ", Coverage " + getProperty("coverage") +
             ", Mission Id: " + getProperty("missionId") + ", Region Id: " + getProperty("regionId") +
             ", Completed: " + getProperty("isCompleted") + "\n";
+    }
+
+    /**
+     * Return an object that is in a submittable format
+     * @returns {{region_id: *, label: *, mission_id: *, level: *, distance: *, coverage: *}}
+     */
+    function toSubmissionFormat () {
+        return {
+            region_id: getProperty("regionId"),
+            label: getProperty("label"),
+            mission_id: getProperty("missionId"),
+            level: getProperty("level"),
+            distance: getProperty("distance"),
+            coverage: getProperty("coverage"),
+            deleted: false
+        };
     }
 
     _init(parameters);
@@ -154,6 +174,8 @@ function Mission(parameters) {
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
     self.toString = toString;
+    self.toSubmissionFormat = toSubmissionFormat;
+
     return self;
 }
 
@@ -173,7 +195,7 @@ function MissionContainer ($, parameters) {
 
     function _init (parameters) {
         // Query all the completed & incomplete missions.
-        $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(function (result1, result2) {
+        function _callback (result1, result2) {
             var i, len, mission, completed = result1[0], incomplete = result2[0], nm;
 
             len = completed.length;
@@ -196,7 +218,13 @@ function MissionContainer ($, parameters) {
                 nm = nextMission(parameters.currentNeighborhood.getProperty("regionId"));
                 setCurrentMission(nm);
             }
-        });
+        }
+        
+        if ("callback" in parameters) {
+            $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
+        } else {
+            $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback)
+        }
     }
 
     /** Set current missison */
@@ -264,15 +292,21 @@ function MissionContainer ($, parameters) {
     function commit () {
         console.debug("Todo. Submit completed missions");
         if (staged.length > 0) {
+            var i, data = [];
+
+            for (i = 0; i < staged.length; i++) {
+                data.push(staged[i].toSubmissionFormat());
+            }
+            staged = [];
+
             $.ajax({
                 // async: false,
                 contentType: 'application/json; charset=utf-8',
                 url: "/mission",
                 type: 'post',
-                data: JSON.stringify(staged),
+                data: JSON.stringify(data),
                 dataType: 'json',
                 success: function (result) {
-                    staged = [];
                 },
                 error: function (result) {
                     console.error(result);

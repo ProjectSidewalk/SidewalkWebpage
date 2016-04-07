@@ -202,7 +202,18 @@ function Main ($, params) {
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ($, {currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood")});
+        svl.missionContainer = MissionContainer ($, {
+            currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood"),
+            callback: function () {
+                // Check if the user has completed the onboarding.
+                // If not, let them go through the onboarding.
+                var completedMissions = svl.missionContainer.getCompletedMissions(),
+                    labels = completedMissions.map(function (m) { return m.label; });
+                if (labels.indexOf("onboarding") < 0) {
+                    svl.onboarding = new Onboarding($, {});
+                }
+            }
+        });
         svl.missionFactory = MissionFactory ();
 
         svl.form.disableSubmit();

@@ -1027,7 +1027,8 @@ function Onboarding ($, params) {
             setStatus("isOnboarding", false);
 
             if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
-                var onboardingMission = svl.missionFactory.createOnboardingMission(1, true);
+                var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+                onboardingMission.setProperty("isCompleted", true);
                 svl.missionContainer.stage(onboardingMission).commit();
             }
 

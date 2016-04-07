@@ -10,7 +10,7 @@ object MissionFormats {
   implicit val missionSubmissionReads: Reads[MissionSubmission] = (
     (JsPath \ "label").read[String] and
       (JsPath \ "level").read[Int] and
-      (JsPath \ "regionId").readNullable[Int] and
+      (JsPath \ "region_id").readNullable[Int] and
       (JsPath \ "distance").readNullable[Double] and
       (JsPath \ "coverage").readNullable[Double]
     )(MissionSubmission.apply _)

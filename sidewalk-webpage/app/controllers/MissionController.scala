@@ -6,7 +6,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.user.User
 import play.api.libs.json.{JsArray, JsError, JsValue, Json}
 import play.api.mvc.BodyParsers
@@ -94,14 +94,20 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        for (data <- submission) yield {
-
+        request.identity match {
+          case Some(user) =>
+            for (mission <- submission) yield {
+              // Check if duplicate user-mission exists. If not, save it.
+              if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
+                MissionUserTable.save(mission.missionId, user.userId.toString)
+              }
+            }
+          case _ =>
         }
 
         Future.successful(Ok(Json.obj()))
       }
     )
   }
-
 }
 
