@@ -756,7 +756,8 @@ function Onboarding ($, params) {
                 "message": {
                     "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
-                    'and the red line on the map.',
+                    'and the red line on the map.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -846,6 +847,8 @@ function Onboarding ($, params) {
         ctx = svl.ui.onboarding.canvas.get(0).getContext('2d');
         status.state = getState("initialize");
         visit(status.state);
+
+        svl.taskFactory.getTask({streetEdgeId: 15250}, svl.taskContainer.setCurrentTask);
 
         initializeHandAnimation();
     }
@@ -1020,7 +1023,9 @@ function Onboarding ($, params) {
         if (!state) {
             // End of onboarding. Transition to the actual task.
             svl.ui.onboarding.background.css("visibility", "hidden");
-            console.debug("Move on to the task.")
+            svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
+            setStatus("isOnboarding", false);
+            svl.taskFactory.getTask({}, svl.taskContainer.setCurrentTask);
             return;
         }
 
@@ -1356,8 +1361,23 @@ function Onboarding ($, params) {
         svl.ui.onboarding.handGestureHolder.css("visibility", "hidden");
     }
 
+    /**
+     * Check if the user is working on the onboarding right now
+     * @returns {boolean}
+     */
     function isOnboarding () {
         return status.isOnboarding;
+    }
+
+    /**
+     * Set status
+     * @param key Status field name
+     * @param value Status field value
+     * @returns {setStatus}
+     */
+    function setStatus (key, value) {
+        if (key in status) status[key] = value;
+        return this;
     }
 
     self.clear = clear;
@@ -1365,6 +1385,7 @@ function Onboarding ($, params) {
     self.next = next;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;
+    self.setStatus = setStatus;
     self.hideMessage = hideMessage;
 
     _init(params);

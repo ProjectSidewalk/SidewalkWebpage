@@ -204,6 +204,11 @@ object AuditTaskTable {
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
   }
 
+  /**
+    * Get a new task specified by the street edge id.
+    * @param streetEdgeId
+    * @return
+    */
   def getNewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
     val calendar: Calendar = Calendar.getInstance
     val now: Date = calendar.getTime

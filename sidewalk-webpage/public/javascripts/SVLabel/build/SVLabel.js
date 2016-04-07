@@ -6706,6 +6706,19 @@ function Mission(parameters) {
      * Set the property to complete
      */
     function complete () {
+        // Play the animation and audio effect after task completion.
+        svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
+        svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
+        setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
+
+        if ('audioEffect' in svl) {
+            svl.audioEffect.play('yay');
+            svl.audioEffect.play('applause');
+        }
+
+        // Reset the label counter
+        if ('labelCounter' in svl) { svl.labelCounter.reset(); }
+        
         setProperty("isCompleted", true);
     }
 
@@ -10540,7 +10553,7 @@ function Task (turf, geojson, currentLat, currentLng) {
 
     /**
      * This method takes a task parameters and set up the current task.
-     * @param task Description of the next task in json format.
+     * @param geojson Description of the next task in json format.
      * @param currentLat Current latitude
      * @param currentLng Current longitude
      */
@@ -10557,51 +10570,46 @@ function Task (turf, geojson, currentLat, currentLng) {
             var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
                 d2 = svl.util.math.haversine(lat2, lng2, currentLat, currentLng);
 
-            if (d1 > 10 && d2 > 10) {
-                // If the starting point of the task is far away, jump there.
-                svl.map.setPosition(lat1, lng1);
-            } else if (d2 < d1) {
+            if (d2 < d1) {
                 // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
-                geojson.features[0].geometry.coordinates.reverse();
+                _geojson.features[0].geometry.coordinates.reverse();
             }
-            paths = null;
-            lat = geojson.features[0].geometry.coordinates[0][1];
-            lng = geojson.features[0].geometry.coordinates[0][0];
-        } else {
-            // Starting a new task.
-            svl.map.setPosition(lat1, lng1);  // It is weird that the task has to set the position. 
-            paths = null;
-            lat = geojson.features[0].geometry.coordinates[0][1];
-            lng = geojson.features[0].geometry.coordinates[0][0];
         }
 
+        lat = _geojson.features[0].geometry.coordinates[0][1];
+        lng = _geojson.features[0].geometry.coordinates[0][0];
+        paths = null;
+
+        // Render the path for the current task.
+        // Todo. Move the definition of the render() to the Map.js
         render();
-        if ('compass' in svl) {
-            svl.compass.setTurnMessage();
-            svl.compass.showMessage();
-            svl.compass.update();
-        }
     }
 
     /**
      * Get geojson
      * @returns {*}
      */
-    function getGeoJSON () { return _geojson; }
+    function getGeoJSON () { 
+        return _geojson; 
+    }
 
     /**
      * Get geometry
-     * */
+     */
     function getGeometry () {
         return _geojson ? _geojson.features[0].geometry : null;
     }
 
-    /** Returns the street edge id of the current task. */
+    /**
+     * Returns the street edge id of the current task.
+     */
     function getStreetEdgeId () {
         return _geojson.features[0].properties.street_edge_id;
     }
 
-    /** Returns the task start time */
+    /**
+     * Returns the task start time
+     */
     function getTaskStart () {
         return _geojson.features[0].properties.task_start;
     }
@@ -10652,11 +10660,18 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /** Returns the starting location */
-    function initialLocation() { return _geojson ? { lat: lat, lng: lng } : null; }
+    function initialLocation() { 
+        return _geojson ? { lat: lat, lng: lng } : null; 
+    }
 
     /**
      * This method checks if the task is done or not by assessing the
      * current distance and the ending distance.
+     * 
+     * @param lat
+     * @param lng
+     * @param threshold
+     * @returns {boolean}
      */
     function isAtEnd (lat, lng, threshold) {
         if (_geojson) {
@@ -10849,7 +10864,6 @@ function Task (turf, geojson, currentLat, currentLng) {
             for (i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
-
         }
     }
 
@@ -10880,12 +10894,18 @@ function Task (turf, geojson, currentLat, currentLng) {
  * @memberof svl
  */
 function TaskContainer (turf) {
-    var self = { className: "TaskContainer"},
+    var self = { className: "TaskContainer" },
         previousTasks = [],
         currentTask = null,
         paths, previousPaths = [];
 
-    function getCurrentTask () { return currentTask; }
+    /**
+     * Get the current task
+     * @returns {*}
+     */
+    function getCurrentTask () {
+        return currentTask;
+    }
 
     /**
      * Get the total distance of completed segments
@@ -10904,14 +10924,26 @@ function TaskContainer (turf) {
         return distance;
     }
 
+    /**
+     * Get the length of the previous tasks
+     * @returns {*|Number}
+     */
     function length () {
         return previousTasks.length;
     }
 
+    /**
+     * Push a task to previousTasks
+     * @param task
+     */
     function push (task) {
         previousTasks.push(task);
     }
 
+    /**
+     * Update the audited distance
+     * @returns {updateAuditedDistance}
+     */
     function updateAuditedDistance () {
         var distance, sessionDistance = getCompletedTaskDistance();
 
@@ -10942,13 +10974,33 @@ function TaskContainer (turf) {
         return this;
     }
 
-    /** Check if the current task is the first task in this session */
+    /**
+     * Check if the current task is the first task in this session
+     * @returns {boolean}
+     */
     function isFirstTask () {
         return length() == 0;
     }
 
+    /**
+     * Set the current task
+     * @param task
+     */
     function setCurrentTask (task) {
+        var geometry = task.getGeometry();
+
         currentTask = task;
+
+        if (geometry && "map" in svl && svl.map) {
+            var lat = geometry.coordinates[0][1], lng = geometry.coordinates[0][0];
+            svl.map.setPosition(lat, lng);
+        }
+
+        if ('compass' in svl) {
+            svl.compass.setTurnMessage();
+            svl.compass.showMessage();
+            svl.compass.update();
+        }
     }
 
     /** End the current task */
@@ -10959,20 +11011,20 @@ function TaskContainer (turf) {
             svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
             svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
         }
-        if ('tracker' in svl) { svl.tracker.push("TaskEnd"); }
+        if ('tracker' in svl) svl.tracker.push("TaskEnd");
 
-        // Play the animation and audio effect after task completion.
-        svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
-        svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
-        setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
-
-        if ('audioEffect' in svl) {
-            svl.audioEffect.play('yay');
-            svl.audioEffect.play('applause');
-        }
-
-        // Reset the label counter
-        if ('labelCounter' in svl) { svl.labelCounter.reset(); }
+        // // Play the animation and audio effect after task completion.
+        // svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
+        // svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
+        // setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
+        //
+        // if ('audioEffect' in svl) {
+        //     svl.audioEffect.play('yay');
+        //     svl.audioEffect.play('applause');
+        // }
+        //
+        // // Reset the label counter
+        // if ('labelCounter' in svl) { svl.labelCounter.reset(); }
 
         // Update the audited miles
         if ('ui' in svl) { updateAuditedDistance(); }
@@ -11036,8 +11088,13 @@ function TaskContainer (turf) {
         paths = null;
 
         nextTask(currentTask);
+        return currentTask;
     }
 
+    /**
+     * Get the next task and set it as a current task
+     * @param task
+     */
     function nextTask (task) {
         if (task) {
             var streetEdgeId = task.getStreetEdgeId(),
@@ -11048,7 +11105,7 @@ function TaskContainer (turf) {
                 lngEnd = _geojson.features[0].geometry.coordinates[len][0];
 
             $.ajax({
-                url: "/audit/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+                url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
                 type: 'get',
                 success: function (json) {
                     var newTask = svl.taskFactory.create(json, latEnd, lngEnd);
@@ -11061,7 +11118,7 @@ function TaskContainer (turf) {
         } else {
             // No street edge id is provided (i.e., the user skipped the task to explore another location.)
             $.ajax({
-                url: "/audit/task",
+                url: "/task",
                 type: 'get',
                 success: function (json) {
                     // Check if Street View is available at the location. If it's not available, report it to the
@@ -11131,11 +11188,58 @@ function TaskContainer (turf) {
 function TaskFactory (turf) {
     var self = { className: "TaskFactory" };
 
+    /**
+     * Create a new task instance
+     * @param geojson
+     * @param lat
+     * @param lng
+     * @returns {svl.Task}
+     */
     function create(geojson, lat, lng) {
         return new Task(turf, geojson, lat, lng);
     }
 
+    /**
+     * Query the backend server and create a new task instance.
+     * @param parameters
+     * @param callback
+     */
+    function getTask (parameters, callback) {
+        if (!parameters || !callback) return;
+
+        if ("streetEdgeId" in parameters && parameters.streetEdgeId) {
+            $.ajax({
+                url: "/task/street/" + parameters.streetEdgeId,
+                type: 'get',
+                success: function (json) {
+                    var lat1 = json.features[0].geometry.coordinates[0][1],
+                        lng1 = json.features[0].geometry.coordinates[0][0];
+                    var newTask = create(json, lat1, lng1);
+                    callback(newTask);
+                },
+                error: function (result) {
+                    throw result;
+                }
+            });
+        } else {
+            $.ajax({
+                url: "/task",
+                type: 'get',
+                success: function (json) {
+                    var lat1 = json.features[0].geometry.coordinates[0][1],
+                        lng1 = json.features[0].geometry.coordinates[0][0];
+                    var newTask = create(json, lat1, lng1);
+                    callback(newTask);
+                },
+                error: function (result) {
+                    throw result;
+                }
+            });
+        }
+    }
+
     self.create = create;
+    self.getTask = getTask;
 
     return self;
 }
@@ -14270,7 +14374,8 @@ function Onboarding ($, params) {
                 "message": {
                     "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
-                    'and the red line on the map.',
+                    'and the red line on the map.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps">',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -14360,6 +14465,8 @@ function Onboarding ($, params) {
         ctx = svl.ui.onboarding.canvas.get(0).getContext('2d');
         status.state = getState("initialize");
         visit(status.state);
+
+        svl.taskFactory.getTask({streetEdgeId: 15250}, svl.taskContainer.setCurrentTask);
 
         initializeHandAnimation();
     }
@@ -14534,7 +14641,9 @@ function Onboarding ($, params) {
         if (!state) {
             // End of onboarding. Transition to the actual task.
             svl.ui.onboarding.background.css("visibility", "hidden");
-            console.debug("Move on to the task.")
+            svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
+            setStatus("isOnboarding", false);
+            svl.taskFactory.getTask({}, svl.taskContainer.setCurrentTask);
             return;
         }
 
@@ -14870,8 +14979,23 @@ function Onboarding ($, params) {
         svl.ui.onboarding.handGestureHolder.css("visibility", "hidden");
     }
 
+    /**
+     * Check if the user is working on the onboarding right now
+     * @returns {boolean}
+     */
     function isOnboarding () {
         return status.isOnboarding;
+    }
+
+    /**
+     * Set status
+     * @param key Status field name
+     * @param value Status field value
+     * @returns {setStatus}
+     */
+    function setStatus (key, value) {
+        if (key in status) status[key] = value;
+        return this;
     }
 
     self.clear = clear;
@@ -14879,6 +15003,7 @@ function Onboarding ($, params) {
     self.next = next;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;
+    self.setStatus = setStatus;
     self.hideMessage = hideMessage;
 
     _init(params);

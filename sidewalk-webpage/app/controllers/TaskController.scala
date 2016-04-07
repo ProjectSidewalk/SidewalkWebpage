@@ -110,9 +110,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Get a task for a user.
- *
-   * @return
+   * This method returns a task definition in the GeoJSON format.
+   * @return Task definition
    */
   def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -122,12 +121,22 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Get a next task.
- *
+    * This method returns a task definition specified by the streetEdgeId.
+    * @return Task definition
+    */
+  def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+    val task = AuditTaskTable.getNewTask(streetEdgeId)
+    Future.successful(Ok(task.toJSON))
+  }
+
+
+  /**
+   * This method queries the task (i.e., a street edge to audit) that is connected to the current task (specified by
+    * street edge id) and returns it in the GeoJson format.
    * @param streetEdgeId street edge id
    * @param lat current latitude
    * @param lng current longitude
-   * @return
+   * @return Task definition
    */
   def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
     Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
