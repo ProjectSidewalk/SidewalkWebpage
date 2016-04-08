@@ -16,7 +16,6 @@ function Form ($, params) {
             isPreviewMode : false,
             previousLabelingTaskId: undefined,
             dataStoreUrl : undefined,
-            onboarding : false,
             taskRemaining : 0,
             taskDescription : undefined,
             taskPanoramaId: undefined,
@@ -41,13 +40,13 @@ function Form ($, params) {
         };
 
     function _init (params) {
+        var params = params || {};
         var hasGroupId = getURLParameter('groupId') !== "";
         var hasHitId = getURLParameter('hitId') !== "";
         var hasWorkerId = getURLParameter('workerId') !== "";
         var assignmentId = getURLParameter('assignmentId');
 
-        properties.onboarding = params.onboarding;
-        properties.dataStoreUrl = params.dataStoreUrl;
+        properties.dataStoreUrl = "dataStoreUrl" in params ? params.dataStoreUrl : null;
 
         if (('assignmentId' in params) && params.assignmentId &&
             ('hitId' in params) && params.hitId &&
@@ -275,27 +274,6 @@ function Form ($, params) {
             return false;
         }
     }
-
-    /**
-     * Callback function that is invoked when a user hits a submit button
-     * @param e
-     * @returns {boolean}
-     */
-    function handleFormSubmit (e) {
-        if (!properties.isAMTTask || properties.taskRemaining > 1) { e.preventDefault(); }
-
-        if (status.disableSubmit) {
-            return false;
-        }
-
-        // Submit collected data if a user is not in onboarding mode.
-        if (!properties.onboarding) {
-            var data = compileSubmissionData();
-            submit(data);
-        }
-        return false;
-    }
-
 
     /** This method returns whether the task is in preview mode or not. */
     function isPreviewMode () { return properties.isPreviewMode; }

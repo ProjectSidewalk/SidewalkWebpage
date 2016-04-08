@@ -1157,8 +1157,11 @@ function ActionStack () {
  * @memberof svl
  */
 function AudioEffect () {
-    var self = { className: 'AudioEffect' },
-        audios = {
+    var self = { className: 'AudioEffect' };
+
+    if (typeof Audio == "undefined") var Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
+
+    var audios = {
             applause: new Audio(svl.rootDirectory + 'audio/applause.mp3'),
             drip: new Audio(svl.rootDirectory + 'audio/drip.wav'),
             glug1: new Audio(svl.rootDirectory + 'audio/glug1.wav'),
@@ -1218,7 +1221,7 @@ function AudioEffect () {
      * @returns {play}
      */
     function play (name) {
-        if (name in audios && !status.mute) {
+        if (name in audios && !status.mute && typeof audios[name].play == "function") {
             audios[name].play();
         }
         return this;
@@ -1244,19 +1247,10 @@ function AudioEffect () {
     self.stopBlinking = stopBlinking;
     return self;
 }
-////////////////////////////////////////////////////////////////////////////////
-// Global variables
-////////////////////////////////////////////////////////////////////////////////
-// var canvasWidth = 720;
-// var canvasHeight = 480;
-// var svImageHeight = 6656;
-// var svImageWidth = 13312;
-
 // Image distortion coefficient. Need to figure out how to compute these.
 // It seems like these constants do not depend on browsers... (tested on Chrome, Firefox, and Safari.)
 // Distortion coefficient for a window size 640x360: var alpha_x = 5.2, alpha_y = -5.25;
 // Distortion coefficient for a window size 720x480:
-
 var svl = svl || {};
 svl.canvasWidth = 720;
 svl.canvasHeight = 480;
@@ -1347,10 +1341,6 @@ function Canvas ($, param) {
     var systemLabels = [];
     var labels = [];
 
-    // jQuery doms
-    var $divLabelDrawingLayer = svl.ui.canvas.drawingLayer.length === 0 ? null : svl.ui.canvas.drawingLayer;
-    var $divHolderLabelDeleteIcon = svl.ui.canvas.deleteIconHolder.length === 0 ? null : svl.ui.canvas.deleteIconHolder;
-    var $labelDeleteIcon = svl.ui.canvas.deleteIcon.length === 0 ? null : svl.ui.canvas.deleteIcon;
 
     // Initialization
     function _init (param) {
@@ -1367,14 +1357,14 @@ function Canvas ($, param) {
         }
 
         // Attach listeners to dom elements
-        if ($divLabelDrawingLayer) {
-          $divLabelDrawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
-          $divLabelDrawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
-          $divLabelDrawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
-            $divLabelDrawingLayer.on('mouseout', handleDrawingLayerMouseOut);
+        if (svl.ui.canvas.drawingLayer) {
+            svl.ui.canvas.drawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
+            svl.ui.canvas.drawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
+            svl.ui.canvas.drawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
+            svl.ui.canvas.drawingLayer.on('mouseout', handleDrawingLayerMouseOut);
         }
-        if ($labelDeleteIcon) {
-          $labelDeleteIcon.bind("click", labelDeleteIconClick);
+        if (svl.ui.canvas.deleteIcon) {
+          svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);
         }
 
         // Point radius
@@ -1645,8 +1635,8 @@ function Canvas ($, param) {
                 //
                 // Sometimes (especially during ground truth insertion if you force a delete icon to show up all the time),
                 // currLabel would not be set properly. In such a case, find a label underneath the delete icon.
-                var x = $divHolderLabelDeleteIcon.css('left');
-                var y = $divHolderLabelDeleteIcon.css('top');
+                var x = svl.ui.canvas.deleteIconHolder.css('left');
+                var y = svl.ui.canvas.deleteIconHolder.css('top');
                 x = x.replace("px", "");
                 y = y.replace("px", "");
                 x = parseInt(x, 10) + 5;
@@ -1665,7 +1655,7 @@ function Canvas ($, param) {
             if (currLabel) {
                 svl.labelContainer.removeLabel(currLabel);
                 svl.actionStack.push('deleteLabel', self.getCurrentLabel());
-                $divHolderLabelDeleteIcon.css('visibility', 'hidden');
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
                 // a label is deleted.
@@ -2129,35 +2119,12 @@ function Canvas ($, param) {
      * @method
      */
     function removeAllLabels () {
-        svl.labelContainer.removeAll();
+        if ("labelContainer" in svl) {
+            svl.labelContainer.removeAll();
+        }
         return this;
     }
 
-    /**
-     * This function removes a passed label and its child path and points
-     * @method
-     */
-//    function removeLabel (label) {
-//        if (!label) {
-//            return false;
-//        }
-//        svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
-//
-//        label.setStatus('deleted', true);
-//        label.setStatus('visibility', 'hidden');
-//
-//
-//        // Review label correctness if this is a ground truth insertion task.
-//        if (("goldenInsertion" in svl) &&
-//            svl.goldenInsertion &&
-//            svl.goldenInsertion.isRevisingLabels()) {
-//            svl.goldenInsertion.reviewLabels();
-//        }
-//
-//        self.clear();
-//        self.render2();
-//        return this;
-//    }
 
     /**
      * Renders labels
@@ -2294,43 +2261,14 @@ function Canvas ($, param) {
     }
 
     /**
-     * @method
+     * This sets the status of the canvas object
+     * @param key
+     * @param value
+     * @returns {*}
      */
     function setStatus (key, value) {
-        // This function is allows other objects to access status
-        // of this object
         if (key in status) {
-            if (key === 'disableLabeling') {
-                if (typeof value === 'boolean') {
-                    if (value) {
-                        self.disableLabeling();
-                    } else {
-                        self.enableLabeling();
-                    }
-                    return this;
-                } else {
-                    return false;
-                }
-            } else if (key === 'disableMenuClose') {
-                if (typeof value === 'boolean') {
-                    if (value) {
-                        self.disableMenuClose();
-                    } else {
-                        self.enableMenuClose();
-                    }
-                    return this;
-                } else {
-                    return false;
-                }
-            } else if (key === 'disableLabelDelete') {
-                if (value === true) {
-                    self.disableLabelDelete();
-                } else if (value === false) {
-                    self.enableLabelDelete();
-                }
-            } else {
-                status[key] = value;
-            }
+            status[key] = value;
         } else {
             throw self.className + ": Illegal status name.";
         }
@@ -2355,11 +2293,11 @@ function Canvas ($, param) {
                 label.setTagVisibility('visible');
                 isAnyVisible = true;
             } else {
-                $divHolderLabelDeleteIcon.css('visibility', 'hidden');
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
             // If any of the tags is visible, show a deleting icon on it.
             if (!isAnyVisible) {
-                $divHolderLabelDeleteIcon.css('visibility', 'hidden');
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
             self.clear().render2();
             return this;
@@ -2502,7 +2440,6 @@ function Canvas ($, param) {
     self.lockShowLabelTag = lockShowLabelTag;
     self.pushLabel = pushLabel;
     self.removeAllLabels = removeAllLabels;
-    self.removeLabel = svl.labelContainer.removeLabel;
     self.render = render2;
     self.render2 = render2;
     self.renderBoundingBox = renderBoundingBox;
@@ -3109,7 +3046,6 @@ function Form ($, params) {
             isPreviewMode : false,
             previousLabelingTaskId: undefined,
             dataStoreUrl : undefined,
-            onboarding : false,
             taskRemaining : 0,
             taskDescription : undefined,
             taskPanoramaId: undefined,
@@ -3134,13 +3070,13 @@ function Form ($, params) {
         };
 
     function _init (params) {
+        var params = params || {};
         var hasGroupId = getURLParameter('groupId') !== "";
         var hasHitId = getURLParameter('hitId') !== "";
         var hasWorkerId = getURLParameter('workerId') !== "";
         var assignmentId = getURLParameter('assignmentId');
 
-        properties.onboarding = params.onboarding;
-        properties.dataStoreUrl = params.dataStoreUrl;
+        properties.dataStoreUrl = "dataStoreUrl" in params ? params.dataStoreUrl : null;
 
         if (('assignmentId' in params) && params.assignmentId &&
             ('hitId' in params) && params.hitId &&
@@ -3368,27 +3304,6 @@ function Form ($, params) {
             return false;
         }
     }
-
-    /**
-     * Callback function that is invoked when a user hits a submit button
-     * @param e
-     * @returns {boolean}
-     */
-    function handleFormSubmit (e) {
-        if (!properties.isAMTTask || properties.taskRemaining > 1) { e.preventDefault(); }
-
-        if (status.disableSubmit) {
-            return false;
-        }
-
-        // Submit collected data if a user is not in onboarding mode.
-        if (!properties.onboarding) {
-            var data = compileSubmissionData();
-            submit(data);
-        }
-        return false;
-    }
-
 
     /** This method returns whether the task is in preview mode or not. */
     function isPreviewMode () { return properties.isPreviewMode; }
@@ -3621,7 +3536,7 @@ function Keyboard ($) {
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
                     svl.ribbon.modeSwitchClick("CurbRamp");
-                    break
+                    break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
                     svl.ribbon.modeSwitchClick("Walk");
@@ -3722,12 +3637,9 @@ var svl = svl || {};
  * @memberof svl
  */
 function Label (pathIn, params) {
-    var self = {
-        className: 'Label'
-    };
+    var self = { className: 'Label' };
 
-    var path;
-    var googleMarker;
+    var path, googleMarker;
 
     var properties = {
         canvasWidth: undefined,
@@ -3771,7 +3683,7 @@ function Label (pathIn, params) {
         visibility : false
     };
 
-    function init (param, pathIn) {
+    function _init (param, pathIn) {
         try {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
@@ -3786,8 +3698,11 @@ function Label (pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            googleMarker = createGoogleMapsMarker(param.labelType);
-            googleMarker.setMap(svl.map.getMap());
+            if (typeof google != "undefined" && google && google.maps) {
+                googleMarker = createGoogleMapsMarker(param.labelType);
+                googleMarker.setMap(svl.map.getMap());
+            }
+
             return true;
         } catch (e) {
             console.error(self.className, ':', 'Error initializing the Label object.', e);
@@ -4561,12 +4476,10 @@ function Label (pathIn, params) {
         return this;
     }
 
-
     self.resetFillStyle = resetFillStyle;
     self.blink = blink;
     self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
-    //self.getCoordinate = getCoordinate;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
@@ -4606,7 +4519,7 @@ function Label (pathIn, params) {
     self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    if (!init(params, pathIn)) {
+    if (!_init(params, pathIn)) {
         return false;
     }
     return self;
@@ -5093,7 +5006,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Main ($, params) {
+function Main ($, d3, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -5251,6 +5164,7 @@ function Main ($, params) {
     }
 
     function _init (params) {
+        var params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
@@ -5335,8 +5249,10 @@ function Main ($, params) {
         svl.map = new Map($, mapParam);
         svl.map.disableClickZoom();
 
-        var task = svl.taskContainer.getCurrentTask();
-        if (task) {
+        if ("taskContainer" in svl) {
+            var task = svl.taskContainer.getCurrentTask();
+        }
+        if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
     }
@@ -5404,7 +5320,7 @@ function Map ($, params) {
 
     var initialPositionUpdate = true;
     var panoramaOptions;
-    var streetViewService = new google.maps.StreetViewService();
+    var streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
     var STREETVIEW_MAX_DISTANCE = 50;
     var googleMapsPaneBlinkInterval;
 
@@ -5458,12 +5374,12 @@ function Map ($, params) {
     }
 
     // fenway = new google.maps.LatLng(params.targetLat, params.targetLng);
-    fenway = new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng);
+    fenway = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
 
     mapOptions = {
         center: fenway,
         mapTypeControl:false,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
         maxZoom : 20,
         minZoom : 14,
         overviewMapControl:false,
@@ -5476,8 +5392,7 @@ function Map ($, params) {
     };
 
     var mapCanvas = document.getElementById("google-maps");
-    map = new google.maps.Map(mapCanvas, mapOptions);
-    properties.map = map;
+    map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
 
     // Styling google map.
     // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
@@ -5503,8 +5418,7 @@ function Map ($, params) {
         }
     ];
 
-
-    map.setOptions({styles: mapStyleOptions});
+    if (map) map.setOptions({styles: mapStyleOptions});
 
     function _init(params) {
         params = params || {};
@@ -5535,19 +5449,22 @@ function Map ($, params) {
             };
 
         } else {
-            throw self.className + ' init(): The pano id nor panorama position is give. Cannot initialize the panorama.';
+            console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
 
         var panoCanvas = document.getElementById('pano');
-        svl.panorama = new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions);
-        svl.panorama.set('addressControl', false);
-        svl.panorama.set('clickToGo', false);
-        svl.panorama.set('disableDefaultUI', true);
-        svl.panorama.set('linksControl', true);
-        svl.panorama.set('navigationControl', false);
-        svl.panorama.set('panControl', false);
-        svl.panorama.set('zoomControl', false);
-        svl.panorama.set('keyboardShortcuts', true);
+        svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
+        if (svl.panorama) {
+            svl.panorama.set('addressControl', false);
+            svl.panorama.set('clickToGo', false);
+            svl.panorama.set('disableDefaultUI', true);
+            svl.panorama.set('linksControl', true);
+            svl.panorama.set('navigationControl', false);
+            svl.panorama.set('panControl', false);
+            svl.panorama.set('zoomControl', false);
+            svl.panorama.set('keyboardShortcuts', true);
+        }
+
 
         properties.initialPanoId = params.taskPanoId;
         $canvas = svl.ui.map.canvas;
@@ -5570,15 +5487,17 @@ function Map ($, params) {
 
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
-        google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
-        google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
-        google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
-
+        if (typeof google != "undefined") {
+            google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
+            google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
+            google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
+            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+        }
+        
         // Connect the map view and panorama view
-        map.setStreetView(svl.panorama);
+        if (map && svl.panorama) map.setStreetView(svl.panorama);
 
         // Set it to walking mode initially.
-        google.maps.event.addListenerOnce(svl.panorama, "pano_changed", self.modeSwitchWalkClick);
 
         _streetViewInit = setInterval(initStreetView, 100);
 
@@ -5709,7 +5628,7 @@ function Map ($, params) {
      * @returns {null}
      */
     function getMap() {
-        return properties.map;
+        return map;
     }
 
     /**
@@ -6256,7 +6175,7 @@ function Map ($, params) {
     function setPosition (lat, lng) {
         var latlng = new google.maps.LatLng(lat, lng);
         svl.panorama.setPosition(latlng);
-        properties.map.setCenter(latlng);
+        map.setCenter(latlng);
         return this;
     }
 
@@ -7010,8 +6929,7 @@ function MissionContainer ($, parameters) {
         }
         return this;
     }
-
-
+    
     /**
      * Push the completed mission to the staged so it will be submitted to the server.
      * @param mission
@@ -7830,7 +7748,7 @@ function OverlayMessageBox ($, params) {
         properties = { 'visibility' : 'visible' };
 
     function init() {
-        if (svl.ui && svl.ui.overlayMessage) {
+        if ("ui" in svl && svl.ui && svl.ui.overlayMessage) {
           setMessage('Walk');
         }
 
@@ -7846,11 +7764,13 @@ function OverlayMessageBox ($, params) {
         var instructions = svl.misc.getLabelInstructions(),
             labelColors = svl.misc.getLabelColors();
 
-        if ((mode in instructions) && (mode in labelColors)) {
+        if ((mode in instructions) && (mode in labelColors) && "ui" in svl) {
             // Set the box color.
             var modeColor = labelColors[mode];
-            var backgroundColor = changeAlphaRGBA(modeColor.fillStyle, 0.85);
-            backgroundColor = changeDarknessRGBA(backgroundColor, 0.35);
+            var backgroundColor = svl.util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
+            backgroundColor = svl.util.color.changeDarknessRGBA(backgroundColor, 0.35);
+
+
             svl.ui.overlayMessage.box.css({
                 'background' : backgroundColor
             });
@@ -7946,8 +7866,7 @@ function Path (points, params) {
                 }
             }
         }
-
-        properties.fillStyle = changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
+        properties.fillStyle = svl.util.color.changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
         properties.originalFillStyle = properties.fillStyle;
         properties.originalStrokeStyle = properties.strokeStyle;
     }
@@ -8385,7 +8304,7 @@ function Path (points, params) {
             ctx.save();
             ctx.beginPath();
             if (!properties.fillStyle) {
-                properties.fillStyle = changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
+                properties.fillStyle = svl.util.color.changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
                 properties.originalFillStyle = properties.fillStyle;
                 ctx.fillStyle = properties.fillStyle;
             } else {
@@ -9281,10 +9200,7 @@ function RibbonMenu ($, params) {
             selectedLabelType: undefined
         },
         blinkInterval;
-
-    // jQuery DOM elements
-    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches, $subcategories, $subcategoryHolder;
-
+    
     function _init () {
         var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
         if (browser === 'mozilla') {
@@ -9297,16 +9213,8 @@ function RibbonMenu ($, params) {
 
         // Initialize the jQuery DOM elements
         if (svl.ui && svl.ui.ribbonMenu) {
-
-            $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
-            $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
-            $ribbonConnector = svl.ui.ribbonMenu.connector;
-            $spansModeSwitches = svl.ui.ribbonMenu.buttons;
-            $subcategories = svl.ui.ribbonMenu.subcategories;
-            $subcategoryHolder = svl.ui.ribbonMenu.subcategoryHolder;
-
             // Initialize the color of the lines at the bottom of ribbon menu icons
-            $.each($ribbonButtonBottomLines, function (i, v) {
+            $.each(svl.ui.ribbonMenu.bottonBottomBorders, function (i, v) {
                 var labelType = $(v).attr("val"), color = labelColors[labelType].fillStyle;
                 if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
@@ -9317,12 +9225,12 @@ function RibbonMenu ($, params) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
 
-            $spansModeSwitches.bind({
+            svl.ui.ribbonMenu.buttons.bind({
                 click: handleModeSwitchClickCallback,
                 mouseenter: handleModeSwitchMouseEnter,
                 mouseleave: handleModeSwitchMouseLeave
             });
-            $subcategories.on({
+            svl.ui.ribbonMenu.subcategories.on({
                click: handleSubcategoryClick
             });
         }
@@ -9374,9 +9282,9 @@ function RibbonMenu ($, params) {
                 setModeSwitchBackgroundColors(labelType);
 
 
-                $ribbonConnector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
-                $ribbonConnector.css("border-left-color", borderColor);
-                $divStreetViewHolder.css("border-color", borderColor);
+                svl.ui.ribbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
+                svl.ui.ribbonMenu.connector.css("border-left-color", borderColor);
+                svl.ui.ribbonMenu.streetViewHolder.css("border-color", borderColor);
             }
 
             // Set the instructional message
@@ -9434,16 +9342,16 @@ function RibbonMenu ($, params) {
     }
 
     function showSubcategories () {
-        $subcategoryHolder.css('visibility', 'visible');
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
     function hideSubcategories () {
-        $subcategoryHolder.css('visibility', 'hidden');
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
 
     function setModeSwitchBackgroundColors (mode) {
         // background: -moz-linear-gradient(center top , #fff, #eee);
         // background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
-        if (svl.ui && svl.ui.ribbonMenu) {
+        if ("ui" in svl && svl.ui && svl.ui.ribbonMenu) {
           var labelType;
           var labelColors;
           var borderColor;
@@ -9453,7 +9361,7 @@ function RibbonMenu ($, params) {
           labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
-          $.each($spansModeSwitches, function (i, v) {
+          $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
               labelType = $(v).attr("val");
               if (labelType === mode) {
                   if (labelType === 'Walk') {
@@ -9485,7 +9393,7 @@ function RibbonMenu ($, params) {
           labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
-          $.each($spansModeSwitches, function (i, v) {
+          $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
               labelType = $(v).attr("val");
               if (labelType=== mode) {
                   $(this).css({
@@ -9518,11 +9426,15 @@ function RibbonMenu ($, params) {
         return this;
     }
 
+    /**
+     * Disable switching modes
+     * @returns {disableModeSwitch}
+     */
     function disableModeSwitch () {
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = true;
             if (svl.ui && svl.ui.ribbonMenu) {
-                $spansModeSwitches.css('opacity', 0.5);
+                svl.ui.ribbonMenu.buttons.css('opacity', 0.5);
             }
         }
         return this;
@@ -9534,7 +9446,7 @@ function RibbonMenu ($, params) {
      */
     function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
-            $.each($spansModeSwitches, function (i, v) {
+            $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
                 var labelType = $(v).attr("val");
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
@@ -9548,12 +9460,15 @@ function RibbonMenu ($, params) {
         return this;
     }
 
+    /**
+     * This method enables mode switch.
+     * @returns {enableModeSwitch}
+     */
     function enableModeSwitch () {
-        // This method enables mode switch.
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = false;
-            if (svl.ui && svl.ui.ribbonMenu) {
-                $spansModeSwitches.css('opacity', 1);
+            if (svl.ui && svl.ui.ribbonMenu && svl.ui.ribbonMenu.buttons) {
+                svl.ui.ribbonMenu.buttons.css('opacity', 1);
             }
         }
         return this;
@@ -9561,7 +9476,7 @@ function RibbonMenu ($, params) {
 
     function enableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
-            $.each($spansModeSwitches, function (i, v) {
+            $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
                 $(v).css('opacity', 1);
             });
         }
@@ -9685,790 +9600,6 @@ function RibbonMenu ($, params) {
     _init(params);
 
     return self;
-}
-
-var svl = svl || {};
-
-/**
- *
- * @param params
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function RightClickMenu (params) {
-    var oPublic = {
-        'className' : 'RightClickMenu'
-        };
-    var properties = {
-
-        };
-    var status = {
-            'currentLabel' : undefined,
-            'disableLabelDelete' : false,
-            'disableMenuClose' : false,
-            'disableMenuSelect' : false,
-            'lockDisableMenuSelect' : false,
-            'visibilityDeleteMenu' : 'hidden',
-            'visibilityBusStopLabelMenu' : 'hidden',
-            'visibilityBusStopPositionMenu' : 'hidden',
-            'menuPosition' : {
-                'x' : -1,
-                'y' : -1
-            }
-        };
-    var mouseStatus = {
-            currX:0,
-            currY:0,
-            prevX:0,
-            prevY:0,
-            leftDownX:0,
-            leftDownY:0,
-            leftUpX:0,
-            leftUpY:0,
-            mouseDownOnBusStopLabelMenuBar : false,
-            mouseDownOnBusStopPositionMenuBar : false
-        };
-    var canvas;
-    var ribbonMenu;
-
-        // jQuery doms
-    // Todo. Do not hard cord dom ids.
-    var $divLabelMenu;
-    var $divLabelMenuBar;
-    var $divDeleteLabelMenu;
-    var $divHolderRightClickMenu;
-    var $radioBusStopSignTypes;
-    var $deleteMenuDeleteButton;
-    var $deleteMenuCancelButton;
-    var $divBusStopLabelMenuItems;
-    var $divBusStopPositionMenu;
-    var $divBusStopPositionMenuBar;
-    var $divBusStopPositionMenuItems;
-    var $btnBusStopPositionMenuBack;
-    var $divHolderLabelMenuClose;
-    var $divHolderPositionMenuClose;
-    var $menuBars;
-    var $spanHolderBusStopLabelMenuQuestionMarkIcon;
-    var $spanHolderBusStopPositionMenuQuestionMarkIcon;
-
-
-    ////////////////////////////////////////
-    // Private functions
-    ////////////////////////////////////////
-    function init (params) {
-        canvas = params.canvas;
-        ribbonMenu = params.ribbonMenu;
-
-        // Todo. Do not hard cord dom ids.
-        $divLabelMenu = $("div#labelDrawingLayer_LabelMenu");
-        $divLabelMenuBar = $("#labelDrawingLayer_LabelMenuBar");
-        $divDeleteLabelMenu = $("div#LabelDeleteMenu");
-        $divHolderRightClickMenu = $("div#Holder_RightClickMenu");
-        $radioBusStopSignTypes = $("input.Radio_BusStopType");
-        $deleteMenuDeleteButton = $("button#LabelDeleteMenu_DeleteButton");
-        $deleteMenuCancelButton = $("button#LabelDeleteMenu_CancelButton");
-
-        $divBusStopLabelMenuItems = $(".BusStopLabelMenuItem");
-        $divHolderLabelMenuClose = $("#Holder_BusStopLabelMenuOptionCloseIcon");
-
-
-        // Bus stop relative position menu
-        $divBusStopPositionMenu = $("#BusStopPositionMenu");
-        $divBusStopPositionMenuBar = $("#BusStopPositionMenu_MenuBar");
-        $divBusStopPositionMenuItems = $(".BusStopPositionMenu_MenuItem");
-        $btnBusStopPositionMenuBack = $("#BusStopPositinoMenu_BackButton");
-        $divHolderPositionMenuClose = $("#Holder_BusStopPositionMenuCloseIcon");
-
-        $menuBars = $(".RightClickMenuBar");
-
-        $spanHolderBusStopLabelMenuQuestionMarkIcon = $('.Holder_BusStopLabelMenuQuestionMarkIcon');
-        $spanHolderBusStopPositionMenuQuestionMarkIcon = $('.Holder_BusStopPositionMenuQuestionMarkIcon');
-
-        // Attach listenters
-        // $radioBusStopSignTypes.bind('mousedown', radioBusStopSignTypeMouseUp);
-        // $deleteMenuDeleteButton.bind('mousedown', deleteMenuDeleteClicked);
-        // $deleteMenuCancelButton.bind('mousedown', deleteMenuCancelClicked);
-
-        // Bus stop label menu listeners
-        $divBusStopLabelMenuItems.bind('mouseup', divBusStopLabelMenuItemsMouseUp);
-        $divBusStopLabelMenuItems.bind('mouseenter', divBusStopLabelMenuItemsMouseEnter);
-        $divBusStopLabelMenuItems.bind('mouseleave', divBusStopLabelMenuItemsMouseLeave);
-
-        // Bus stop label menu menu-bar
-        $divLabelMenuBar.bind('mousedown', divBusStopLabelMenuBarMouseDown);
-        $divLabelMenuBar.bind('mouseup', divBusStopLabelMenuBarMouseUp);
-        $divLabelMenuBar.bind('mousemove', divBusStopLabelMenuBarMouseMove);
-        $divHolderLabelMenuClose.bind('click', divBusHolderLabelMenuCloseClicked);
-        $divHolderLabelMenuClose.bind('mouseenter', divBusHolderLabelMenuCloseMouseEnter);
-        $divHolderLabelMenuClose.bind('mouseleave', divBusHolderLabelMenuCloseMouseLeave);
-
-        // Position menu listeners
-        $divBusStopPositionMenuItems.bind('mouseup', divBusStopPositionMenuItemsMouseUp);
-        $divBusStopPositionMenuItems.bind('mouseenter', divBusStopPositionMenuItemsMouseEnter);
-        $divBusStopPositionMenuItems.bind('mouseleave', divBusStopPositionMenuItemsMouseLeave);
-
-        $divBusStopPositionMenuBar.bind('mousedown', divBusStopPositionMenuBarMouseDown);
-        $divBusStopPositionMenuBar.bind('mouseup', divBusStopPositionMenuBarMouseUp);
-        $divBusStopPositionMenuBar.bind('mousemove', divBusStopPositionMenuBarMouseMove);
-        $divHolderPositionMenuClose.bind('click', divBusHolderPositionMenuCloseClicked);
-        $divHolderPositionMenuClose.bind('mouseenter', divBusHolderPositionMenuCloseMouseEnter);
-        $divHolderPositionMenuClose.bind('mouseleave', divBusHolderPositionMenuCloseMouseLeave);
-
-
-        // Question marks
-        $spanHolderBusStopLabelMenuQuestionMarkIcon.bind({
-            'mouseenter' : questionMarkMouseEnter,
-            'mouseleave' : questionMarkMouseLeave,
-            'mouseup' : questionMarkMouseUp
-        });
-        $spanHolderBusStopPositionMenuQuestionMarkIcon.bind({
-            'mouseenter' : questionMarkMouseEnter,
-            'mouseleave' : questionMarkMouseLeave,
-            'mouseup' : questionMarkMouseUp
-        });
-        // menu bars
-        $menuBars.bind('mouseenter', menuBarEnter);
-
-
-        $btnBusStopPositionMenuBack.bind('click', busStopPositionMenuBackButtonClicked);
-    }
-
-    function questionMarkMouseEnter (e) {
-        $(this).find('.tooltip').css('visibility', 'visible');
-    }
-
-    function questionMarkMouseLeave () {
-        $(this).find('.tooltip').css('visibility', 'hidden');
-    }
-
-    function questionMarkMouseUp (e) {
-        // Stopping propagation
-        // http://stackoverflow.com/questions/13988427/add-event-listener-to-child-whose-parent-has-event-disabled
-        e.stopPropagation();
-        var category = $(this).parent().attr('value');
-        myExamples.show(category);
-    }
-
-    function radioBusStopSignTypeMouseUp (e) {
-        // This function is invoked when a user click a radio button in
-        // the menu.
-        // Show current bus stop label's tag and set subLabelType
-        // (e.g. one-leg stop sign, two-leg stop sign)
-        // canvas.getCurrentLabel().setStatus('visibilityTag', 'visible');
-        oPublic.hideBusStopType();
-
-        // Set the subLabelType of the label (e.g. "StopSign_OneLeg"
-        var subLabelType = $(this).attr("val");
-        canvas.getCurrentLabel().setSubLabelDescription(subLabelType);
-        canvas.clear().render();
-
-        // Snap back to walk mode.
-        myMenu.backToWalk();
-    }
-
-
-    ////////////////////////////////////////
-    // Private Functions (Bus stop label menu)
-    ////////////////////////////////////////
-    function menuBarEnter () {
-        $(this).css('cursor', 'url(' + svl.rootDirectory + "/img/cursors/openhand.cur) 4 4, move");
-    }
-
-
-    function divBusStopLabelMenuItemsMouseUp () {
-        if (!status.disableMenuSelect) {
-            // This function is invoked when a user click on a bus stop label menu
-            var color, iconImagePath, subLabelType, $menuItem;
-            color = svl.misc.getLabelColors()['StopSign'].fillStyle;
-            // currentLabel.setStatus('visibilityTag', 'visible');
-
-
-            // Give a slight mouse click feedback to a user
-            $menuItem = $(this);
-            $menuItem.css('background','transparent');
-
-            setTimeout(function () {
-                $menuItem.css('background', color);
-                setTimeout(function() {
-                    $menuItem.css('background', 'transparent');
-
-                    // Hide the menu
-                    oPublic.hideBusStopType();
-
-                    subLabelType = $menuItem.attr("value");
-                    if (!subLabelType) {
-                        subLabelType = 'StopSign';
-                    }
-
-                    // Set the subLabelType of the label (e.g. "StopSign_OneLeg"
-                    status.currentLabel.setSubLabelDescription(subLabelType);
-                    iconImagePath = getLabelIconImagePath()[subLabelType].iconImagePath;
-                    status.currentLabel.setIconPath(iconImagePath);
-
-                    canvas.clear().render();
-
-                    showBusStopPositionMenu();
-                }, 100)
-            },100);
-        }
-    }
-
-
-    function divBusStopLabelMenuItemsMouseEnter () {
-        if (!status.disableMenuSelect) {
-            var color = svl.misc.getLabelColors()['StopSign'].fillStyle;
-            $(this).css({
-                'background': color,
-                'cursor' : 'pointer'
-            });
-            return this;
-        }
-        return false;
-    }
-
-
-    function divBusStopLabelMenuItemsMouseLeave () {
-        if (!status.disableMenuSelect) {
-            $(this).css({
-                'background' : 'transparent',
-                'cursor' : 'default'
-            });
-            return this;
-        }
-    }
-
-
-    //
-    // Bus stop label menu menu bar
-    //
-    function divBusStopLabelMenuBarMouseDown () {
-        mouseStatus.mouseDownOnBusStopLabelMenuBar = true;
-        $(this).css('cursor', 'url(' + svl.rootDirectory + "/img/cursors/closedhand.cur) 4 4, move");
-    }
-
-
-    function divBusStopLabelMenuBarMouseUp () {
-        mouseStatus.mouseDownOnBusStopLabelMenuBar = false;
-        $(this).css('cursor', 'url(' + svl.rootDirectory + "/img/cursors/openhand.cur) 4 4, move");
-    }
-
-
-    function divBusStopLabelMenuBarMouseMove (e) {
-        if (mouseStatus.mouseDownOnBusStopLabelMenuBar) {
-            var left = $divLabelMenu.css('left');
-            var top = $divLabelMenu.css('top');
-            var dx, dy;
-
-            top = parseInt(top.replace("px", ""));
-            left = parseInt(left.replace("px",""));
-
-            dx = e.pageX - mouseStatus.prevX;
-            dy = e.pageY - mouseStatus.prevY;
-            left += dx;
-            top += dy;
-
-            // console.log(left, top, dx, dy);
-
-            $divLabelMenu.css({
-                'left' : left,
-                'top' : top
-            });
-        }
-        mouseStatus.prevX = e.pageX;
-        mouseStatus.prevY = e.pageY;
-    }
-
-
-    function divBusHolderLabelMenuCloseClicked () {
-        // Label menu close is clicked
-        // First close the menu, then delete the generated label.
-        if (!status.disableMenuClose) {
-            var prop;
-
-            // Check if Bus stop type and bus stop position is set.
-            // If not, set the label as deleted, so when a user do
-            // Undo -> Redo the label will be treated as deleted and won't show up
-            if (status.currentLabel) {
-                prop = status.currentLabel.getProperties();
-                if (prop.labelProperties.busStopPosition === 'DefaultValue' ||
-                    prop.labelProperties.subLabelDescription === 'DefaultValue') {
-                    myCanvas.removeLabel(status.currentLabel);
-                    myActionStack.pop();
-                }
-            }
-            mouseStatus.mouseDownOnBusStopLabelMenuBar = false;
-            oPublic.hideBusStopType();
-            canvas.enableLabeling();
-            myMenu.setStatus('disableModeSwitch', false);
-        }
-    }
-
-
-    function divBusHolderLabelMenuCloseMouseEnter () {
-        if (!status.disableMenuClose) {
-            $(this).css('cursor', 'pointer');
-        }
-    }
-
-
-    function divBusHolderLabelMenuCloseMouseLeave () {
-        $(this).css('cursor', 'default');
-    }
-
-
-    function divBusStopPositionMenuItemsMouseUp () {
-        if (!status.disableMenuSelect) {
-            // Set label values
-            var busStopPosition, color, currentLabel, $menuItem;
-            color = svl.misc.getLabelColors()['StopSign'].fillStyle;
-
-            status.currentLabel.setStatus('visibilityTag', 'visible');
-
-            $menuItem = $(this);
-            $menuItem.css('background','transparent');
-
-            // Set bus stop position (e.g. Next
-            busStopPosition = $menuItem.attr('value');
-            status.currentLabel.setBusStopPosition(busStopPosition);
-
-            setTimeout(function () {
-                $menuItem.css('background', color);
-                setTimeout(function() {
-                    $menuItem.css('background', 'transparent');
-
-                    // Close the menu
-                    hideBusStopPositionMenu();
-                    // Snap back to walk mode.
-                    myMap.enableWalking();
-                    myMenu.backToWalk();
-                    // myMap.setStatus('disableWalking', false);
-                }, 100)
-            },100);
-        }
-    }
-
-
-    function divBusStopPositionMenuItemsMouseEnter () {
-        if (!status.disableMenuSelect) {
-            var color = svl.misc.getLabelColors()['StopSign'].fillStyle;
-            $(this).css({
-                'background': color,
-                'cursor' : 'pointer'
-            });
-            return this;
-        }
-    }
-
-
-    function divBusStopPositionMenuItemsMouseLeave () {
-        if (!status.disableMenuSelect) {
-            $(this).css({
-                'background': 'transparent',
-                'cursor' : 'default'
-            });
-            return this;
-        }
-    }
-
-
-    function divBusHolderPositionMenuCloseMouseEnter () {
-        if (!status.disableMenuClose) {
-            $(this).css({
-                'cursor' : 'pointer'
-            });
-        }
-    }
-
-
-    function divBusHolderPositionMenuCloseMouseLeave () {
-        $(this).css({
-            'cursor' : 'default'
-        });
-    }
-
-
-    function divBusHolderPositionMenuCloseClicked () {
-        // Label position menu close is clicked
-        // First close the menu, then delete the generated label.
-        if (!status.disableMenuClose &&
-            status.currentLabel) {
-            var prop;
-
-            // Check if Bus stop type and bus stop position is set.
-            // If not, set the label as deleted, so when a user do
-            // Undo -> Redo the label will be treated as deleted and won't show up
-            prop = status.currentLabel.getProperties();
-            if (prop.labelProperties.busStopPosition === 'DefaultValue' ||
-                prop.labelProperties.subLabelDescription === 'DefaultValue') {
-                myCanvas.removeLabel(status.currentLabel);
-                myActionStack.pop();
-            }
-
-            // Hide the menu
-            mouseStatus.mouseDownOnBusStopPositionMenuBar = false;
-            hideBusStopPositionMenu();
-            canvas.enableLabeling();
-            myMenu.setStatus('disableModeSwitch', false);
-        }
-    }
-
-
-    //
-    // Menu bar
-    //
-    function divBusStopPositionMenuBarMouseDown (e) {
-        mouseStatus.mouseDownOnBusStopPositionMenuBar = true;
-        $(this).css('cursor', 'url(' + svl.rootDirectory + "/img/cursors/closedhand.cur) 4 4, move");
-    }
-
-
-    function divBusStopPositionMenuBarMouseUp (e) {
-        mouseStatus.mouseDownOnBusStopPositionMenuBar = false;
-        $(this).css('cursor', 'url(' + svl.rootDirectory + "/img/cursors/openhand.cur) 4 4, move");
-    }
-
-
-    function divBusStopPositionMenuBarMouseMove (e) {
-        if (mouseStatus.mouseDownOnBusStopPositionMenuBar) {
-            var left = $divBusStopPositionMenu.css('left');
-            var top = $divBusStopPositionMenu.css('top');
-            var dx, dy;
-
-            top = parseInt(top.replace("px", ""));
-            left = parseInt(left.replace("px",""));
-
-            dx = e.pageX - mouseStatus.prevX;
-            dy = e.pageY - mouseStatus.prevY;
-            left += dx;
-            top += dy;
-
-            // console.log(left, top, dx, dy);
-
-            $divBusStopPositionMenu.css({
-                'left' : left,
-                'top' : top
-            });
-        }
-        mouseStatus.prevX = e.pageX;
-        mouseStatus.prevY = e.pageY;
-    }
-
-    function hideBusStopPositionMenu () {
-        status.visibilityBusStopPositionMenu = 'hidden';
-
-        $divHolderRightClickMenu.css('visibility', 'hidden');
-        $divBusStopPositionMenu.css('visibility', 'hidden');
-
-        if (oPublic.isAllClosed()) {
-            canvas.setStatus('disableLabeling', false);
-            myMenu.setStatus('disableModeSwitch', false);
-
-            status.disableLabelDelete = false;
-            status.currentLabel = undefined;
-
-            myActionStack.unlockDisableRedo().enableRedo().lockDisableRedo();
-            myActionStack.unlockDisableUndo().enableUndo().lockDisableUndo();
-            myForm.unlockDisableSubmit().enableSubmit().lockDisableSubmit();
-            myForm.unlockDisableNoBusStopButton().enableNoBusStopButton().lockDisableNoBusStopButton();
-        }
-    }
-
-
-    function showBusStopPositionMenu () {
-        var menuX = status.menuPosition.x,
-            menuY = status.menuPosition.y;
-        status.visibilityBusStopPositionMenu = 'visible';
-
-        // Show the right-click menu layer
-        // $divHolderRightClickMenu.css('visibility', 'visible');
-
-
-        // Set the menu bar color
-        $divBusStopPositionMenuBar.css({
-            'background' : svl.misc.getLabelColors()['StopSign'].fillStyle
-        });
-
-
-        // If menu position is to low or to much towards right,
-        // adjust the position
-        if (menuX > 400) {
-            menuX -= 300;
-        }
-        if (menuY > 300) {
-            menuY -= 200;
-        }
-
-        // Show the bus stop position menu
-        $divBusStopPositionMenu.css({
-            'visibility': 'visible',
-            'position' : 'absolute',
-            'left' : menuX,
-            'top' : menuY,
-            'z-index' : 4
-        });
-
-        canvas.setStatus('visibilityMenu', 'visible');
-        canvas.disableLabeling();
-        myMenu.setStatus('disableModeSwitch', true);
-        myActionStack.unlockDisableRedo().disableRedo().lockDisableRedo();
-        myActionStack.unlockDisableUndo().disableUndo().lockDisableUndo();
-    }
-
-
-    //
-    // Back button
-    //
-    function busStopPositionMenuBackButtonClicked () {
-        // Hide bus stop position menu and show sign label menu.
-        var currentLabel = status.currentLabel;
-        hideBusStopPositionMenu();
-        oPublic.showBusStopType(currentLabel.getCoordinate().x, currentLabel.getCoordinate().y);
-    }
-
-
-    ////////////////////////////////////////
-    // Private Functions (Deleting labels)
-    ////////////////////////////////////////
-    function deleteMenuDeleteClicked() {
-        canvas.removeLabel(canvas.getCurrentLabel());
-        oPublic.hideDeleteLabel();
-        myActionStack.push('deleteLabel', canvas.getCurrentLabel());
-    }
-
-
-    function deleteMenuCancelClicked () {
-        oPublic.hideDeleteLabel();
-    }
-
-
-    ////////////////////////////////////////
-    // oPublic functions
-    ////////////////////////////////////////
-    oPublic.close = function () {
-        // Esc pressed. close all menu windows
-        divBusHolderLabelMenuCloseClicked();
-        divBusHolderPositionMenuCloseClicked();
-    };
-
-
-    oPublic.disableMenuClose = function () {
-        status.disableMenuClose = true;
-        return this;
-    };
-
-
-    oPublic.disableMenuSelect = function () {
-        if (!status.lockDisableMenuSelect) {
-            status.disableMenuSelect = true;
-        }
-        return this;
-    };
-
-
-    oPublic.enableMenuClose = function () {
-        status.disableMenuClose = false;
-        return this;
-    };
-
-
-    oPublic.enableMenuSelect = function () {
-        if (!status.lockDisableMenuSelect) {
-            status.disableMenuSelect = false;
-        }
-        return this;
-    };
-
-
-    oPublic.getMenuPosition = function () {
-        return {
-            x : status.menuPosition.x,
-            y : status.menuPosition.y
-        };
-    };
-
-
-    oPublic.hideBusStopPosition = function () {
-        // Hide the right click menu for choosing a bus stop position.
-        hideBusStopPositionMenu();
-        return this;
-    };
-
-
-    oPublic.hideBusStopType = function () {
-        // Hide the right click menu for choosing a bus stop type.
-
-        // Hide the right-click menu layer
-        $divHolderRightClickMenu.css('visibility', 'hidden');
-
-        // Hide the bus stop label menu
-        $divLabelMenu.css('visibility', 'hidden');
-        status.visibilityBusStopLabelMenu = 'hidden';
-
-        canvas.setStatus('visibilityMenu', 'hidden');
-
-        if (oPublic.isAllClosed()) {
-            myActionStack.unlockDisableRedo().enableRedo().lockDisableRedo();
-            myActionStack.unlockDisableUndo().enableUndo().lockDisableUndo();
-            myForm.unlockDisableSubmit().disableSubmit().lockDisableSubmit();
-            myForm.unlockDisableNoBusStopButton().disableNoBusStopButton().lockDisableNoBusStopButton();
-        }
-    };
-
-
-    oPublic.hideDeleteLabel = function () {
-        // Hide the right-click menu layer
-        $divHolderRightClickMenu.css('visibility', 'hidden');
-        status.visibilityDeleteMenu = 'hidden';
-
-        $divDeleteLabelMenu.css('visibility', 'hidden');
-        canvas.setStatus('visibilityMenu', 'hidden');
-
-        if (oPublic.isAllClosed()) {
-            canvas.enableLabeling();
-            myMenu.setStatus('disableModeSwitch', false);
-        }
-    };
-
-
-    oPublic.isAllClosed = function () {
-        // This function checks if all the menu windows are hidden and return true/false
-        if (status.visibilityBusStopLabelMenu === 'hidden' &&
-            status.visibilityDeleteMenu === 'hidden' &&
-            status.visibilityBusStopPositionMenu === 'hidden') {
-            return true;
-        } else {
-            return false;
-        }
-    };
-
-
-    oPublic.isAnyOpen = function () {
-        // This function checks if any menu windows is open and return true/false
-        return !oPublic.isAllClosed();
-    };
-
-
-    oPublic.lockDisableMenuSelect = function () {
-        status.lockDisableMenuSelect = true;
-        return this;
-    };
-
-    oPublic.setStatus = function (key, value) {
-        if (key in status) {
-            if (key === 'disableMenuClose') {
-                if (typeof value === 'boolean') {
-                    if (value) {
-                        oPublic.enableMenuClose();
-                    } else {
-                        oPublic.disableMenuClose();
-                    }
-                    return this;
-                } else {
-                    return false;
-                }
-            } else {
-                status[key] = value;
-                return this;
-            }
-        }
-        return false;
-    };
-
-
-    oPublic.showBusStopType = function (x, y) {
-        status.currentLabel = canvas.getCurrentLabel();
-
-        if (status.currentLabel &&
-            status.currentLabel.getLabelType() === 'StopSign') {
-            // Show bus stop label menu
-            var menuX, menuY;
-
-            // Show the right-click menu layer
-            $divHolderRightClickMenu.css('visibility', 'visible');
-            status.visibilityBusStopLabelMenu = 'visible';
-
-            // Set the menu bar color
-            $divLabelMenuBar.css({
-                'background' : svl.misc.getLabelColors()['StopSign'].fillStyle
-            });
-
-
-            menuX = x + 25;
-            menuY = y + 25;
-
-            // If menu position is to low or to much towards right,
-            // adjust the position
-            if (menuX > 400) {
-                menuX -= 300;
-            }
-            if (menuY > 300) {
-                menuY -= 200;
-            }
-
-            status.menuPosition.x = menuX;
-            status.menuPosition.y = menuY;
-
-            // Show the bus stop label menu
-            $divLabelMenu.css({
-                'visibility' : 'visible',
-                'position' : 'absolute',
-                'left' : menuX,
-                'top' : menuY,
-                'z-index' : 4
-            });
-            status.visibilityBusStopLabelMenu = 'visible';
-
-            canvas.setStatus('visibilityMenu', 'visible');
-            canvas.setStatus('disableLabeling', true);
-            canvas.disableLabeling();
-            myMap.setStatus('disableWalking', true);
-            myMenu.setStatus('disableModeSwitch', true);
-        }
-
-    };
-
-
-    oPublic.showDeleteLabel = function (x, y) {
-        // This function shows a menu to delete a label that is in
-        // canvas and under the current cursor location (x, y)
-        var menuX, menuY;
-
-        if (!status.disableLabelDelete) {
-            // Show the right-click menu layer
-            $divHolderRightClickMenu.css('visibility', 'visible');
-
-
-            menuX = x - 5;
-            menuY = y - 5
-
-            $divDeleteLabelMenu.css({
-                'visibility' : 'visible',
-                'position' : 'absolute',
-                'left' : menuX,
-                'top' : menuY,
-                'z-index' : 4
-            });
-            status.visibilityDeleteMenu = 'visible';
-
-            status.visibilityMenu = 'visible';
-            status.disableLabeling = true;
-            // myMap.setStatus('disableWalking', true);
-            myMenu.setStatus('disableModeSwitch', true);
-        }
-    };
-
-
-    oPublic.unlockDisableMenuSelect = function () {
-        status.lockDisableMenuSelect = false;
-        return this;
-    };
-
-    ////////////////////////////////////////
-    // Initialization
-    ////////////////////////////////////////
-    init(params);
-    return oPublic;
 }
 
 var svl = svl || {};
@@ -11374,8 +10505,6 @@ function Tooltip ($, param) {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  *
  * @returns {{className: string}}
@@ -11627,20 +10756,13 @@ function ZoomControl ($, param) {
         },
         blinkInterval;
 
-    // jQuery dom objects
-    var $buttonZoomIn;
-    var $buttonZoomOut;
-
     function _init (param) {
         // Initialization function
 
         //if ('domIds' in param) {
         if (svl.ui && svl.ui.zoomControl) {
-          $buttonZoomIn = svl.ui.zoomControl.zoomIn;
-          $buttonZoomOut = svl.ui.zoomControl.zoomOut;
-
-          $buttonZoomIn.bind('click', handleZoomInButtonClick);
-          $buttonZoomOut.bind('click', handleZoomOutButtonClick);
+          svl.ui.zoomControl.zoomIn.bind('click', handleZoomInButtonClick);
+          svl.ui.zoomControl.zoomOut.bind('click', handleZoomOutButtonClick);
         }
     }
 
@@ -11663,8 +10785,8 @@ function ZoomControl ($, param) {
     function disableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = true;
-            if ($buttonZoomIn) {
-                $buttonZoomIn.css('opacity', 0.5);
+            if (svl.ui.zoomControl.zoomIn) {
+                svl.ui.zoomControl.zoomIn.css('opacity', 0.5);
             }
         }
         return this;
@@ -11676,8 +10798,8 @@ function ZoomControl ($, param) {
     function disableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = true;
-            if ($buttonZoomOut) {
-                $buttonZoomOut.css('opacity', 0.5);
+            if (svl.ui.zoomControl.zoomOut) {
+                svl.ui.zoomControl.zoomOut.css('opacity', 0.5);
             }
         }
         return this;
@@ -11689,8 +10811,8 @@ function ZoomControl ($, param) {
     function enableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = false;
-            if ($buttonZoomIn) {
-                $buttonZoomIn.css('opacity', 1);
+            if (svl.ui.zoomControl.zoomIn) {
+                svl.ui.zoomControl.zoomIn.css('opacity', 1);
             }
         }
         return this;
@@ -11702,8 +10824,8 @@ function ZoomControl ($, param) {
     function enableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = false;
-            if ($buttonZoomOut) {
-                $buttonZoomOut.css('opacity', 1);
+            if (svl.ui.zoomControl.zoomOut) {
+                svl.ui.zoomControl.zoomOut.css('opacity', 1);
             }
         }
         return this;
@@ -11825,6 +10947,8 @@ function ZoomControl ($, param) {
             } else {
                 return false;
             }
+        } else {
+            return false;
         }
     }
 
@@ -11888,6 +11012,10 @@ function ZoomControl ($, param) {
         return this;
     }
 
+    /**
+     * Change the opacity of zoom buttons
+     * @returns {updateOpacity}
+     */
     function updateOpacity () {
         var pov = svl.map.getPov();
 
@@ -11895,20 +11023,20 @@ function ZoomControl ($, param) {
             var zoom = pov.zoom;
             // Change opacity
             if (zoom >= properties.maxZoomLevel) {
-                $buttonZoomIn.css('opacity', 0.5);
-                $buttonZoomOut.css('opacity', 1);
+                svl.ui.zoomControl.zoomIn.css('opacity', 0.5);
+                svl.ui.zoomControl.zoomOut.css('opacity', 1);
             } else if (zoom <= properties.minZoomLevel) {
-                $buttonZoomIn.css('opacity', 1);
-                $buttonZoomOut.css('opacity', 0.5);
+                svl.ui.zoomControl.zoomIn.css('opacity', 1);
+                svl.ui.zoomControl.zoomOut.css('opacity', 0.5);
             } else {
-                $buttonZoomIn.css('opacity', 1);
-                $buttonZoomOut.css('opacity', 1);
+                svl.ui.zoomControl.zoomIn.css('opacity', 1);
+                svl.ui.zoomControl.zoomOut.css('opacity', 1);
             }
         }
 
         // If zoom in and out are disabled, fade them out anyway.
-        if (status.disableZoomIn) { $buttonZoomIn.css('opacity', 0.5); }
-        if (status.disableZoomOut) { $buttonZoomOut.css('opacity', 0.5); }
+        if (status.disableZoomIn) { svl.ui.zoomControl.zoomIn.css('opacity', 0.5); }
+        if (status.disableZoomOut) { svl.ui.zoomControl.zoomOut.css('opacity', 0.5); }
         return this;
     }
 
@@ -12750,215 +11878,237 @@ function shuffle(array) {
 
 var svl = svl || {};
 svl.util = svl.util || {};
-svl.util.color = {};
 
-svl.util.color.RGBToRGBA = function (rgb, alpha) {
-    if(!alpha){
-        alpha = '0.5';
+/**
+ * Color utilities
+ * @constructor
+ * @memberof svl
+ */
+function UtilitiesColor () {
+    var self = { className: "UtilitiesColor" };
+
+    /**
+     * Convert RGB to RGBA
+     * @param rgb
+     * @param alpha
+     * @returns {*}
+     * @constructor
+     */
+    function RGBToRGBA (rgb, alpha) {
+        if(!alpha){
+            alpha = '0.5';
+        }
+
+        var newRGBA;
+        if(rgb !== undefined) {
+            newRGBA = 'rgba(';
+            newRGBA+=rgb.substring(4,rgb.length-1)+','+alpha+')';
+        }
+        return newRGBA;
     }
 
-    var newRGBA;
-    if(rgb !== undefined) {
-         newRGBA = 'rgba(';
-         newRGBA+=rgb.substring(4,rgb.length-1)+','+alpha+')';
+    function changeAlphaRGBA(rgba, alpha) {
+        // This function updates alpha value of the given rgba value.
+        // Ex. if the input is rgba(200,200,200,0.5) and alpha 0.8,
+        // the out put will be rgba(200,200,200,0.8)
+        var rgbaList = rgba.replace('rgba(','').replace(')','').split(",");
+        if (rgbaList.length === 4 && !isNaN(parseInt(alpha))) {
+            var newRgba;
+            newRgba = 'rgba(' +
+                rgbaList[0].trim() + ',' +
+                rgbaList[1].trim() + ',' +
+                rgbaList[2].trim() + ',' +
+                alpha + ')';
+            return newRgba;
+        } else {
+            return rgba;
+        }
     }
-    return newRGBA;
-};
 
-function changeAlphaRGBA(rgba, alpha) {
-    // This function updates alpha value of the given rgba value.
-    // Ex. if the input is rgba(200,200,200,0.5) and alpha 0.8,
-    // the out put will be rgba(200,200,200,0.8)
-    var rgbaList = rgba.replace('rgba(','').replace(')','').split(",");
-    if (rgbaList.length === 4 && !isNaN(parseInt(alpha))) {
-        var newRgba;
-        newRgba = 'rgba(' +
-            rgbaList[0].trim() + ',' +
-            rgbaList[1].trim() + ',' +
-            rgbaList[2].trim() + ',' +
-            alpha + ')';
-        return newRgba;
-    } else {
+    function changeDarknessRGBA(rgba, value) {
+        // This function takes rgba and value as argumetns
+        // rgba: a string such as "rgba(10, 20, 30, 0.5)"
+        // value: a value between [0, 1]
+        var rgbaList = rgba.replace('rgba(','').replace(')','').split(",");
+
+        if (rgbaList.length === 4) {
+            var r;
+            var g;
+            var b;
+            var a;
+            var hsvList;
+            var newRgbList;
+            var newR;
+            var newG;
+            var newB;
+            var newRgba;
+            r = parseInt(rgbaList[0].trim());
+            g = parseInt(rgbaList[1].trim());
+            b = parseInt(rgbaList[2].trim());
+            a = rgbaList[3].trim();
+            hsvList = rgbToHsv(r,g,b);
+
+            newRgbList = hsvToRgb(hsvList[0],hsvList[1],value);
+            newR = parseInt(newRgbList[0]);
+            newG = parseInt(newRgbList[1]);
+            newB = parseInt(newRgbList[2]);
+            newRgba = 'rgba(' + newR + ',' +
+                newG + ',' +
+                newB + ',' +
+                a + ')';
+            return newRgba;
+        }
         return rgba;
     }
-}
-svl.util.color.changeAlphaRGBA = changeAlphaRGBA;
 
-function changeDarknessRGBA(rgba, value) {
-    // This function takes rgba and value as argumetns
-    // rgba: a string such as "rgba(10, 20, 30, 0.5)"
-    // value: a value between [0, 1]
-    var rgbaList = rgba.replace('rgba(','').replace(')','').split(",");
+    /**
+     * Converts an RGB color value to HSL. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+     * Assumes r, g, and b are contained in the set [0, 255] and
+     * returns h, s, and l in the set [0, 1].
+     *
+     * @param   r       The red color value
+     * @param   g       The green color value
+     * @param   b       The blue color value
+     * @return  Array           The HSL representation
+     *
+     * http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript
+     */
+    function rgbToHsl(r, g, b){
+        r /= 255, g /= 255, b /= 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var h, s, l = (max + min) / 2;
 
-    if (rgbaList.length === 4) {
-        var r;
-        var g;
-        var b;
-        var a;
-        var hsvList;
-        var newRgbList;
-        var newR;
-        var newG;
-        var newB;
-        var newRgba;
-        r = parseInt(rgbaList[0].trim());
-        g = parseInt(rgbaList[1].trim());
-        b = parseInt(rgbaList[2].trim());
-        a = rgbaList[3].trim();
-        hsvList = rgbToHsv(r,g,b);
+        if(max == min){
+            h = s = 0; // achromatic
+        }else{
+            var d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch(max){
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
 
-        newRgbList = hsvToRgb(hsvList[0],hsvList[1],value);
-        newR = parseInt(newRgbList[0]);
-        newG = parseInt(newRgbList[1]);
-        newB = parseInt(newRgbList[2]);
-        newRgba = 'rgba(' + newR + ',' +
-            newG + ',' +
-            newB + ',' +
-            a + ')';
-        return newRgba;
+        return [h, s, l];
     }
-    return rgba;
-}
-svl.util.color.changeDarknessRGBA = changeDarknessRGBA;
 
-/**
- * Converts an RGB color value to HSL. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
- * Assumes r, g, and b are contained in the set [0, 255] and
- * returns h, s, and l in the set [0, 1].
- *
- * @param   r       The red color value
- * @param   g       The green color value
- * @param   b       The blue color value
- * @return  Array           The HSL representation
- *
- * http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript
- */
-function rgbToHsl(r, g, b){
-    r /= 255, g /= 255, b /= 255;
-    var max = Math.max(r, g, b), min = Math.min(r, g, b);
-    var h, s, l = (max + min) / 2;
+    /**
+     * Converts an HSL color value to RGB. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+     * Assumes h, s, and l are contained in the set [0, 1] and
+     * returns r, g, and b in the set [0, 255].
+     *
+     * @param     h       The hue
+     * @param     s       The saturation
+     * @param     l       The lightness
+     * @return  Array           The RGB representation
+     */
+    function hslToRgb(h, s, l){
+        var r, g, b;
 
-    if(max == min){
-        h = s = 0; // achromatic
-    }else{
+        if(s == 0){
+            r = g = b = l; // achromatic
+        } else {
+            function hue2rgb(p, q, t){
+                if(t < 0) t += 1;
+                if(t > 1) t -= 1;
+                if(t < 1/6) return p + (q - p) * 6 * t;
+                if(t < 1/2) return q;
+                if(t < 2/3) return p + (q - p) * (2 / 3 - t) * 6;
+                return p;
+            }
+
+            var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            var p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+
+        return [r * 255, g * 255, b * 255];
+    }
+
+    /**
+     * Converts an RGB color value to HSV. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+     * Assumes r, g, and b are contained in the set [0, 255] and
+     * returns h, s, and v in the set [0, 1].
+     *
+     * @param   Number  r       The red color value
+     * @param   Number  g       The green color value
+     * @param   Number  b       The blue color value
+     * @return  Array           The HSV representation
+     */
+    function rgbToHsv(r, g, b){
+        r = r / 255;
+        g = g / 255;
+        b = b / 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var h, s, v = max;
+
         var d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch(max){
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-    }
+        s = max === 0 ? 0 : d / max;
 
-    return [h, s, l];
-}
-svl.util.color.rgbToHsl = rgbToHsl;
-
-/**
- * Converts an HSL color value to RGB. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
- * Assumes h, s, and l are contained in the set [0, 1] and
- * returns r, g, and b in the set [0, 255].
- *
- * @param     h       The hue
- * @param     s       The saturation
- * @param     l       The lightness
- * @return  Array           The RGB representation
- */
-function hslToRgb(h, s, l){
-    var r, g, b;
-
-    if(s == 0){
-        r = g = b = l; // achromatic
-    } else {
-        function hue2rgb(p, q, t){
-            if(t < 0) t += 1;
-            if(t > 1) t -= 1;
-            if(t < 1/6) return p + (q - p) * 6 * t;
-            if(t < 1/2) return q;
-            if(t < 2/3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
+        if(max == min){
+            h = 0; // achromatic
+        }else{
+            switch(max){
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
         }
 
-        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        var p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
+        return [h, s, v];
     }
 
-    return [r * 255, g * 255, b * 255];
-}
-svl.util.color.hslToRgb = hslToRgb;
+    /**
+     * Converts an HSV color value to RGB. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+     * Assumes h, s, and v are contained in the set [0, 1] and
+     * returns r, g, and b in the set [0, 255].
+     *
+     * @param   Number  h       The hue
+     * @param   Number  s       The saturation
+     * @param   Number  v       The value
+     * @return  Array           The RGB representation
+     */
+    function hsvToRgb(h, s, v){
+        var r, g, b;
 
-/**
- * Converts an RGB color value to HSV. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
- * Assumes r, g, and b are contained in the set [0, 255] and
- * returns h, s, and v in the set [0, 1].
- *
- * @param   Number  r       The red color value
- * @param   Number  g       The green color value
- * @param   Number  b       The blue color value
- * @return  Array           The HSV representation
- */
-function rgbToHsv(r, g, b){
-    r = r / 255;
-    g = g / 255;
-    b = b / 255;
-    var max = Math.max(r, g, b), min = Math.min(r, g, b);
-    var h, s, v = max;
+        var i = Math.floor(h * 6);
+        var f = h * 6 - i;
+        var p = v * (1 - s);
+        var q = v * (1 - f * s);
+        var t = v * (1 - (1 - f) * s);
 
-    var d = max - min;
-    s = max === 0 ? 0 : d / max;
-
-    if(max == min){
-        h = 0; // achromatic
-    }else{
-        switch(max){
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
+        switch(i % 6){
+            case 0: r = v, g = t, b = p; break;
+            case 1: r = q, g = v, b = p; break;
+            case 2: r = p, g = v, b = t; break;
+            case 3: r = p, g = q, b = v; break;
+            case 4: r = t, g = p, b = v; break;
+            case 5: r = v, g = p, b = q; break;
         }
-        h /= 6;
+
+        return [r * 255, g * 255, b * 255];
     }
 
-    return [h, s, v];
+    self.RGBToRGBA = RGBToRGBA;
+    self.changeAlphaRGBA = changeAlphaRGBA;
+    self.changeDarknessRGBA = changeDarknessRGBA;
+    self.rgbToHsl = rgbToHsl;
+    self.hslToRgb = hslToRgb;
+    self.rgbToHsv = rgbToHsv;
+    self.hsvToRgb = hsvToRgb;
+
+    return self;
 }
-
-/**
- * Converts an HSV color value to RGB. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
- * Assumes h, s, and v are contained in the set [0, 1] and
- * returns r, g, and b in the set [0, 255].
- *
- * @param   Number  h       The hue
- * @param   Number  s       The saturation
- * @param   Number  v       The value
- * @return  Array           The RGB representation
- */
-function hsvToRgb(h, s, v){
-    var r, g, b;
-
-    var i = Math.floor(h * 6);
-    var f = h * 6 - i;
-    var p = v * (1 - s);
-    var q = v * (1 - f * s);
-    var t = v * (1 - (1 - f) * s);
-
-    switch(i % 6){
-        case 0: r = v, g = t, b = p; break;
-        case 1: r = q, g = v, b = p; break;
-        case 2: r = p, g = v, b = t; break;
-        case 3: r = p, g = q, b = v; break;
-        case 4: r = t, g = p, b = v; break;
-        case 5: r = v, g = p, b = q; break;
-    }
-
-    return [r * 255, g * 255, b * 255];
-}
+svl.util.color = UtilitiesColor();
 
 var svl = svl || {};
 svl.util = svl.util || {};
@@ -13259,296 +12409,314 @@ function lineWithRoundHead (ctx, x1, y1, r1, x2, y2, r2, sourceFormIn, sourceStr
 }
 svl.util.shape.lineWithRoundHead = lineWithRoundHead;
 
-/** @namespace */
-var svl = svl || {};
-svl.misc = {};
+function UtilitiesMisc (JSON) {
+    var self = { className: "UtilitiesMisc" };
 
+    /**
+     *
+     * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
 
-/**
- *
- * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
+     * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
+     * @param ix
+     * @param iy
+     * @param pov
+     * @param zoomFactor
+     * @returns {{x: number, y: number}}
+     */
+    function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
+        if (!zoomFactor) {
+            zoomFactor = 1;
+        }
 
- * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
- * @param ix
- * @param iy
- * @param pov
- * @param zoomFactor
- * @returns {{x: number, y: number}}
- */
-function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
-    if (!zoomFactor) {
-        zoomFactor = 1;
+        var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
+        var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
+        return {x: canvasX, y: canvasY};
     }
 
-    var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
-    var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
-    return {x: canvasX, y: canvasY};
+    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
+        var zoomFactor = svl.zoomFactor[pov.zoom];
+        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+        return { x: x, y: y };
+    }
+
+    function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
+        // This function takes a pair of lat/lng coordinates.
+        //
+        if (typeof SourceLat !== 'number') {
+            SourceLat = parseFloat(SourceLat);
+        }
+        if (typeof SourceLng !== 'number') {
+            SourceLng = parseFloat(SourceLng);
+        }
+        if (typeof TargetLng !== 'number') {
+            TargetLng = parseFloat(TargetLng);
+        }
+        if (typeof TargetLat !== 'number') {
+            TargetLat = parseFloat(TargetLat);
+        }
+
+        var dLng = TargetLng - SourceLng;
+        var dLat = TargetLat - SourceLat;
+
+        if (dLat === 0 || dLng === 0) {
+            return 0;
+        }
+
+        var angle = toDegrees(Math.atan(dLng / dLat));
+        //var angle = toDegrees(Math.atan(dLat / dLng));
+
+        return 90 - angle;
+    }
+
+    function getLabelCursorImagePath() {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'cursorImagePath' : undefined
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
+            },
+            Other: {
+                id: 'Other',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+            }
+        }
+    }
+
+    // Returns image paths corresponding to each label type.
+    function getIconImagePaths(category) {
+        var imagePaths = {
+            Walk : {
+                id : 'Walk',
+                iconImagePath : null,
+                googleMapsIconImagePath: null
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
+            },
+            Other: {
+                id: 'Other',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+            },
+            Void: {
+                id: 'Void',
+                iconImagePath : null
+            }
+        };
+
+        return category ? imagePaths[category] : imagePaths;
+    }
+
+    function getLabelInstructions () {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'instructionalText' : 'Audit the streets and find all the accessibility attributes',
+                'textColor' : 'rgba(255,255,255,1)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Other: {
+                id: 'Other',
+                instructionalText: 'Label mode',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                instructionalText: "Label a part of sidewalk that cannot be observed",
+                textColor: 'rgba(255,255,255,1)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                instructionalText: 'Label missing sidewalk',
+                textColor: 'rgba(255,255,255,1)'
+            }
+        }
+    }
+
+    /**
+     * Todo. This should be moved to RibbonMenu.js
+     * @returns {{Walk: {id: string, text: string, labelRibbonConnection: string}, CurbRamp: {id: string, labelRibbonConnection: string}, NoCurbRamp: {id: string, labelRibbonConnection: string}, Obstacle: {id: string, labelRibbonConnection: string}, SurfaceProblem: {id: string, labelRibbonConnection: string}, Other: {id: string, labelRibbonConnection: string}, Occlusion: {id: string, labelRibbonConnection: string}, NoSidewalk: {id: string, labelRibbonConnection: string}}}
+     */
+    function getRibbonConnectionPositions () {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'text' : 'Walk',
+                'labelRibbonConnection' : '25px'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                labelRibbonConnection: '100px'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                labelRibbonConnection: '174px'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                labelRibbonConnection: '248px'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                labelRibbonConnection: '322px'
+            },
+            Other: {
+                id: 'Other',
+                labelRibbonConnection: '396px'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                labelRibbonConnection: '396px'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                labelRibbonConnection: '396px'
+            }
+        }
+    }
+
+    function getLabelDescriptions (category) {
+        var descriptions = {
+            'Walk' : {
+                'id' : 'Walk',
+                'text' : 'Walk'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                text: 'Curb Ramp'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                text: 'Missing Curb Ramp'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                text: 'Obstacle in a Path'
+            },
+            Other: {
+                id: 'Other',
+                text: 'Other'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                text: "Can't see the sidewalk"
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                text: 'No Sidewalk'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                text: 'Surface Problem'
+            },
+            Void: {
+                id: 'Void',
+                text: 'Void'
+            },
+            Unclear: {
+                id: 'Unclear',
+                text: 'Unclear'
+            }
+        };
+        return category ? descriptions[category] : descriptions;
+    }
+
+    /**
+     * References: Ajax without jQuery.
+     * http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
+     * http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
+     * @param streetEdgeId
+     */
+    function reportNoStreetView (streetEdgeId) {
+        var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
+        x.open('POST', url, async);
+        x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
+    }
+
+    self.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
+    self.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
+    self.getHeadingEstimate = getHeadingEstimate;
+    self.getLabelCursorImagePath = getLabelCursorImagePath;
+    self.getIconImagePaths = getIconImagePaths;
+    self.getLabelInstructions = getLabelInstructions;
+    self.getRibbonConnectionPositions = getRibbonConnectionPositions;
+    self.getLabelDescriptions = getLabelDescriptions;
+    self.getLabelColors = ColorScheme.SidewalkColorScheme2;
+    self.reportNoStreetView = reportNoStreetView;
+
+    return self;
 }
-svl.misc.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
-
-
-svl.misc.canvasCoordinateToImageCoordinate = function (canvasX, canvasY, pov) {
-    var zoomFactor = svl.zoomFactor[pov.zoom];
-    var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-    var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-    return { x: x, y: y };
-};
-//self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
-//self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
-
-
-function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
-    // This function takes a pair of lat/lng coordinates.
-    //
-    if (typeof SourceLat !== 'number') {
-        SourceLat = parseFloat(SourceLat);
-    }
-    if (typeof SourceLng !== 'number') {
-        SourceLng = parseFloat(SourceLng);
-    }
-    if (typeof TargetLng !== 'number') {
-        TargetLng = parseFloat(TargetLng);
-    }
-    if (typeof TargetLat !== 'number') {
-        TargetLat = parseFloat(TargetLat);
-    }
-
-    var dLng = TargetLng - SourceLng;
-    var dLat = TargetLat - SourceLat;
-
-    if (dLat === 0 || dLng === 0) {
-        return 0;
-    }
-
-    var angle = toDegrees(Math.atan(dLng / dLat));
-    //var angle = toDegrees(Math.atan(dLat / dLng));
-
-    return 90 - angle;
-}
-
-
-function getLabelCursorImagePath() {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'cursorImagePath' : undefined
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
-        },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
-        },
-        Other: {
-            id: 'Other',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-        }
-    }
-}
-svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
-
-
-// Returns image paths corresponding to each label type.
-function getIconImagePaths(category) {
-    var imagePaths = {
-        Walk : {
-            id : 'Walk',
-            iconImagePath : null,
-            googleMapsIconImagePath: null
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
-        },
-        Obstacle: {
-            id: 'Obstacle',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
-        },
-        Other: {
-            id: 'Other',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
-        },
-        Void: {
-            id: 'Void',
-            iconImagePath : null
-        }
-    };
-
-    return category ? imagePaths[category] : imagePaths;
-}
-svl.misc.getIconImagePaths = getIconImagePaths;
-
-
-// This function is used in OverlayMessageBox.js.
-svl.misc.getLabelInstructions = function () {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'instructionalText' : 'Audit the streets and find all the accessibility attributes',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
-          textColor: 'rgba(255,255,255,1)'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        Other: {
-            id: 'Other',
-            instructionalText: 'Label mode',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            instructionalText: "Label a part of sidewalk that cannot be observed",
-            textColor: 'rgba(255,255,255,1)'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            instructionalText: 'Label missing sidewalk',
-            textColor: 'rgba(255,255,255,1)'
-        }
-    }
-};
-
-svl.misc.getRibbonConnectionPositions = function  () {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'text' : 'Walk',
-            'labelRibbonConnection' : '25px'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            labelRibbonConnection: '100px'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            labelRibbonConnection: '174px'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          labelRibbonConnection: '248px'
-        },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          labelRibbonConnection: '322px'
-        },
-        Other: {
-            id: 'Other',
-            labelRibbonConnection: '396px'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            labelRibbonConnection: '396px'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            labelRibbonConnection: '396px'
-        }
-    }
-};
-
-svl.misc.getLabelDescriptions = function (category) {
-    var descriptions = {
-        'Walk' : {
-            'id' : 'Walk',
-            'text' : 'Walk'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            text: 'Curb Ramp'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            text: 'Missing Curb Ramp'
-        },
-        Obstacle: {
-            id: 'Obstacle',
-            text: 'Obstacle in a Path'
-        },
-        Other: {
-            id: 'Other',
-            text: 'Other'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            text: "Can't see the sidewalk"
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            text: 'No Sidewalk'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            text: 'Surface Problem'
-        },
-        Void: {
-            id: 'Void',
-            text: 'Void'
-        },
-        Unclear: {
-            id: 'Unclear',
-            text: 'Unclear'
-        }
-    };
-    return category ? descriptions[category] : descriptions;
-};
 
 var ColorScheme = (function () {
     function SidewalkColorScheme () {
@@ -13700,17 +12868,8 @@ var ColorScheme = (function () {
     };
 }());
 
-svl.misc.getLabelColors = ColorScheme.SidewalkColorScheme2;
+svl.misc = UtilitiesMisc(JSON);
 
-// Ajax without jQuery.
-// http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
-// http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
-svl.misc.reportNoStreetView = function (streetEdgeId) {
-    var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
-    x.open('POST', url, async);
-    x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
-};
 function Onboarding ($, params) {
     var self = { className : 'Onboarding' },
         ctx, canvasWidth = 720, canvasHeight = 480,

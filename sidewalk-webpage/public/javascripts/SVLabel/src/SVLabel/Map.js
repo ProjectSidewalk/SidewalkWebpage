@@ -50,7 +50,7 @@ function Map ($, params) {
 
     var initialPositionUpdate = true;
     var panoramaOptions;
-    var streetViewService = new google.maps.StreetViewService();
+    var streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
     var STREETVIEW_MAX_DISTANCE = 50;
     var googleMapsPaneBlinkInterval;
 
@@ -104,12 +104,12 @@ function Map ($, params) {
     }
 
     // fenway = new google.maps.LatLng(params.targetLat, params.targetLng);
-    fenway = new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng);
+    fenway = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
 
     mapOptions = {
         center: fenway,
         mapTypeControl:false,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
         maxZoom : 20,
         minZoom : 14,
         overviewMapControl:false,
@@ -122,8 +122,7 @@ function Map ($, params) {
     };
 
     var mapCanvas = document.getElementById("google-maps");
-    map = new google.maps.Map(mapCanvas, mapOptions);
-    properties.map = map;
+    map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
 
     // Styling google map.
     // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
@@ -149,8 +148,7 @@ function Map ($, params) {
         }
     ];
 
-
-    map.setOptions({styles: mapStyleOptions});
+    if (map) map.setOptions({styles: mapStyleOptions});
 
     function _init(params) {
         params = params || {};
@@ -181,19 +179,22 @@ function Map ($, params) {
             };
 
         } else {
-            throw self.className + ' init(): The pano id nor panorama position is give. Cannot initialize the panorama.';
+            console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
 
         var panoCanvas = document.getElementById('pano');
-        svl.panorama = new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions);
-        svl.panorama.set('addressControl', false);
-        svl.panorama.set('clickToGo', false);
-        svl.panorama.set('disableDefaultUI', true);
-        svl.panorama.set('linksControl', true);
-        svl.panorama.set('navigationControl', false);
-        svl.panorama.set('panControl', false);
-        svl.panorama.set('zoomControl', false);
-        svl.panorama.set('keyboardShortcuts', true);
+        svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
+        if (svl.panorama) {
+            svl.panorama.set('addressControl', false);
+            svl.panorama.set('clickToGo', false);
+            svl.panorama.set('disableDefaultUI', true);
+            svl.panorama.set('linksControl', true);
+            svl.panorama.set('navigationControl', false);
+            svl.panorama.set('panControl', false);
+            svl.panorama.set('zoomControl', false);
+            svl.panorama.set('keyboardShortcuts', true);
+        }
+
 
         properties.initialPanoId = params.taskPanoId;
         $canvas = svl.ui.map.canvas;
@@ -216,15 +217,17 @@ function Map ($, params) {
 
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
-        google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
-        google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
-        google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
-
+        if (typeof google != "undefined") {
+            google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
+            google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
+            google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
+            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+        }
+        
         // Connect the map view and panorama view
-        map.setStreetView(svl.panorama);
+        if (map && svl.panorama) map.setStreetView(svl.panorama);
 
         // Set it to walking mode initially.
-        google.maps.event.addListenerOnce(svl.panorama, "pano_changed", self.modeSwitchWalkClick);
 
         _streetViewInit = setInterval(initStreetView, 100);
 
@@ -355,7 +358,7 @@ function Map ($, params) {
      * @returns {null}
      */
     function getMap() {
-        return properties.map;
+        return map;
     }
 
     /**
@@ -902,7 +905,7 @@ function Map ($, params) {
     function setPosition (lat, lng) {
         var latlng = new google.maps.LatLng(lat, lng);
         svl.panorama.setPosition(latlng);
-        properties.map.setCenter(latlng);
+        map.setCenter(latlng);
         return this;
     }
 

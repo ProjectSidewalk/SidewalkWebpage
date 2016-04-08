@@ -5,8 +5,11 @@
  * @memberof svl
  */
 function AudioEffect () {
-    var self = { className: 'AudioEffect' },
-        audios = {
+    var self = { className: 'AudioEffect' };
+
+    if (typeof Audio == "undefined") var Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
+
+    var audios = {
             applause: new Audio(svl.rootDirectory + 'audio/applause.mp3'),
             drip: new Audio(svl.rootDirectory + 'audio/drip.wav'),
             glug1: new Audio(svl.rootDirectory + 'audio/glug1.wav'),
@@ -66,7 +69,7 @@ function AudioEffect () {
      * @returns {play}
      */
     function play (name) {
-        if (name in audios && !status.mute) {
+        if (name in audios && !status.mute && typeof audios[name].play == "function") {
             audios[name].play();
         }
         return this;

@@ -9,12 +9,9 @@ var svl = svl || {};
  * @memberof svl
  */
 function Label (pathIn, params) {
-    var self = {
-        className: 'Label'
-    };
+    var self = { className: 'Label' };
 
-    var path;
-    var googleMarker;
+    var path, googleMarker;
 
     var properties = {
         canvasWidth: undefined,
@@ -58,7 +55,7 @@ function Label (pathIn, params) {
         visibility : false
     };
 
-    function init (param, pathIn) {
+    function _init (param, pathIn) {
         try {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
@@ -73,8 +70,11 @@ function Label (pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            googleMarker = createGoogleMapsMarker(param.labelType);
-            googleMarker.setMap(svl.map.getMap());
+            if (typeof google != "undefined" && google && google.maps) {
+                googleMarker = createGoogleMapsMarker(param.labelType);
+                googleMarker.setMap(svl.map.getMap());
+            }
+
             return true;
         } catch (e) {
             console.error(self.className, ':', 'Error initializing the Label object.', e);
@@ -848,12 +848,10 @@ function Label (pathIn, params) {
         return this;
     }
 
-
     self.resetFillStyle = resetFillStyle;
     self.blink = blink;
     self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
-    //self.getCoordinate = getCoordinate;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
@@ -893,7 +891,7 @@ function Label (pathIn, params) {
     self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    if (!init(params, pathIn)) {
+    if (!_init(params, pathIn)) {
         return false;
     }
     return self;

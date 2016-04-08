@@ -111,7 +111,7 @@ function Keyboard ($) {
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
                     svl.ribbon.modeSwitchClick("CurbRamp");
-                    break
+                    break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
                     svl.ribbon.modeSwitchClick("Walk");

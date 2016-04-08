@@ -13,7 +13,7 @@ function OverlayMessageBox ($, params) {
         properties = { 'visibility' : 'visible' };
 
     function init() {
-        if (svl.ui && svl.ui.overlayMessage) {
+        if ("ui" in svl && svl.ui && svl.ui.overlayMessage) {
           setMessage('Walk');
         }
 
@@ -29,11 +29,13 @@ function OverlayMessageBox ($, params) {
         var instructions = svl.misc.getLabelInstructions(),
             labelColors = svl.misc.getLabelColors();
 
-        if ((mode in instructions) && (mode in labelColors)) {
+        if ((mode in instructions) && (mode in labelColors) && "ui" in svl) {
             // Set the box color.
             var modeColor = labelColors[mode];
-            var backgroundColor = changeAlphaRGBA(modeColor.fillStyle, 0.85);
-            backgroundColor = changeDarknessRGBA(backgroundColor, 0.35);
+            var backgroundColor = svl.util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
+            backgroundColor = svl.util.color.changeDarknessRGBA(backgroundColor, 0.35);
+
+
             svl.ui.overlayMessage.box.css({
                 'background' : backgroundColor
             });

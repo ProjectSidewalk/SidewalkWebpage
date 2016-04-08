@@ -2,6 +2,8 @@
 // http://jasmine.github.io/2.0/introduction.html
 
 describe("Tests for the Path module.", function () {
+  var svl = svl || { util: {} };
+  svl.util.color = UtilitiesColor();
   var pov = {
     heading: 0,
     pitch: 0,

@@ -34,14 +34,20 @@ module.exports = function(grunt) {
         },
         jasmine: {
             src: [
-                'src/SVLabel/*.js'
+                'src/SVLabel/*.js',
+                'src/SVLabel/util/*.js'
             ],
             options: {
                 specs: [
                     'spec/SVLabel/*.js'
                 ],
                 helpers: 'spec/SpecHelper.js',
-                vendor: ['lib/jquery-2.1.4.min.js']
+                vendor: [
+                    'lib/jquery-2.1.4.min.js',
+                    'lib/d3.v3.js',
+                    'lib/turf.min.js',
+                    'lib/gsv/*.js'
+                ]
             }
         },
         jsdoc : {
@@ -52,7 +58,7 @@ module.exports = function(grunt) {
         watch : {
             scripts: {
                 files: ['src/**/*.js', 'css/*.css'],
-                tasks: ['concat', 'concat_css'],
+                tasks: ['concat', 'concat_css', 'jasmine'],
                 options: {
                     interrupt: true
                 }

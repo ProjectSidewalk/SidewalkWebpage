@@ -51,8 +51,7 @@ function Path (points, params) {
                 }
             }
         }
-
-        properties.fillStyle = changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
+        properties.fillStyle = svl.util.color.changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
         properties.originalFillStyle = properties.fillStyle;
         properties.originalStrokeStyle = properties.strokeStyle;
     }
@@ -490,7 +489,7 @@ function Path (points, params) {
             ctx.save();
             ctx.beginPath();
             if (!properties.fillStyle) {
-                properties.fillStyle = changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
+                properties.fillStyle = svl.util.color.changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
                 properties.originalFillStyle = properties.fillStyle;
                 ctx.fillStyle = properties.fillStyle;
             } else {

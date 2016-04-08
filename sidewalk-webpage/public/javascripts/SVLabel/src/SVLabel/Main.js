@@ -9,7 +9,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Main ($, params) {
+function Main ($, d3, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -167,6 +167,7 @@ function Main ($, params) {
     }
 
     function _init (params) {
+        var params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
@@ -251,8 +252,10 @@ function Main ($, params) {
         svl.map = new Map($, mapParam);
         svl.map.disableClickZoom();
 
-        var task = svl.taskContainer.getCurrentTask();
-        if (task) {
+        if ("taskContainer" in svl) {
+            var task = svl.taskContainer.getCurrentTask();
+        }
+        if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
     }

@@ -24,20 +24,13 @@ function ZoomControl ($, param) {
         },
         blinkInterval;
 
-    // jQuery dom objects
-    var $buttonZoomIn;
-    var $buttonZoomOut;
-
     function _init (param) {
         // Initialization function
 
         //if ('domIds' in param) {
         if (svl.ui && svl.ui.zoomControl) {
-          $buttonZoomIn = svl.ui.zoomControl.zoomIn;
-          $buttonZoomOut = svl.ui.zoomControl.zoomOut;
-
-          $buttonZoomIn.bind('click', handleZoomInButtonClick);
-          $buttonZoomOut.bind('click', handleZoomOutButtonClick);
+          svl.ui.zoomControl.zoomIn.bind('click', handleZoomInButtonClick);
+          svl.ui.zoomControl.zoomOut.bind('click', handleZoomOutButtonClick);
         }
     }
 
@@ -60,8 +53,8 @@ function ZoomControl ($, param) {
     function disableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = true;
-            if ($buttonZoomIn) {
-                $buttonZoomIn.css('opacity', 0.5);
+            if (svl.ui.zoomControl.zoomIn) {
+                svl.ui.zoomControl.zoomIn.css('opacity', 0.5);
             }
         }
         return this;
@@ -73,8 +66,8 @@ function ZoomControl ($, param) {
     function disableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = true;
-            if ($buttonZoomOut) {
-                $buttonZoomOut.css('opacity', 0.5);
+            if (svl.ui.zoomControl.zoomOut) {
+                svl.ui.zoomControl.zoomOut.css('opacity', 0.5);
             }
         }
         return this;
@@ -86,8 +79,8 @@ function ZoomControl ($, param) {
     function enableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = false;
-            if ($buttonZoomIn) {
-                $buttonZoomIn.css('opacity', 1);
+            if (svl.ui.zoomControl.zoomIn) {
+                svl.ui.zoomControl.zoomIn.css('opacity', 1);
             }
         }
         return this;
@@ -99,8 +92,8 @@ function ZoomControl ($, param) {
     function enableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = false;
-            if ($buttonZoomOut) {
-                $buttonZoomOut.css('opacity', 1);
+            if (svl.ui.zoomControl.zoomOut) {
+                svl.ui.zoomControl.zoomOut.css('opacity', 1);
             }
         }
         return this;
@@ -222,6 +215,8 @@ function ZoomControl ($, param) {
             } else {
                 return false;
             }
+        } else {
+            return false;
         }
     }
 
@@ -285,6 +280,10 @@ function ZoomControl ($, param) {
         return this;
     }
 
+    /**
+     * Change the opacity of zoom buttons
+     * @returns {updateOpacity}
+     */
     function updateOpacity () {
         var pov = svl.map.getPov();
 
@@ -292,20 +291,20 @@ function ZoomControl ($, param) {
             var zoom = pov.zoom;
             // Change opacity
             if (zoom >= properties.maxZoomLevel) {
-                $buttonZoomIn.css('opacity', 0.5);
-                $buttonZoomOut.css('opacity', 1);
+                svl.ui.zoomControl.zoomIn.css('opacity', 0.5);
+                svl.ui.zoomControl.zoomOut.css('opacity', 1);
             } else if (zoom <= properties.minZoomLevel) {
-                $buttonZoomIn.css('opacity', 1);
-                $buttonZoomOut.css('opacity', 0.5);
+                svl.ui.zoomControl.zoomIn.css('opacity', 1);
+                svl.ui.zoomControl.zoomOut.css('opacity', 0.5);
             } else {
-                $buttonZoomIn.css('opacity', 1);
-                $buttonZoomOut.css('opacity', 1);
+                svl.ui.zoomControl.zoomIn.css('opacity', 1);
+                svl.ui.zoomControl.zoomOut.css('opacity', 1);
             }
         }
 
         // If zoom in and out are disabled, fade them out anyway.
-        if (status.disableZoomIn) { $buttonZoomIn.css('opacity', 0.5); }
-        if (status.disableZoomOut) { $buttonZoomOut.css('opacity', 0.5); }
+        if (status.disableZoomIn) { svl.ui.zoomControl.zoomIn.css('opacity', 0.5); }
+        if (status.disableZoomOut) { svl.ui.zoomControl.zoomOut.css('opacity', 0.5); }
         return this;
     }
 

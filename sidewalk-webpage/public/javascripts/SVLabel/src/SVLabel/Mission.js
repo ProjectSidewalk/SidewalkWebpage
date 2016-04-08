@@ -352,8 +352,7 @@ function MissionContainer ($, parameters) {
         }
         return this;
     }
-
-
+    
     /**
      * Push the completed mission to the staged so it will be submitted to the server.
      * @param mission
