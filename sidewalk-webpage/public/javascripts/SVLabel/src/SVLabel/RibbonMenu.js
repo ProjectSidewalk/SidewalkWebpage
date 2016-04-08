@@ -22,7 +22,7 @@ function RibbonMenu ($, params) {
             selectedLabelType: undefined
         },
         blinkInterval;
-    
+
     function _init () {
         var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
         if (browser === 'mozilla') {
@@ -296,6 +296,10 @@ function RibbonMenu ($, params) {
         return this;
     }
 
+    /**
+     * Enable clicking landmark buttons
+     * @returns {enableLandmarkLabels}
+     */
     function enableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
             $.each(svl.ui.ribbonMenu.buttons, function (i, v) {

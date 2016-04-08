@@ -24,7 +24,7 @@ describe("Tests for the Path module.", function () {
     });
 
     it("should return the point objects in this path", function() {
-      expect(path.getPoints()).toEqual(points);
+      expect(path.getPoints(true)).toEqual(points);
     });
 
     it("should return imagecoordinates", function() {

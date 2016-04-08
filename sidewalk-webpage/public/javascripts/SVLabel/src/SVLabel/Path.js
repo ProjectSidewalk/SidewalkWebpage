@@ -244,7 +244,7 @@ function Path (points, params) {
      * @returns {*}
      */
     function getPoints() {
-        return points;
+        return self.points;
     }
 
     /**
@@ -319,7 +319,6 @@ function Path (points, params) {
      * This function returns points.
      */
     self.getPoints = function (reference) {
-        //
         if (!reference) {
             reference = false;
         }
