@@ -473,7 +473,9 @@ function Map ($, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
-        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
+        if ("canvas" in svl && svl.canvas) { 
+            updateCanvas(); 
+        }
 
         // End of the task if the user is close enough to the end point
         var task = svl.taskContainer.getCurrentTask();

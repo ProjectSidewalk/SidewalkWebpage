@@ -74,7 +74,9 @@ function Mission(parameters) {
         }
 
         // Reset the label counter
-        if ('labelCounter' in svl) { svl.labelCounter.reset(); }
+        if ('labelCounter' in svl) {
+            svl.labelCounter.reset();
+        }
         
         setProperty("isCompleted", true);
     }
@@ -219,46 +221,12 @@ function MissionContainer ($, parameters) {
                 setCurrentMission(nm);
             }
         }
-        
+
         if ("callback" in parameters) {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
         } else {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback)
         }
-    }
-
-    /** Set current missison */
-    function setCurrentMission (mission) {
-        currentMission = mission;
-
-        if ("missionProgress" in svl) {
-            svl.missionProgress.update();
-        }
-        return this;
-    }
-
-    /** Get current mission */
-    function getCurrentMission () {
-        return currentMission;
-    }
-
-    /** Get a mission */
-    function getMission(regionId, label, level) {
-        if (!regionId) regionId = "noRegionId";
-        var missions = missionStoreByRegionId[regionId],
-            i, len = missions.length;
-        for (i = 0; i < len; i++) {
-            if (missions[i].getProperty("label") == label) {
-                if (level) {
-                  if (level == missions[i].getProperty("level")) {
-                      return missions[i];
-                  }
-                } else {
-                    return missions[i];
-                }
-            }
-        }
-        return null;
     }
 
     /**
@@ -289,8 +257,36 @@ function MissionContainer ($, parameters) {
         }
     }
 
+
+    /** Get current mission */
+    function getCurrentMission () {
+        return currentMission;
+    }
+
+    /** Get a mission */
+    function getMission(regionId, label, level) {
+        if (!regionId) regionId = "noRegionId";
+        var missions = missionStoreByRegionId[regionId],
+            i, len = missions.length;
+        for (i = 0; i < len; i++) {
+            if (missions[i].getProperty("label") == label) {
+                if (level) {
+                  if (level == missions[i].getProperty("level")) {
+                      return missions[i];
+                  }
+                } else {
+                    return missions[i];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Submit the currently staged missions to the server
+     * @returns {commit}
+     */
     function commit () {
-        console.debug("Todo. Submit completed missions");
         if (staged.length > 0) {
             var i, data = [];
 
@@ -317,7 +313,9 @@ function MissionContainer ($, parameters) {
         return this;
     }
 
-    /** Get all the completed missions */
+    /**
+     * Get all the completed missions
+     */
     function getCompletedMissions () {
         return completedMissions;
     }
@@ -344,6 +342,17 @@ function MissionContainer ($, parameters) {
             return null;
         }
     }
+
+    /** Set current missison */
+    function setCurrentMission (mission) {
+        currentMission = mission;
+
+        if ("missionProgress" in svl) {
+            svl.missionProgress.update();
+        }
+        return this;
+    }
+
 
     /**
      * Push the completed mission to the staged so it will be submitted to the server.
