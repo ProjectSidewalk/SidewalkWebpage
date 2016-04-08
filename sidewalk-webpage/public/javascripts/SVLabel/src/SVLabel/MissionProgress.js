@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * MissionProgress module.
  * @returns {{className: string}}
@@ -39,6 +37,7 @@ function MissionProgress () {
 
     /**
      * This method prints what percent of the intersection the user has observed.
+     * @param completionRate {number} Mission completion rate.
      * @returns {printCompletionRate}
      */
     function printCompletionRate (completionRate) {

@@ -2907,129 +2907,6 @@ function ContextMenu ($) {
 }
 var svl = svl || {};
 
-
-/**
- * Example window module
- * @param $
- * @param params
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ExampleWindow ($, params) {
-    var self = { className : 'ExampleWindow'},
-        properties = {
-            exampleCategories : ['StopSign_OneLeg', 'StopSign_TwoLegs', 'StopSign_Column', 'NextToCurb', 'AwayFromCurb']
-        },
-        status = {
-            open : false
-        };
-
-        // jQuery elements
-    var $divHolderExampleWindow;
-    var $divHolderCloseButton;
-    var $divExampleOneLegStopSign;
-    var $divExampleTwoLegStopSign;
-    var $divExampleColumnStopSign;
-    var $divExampleNextToCurb;
-    var $divExampleAwayFromCurb;
-    var exampleWindows = {};
-
-
-    function init (params) {
-        // Initialize jQuery elements
-        $divHolderExampleWindow = $(params.domIds.holder);
-        $divHolderCloseButton = $(params.domIds.closeButtonHolder);
-        $divExampleOneLegStopSign = $(params.domIds.StopSign_OneLeg);
-        $divExampleTwoLegStopSign = $(params.domIds.StopSign_TwoLegs);
-        $divExampleColumnStopSign = $(params.domIds.StopSign_Column);
-        $divExampleNextToCurb = $(params.domIds.NextToCurb);
-        $divExampleAwayFromCurb = $(params.domIds.AwayFromCurb);
-
-        exampleWindows = {
-            StopSign_OneLeg : $divExampleOneLegStopSign,
-            StopSign_TwoLegs : $divExampleTwoLegStopSign,
-            StopSign_Column : $divExampleColumnStopSign,
-            NextToCurb : $divExampleNextToCurb,
-            AwayFromCurb : $divExampleAwayFromCurb
-        };
-
-        // Add listeners
-        $divHolderCloseButton.bind({
-            click : self.close,
-            mouseenter : closeButtonMouseEnter,
-            mouseleave : closeButtonMouseLeave
-        });
-    }
-
-
-    function closeButtonMouseEnter () {
-        // A callback function that is invoked when a mouse cursor enters the X sign.
-        // This function changes a cursor to a pointer.
-        $(this).css({
-            cursor : 'pointer'
-        });
-        return this;
-    }
-
-    function closeButtonMouseLeave () {
-        // A callback function that is invoked when a mouse cursor leaves the X sign.
-        // This function changes a cursor to a 'default'.
-        $(this).css({
-            cursor : 'default'
-        });
-        return this;
-    }
-
-
-    self.close = function () {
-        // Hide the example window.
-        status.open = false;
-        $divHolderExampleWindow.css({
-            visibility : 'hidden'
-        });
-        $.each(exampleWindows, function (i, v) {
-            v.css({visibility:'hidden'});
-        });
-        return this;
-    };
-
-
-    self.isOpen = function () {
-        return status.open;
-    };
-
-
-    self.show = function (exampleCategory) {
-        // Show the example window.
-        // Return false if the passed category is not know.
-        if (properties.exampleCategories.indexOf(exampleCategory) === -1) {
-            return false;
-        }
-
-        status.open = true;
-        $divHolderExampleWindow.css({
-            visibility : 'visible'
-        });
-
-        $.each(exampleWindows, function (i, v) {
-            console.log(i);
-            if (i === exampleCategory) {
-                v.css({visibility:'visible'});
-            } else {
-                v.css({visibility:'hidden'});
-            }
-        });
-
-        return this;
-    };
-    
-    init(params);
-    return self;
-}
-
-var svl = svl || {};
-
 /**
  * A form module. This module is responsible for communicating with the server side for submitting collected data.
  * @param $ {object} jQuery object
@@ -4202,7 +4079,7 @@ function Label (pathIn, params) {
         var path = getPath(),
             points = path.getPoints(),
             len = points.length,
-            fillColor = path.getFillStyle();
+            fillColor = path.getFill();
         fillColor = svl.util.color.changeAlphaRGBA(fillColor, 0.3);
 
         path.setFillStyle(fillColor);
@@ -4921,80 +4798,6 @@ function LabelFactory () {
     self.create = create;
     return self;
 }
-var svl = svl || {};
-
-/**
- * A LabelLandmarkFeedback module
- * @param $ {object} jQuery object
- * @param params {object} Other parameters
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function LabeledLandmarkFeedback ($, params) {
-    var self = { className : 'LabeledLandmarkFeedback' };
-    var properties = {};
-    var status = {};
-
-    // jQuery eleemnts
-    var $labelCountCurbRamp;
-    var $labelCountNoCurbRamp;
-    var $submittedLabelMessage;
-
-    function _init (params) {
-      if (svl.ui && svl.ui.ribbonMenu) {
-        $labelCountCurbRamp = svl.ui.labeledLandmark.curbRamp;
-        $labelCountNoCurbRamp = svl.ui.labeledLandmark.noCurbRamp;
-        $submittedLabelMessage = svl.ui.labeledLandmark.submitted;
-
-        $labelCountCurbRamp.html(0);
-        $labelCountNoCurbRamp.html(0);
-      }
-    }
-
-    /**
-     * This method takes labelCount object that holds label names with corresponding label counts. This function sets
-     * the label counts that appears in the feedback window.
-     * @param labelCount
-     * @returns {setLabelCount}
-     */
-    function setLabelCount (labelCount) {
-        if (svl.ui && svl.ui.ribbonMenu) {
-            $labelCountCurbRamp.html(labelCount['CurbRamp']);
-            $labelCountNoCurbRamp.html(labelCount['NoCurbRamp']);
-        }
-        return this;
-    }
-
-    /**
-     * This method takes a param and sets the submittedLabelCount
-     * @param param
-     * @returns {setSubmittedLabelMessage}
-     */
-    function setSubmittedLabelMessage (param) {
-        if (!param) { return this; }
-        else if (svl.ui && svl.ui.ribbonMenu) {
-            if ('message' in param) {
-                $submittedLabelMessage.html(message);
-            } else if ('numCurbRampLabels' in param && 'numMissingCurbRampLabels' in param) {
-                var message = "You've submitted <b>" +
-                    param.numCurbRampLabels +
-                    "</b> curb ramp labels and <br /><b>" +
-                    param.numMissingCurbRampLabels +
-                    "</b> missing curb ramp labels.";
-                $submittedLabelMessage.html(message);
-            }
-        }
-        return this;
-    }
-
-    self.setLabelCount = setLabelCount;
-    self.setSubmittedLabelMessage = setSubmittedLabelMessage;
-
-    _init(params);
-    return self;
-}
-
 /** @namespace */
 var svl = svl || {};
 
@@ -7000,8 +6803,6 @@ function MissionFactory (parameters) {
     self.createOnboardingMission = createOnboardingMission;
     return self;
 }
-var svl = svl || {};
-
 /**
  * MissionProgress module.
  * @returns {{className: string}}
@@ -7041,6 +6842,7 @@ function MissionProgress () {
 
     /**
      * This method prints what percent of the intersection the user has observed.
+     * @param completionRate {number} Mission completion rate.
      * @returns {printCompletionRate}
      */
     function printCompletionRate (completionRate) {
@@ -7570,40 +7372,6 @@ function ModalSkip ($) {
     return self;
 }
 
-var svl = svl || {};
-
-/**
- * A Mouse module. 
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function Mouse ($) {
-    var self = { className : 'Mouse' };
-
-    function _init () {
-        $(document).bind('mouseup', mouseUp);
-    }
-
-    function mouseUp (e) {
-        // A call back method for mouseup. Capture a right click and do something.
-        // Capturing right click in javascript.
-        // http://stackoverflow.com/questions/2405771/is-right-click-a-javascript-event
-        var isRightMB;
-        e = e || window.event;
-
-        if ("which" in e)  // Gecko (Firefox), WebKit (Safari/Chrome) & Opera
-            isRightMB = e.which == 3;
-        else if ("button" in e)  // IE, Opera
-            isRightMB = e.button == 2;
-    }
-
-
-    _init();
-    return self;
-}
-
 /**
  * Neighborhood module.
  * @param parameters
@@ -7809,7 +7577,7 @@ function OverlayMessageBox ($, params) {
 var svl = svl || {};
 
 /**
- *
+ * Path module. A Path instance holds and array of Point instances.
  * @param points
  * @param params
  * @returns {{className: string, points: undefined}}
@@ -7817,14 +7585,8 @@ var svl = svl || {};
  * @memberof svl
  */
 function Path (points, params) {
-    // Path object constructor
-    // This class object holds an array of Point objects.
-    //
-    // For canvas properties, take a look at:
-    // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors
-    //
     var self = { className : 'Path', points : undefined };
-    var belongsTo;
+    var parent;
     var properties = {
         fillStyle: 'rgba(255,255,255,0.5)',
         lineCap : 'round', // ['butt','round','square']
@@ -7839,7 +7601,6 @@ function Path (points, params) {
     var status = {
         visibility: 'visible'
     };
-
 
     function _init(points, params) {
         var lenPoints;
@@ -7865,27 +7626,11 @@ function Path (points, params) {
     }
 
     /**
-     * Returns the line width
-     * @returns {string}
+     * This method returns the Label object that this path belongs to.
+     * @returns {object|null} Label object.
      */
-    function getLineWidth () {
-      return properties.lineWidth;
-    }
-
-    /**
-     * Returns fill color of the path
-     * @returns {string}
-     */
-    function getFill() {
-      return properties.fillStyle;
-    }
-
-    /**
-     * Sets fill color of the path
-     * @param fill
-     */
-    function setFill(fill) {
-      properties.fillStyle = fill;
+    function belongsTo () {
+        return parent ? parent : null;
     }
 
     /**
@@ -7923,75 +7668,11 @@ function Path (points, params) {
     }
 
     /**
-     * this method returns a bounding box in terms of svImage coordinates.
-     * @returns {{x: number, y: number, width: number, height: number, boundary: boolean}}
+     * Returns fill color of the path
+     * @returns {string}
      */
-    function getSvImageBoundingBox() {
-      var i;
-      var coord;
-      var coordinates = getImageCoordinates();
-      var len = coordinates.length;
-      var xMax = -1;
-      var xMin = 1000000;
-      var yMax = -1000000;
-      var yMin = 1000000;
-      var boundary = false;
-
-      //
-      // Check if thie is an boundary case
-      for (i = 0; i < len; i++) {
-        coord = coordinates[i];
-        if (coord.x < xMin) {
-          xMin = coord.x;
-        }
-        if (coord.x > xMax) {
-          xMax = coord.x;
-        }
-        if (coord.y < yMin) {
-          yMin = coord.y;
-        }
-        if (coord.y > yMax) {
-          yMax = coord.y;
-        }
-      }
-
-      if (xMax - xMin > 5000) {
-        boundary = true;
-        xMax = -1;
-        xMin = 1000000;
-
-        for (i = 0; i < len; i++) {
-          coord = coordinates[i];
-          if (coord.x > 6000) {
-            if (coord.x < xMin) {
-              xMin = coord.x;
-            }
-          } else {
-            if (coord.x > xMax){
-              xMax = coord.x;
-            }
-          }
-        }
-      }
-
-      // If the path is on boundary, swap xMax and xMin.
-      if (boundary) {
-        return {
-          x: xMin,
-          y: yMin,
-          width: (svl.svImageWidth - xMin) + xMax,
-          height: yMax - yMin,
-          boundary: true
-        }
-      } else {
-        return {
-          x: xMin,
-          y: yMin,
-          width: xMax - xMin,
-          height: yMax - yMin,
-          boundary: false
-        }
-      }
+    function getFill() {
+        return properties.fillStyle;
     }
 
     /**
@@ -8034,7 +7715,6 @@ function Path (points, params) {
         return canvasCoords;
     }
 
-
     /**
      * This method returns an array of image coordinates of points
      * @returns {Array}
@@ -8043,89 +7723,22 @@ function Path (points, params) {
         var i, len = self.points.length, coords = [];
         for (i = 0; i < len; i += 1) {
             coords.push(self.points[i].getGSVImageCoordinate());
-                }
+        }
         return coords;
     }
 
     /**
-     * Returns points
-     * @returns {*}
+     * Returns the line width
+     * @returns {string}
      */
-    function getPoints() {
-        return self.points;
+    function getLineWidth () {
+        return properties.lineWidth;
     }
 
-    /**
-     * This method renders a bounding box around a path.
-     * @param ctx
-     */
-    function renderBoundingBox (ctx) {
-        // This function takes a bounding box returned by a method getBoundingBox()
-        var boundingBox = getBoundingBox();
-
-        ctx.save();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.beginPath();
-        ctx.moveTo(boundingBox.x, boundingBox.y);
-        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y);
-        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y + boundingBox.height);
-        ctx.lineTo(boundingBox.x, boundingBox.y + boundingBox.height);
-        ctx.lineTo(boundingBox.x, boundingBox.y);
-        ctx.stroke();
-        ctx.closePath();
-        ctx.restore();
-    }
-
-    self.belongsTo = function () {
-        // This function returns which object (i.e. Label) this Path
-        // belongs to.
-        if (belongsTo) {
-            return belongsTo;
-        } else {
-            return false;
-        }
-    };
-
-    self.getPOV = function() {
-        return points[0].getPOV();
-    };
-
-    self.getBoundingBox = function (pov) {
-        // Get a bounding box of this path
-        return getBoundingBox(pov);
-    };
-
-    self.getLineWidth = function () {
-      // get line width
-      return getLineWidth();
-    };
-
-    self.getFill = function () {
-      return getFill();
-    };
-
-    self.getFillStyle = function () {
-        // Get the fill style.
-        return properties.fillStyle;
-    };
-
-
-    self.getSvImageBoundingBox = function () {
-        // Get a boudning box
-        return getSvImageBoundingBox();
-    };
-
-
-    self.getImageCoordinates = function () {
-        // Get the image coordinates of the path.
-        return getImageCoordinates();
-    };
-    
     /**
      * This function returns points.
      */
-    self.getPoints = function (reference) {
+    function getPoints (reference) {
         if (!reference) {
             reference = false;
         }
@@ -8137,11 +7750,88 @@ function Path (points, params) {
             // return $.extend(true, [], self.points);
             return $.extend(true, [], points);
         }
-    };
+    }
 
-    self.getProperty = function (key) {
+    /**
+     * This method returns a property
+     * @param key The field name of the property
+     * @returns {*}
+     */
+    function getProperty (key) {
         return properties[key];
-    };
+    }
+
+    /**
+     * this method returns a bounding box in terms of svImage coordinates.
+     * @returns {{x: number, y: number, width: number, height: number, boundary: boolean}}
+     */
+    function getSvImageBoundingBox() {
+        var i;
+        var coord;
+        var coordinates = getImageCoordinates();
+        var len = coordinates.length;
+        var xMax = -1;
+        var xMin = 1000000;
+        var yMax = -1000000;
+        var yMin = 1000000;
+        var boundary = false;
+
+        //
+        // Check if thie is an boundary case
+        for (i = 0; i < len; i++) {
+            coord = coordinates[i];
+            if (coord.x < xMin) {
+                xMin = coord.x;
+            }
+            if (coord.x > xMax) {
+                xMax = coord.x;
+            }
+            if (coord.y < yMin) {
+                yMin = coord.y;
+            }
+            if (coord.y > yMax) {
+                yMax = coord.y;
+            }
+        }
+
+        if (xMax - xMin > 5000) {
+            boundary = true;
+            xMax = -1;
+            xMin = 1000000;
+
+            for (i = 0; i < len; i++) {
+                coord = coordinates[i];
+                if (coord.x > 6000) {
+                    if (coord.x < xMin) {
+                        xMin = coord.x;
+                    }
+                } else {
+                    if (coord.x > xMax){
+                        xMax = coord.x;
+                    }
+                }
+            }
+        }
+
+        // If the path is on boundary, swap xMax and xMin.
+        if (boundary) {
+            return {
+                x: xMin,
+                y: yMin,
+                width: (svl.svImageWidth - xMin) + xMax,
+                height: yMax - yMin,
+                boundary: true
+            }
+        } else {
+            return {
+                x: xMin,
+                y: yMin,
+                width: xMax - xMin,
+                height: yMax - yMin,
+                boundary: false
+            }
+        }
+    }
 
 
     /**
@@ -8152,7 +7842,7 @@ function Path (points, params) {
      * @param y
      * @returns {*}
      */
-    self.isOn = function (x, y) {
+    function isOn (x, y) {
         var boundingBox, i, j, point, pointsLen, result;
 
         // Check if the passed point (x, y) is on any of points.
@@ -8175,7 +7865,7 @@ function Path (points, params) {
         } else {
             return false;
         }
-    };
+    }
 
     /**
      * This method calculates the area overlap between bouding boxes of this path and
@@ -8184,7 +7874,7 @@ function Path (points, params) {
      * @param mode
      * @returns {number}
      */
-    self.overlap = function (path, mode) {
+    function overlap (path, mode) {
         if (!mode) {
             mode = "boundingbox";
         }
@@ -8263,25 +7953,21 @@ function Path (points, params) {
         }
 
         return overlap;
-    };
+    }
 
     /**
      * This method remove all the points in the list points.
      */
-    self.removePoints = function () {
+    function removePoints () {
         self.points = undefined;
-    };
-
-    self.render2 = function (ctx, pov) {
-        return self.render(pov, ctx);
-    };
+    }
 
     /**
      * This method renders a path.
      * @param pov
      * @param ctx
      */
-    self.render = function (pov, ctx) {
+    function render (pov, ctx) {
         if (status.visibility === 'visible') {
             var j, pathLen, point, currCoord, prevCoord;
 
@@ -8338,73 +8024,138 @@ function Path (points, params) {
                 }
             }
         }
-    };
+    }
 
-    self.renderBoundingBox = renderBoundingBox;
+    function render2 (ctx, pov) {
+        return render(pov, ctx);
+    }
 
+    /**
+     * This method renders a bounding box around a path.
+     * @param ctx
+     */
+    function renderBoundingBox (ctx) {
+        // This function takes a bounding box returned by a method getBoundingBox()
+        var boundingBox = getBoundingBox();
+
+        ctx.save();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
+        ctx.beginPath();
+        ctx.moveTo(boundingBox.x, boundingBox.y);
+        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y);
+        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y + boundingBox.height);
+        ctx.lineTo(boundingBox.x, boundingBox.y + boundingBox.height);
+        ctx.lineTo(boundingBox.x, boundingBox.y);
+        ctx.stroke();
+        ctx.closePath();
+        ctx.restore();
+    }
+    
     /**
      * This method changes the value of fillStyle to its original fillStyle value
      * @returns {self}
      */
-    self.resetFillStyle = function () {
+    function resetFillStyle () {
         properties.fillStyle = properties.originalFillStyle;
         return this;
-    };
+    }
 
     /**
      * This method resets the strokeStyle to its original value
      * @returns {self}
      */
-    self.resetStrokeStyle = function () {
+    function resetStrokeStyle () {
         properties.strokeStyle = properties.originalStrokeStyle;
         return this;
-    };
+    }
 
-    self.setFill = function(fill) {
-        // console.log(fill[1]);
-        // console.log(fill.substring(4, fill.length-1));
-        if(fill.substring(0,4)=='rgba'){
-            setFill(fill);
-        }
-        else{
-            setFill('rgba'+fill.substring(3,fill.length-1)+',0.5)');
+    /**
+     * This method sets the parent object
+     * @param obj
+     * @returns {setBelongsTo}
+     */
+    function setBelongsTo (obj) {
+        parent = obj;
+        return this;
+    }
+
+    /**
+     * Sets fill color of the path
+     * @param fill
+     */
+    function setFill(fill) {
+        if(fill.substring(0,4) == 'rgba'){
+            properties.fillStyle = fill;
+        } else{
+            fill = 'rgba'+fill.substring(3,fill.length-1)+',0.5)';
+            properties.fillStyle = fill;
         }
         return this;
-    };
+    }
 
-    self.setBelongsTo = function (obj) {
-        belongsTo = obj;
-        return this;
-    };
-
-    self.setLineWidth = function (lineWidth) {
-        if(!isNaN(lineWidth)){
-            properties.lineWidth  = ''+lineWidth;
-        }
-        return this;
-    };
-
-    self.setFillStyle = function (fill) {
+    function setFillStyle (fill) {
         // This method sets the fillStyle of the path
         if(fill!=undefined){
             properties.fillStyle = fill;
-        };
-        return this;
-    };
-
-    self.setStrokeStyle = function (stroke) {
-        // This method sets the strokeStyle of the path
-        properties.strokeStyle = stroke;
-        return this;
-    };
-
-    self.setVisibility = function (visibility) {
-        // This method sets the visibility of a path (and points that cons
-        if (visibility === 'visible' || visibility === 'hidden') {
-            status.visibility = visibility;
         }
         return this;
-    };
+    }
+
+    /**
+     * This method sets the line width.
+     * @param lineWidth {number} Line width
+     * @returns {setLineWidth}
+     */
+    function setLineWidth (lineWidth) {
+        if(!isNaN(lineWidth)){
+            properties.lineWidth  = '' + lineWidth;
+        }
+        return this;
+    }
+
+    /**
+     * This method sets the strokeStyle of the path
+     * @param stroke {string} Stroke style
+     * @returns {setStrokeStyle}
+     */
+    function setStrokeStyle (stroke) {
+        properties.strokeStyle = stroke;
+        return this;
+    }
+
+    /**
+     * This method sets the visibility of a path
+     * @param visibility {string} Visibility (visible or hidden)
+     * @returns {setVisibility}
+     */
+    function setVisibility (visibility) {
+        if (visibility === 'visible' || visibility === 'hidden') status.visibility = visibility;
+        return this;
+    }
+
+    self.belongsTo = belongsTo;
+    self.getBoundingBox = getBoundingBox;
+    self.getLineWidth = getLineWidth;
+    self.getFill = getFill;
+    self.getSvImageBoundingBox = getSvImageBoundingBox;
+    self.getImageCoordinates = getImageCoordinates;
+    self.getPoints = getPoints;
+    self.getProperty = getProperty;
+    self.isOn = isOn;
+    self.overlap = overlap;
+    self.removePoints = removePoints;
+    self.render2 = render2;
+    self.render = render;
+    self.renderBoundingBox = renderBoundingBox;
+    self.resetFillStyle = resetFillStyle;
+    self.resetStrokeStyle = resetStrokeStyle;
+    self.setFill = setFill;
+    self.setBelongsTo = setBelongsTo;
+    self.setLineWidth = setLineWidth;
+    self.setFillStyle = setFillStyle;
+    self.setStrokeStyle = setStrokeStyle;
+    self.setVisibility = setVisibility;
 
     // Initialize
     _init(points, params);
@@ -11244,574 +10995,6 @@ function shuffle(array) {
     return copy;
 }
 
-
-//function getBusStopPositionLabel() {
-//    return {
-//        'NextToCurb' : {
-//            'id' : 'NextToCurb',
-//            'label' : 'Next to curb'
-//        },
-//        'AwayFromCurb' : {
-//            'id' : 'AwayFromCurb',
-//            'label' : 'Away from curb'
-//        },
-//        'None' : {
-//            'id' : 'None',
-//            'label' : 'Not provided'
-//        }
-//    }
-//}
-//
-//
-//function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
-//    // This function takes a pair of lat/lng coordinates.
-//    //
-//    if (typeof SourceLat !== 'number') {
-//        SourceLat = parseFloat(SourceLat);
-//    }
-//    if (typeof SourceLng !== 'number') {
-//        SourceLng = parseFloat(SourceLng);
-//    }
-//    if (typeof TargetLng !== 'number') {
-//        TargetLng = parseFloat(TargetLng);
-//    }
-//    if (typeof TargetLat !== 'number') {
-//        TargetLat = parseFloat(TargetLat);
-//    }
-//
-//    var dLng = TargetLng - SourceLng;
-//    var dLat = TargetLat - SourceLat;
-//
-//    if (dLat === 0 || dLng === 0) {
-//        return 0;
-//    }
-//
-//    var angle = toDegrees(Math.atan(dLng / dLat));
-//    //var angle = toDegrees(Math.atan(dLat / dLng));
-//
-//    return 90 - angle;
-//}
-//
-//
-//function getLabelCursorImagePath() {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'cursorImagePath' : undefined
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_BusStop2.png'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_BusStop2.png'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_BusStop2.png'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_BusStop2.png'
-//        },
-//        'StopSign_None' : {
-//            'id' : 'StopSign_None',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_BusStop2.png'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_BusStopShelter2.png'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_Bench2.png'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_TrashCan3.png'
-//        },
-//        'Landmark_MailboxAndNewsPaperBox' : {
-//            'id' : 'Landmark_MailboxAndNewsPaperBox',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_Mailbox2.png'
-//        },
-//        'Landmark_OtherPole' : {
-//            'id' : 'Landmark_OtherPole',
-//            'cursorImagePath' : 'public/img/cursors/Cursor_OtherPole.png'
-//        }
-//    }
-//}
-//
-//
-////
-//// Returns image paths corresponding to each label type.
-////
-//function getLabelIconImagePath(labelType) {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'iconImagePath' : undefined
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'iconImagePath' : 'public/img/icons/Icon_BusStop.png'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'iconImagePath' : 'public/img/icons/Icon_BusStopSign_SingleLeg.png'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'iconImagePath' : 'public/img/icons/Icon_BusStopSign_TwoLegged.png'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'iconImagePath' : 'public/img/icons/Icon_BusStopSign_Column.png'
-//        },
-//        'StopSign_None' : {
-//            'id' : 'StopSign_None',
-//            'iconImagePath' : 'public/img/icons/Icon_BusStop.png'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'iconImagePath' : 'public/img/icons/Icon_BusStopShelter.png'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'iconImagePath' : 'public/img/icons/Icon_Bench.png'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'iconImagePath' : 'public/img/icons/Icon_TrashCan2.png'
-//        },
-//        'Landmark_MailboxAndNewsPaperBox' : {
-//            'id' : 'Landmark_MailboxAndNewsPaperBox',
-//            'iconImagePath' : 'public/img/icons/Icon_Mailbox2.png'
-//        },
-//        'Landmark_OtherPole' : {
-//            'id' : 'Landmark_OtherPole',
-//            'iconImagePath' : 'public/img/icons/Icon_OtherPoles.png'
-//        }
-//    }
-//}
-//
-//
-////
-//// This function is used in OverlayMessageBox.js.
-////
-//function getLabelInstructions () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'instructionalText' : 'Explore mode: Find the closest bus stop and label surrounding landmarks',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">stop sign</span>',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'instructionalText' :'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-//            'textColor' :'rgba(255,255,255,1)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus stop sign</span>',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bus shelter</span>',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">bench</span> nearby a bus stop',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">trash can</span> nearby a bus stop',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'Landmark_MailboxAndNewsPaperBox' : {
-//            'id' : 'Landmark_MailboxAndNewsPaperBox',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of the <span class="underline">mailbox or news paper box</span> nearby a bus stop',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        },
-//        'Landmark_OtherPole' : {
-//            'id' : 'Landmark_OtherPole',
-//            'instructionalText' : 'Label mode: Locate and click at the bottom of poles such as <span class="underline bold">traffic sign, traffic light, and light pole</span> nearby a bus stop',
-//            'textColor' : 'rgba(255,255,255,1)'
-//        }
-//    }
-//}
-//
-//function getRibbonConnectionPositions () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'text' : 'Walk',
-//            'labelRibbonConnection' : '25px'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'text' : 'Stop Sign',
-//            'labelRibbonConnection' : '112px'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'text' : 'One-leg Stop Sign',
-//            'labelRibbonConnection' : '112px'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'text' : 'Two-leg Stop Sign',
-//            'labelRibbonConnection' : '112px'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'text' : 'Column Stop Sign',
-//            'labelRibbonConnection' : '112px'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'text' : 'Bus Shelter',
-//            'labelRibbonConnection' : '188px'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'text' : 'Bench',
-//            'labelRibbonConnection' : '265px'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'text' : 'Trash Can',
-//            'labelRibbonConnection' : '338px'
-//        },
-//        'Landmark_MailboxAndNewsPaperBox' : {
-//            'id' : 'Landmark_MailboxAndNewsPaperBox',
-//            'labelRibbonConnection' : '411px'
-//        },
-//        'Landmark_OtherPole' : {
-//            'id' : 'Landmark_OtherPole',
-//            'labelRibbonConnection' : '484px'
-//        }
-//    }
-//}
-//
-//// Colors selected from
-//// http://colorbrewer2.org/
-//// - Number of data classes: 4
-//// - The nature of data: Qualitative
-//// - Color scheme 1: Paired - (166, 206, 227), (31, 120, 180), (178, 223, 138), (51, 160, 44)
-//// - Color scheme 2: Set2 - (102, 194, 165), (252, 141, 98), (141, 160, 203), (231, 138, 195)
-//// I'm currently using Set 2
-//function getLabelDescriptions () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'text' : 'Walk'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'text' : 'Bus Stop Sign'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'text' : 'One-leg Stop Sign'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'text' : 'Two-leg Stop Sign'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'text' : 'Column Stop Sign'
-//        },
-//        'StopSign_None' : {
-//            'id' : 'StopSign_None',
-//            'text' : 'Not provided'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'text' : 'Bus Stop Shelter'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'text' : 'Bench'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'text' : 'Trash Can / Recycle Can'
-//        },
-//        'Landmark_MailboxAndNewsPaperBox' : {
-//            'id' : 'Landmark_MailboxAndNewsPaperBox',
-//            'text' : 'Mailbox / News Paper Box'
-//        },
-//        'Landmark_OtherPole' : {
-//            'id' : 'Landmark_OtherPole',
-//            'text' : 'Traffic Sign / Pole'
-//        }
-//    }
-//}
-//
-//function getLabelColors () {
-//    return colorScheme2();
-//}
-//
-//function colorScheme1 () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'fillStyle' : 'rgba(102, 194, 165, 0.9)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'fillStyle' : 'rgba(102, 194, 165, 0.9)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'fillStyle' : 'rgba(102, 194, 165, 0.9)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'fillStyle' : 'rgba(102, 194, 165, 0.9)'
-//        },
-//        'StopSign_None' : {
-//            'id' : 'StopSign_None',
-//            'fillStyle' : 'rgba(102, 194, 165, 0.9'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'fillStyle' : 'rgba(252, 141, 98, 0.9)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'fillStyle' : 'rgba(141, 160, 203, 0.9)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'fillStyle' : 'rgba(231, 138, 195, 0.9)'
-//        }
-//    }
-//}
-//
-////
-//// http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
-//function colorScheme2 () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'fillStyle' : 'rgba(215, 0, 96, 0.9)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            // 'fillStyle' : 'rgba(229, 64, 40, 0.9)' // Kind of hard to distinguish from pink
-//            // 'fillStyle' : 'rgba(209, 209, 2, 0.9)' // Puke-y
-//            'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'fillStyle' : 'rgba(97, 174, 36, 0.9)'
-//        },
-//        'Landmark_MailboxAndNewsPaperBox' : {
-//            'id' : 'Landmark_MailboxAndNewsPaperBox',
-//            'fillStyle' : 'rgba(67, 113, 190, 0.9)'
-//        },
-//        'Landmark_OtherPole' : {
-//            'id' : 'Landmark_OtherPole',
-//            'fillStyle' : 'rgba(249, 79, 101, 0.9)'
-//        }
-//    }
-//}
-//
-////
-////http://www.colourlovers.com/fashion/trends/street-fashion/7896/Floral_Much
-//function colorScheme3 () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'fillStyle' : 'rgba(97, 210, 214, 0.9)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'fillStyle' : 'rgba(97, 210, 214, 0.9)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'fillStyle' : 'rgba(97, 210, 214, 0.9)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'fillStyle' : 'rgba(97, 210, 214, 0.9)'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'fillStyle' : 'rgba(237, 20, 111, 0.9)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'fillStyle' : 'rgba(237, 222, 69, 0.9)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'fillStyle' : 'rgba(155, 240, 233, 0.9)'
-//        }
-//    }
-//}
-//
-////
-//// http://www.colourlovers.com/business/trends/branding/7884/Small_Garden_Logo
-//function colorScheme4 () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'fillStyle' : 'rgba(229, 59, 81, 0.9)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'fillStyle' : 'rgba(60, 181, 181, 0.9)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'fillStyle' : 'rgba(236, 108, 32, 0.9)'
-//        }
-//    }
-//}
-//
-////
-//// http://www.colourlovers.com/business/trends/branding/7874/ROBAROV_WEBDESIGN
-//function colorScheme5 () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'fillStyle' : 'rgba(208, 221, 43, 0.9)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'fillStyle' : 'rgba(208, 221, 43, 0.9)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'fillStyle' : 'rgba(208, 221, 43, 0.9)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'fillStyle' : 'rgba(208, 221, 43, 0.9)'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'fillStyle' : 'rgba(152, 199, 61, 0.9)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'fillStyle' : 'rgba(0, 169, 224, 0.9)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'fillStyle' : 'rgba(103, 205, 220, 0.9)'
-//        }
-//    }
-//}
-//
-////
-////http://www.colourlovers.com/print/trends/magazines/7834/Print_Design_Annual_2010
-//function colorScheme6 () {
-//    return {
-//        'Walk' : {
-//            'id' : 'Walk',
-//            'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-//        },
-//        'StopSign' : {
-//            'id' : 'StopSign',
-//            'fillStyle' : 'rgba(210, 54, 125, 0.9)'
-//        },
-//        'StopSign_OneLeg' : {
-//            'id' : 'StopSign_OneLeg',
-//            'fillStyle' : 'rgba(210, 54, 125, 0.9)'
-//        },
-//        'StopSign_TwoLegs' : {
-//            'id' : 'StopSign_TwoLegs',
-//            'fillStyle' : 'rgba(210, 54, 125, 0.9)'
-//        },
-//        'StopSign_Column' : {
-//            'id' : 'StopSign_Column',
-//            'fillStyle' : 'rgba(210, 54, 125, 0.9)'
-//        },
-//        'Landmark_Shelter' : {
-//            'id' : 'Landmark_Shelter',
-//            'fillStyle' : 'rgba(188, 160, 0, 0.9)'
-//        },
-//        'Landmark_Bench' : {
-//            'id' : 'Landmark_Bench',
-//            'fillStyle' : 'rgba(207, 49, 4, 0.9)'
-//        },
-//        'Landmark_TrashCan' : {
-//            'id' : 'Landmark_TrashCan',
-//            'fillStyle' : 'rgba(1, 142, 74, 0.9)'
-//        }
-//    }
-//}
 
 var svl = svl || {};
 svl.util = svl.util || {};

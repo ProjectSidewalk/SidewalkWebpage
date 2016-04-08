@@ -574,7 +574,7 @@ function Label (pathIn, params) {
         var path = getPath(),
             points = path.getPoints(),
             len = points.length,
-            fillColor = path.getFillStyle();
+            fillColor = path.getFill();
         fillColor = svl.util.color.changeAlphaRGBA(fillColor, 0.3);
 
         path.setFillStyle(fillColor);

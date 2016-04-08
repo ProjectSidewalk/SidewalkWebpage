@@ -18,36 +18,40 @@ describe("Tests for the Path module.", function () {
   var points = [p1, p2, p3];
 
   var path = new Path([p1, p2, p3], {});
-  describe("Path constructor API", function(){
-    it("should return pov of the first point", function() {
-      expect(path.getPOV()).toBe(pov);
-    });
+  describe("getPoints method", function(){
 
     it("should return the point objects in this path", function() {
       expect(path.getPoints(true)).toEqual(points);
     });
-
-    it("should return imagecoordinates", function() {
-      imagecoordinates = [p1.getGSVImageCoordinate(), p2.getGSVImageCoordinate(), p3.getGSVImageCoordinate()];
-      expect(path.getImageCoordinates()).toEqual(imagecoordinates);
-    });
-
   });
+
+  describe("getImageCoordinates", function () {
+    it("should return image coordinates of the points", function () {
+      var imagecoordinates = [p1.getGSVImageCoordinate(), p2.getGSVImageCoordinate(), p3.getGSVImageCoordinate()];
+      expect(path.getImageCoordinates()).toEqual(imagecoordinates);
+    })
+  });
+
+  describe("getFill", function () {
+    it("should return the fill style of the path", function () {
+      expect(path.getFill()).toEqual('rgba(255,255,255,0.5)' );
+    });
+  });
+
+  describe("getLineWidth", function () {
+    it("should return the lineWidth of the path", function () {
+      path.setLineWidth(3);
+      expect(path.getLineWidth()).toEqual("3");
+    });
+  });
+
 
   /*
-  describe("The method getPOV", function () {
-    it("should return pov", function () {
-
-    });
-  });
-
   describe("The method getBoundingBox", function () {
     // Todo
   });
 
-  describe("The method getLineWidth", function () {
-    // Todo
-  });
+
 
   describe("The method getFill", function () {
     // Todo
@@ -92,7 +96,7 @@ describe("Tests for the Path module.", function () {
       expect(path.getPoints().length).toBe(3);
     });
 
-    it("should have default color 'rgba(255,255,255,0.5)''", function () {
+    it("should have the default color 'rgba(255,255,255,0.5)''", function () {
       expect(path.getFill()).toBe('rgba(255,255,255,0.5)');
     });
 
@@ -122,10 +126,6 @@ describe("Tests for the Path module.", function () {
       path.setLineWidth('foo'); // Should not allow illegal input
       expect(path.getLineWidth()).toBe('15');
     });
-  });
-
-  describe("The method setFillStyle", function () {
-    // Todo
   });
 
   describe("The method setStrokeStyle", function () {
