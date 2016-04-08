@@ -35,5 +35,5 @@ object MissionFormats {
       (__ \ "deleted").write[Boolean]
     )(unlift(Mission.unapply _))
 
-  
+
 }
