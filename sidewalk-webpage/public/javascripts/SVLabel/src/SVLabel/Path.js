@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * Path module. A Path instance holds and array of Point instances.
  * @param points
@@ -17,8 +15,8 @@ function Path (points, params) {
         lineJoin : 'round', // ['round','bevel','miter']
         lineWidth : '3',
         numPoints: points.length,
-        originalFillStyle: undefined,
-        originalStrokeStyle: undefined,
+        originalFillStyle: 'rgba(255,255,255,0.5)',
+        originalStrokeStyle: 'rgba(255,255,255,1)',
         strokeStyle : 'rgba(255,255,255,1)',
         strokeStyle_bg : 'rgba(255,255,255,1)' //potentially delete
     };
@@ -186,6 +184,14 @@ function Path (points, params) {
     }
 
     /**
+     * This method returns the status of the field
+     * @param key {string} The field name
+     */
+    function getStatus (key) {
+        return status[key];
+    }
+
+    /**
      * this method returns a bounding box in terms of svImage coordinates.
      * @returns {{x: number, y: number, width: number, height: number, boundary: boolean}}
      */
@@ -256,7 +262,6 @@ function Path (points, params) {
             }
         }
     }
-
 
     /**
      * This function checks if a mouse cursor is on any of a points and return a point if the cursor is indeed on the
@@ -566,6 +571,7 @@ function Path (points, params) {
     self.getImageCoordinates = getImageCoordinates;
     self.getPoints = getPoints;
     self.getProperty = getProperty;
+    self.getStatus = getStatus;
     self.isOn = isOn;
     self.overlap = overlap;
     self.removePoints = removePoints;

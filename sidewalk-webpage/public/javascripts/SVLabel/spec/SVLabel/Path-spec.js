@@ -52,15 +52,6 @@ describe("Tests for the Path module.", function () {
   });
 
 
-
-  describe("The method getFill", function () {
-    // Todo
-  });
-
-  describe("The method getFillStyle", function () {
-    // Todo
-  });
-
   describe("The method getSvImageBoundingBox", function () {
     // Todo
   });
@@ -84,57 +75,79 @@ describe("Tests for the Path module.", function () {
   describe("The method removePoints", function () {
     // Todo
   });
-
-
-  describe("The method resetStrokeStyle", function () {
-    // Todo
-  });
   */
 
-  describe("The method setFill", function () {
-    it("this Path should have three points", function () {
-      expect(path.getPoints().length).toBe(3);
+    describe("The method setFill", function () {
+        it("this Path should have three points", function () {
+            expect(path.getPoints().length).toBe(3);
+        });
+
+        it("should have the default color 'rgba(255,255,255,0.5)''", function () {
+            expect(path.getFill()).toBe('rgba(255,255,255,0.5)');
+        });
+
+        it("should set fill color", function () {
+            path.setFill('rgba(10,10,10,0.5)');
+            expect(path.getFill()).toBe('rgba(10,10,10,0.5)');
+
+            // convert 'rgb' to 'rgba'. Set default alpha to be 0.5
+            path.setFill('rgb(20,20,20)');
+            expect(path.getFill()).toBe('rgba(20,20,20,0.5)');
+        });
     });
 
-    it("should have the default color 'rgba(255,255,255,0.5)''", function () {
-      expect(path.getFill()).toBe('rgba(255,255,255,0.5)');
+    describe("The method setLineWidth", function () {
+
+        it("should have default lineWidth '3'", function () {
+            expect(path.getLineWidth()).toBe('3');
+        });
+
+        it("should allow one to set line width", function () {
+            path.setLineWidth('5');
+            expect(path.getLineWidth()).toBe('5');
+
+            path.setLineWidth(15);
+            expect(path.getLineWidth()).toBe('15');
+
+            path.setLineWidth('foo'); // Should not allow illegal input
+            expect(path.getLineWidth()).toBe('15');
+        });
     });
 
-    it("should set fill color", function () {
-      path.setFill('rgba(10,10,10,0.5)');
-      expect(path.getFill()).toBe('rgba(10,10,10,0.5)');
-
-      // convert 'rgb' to 'rgba'. Set default alpha to be 0.5
-      path.setFill('rgb(20,20,20)');
-      expect(path.getFill()).toBe('rgba(20,20,20,0.5)');
-    });
-  });
-
-  describe("The method setLineWidth", function () {
-
-    it("should have default lineWidth '3'", function () {
-      expect(path.getLineWidth()).toBe('3');
+    describe("The method setStrokeStyle", function () {
+        it("should be able to set the stroke style", function () {
+            var style = path.getProperty("strokeStyle");
+            expect(style).toBe("rgba(255,255,255,1)");
+            path.setStrokeStyle("rgba(0, 0, 0, 1.0)");
+            style = path.getProperty("strokeStyle");
+            expect(style).toBe("rgba(0, 0, 0, 1.0)");
+        });
     });
 
-    it("should allow one to set line width", function () {
-      path.setLineWidth('5');
-      expect(path.getLineWidth()).toBe('5');
+    describe("The method resetStrokeStyle", function () {
+        it("should be able to reset the stroke style", function () {
+            path.setStrokeStyle("rgba(0, 0, 0, 1.0)");
+            var style = path.getProperty("strokeStyle");
+            expect(style).toBe("rgba(0, 0, 0, 1.0)");
 
-      path.setLineWidth(15);
-      expect(path.getLineWidth()).toBe('15');
-
-      path.setLineWidth('foo'); // Should not allow illegal input
-      expect(path.getLineWidth()).toBe('15');
+            path.resetStrokeStyle();
+            var style = path.getProperty("strokeStyle");
+            expect(style).toBe("rgba(255,255,255,1)");
+        });
     });
-  });
 
-  describe("The method setStrokeStyle", function () {
-    // Todo
-  });
+    describe("setVisibility", function () {
+        it("should be able to set visibility to hidden.", function () {
+            path.setVisibility("hidden");
+            expect(path.getStatus("visibility")).toBe("hidden");
+        });
 
-  describe("setVisibility", function () {
-    // Todo
-  });
+        it("should be able to set visibility to hidden.", function () {
+            path.setVisibility("hidden");
+            path.setVisibility("visible");
+            expect(path.getStatus("visibility")).toBe("visible");
+        });
+    });
 
 
 });
