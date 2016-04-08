@@ -7017,15 +7017,7 @@ function MissionProgress () {
             surveyedAngles: undefined
         };
 
-    var $divCurrentCompletionRate;
-    var $divCurrentCompletionBar;
-    var $divCurrentCompletionBarFiller;
-
     function _init() {
-        $divCurrentCompletionRate = svl.ui.progressPov.rate;
-        $divCurrentCompletionBar = svl.ui.progressPov.bar;
-        $divCurrentCompletionBarFiller = svl.ui.progressPov.filler;
-
         // Fill in the surveyed angles
         status.surveyedAngles = new Array(100);
         for (var i=0; i < 100; i++) {
@@ -7051,13 +7043,11 @@ function MissionProgress () {
      * This method prints what percent of the intersection the user has observed.
      * @returns {printCompletionRate}
      */
-    function printCompletionRate (mission) {
-        if (mission) {
-            var completionRate = mission.getMissionCompletionRate() * 100;
-            completionRate = completionRate.toFixed(0, 10);
-            completionRate = completionRate + "% complete";
-            $divCurrentCompletionRate.html(completionRate);
-        }
+    function printCompletionRate (completionRate) {
+        completionRate *= 100;
+        completionRate = completionRate.toFixed(0, 10);
+        completionRate = completionRate + "% complete";
+        svl.ui.progressPov.rate.html(completionRate);
         return this;
     }
     
@@ -7113,8 +7103,13 @@ function MissionProgress () {
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
                 completionRate;
-            printCompletionRate(currentMission);
-            updateMissionCompletionBar(currentMission);
+
+            // Update the mission completion rate in the progress bar
+            if (currentMission) {
+                completionRate = currentMission.getMissionCompletionRate();
+                printCompletionRate(completionRate);
+                updateMissionCompletionBar(completionRate);
+            }
 
             if (currentRegion) {
                 // Update mission completion rate.
@@ -7152,33 +7147,31 @@ function MissionProgress () {
     /**
      * This method updates the filler of the completion bar
      */
-    function updateMissionCompletionBar (mission) {
-        if (mission) {
-            var r, g, color, completionRate = mission.getMissionCompletionRate();
-            var colorIntensity = 230;
-            if (completionRate < 0.5) {
-                r = colorIntensity;
-                g = parseInt(colorIntensity * completionRate * 2);
-            } else {
-                r = parseInt(colorIntensity * (1 - completionRate) * 2);
-                g = colorIntensity;
-            }
-            color = 'rgba(' + r + ',' + g + ',0,1)';
-            completionRate *=  100;
-            completionRate = completionRate.toFixed(0, 10);
-            completionRate -= 0.8;
-            completionRate = completionRate + "%";
-            $divCurrentCompletionBarFiller.css({
-                background: color,
-                width: completionRate
-            });
+    function updateMissionCompletionBar (completionRate) {
+        var r, g, color, colorIntensity = 230;
+        if (completionRate < 0.5) {
+            r = colorIntensity;
+            g = parseInt(colorIntensity * completionRate * 2);
+        } else {
+            r = parseInt(colorIntensity * (1 - completionRate) * 2);
+            g = colorIntensity;
         }
+        color = 'rgba(' + r + ',' + g + ',0,1)';
+        completionRate *=  100;
+        completionRate = completionRate.toFixed(0, 10);
+        completionRate -= 0.8;
+        completionRate = completionRate + "%";
+        svl.ui.progressPov.filler.css({
+            background: color,
+            width: completionRate
+        });
         return this;
     }
 
     self.showNextMission = showNextMission;
     self.showMissionCompleteWindow = showMissionCompleteWindow;
     self.update = update;
+    self.updateMissionCompletionBar = updateMissionCompletionBar;
 
     _init();
     return self;
@@ -8128,8 +8121,7 @@ function Path (points, params) {
         // Get the image coordinates of the path.
         return getImageCoordinates();
     };
-
-
+    
     /**
      * This function returns points.
      */

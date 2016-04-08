@@ -313,8 +313,7 @@ function Path (points, params) {
         // Get the image coordinates of the path.
         return getImageCoordinates();
     };
-
-
+    
     /**
      * This function returns points.
      */
