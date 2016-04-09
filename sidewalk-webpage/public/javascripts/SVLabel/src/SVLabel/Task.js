@@ -132,8 +132,8 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
-     * This method checks if the task is done or not by assessing the
-     * current distance and the ending distance.
+     * This method checks if the task is completed by comparing the
+     * current position and the ending point.
      * 
      * @param lat
      * @param lng
@@ -146,9 +146,8 @@ function Task (turf, geojson, currentLat, currentLng) {
                 latEnd = _geojson.features[0].geometry.coordinates[len][1],
                 lngEnd = _geojson.features[0].geometry.coordinates[len][0];
 
-            if (!threshold) { threshold = 10; } // 10 meters
+            if (!threshold) threshold = 10; // 10 meters
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
-            //console.debug('Distance to the end:' , d);
             return d < threshold;
         }
     }
@@ -334,8 +333,6 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
-
-
     _init (geojson, currentLat, currentLng);
 
     self.getCumulativeDistance = getCumulativeDistance;
@@ -480,21 +477,8 @@ function TaskContainer (turf) {
         }
         if ('tracker' in svl) svl.tracker.push("TaskEnd");
 
-        // // Play the animation and audio effect after task completion.
-        // svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
-        // svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
-        // setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
-        //
-        // if ('audioEffect' in svl) {
-        //     svl.audioEffect.play('yay');
-        //     svl.audioEffect.play('applause');
-        // }
-        //
-        // // Reset the label counter
-        // if ('labelCounter' in svl) { svl.labelCounter.reset(); }
-
         // Update the audited miles
-        if ('ui' in svl) { updateAuditedDistance(); }
+        if ('ui' in svl) updateAuditedDistance();
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
             // Prompt a user who's not logged in to sign up/sign in.
@@ -511,7 +495,7 @@ function TaskContainer (turf) {
                 $("#sign-up-modal").removeClass("hidden");
                 $('#sign-in-modal-container').modal('show');
             });
-            svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">Nope</button>', function () {
+            svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
                 if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
 
                 svl.user.setProperty('firstTask', false);
@@ -519,8 +503,7 @@ function TaskContainer (turf) {
                 var data = svl.form.compileSubmissionData();
                 svl.form.submit(data);
             });
-            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; ' +
-                'text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
                 var data = svl.form.compileSubmissionData(),
                     staged = svl.storage.get("staged");
                 staged.push(data);
@@ -631,16 +614,15 @@ function TaskContainer (turf) {
         }
     }
 
-
     self.endTask = endTask;
     self.getCurrentTask = getCurrentTask;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.isFirstTask = isFirstTask;
     self.length = length;
+    self.nextTask = nextTask;
     self.push = push;
     self.updateAuditedDistance = updateAuditedDistance;
     self.setCurrentTask = setCurrentTask;
-    self.nextTask = nextTask;
 
     return self;
 }

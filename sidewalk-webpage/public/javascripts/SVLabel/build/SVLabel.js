@@ -3653,18 +3653,20 @@ function Label (pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function createGoogleMapsMarker (labelType) {
-        var latlng = toLatLng(),
-            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-            imagePaths = svl.misc.getIconImagePaths(),
-            url = imagePaths[labelType].googleMapsIconImagePath
+        if (typeof google != "undefined") {
+            var latlng = toLatLng(),
+                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+                imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath
 
-        return new google.maps.Marker({
-            position: googleLatLng,
-            map: svl.map.getMap(),
-            title: "Hi!",
-            icon: url,
-            size: new google.maps.Size(20, 20)
-        });
+            return new google.maps.Marker({
+                position: googleLatLng,
+                map: svl.map.getMap(),
+                title: "Hi!",
+                icon: url,
+                size: new google.maps.Size(20, 20)
+            });
+        }
     }
 
     /**
@@ -3731,16 +3733,20 @@ function Label (pathIn, params) {
     }
 
     /**
-     *
+     * Get image coordinates of the child path
      * @returns {*}
      */
-    function getImageCoordinates () { return path ? path.getImageCoordinates() : false; }
+    function getImageCoordinates () {
+        return path ? path.getImageCoordinates() : false;
+    }
 
     /**
      * This function returns labelId property
      * @returns {string}
      */
-    function getLabelId () { return properties.labelId; }
+    function getLabelId () {
+        return properties.labelId;
+    }
 
     /**
      * This function returns labelType property
@@ -3859,7 +3865,9 @@ function Label (pathIn, params) {
      * This method returns the visibility of this label.
      * @returns {boolean}
      */
-    function isVisible () { return status.visibility === 'visible'; }
+    function isVisible () {
+        return status.visibility === 'visible';
+    }
 
     /**
      * Lock tag visibility
@@ -3886,16 +3894,10 @@ function Label (pathIn, params) {
      * @returns {*|number}
      */
     function overlap (label, mode) {
-        if (!mode) {
-            mode = "boundingbox";
-        }
-
-        if (mode !== "boundingbox") {
-            throw self.className + ": " + mobede + " is not a valid option.";
-        }
+        if (!mode) mode = "boundingbox";
+        if (mode !== "boundingbox") { throw self.className + ": " + mobede + " is not a valid option."; }
         var path1 = getPath(),
             path2 = label.getPath();
-
         return path1.overlap(path2, mode);
     }
 
@@ -4001,11 +4003,11 @@ function Label (pathIn, params) {
         if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
 
         var labelCoordinate = getCoordinate(),
-            cornerRadius = 3;
-        var i, w, height, width,
+            cornerRadius = 3,
+            i, w, height, width,
             msg = properties.labelDescription,
-            messages = msg.split('\n');
-        var padding = { left: 12, right: 5, bottom: 0, top: 18};
+            messages = msg.split('\n'),
+            padding = { left: 12, right: 5, bottom: 0, top: 18};
 
         if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
 
@@ -4050,11 +4052,10 @@ function Label (pathIn, params) {
      * @returns {resetFillStyle}
      */
     function resetFillStyle () {
-        var path = getPath(),
-            points = path.getPoints(),
-            len = points.length;
+        var path = getPath(), points = path.getPoints(),
+            i, len = points.length;
         path.resetFillStyle();
-        for (var i = 0; i < len; i++) {
+        for (i = 0; i < len; i++) {
             points[i].resetFillStyle();
         }
         return this;
@@ -4080,8 +4081,8 @@ function Label (pathIn, params) {
             points = path.getPoints(),
             len = points.length,
             fillColor = path.getFill();
-        fillColor = svl.util.color.changeAlphaRGBA(fillColor, 0.3);
-
+        alpha = alpha ? alpha : 0.3;
+        fillColor = svl.util.color.changeAlphaRGBA(fillColor, alpha);
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) {
             points[i].setFillStyle(fillColor);
@@ -4141,6 +4142,11 @@ function Label (pathIn, params) {
         }
     }
 
+    /**
+     * Set the visibility of the tag
+     * @param visibility {string} visible or hidden
+     * @returns {setTagVisibility}
+     */
     function setTagVisibility (visibility) {
         if (!lock.tagVisibility) {
             if (visibility === 'visible' || visibility === 'hidden') {
@@ -4156,9 +4162,8 @@ function Label (pathIn, params) {
      * @returns {setSubLabelDescription}
      */
     function setSubLabelDescription (labelType) {
-        var labelDescriptions = svl.misc.getLabelDescriptions(),
-            labelDescription = labelDescriptions[labelType].text;
-        properties.labelProperties.subLabelDescription = labelDescription;
+        var labelDescriptions = svl.misc.getLabelDescriptions();
+        properties.labelProperties.subLabelDescription = labelDescriptions[labelType].text;
         return this;
     }
 
@@ -4266,8 +4271,7 @@ function Label (pathIn, params) {
                 y = boundingBox.y;
 
             // Show a delete button
-            var $divHolderLabelDeleteIcon = $("#delete-icon-holder");
-            $divHolderLabelDeleteIcon.css({
+            $("#delete-icon-holder").css({
                 visibility: 'visible',
                 left : x + 25, // + width - 5,
                 top : y - 20
@@ -4275,22 +4279,24 @@ function Label (pathIn, params) {
         }
     }
 
+    /**
+     * Calculate the offset to the label
+     * @returns {{dx: number, dy: number, dz: number}}
+     */
     function toOffset() {
-        var imageCoordinates = path.getImageCoordinates();
-        var lat = properties.panoramaLat;
-        var pc = svl.pointCloud.getPointCloud(properties.panoId);
+        var imageCoordinates = path.getImageCoordinates(),
+            pc = svl.pointCloud.getPointCloud(properties.panoId);
         if (pc) {
-            var minDx = 1000;
-            var minDy = 1000;
-            var minDz = 1000;
-            for (var i = 0; i < imageCoordinates.length; i++) {
-                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
-                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                var dx = pc.pointCloud[idx];
-                var dy = pc.pointCloud[idx + 1];
-                var dz = pc.pointCloud[idx + 2];
-                var r = dx * dx + dy * dy;
-                var minR = minDx * minDx + minDy + minDy;
+            var minDx = 1000, minDy = 1000, minDz = 1000,
+                i, p, idx, dx, dy, dz, r, minR;
+            for (i = 0; i < imageCoordinates.length; i++) {
+                p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
+                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                dx = pc.pointCloud[idx];
+                dy = pc.pointCloud[idx + 1];
+                dz = pc.pointCloud[idx + 2];
+                r = dx * dx + dy * dy;
+                minR = minDx * minDx + minDy + minDy;
 
                 if (r < minR) {
                     minDx = dx;
@@ -4308,29 +4314,26 @@ function Label (pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates();
-            var lat = properties.panoramaLat;
-            var pc = svl.pointCloud.getPointCloud(properties.panoId);
+            var imageCoordinates = path.getImageCoordinates(),
+                pc = svl.pointCloud.getPointCloud(properties.panoId);
             if (pc) {
-                var minDx = 1000;
-                var minDy = 1000;
-                var delta;
-                for (var i = 0; i < imageCoordinates.length; i ++) {
-                    var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                    var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                    var dx = pc.pointCloud[idx];
-                    var dy = pc.pointCloud[idx + 1];
-                    var r = dx * dx + dy * dy;
-                    var minR = minDx * minDx + minDy + minDy;
+                var minDx = 1000, minDy = 1000, i, delta, latlng,
+                    p, idx, dx, dy, r, minR;
+                for (i = 0; i < imageCoordinates.length; i ++) {
+                    p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                    idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                    dx = pc.pointCloud[idx];
+                    dy = pc.pointCloud[idx + 1];
+                    r = dx * dx + dy * dy;
+                    minR = minDx * minDx + minDy + minDy;
 
-                    if ( r < minR) {
+                    if (r < minR) {
                         minDx = dx;
                         minDy = dy;
-
                     }
                 }
                 delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
-                var latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
+                latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
                 setProperty('labelLat', latlng.lat);
                 setProperty('labelLng', latlng.lng);
                 return latlng;
@@ -4338,16 +4341,24 @@ function Label (pathIn, params) {
                 return null;
             }
         } else {
-            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };
+            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };  // Return the cached value
         }
 
     }
 
+    /**
+     * Unlock status.visibility
+     * @returns {unlockVisibility}
+     */
     function unlockVisibility () {
         lock.visibility = false;
         return this;
     }
 
+    /**
+     * Unlock status.tagVisibility
+     * @returns {unlockTagVisibility}
+     */
     function unlockTagVisibility () {
         lock.tagVisibility = false;
         return this;
@@ -5121,11 +5132,11 @@ function Map ($, params) {
             svLinkArrowsLoaded : false
         };
 
-    var initialPositionUpdate = true;
-    var panoramaOptions;
-    var streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
-    var STREETVIEW_MAX_DISTANCE = 50;
-    var googleMapsPaneBlinkInterval;
+    var initialPositionUpdate = true,
+        panoramaOptions,
+        streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null,
+        STREETVIEW_MAX_DISTANCE = 25,
+        googleMapsPaneBlinkInterval;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -5142,20 +5153,9 @@ function Map ($, params) {
 
     // Maps variables
     var fenway, map, mapOptions, mapStyleOptions;
-    var svgListenerAdded = false;
 
     // Street View variables
     var _streetViewInit;
-
-    // jQuery doms
-    var $canvas;
-    var $divLabelDrawingLayer;
-    var $divPano;
-    var $divStreetViewHolder;
-    var $divViewControlLayer;
-    var $spanModeSwitchWalk;
-    var $spanModeSwitchDraw;
-
 
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
@@ -5270,22 +5270,15 @@ function Map ($, params) {
 
 
         properties.initialPanoId = params.taskPanoId;
-        $canvas = svl.ui.map.canvas;
-        $divLabelDrawingLayer = svl.ui.map.drawingLayer;
-        $divPano = svl.ui.map.pano;
-        $divStreetViewHolder = svl.ui.map.streetViewHolder;
-        $divViewControlLayer = svl.ui.map.viewControlLayer;
-        $spanModeSwitchWalk = svl.ui.map.modeSwitchWalk;
-        $spanModeSwitchDraw = svl.ui.map.modeSwitchDraw;
 
         // Set so the links to panoaramas that are not listed on availablePanoIds will be removed
         status.availablePanoIds = params.availablePanoIds;
 
         // Attach listeners to dom elements
-        $divViewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
-        $divViewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
-        $divViewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
-        $divViewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
+        svl.ui.map.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
+        svl.ui.map.viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
+        svl.ui.map.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
+        svl.ui.map.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
 
 
         // Add listeners to the SV panorama
@@ -5296,7 +5289,7 @@ function Map ($, params) {
             google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
             google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
         }
-        
+
         // Connect the map view and panorama view
         if (map && svl.panorama) map.setStreetView(svl.panorama);
 
@@ -5310,7 +5303,7 @@ function Map ($, params) {
         // For Internet Explore, append an extra canvas in viewControlLayer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            $divViewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
+            svl.ui.map.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
     }
 
@@ -5380,7 +5373,7 @@ function Map ($, params) {
         if (!status.lockDisableWalking) {
             // Disable clicking links and changing POV
             hideLinks();
-            $spanModeSwitchWalk.css('opacity', 0.5);
+            svl.ui.map.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
         }
         return this;
@@ -5412,7 +5405,7 @@ function Map ($, params) {
         if (!status.lockDisableWalking) {
             // Enable clicking links and changing POV
             showLinks();
-            $spanModeSwitchWalk.css('opacity', 1);
+            svl.ui.map.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
         }
         return this;
@@ -5455,7 +5448,7 @@ function Map ($, params) {
      * @returns {*}
      */
     function getPanoramaLayer () {
-        return $divPano.children(':first').children(':first').children(':first').children(':eq(5)');
+        return svl.ui.map.pano.children(':first').children(':first').children(':first').children(':eq(5)');
     }
 
     /**
@@ -5508,7 +5501,7 @@ function Map ($, params) {
      * @returns {*}
      */
     function getLinkLayer () {
-        return $divPano.find('svg').parent();
+        return svl.ui.map.pano.find('svg').parent();
     }
 
     /**
@@ -5549,10 +5542,8 @@ function Map ($, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
-        if ("canvas" in svl && svl.canvas) { 
-            updateCanvas(); 
-        }
-
+        if ("canvas" in svl && svl.canvas) updateCanvas();
+        
         // End of the task if the user is close enough to the end point
         var task = svl.taskContainer.getCurrentTask();
         if (task) {
@@ -5569,12 +5560,9 @@ function Map ($, params) {
             pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
-
         }
         if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) {
-            svl.missionProgress.update();
-        }
+        if ('missionProgress' in svl) { svl.missionProgress.update(); }
     }
 
     /**
@@ -5602,7 +5590,7 @@ function Map ($, params) {
             try {
                 if (!svl.keyboard.isShiftDown()) {
                     setViewControlLayerCursor('ClosedHand');
-                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
                 } else {
                     setViewControlLayerCursor('ZoomOut');
                 }
@@ -5650,7 +5638,7 @@ function Map ($, params) {
             try {
                 if (!svl.keyboard.isShiftDown()) {
                     setViewControlLayerCursor('OpenHand');
-                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
                 } else {
                     setViewControlLayerCursor('ZoomOut');
                 }
@@ -5677,7 +5665,6 @@ function Map ($, params) {
                 }
             } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
                 // Double click
-                // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
                 svl.tracker.push('ViewControl_DoubleClick');
                 if (!status.disableClickZoom) {
 
@@ -5687,29 +5674,27 @@ function Map ($, params) {
                         svl.tracker.push('ViewControl_ZoomOut');
                     } else {
                         // If Shift is up, then zoom in wiht double click.
-                        // svl.zoomControl.zoomIn();
                         svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
                         svl.tracker.push('ViewControl_ZoomIn');
                     }
                 } else {
+                    // Double click to walk. First check whether Street View is available at the point where user has
+                    // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
+                    // then jump to the scene
                     if (!status.disableWalking) {
-                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov());
-                        var latlng = getPosition();
-                        var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
+                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
+                            latlng = getPosition(),
+                            newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                         if (newLatlng) {
                             var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                            if (distance < 25) {
-                                var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
-                                streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                    if (status === google.maps.StreetViewStatus.OK) {
-                                        svl.panorama.setPano(streetViewPanoramaData.location.pano);
-                                    }
+                            if (distance < STREETVIEW_MAX_DISTANCE) {
+                                streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                    if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                 });
                             }
                         }
                     }
                 }
-
             }
         }
         mouseStatus.prevMouseUpTime = currTime;
@@ -5738,7 +5723,7 @@ function Map ($, params) {
                 try {
                     if (!svl.keyboard.isShiftDown()) {
                         setViewControlLayerCursor('OpenHand');
-                        // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                        // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
                     } else {
                         setViewControlLayerCursor('ZoomOut');
                     }
@@ -5750,7 +5735,7 @@ function Map ($, params) {
             }
         } else {
             setViewControlLayerCursor('default');
-            // $divViewControlLayer.css("cursor", "default");
+            // svl.ui.map.viewControlLayer.css("cursor", "default");
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
@@ -5849,7 +5834,7 @@ function Map ($, params) {
      */
     function initStreetView () {
         // Initialize the Street View interface
-        var numPath = $divViewControlLayer.find("path").length;
+        var numPath = svl.ui.map.viewControlLayer.find("path").length;
         if (numPath !== 0) {
             status.svLinkArrowsLoaded = true;
             window.clearTimeout(_streetViewInit);
@@ -5893,13 +5878,13 @@ function Map ($, params) {
     function makeLinksClickable () {
         // Bring the layer with arrows forward.
         var $links = getLinkLayer();
-        $divViewControlLayer.append($links);
+        svl.ui.map.viewControlLayer.append($links);
 
         if (properties.browser === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divViewControlLayer.append($canvas);
+            svl.ui.map.viewControlLayer.append(svl.ui.map.canvas);
         } else if (properties.browser === 'msie') {
-            $divViewControlLayer.insertBefore($divLabelDrawingLayer);
+            svl.ui.map.viewControlLayer.insertBefore(svl.ui.map.drawingLayer);
         }
     }
 
@@ -5907,11 +5892,11 @@ function Map ($, params) {
      *
      */
     function modeSwitchLabelClick () {
-        $divLabelDrawingLayer.css('z-index','1');
-        $divViewControlLayer.css('z-index', '0');
-        // $divStreetViewHolder.append($divLabelDrawingLayer);
+        svl.ui.map.drawingLayer.css('z-index','1');
+        svl.ui.map.viewControlLayer.css('z-index', '0');
+        // svl.ui.map.streetViewHolder.append(svl.ui.map.drawingLayer);
 
-        if (properties.browser === 'mozilla') { $divLabelDrawingLayer.append($canvas); }
+        if (properties.browser === 'mozilla') { svl.ui.map.drawingLayer.append(svl.ui.map.canvas); }
         hideLinks();
     }
 
@@ -5919,8 +5904,8 @@ function Map ($, params) {
      * This function brings a div element for drawing labels in front of
      */
     function modeSwitchWalkClick () {
-        $divViewControlLayer.css('z-index', '1');
-        $divLabelDrawingLayer.css('z-index','0');
+        svl.ui.map.viewControlLayer.css('z-index', '1');
+        svl.ui.map.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
             // Show the link arrows on top of the panorama and make links clickable
             showLinks();
@@ -6009,16 +5994,16 @@ function Map ($, params) {
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
-                $divViewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
+                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
                 break;
             case 'OpenHand':
-                $divViewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
+                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
                 break;
             case 'ClosedHand':
-                $divViewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
+                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
                 break;
             default:
-                $divViewControlLayer.css("cursor", "default");
+                svl.ui.map.viewControlLayer.css("cursor", "default");
         }
     }
 
@@ -6033,7 +6018,7 @@ function Map ($, params) {
         // moved to user control layer, keep calling the modeSwitchWalkClick()
         // to bring arrows to the top layer. Once loaded, move svLinkArrowsLoaded to true.
         if (!status.svLinkArrowsLoaded) {
-            var numPath = $divViewControlLayer.find("path").length;
+            var numPath = svl.ui.map.viewControlLayer.find("path").length;
             if (numPath === 0) {
                 makeLinksClickable();
             } else {
@@ -9585,8 +9570,8 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
-     * This method checks if the task is done or not by assessing the
-     * current distance and the ending distance.
+     * This method checks if the task is completed by comparing the
+     * current position and the ending point.
      * 
      * @param lat
      * @param lng
@@ -9599,9 +9584,8 @@ function Task (turf, geojson, currentLat, currentLng) {
                 latEnd = _geojson.features[0].geometry.coordinates[len][1],
                 lngEnd = _geojson.features[0].geometry.coordinates[len][0];
 
-            if (!threshold) { threshold = 10; } // 10 meters
+            if (!threshold) threshold = 10; // 10 meters
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
-            //console.debug('Distance to the end:' , d);
             return d < threshold;
         }
     }
@@ -9787,8 +9771,6 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
-
-
     _init (geojson, currentLat, currentLng);
 
     self.getCumulativeDistance = getCumulativeDistance;
@@ -9933,21 +9915,8 @@ function TaskContainer (turf) {
         }
         if ('tracker' in svl) svl.tracker.push("TaskEnd");
 
-        // // Play the animation and audio effect after task completion.
-        // svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
-        // svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
-        // setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
-        //
-        // if ('audioEffect' in svl) {
-        //     svl.audioEffect.play('yay');
-        //     svl.audioEffect.play('applause');
-        // }
-        //
-        // // Reset the label counter
-        // if ('labelCounter' in svl) { svl.labelCounter.reset(); }
-
         // Update the audited miles
-        if ('ui' in svl) { updateAuditedDistance(); }
+        if ('ui' in svl) updateAuditedDistance();
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
             // Prompt a user who's not logged in to sign up/sign in.
@@ -9964,7 +9933,7 @@ function TaskContainer (turf) {
                 $("#sign-up-modal").removeClass("hidden");
                 $('#sign-in-modal-container').modal('show');
             });
-            svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">Nope</button>', function () {
+            svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
                 if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
 
                 svl.user.setProperty('firstTask', false);
@@ -9972,8 +9941,7 @@ function TaskContainer (turf) {
                 var data = svl.form.compileSubmissionData();
                 svl.form.submit(data);
             });
-            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; ' +
-                'text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
                 var data = svl.form.compileSubmissionData(),
                     staged = svl.storage.get("staged");
                 staged.push(data);
@@ -10084,16 +10052,15 @@ function TaskContainer (turf) {
         }
     }
 
-
     self.endTask = endTask;
     self.getCurrentTask = getCurrentTask;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.isFirstTask = isFirstTask;
     self.length = length;
+    self.nextTask = nextTask;
     self.push = push;
     self.updateAuditedDistance = updateAuditedDistance;
     self.setCurrentTask = setCurrentTask;
-    self.nextTask = nextTask;
 
     return self;
 }
