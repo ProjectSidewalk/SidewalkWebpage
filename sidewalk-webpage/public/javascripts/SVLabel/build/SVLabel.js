@@ -4991,7 +4991,7 @@ function Main ($, d3, params) {
         svl.statusField = StatusField();
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
-        svl.ribbon = RibbonMenu($);
+        svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
@@ -6627,8 +6627,14 @@ function MissionContainer ($, parameters) {
     function getCurrentMission () {
         return currentMission;
     }
-
-    /** Get a mission */
+    
+    /**
+     * Get a mission stored in the missionStoreByRegionId.
+     * @param regionId
+     * @param label
+     * @param level
+     * @returns {*}
+     */
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
         var missions = missionStoreByRegionId[regionId],
@@ -9249,6 +9255,7 @@ function RibbonMenu ($, params) {
         }
     }
 
+
     function stopBlinking () {
         clearInterval(blinkInterval);
         svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
@@ -10358,12 +10365,9 @@ function TrackerViewer () {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  * User module.
  * Todo. Need to move user related information here.
- * @param $
  * @param param
  * @returns {{className: string}}
  * @constructor
@@ -11983,7 +11987,8 @@ function Onboarding ($, params) {
                 },
                 "message": {
                     "message": function () {
-                            return document.getElementById("onboarding-initial-instruction").innerHTML;
+                            var dom = document.getElementById("onboarding-initial-instruction");
+                            return dom ? dom.innerHTML : "";
                         },
                     "position": "center",
                     "width": 1000,
@@ -12806,14 +12811,34 @@ function Onboarding ($, params) {
 
     function _init () {
         status.isOnboarding = true;
-        svl.ui.onboarding.holder.css("visibility", "visible");
-        svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
-        svl.compass.hideMessage();
-        ctx = svl.ui.onboarding.canvas.get(0).getContext('2d');
+
+        if ("ui" in svl) {
+            var canvas = svl.ui.onboarding.canvas.get(0);
+            if (canvas) ctx = canvas.getContext('2d');
+            svl.ui.onboarding.holder.css("visibility", "visible");
+        }
+
+        if ("map" in svl) {
+            svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
+        }
+
+        if ("compass" in svl) {
+            svl.compass.hideMessage();
+        }
+
         status.state = getState("initialize");
         visit(status.state);
 
-        svl.taskFactory.getTask({streetEdgeId: 15250}, svl.taskContainer.setCurrentTask);
+        // Get the task for the onboarding
+        if ("taskFactory" in svl) {
+            svl.taskFactory.getTask({streetEdgeId: 15250}, svl.taskContainer.setCurrentTask);
+        }
+
+        // Set the current mission to onboarding
+        if ("missionContainer" in svl) {
+            var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+            svl.missionContainer.setCurrentMission(onboardingMission);
+        }
 
         initializeHandAnimation();
     }
@@ -12823,7 +12848,7 @@ function Onboarding ($, params) {
      * @returns {clear}
      */
     function clear () {
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        if (ctx) ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         return this;
     }
 
@@ -12852,42 +12877,44 @@ function Onboarding ($, params) {
      * @returns {drawArrow}
      */
     function drawArrow (x1, y1, x2, y2, parameters) {
-        var lineWidth = 1,
-            fill = 'rgba(255,255,255,1)',
-            lineCap = 'round',
-            arrowWidth = 6,
-            strokeStyle  = 'rgba(96, 96, 96, 1)',
-            dx, dy, theta;
+        if (ctx) {
+            var lineWidth = 1,
+                fill = 'rgba(255,255,255,1)',
+                lineCap = 'round',
+                arrowWidth = 6,
+                strokeStyle  = 'rgba(96, 96, 96, 1)',
+                dx, dy, theta;
 
-        if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+            if ("fill" in parameters && parameters.fill) fill = parameters.fill;
 
-        dx = x2 - x1;
-        dy = y2 - y1;
-        theta = Math.atan2(dy, dx);
+            dx = x2 - x1;
+            dy = y2 - y1;
+            theta = Math.atan2(dy, dx);
 
-        ctx.save();
-        ctx.fillStyle = fill;
-        ctx.strokeStyle = strokeStyle;
-        ctx.lineWidth = lineWidth;
-        ctx.lineCap = lineCap;
+            ctx.save();
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = strokeStyle;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = lineCap;
 
-        ctx.translate(x1, y1);
-        ctx.beginPath();
-        ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
-        ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+            ctx.translate(x1, y1);
+            ctx.beginPath();
+            ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+            ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
 
-        // Draw an arrow head
-        ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
-        ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
-        ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+            // Draw an arrow head
+            ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+            ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+            ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
 
-        ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
-        ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+            ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+            ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
 
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-        ctx.restore();
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+            ctx.restore();
+        }
         return this;
     }
 
@@ -13045,7 +13072,7 @@ function Onboarding ($, params) {
                 }
             };
             drawAnnotations();
-            annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawAnnotations);
+            if (typeof google != "undefined")  annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawAnnotations);
         }
 
         // A nested function responsible for detaching events from google maps
@@ -13076,7 +13103,9 @@ function Onboarding ($, params) {
                     };
                     $target.on("click", callback);
                 };
-                $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+                if (typeof google != "undefined") {
+                    $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+                }
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
@@ -13139,21 +13168,21 @@ function Onboarding ($, params) {
                 callback = function () {
                     var pov = svl.map.getPov();
                     if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                        google.maps.event.removeListener($target);
+                        if (typeof google != "undefined") google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         hideGrabAndDragAnimation();
                         next(state.transition);
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-                $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
+                if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
             } else if (state.properties.action == "WalkTowards") {
                 svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
                 callback = function () {
                     var panoId = svl.map.getPanoId();
                     if (state.properties.panoId == panoId) {
                         window.setTimeout(function () { svl.map.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
-                        google.maps.event.removeListener($target);
+                        if (typeof google != "undefined") google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         next(state.transition);
                     } else {
@@ -13162,7 +13191,7 @@ function Onboarding ($, params) {
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
-                $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+                if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
             } else if (state.properties.action == "Instruction") {
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.

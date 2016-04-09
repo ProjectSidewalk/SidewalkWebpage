@@ -180,7 +180,7 @@ function Main ($, d3, params) {
         svl.statusField = StatusField();
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
-        svl.ribbon = RibbonMenu($);
+        svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);

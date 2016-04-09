@@ -396,6 +396,7 @@ function RibbonMenu ($, params) {
         }
     }
 
+
     function stopBlinking () {
         clearInterval(blinkInterval);
         svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));

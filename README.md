@@ -13,9 +13,16 @@ Run `sbt run` or `activator run` on the directory where `build.sbt` is located.
 3. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
 4. Run `nohup bin/sidewalk-webpage-[version] -Dconfig.resource=application-prod.conf -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
 
-## Building JavaScript
-SVLabel--the image labeling interface to annotate Street View imagery--needs to be built before being used on the web application.
+## Development Instructions
 
-1. Go to the directory where `package.json` and `Gruntfile.js` are located (i.e., public/javascripts/SVLabel/).
-2. Run `npm install` to install dependencies.
-3. Run `grunt watch`, which reacts to changes in the source code and builds the source code under the SVLabel directory.
+Whenever you are working on the client side code and server side code, you should keep running the local server and `grunt watch`.
+
+### Run the local server
+Run `sbt run` or `activator run` on the directory where `build.sbt` is located.
+
+### Run JavaScript task runner
+SVLabel&mdash;the image labeling interface to annotate Street View imagery&mdash;needs to be built before being used on the web application. To do this:
+
+1. Go to the directory where `package.json` and `Gruntfile.js` are located (i.e., `public/javascripts/SVLabel/`).
+2. If you haven't, run `npm install` to install dependencies.
+3. Run `grunt watch`, which reacts to changes in the source code and builds the source code under the SVLabel directory and run unit tests.

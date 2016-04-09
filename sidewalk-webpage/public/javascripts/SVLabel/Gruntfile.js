@@ -35,18 +35,21 @@ module.exports = function(grunt) {
         jasmine: {
             src: [
                 'src/SVLabel/*.js',
-                'src/SVLabel/util/*.js'
+                'src/SVLabel/util/*.js',
+                'src/SVLabel/onboarding/onboarding.js'
             ],
             options: {
                 specs: [
-                    'spec/SVLabel/*.js'
+                    'spec/SVLabel/*.js',
+                    'spec/SVLabel/onboarding/*.js'
                 ],
                 helpers: 'spec/SpecHelper.js',
                 vendor: [
                     'lib/jquery-2.1.4.min.js',
                     'lib/d3.v3.js',
                     'lib/turf.min.js',
-                    'lib/gsv/*.js'
+                    'lib/gsv/*.js',
+                    'lib/kinetic-v4.3.3.min.js'
                 ]
             }
         },

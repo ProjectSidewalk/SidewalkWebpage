@@ -485,6 +485,8 @@
             var streetViewService = new google.maps.StreetViewService();
             var STREETVIEW_MAX_DISTANCE = 25;
             var latLng = new google.maps.LatLng(lat1, lng1);
+
+            // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok

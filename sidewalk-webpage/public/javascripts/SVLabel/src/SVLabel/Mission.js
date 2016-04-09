@@ -262,8 +262,14 @@ function MissionContainer ($, parameters) {
     function getCurrentMission () {
         return currentMission;
     }
-
-    /** Get a mission */
+    
+    /**
+     * Get a mission stored in the missionStoreByRegionId.
+     * @param regionId
+     * @param label
+     * @param level
+     * @returns {*}
+     */
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
         var missions = missionStoreByRegionId[regionId],
