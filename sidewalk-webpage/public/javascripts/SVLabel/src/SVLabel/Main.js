@@ -211,7 +211,7 @@ function Main ($, d3, params) {
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
                     labels = completedMissions.map(function (m) { return m.label; });
                 if (labels.indexOf("onboarding") < 0) {
-                    svl.onboarding = new Onboarding($, {});
+                    svl.onboarding = new Onboarding($);
                 }
             }
         });

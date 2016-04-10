@@ -196,6 +196,7 @@ function MissionContainer ($, parameters) {
         currentMission = null;
 
     function _init (parameters) {
+        parameters = parameters || {};
         // Query all the completed & incomplete missions.
         function _callback (result1, result2) {
             var i, len, mission, completed = result1[0], incomplete = result2[0], nm;
@@ -240,7 +241,12 @@ function MissionContainer ($, parameters) {
         } else {
             regionId = "noRegionId";
         }
-        missionStoreByRegionId[regionId].push(mission);
+
+        // Todo. Check if the mission exists or not.
+        var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
+        if (!m) {
+            missionStoreByRegionId[regionId].push(mission);
+        }
     }
 
     /** Push the completed mission */
@@ -349,7 +355,18 @@ function MissionContainer ($, parameters) {
         }
     }
 
-    /** Set current missison */
+    function refresh () {
+        missionStoreByRegionId = { "noRegionId" : []};
+        completedMissions = [];
+        staged = [];
+        currentMission = null;
+    }
+
+    /**
+     * This method sets the current mission
+     * @param mission {object} A Mission object
+     * @returns {setCurrentMission}
+     */
     function setCurrentMission (mission) {
         currentMission = mission;
 
@@ -378,6 +395,7 @@ function MissionContainer ($, parameters) {
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
+    self.refresh = refresh;
     self.stage = stage;
     self.setCurrentMission = setCurrentMission;
     return self;
@@ -390,12 +408,8 @@ function MissionContainer ($, parameters) {
  * @constructor
  * @memberof svl
  */
-function MissionFactory (parameters) {
-    var self = { className: "MissionFactory"};
-
-    function _init (parameters) {
-        if (parameters) {}
-    }
+function MissionFactory () {
+    var self = { className: "MissionFactory" };
 
     /**
      * Create an instance of a mission object
@@ -422,8 +436,6 @@ function MissionFactory (parameters) {
     function createOnboardingMission(level, isCompleted) {
         return new Mission({label: "onboarding", level: level, isCompleted: isCompleted});
     }
-
-    _init(parameters);
 
     self.create = create;
     self.createOnboardingMission = createOnboardingMission;

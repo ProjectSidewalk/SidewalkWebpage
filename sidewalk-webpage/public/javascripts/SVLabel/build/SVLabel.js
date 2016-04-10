@@ -5022,7 +5022,7 @@ function Main ($, d3, params) {
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
                     labels = completedMissions.map(function (m) { return m.label; });
                 if (labels.indexOf("onboarding") < 0) {
-                    svl.onboarding = new Onboarding($, {});
+                    svl.onboarding = new Onboarding($);
                 }
             }
         });
@@ -6561,6 +6561,7 @@ function MissionContainer ($, parameters) {
         currentMission = null;
 
     function _init (parameters) {
+        parameters = parameters || {};
         // Query all the completed & incomplete missions.
         function _callback (result1, result2) {
             var i, len, mission, completed = result1[0], incomplete = result2[0], nm;
@@ -6714,7 +6715,11 @@ function MissionContainer ($, parameters) {
         }
     }
 
-    /** Set current missison */
+    /**
+     * This method sets the current mission
+     * @param mission {object} A Mission object
+     * @returns {setCurrentMission}
+     */
     function setCurrentMission (mission) {
         currentMission = mission;
 
@@ -6756,7 +6761,7 @@ function MissionContainer ($, parameters) {
  * @memberof svl
  */
 function MissionFactory (parameters) {
-    var self = { className: "MissionFactory"};
+    var self = { className: "MissionFactory" };
 
     function _init (parameters) {
         if (parameters) {}
@@ -11970,7 +11975,7 @@ var ColorScheme = (function () {
 
 svl.misc = UtilitiesMisc(JSON);
 
-function Onboarding ($, params) {
+function Onboarding ($) {
     var self = { className : 'Onboarding' },
         ctx, canvasWidth = 720, canvasHeight = 480,
         properties = {},
@@ -12838,9 +12843,12 @@ function Onboarding ($, params) {
         }
 
         // Set the current mission to onboarding
-        if ("missionContainer" in svl) {
-            var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
-            svl.missionContainer.setCurrentMission(onboardingMission);
+        if ("missionContainer" in svl && "missionFactory" in svl) {
+            var m = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
+            if (!m) {
+                m = svl.missionFactory.createOnboardingMission(1, false);
+            }
+            svl.missionContainer.setCurrentMission(m);
         }
 
         initializeHandAnimation();
@@ -13264,41 +13272,43 @@ function Onboarding ($, params) {
         ImageObjOpenHand = new Image(), ImageObjClosedHand = new Image(), handAnimationInterval;
 
     function initializeHandAnimation () {
-        hideGrabAndDragAnimation();
-        stage = new Kinetic.Stage({
-            container: "hand-gesture-holder",
-            width: 720,
-            height: 200
-        });
-        layer = new Kinetic.Layer();
-        stage.add(layer);
-        ImageObjOpenHand.onload = function () {
-            OpenHand = new Kinetic.Image({
-                x: 0,
-                y: stage.getHeight() / 2 - 59,
-                image: ImageObjOpenHand,
-                width: 128,
-                height: 128
+        if (document.getElementById("hand-gesture-holder")) {
+            hideGrabAndDragAnimation();
+            stage = new Kinetic.Stage({
+                container: "hand-gesture-holder",
+                width: 720,
+                height: 200
             });
-            OpenHand.hide();
-            layer.add(OpenHand);
-            OpenHandReady = true;
-        };
-        ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
+            layer = new Kinetic.Layer();
+            stage.add(layer);
+            ImageObjOpenHand.onload = function () {
+                OpenHand = new Kinetic.Image({
+                    x: 0,
+                    y: stage.getHeight() / 2 - 59,
+                    image: ImageObjOpenHand,
+                    width: 128,
+                    height: 128
+                });
+                OpenHand.hide();
+                layer.add(OpenHand);
+                OpenHandReady = true;
+            };
+            ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
 
-        ImageObjClosedHand.onload = function () {
-            ClosedHand = new Kinetic.Image({
-                x: 300,
-                y: stage.getHeight() / 2 - 59,
-                image: ImageObjClosedHand,
-                width: 96,
-                height: 96
-            });
-            ClosedHand.hide();
-            layer.add(ClosedHand);
-            ClosedHandReady = true;
-        };
-        ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
+            ImageObjClosedHand.onload = function () {
+                ClosedHand = new Kinetic.Image({
+                    x: 300,
+                    y: stage.getHeight() / 2 - 59,
+                    image: ImageObjClosedHand,
+                    width: 96,
+                    height: 96
+                });
+                ClosedHand.hide();
+                layer.add(ClosedHand);
+                ClosedHandReady = true;
+            };
+            ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
+        }
     }
 
     /**
@@ -13392,7 +13402,7 @@ function Onboarding ($, params) {
     self.setStatus = setStatus;
     self.hideMessage = hideMessage;
 
-    _init(params);
+    _init();
 
     return self;
 }
