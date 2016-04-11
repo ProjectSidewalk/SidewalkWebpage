@@ -95,7 +95,7 @@ function MissionProgress () {
      * This method updates the mission completion rate and its visualization.
      */
     function update () {
-        if ("missionContainer" in svl) {
+        if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
             var i, len, missions,
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
@@ -155,6 +155,7 @@ function MissionProgress () {
         }
         color = 'rgba(' + r + ',' + g + ',0,1)';
         completionRate *=  100;
+        if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate -= 0.8;
         completionRate = completionRate + "%";

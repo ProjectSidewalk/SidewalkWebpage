@@ -85,13 +85,14 @@ function Mission(parameters) {
      * Compute and return the mission completion rate
      * @returns {number}
      */
-    function getMissionCompletionRate () {
+    function getMissionCompletionRate (unit) {
+        if (!unit) unit = "kilometers";
         if ("taskContainer" in svl) {
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
             var task = svl.taskContainer.getCurrentTask();
 
             if (task) {
-                var cumulativeDistance = task.getCumulativeDistance("kilometers");
+                var cumulativeDistance = task.getCumulativeDistance(unit);
                 return cumulativeDistance / targetDistance;
             } else {
                 return 0;
