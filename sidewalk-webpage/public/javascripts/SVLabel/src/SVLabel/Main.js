@@ -172,6 +172,7 @@ function Main ($, d3, params) {
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
+        if (!("storage" in svl)) svl.storage = new Storage(JSON);
         svl.labelContainer = LabelContainer();
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
@@ -206,11 +207,12 @@ function Main ($, d3, params) {
         svl.missionContainer = MissionContainer ($, {
             currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood"),
             callback: function () {
-                // Check if the user has completed the onboarding.
-                // If not, let them go through the onboarding.
+                // Check if the user has completed the onboarding tutorial.
+                // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
                     labels = completedMissions.map(function (m) { return m.label; });
-                if (labels.indexOf("onboarding") < 0) {
+
+                if (labels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
                     svl.onboarding = new Onboarding($);
                 }
             }

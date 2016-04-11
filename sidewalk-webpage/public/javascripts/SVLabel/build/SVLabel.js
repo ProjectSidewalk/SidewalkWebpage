@@ -4983,6 +4983,7 @@ function Main ($, d3, params) {
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
+        if (!("storage" in svl)) svl.storage = new Storage(JSON);
         svl.labelContainer = LabelContainer();
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
@@ -5017,11 +5018,12 @@ function Main ($, d3, params) {
         svl.missionContainer = MissionContainer ($, {
             currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood"),
             callback: function () {
-                // Check if the user has completed the onboarding.
-                // If not, let them go through the onboarding.
+                // Check if the user has completed the onboarding tutorial.
+                // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
                     labels = completedMissions.map(function (m) { return m.label; });
-                if (labels.indexOf("onboarding") < 0) {
+
+                if (labels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
                     svl.onboarding = new Onboarding($);
                 }
             }
@@ -6606,7 +6608,11 @@ function MissionContainer ($, parameters) {
         } else {
             regionId = "noRegionId";
         }
-        missionStoreByRegionId[regionId].push(mission);
+
+        var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
+        if (!m) {
+            missionStoreByRegionId[regionId].push(mission);
+        }
     }
 
     /** Push the completed mission */
@@ -6715,6 +6721,13 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    function refresh () {
+        missionStoreByRegionId = { "noRegionId" : []};
+        completedMissions = [];
+        staged = [];
+        currentMission = null;
+    }
+
     /**
      * This method sets the current mission
      * @param mission {object} A Mission object
@@ -6748,6 +6761,7 @@ function MissionContainer ($, parameters) {
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.nextMission = nextMission;
+    self.refresh = refresh;
     self.stage = stage;
     self.setCurrentMission = setCurrentMission;
     return self;
@@ -6760,12 +6774,8 @@ function MissionContainer ($, parameters) {
  * @constructor
  * @memberof svl
  */
-function MissionFactory (parameters) {
+function MissionFactory () {
     var self = { className: "MissionFactory" };
-
-    function _init (parameters) {
-        if (parameters) {}
-    }
 
     /**
      * Create an instance of a mission object
@@ -6792,8 +6802,6 @@ function MissionFactory (parameters) {
     function createOnboardingMission(level, isCompleted) {
         return new Mission({label: "onboarding", level: level, isCompleted: isCompleted});
     }
-
-    _init(parameters);
 
     self.create = create;
     self.createOnboardingMission = createOnboardingMission;
@@ -12846,7 +12854,9 @@ function Onboarding ($) {
         if ("missionContainer" in svl && "missionFactory" in svl) {
             var m = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
             if (!m) {
+                // If the onboarding mission is not yet in the missionContainer, add it there.
                 m = svl.missionFactory.createOnboardingMission(1, false);
+                svl.missionContainer.add(null, m);
             }
             svl.missionContainer.setCurrentMission(m);
         }
@@ -13028,6 +13038,7 @@ function Onboarding ($) {
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
+            svl.storage.set("completedOnboarding", true)
 
             if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");

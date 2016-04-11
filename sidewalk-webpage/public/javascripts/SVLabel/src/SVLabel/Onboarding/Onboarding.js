@@ -1053,6 +1053,7 @@ function Onboarding ($) {
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
+            svl.storage.set("completedOnboarding", true)
 
             if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");

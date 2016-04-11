@@ -1,11 +1,11 @@
-describe("Tests for the Mission module.", function () {
-    describe("The Mission constructor", function(){
-        it("should XXX", function() {
-            // Todo
-        });
-    });
-
-});
+// describe("Tests for the Mission module.", function () {
+//     describe("The Mission constructor", function(){
+//         it("should XXX", function() {
+//             // Todo
+//         });
+//     });
+//
+// });
 
 describe("Test for the MissionContainer module.", function () {
     // Jasmine-ajax. http://jasmine.github.io/2.0/ajax.html
