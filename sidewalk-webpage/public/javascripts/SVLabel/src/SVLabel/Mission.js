@@ -242,7 +242,6 @@ function MissionContainer ($, parameters) {
             regionId = "noRegionId";
         }
 
-        // Todo. Check if the mission exists or not.
         var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
         if (!m) {
             missionStoreByRegionId[regionId].push(mission);
