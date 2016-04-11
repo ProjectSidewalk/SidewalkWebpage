@@ -94,7 +94,11 @@ function Task (turf, geojson, currentLat, currentLng) {
 
         var distance = svl.taskContainer.getCompletedTaskDistance(units);
 
-        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.map.getPosition(), lat = latlng.lat, lng = latlng.lng,
+        var i,
+            point,
+            latlng = svl.map.getPosition(),
+            lat = latlng.lat,
+            lng = latlng.lng,
             line = _geojson.features[0],
             currentPoint = { "type": "Feature", "properties": {},
                 geometry: {
@@ -104,7 +108,8 @@ function Task (turf, geojson, currentLat, currentLng) {
             snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
-            segment, cumSum = 0;
+            segment,
+            cumSum = 0;
         for (i = 0; i < closestSegmentIndex; i++) {
             segment = {
                 type: "Feature", properties: {}, geometry: {
@@ -114,13 +119,18 @@ function Task (turf, geojson, currentLat, currentLng) {
             };
             cumSum += turf.lineDistance(segment);
         }
-        point = {
-            "type": "Feature", "properties": {},
-            "geometry": {
-                "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
-            }
-        };
-        cumSum += turf.distance(snapped, point);
+
+        // Check if the snapped point is not too far away from the current point. Then add the distance between the
+        // snapped point and the last segment point to cumSum.
+        if (turf.distance(snapped, currentPoint, units) < 100) {
+            point = {
+                "type": "Feature", "properties": {},
+                "geometry": {
+                    "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
+                }
+            };
+            cumSum += turf.distance(snapped, point);
+        }
         distance += cumSum;
 
         return distance;

@@ -464,7 +464,7 @@ function Map ($, params) {
         var task = svl.taskContainer.getCurrentTask();
         if (task) {
             task.render();
-            if (task.isAtEnd(position.lat(), position.lng(), 10)) {
+            if (task.isAtEnd(position.lat(), position.lng(), 25)) {
                 svl.taskContainer.endTask(task);
             }
         }
