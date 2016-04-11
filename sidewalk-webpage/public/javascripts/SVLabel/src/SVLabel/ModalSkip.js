@@ -58,8 +58,8 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
-        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
+        if ('form' in svl) svl.form.skipSubmit(incomplete);
+        if ('ribbon' in svl) svl.ribbon.backToWalk();
         hideSkipMenu();
     }
 

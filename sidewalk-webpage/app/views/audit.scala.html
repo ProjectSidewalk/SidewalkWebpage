@@ -2,7 +2,7 @@
 @import models.region.Region
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[Region], user: Option[User] = None)
+@(title: String, tasks: Seq[Option[models.audit.NewTask]] = Seq(), region: Option[Region], user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))
@@ -474,11 +474,11 @@
         svl.user = new User(userParam);
         }
 
-        @if(task) {
+        @if(tasks.nonEmpty && tasks.head) {
             svl.taskFactory = TaskFactory(turf);
             svl.taskContainer = TaskContainer(turf);
 
-            var geojson = @Html(task.get.toJSON.toString);
+            var geojson = @Html(tasks.head.get.toJSON.toString);
             var lat1 = geojson.features[0].geometry.coordinates[0][1],
                 lng1 = geojson.features[0].geometry.coordinates[0][0];
 
@@ -543,7 +543,7 @@
                 mainParam.regionId = @region.get.regionId;
             }
 
-            svl.main = Main($, d3, mainParam);
+            svl.main = Main($, d3, turf, mainParam);
         }
     </script>
 

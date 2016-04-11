@@ -3241,7 +3241,19 @@ function Form ($, params) {
         data.incomplete = dataIn;
         svl.tracker.push('TaskSkip');
         submit(data);
-        svl.taskContainer.nextTask();
+
+        if ("taskContainer" in svl) {
+            var nextTask = svl.taskContainer.nextTask(),
+                geometry,
+                lat,
+                lng;
+            svl.taskContainer.setCurrentTask(nextTask);
+            geometry = nextTask.getGeometry();
+            lat = geometry.coordinates[0][1];
+            lng = geometry.coordinates[0][0];
+            svl.map.setPosition(lat, lng);
+        }
+
         return false;
     }
 
@@ -4820,7 +4832,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Main ($, d3, params) {
+function Main ($, d3, turf, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -5025,13 +5037,12 @@ function Main ($, d3, params) {
                 // Check if the user has completed the onboarding tutorial.
                 // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
-                    labels = completedMissions.map(function (m) { return m.label; }),
+                    missionLabels = completedMissions.map(function (m) { return m.label; }),
                     neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
                     mission;
                 
                 // Set the current mission to onboarding or something else.
-                if (labels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
-                // if (true) {
+                if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
                     svl.onboarding = new Onboarding($);
                     mission = svl.missionContainer.getCurrentMission();
                 } else {
@@ -5043,9 +5054,15 @@ function Main ($, d3, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 }
-
-                if (labels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
-                    // Todo. Check if this an anonymous user or not. If not, update the database and record that that this user has completed the onboarding.
+                
+                // Check if this an anonymous user or not. 
+                // If not, update the database and record that that this user has completed the onboarding.
+                if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
+                    missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+                    onboardingMission.setProperty("isCompleted", true);
+                    svl.missionContainer.addToCompletedMissions(onboardingMission);
+                    svl.missionContainer.stage(onboardingMission).commit();
                 }
 
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
@@ -5088,7 +5105,7 @@ function Main ($, d3, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = new Map($, mapParam);
+        svl.map = new Map($, turf, mapParam);
         svl.map.disableClickZoom();
 
         if ("taskContainer" in svl) {
@@ -5118,7 +5135,7 @@ function Main ($, d3, params) {
  * @constructor
  * @memberof svl
  */
-function Map ($, params) {
+function Map ($, turf, params) {
     var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
@@ -5163,7 +5180,7 @@ function Map ($, params) {
     var initialPositionUpdate = true,
         panoramaOptions,
         streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null,
-        STREETVIEW_MAX_DISTANCE = 25,
+        STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
 
     // Mouse status and mouse event callback functions
@@ -5571,17 +5588,36 @@ function Map ($, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
         if ("canvas" in svl && svl.canvas) updateCanvas();
-        
-        // End of the task if the user is close enough to the end point
-        var task = svl.taskContainer.getCurrentTask();
-        if (task) {
-            task.render();
-            if (task.isAtEnd(position.lat(), position.lng(), 25)) {
-                svl.taskContainer.endTask(task);
+        if ("compass" in svl) svl.compass.update();
+        if ("missionProgress" in svl) svl.missionProgress.update();
+        if ("taskContainer" in svl) {
+            svl.taskContainer.update();
+
+            // End of the task if the user is close enough to the end point
+            var task = svl.taskContainer.getCurrentTask();
+            if (task) {
+                if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+                    var currentTask = svl.taskContainer.endTask(task);
+                    var newTask = svl.taskContainer.nextTask(currentTask);
+                    svl.taskContainer.setCurrentTask(newTask);
+
+                    var geometry = newTask.getGeometry();
+                    if (geometry) {
+                        var lat = geometry.coordinates[0][1],
+                            lng = geometry.coordinates[0][0],
+                            currentLatLng = getPosition(),
+                            newTaskPosition = turf.point([lng, lat]),
+                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+
+                        // Jump to the new location if it's really far away.
+                        if (distance > 0.1) setPosition(lat, lng);
+                    }
+                }
             }
         }
 
-        // Set the heading angle.
+        // Set the heading angle when the user is dropped to the new position
         if (initialPositionUpdate && 'compass' in svl) {
             var pov = svl.panorama.getPov(),
                 compassAngle = svl.compass.getCompassAngle();
@@ -5589,8 +5625,6 @@ function Map ($, params) {
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
-        if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) { svl.missionProgress.update(); }
     }
 
     /**
@@ -6861,8 +6895,9 @@ function MissionProgress () {
 
     function _init() {
         // Fill in the surveyed angles
+        var i;
         status.surveyedAngles = new Array(100);
-        for (var i=0; i < 100; i++) {
+        for (i = 0; i < 100; i++) {
             status.surveyedAngles[i] = 0;
         }
 
@@ -6888,6 +6923,7 @@ function MissionProgress () {
      */
     function printCompletionRate (completionRate) {
         completionRate *= 100;
+        if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         svl.ui.progressPov.rate.html(completionRate);
@@ -6933,7 +6969,7 @@ function MissionProgress () {
         } else if (label == "area-coverage-mission") {
             svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
-            console.error("It shouldn't reach here.");
+            console.warn("It shouldn't reach here.");
         }
     }
 
@@ -6942,7 +6978,9 @@ function MissionProgress () {
      */
     function update () {
         if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
-            var i, len, missions,
+            var i,
+                len,
+                missions,
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
                 completionRate;
@@ -7003,7 +7041,7 @@ function MissionProgress () {
         completionRate *=  100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
-        completionRate -= 0.8;
+        // completionRate -= 0.8;
         completionRate = completionRate + "%";
         svl.ui.progressPov.filler.css({
             background: color,
@@ -7340,8 +7378,8 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
-        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
+        if ('form' in svl) svl.form.skipSubmit(incomplete);
+        if ('ribbon' in svl) svl.ribbon.backToWalk();
         hideSkipMenu();
     }
 
@@ -8752,6 +8790,7 @@ var svl = svl || {};
  */
 function PopUpMessage ($, param) {
     var self = {className: 'PopUpMessage'},
+        status = { haveAskedToSignIn: false },
         buttons = [],
         OKButton = '<button id="pop-up-message-ok-button">OK</button>';
 
@@ -8825,39 +8864,42 @@ function PopUpMessage ($, param) {
      * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
      */
     function promptSignIn () {
-        setTitle("You've completed the first accessibility audit!");
-        setMessage("Do you want to create an account to keep track of your progress?");
-        appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
-            // Store the data in LocalStorage.
-            var data = svl.form.compileSubmissionData(),
-                staged = svl.storage.get("staged");
-            staged.push(data);
-            svl.storage.set("staged", staged);
+        if (!status.haveAskedToSignIn) {
+            setTitle("You've been contributing a lot!");
+            setMessage("Do you want to create an account to keep track of your progress?");
+            appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
+                // Store the data in LocalStorage.
+                var data = svl.form.compileSubmissionData(),
+                    staged = svl.storage.get("staged");
+                staged.push(data);
+                svl.storage.set("staged", staged);
 
-            $("#sign-in-modal").addClass("hidden");
-            $("#sign-up-modal").removeClass("hidden");
-            $('#sign-in-modal-container').modal('show');
-        });
-        appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
-            if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
+                $('#sign-in-modal-container').modal('show');
+            });
+            appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
+                if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
 
-            svl.user.setProperty('firstTask', false);
-            // Submit the data as an anonymous user.
-            var data = svl.form.compileSubmissionData();
-            svl.form.submit(data);
-        });
-        appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
-            var data = svl.form.compileSubmissionData(),
-                staged = svl.storage.get("staged");
-            staged.push(data);
-            svl.storage.set("staged", staged);
+                svl.user.setProperty('firstTask', false);
+                // Submit the data as an anonymous user.
+                var data = svl.form.compileSubmissionData();
+                svl.form.submit(data);
+            });
+            appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+                var data = svl.form.compileSubmissionData(),
+                    staged = svl.storage.get("staged");
+                staged.push(data);
+                svl.storage.set("staged", staged);
 
-            $("#sign-in-modal").removeClass("hidden");
-            $("#sign-up-modal").addClass("hidden");
-            $('#sign-in-modal-container').modal('show');
-        });
-        setPosition(0, 260, '100%');
-        show(true);
+                $("#sign-in-modal").removeClass("hidden");
+                $("#sign-up-modal").addClass("hidden");
+                $('#sign-in-modal-container').modal('show');
+            });
+            setPosition(0, 260, '100%');
+            show(true);
+        }
+        status.haveAskedToSignIn = true;
     }
 
     /**
@@ -9642,35 +9684,21 @@ function Task (turf, geojson, currentLat, currentLng) {
             lat = latlng.lat,
             lng = latlng.lng,
             line = _geojson.features[0],
-            currentPoint = { "type": "Feature", "properties": {},
-                geometry: {
-                    "type": "Point", "coordinates": [lng, lat]
-                }
-            },
+            currentPoint = turf.point([lng, lat]),
             snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
             segment,
             cumSum = 0;
         for (i = 0; i < closestSegmentIndex; i++) {
-            segment = {
-                type: "Feature", properties: {}, geometry: {
-                    type: "LineString",
-                    coordinates: [ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]
-                }
-            };
+            segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
             cumSum += turf.lineDistance(segment);
         }
 
         // Check if the snapped point is not too far away from the current point. Then add the distance between the
         // snapped point and the last segment point to cumSum.
         if (turf.distance(snapped, currentPoint, units) < 100) {
-            point = {
-                "type": "Feature", "properties": {},
-                "geometry": {
-                    "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
-                }
-            };
+            point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]])
             cumSum += turf.distance(snapped, point);
         }
         distance += cumSum;
@@ -9721,22 +9749,8 @@ function Task (turf, geojson, currentLat, currentLng) {
             snappedLng <= Math.max(coords[0][1], coords[1][1])) {
             return turf.distance(point, snapped);
         } else {
-            var point1 = {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [coords[0][0], coords[0][1]]
-                }
-            };
-            var point2 = {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [coords[1][0], coords[1][1]]
-                }
-            };
+            var point1 = turf.point([coords[0][0], coords[0][1]]);
+            var point2 = turf.point([coords[1][0], coords[1][1]]);
             return Math.min(turf.distance(point, point1), turf.distance(point, point2));
         }
     }
@@ -9752,18 +9766,7 @@ function Task (turf, geojson, currentLat, currentLng) {
             segment, lengthArray = [], minValue;
 
         for (var i = 0; i < lenCoord - 1; i++) {
-            segment = {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [
-                        [coords[i][0], coords[i][1]],
-                        [coords[i + 1][0], coords[i + 1][1]]
-                    ]
-                }
-            };
-
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
             lengthArray.push(pointSegmentDistance(point, segment));
         }
         minValue = Math.min.apply(null, lengthArray);
@@ -9776,27 +9779,49 @@ function Task (turf, geojson, currentLat, currentLng) {
      * http://turfjs.org/static/docs/module-turf_distance.html
      */
     function getTaskCompletionRate () {
-        var i, point, lineLength, cumsumRate, newPaths, latlng = svl.map.getPosition(), lat = latlng.lat, lng = latlng.lng,
+        var i,
+            point,
+            lineLength,
+            cumsumRate,
+            latlng = svl.map.getPosition(),
+            lat = latlng.lat,
+            lng = latlng.lng,
             line = _geojson.features[0],
-            currentPoint = { "type": "Feature", "properties": {},
-                geometry: {
-                    "type": "Point", "coordinates": [lng, lat]
-                }
-            },
+            currentPoint = turf.point([lng, lat]),
             snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
-            segment, cumSum = 0,
+            segment,
+            cumSum = 0;
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            cumSum += turf.lineDistance(segment);
+        }
+
+        point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
+        cumSum += turf.distance(snapped, point);
+        lineLength = turf.lineDistance(line);
+        cumsumRate = cumSum / lineLength;
+
+        return taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
+    }
+
+    function completedTaskPaths () {
+        var i,
+            newPaths,
+            latlng = svl.map.getPosition(),
+            lat = latlng.lat,
+            lng = latlng.lng,
+            line = _geojson.features[0],
+            currentPoint = turf.point([lng, lat]),
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment,
             completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
             incompletePath = [];
         for (i = 0; i < closestSegmentIndex; i++) {
-            segment = {
-                type: "Feature", properties: {}, geometry: {
-                    type: "LineString",
-                    coordinates: [ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]
-                }
-            };
-            cumSum += turf.lineDistance(segment);
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
             completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
         }
         completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
@@ -9805,16 +9830,6 @@ function Task (turf, geojson, currentLat, currentLng) {
         for (i = closestSegmentIndex; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
-
-        point = {
-            "type": "Feature", "properties": {},
-            "geometry": {
-                "type": "Point", "coordinates": [coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]
-            }
-        };
-        cumSum += turf.distance(snapped, point);
-        lineLength = turf.lineDistance(line);
-        cumsumRate = cumSum / lineLength;
 
         // Create paths
         newPaths = [
@@ -9834,10 +9849,7 @@ function Task (turf, geojson, currentLat, currentLng) {
             })
         ];
 
-        return {
-            taskCompletionRate: taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate,
-            paths: newPaths
-        };
+        return newPaths;
     }
 
     /**
@@ -9855,11 +9867,11 @@ function Task (turf, geojson, currentLat, currentLng) {
                     paths[i].setMap(null);
                 }
 
-                var taskCompletion = getTaskCompletionRate();
+                var newTaskCompletionRate = getTaskCompletionRate();
 
-                if (taskCompletionRate < taskCompletion.taskCompletionRate) {
-                    taskCompletionRate = taskCompletion.taskCompletionRate;
-                    paths = taskCompletion.paths;
+                if (taskCompletionRate < newTaskCompletionRate) {
+                    taskCompletionRate = newTaskCompletionRate;
+                    paths = completedTaskPaths();
                 }
             } else {
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
@@ -9916,10 +9928,46 @@ function TaskContainer (turf) {
         paths, previousPaths = [];
 
     /**
-     * Get the current task
-     * @returns {*}
+     * End the current task.
+     * Todo. Need to be fixed... Not really this function, but the nextTask() has a side effect of bringing users to different places.
      */
-    function getCurrentTask () {
+    function endTask () {
+        if ('statusMessage' in svl) {
+            svl.statusMessage.animate();
+            svl.statusMessage.setCurrentStatusTitle("Great!");
+            svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
+            svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
+        }
+        if ('tracker' in svl) svl.tracker.push("TaskEnd");
+
+        // Update the audited miles
+        if ('ui' in svl) updateAuditedDistance();
+
+        // if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance() > 0.5)) {
+            svl.popUpMessage.promptSignIn();
+        } else {
+            // Submit the data.
+            var data = svl.form.compileSubmissionData(),
+                staged = svl.storage.get("staged");
+
+            if (staged.length > 0) {
+                staged.push(data);
+                svl.form.submit(staged);
+                svl.storage.set("staged", []);  // Empty the staged data.
+            } else {
+                svl.form.submit(data);
+            }
+        }
+        
+        push(currentTask); // Push the data into previousTasks
+
+        // Clear the current paths
+        var _geojson = currentTask.getGeoJSON(),
+            gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
+        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
+        paths = null;
+
         return currentTask;
     }
 
@@ -9941,11 +9989,119 @@ function TaskContainer (turf) {
     }
 
     /**
+     * This method returns the completed tasks
+     * @returns {Array}
+     */
+    function getCompletedTasks () {
+        return previousTasks;
+    }
+
+    /**
+     * Get the current task
+     * @returns {*}
+     */
+    function getCurrentTask () {
+        return currentTask;
+    }
+
+    /**
+     * Check if the current task is the first task in this session
+     * @returns {boolean}
+     */
+    function isFirstTask () {
+        return length() == 0;
+    }
+
+    /**
      * Get the length of the previous tasks
      * @returns {*|Number}
      */
     function length () {
         return previousTasks.length;
+    }
+    
+    /**
+     * Get the next task and set it as a current task.
+     * Todo. I don't like querying the next task with $.ajax every time I need a new street task. Task container should get a set of tasks in the beginning and supply a task from the locally held data.
+     * @param task Current task
+     * @returns {*} Next task
+     */
+    function nextTask (task) {
+        var newTask = null;
+        if (task) {
+            var streetEdgeId = task.getStreetEdgeId(),
+                _geojson = task.getGeoJSON();
+            // When the current street edge id is given (i.e., when you are simply walking around).
+            var len = _geojson.features[0].geometry.coordinates.length - 1,
+                latEnd = _geojson.features[0].geometry.coordinates[len][1],
+                lngEnd = _geojson.features[0].geometry.coordinates[len][0];
+
+            $.ajax({
+                async: false,
+                url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+                type: 'get',
+                success: function (json) {
+                    newTask = svl.taskFactory.create(json, latEnd, lngEnd);
+                    // setCurrentTask(newTask);
+                },
+                error: function (result) {
+                    throw result;
+                }
+            });
+        } else {
+            // No street edge id is provided (e.g., the user skipped the task to explore another location.)
+            $.ajax({
+                async: false,
+                url: "/task",
+                type: 'get',
+                success: function (json) {
+                    // Check if Street View is available at the location. If it's not available, report it to the
+                    // server and go to the next task.
+                    // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
+                    // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
+                    var len = json.features[0].geometry.coordinates.length - 1,
+                        lat1 = json.features[0].geometry.coordinates[0][1],
+                        lng1 = json.features[0].geometry.coordinates[0][0],
+                        lat2 = json.features[0].geometry.coordinates[len][1],
+                        lng2 = json.features[0].geometry.coordinates[len][0];
+
+                    newTask = svl.taskFactory.create(json);
+
+                    // var streetViewService = new google.maps.StreetViewService();
+                    // var STREETVIEW_MAX_DISTANCE = 25;
+                    // var latLng = new google.maps.LatLng(lat1, lng1);
+                    // setCurrentTask(newTask);
+
+                    // streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                    //     if (status === google.maps.StreetViewStatus.OK) {
+                    //         var newTask = svl.taskFactory.create(json);
+                    //         setCurrentTask(newTask);
+                    //     } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    //         // no street view available in this range.
+                    //         var latLng = new google.maps.LatLng(lat2, lng2);
+                    //         streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                    //             if (status === google.maps.StreetViewStatus.OK) {
+                    //                 json.features[0].geometry.coordinates.reverse();
+                    //                 var newTask = svl.taskFactory.create(json);
+                    //                 setCurrentTask(newTask);
+                    //             } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    //                 // Todo. Report lack of street view.
+                    //                 nextTask();
+                    //             } else {
+                    //                 throw "Error loading Street View imagey.";
+                    //             }
+                    //         });
+                    //     } else {
+                    //         throw "Error loading Street View imagey.";
+                    //     }
+                    // });
+                },
+                error: function (result) {
+                    throw result;
+                }
+            });
+        }
+        return newTask;
     }
 
     /**
@@ -9954,6 +10110,31 @@ function TaskContainer (turf) {
      */
     function push (task) {
         previousTasks.push(task);
+    }
+
+    /**
+     * Set the current task
+     * @param task
+     */
+    function setCurrentTask (task) {
+        currentTask = task;
+
+        if ('compass' in svl) {
+            svl.compass.setTurnMessage();
+            svl.compass.showMessage();
+            svl.compass.update();
+        }
+    }
+
+    /**
+     * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
+     * segments on Google Maps.
+     * KH: It maybe more natural to let a method in Map.js do handle it...
+     */
+    function update () {
+        var i, len = previousTasks.length;
+        for (i = 0; i < len; i++) previousTasks[i].render();
+        currentTask.render();
     }
 
     /**
@@ -9993,202 +10174,18 @@ function TaskContainer (turf) {
 
         return this;
     }
-
-    /**
-     * Check if the current task is the first task in this session
-     * @returns {boolean}
-     */
-    function isFirstTask () {
-        return length() == 0;
-    }
-
-    /**
-     * Set the current task
-     * @param task
-     */
-    function setCurrentTask (task) {
-        var geometry = task.getGeometry();
-
-        currentTask = task;
-
-        if (geometry && "map" in svl && svl.map) {
-            var lat = geometry.coordinates[0][1], lng = geometry.coordinates[0][0];
-            svl.map.setPosition(lat, lng);
-        }
-
-        if ('compass' in svl) {
-            svl.compass.setTurnMessage();
-            svl.compass.showMessage();
-            svl.compass.update();
-        }
-    }
-
-    /**
-     * Prompt a user who's not logged in to sign up/sign in.
-     */
-    // function promptSignIn () {
-    //     svl.popUpMessage.setTitle("You've completed the first accessibility audit!");
-    //     svl.popUpMessage.setMessage("Do you want to create an account to keep track of your progress?");
-    //     svl.popUpMessage.appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
-    //         // Store the data in LocalStorage.
-    //         var data = svl.form.compileSubmissionData(),
-    //             staged = svl.storage.get("staged");
-    //         staged.push(data);
-    //         svl.storage.set("staged", staged);
-    //
-    //         $("#sign-in-modal").addClass("hidden");
-    //         $("#sign-up-modal").removeClass("hidden");
-    //         $('#sign-in-modal-container').modal('show');
-    //     });
-    //     svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
-    //         if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
-    //
-    //         svl.user.setProperty('firstTask', false);
-    //         // Submit the data as an anonymous user.
-    //         var data = svl.form.compileSubmissionData();
-    //         svl.form.submit(data);
-    //     });
-    //     svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
-    //         var data = svl.form.compileSubmissionData(),
-    //             staged = svl.storage.get("staged");
-    //         staged.push(data);
-    //         svl.storage.set("staged", staged);
-    //
-    //         $("#sign-in-modal").removeClass("hidden");
-    //         $("#sign-up-modal").addClass("hidden");
-    //         $('#sign-in-modal-container').modal('show');
-    //     });
-    //     svl.popUpMessage.setPosition(0, 260, '100%');
-    //     svl.popUpMessage.show(true);
-    // }
-
-    /** End the current task */
-    function endTask () {
-        if ('statusMessage' in svl) {
-            svl.statusMessage.animate();
-            svl.statusMessage.setCurrentStatusTitle("Great!");
-            svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
-            svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
-        }
-        if ('tracker' in svl) svl.tracker.push("TaskEnd");
-
-        // Update the audited miles
-        if ('ui' in svl) updateAuditedDistance();
-
-        // if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance() > 0.5)) {
-            svl.popUpMessage.promptSignIn();
-        } else {
-            // Submit the data.
-            var data = svl.form.compileSubmissionData(),
-                staged = svl.storage.get("staged");
-
-            if (staged.length > 0) {
-                staged.push(data);
-                svl.form.submit(staged);
-                svl.storage.set("staged", []);  // Empty the staged data.
-            } else {
-                svl.form.submit(data);
-            }
-        }
-
-        // Push the data into the list
-        push(currentTask);
-
-        var _geojson = currentTask.getGeoJSON();
-        var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
-        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
-        paths = null;
-
-        nextTask(currentTask);
-        return currentTask;
-    }
-
-    /**
-     * Get the next task and set it as a current task
-     * @param task
-     */
-    function nextTask (task) {
-        if (task) {
-            var streetEdgeId = task.getStreetEdgeId(),
-                _geojson = task.getGeoJSON();
-            // When the current street edge id is given (i.e., when you are simply walking around).
-            var len = _geojson.features[0].geometry.coordinates.length - 1,
-                latEnd = _geojson.features[0].geometry.coordinates[len][1],
-                lngEnd = _geojson.features[0].geometry.coordinates[len][0];
-
-            $.ajax({
-                url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
-                type: 'get',
-                success: function (json) {
-                    var newTask = svl.taskFactory.create(json, latEnd, lngEnd);
-                    setCurrentTask(newTask);
-                },
-                error: function (result) {
-                    throw result;
-                }
-            });
-        } else {
-            // No street edge id is provided (i.e., the user skipped the task to explore another location.)
-            $.ajax({
-                url: "/task",
-                type: 'get',
-                success: function (json) {
-                    // Check if Street View is available at the location. If it's not available, report it to the
-                    // server and go to the next task.
-                    // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-                    // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
-                    var len = json.features[0].geometry.coordinates.length - 1,
-                        lat1 = json.features[0].geometry.coordinates[0][1],
-                        lng1 = json.features[0].geometry.coordinates[0][0],
-                        lat2 = json.features[0].geometry.coordinates[len][1],
-                        lng2 = json.features[0].geometry.coordinates[len][0];
-                    // var streetViewService = new google.maps.StreetViewService();
-                    // var STREETVIEW_MAX_DISTANCE = 25;
-                    // var latLng = new google.maps.LatLng(lat1, lng1);
-                    var newTask = svl.taskFactory.create(json);
-                    setCurrentTask(newTask);
-
-                    // streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                    //     if (status === google.maps.StreetViewStatus.OK) {
-                    //         var newTask = svl.taskFactory.create(json);
-                    //         setCurrentTask(newTask);
-                    //     } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    //         // no street view available in this range.
-                    //         var latLng = new google.maps.LatLng(lat2, lng2);
-                    //         streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                    //             if (status === google.maps.StreetViewStatus.OK) {
-                    //                 json.features[0].geometry.coordinates.reverse();
-                    //                 var newTask = svl.taskFactory.create(json);
-                    //                 setCurrentTask(newTask);
-                    //             } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    //                 // Todo. Report lack of street view.
-                    //                 nextTask();
-                    //             } else {
-                    //                 throw "Error loading Street View imagey.";
-                    //             }
-                    //         });
-                    //     } else {
-                    //         throw "Error loading Street View imagey.";
-                    //     }
-                    // });
-                },
-                error: function (result) {
-                    throw result;
-                }
-            });
-        }
-    }
-
+    
     self.endTask = endTask;
-    self.getCurrentTask = getCurrentTask;
+    self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
+    self.getCurrentTask = getCurrentTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.nextTask = nextTask;
     self.push = push;
-    self.updateAuditedDistance = updateAuditedDistance;
     self.setCurrentTask = setCurrentTask;
+    self.update = update;
+    self.updateAuditedDistance = updateAuditedDistance;
 
     return self;
 }

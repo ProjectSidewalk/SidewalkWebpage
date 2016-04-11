@@ -73,10 +73,18 @@ object AuditTaskTable {
 
   case class AuditCountPerDay(date: String, count: Int)
 
+  /**
+    * This method returns all the tasks
+    * @return
+    */
   def all: List[AuditTask] = db.withSession { implicit session =>
     auditTasks.list
   }
 
+  /**
+    * This method returns the size of the entire table
+    * @return
+    */
   def size: Int = db.withSession { implicit session =>
     auditTasks.list.size
   }
@@ -84,7 +92,7 @@ object AuditTaskTable {
   /**
    * Get the last audit task that the user conducted
    *
-   * @param userId
+   * @param userId User id
    * @return
    */
   def lastAuditTask(userId: UUID): Option[AuditTask] = db.withSession { implicit session =>
@@ -132,7 +140,7 @@ object AuditTaskTable {
   /**
     * Return audit counts for the last 31 days.
     *
-    * @param userId
+    * @param userId User id
     */
   def auditCounts(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.query[String, (String, Int)](
@@ -158,7 +166,7 @@ object AuditTaskTable {
    * http://stackoverflow.com/questions/14425844/why-does-slick-generate-a-subquery-when-take-method-is-called
    * http://stackoverflow.com/questions/14920153/how-to-write-nested-queries-in-select-clause
    *
-   * @param username
+   * @param username User name. Todo. Change it to user id
    * @return
    */
   def getNewTask(username: String): NewTask = db.withSession { implicit session =>
@@ -206,7 +214,7 @@ object AuditTaskTable {
 
   /**
     * Get a new task specified by the street edge id.
-    * @param streetEdgeId
+    * @param streetEdgeId Street edge id
     * @return
     */
   def getNewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
@@ -302,7 +310,7 @@ object AuditTaskTable {
    * et a task that is in a given region
    *
    * @param regionId region id
-   * @param user
+   * @param user User object. Todo. Change this to user id.
    * @return
    */
   def getNewTaskInRegion(regionId: Int, user: User) = db.withSession { implicit session =>
@@ -340,16 +348,16 @@ object AuditTaskTable {
    *
    * @return
    */
-  def getOnboardingTask: NewTask = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-    val onboardingEdges: List[StreetEdge] = streetEdges.filter(_.wayType === "onboarding").list
-    assert(onboardingEdges.nonEmpty)  // There should be more than one onboarding edges
-
-    val e: StreetEdge = onboardingEdges.head
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
-  }
+//  def getOnboardingTask: NewTask = db.withSession { implicit session =>
+//    val calendar: Calendar = Calendar.getInstance
+//    val now: Date = calendar.getTime
+//    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+//    val onboardingEdges: List[StreetEdge] = streetEdges.filter(_.wayType === "onboarding").list
+//    assert(onboardingEdges.nonEmpty)  // There should be more than one onboarding edges
+//
+//    val e: StreetEdge = onboardingEdges.head
+//    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+//  }
 
   /**
     * Verify if there are tasks available for the user in the given region

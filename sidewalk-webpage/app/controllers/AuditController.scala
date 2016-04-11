@@ -47,20 +47,17 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
 
-        // Check if a user still has tasks available for them in this region.
+        // Check if a user still has tasks available in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
           UserCurrentRegionTable.assignNextRegion(user.userId)
         }
 
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, Some(user))))
       case None =>
-        // Check if s/he has gone through an onboarding.
-//        val cookie = request.cookies.get("sidewalk-onboarding")
-
         val region: Option[Region] = RegionTable.getRegion
         val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, None)))
     }
   }
 
@@ -78,11 +75,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Update the currently assigned region for the user
         UserCurrentRegionTable.update(user.userId, regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, Some(user))))
       case None =>
-        // Check if s/he has gone through an onboarding.
         val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, None)))
     }
   }
 
@@ -103,13 +99,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)
     request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, Some(user))))
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, None)))
     }
   }
 
   /**
-    * Parse the submitted comment and insert it into the comment table
+    * This method handles a comment POST request. It parse the comment and insert it into the comment table
     *
     * @return
     */
@@ -142,6 +138,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     )
   }
 
+  /**
+    * This method handles a POST request in which user reports a missing Street View image
+    * @return
+    */
   def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[CommentSubmission]
 

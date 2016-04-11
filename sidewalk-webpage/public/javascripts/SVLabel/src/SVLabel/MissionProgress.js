@@ -15,8 +15,9 @@ function MissionProgress () {
 
     function _init() {
         // Fill in the surveyed angles
+        var i;
         status.surveyedAngles = new Array(100);
-        for (var i=0; i < 100; i++) {
+        for (i = 0; i < 100; i++) {
             status.surveyedAngles[i] = 0;
         }
 
@@ -42,6 +43,7 @@ function MissionProgress () {
      */
     function printCompletionRate (completionRate) {
         completionRate *= 100;
+        if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         svl.ui.progressPov.rate.html(completionRate);
@@ -87,7 +89,7 @@ function MissionProgress () {
         } else if (label == "area-coverage-mission") {
             svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
-            console.error("It shouldn't reach here.");
+            console.warn("It shouldn't reach here.");
         }
     }
 
@@ -96,7 +98,9 @@ function MissionProgress () {
      */
     function update () {
         if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
-            var i, len, missions,
+            var i,
+                len,
+                missions,
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
                 completionRate;
@@ -157,7 +161,7 @@ function MissionProgress () {
         completionRate *=  100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
-        completionRate -= 0.8;
+        // completionRate -= 0.8;
         completionRate = completionRate + "%";
         svl.ui.progressPov.filler.css({
             background: color,

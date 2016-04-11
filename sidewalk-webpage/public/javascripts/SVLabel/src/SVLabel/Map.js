@@ -6,7 +6,7 @@
  * @constructor
  * @memberof svl
  */
-function Map ($, params) {
+function Map ($, turf, params) {
     var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
@@ -51,7 +51,7 @@ function Map ($, params) {
     var initialPositionUpdate = true,
         panoramaOptions,
         streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null,
-        STREETVIEW_MAX_DISTANCE = 25,
+        STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
 
     // Mouse status and mouse event callback functions
@@ -459,17 +459,36 @@ function Map ($, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
         if ("canvas" in svl && svl.canvas) updateCanvas();
-        
-        // End of the task if the user is close enough to the end point
-        var task = svl.taskContainer.getCurrentTask();
-        if (task) {
-            task.render();
-            if (task.isAtEnd(position.lat(), position.lng(), 25)) {
-                svl.taskContainer.endTask(task);
+        if ("compass" in svl) svl.compass.update();
+        if ("missionProgress" in svl) svl.missionProgress.update();
+        if ("taskContainer" in svl) {
+            svl.taskContainer.update();
+
+            // End of the task if the user is close enough to the end point
+            var task = svl.taskContainer.getCurrentTask();
+            if (task) {
+                if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+                    var currentTask = svl.taskContainer.endTask(task);
+                    var newTask = svl.taskContainer.nextTask(currentTask);
+                    svl.taskContainer.setCurrentTask(newTask);
+
+                    var geometry = newTask.getGeometry();
+                    if (geometry) {
+                        var lat = geometry.coordinates[0][1],
+                            lng = geometry.coordinates[0][0],
+                            currentLatLng = getPosition(),
+                            newTaskPosition = turf.point([lng, lat]),
+                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+
+                        // Jump to the new location if it's really far away.
+                        if (distance > 0.1) setPosition(lat, lng);
+                    }
+                }
             }
         }
 
-        // Set the heading angle.
+        // Set the heading angle when the user is dropped to the new position
         if (initialPositionUpdate && 'compass' in svl) {
             var pov = svl.panorama.getPov(),
                 compassAngle = svl.compass.getCompassAngle();
@@ -477,8 +496,6 @@ function Map ($, params) {
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
-        if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) { svl.missionProgress.update(); }
     }
 
     /**

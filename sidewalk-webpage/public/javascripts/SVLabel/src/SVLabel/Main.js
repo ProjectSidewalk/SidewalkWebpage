@@ -9,7 +9,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Main ($, d3, params) {
+function Main ($, d3, turf, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -214,13 +214,12 @@ function Main ($, d3, params) {
                 // Check if the user has completed the onboarding tutorial.
                 // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
-                    labels = completedMissions.map(function (m) { return m.label; }),
+                    missionLabels = completedMissions.map(function (m) { return m.label; }),
                     neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
                     mission;
                 
                 // Set the current mission to onboarding or something else.
-                if (labels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
-                // if (true) {
+                if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
                     svl.onboarding = new Onboarding($);
                     mission = svl.missionContainer.getCurrentMission();
                 } else {
@@ -232,9 +231,15 @@ function Main ($, d3, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 }
-
-                if (labels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
-                    // Todo. Check if this an anonymous user or not. If not, update the database and record that that this user has completed the onboarding.
+                
+                // Check if this an anonymous user or not. 
+                // If not, update the database and record that that this user has completed the onboarding.
+                if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
+                    missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+                    onboardingMission.setProperty("isCompleted", true);
+                    svl.missionContainer.addToCompletedMissions(onboardingMission);
+                    svl.missionContainer.stage(onboardingMission).commit();
                 }
 
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
@@ -277,7 +282,7 @@ function Main ($, d3, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = new Map($, mapParam);
+        svl.map = new Map($, turf, mapParam);
         svl.map.disableClickZoom();
 
         if ("taskContainer" in svl) {
