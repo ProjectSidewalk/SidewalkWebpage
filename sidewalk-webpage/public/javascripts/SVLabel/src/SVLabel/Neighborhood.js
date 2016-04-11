@@ -49,6 +49,8 @@ function NeighborhoodContainer (parameters) {
         };
 
     function _init (parameters) {
+        parameters = parameters || {};
+        if ("currentNeighborhood" in parameters) setStatus("currentNeighborhood", parameters.currentNeighborhood);
     }
 
 

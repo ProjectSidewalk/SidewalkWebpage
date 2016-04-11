@@ -25,6 +25,11 @@ describe("Test for the MissionContainer module.", function () {
             svl.missionContainer.add(1, m2);
             var missions = svl.missionContainer.getMissionsByRegionId(1);
             expect(missions.length).toBe(2);
+
+            var m3 = svl.missionFactory.create(0, 3, "test1", 1, null, null, false);
+            svl.missionContainer.add(0, m3);
+            missions = svl.missionContainer.getMissinoByRegionId(0);
+            expect(missions.length).toBe(0);
         });
 
         it("should check duplicate", function () {

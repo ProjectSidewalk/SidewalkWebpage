@@ -5013,18 +5013,44 @@ function Main ($, d3, params) {
             var neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+        } else {
+            var regionId = 0;
+            var neighborhood = svl.neighborhoodFactory.create(regionId);
+            svl.neighborhoodContainer.add(neighborhood);
+            svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
         svl.missionContainer = MissionContainer ($, {
-            currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood"),
             callback: function () {
                 // Check if the user has completed the onboarding tutorial.
                 // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
-                    labels = completedMissions.map(function (m) { return m.label; });
-
+                    labels = completedMissions.map(function (m) { return m.label; }),
+                    neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
+                    mission;
+                
+                // Set the current mission to onboarding or something else.
                 if (labels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
+                // if (true) {
                     svl.onboarding = new Onboarding($);
+                    mission = svl.missionContainer.getCurrentMission();
+                } else {
+                    mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
+                    if (mission.isCompleted()) {
+                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+                        missions.map(function (m) { if (!m.isCompleted()) return m;});
+                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                    }
+                    svl.missionContainer.setCurrentMission(mission);
+                }
+
+                if (labels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    // Todo. Check if this an anonymous user or not. If not, update the database and record that that this user has completed the onboarding.
+                }
+
+                // Popup the message explaining the goal of the current mission if the current mission is not onboarding
+                if (mission.getProperty("label") != "onboarding") {
+                    svl.modalMission.setMission(mission);
                 }
             }
         });
@@ -6590,6 +6616,8 @@ function MissionContainer ($, parameters) {
             }
         }
 
+        
+        
         if ("callback" in parameters) {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
         } else {
@@ -6603,7 +6631,7 @@ function MissionContainer ($, parameters) {
      * @param mission
      */
     function add(regionId, mission) {
-        if (regionId) {
+        if (regionId || regionId === 0) {
             if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
         } else {
             regionId = "noRegionId";
@@ -6701,7 +6729,15 @@ function MissionContainer ($, parameters) {
     /** Get all the completed missions with the given region id */
     function getMissionsByRegionId (regionId) {
         if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
-        return missionStoreByRegionId[regionId];
+        var missions = missionStoreByRegionId[regionId];
+        missions.sort(function(m1, m2) {
+            var d1 = m1.getProperty("distance"),
+                d2 = m2.getProperty("distance");
+            if (!d1) d1 = 0;
+            if (!d2) d2 = 0;
+            return d1 - d2;
+        });
+        return missions;
     }
 
     function nextMission (regionId) {
@@ -7427,6 +7463,8 @@ function NeighborhoodContainer (parameters) {
         };
 
     function _init (parameters) {
+        parameters = parameters || {};
+        if ("currentNeighborhood" in parameters) setStatus("currentNeighborhood", parameters.currentNeighborhood);
     }
 
 
@@ -8781,6 +8819,46 @@ function PopUpMessage ($, param) {
     }
 
     /**
+     * Prompt a user who's not logged in to sign up/sign in.
+     * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
+     */
+    function promptSignIn () {
+        setTitle("You've completed the first accessibility audit!");
+        setMessage("Do you want to create an account to keep track of your progress?");
+        appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
+            // Store the data in LocalStorage.
+            var data = svl.form.compileSubmissionData(),
+                staged = svl.storage.get("staged");
+            staged.push(data);
+            svl.storage.set("staged", staged);
+
+            $("#sign-in-modal").addClass("hidden");
+            $("#sign-up-modal").removeClass("hidden");
+            $('#sign-in-modal-container').modal('show');
+        });
+        appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
+            if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
+
+            svl.user.setProperty('firstTask', false);
+            // Submit the data as an anonymous user.
+            var data = svl.form.compileSubmissionData();
+            svl.form.submit(data);
+        });
+        appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+            var data = svl.form.compileSubmissionData(),
+                staged = svl.storage.get("staged");
+            staged.push(data);
+            svl.storage.set("staged", staged);
+
+            $("#sign-in-modal").removeClass("hidden");
+            $("#sign-up-modal").addClass("hidden");
+            $('#sign-in-modal-container').modal('show');
+        });
+        setPosition(0, 260, '100%');
+        show(true);
+    }
+
+    /**
      * Reset all the parameters.
      */
     function reset () {
@@ -8861,6 +8939,7 @@ function PopUpMessage ($, param) {
     self.appendOKButton = appendOKButton;
     self.hide = hide;
     self.hideBackground = hideBackground;
+    self.promptSignIn = promptSignIn;
     self.reset = reset;
     self.show = show;
     self.showBackground = showBackground;
@@ -9866,7 +9945,8 @@ function TaskContainer (turf) {
     }
 
     /**
-     * Update the audited distance
+     * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
+     * the current session.
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance () {
@@ -9874,6 +9954,7 @@ function TaskContainer (turf) {
 
         if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
             if (!svl.user.getProperty('recordedAuditDistance')) {
+                // Get the distance previously traveled if it is not cached
                 var i, distanceAudited = 0;
                 $.getJSON("/contribution/streets", function (data) {
                     if (data && 'features' in data) {
@@ -9888,10 +9969,12 @@ function TaskContainer (turf) {
                     svl.ui.progress.auditedDistance.html(distance.toFixed(2));
                 });
             } else {
+                // use the cached recordedAuditDistance if it exists
                 distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
                 svl.ui.progress.auditedDistance.html(distance.toFixed(2));
             }
         } else {
+            // If the user is using the application as an anonymous, just use the session distance.
             distance = sessionDistance;
             svl.ui.progress.auditedDistance.html(distance.toFixed(2));
         }
@@ -9928,6 +10011,45 @@ function TaskContainer (turf) {
         }
     }
 
+    /**
+     * Prompt a user who's not logged in to sign up/sign in.
+     */
+    // function promptSignIn () {
+    //     svl.popUpMessage.setTitle("You've completed the first accessibility audit!");
+    //     svl.popUpMessage.setMessage("Do you want to create an account to keep track of your progress?");
+    //     svl.popUpMessage.appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
+    //         // Store the data in LocalStorage.
+    //         var data = svl.form.compileSubmissionData(),
+    //             staged = svl.storage.get("staged");
+    //         staged.push(data);
+    //         svl.storage.set("staged", staged);
+    //
+    //         $("#sign-in-modal").addClass("hidden");
+    //         $("#sign-up-modal").removeClass("hidden");
+    //         $('#sign-in-modal-container').modal('show');
+    //     });
+    //     svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
+    //         if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
+    //
+    //         svl.user.setProperty('firstTask', false);
+    //         // Submit the data as an anonymous user.
+    //         var data = svl.form.compileSubmissionData();
+    //         svl.form.submit(data);
+    //     });
+    //     svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+    //         var data = svl.form.compileSubmissionData(),
+    //             staged = svl.storage.get("staged");
+    //         staged.push(data);
+    //         svl.storage.set("staged", staged);
+    //
+    //         $("#sign-in-modal").removeClass("hidden");
+    //         $("#sign-up-modal").addClass("hidden");
+    //         $('#sign-in-modal-container').modal('show');
+    //     });
+    //     svl.popUpMessage.setPosition(0, 260, '100%');
+    //     svl.popUpMessage.show(true);
+    // }
+
     /** End the current task */
     function endTask () {
         if ('statusMessage' in svl) {
@@ -9941,41 +10063,9 @@ function TaskContainer (turf) {
         // Update the audited miles
         if ('ui' in svl) updateAuditedDistance();
 
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
-            // Prompt a user who's not logged in to sign up/sign in.
-            svl.popUpMessage.setTitle("You've completed the first accessibility audit!");
-            svl.popUpMessage.setMessage("Do you want to create an account to keep track of your progress?");
-            svl.popUpMessage.appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
-                // Store the data in LocalStorage.
-                var data = svl.form.compileSubmissionData(),
-                    staged = svl.storage.get("staged");
-                staged.push(data);
-                svl.storage.set("staged", staged);
-
-                $("#sign-in-modal").addClass("hidden");
-                $("#sign-up-modal").removeClass("hidden");
-                $('#sign-in-modal-container').modal('show');
-            });
-            svl.popUpMessage.appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
-                if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
-
-                svl.user.setProperty('firstTask', false);
-                // Submit the data as an anonymous user.
-                var data = svl.form.compileSubmissionData();
-                svl.form.submit(data);
-            });
-            svl.popUpMessage.appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
-                var data = svl.form.compileSubmissionData(),
-                    staged = svl.storage.get("staged");
-                staged.push(data);
-                svl.storage.set("staged", staged);
-
-                $("#sign-in-modal").removeClass("hidden");
-                $("#sign-up-modal").addClass("hidden");
-                $('#sign-in-modal-container').modal('show');
-            });
-            svl.popUpMessage.setPosition(0, 260, '100%');
-            svl.popUpMessage.show(true);
+        // if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance() > 0.5)) {
+            svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
             var data = svl.form.compileSubmissionData(),
@@ -10041,32 +10131,35 @@ function TaskContainer (turf) {
                         lng1 = json.features[0].geometry.coordinates[0][0],
                         lat2 = json.features[0].geometry.coordinates[len][1],
                         lng2 = json.features[0].geometry.coordinates[len][0];
-                    var streetViewService = new google.maps.StreetViewService();
-                    var STREETVIEW_MAX_DISTANCE = 25;
-                    var latLng = new google.maps.LatLng(lat1, lng1);
-                    streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                        if (status === google.maps.StreetViewStatus.OK) {
-                            var newTask = svl.taskFactory.create(json);
-                            setCurrentTask(newTask);
-                        } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                            // no street view available in this range.
-                            var latLng = new google.maps.LatLng(lat2, lng2);
-                            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                if (status === google.maps.StreetViewStatus.OK) {
-                                    json.features[0].geometry.coordinates.reverse();
-                                    var newTask = svl.taskFactory.create(json);
-                                    setCurrentTask(newTask);
-                                } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                                    // Todo. Report lack of street view.
-                                    nextTask();
-                                } else {
-                                    throw "Error loading Street View imagey.";
-                                }
-                            });
-                        } else {
-                            throw "Error loading Street View imagey.";
-                        }
-                    });
+                    // var streetViewService = new google.maps.StreetViewService();
+                    // var STREETVIEW_MAX_DISTANCE = 25;
+                    // var latLng = new google.maps.LatLng(lat1, lng1);
+                    var newTask = svl.taskFactory.create(json);
+                    setCurrentTask(newTask);
+
+                    // streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                    //     if (status === google.maps.StreetViewStatus.OK) {
+                    //         var newTask = svl.taskFactory.create(json);
+                    //         setCurrentTask(newTask);
+                    //     } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    //         // no street view available in this range.
+                    //         var latLng = new google.maps.LatLng(lat2, lng2);
+                    //         streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                    //             if (status === google.maps.StreetViewStatus.OK) {
+                    //                 json.features[0].geometry.coordinates.reverse();
+                    //                 var newTask = svl.taskFactory.create(json);
+                    //                 setCurrentTask(newTask);
+                    //             } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    //                 // Todo. Report lack of street view.
+                    //                 nextTask();
+                    //             } else {
+                    //                 throw "Error loading Street View imagey.";
+                    //             }
+                    //         });
+                    //     } else {
+                    //         throw "Error loading Street View imagey.";
+                    //     }
+                    // });
                 },
                 error: function (result) {
                     throw result;

@@ -223,6 +223,8 @@ function MissionContainer ($, parameters) {
             }
         }
 
+        
+        
         if ("callback" in parameters) {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
         } else {
@@ -236,7 +238,7 @@ function MissionContainer ($, parameters) {
      * @param mission
      */
     function add(regionId, mission) {
-        if (regionId) {
+        if (regionId || regionId === 0) {
             if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
         } else {
             regionId = "noRegionId";
@@ -334,7 +336,15 @@ function MissionContainer ($, parameters) {
     /** Get all the completed missions with the given region id */
     function getMissionsByRegionId (regionId) {
         if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
-        return missionStoreByRegionId[regionId];
+        var missions = missionStoreByRegionId[regionId];
+        missions.sort(function(m1, m2) {
+            var d1 = m1.getProperty("distance"),
+                d2 = m2.getProperty("distance");
+            if (!d1) d1 = 0;
+            if (!d2) d2 = 0;
+            return d1 - d2;
+        });
+        return missions;
     }
 
     function nextMission (regionId) {

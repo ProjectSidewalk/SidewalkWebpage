@@ -47,19 +47,20 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
 
-        // Check if a user still has tasks available for them.
+        // Check if a user still has tasks available for them in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
           UserCurrentRegionTable.assignNextRegion(user.userId)
         }
-
 
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         // Check if s/he has gone through an onboarding.
-        val cookie = request.cookies.get("sidewalk-onboarding")
+//        val cookie = request.cookies.get("sidewalk-onboarding")
+
+        val region: Option[Region] = RegionTable.getRegion
         val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None, None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }
 
@@ -77,11 +78,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Update the currently assigned region for the user
         UserCurrentRegionTable.update(user.userId, regionId)
-
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         // Check if s/he has gone through an onboarding.
-        val cookie = request.cookies.get("sidewalk-onboarding")
         val task: NewTask = AuditTaskTable.getNewTask
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }

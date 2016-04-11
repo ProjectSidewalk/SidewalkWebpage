@@ -202,18 +202,44 @@ function Main ($, d3, params) {
             var neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+        } else {
+            var regionId = 0;
+            var neighborhood = svl.neighborhoodFactory.create(regionId);
+            svl.neighborhoodContainer.add(neighborhood);
+            svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
         svl.missionContainer = MissionContainer ($, {
-            currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood"),
             callback: function () {
                 // Check if the user has completed the onboarding tutorial.
                 // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
-                    labels = completedMissions.map(function (m) { return m.label; });
-
+                    labels = completedMissions.map(function (m) { return m.label; }),
+                    neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
+                    mission;
+                
+                // Set the current mission to onboarding or something else.
                 if (labels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
+                // if (true) {
                     svl.onboarding = new Onboarding($);
+                    mission = svl.missionContainer.getCurrentMission();
+                } else {
+                    mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
+                    if (mission.isCompleted()) {
+                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+                        missions.map(function (m) { if (!m.isCompleted()) return m;});
+                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                    }
+                    svl.missionContainer.setCurrentMission(mission);
+                }
+
+                if (labels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    // Todo. Check if this an anonymous user or not. If not, update the database and record that that this user has completed the onboarding.
+                }
+
+                // Popup the message explaining the goal of the current mission if the current mission is not onboarding
+                if (mission.getProperty("label") != "onboarding") {
+                    svl.modalMission.setMission(mission);
                 }
             }
         });

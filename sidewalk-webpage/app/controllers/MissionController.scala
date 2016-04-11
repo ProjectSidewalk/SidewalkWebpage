@@ -65,7 +65,8 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         val missions = MissionTable.incomplete(user.userId).map(m => Json.toJson(m))
         Future.successful(Ok(JsArray(missions)))
       case _ =>
-        Future.successful(Ok(JsArray(Seq())))
+        val missions = MissionTable.all.map(m => Json.toJson(m))
+        Future.successful(Ok(JsArray(missions)))
     }
   }
 
