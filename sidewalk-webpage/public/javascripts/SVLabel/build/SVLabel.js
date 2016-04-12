@@ -12814,7 +12814,19 @@ function Onboarding ($) {
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                 onboardingMission.setProperty("isCompleted", true);
                 svl.missionContainer.stage(onboardingMission).commit();
+
             }
+
+            // Set the next mission
+            var mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
+            if (mission.isCompleted()) {
+                var neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
+                var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+                missions.map(function (m) { if (!m.isCompleted()) return m;});
+                mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+            }
+            svl.missionContainer.setCurrentMission(mission);
+            svl.modalMission.setMission(mission);
             
             svl.taskContainer.initNextTask();
 
@@ -12892,24 +12904,22 @@ function Onboarding ($) {
                 // When they click OK, then the POV changes.
                 googleCallback = function () {
                     svl.panorama.setPano(state.panoId);
-                    svl.map.setPov(pov);
+                    // svl.map.setPov(pov);
                     // svl.map.setPosition(state.properties.lat, state.properties.lng);
                     google.maps.event.removeListener(googleTarget);
-
-                    $target = $("#onboarding-message-holder").find("button");
-                    callback = function () {
-                        $target.off("click", callback);
-                        removeAnnotationListener();
-                        next.call(this, state.transition);
-                        svl.panorama.setPano(state.panoId);
-                        svl.map.setPov(pov);
-                        svl.map.setPosition(state.properties.lat, state.properties.lng);
-                    };
-                    $target.on("click", callback);
                 };
                 googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
 
-
+                $target = $("#onboarding-message-holder").find("button");
+                callback = function () {
+                    $target.off("click", callback);
+                    removeAnnotationListener();
+                    next.call(this, state.transition);
+                    svl.panorama.setPano(state.panoId);
+                    svl.map.setPov(pov);
+                    svl.map.setPosition(state.properties.lat, state.properties.lng);
+                };
+                $target.on("click", callback);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
