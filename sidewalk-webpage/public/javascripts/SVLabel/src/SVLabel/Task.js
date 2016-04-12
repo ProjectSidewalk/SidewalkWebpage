@@ -344,6 +344,36 @@ function TaskContainer (turf) {
         paths, previousPaths = [];
 
     /**
+     * I had to make this method to wrap the street view service.
+     * @param task
+     */
+    function initNextTask (task) {
+        var nextTask = svl.taskContainer.nextTask(task),
+            geometry,
+            lat,
+            lng;
+        geometry = nextTask.getGeometry();
+        lat = geometry.coordinates[0][1];
+        lng = geometry.coordinates[0][0];
+
+        // var streetViewService = new google.maps.StreetViewService();
+        var STREETVIEW_MAX_DISTANCE = 25;
+        var latLng = new google.maps.LatLng(lat, lng);
+
+        svl.streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            if (status === google.maps.StreetViewStatus.OK) {
+                svl.taskContainer.setCurrentTask(nextTask);
+                svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
+            } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                // no street view available in this range.
+                svl.taskContainer.initNextTask();
+            } else {
+                throw "Error loading Street View imagey.";
+            }
+        });
+    }
+
+    /**
      * End the current task.
      * Todo. Need to be fixed... Not really this function, but the nextTask() has a side effect of bringing users to different places.
      */
@@ -435,9 +465,10 @@ function TaskContainer (turf) {
     function length () {
         return previousTasks.length;
     }
-    
+
     /**
      * Get the next task and set it as a current task.
+     * Todo. I want to move this to TaskFactory.
      * Todo. I don't like querying the next task with $.ajax every time I need a new street task. Task container should get a set of tasks in the beginning and supply a task from the locally held data.
      * @param task Current task
      * @returns {*} Next task
@@ -458,7 +489,6 @@ function TaskContainer (turf) {
                 type: 'get',
                 success: function (json) {
                     newTask = svl.taskFactory.create(json, latEnd, lngEnd);
-                    // setCurrentTask(newTask);
                 },
                 error: function (result) {
                     throw result;
@@ -482,41 +512,13 @@ function TaskContainer (turf) {
                         lng2 = json.features[0].geometry.coordinates[len][0];
 
                     newTask = svl.taskFactory.create(json);
-
-                    // var streetViewService = new google.maps.StreetViewService();
-                    // var STREETVIEW_MAX_DISTANCE = 25;
-                    // var latLng = new google.maps.LatLng(lat1, lng1);
-                    // setCurrentTask(newTask);
-
-                    // streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                    //     if (status === google.maps.StreetViewStatus.OK) {
-                    //         var newTask = svl.taskFactory.create(json);
-                    //         setCurrentTask(newTask);
-                    //     } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    //         // no street view available in this range.
-                    //         var latLng = new google.maps.LatLng(lat2, lng2);
-                    //         streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                    //             if (status === google.maps.StreetViewStatus.OK) {
-                    //                 json.features[0].geometry.coordinates.reverse();
-                    //                 var newTask = svl.taskFactory.create(json);
-                    //                 setCurrentTask(newTask);
-                    //             } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    //                 // Todo. Report lack of street view.
-                    //                 nextTask();
-                    //             } else {
-                    //                 throw "Error loading Street View imagey.";
-                    //             }
-                    //         });
-                    //     } else {
-                    //         throw "Error loading Street View imagey.";
-                    //     }
-                    // });
                 },
                 error: function (result) {
                     throw result;
                 }
             });
         }
+        
         return newTask;
     }
 
@@ -590,7 +592,8 @@ function TaskContainer (turf) {
 
         return this;
     }
-    
+
+    self.initNextTask = initNextTask;
     self.endTask = endTask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
@@ -607,7 +610,7 @@ function TaskContainer (turf) {
 }
 
 /**
- * TaskFactory module
+ * TaskFactory module.
  * @param turf
  * @returns {{className: string}}
  * @constructor
@@ -629,6 +632,7 @@ function TaskFactory (turf) {
 
     /**
      * Query the backend server and create a new task instance.
+     * Todo. DEPRECATED. Use TaskContainer.nextTask(). And move nextTask() here...
      * @param parameters
      * @param callback
      */

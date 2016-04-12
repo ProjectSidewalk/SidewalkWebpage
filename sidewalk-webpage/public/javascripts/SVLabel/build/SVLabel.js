@@ -1,303 +1,3 @@
- /** @namespace */
- var svl = svl || {};
- 
-/** Google Maps Fog API
- *
- * @ Requirements:
- *   Google Maps JavaScript V3 API (https://developers.google.com/maps/documentation/javascript/)
- *   Javascript Clipper (http://sourceforge.net/projects/jsclipper/)
- * @ Public Functions:
- *   updateFromPOV: Updates the fog based on the new POV
- *   clearMap: Clears all of the fog
-
- * Creates a new GMFog Object
- *
- * @ Required Parameters
- * map: google.maps.Map object for the map that the fog will overlay (should already be loaded)
- * center: google.maps.LatLng object for the center of the circle
- * radius: Radius of the fog (decimal)
- * @ Optional Parameters
- * strokeColor: String of hex color representing the outline of the fog ("#080A17" for example)
- * strokeOpacity: Opacity of the outline of the fog (decimal)
- * strokeWeight: Weight of the outline of the fog (decimal)
- * fillColor: Color of the fog (same format as strokeColor)
- * fillOpacity: Opacity of the fog (decimal)
- **/
-// function Fog(map, center, radius, max, strokeColor, strokeOpacity, strokeWeight, fillColor, fillOpacity) {
-function Fog(mapIn, params) {
-    var self = {className: 'Fog'};
-    var properties = {};
-    var pointerVisitedLeft = 0;
-    var pointerVisitedRight = 0;
-    var dirCurrentLeft = 0;
-    var dirCurrentRight = 0;
-    var dirCurrentMid = 0;
-    var dirVisitedMid = 0;
-    var dirVisitedMidLeftHandside = 0;
-    var dirVisitedMidRightHandside = 0;
-    var polygonVisitedLeft = null;
-    var polygonVisitedRight = null;
-    var polygonFog = null;
-    var pathVisitedLeft = null;
-    var pathVisitedRight = null;
-    var pathFog = null;
-    var deltaHeading = 0;
-    var rotateThreshold = 1.0;
-    var m_firstRun = true;
-    var m_isCompleted = false;
-    var m_completionRate = 0;
-    var m_completionRate2 = 0;
-
-    var map = mapIn;
-
-    function _init(params) {
-        // This method initializes the object properties.
-        if (!("center" in params) || !params.center) {
-            throw "Center cannot be null when constructing a GMFog!";
-        } else {
-            properties.center = params.center;
-        }
-        if (!("radius" in params) || !params.radius) {
-            throw "Radius cannot be null when constructing a GMFog!";
-        } else {
-            properties.radius = params.radius;
-        }
-        if (!("max" in params) || params.max) {
-            properties.max = 700;
-        } else {
-            properties.max = 360;
-        }
-        if (!("strokeColor" in params) || params.strokeColor) {
-            properties.strokeColor = "#080A17";
-        } else {
-            properties.strokeColor = params.strokeColor;
-        }
-        if (!("fillColor" in params) || params.fillColor) {
-            properties.fillColor = "#080A17";
-        } else {
-            properties.fillColor = params.fillColor;
-        }
-        if (!("strokeOpacity" in params) || params.strokeOpacity) {
-            properties.strokeOpacity = 0.7;
-        } else {
-            properties.strokeOpacity = params.strokeOpacity;
-        }
-        if (!("fillOpacity" in params) || params.fillOpacity) {
-            properties.fillOpacity = 0.7;
-        } else {
-            properties.fillOpacity = params.fillOpacity;
-        }
-        if (!("strokeWeight" in params) || params.strokeWeight) {
-            properties.strokeWeight = 0.7;
-        } else {
-            properties.strokeWeight = params.strokeWeight;
-        }
-
-        //
-        // Initialize the zoom view angle
-        if ("zoomViewAngles" in params && params.zoomViewAngles) {
-            properties.zoomviewAngle = params.zoomViewAngles;
-        } else {
-            properties.zoomviewAngle    = [];
-            properties.zoomviewAngle[1] = Math.PI / 6; // Math.PI / 4;
-            properties.zoomviewAngle[2] = Math.PI / 10; // Math.PI / 6;
-            properties.zoomviewAngle[3] = Math.PI / 14; //Math.PI / 8;
-        }
-
-        properties.visitedColor = "#66c2a5";
-        properties.visitedOpacity = 0.3;
-        properties.infiniteDistance = 1;        // 1 in latitude is enough.
-    }
-
-    // Unify the angel between 0 and 2PI
-    function unifyAngel(radius) {
-        var ans = radius;
-        while (ans < 0) ans += Math.PI * 2;
-        while (ans > Math.PI * 2) ans -= Math.PI * 2;
-        return ans;
-    }
-
-    // Calculate the angular bisector between 2 rays with directions.
-    function midAngel(left, right, clockwise) {
-        clockwise = typeof clockwise !== 'undefined' ? clockwise : true;
-
-        var ans = (left + right) / 2;
-        if (left < Math.PI) {
-            if (right < Math.PI) {
-                if (right < left) {
-                    ans += Math.PI;
-                }
-            }
-        } else {
-            if (right < Math.PI) {
-                ans += Math.PI;
-            } else {
-                if (left > right) {
-                    ans += Math.PI;
-                }
-            }
-        }
-
-        return unifyAngel(ans);
-    }
-
-    self.completionRate = function (strategy) {
-        strategy = typeof strategy !== 'undefined' ? strategy : 0;
-        return strategy == 0 ? m_completionRate : m_completionRate2;
-    };
-
-    self.updateFromPOV = function(current, povRadius, dir, arc) {
-        /**
-         * Main iterative method updates the fog according to the new direction & zoom level.
-         *
-         * current: new position in google latlng
-         * povRadius: line of sight
-         * dir: direction in radians
-         * arc: arc size in radians
-         *
-         * TODO: when zooming in, updateFromPOV is not called.
-         **/
-        var lat = current.lat();
-        var lng = current.lng();
-
-        // 1. remember the delta, make the left pointer to 2PI and the right 0
-        if (m_firstRun) {
-            deltaHeading = dir;
-        }
-
-        var pov = getPOV();
-        var deltaViewAngel = properties.zoomviewAngle[pov.zoom];
-
-        var heading = unifyAngel(dir - deltaHeading);
-        dirCurrentLeft = unifyAngel(heading - deltaViewAngel);
-        dirCurrentRight = unifyAngel(heading + deltaViewAngel);
-
-        // 2. calculate current pointer and update visited pointer
-        if (m_firstRun) {
-            pointerVisitedLeft = dirCurrentLeft;
-            pointerVisitedRight = dirCurrentRight;
-        } else {
-            if (dirCurrentLeft < pointerVisitedLeft && Math.abs(dirCurrentLeft - pointerVisitedLeft) < rotateThreshold) pointerVisitedLeft = dirCurrentLeft;
-            if (dirCurrentRight > pointerVisitedRight && Math.abs(dirCurrentRight - pointerVisitedRight) < rotateThreshold) pointerVisitedRight = dirCurrentRight;
-            if (pointerVisitedLeft < pointerVisitedRight && !m_isCompleted) m_isCompleted = true;
-        }
-
-        // 3. update the completion rate
-        m_completionRate = (pointerVisitedRight + Math.PI * 2 - pointerVisitedLeft) / (Math.PI * 2);
-        m_completionRate2 = (pointerVisitedRight + Math.PI * 2 - pointerVisitedLeft - properties.zoomviewAngle[1]) / (Math.PI * 2);
-
-        if (m_completionRate > 1.0) m_completionRate = 1.0;
-        if (m_completionRate2 > 1.0) m_completionRate2 = 1.0;
-
-        dirCurrentLeft = unifyAngel(dirCurrentLeft + deltaHeading);
-        dirCurrentRight = unifyAngel(dirCurrentRight + deltaHeading);
-
-        // 4. calculate the angular bisector
-        if (!m_isCompleted)
-        {
-            dirCurrentMid = midAngel(dirCurrentLeft, dirCurrentRight, true);
-            var dirVisitedLeft = unifyAngel(pointerVisitedLeft + deltaHeading);
-            var dirVisitedRight = unifyAngel(pointerVisitedRight + deltaHeading);
-            dirVisitedMidLeftHandside = midAngel(dirVisitedLeft, dirCurrentLeft, true);
-            dirVisitedMidRightHandside = midAngel(dirCurrentRight, dirVisitedRight, true);
-            dirVisitedMid = midAngel(dirVisitedRight, dirVisitedLeft, true);
-
-            // 5. calculate the polygons
-            pathFog = [
-                new google.maps.LatLng(lat, lng),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedRight), lng + Math.sin(dirVisitedRight)),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedMid), lng + Math.sin(dirVisitedMid)),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedLeft), lng + Math.sin(dirVisitedLeft))
-            ];
-
-            pathVisitedLeft = [
-                new google.maps.LatLng(lat, lng),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedLeft), lng + Math.sin(dirVisitedLeft)),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedMidLeftHandside), lng + Math.sin(dirVisitedMidLeftHandside)),
-                new google.maps.LatLng(lat + Math.cos(dirCurrentLeft), lng + Math.sin(dirCurrentLeft))
-            ];
-
-            pathVisitedRight = [
-                new google.maps.LatLng(lat, lng),
-                new google.maps.LatLng(lat + Math.cos(dirCurrentRight), lng + Math.sin(dirCurrentRight)),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedMidRightHandside), lng + Math.sin(dirVisitedMidRightHandside)),
-                new google.maps.LatLng(lat + Math.cos(dirVisitedRight), lng + Math.sin(dirVisitedRight))
-            ];
-        } else {
-            dirCurrentMid = unifyAngel(midAngel(dirCurrentLeft, dirCurrentRight, false) + Math.PI);
-            pathVisitedLeft = [
-                new google.maps.LatLng(lat, lng),
-                new google.maps.LatLng(lat + Math.cos(dirCurrentRight), lng + Math.sin(dirCurrentRight)),
-                new google.maps.LatLng(lat + Math.cos(dirCurrentMid), lng + Math.sin(dirCurrentMid)),
-                new google.maps.LatLng(lat + Math.cos(dirCurrentLeft), lng + Math.sin(dirCurrentLeft))
-            ];
-
-            // TODO: Hide the following 2 polygons by API.
-            pathFog = [
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance),
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance),
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance),
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance)
-            ];
-
-            pathVisitedRight = [
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance),
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance),
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance),
-                new google.maps.LatLng(lat + properties.infiniteDistance, lng + properties.infiniteDistance)
-            ];
-        }
-
-        if (m_firstRun) {
-            polygonVisitedLeft = new google.maps.Polygon({
-                paths: pathVisitedLeft,
-                strokeColor: properties.strokeColor,
-                strokeOpacity: properties.strokeOpacity,
-                strokeWeight: properties.strokeWeight,
-                fillColor: properties.visitedColor,
-                fillOpacity: properties.visitedOpacity,
-                map: map
-            });
-
-            polygonVisitedRight = new google.maps.Polygon({
-                paths: pathVisitedRight,
-                strokeColor: properties.strokeColor,
-                strokeOpacity: properties.strokeOpacity,
-                strokeWeight: properties.strokeWeight,
-                fillColor: properties.visitedColor,
-                fillOpacity: properties.visitedOpacity,
-                map: map
-            });
-
-            polygonFog = new google.maps.Polygon({
-                paths: pathFog,
-                strokeColor: properties.strokeColor,
-                strokeOpacity: properties.strokeOpacity,
-                strokeWeight: properties.strokeWeight,
-                fillColor: properties.fillColor,
-                fillOpacity: properties.fillOpacity,
-                map: map
-            });
-
-            m_firstRun = false;
-        } else {
-            polygonVisitedLeft.setPath(pathVisitedLeft);
-            polygonVisitedRight.setPath(pathVisitedRight);
-            polygonFog.setPath(pathFog);
-        }
-        return;
-    };
-
-    self.setProperty = function (key, val) {
-        // This method sets the property
-        properties[key] = val;
-        return;
-    };
-
-    _init(params);
-    return self;
-}
-
 var GSVPANO = GSVPANO || {};
 GSVPANO.PanoLoader = function (parameters) {
 
@@ -3242,17 +2942,7 @@ function Form ($, params) {
         svl.tracker.push('TaskSkip');
         submit(data);
 
-        if ("taskContainer" in svl) {
-            var nextTask = svl.taskContainer.nextTask(),
-                geometry,
-                lat,
-                lng;
-            svl.taskContainer.setCurrentTask(nextTask);
-            geometry = nextTask.getGeometry();
-            lat = geometry.coordinates[0][1];
-            lng = geometry.coordinates[0][0];
-            svl.map.setPosition(lat, lng);
-        }
+        if ("taskContainer" in svl) svl.taskContainer.initNextTask();
 
         return false;
     }
@@ -5179,9 +4869,9 @@ function Map ($, turf, params) {
 
     var initialPositionUpdate = true,
         panoramaOptions,
-        streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null,
         STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
+    svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -5750,7 +5440,7 @@ function Map ($, turf, params) {
                         if (newLatlng) {
                             var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                             if (distance < STREETVIEW_MAX_DISTANCE) {
-                                streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                     if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                 });
                             }
@@ -9550,6 +9240,10 @@ function Storage(JSON, params) {
         if (!get("labels")) {
             set("labels", []);
         }
+
+        if (!get("completedOnboarding")) {
+            set("completedOnboarding", null);
+        }
     }
 
     /**
@@ -9563,8 +9257,12 @@ function Storage(JSON, params) {
     /**
      * Refresh
      */
-    function refresh () {
+    function clear () {
         _init();
+        set("staged", []);
+        set("tracker", []);
+        set("labels", []);
+        set("completedOnboarding", null);
     }
 
     /**
@@ -9577,7 +9275,7 @@ function Storage(JSON, params) {
     }
 
     self.get = get;
-    self.refresh = refresh;
+    self.clear = clear;
     self.set = set;
     _init();
     return self;
@@ -9928,6 +9626,36 @@ function TaskContainer (turf) {
         paths, previousPaths = [];
 
     /**
+     * I had to make this method to wrap the street view service.
+     * @param task
+     */
+    function initNextTask (task) {
+        var nextTask = svl.taskContainer.nextTask(task),
+            geometry,
+            lat,
+            lng;
+        geometry = nextTask.getGeometry();
+        lat = geometry.coordinates[0][1];
+        lng = geometry.coordinates[0][0];
+
+        // var streetViewService = new google.maps.StreetViewService();
+        var STREETVIEW_MAX_DISTANCE = 25;
+        var latLng = new google.maps.LatLng(lat, lng);
+
+        svl.streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            if (status === google.maps.StreetViewStatus.OK) {
+                svl.taskContainer.setCurrentTask(nextTask);
+                svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
+            } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                // no street view available in this range.
+                svl.taskContainer.initNextTask();
+            } else {
+                throw "Error loading Street View imagey.";
+            }
+        });
+    }
+
+    /**
      * End the current task.
      * Todo. Need to be fixed... Not really this function, but the nextTask() has a side effect of bringing users to different places.
      */
@@ -10019,9 +9747,10 @@ function TaskContainer (turf) {
     function length () {
         return previousTasks.length;
     }
-    
+
     /**
      * Get the next task and set it as a current task.
+     * Todo. I want to move this to TaskFactory.
      * Todo. I don't like querying the next task with $.ajax every time I need a new street task. Task container should get a set of tasks in the beginning and supply a task from the locally held data.
      * @param task Current task
      * @returns {*} Next task
@@ -10042,7 +9771,6 @@ function TaskContainer (turf) {
                 type: 'get',
                 success: function (json) {
                     newTask = svl.taskFactory.create(json, latEnd, lngEnd);
-                    // setCurrentTask(newTask);
                 },
                 error: function (result) {
                     throw result;
@@ -10066,41 +9794,13 @@ function TaskContainer (turf) {
                         lng2 = json.features[0].geometry.coordinates[len][0];
 
                     newTask = svl.taskFactory.create(json);
-
-                    // var streetViewService = new google.maps.StreetViewService();
-                    // var STREETVIEW_MAX_DISTANCE = 25;
-                    // var latLng = new google.maps.LatLng(lat1, lng1);
-                    // setCurrentTask(newTask);
-
-                    // streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                    //     if (status === google.maps.StreetViewStatus.OK) {
-                    //         var newTask = svl.taskFactory.create(json);
-                    //         setCurrentTask(newTask);
-                    //     } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    //         // no street view available in this range.
-                    //         var latLng = new google.maps.LatLng(lat2, lng2);
-                    //         streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                    //             if (status === google.maps.StreetViewStatus.OK) {
-                    //                 json.features[0].geometry.coordinates.reverse();
-                    //                 var newTask = svl.taskFactory.create(json);
-                    //                 setCurrentTask(newTask);
-                    //             } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    //                 // Todo. Report lack of street view.
-                    //                 nextTask();
-                    //             } else {
-                    //                 throw "Error loading Street View imagey.";
-                    //             }
-                    //         });
-                    //     } else {
-                    //         throw "Error loading Street View imagey.";
-                    //     }
-                    // });
                 },
                 error: function (result) {
                     throw result;
                 }
             });
         }
+        
         return newTask;
     }
 
@@ -10174,7 +9874,8 @@ function TaskContainer (turf) {
 
         return this;
     }
-    
+
+    self.initNextTask = initNextTask;
     self.endTask = endTask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
@@ -10191,7 +9892,7 @@ function TaskContainer (turf) {
 }
 
 /**
- * TaskFactory module
+ * TaskFactory module.
  * @param turf
  * @returns {{className: string}}
  * @constructor
@@ -10213,6 +9914,7 @@ function TaskFactory (turf) {
 
     /**
      * Query the backend server and create a new task instance.
+     * Todo. DEPRECATED. Use TaskContainer.nextTask(). And move nextTask() here...
      * @param parameters
      * @param callback
      */
@@ -10256,40 +9958,6 @@ function TaskFactory (turf) {
     return self;
 }
 
-
-var svl = svl || {};
-
-/**
- *
- * @param $
- * @param param
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function Tooltip ($, param) {
-    var self = {className: 'Tooltip'};
-    var properties = {};
-    var status = {};
-
-    var $divToolTip;
-
-    function _init(param) {
-        $divToolTip = $(param.domIds.tooltipHolder);
-    }
-
-    self.show = function (message) {
-        $divToolTip.html(message);
-        $divToolTip.css('visibility', 'visible');
-    };
-
-    self.hide = function () {
-        $divToolTip.css('visibility', 'hidden');
-    };
-
-    _init(param);
-    return self;
-}
 
 /**
  *
@@ -13140,15 +12808,23 @@ function Onboarding ($) {
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
-            svl.storage.set("completedOnboarding", true)
+            svl.storage.set("completedOnboarding", true);
 
             if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                 onboardingMission.setProperty("isCompleted", true);
                 svl.missionContainer.stage(onboardingMission).commit();
             }
+            
+            svl.taskContainer.initNextTask();
 
-            svl.taskFactory.getTask({}, svl.taskContainer.setCurrentTask);
+            // var task = svl.taskContainer.nextTask();
+            // var geometry, lat, lng;
+            // svl.taskContainer.setCurrentTask(task);
+            // geometry = task.getGeometry();
+            // lat = geometry.coordinates[0][1];
+            // lng = geometry.coordinates[0][0];
+            // svl.map.setPosition(lat, lng);
             return;
         }
 
@@ -13208,28 +12884,32 @@ function Onboarding ($) {
         if ("properties" in state) {
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
-                var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom };
+                var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom },
+                    googleTarget, googleCallback;
 
                 // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
                 // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
                 // When they click OK, then the POV changes.
-                callback = function () {
+                googleCallback = function () {
                     svl.panorama.setPano(state.panoId);
-                    google.maps.event.removeListener($target);
-                    $target = $("#onboarding-message-holder").find("button");
+                    svl.map.setPov(pov);
+                    // svl.map.setPosition(state.properties.lat, state.properties.lng);
+                    google.maps.event.removeListener(googleTarget);
 
+                    $target = $("#onboarding-message-holder").find("button");
                     callback = function () {
-                        svl.map.setPov(pov);
-                        svl.map.setPosition(state.properties.lat, state.properties.lng);
                         $target.off("click", callback);
                         removeAnnotationListener();
                         next.call(this, state.transition);
+                        svl.panorama.setPano(state.panoId);
+                        svl.map.setPov(pov);
+                        svl.map.setPosition(state.properties.lat, state.properties.lng);
                     };
                     $target.on("click", callback);
                 };
-                if (typeof google != "undefined") {
-                    $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
-                }
+                googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
+
+
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.

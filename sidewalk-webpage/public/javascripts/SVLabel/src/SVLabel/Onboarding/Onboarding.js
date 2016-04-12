@@ -1053,15 +1053,23 @@ function Onboarding ($) {
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
-            svl.storage.set("completedOnboarding", true)
+            svl.storage.set("completedOnboarding", true);
 
             if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                 onboardingMission.setProperty("isCompleted", true);
                 svl.missionContainer.stage(onboardingMission).commit();
             }
+            
+            svl.taskContainer.initNextTask();
 
-            svl.taskFactory.getTask({}, svl.taskContainer.setCurrentTask);
+            // var task = svl.taskContainer.nextTask();
+            // var geometry, lat, lng;
+            // svl.taskContainer.setCurrentTask(task);
+            // geometry = task.getGeometry();
+            // lat = geometry.coordinates[0][1];
+            // lng = geometry.coordinates[0][0];
+            // svl.map.setPosition(lat, lng);
             return;
         }
 
@@ -1121,28 +1129,32 @@ function Onboarding ($) {
         if ("properties" in state) {
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
-                var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom };
+                var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom },
+                    googleTarget, googleCallback;
 
                 // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
                 // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
                 // When they click OK, then the POV changes.
-                callback = function () {
+                googleCallback = function () {
                     svl.panorama.setPano(state.panoId);
-                    google.maps.event.removeListener($target);
-                    $target = $("#onboarding-message-holder").find("button");
+                    svl.map.setPov(pov);
+                    // svl.map.setPosition(state.properties.lat, state.properties.lng);
+                    google.maps.event.removeListener(googleTarget);
 
+                    $target = $("#onboarding-message-holder").find("button");
                     callback = function () {
-                        svl.map.setPov(pov);
-                        svl.map.setPosition(state.properties.lat, state.properties.lng);
                         $target.off("click", callback);
                         removeAnnotationListener();
                         next.call(this, state.transition);
+                        svl.panorama.setPano(state.panoId);
+                        svl.map.setPov(pov);
+                        svl.map.setPosition(state.properties.lat, state.properties.lng);
                     };
                     $target.on("click", callback);
                 };
-                if (typeof google != "undefined") {
-                    $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
-                }
+                googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
+
+
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.

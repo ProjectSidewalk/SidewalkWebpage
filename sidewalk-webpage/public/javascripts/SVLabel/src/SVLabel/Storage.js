@@ -34,6 +34,10 @@ function Storage(JSON, params) {
         if (!get("labels")) {
             set("labels", []);
         }
+
+        if (!get("completedOnboarding")) {
+            set("completedOnboarding", null);
+        }
     }
 
     /**
@@ -47,8 +51,12 @@ function Storage(JSON, params) {
     /**
      * Refresh
      */
-    function refresh () {
+    function clear () {
         _init();
+        set("staged", []);
+        set("tracker", []);
+        set("labels", []);
+        set("completedOnboarding", null);
     }
 
     /**
@@ -61,7 +69,7 @@ function Storage(JSON, params) {
     }
 
     self.get = get;
-    self.refresh = refresh;
+    self.clear = clear;
     self.set = set;
     _init();
     return self;

@@ -50,9 +50,9 @@ function Map ($, turf, params) {
 
     var initialPositionUpdate = true,
         panoramaOptions,
-        streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null,
         STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
+    svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -621,7 +621,7 @@ function Map ($, turf, params) {
                         if (newLatlng) {
                             var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                             if (distance < STREETVIEW_MAX_DISTANCE) {
-                                streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                     if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                 });
                             }

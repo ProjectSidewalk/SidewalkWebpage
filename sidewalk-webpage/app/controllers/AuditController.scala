@@ -53,11 +53,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         }
 
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, Some(user))))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         val region: Option[Region] = RegionTable.getRegion
         val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }
 
@@ -75,10 +75,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Update the currently assigned region for the user
         UserCurrentRegionTable.update(user.userId, regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, Some(user))))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }
 
@@ -99,8 +99,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)
     request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, Some(user))))
-      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Seq(Some(task)), region, None)))
+      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }
 

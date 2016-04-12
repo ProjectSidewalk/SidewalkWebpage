@@ -335,17 +335,7 @@ function Form ($, params) {
         svl.tracker.push('TaskSkip');
         submit(data);
 
-        if ("taskContainer" in svl) {
-            var nextTask = svl.taskContainer.nextTask(),
-                geometry,
-                lat,
-                lng;
-            svl.taskContainer.setCurrentTask(nextTask);
-            geometry = nextTask.getGeometry();
-            lat = geometry.coordinates[0][1];
-            lng = geometry.coordinates[0][0];
-            svl.map.setPosition(lat, lng);
-        }
+        if ("taskContainer" in svl) svl.taskContainer.initNextTask();
 
         return false;
     }
