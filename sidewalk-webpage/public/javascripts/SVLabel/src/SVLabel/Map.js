@@ -671,7 +671,7 @@ function Map ($, params) {
 
             }
         } else {
-            setViewControlLayerCursor('default');
+            setViewControlLayerCursor('OpenHand');
             // $divViewControlLayer.css("cursor", "default");
         }
 
