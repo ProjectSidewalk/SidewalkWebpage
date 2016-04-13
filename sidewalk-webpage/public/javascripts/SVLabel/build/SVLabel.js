@@ -2333,8 +2333,8 @@ function Compass (d3) {
             direction = angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        // message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
-        message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        // message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
         svl.ui.compass.message.html(message);
     }
 
@@ -5908,8 +5908,6 @@ function Map ($, turf, params) {
      * @returns {setPov}
      */
     function setPov (pov, duration, callback) {
-        // Change the pov.
-        //
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var end = false;
@@ -11292,6 +11290,9 @@ function lineWithRoundHead (ctx, x1, y1, r1, x2, y2, r2, sourceFormIn, sourceStr
 }
 svl.util.shape.lineWithRoundHead = lineWithRoundHead;
 
+var svl = svl || {};
+svl.misc = svl.misc || {};
+
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
@@ -12379,7 +12380,10 @@ function Onboarding ($) {
                         "width": 100
                     }
                 ],
-                "transition": "select-label-type-7"
+                "transition": function () {
+                    svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
+                    return "select-label-type-7";
+                }
             },
             "select-label-type-7": {
                 "properties": {
@@ -12918,6 +12922,8 @@ function Onboarding ($) {
                     svl.panorama.setPano(state.panoId);
                     svl.map.setPov(pov);
                     svl.map.setPosition(state.properties.lat, state.properties.lng);
+
+                    if ("compass" in svl) svl.compass.hideMessage();
                 };
                 $target.on("click", callback);
             } else if (state.properties.action == "SelectLabelType") {

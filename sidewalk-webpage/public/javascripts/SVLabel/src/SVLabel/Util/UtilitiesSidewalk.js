@@ -1,3 +1,6 @@
+var svl = svl || {};
+svl.misc = svl.misc || {};
+
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 

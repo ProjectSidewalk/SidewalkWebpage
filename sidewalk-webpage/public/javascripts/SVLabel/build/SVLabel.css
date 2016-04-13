@@ -550,10 +550,10 @@ input#Text_BusStopAbsenceOtherReason {
 #compass-message-holder {
     position: absolute;
     right: -65px;
-    top: 15px;
+    top: 0;
     /*background: rgba(255, 255, 255, 0.75);*/
     padding: 10px 10px 10px 5px;
-    height: 40px;
+    height: 55px;
     min-width: 120px;
     white-space: nowrap;
     border-radius: 3px 3px 3px 3px;

@@ -624,7 +624,10 @@ function Onboarding ($) {
                         "width": 100
                     }
                 ],
-                "transition": "select-label-type-7"
+                "transition": function () {
+                    svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
+                    return "select-label-type-7";
+                }
             },
             "select-label-type-7": {
                 "properties": {
@@ -1163,6 +1166,8 @@ function Onboarding ($) {
                     svl.panorama.setPano(state.panoId);
                     svl.map.setPov(pov);
                     svl.map.setPosition(state.properties.lat, state.properties.lng);
+
+                    if ("compass" in svl) svl.compass.hideMessage();
                 };
                 $target.on("click", callback);
             } else if (state.properties.action == "SelectLabelType") {

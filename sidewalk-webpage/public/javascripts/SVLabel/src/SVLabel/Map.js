@@ -1089,8 +1089,6 @@ function Map ($, turf, params) {
      * @returns {setPov}
      */
     function setPov (pov, duration, callback) {
-        // Change the pov.
-        //
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var end = false;
