@@ -1,6 +1,8 @@
 /**
  * The Map module. This module is responsible for the interaction with Street View and Google Maps.
+ * Todo. Need to clean this module up...
  * @param $ {object} jQuery object
+ * @param turf {object} turf object
  * @param params {object} parameters
  * @returns {{className: string}}
  * @constructor

@@ -97,6 +97,7 @@ function MissionProgress () {
      * This method updates the mission completion rate and its visualization.
      */
     function update () {
+        if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
         if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
             var i,
                 len,

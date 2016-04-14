@@ -4819,7 +4819,9 @@ function Main ($, d3, turf, params) {
 
 /**
  * The Map module. This module is responsible for the interaction with Street View and Google Maps.
+ * Todo. Need to clean this module up...
  * @param $ {object} jQuery object
+ * @param turf {object} turf object
  * @param params {object} parameters
  * @returns {{className: string}}
  * @constructor
@@ -6665,6 +6667,7 @@ function MissionProgress () {
      * This method updates the mission completion rate and its visualization.
      */
     function update () {
+        if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
         if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
             var i,
                 len,

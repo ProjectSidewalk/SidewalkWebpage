@@ -11,11 +11,12 @@ import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import forms.SignInForm
 import models.services.UserService
-import models.user.{UserCurrentRegionTable, UserCurrentRegion, User}
+import models.user.{User, UserCurrentRegion, UserCurrentRegionTable}
+import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action
-import play.api.Logger
+import play.api.{Logger, Play}
 
 import scala.concurrent.Future
 
@@ -49,7 +50,12 @@ class CredentialsAuthController @Inject() (
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
             // If you want to extend the expiration time, follow this instruction.
             // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
-            // val newAuthenticator = authenticator.copy(expirationDate = XXX)
+//            val updAuth = if (!request.rememberme) authenticator else authenticator.copy(expirationDate =
+            val updAuth = authenticator.copy(expirationDate =
+              authenticator.expirationDate.minusSeconds(Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get)
+                .plusSeconds(Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get),
+              idleTimeout = None
+            )
 
             if (!UserCurrentRegionTable.isAssigned(user.userId)) { UserCurrentRegionTable.assign(user.userId) }
 
