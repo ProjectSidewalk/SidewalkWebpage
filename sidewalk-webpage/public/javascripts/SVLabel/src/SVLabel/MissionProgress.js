@@ -150,15 +150,25 @@ function MissionProgress () {
      * This method updates the filler of the completion bar
      */
     function updateMissionCompletionBar (completionRate) {
-        var r, g, color, colorIntensity = 230;
-        if (completionRate < 0.5) {
-            r = colorIntensity;
+        var r, g, b, color, colorIntensity = 200;
+        if (completionRate < 0.6) {
+            r = colorIntensity * 1.3;
             g = parseInt(colorIntensity * completionRate * 2);
-        } else {
-            r = parseInt(colorIntensity * (1 - completionRate) * 2);
-            g = colorIntensity;
+            b = 20;
         }
-        color = 'rgba(' + r + ',' + g + ',0,1)';
+        /*
+        else if (completionRate >= 0.4 && completionRate <= 0.6){
+            r = parseInt(colorIntensity * (1 - completionRate) * 2.1);
+            g = colorIntensity * 0.7;
+            b = 0;
+        } */
+        else {
+            r = parseInt(colorIntensity * (1 - completionRate) * 1.7);
+            g = colorIntensity;
+            b = 100;
+        }
+        color = 'rgba(' + r + ',' + g + ',' + b + ',1)';
+        printCompletionRate(completionRate);
         completionRate *=  100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);

@@ -80,6 +80,11 @@ function Keyboard ($) {
             svl.tracker.push('KeyUp', {'keyCode': e.keyCode});
           }
             switch (e.keyCode) {
+                // "Enter"
+                case 13:
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.contextMenu.hide();
+                    }
                 case 16:
                     // "Shift"
                     status.shiftDown = false;
@@ -92,21 +97,51 @@ function Keyboard ($) {
                         svl.ribbon.backToWalk();
                     }
                     break;
-                case 49:
+                    case 49:
                     // "1"
-                    svl.ribbon.modeSwitchClick("CurbRamp");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='1'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("CurbRamp");
+                        break;
+                    }
                     break;
                 case 50:
                     // "2"
-                    svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='2'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    }
                     break;
                 case 51:
                     // "3"
-                    svl.ribbon.modeSwitchClick("Obstacle");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='3'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("Obstacle");
+                    }
                     break;
                 case 52:
                     // "4"
-                    svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='4'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    }
+                    break;
+                case 53:
+                    // "5"
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='5'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+
+                    }
                     break;
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
