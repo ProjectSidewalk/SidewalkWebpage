@@ -412,7 +412,10 @@
                 </p>
                 <p>
                     <span class="bold">We’ll begin with a short, interactive tutorial to get you started.</span>
-                    If you’ve taken the tutorial before, click “Skip.” Thanks for your help in improving the accessibility of the cities.
+                    @if(!user) {
+                        If you’ve taken the tutorial before, click “Skip.”
+                    }
+                    Thanks for your help in improving the accessibility of the cities.
                 </p>
             </div>
         </div>
