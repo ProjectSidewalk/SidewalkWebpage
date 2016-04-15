@@ -200,10 +200,8 @@ function Task (turf, geojson, currentLat, currentLng) {
             lineLength,
             cumsumRate,
             latlng = svl.map.getPosition(),
-            lat = latlng.lat,
-            lng = latlng.lng,
             line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
+            currentPoint = turf.point([latlng.lng, latlng.lat]),
             snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
@@ -375,7 +373,6 @@ function TaskContainer (turf) {
 
     /**
      * End the current task.
-     * Todo. Need to be fixed... Not really this function, but the nextTask() has a side effect of bringing users to different places.
      */
     function endTask () {
         if ('statusMessage' in svl) {

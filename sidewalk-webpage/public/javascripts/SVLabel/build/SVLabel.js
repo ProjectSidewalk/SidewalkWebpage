@@ -2168,7 +2168,7 @@ function Canvas ($, param) {
  * @constructor
  * @memberof svl
  */
-function Compass (d3) {
+function Compass (d3, turf) {
     "use strict";
     var self = { className : 'Compass' },
         blinkInterval;
@@ -2235,6 +2235,28 @@ function Compass (d3) {
             svl.ui.compass.messageHolder.toggleClass("white-background-75");
             svl.ui.compass.messageHolder.toggleClass("highlight-50");
         }, 500);
+    }
+
+    /**
+     * Check if the user is following the route that we specified
+     * @param threshold
+     * @param unit
+     * @returns {boolean}
+     */
+    function checkEnRoute (threshold, unit) {
+        var task = svl.taskContainer.getCurrentTask();
+        if (!unit) unit = "kilometers";
+        if (!threshold) threshold = 0.05;  // 50 m
+
+        if (task) {
+            var geojson = task.getGeoJSON(),
+                latlng = svl.map.getPosition(),
+                line = geojson.features[0],
+                currentPoint = turf.point([latlng.lng, latlng.lat]),
+                snapped = turf.pointOnLine(line, currentPoint);
+            return turf.distance(currentPoint, snapped, unit) < threshold;
+        }
+        return true;
     }
 
     /**
@@ -2350,6 +2372,7 @@ function Compass (d3) {
      */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
+        blinkInterval = null;
         svl.ui.compass.messageHolder.addClass("white-background-75");
         svl.ui.compass.messageHolder.removeClass("highlight-50");
     }
@@ -2372,6 +2395,12 @@ function Compass (d3) {
         }
 
         setTurnMessage();
+
+        if (checkEnRoute()) {
+            stopBlinking();
+        } else {
+            blink();
+        }
     }
 
     /**
@@ -4702,7 +4731,7 @@ function Main ($, d3, turf, params) {
         svl.tracker = Tracker();
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
-        svl.compass = Compass(d3);
+        svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
@@ -5279,6 +5308,8 @@ function Map ($, turf, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
+
+        // Todo. This method is expanding... Maybe use a pub-sub design so the code will be cleaner.
         if ("canvas" in svl && svl.canvas) updateCanvas();
         if ("compass" in svl) svl.compass.update();
         if ("missionProgress" in svl) svl.missionProgress.update();
@@ -9484,10 +9515,8 @@ function Task (turf, geojson, currentLat, currentLng) {
             lineLength,
             cumsumRate,
             latlng = svl.map.getPosition(),
-            lat = latlng.lat,
-            lng = latlng.lng,
             line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
+            currentPoint = turf.point([latlng.lng, latlng.lat]),
             snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
@@ -9659,7 +9688,6 @@ function TaskContainer (turf) {
 
     /**
      * End the current task.
-     * Todo. Need to be fixed... Not really this function, but the nextTask() has a side effect of bringing users to different places.
      */
     function endTask () {
         if ('statusMessage' in svl) {

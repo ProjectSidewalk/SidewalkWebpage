@@ -189,7 +189,7 @@ function Main ($, d3, turf, params) {
         svl.tracker = Tracker();
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
-        svl.compass = Compass(d3);
+        svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
