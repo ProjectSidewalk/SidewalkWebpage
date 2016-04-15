@@ -23,9 +23,9 @@ function Tracker () {
             if (('x' in param) && ('y' in param)) {
                 note = 'x:' + param.x + ',y:' + param.y;
             } else if ('TargetPanoId' in param) {
-                note = param.TargetPanoId;
+                note = "targetPanoId:" + param.TargetPanoId;
             } else if ('RadioValue' in param) {
-                note = param.RadioValue;
+                note = "RadioValue:" + param.RadioValue;
             } else if ('keyCode' in param) {
                 note = 'keyCode:' + param.keyCode;
             } else if ('errorType' in param) {
@@ -41,6 +41,7 @@ function Tracker () {
             } else {
                 note = "";
             }
+            note = note + "";  // Make sure it is a string.
 
             if ("LabelType" in param && "canvasX" in param && "canvasY" in param) {
                 if (note.length != 0) { note += ","; }

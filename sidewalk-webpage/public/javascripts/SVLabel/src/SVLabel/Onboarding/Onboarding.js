@@ -1053,6 +1053,8 @@ function Onboarding ($) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
+            var data = svl.form.compileSubmissionData();
+            svl.form.submit(data);
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
@@ -1062,7 +1064,6 @@ function Onboarding ($) {
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                 onboardingMission.setProperty("isCompleted", true);
                 svl.missionContainer.stage(onboardingMission).commit();
-
             }
 
             // Set the next mission
