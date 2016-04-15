@@ -6382,6 +6382,36 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    /**
+     * Submit the currently staged missions to the server
+     * @returns {commit}
+     */
+    function commit () {
+        if (staged.length > 0) {
+            var i, data = [];
+
+            for (i = 0; i < staged.length; i++) {
+                data.push(staged[i].toSubmissionFormat());
+            }
+            staged = [];
+
+            $.ajax({
+                // async: false,
+                contentType: 'application/json; charset=utf-8',
+                url: "/mission",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+        }
+        return this;
+    }
 
     /** Get current mission */
     function getCurrentMission () {
@@ -6413,36 +6443,7 @@ function MissionContainer ($, parameters) {
         return null;
     }
 
-    /**
-     * Submit the currently staged missions to the server
-     * @returns {commit}
-     */
-    function commit () {
-        if (staged.length > 0) {
-            var i, data = [];
 
-            for (i = 0; i < staged.length; i++) {
-                data.push(staged[i].toSubmissionFormat());
-            }
-            staged = [];
-
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: "/mission",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-
-        }
-        return this;
-    }
 
     /**
      * Get all the completed missions
