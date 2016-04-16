@@ -7454,6 +7454,7 @@ function TaskContainer (turf) {
         if (!unit) unit = "kilometers";
 
         tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+        tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
         len = tasks.length;
 
         for (i = 0; i < len; i++) {
@@ -7482,7 +7483,7 @@ function TaskContainer (turf) {
             candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
             newTask = candidateTasks[0];
         }
-
+        
         var c1 = task.getLastCoordinate(),
             c2 = newTask.getStartCoordinate(),
             p1 = turf.point([c1.lng, c1.lat]),
