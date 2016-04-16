@@ -7,10 +7,11 @@ module.exports = function(grunt) {
         concat: {
             dist: {
                 src: [
-                    'src/Fog.js',
                     'lib/gsv/GSVPano.js',
                     'lib/gsv/GSVPanoPointCloud.js',
                     'src/SVLabel/*.js',
+                    'src/SVLabel/task/*.js',
+                    'src/SVLabel/mission/*.js',
                     'src/SVLabel/Util/*.js',
                     'src/SVLabel/Onboarding/Onboarding.js'
                 ],
@@ -35,6 +36,8 @@ module.exports = function(grunt) {
         jasmine: {
             src: [
                 'src/SVLabel/*.js',
+                'src/SVLabel/task/*.js',
+                'src/SVLabel/mission/*.js',
                 'src/SVLabel/util/*.js',
                 'src/SVLabel/onboarding/onboarding.js'
             ],

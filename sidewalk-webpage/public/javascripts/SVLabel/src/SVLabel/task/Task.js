@@ -258,7 +258,7 @@ function Task (turf, geojson, currentLat, currentLng) {
         for (i = closestSegmentIndex; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
-
+        
         // Create paths
         newPaths = [
             new google.maps.Polyline({

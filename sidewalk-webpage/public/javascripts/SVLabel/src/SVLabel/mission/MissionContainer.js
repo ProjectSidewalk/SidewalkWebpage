@@ -141,9 +141,7 @@ function MissionContainer ($, parameters) {
         }
         return null;
     }
-
-
-
+    
     /**
      * Get all the completed missions
      */
