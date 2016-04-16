@@ -31,7 +31,9 @@ import scala.concurrent.Future
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
 
   /**
    * This method returns a task definition in the GeoJSON format.
@@ -83,11 +85,26 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+    *
+    * @param regionId Region id
+    * @return
+    */
+  def getTasksInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId, user.userId).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+      case None =>
+        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+    }
+  }
 
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
+
   /**
    * Parse the submitted data and insert them into tables.
- *
+   *
    * @return
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

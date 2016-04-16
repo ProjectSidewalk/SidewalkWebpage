@@ -473,14 +473,14 @@
         svl.storage = new Storage(JSON);
 
         @if(user) {
-        var userParam = {
-            username : '@user.get.username',
-            completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.completed(user.get.userId).map(_.toJSON))))
-        };
-        svl.user = new User(userParam);
+            var userParam = {
+                username : '@user.get.username',
+                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.completed(user.get.userId).map(_.toJSON))))
+            };
+            svl.user = new User(userParam);
         } else {
-        var userParam = { username : "anonymous" };
-        svl.user = new User(userParam);
+            var userParam = { username : "anonymous" };
+            svl.user = new User(userParam);
         }
 
         @if(task) {

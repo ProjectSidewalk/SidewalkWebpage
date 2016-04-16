@@ -16,7 +16,7 @@ import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
-case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp)  {
+case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)  {
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
     val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
@@ -27,7 +27,8 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
       "y1" -> y1,
       "x2" -> x2,
       "y2" -> y2,
-      "task_start" -> taskStart.toString
+      "task_start" -> taskStart.toString,
+      "completed" -> completed
     )
     val feature = Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
@@ -65,6 +66,20 @@ object AuditTaskTable {
     AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption)
   })
 
+//  case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)
+
+  implicit val newTaskConverter = GetResult[NewTask](r => {
+    val edgeId = r.nextInt
+    val geom = r.nextGeometry[LineString]
+    val x1 = r.nextFloat
+    val y1 = r.nextFloat
+    val x2 = r.nextFloat
+    val y2 = r.nextFloat
+    val taskStart = r.nextTimestamp
+    val completed = r.nextIntOption.isDefined
+    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completed)
+  })
+
   val db = play.api.db.slick.DB
   val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
@@ -75,6 +90,7 @@ object AuditTaskTable {
 
   /**
     * This method returns all the tasks
+    *
     * @return
     */
   def all: List[AuditTask] = db.withSession { implicit session =>
@@ -83,6 +99,7 @@ object AuditTaskTable {
 
   /**
     * This method returns the size of the entire table
+    *
     * @return
     */
   def size: Int = db.withSession { implicit session =>
@@ -101,7 +118,7 @@ object AuditTaskTable {
 
   /**
     * Return audited street edges
- *
+    *
     * @return
     */
   def auditedStreets: List[StreetEdge] = db.withSession { implicit session =>
@@ -187,13 +204,13 @@ object AuditTaskTable {
     // Increment the assignment count and return the task
     val e: StreetEdge = Random.shuffle(edges).head
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
   }
 
   /**
    * Get task without username
-    *
-    * @return
+   *
+   * @return
    */
   def getNewTask: NewTask = db.withSession { implicit session =>
     val calendar: Calendar = Calendar.getInstance
@@ -209,11 +226,12 @@ object AuditTaskTable {
     val e: StreetEdge = Random.shuffle(edges).head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
   }
 
   /**
     * Get a new task specified by the street edge id.
+    *
     * @param streetEdgeId Street edge id
     * @return
     */
@@ -231,14 +249,14 @@ object AuditTaskTable {
     val e: StreetEdge = edges.head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
   }
 
 
   /**
    * Get a task that is connected to the end point of the current task (street edge)
-    *
-    * @param streetEdgeId Street edge id
+   *
+   * @param streetEdgeId Street edge id
    */
   def getConnectedTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
@@ -269,7 +287,7 @@ object AuditTaskTable {
         val e = edges.head
 
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
       case _ =>
         getNewTask // The list is empty for whatever the reason
     }
@@ -301,7 +319,7 @@ object AuditTaskTable {
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
       case _ => getNewTask // The list is empty for whatever the reason
     }
   }
@@ -330,34 +348,60 @@ object AuditTaskTable {
        | WHERE st_e.deleted = FALSE AND region.region_id = ? AND audit_task.audit_task_id ISNULL""".stripMargin
     )
 
-
     val edges: List[StreetEdge] = selectEdgeQuery((userId, regionId)).list
     edges match {
       case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
       case _ =>
         getNewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
     }
   }
 
+  /**
+    * Get tasks in the region
+    * @param regionId Region id
+    * @return
+    */
+  def getTasksInRegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
+    val selectTaskQuery = Q.query[Int, NewTask](
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp, NULL as audit_task_id
+        |FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge AS st_e
+        |ON st_e.geom && region.geom
+        |WHERE region.region_id = ? AND st_e.deleted IS FALSE""".stripMargin
+    )
+    selectTaskQuery(regionId).list
+  }
 
   /**
-   *
-   * @return
-   */
-//  def getOnboardingTask: NewTask = db.withSession { implicit session =>
-//    val calendar: Calendar = Calendar.getInstance
-//    val now: Date = calendar.getTime
-//    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-//    val onboardingEdges: List[StreetEdge] = streetEdges.filter(_.wayType === "onboarding").list
-//    assert(onboardingEdges.nonEmpty)  // There should be more than one onboarding edges
-//
-//    val e: StreetEdge = onboardingEdges.head
-//    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp)
-//  }
+    * Get tasks in the region
+    * @param regionId Region id
+    * @param userId User id
+    * @return
+    */
+  def getTasksInRegion(regionId: Int, userId: UUID): List[NewTask] = db.withSession { implicit session =>
+    val calendar: Calendar = Calendar.getInstance
+    val now: Date = calendar.getTime
+    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+
+    val selectTaskQuery = Q.query[(String, Int), NewTask](
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, completed_audit.audit_task_id
+        |FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge AS st_e
+        |ON st_e.geom && region.geom
+        |LEFT JOIN (
+        |    SELECT street_edge_id, audit_task_id FROM sidewalk.audit_task
+        |    WHERE user_id = ?
+        |) AS completed_audit
+        |ON st_e.street_edge_id = completed_audit.street_edge_id
+        |WHERE region.region_id = ? AND st_e.deleted IS FALSE""".stripMargin
+    )
+
+    selectTaskQuery((userId.toString, regionId)).list
+  }
 
   /**
     * Verify if there are tasks available for the user in the given region

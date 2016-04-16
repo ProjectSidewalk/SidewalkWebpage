@@ -196,18 +196,36 @@ function Main ($, d3, turf, params) {
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
 
+        var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            var neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         } else {
             var regionId = 0;
-            var neighborhood = svl.neighborhoodFactory.create(regionId);
+            neighborhood = svl.neighborhoodFactory.create(regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
+
+        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
+        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
+
+        //
+        var taskLoadComplete = false, missionLoadComplete = false;
+        function handleDataLoadComplete () {
+            if (taskLoadComplete && missionLoadComplete) {
+                // Do stuff
+                svl.missionProgress.update();
+            }
+        }
+
+        svl.taskContainer.requestTasksInARegion(neighborhood.getProperty("regionId"), function () {
+            taskLoadComplete = true;
+            handleDataLoadComplete();
+        });
 
         svl.missionContainer = MissionContainer ($, {
             callback: function () {
@@ -246,6 +264,9 @@ function Main ($, d3, turf, params) {
                 if (mission.getProperty("label") != "onboarding") {
                     svl.modalMission.setMission(mission);
                 }
+
+                missionLoadComplete = true;
+                handleDataLoadComplete();
             }
         });
         svl.missionFactory = MissionFactory ();

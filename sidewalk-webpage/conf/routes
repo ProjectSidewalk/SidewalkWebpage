@@ -30,6 +30,7 @@ GET     /task                           @controllers.TaskController.getTask
 GET     /task/next                      @controllers.TaskController.getNextTask(streetEdgeId: Int, lat: Float, lng: Float)
 GET     /task/nextInRegion              @controllers.TaskController.getTaskInRegion(regionId: Int)
 GET     /task/street/:id                @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
+GET     /tasks                          @controllers.TaskController.getTasksInRegion(regionId: Int)
 POST    /task                           @controllers.TaskController.post
 
 

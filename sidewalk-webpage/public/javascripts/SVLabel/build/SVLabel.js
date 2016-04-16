@@ -4738,18 +4738,36 @@ function Main ($, d3, turf, params) {
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
 
+        var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            var neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         } else {
             var regionId = 0;
-            var neighborhood = svl.neighborhoodFactory.create(regionId);
+            neighborhood = svl.neighborhoodFactory.create(regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
+
+        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
+        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
+
+        //
+        var taskLoadComplete = false, missionLoadComplete = false;
+        function handleDataLoadComplete () {
+            if (taskLoadComplete && missionLoadComplete) {
+                // Do stuff
+                svl.missionProgress.update();
+            }
+        }
+
+        svl.taskContainer.requestTasksInARegion(neighborhood.getProperty("regionId"), function () {
+            taskLoadComplete = true;
+            handleDataLoadComplete();
+        });
 
         svl.missionContainer = MissionContainer ($, {
             callback: function () {
@@ -4788,6 +4806,9 @@ function Main ($, d3, turf, params) {
                 if (mission.getProperty("label") != "onboarding") {
                     svl.modalMission.setMission(mission);
                 }
+
+                missionLoadComplete = true;
+                handleDataLoadComplete();
             }
         });
         svl.missionFactory = MissionFactory ();
@@ -6237,14 +6258,18 @@ function Mission(parameters) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl) {
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
-            var task = svl.taskContainer.getCurrentTask();
 
-            if (task) {
-                var cumulativeDistance = task.getCumulativeDistance(unit);
-                return cumulativeDistance / targetDistance;
-            } else {
-                return 0;
-            }
+            var cumulativeDistance = svl.taskContainer.getCumulativeDistance(unit);
+            return cumulativeDistance / targetDistance;
+
+            // var task = svl.taskContainer.getCurrentTask();
+            //
+            // if (task) {
+            //     var cumulativeDistance = task.getCumulativeDistance(unit);
+            //     return cumulativeDistance / targetDistance;
+            // } else {
+            //     return 0;
+            // }
         } else {
             return 0;
         }
@@ -6329,7 +6354,6 @@ function Mission(parameters) {
 
     return self;
 }
-
 /**
  * MissionContainer module
  * @param parameters
@@ -6372,8 +6396,8 @@ function MissionContainer ($, parameters) {
             }
         }
 
-        
-        
+
+
         if ("callback" in parameters) {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
         } else {
@@ -6448,7 +6472,7 @@ function MissionContainer ($, parameters) {
     function getCurrentMission () {
         return currentMission;
     }
-    
+
     /**
      * Get a mission stored in the missionStoreByRegionId.
      * @param regionId
@@ -6463,9 +6487,9 @@ function MissionContainer ($, parameters) {
         for (i = 0; i < len; i++) {
             if (missions[i].getProperty("label") == label) {
                 if (level) {
-                  if (level == missions[i].getProperty("level")) {
-                      return missions[i];
-                  }
+                    if (level == missions[i].getProperty("level")) {
+                        return missions[i];
+                    }
                 } else {
                     return missions[i];
                 }
@@ -6534,7 +6558,7 @@ function MissionContainer ($, parameters) {
         }
         return this;
     }
-    
+
     /**
      * Push the completed mission to the staged so it will be submitted to the server.
      * @param mission
@@ -6559,7 +6583,6 @@ function MissionContainer ($, parameters) {
     self.setCurrentMission = setCurrentMission;
     return self;
 }
-
 /**
  * MissionFactory module
  * @param parameters
@@ -9331,7 +9354,8 @@ function Task (turf, geojson, currentLat, currentLng) {
         lat, lng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
-        status = { };
+        status = { isCompleted: false },
+        properties = { streetEdgeId: null };
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -9347,6 +9371,8 @@ function Task (turf, geojson, currentLat, currentLng) {
             lng2 = geojson.features[0].geometry.coordinates[len][0];
         _geojson = geojson;
 
+        setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
+
         if (currentLat && currentLng) {
             // Continuing from the previous task (i.e., currentLat and currentLng exist).
             var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
@@ -9361,10 +9387,15 @@ function Task (turf, geojson, currentLat, currentLng) {
         lat = _geojson.features[0].geometry.coordinates[0][1];
         lng = _geojson.features[0].geometry.coordinates[0][0];
         paths = null;
+    }
 
-        // Render the path for the current task.
-        // Todo. Move the definition of the render() to the Map.js
-        render();
+    /**
+     * Set the isCompleted status to true
+     * @returns {complete}
+     */
+    function complete () {
+        status.isCompleted = true;
+        return this;
     }
 
     /**
@@ -9412,10 +9443,8 @@ function Task (turf, geojson, currentLat, currentLng) {
         var i,
             point,
             latlng = svl.map.getPosition(),
-            lat = latlng.lat,
-            lng = latlng.lng,
             line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
+            currentPoint = turf.point([latlng.lng, latlng.lat]),
             snapped = turf.pointOnLine(line, currentPoint),
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
@@ -9429,7 +9458,7 @@ function Task (turf, geojson, currentLat, currentLng) {
         // Check if the snapped point is not too far away from the current point. Then add the distance between the
         // snapped point and the last segment point to cumSum.
         if (turf.distance(snapped, currentPoint, units) < 100) {
-            point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]])
+            point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
             cumSum += turf.distance(snapped, point);
         }
         distance += cumSum;
@@ -9461,6 +9490,14 @@ function Task (turf, geojson, currentLat, currentLng) {
             d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
             return d < threshold;
         }
+    }
+
+    /**
+     * Returns if the task is completed or not
+     * @returns {boolean}
+     */
+    function isCompleted () {
+        return status.isCompleted;
     }
 
     /**
@@ -9626,8 +9663,19 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    function setProperty (key, value) {
+        properties[key] = value;
+    }
+
     _init (geojson, currentLat, currentLng);
 
+    self.getProperty = getProperty;
+    self.setProperty = setProperty;
+    self.complete = complete;
     self.getCumulativeDistance = getCumulativeDistance;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
@@ -9638,10 +9686,12 @@ function Task (turf, geojson, currentLat, currentLng) {
     };
     self.initialLocation = initialLocation;
     self.isAtEnd = isAtEnd;
+    self.isCompleted = isCompleted;
     self.render = render;
 
     return self;
 }
+
 
 /**
  * TaskContainer module.
@@ -9654,7 +9704,8 @@ function TaskContainer (turf) {
     var self = { className: "TaskContainer" },
         previousTasks = [],
         currentTask = null,
-        paths, previousPaths = [];
+        paths, previousPaths = [],
+        taskStoreByRegionId = {};
 
     /**
      * I had to make this method to wrap the street view service.
@@ -9717,7 +9768,7 @@ function TaskContainer (turf) {
                 svl.form.submit(data);
             }
         }
-        
+
         push(currentTask); // Push the data into previousTasks
 
         // Clear the current paths
@@ -9747,11 +9798,15 @@ function TaskContainer (turf) {
     }
 
     /**
-     * This method returns the completed tasks
+     * This method returns the completed tasks in the given region
+     * @param regionId
      * @returns {Array}
      */
-    function getCompletedTasks () {
-        return previousTasks;
+    function getCompletedTasks (regionId) {
+        if (!(regionId in taskStoreByRegionId) || !Array.isArray(taskStoreByRegionId[regionId])) return null;
+        return taskStoreByRegionId[regionId].filter(function (task) {
+            return task.isCompleted();
+        });
     }
 
     /**
@@ -9760,6 +9815,10 @@ function TaskContainer (turf) {
      */
     function getCurrentTask () {
         return currentTask;
+    }
+
+    function getTasksInRegion (regionId) {
+        return regionId in taskStoreByRegionId ? taskStoreByRegionId[regionId] : null;
     }
 
     /**
@@ -9787,6 +9846,9 @@ function TaskContainer (turf) {
      */
     function nextTask (task) {
         var newTask = null;
+
+        // Todo. Search for the next task in the region
+        // In case
         if (task) {
             var streetEdgeId = task.getStreetEdgeId(),
                 _geojson = task.getGeoJSON();
@@ -9830,7 +9892,7 @@ function TaskContainer (turf) {
                 }
             });
         }
-        
+
         return newTask;
     }
 
@@ -9840,6 +9902,39 @@ function TaskContainer (turf) {
      */
     function push (task) {
         previousTasks.push(task);
+    }
+
+    /**
+     * Request the server to populate tasks
+     * @param regionId {number} Region id
+     * @param callback A callback function
+     * @param async {boolean}
+     */
+    function requestTasksInARegion(regionId, callback, async) {
+        if (typeof async == "undefined") async = true;
+
+        if (typeof regionId == "number") {
+            $.ajax({
+                url: "/tasks?regionId=" + regionId,
+                async: async,
+                type: 'get',
+                success: function (result) {
+                    var task;
+                    for (var i = 0; i < result.length; i++) {
+                        task = svl.taskFactory.create(result[i]);
+                        if ((result[i].features[0].properties.completed)) task.complete();
+                        storeTask(regionId, task);
+                    }
+
+                    if (callback) callback();
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        } else {
+            console.error("regionId should be an integer value");
+        }
     }
 
     /**
@@ -9854,6 +9949,17 @@ function TaskContainer (turf) {
             svl.compass.showMessage();
             svl.compass.update();
         }
+    }
+
+    /**
+     * Store a task into taskStoreByRegionId
+     * @param regionId {number} Region id
+     * @param task {object} Task object
+     */
+    function storeTask(regionId, task) {
+        if (!(regionId in taskStoreByRegionId)) taskStoreByRegionId[regionId] = [];
+        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) { return task.getProperty("streetEdgeId"); });
+        if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
     /**
@@ -9910,17 +10016,19 @@ function TaskContainer (turf) {
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
+    self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.nextTask = nextTask;
     self.push = push;
+    self.requestTasksInARegion = requestTasksInARegion;
     self.setCurrentTask = setCurrentTask;
+    self.storeTask = storeTask;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
 
     return self;
 }
-
 /**
  * TaskFactory module.
  * @param turf
@@ -9987,8 +10095,6 @@ function TaskFactory (turf) {
 
     return self;
 }
-
-
 /**
  *
  * @returns {{className: string}}
