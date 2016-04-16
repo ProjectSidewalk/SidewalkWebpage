@@ -6394,10 +6394,11 @@ function Tracker () {
     return self;
 }
 
+
 function TrackerViewer () {
     var self = { className: "TrackerViewer" },
         items = [];
-    
+
     function add (action) {
         if (action.action == "LabelingCanvas_FinishLabeling") {
             var notes = action.note.split(","),
