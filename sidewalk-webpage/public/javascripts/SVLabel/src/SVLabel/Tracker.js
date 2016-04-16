@@ -104,8 +104,8 @@ function Tracker () {
         };
         actions.push(item);
 
-        // Todo. Submit the data collected thus far if actions is too long.
-        if (actions.length > 150) {
+        // Submit the data collected thus far if actions is too long.
+        if (actions.length > 30) {
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);
