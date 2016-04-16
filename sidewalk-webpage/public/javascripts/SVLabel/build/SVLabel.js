@@ -3234,1312 +3234,6 @@ function Keyboard ($) {
     return self;
 }
 
-var svl = svl || {};
-
-/**
- * A Label module.
- * @param pathIn
- * @param params
- * @returns {*}
- * @constructor
- * @memberof svl
- */
-function Label (pathIn, params) {
-    var self = { className: 'Label' };
-
-    var path, googleMarker;
-
-    var properties = {
-        canvasWidth: undefined,
-        canvasHeight: undefined,
-        canvasDistortionAlphaX: undefined,
-        canvasDistortionAlphaY: undefined,
-        distanceThreshold: 100,
-        labelerId : 'DefaultValue',
-        labelId: 'DefaultValue',
-        labelType: undefined,
-        labelDescription: undefined,
-        labelFillStyle: undefined,
-        panoId: undefined,
-        panoramaLat: undefined,
-        panoramaLng: undefined,
-        panoramaHeading: undefined,
-        panoramaPitch: undefined,
-        panoramaZoom: undefined,
-        photographerHeading: undefined,
-        photographerPitch: undefined,
-        svImageWidth: undefined,
-        svImageHeight: undefined,
-        svMode: undefined,
-        tagHeight: 20,
-        tagWidth: 1,
-        tagX: -1,
-        tagY: -1,
-        severity: null,
-        temporaryProblem: null,
-        description: null
-    };
-
-    var status = {
-        deleted : false,
-        tagVisibility : 'visible',
-        visibility : 'visible'
-    };
-
-    var lock = {
-        tagVisibility: false,
-        visibility : false
-    };
-
-    function _init (param, pathIn) {
-        try {
-            if (!pathIn) {
-                throw 'The passed "path" is empty.';
-            } else {
-                path = pathIn;
-            }
-
-            for (var attrName in param) {
-                properties[attrName] = param[attrName];
-            }
-
-            // Set belongs to of the path.
-            path.setBelongsTo(self);
-
-            if (typeof google != "undefined" && google && google.maps) {
-                googleMarker = createGoogleMapsMarker(param.labelType);
-                googleMarker.setMap(svl.map.getMap());
-            }
-
-            return true;
-        } catch (e) {
-            console.error(self.className, ':', 'Error initializing the Label object.', e);
-            return false;
-        }
-    }
-
-    /**
-     * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
-     * @param numberOfBlinks
-     * @param fade
-     * @returns {blink}
-     */
-    function blink (numberOfBlinks, fade) {
-        if (!numberOfBlinks) {
-            numberOfBlinks = 3;
-        } else if (numberOfBlinks < 0) {
-            numberOfBlinks = 0;
-        }
-        var interval;
-        var highlighted = true;
-        var path = getPath();
-        var points = path.getPoints();
-
-        var i;
-        var len = points.length;
-
-        var fillStyle = 'rgba(200,200,200,0.1)';
-        var fillStyleHighlight = path.getFillStyle();
-
-        interval = setInterval(function () {
-            if (numberOfBlinks > 0) {
-                if (highlighted) {
-                    highlighted = false;
-                    path.setFillStyle(fillStyle);
-                    for (i = 0; i < len; i++) {
-                        points[i].setFillStyle(fillStyle);
-                    }
-                    svl.canvas.clear().render2();
-                } else {
-                    highlighted = true;
-                    path.setFillStyle(fillStyleHighlight);
-                    for (i = 0; i < len; i++) {
-                        points[i].setFillStyle(fillStyleHighlight);
-                    }
-                    svl.canvas.clear().render2();
-                    numberOfBlinks -= 1;
-                }
-            } else {
-                if (fade) {
-                    path.setFillStyle(fillStyle);
-                    for (i = 0; i < len; i++) {
-                        points[i].setFillStyle(fillStyle);
-                    }
-                    svl.canvas.clear().render2();
-                }
-
-                setAlpha(0.05);
-                svl.canvas.clear().render2();
-                window.clearInterval(interval);
-            }
-        }, 500);
-
-        return this;
-    }
-
-    /**
-     * This method creates a Google Maps marker.
-     * https://developers.google.com/maps/documentation/javascript/markers
-     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
-     * @returns {google.maps.Marker}
-     */
-    function createGoogleMapsMarker (labelType) {
-        if (typeof google != "undefined") {
-            var latlng = toLatLng(),
-                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-                imagePaths = svl.misc.getIconImagePaths(),
-                url = imagePaths[labelType].googleMapsIconImagePath
-
-            return new google.maps.Marker({
-                position: googleLatLng,
-                map: svl.map.getMap(),
-                title: "Hi!",
-                icon: url,
-                size: new google.maps.Size(20, 20)
-            });
-        }
-    }
-
-    /**
-     * This method turn the associated Path and Points into gray.
-     * @param mode
-     * @returns {fadeFillStyle}
-     */
-    function fadeFillStyle (mode) {
-        var path = getPath(),
-            points = path.getPoints(),
-            len = points.length, fillStyle;
-
-        if (!mode) { mode = 'default'; }
-
-        fillStyle = mode == 'gray' ? 'rgba(200,200,200,0.5)' : 'rgba(255,165,0,0.8)';
-        path.setFillStyle(fillStyle);
-        for (var i = 0; i < len; i++) {
-            points[i].setFillStyle(fillStyle);
-        }
-        return this;
-    }
-
-    /**
-     * This method changes the fill color of the path and points that constitute the path.
-     * @param fillColor
-     * @returns {fill}
-     */
-    function fill (fillColor) {
-        var path = getPath(), points = path.getPoints(), len = points.length;
-        path.setFillStyle(fillColor);
-        for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
-        return this;
-    }
-
-    /**
-     * This method returns the boudning box of the label's outline.
-     * @param pov
-     * @returns {*}
-     */
-    function getBoundingBox (pov) {
-        return getPath().getBoundingBox(pov);
-    }
-
-    /**
-     * This function returns the coordinate of a point.
-     * @returns {*}
-     */
-    function getCoordinate () {
-        if (path && path.points.length > 0) {
-            var pov = svl.map.getPov();
-            return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
-        }
-        return path;
-    }
-
-    /**
-     * This function return the coordinate of a point in the GSV image coordinate.
-     * @returns {*}
-     */
-    function getGSVImageCoordinate () {
-        if (path && path.points.length > 0) {
-            return path.points[0].getGSVImageCoordinate();
-        }
-    }
-
-    /**
-     * Get image coordinates of the child path
-     * @returns {*}
-     */
-    function getImageCoordinates () {
-        return path ? path.getImageCoordinates() : false;
-    }
-
-    /**
-     * This function returns labelId property
-     * @returns {string}
-     */
-    function getLabelId () {
-        return properties.labelId;
-    }
-
-    /**
-     * This function returns labelType property
-     * @returns {*}
-     */
-    function getLabelType () { return properties.labelType; }
-
-    /**
-     * This function returns the coordinate of a point.
-     * If reference is true, return a reference to the path instead of a copy of the path
-     * @param reference
-     * @returns {*}
-     */
-    function getPath (reference) {
-        if (path) {
-            return reference ? path : $.extend(true, {}, path);
-        }
-        return false;
-    }
-
-    /**
-     * This function returns the coordinate of the first point in the path.
-     * @returns {*}
-     */
-    function getPoint () { return (path && path.points.length > 0) ? path.points[0] : path; }
-
-    /**
-     * This function returns the point objects that constitute the path
-     * If reference is set to true, return the reference to the points
-     * @param reference
-     * @returns {*}
-     */
-    function getPoints (reference) { return path ? path.getPoints(reference) : false; }
-
-    /**
-     * This method returns the pov of this label
-     * @returns {{heading: Number, pitch: Number, zoom: Number}}
-     */
-    function getLabelPov () {
-        var heading, pitch = parseInt(properties.panoramaPitch, 10),
-            zoom = parseInt(properties.panoramaZoom, 10),
-            points = getPoints(),
-            svImageXs = points.map(function(point) { return point.svImageCoordinate.x; }),
-            labelSvImageX;
-
-        if (svImageXs.max() - svImageXs.min() > (svl.svImageWidth / 2)) {
-            svImageXs = svImageXs.map(function (x) {
-                if (x < (svl.svImageWidth / 2)) {
-                    x += svl.svImageWidth;
-                }
-                return x;
-            });
-            labelSvImageX = parseInt(svImageXs.mean(), 10) % svl.svImageWidth;
-        } else {
-            labelSvImageX = parseInt(svImageXs.mean(), 10);
-        }
-        heading = parseInt((labelSvImageX / svl.svImageWidth) * 360, 10) % 360;
-
-        return {
-            heading: parseInt(heading, 10),
-            pitch: pitch,
-            zoom: zoom
-        };
-    }
-
-    /**
-     * Return the deep copy of the properties object,
-     * so the caller can only modify properties from
-     * setProperties() (which I have not implemented.)
-     * JavaScript Deepcopy
-     * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
-     */
-    function getProperties () { return $.extend(true, {}, properties); }
-
-    /**
-     * Get a property
-     * @param propName
-     * @returns {boolean}
-     */
-    function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
-
-    /**
-     * Get a status
-     * @param key
-     * @returns {*}
-     */
-    function getStatus (key) { return status[key]; }
-
-    function getVisibility () { return status.visibility; }
-
-    /**
-     * This method changes the fill color of the path and points to orange.
-     */
-    function highlight () { return fill('rgba(255,165,0,0.8)'); }
-
-    /**
-     * Check if the label is deleted
-     * @returns {boolean}
-     */
-    function isDeleted () { return status.deleted; }
-
-
-    /**
-     * Check if a path is under a cursor
-     * @param x
-     * @param y
-     * @returns {boolean}
-     */
-    function isOn (x, y) {
-        if (status.deleted || status.visibility === 'hidden') {  return false; }
-        var result = path.isOn(x, y);
-        return result ? result : false;
-    }
-
-    /**
-     * This method returns the visibility of this label.
-     * @returns {boolean}
-     */
-    function isVisible () {
-        return status.visibility === 'visible';
-    }
-
-    /**
-     * Lock tag visibility
-     * @returns {lockTagVisibility}
-     */
-    function lockTagVisibility () {
-        lock.tagVisibility = true;
-        return this;
-    }
-
-    /**
-     * Lock visibility
-     * @returns {lockVisibility}
-     */
-    function lockVisibility () {
-        lock.visibility = true;
-        return this;
-    }
-
-    /**
-     * This method calculates the area overlap between this label and another label passed as an argument.
-     * @param label
-     * @param mode
-     * @returns {*|number}
-     */
-    function overlap (label, mode) {
-        if (!mode) mode = "boundingbox";
-        if (mode !== "boundingbox") { throw self.className + ": " + mobede + " is not a valid option."; }
-        var path1 = getPath(),
-            path2 = label.getPath();
-        return path1.overlap(path2, mode);
-    }
-
-    /**
-     * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
-     */
-    function remove () {
-        setStatus('deleted', true);
-        setStatus('visibility', 'hidden');
-    }
-
-    /**
-     * This function removes the path and points in the path.
-     */
-    function removePath () {
-        path.removePoints();
-        path = undefined;
-    }
-
-    /**
-     * This method renders this label on a canvas.
-     * @param ctx
-     * @param pov
-     * @param evaluationMode
-     * @returns {self}
-     */
-    function render (ctx, pov, evaluationMode) {
-        if (!evaluationMode) {
-            evaluationMode = false;
-        }
-        if (!status.deleted) {
-            if (status.visibility === 'visible') {
-                // Render a tag
-                // Get a text to render (e.g, attribute type), and
-                // canvas coordinate to render the tag.
-                if(status.tagVisibility == 'visible') {
-                    renderTag(ctx);
-                    // path.renderBoundingBox(ctx);
-                    showDelete();
-                }
-
-                // Render a path
-                path.render2(ctx, pov);
-            } else if (false) {
-                // Render labels that are not in the current panorama but are close enough.
-                // Get the label'svar latLng = toLatLng();
-                var currLat = svl.panorama.location.latLng.lat(),
-                    currLng = svl.panorama.location.latLng.lng();
-                var d = svl.util.math.haversine(currLat, currLng, latLng.lat, latLng.lng);
-                var offset = toOffset();
-
-                if (d < properties.distanceThreshold) {
-                    var dPosition = svl.util.math.latlngInverseOffset(currLat, currLat - latLng.lat, currLng - latLng.lng);
-
-                    var dx = offset.dx - dPosition.dx;
-                    var dy = offset.dy - dPosition.dy;
-                    var dz = offset.dz;
-
-                    var idx = svl.pointCloud.search(svl.panorama.pano, {x: dx, y: dy, z: dz});
-                    var ix = idx / 3 % 512;
-                    var iy = (idx / 3 - ix) / 512;
-                    var imageCoordinateX = ix * 26;
-                    var imageCoordinateY = 3328 - iy * 26;
-                    var canvasPoint = svl.misc.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
-
-                    console.log(canvasPoint);
-                    ctx.save();
-                    ctx.strokeStyle = 'rgba(255,255,255,1)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(canvasPoint.x, canvasPoint.y, 10, 2 * Math.PI, 0, true);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.fillStyle = path.getProperty('fillStyle'); // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
-                    ctx.fill();
-                    ctx.restore();
-
-                    //new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters)
-                    //new Label(new Path(), params)
-                }
-            }
-        }
-
-        // Show a label on the google maps pane.
-        if (!isDeleted()) {
-            if (googleMarker && !googleMarker.map) {
-                googleMarker.setMap(svl.map.getMap());
-            }
-        } else {
-            if (googleMarker && googleMarker.map) {
-                googleMarker.setMap(null);
-            }
-        }
-        return this;
-    }
-
-    /**
-     * This function renders a tag on a canvas to show a property of the label
-     * @param ctx
-     * @returns {boolean}
-     */
-    function renderTag(ctx) {
-        if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
-
-        var labelCoordinate = getCoordinate(),
-            cornerRadius = 3,
-            i, w, height, width,
-            msg = properties.labelDescription,
-            messages = msg.split('\n'),
-            padding = { left: 12, right: 5, bottom: 0, top: 18};
-
-        if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
-
-        // Set rendering properties and draw a tag
-        ctx.save();
-        ctx.font = '10.5pt Calibri';
-        height = properties.tagHeight * messages.length;
-        width = -1;
-        for (i = 0; i < messages.length; i += 1) {
-            w = ctx.measureText(messages[i]).width + 5;
-            if (width < w) { width = w; }
-        }
-        properties.tagWidth = width;
-
-        ctx.lineCap = 'square';
-        ctx.lineWidth = 2;
-        ctx.fillStyle = svl.util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-
-        // Tag background
-        ctx.beginPath();
-        ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
-        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
-        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + cornerRadius, cornerRadius, 3 * Math.PI / 2, 0, false); // Corner
-        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right + cornerRadius, labelCoordinate.y + height + padding.bottom);
-        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + height + cornerRadius, cornerRadius, 0, Math.PI / 2, false); // Corner
-        ctx.lineTo(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + 2 * cornerRadius);
-        ctx.arc(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
-        ctx.lineTo(labelCoordinate.x, labelCoordinate.y + cornerRadius);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-
-        // Tag text
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
-        ctx.restore();
-    }
-
-    /**
-     * This method turn the fill color of associated Path and Points into their original color.
-     * @returns {resetFillStyle}
-     */
-    function resetFillStyle () {
-        var path = getPath(), points = path.getPoints(),
-            i, len = points.length;
-        path.resetFillStyle();
-        for (i = 0; i < len; i++) {
-            points[i].resetFillStyle();
-        }
-        return this;
-    }
-
-    /**
-     * This function sets properties.tag.x and properties.tag.y to 0
-     * @returns {resetTagCoordinate}
-     */
-    function resetTagCoordinate () {
-        properties.tagX = 0;
-        properties.tagY = 0;
-        return this;
-    }
-
-    /**
-     * This method changes the alpha channel of the fill color of the path and points that constitute the path.
-     * @param alpha
-     * @returns {setAlpha}
-     */
-    function setAlpha (alpha) {
-        var path = getPath(),
-            points = path.getPoints(),
-            len = points.length,
-            fillColor = path.getFill();
-        alpha = alpha ? alpha : 0.3;
-        fillColor = svl.util.color.changeAlphaRGBA(fillColor, alpha);
-        path.setFillStyle(fillColor);
-        for (var i = 0; i < len; i++) {
-            points[i].setFillStyle(fillColor);
-        }
-        return this;
-    }
-
-    /**
-     * This function sets the icon path of the point this label holds.
-     * @param iconPath
-     * @returns {*}
-     */
-    function setIconPath (iconPath) {
-        if (path && path.points[0]) {
-            var point = path.points[0];
-            point.setIconPath(iconPath);
-            return this;
-        }
-        return false;
-    }
-
-    /**
-     * Set the labeler id
-     * @param labelerIdIn
-     * @returns {setLabelerId}
-     */
-    function setLabelerId (labelerIdIn) {
-        properties.labelerId = labelerIdIn;
-        return this;
-    }
-
-    /**
-     * Sets a property
-     * @param key
-     * @param value
-     * @returns {setProperty}
-     */
-    function setProperty (key, value) {
-        properties[key] = value;
-        return this;
-    }
-
-    /**
-     * Set status
-     * @param key
-     * @param value
-     */
-    function setStatus (key, value) {
-        if (key in status) {
-            if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
-                setVisibility(value);
-            } else if (key === 'tagVisibility' && (value === 'visible' || value === 'hidden')) {
-                setTagVisibility(value);
-            } else if (key === 'deleted' && typeof value === 'boolean') {
-                status[key] = value;
-            }
-        }
-    }
-
-    /**
-     * Set the visibility of the tag
-     * @param visibility {string} visible or hidden
-     * @returns {setTagVisibility}
-     */
-    function setTagVisibility (visibility) {
-        if (!lock.tagVisibility) {
-            if (visibility === 'visible' || visibility === 'hidden') {
-                status['tagVisibility'] = visibility;
-            }
-        }
-        return this;
-    }
-
-    /**
-     * This function sets the sub label type of this label. E.g. for a bus stop there are StopSign_OneLeg
-     * @param labelType
-     * @returns {setSubLabelDescription}
-     */
-    function setSubLabelDescription (labelType) {
-        var labelDescriptions = svl.misc.getLabelDescriptions();
-        properties.labelProperties.subLabelDescription = labelDescriptions[labelType].text;
-        return this;
-    }
-
-    /**
-     * Set this label's visibility to the passed visibility
-     * @param visibility
-     * @param labelerIds
-     * @param included
-     * @returns {setVisibilityBasedOnLabelerId}
-     */
-    function setVisibilityBasedOnLabelerId (visibility, labelerIds, included) {
-        if (included === undefined) {
-            if (labelerIds.indexOf(properties.labelerId) !== -1) {
-                unlockVisibility().setVisibility(visibility).lockVisibility();
-            } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                unlockVisibility().setVisibility(visibility).lockVisibility();
-            }
-        } else {
-            if (included) {
-                if (labelerIds.indexOf(properties.labelerId) !== -1) {
-                    unlockVisibility().setVisibility(visibility).lockVisibility();
-                }
-            } else {
-                if (labelerIds.indexOf(properties.labelerId) === -1) {
-                    unlockVisibility().setVisibility(visibility).lockVisibility();
-                }
-            }
-        }
-
-        return this;
-    }
-
-    /**
-     * Set the visibility of the label
-     * @param visibility
-     * @returns {setVisibility}
-     */
-    function setVisibility (visibility) {
-        if (!lock.visibility) { status.visibility = visibility; }
-        return this;
-    }
-
-    /**
-     * Set visibility of labels
-     * @param visibility
-     * @param panoId
-     * @returns {setVisibilityBasedOnLocation}
-     */
-    function setVisibilityBasedOnLocation (visibility, panoramaId) {
-        if (!status.deleted) {
-            if (panoramaId === properties.panoId) {
-                setVisibility(visibility);
-            } else {
-                visibility = visibility == 'visible' ? 'hidden' : 'visible';
-                setVisibility(visibility);
-            }
-        }
-        return this;
-    }
-
-    /**
-     *
-     * @param visibility
-     * @param tables
-     * @param included
-     */
-    function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, tables, included) {
-        var tablesLen = tables.length, matched = false;
-
-        for (var i = 0; i < tablesLen; i += 1) {
-            if (tables[i].userIds.indexOf(properties.labelerId) !== -1) {
-                if (tables[i].labelTypesToRender.indexOf(properties.labelProperties.labelType) !== -1) {
-                    matched = true;
-                }
-            }
-        }
-        if (included === undefined) {
-            if (matched) {
-                unlockVisibility().setVisibility(visibility).lockVisibility();
-            } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                unlockVisibility().setVisibility(visibility).lockVisibility();
-            }
-        } else {
-            if (included) {
-                if (matched) {
-                    unlockVisibility().setVisibility(visibility).lockVisibility();
-                }
-            } else {
-                if (!matched) {
-                    unlockVisibility().setVisibility(visibility).lockVisibility();
-                }
-            }
-        }
-    }
-
-    /**
-     * Show the delete button
-     */
-    function showDelete() {
-        if (status.tagVisibility !== 'hidden') {
-            var boundingBox = path.getBoundingBox(),
-                x = boundingBox.x + boundingBox.width - 20,
-                y = boundingBox.y;
-
-            // Show a delete button
-            $("#delete-icon-holder").css({
-                visibility: 'visible',
-                left : x + 25, // + width - 5,
-                top : y - 20
-            });
-        }
-    }
-
-    /**
-     * Calculate the offset to the label
-     * @returns {{dx: number, dy: number, dz: number}}
-     */
-    function toOffset() {
-        var imageCoordinates = path.getImageCoordinates(),
-            pc = svl.pointCloud.getPointCloud(properties.panoId);
-        if (pc) {
-            var minDx = 1000, minDy = 1000, minDz = 1000,
-                i, p, idx, dx, dy, dz, r, minR;
-            for (i = 0; i < imageCoordinates.length; i++) {
-                p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
-                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                dx = pc.pointCloud[idx];
-                dy = pc.pointCloud[idx + 1];
-                dz = pc.pointCloud[idx + 2];
-                r = dx * dx + dy * dy;
-                minR = minDx * minDx + minDy + minDy;
-
-                if (r < minR) {
-                    minDx = dx;
-                    minDy = dy;
-                    minDz = dz;
-                }
-            }
-            return {dx: minDx, dy: minDy, dz: minDz};
-        }
-    }
-
-    /**
-     * Get the label latlng position
-     * @returns {labelLatLng}
-     */
-    function toLatLng() {
-        if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates(),
-                pc = svl.pointCloud.getPointCloud(properties.panoId);
-            if (pc) {
-                var minDx = 1000, minDy = 1000, i, delta, latlng,
-                    p, idx, dx, dy, r, minR;
-                for (i = 0; i < imageCoordinates.length; i ++) {
-                    p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                    idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                    dx = pc.pointCloud[idx];
-                    dy = pc.pointCloud[idx + 1];
-                    r = dx * dx + dy * dy;
-                    minR = minDx * minDx + minDy + minDy;
-
-                    if (r < minR) {
-                        minDx = dx;
-                        minDy = dy;
-                    }
-                }
-                delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
-                latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
-                setProperty('labelLat', latlng.lat);
-                setProperty('labelLng', latlng.lng);
-                return latlng;
-            } else {
-                return null;
-            }
-        } else {
-            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };  // Return the cached value
-        }
-
-    }
-
-    /**
-     * Unlock status.visibility
-     * @returns {unlockVisibility}
-     */
-    function unlockVisibility () {
-        lock.visibility = false;
-        return this;
-    }
-
-    /**
-     * Unlock status.tagVisibility
-     * @returns {unlockTagVisibility}
-     */
-    function unlockTagVisibility () {
-        lock.tagVisibility = false;
-        return this;
-    }
-
-    self.resetFillStyle = resetFillStyle;
-    self.blink = blink;
-    self.fadeFillStyle = fadeFillStyle;
-    self.getBoundingBox = getBoundingBox;
-    self.getGSVImageCoordinate = getGSVImageCoordinate;
-    self.getImageCoordinates = getImageCoordinates;
-    self.getLabelId = getLabelId;
-    self.getLabelType = getLabelType;
-    self.getPath = getPath;
-    self.getPoint = getPoint;
-    self.getPoints = getPoints;
-    self.getLabelPov = getLabelPov;
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.getstatus = getStatus;
-    self.getVisibility = getVisibility;
-    self.fill = fill;
-    self.isDeleted = isDeleted;
-    self.isOn = isOn;
-    self.isVisible = isVisible;
-    self.highlight = highlight;
-    self.lockTagVisibility = lockTagVisibility;
-    self.lockVisibility = lockVisibility;
-    self.overlap = overlap;
-    self.removePath = removePath;
-    self.render = render;
-    self.remove = remove;
-    self.resetTagCoordinate = resetTagCoordinate;
-    self.setAlpha = setAlpha;
-    self.setIconPath = setIconPath;
-    self.setLabelerId = setLabelerId;
-    self.setProperty = setProperty;
-    self.setStatus = setStatus;
-    self.setTagVisibility = setTagVisibility;
-    self.setSubLabelDescription = setSubLabelDescription;
-    self.setVisibility = setVisibility;
-    self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
-    self.setVisibilityBasedOnLabelerId = setVisibilityBasedOnLabelerId;
-    self.setVisibilityBasedOnLabelerIdAndLabelTypes = setVisibilityBasedOnLabelerIdAndLabelTypes;
-    self.unlockTagVisibility = unlockTagVisibility;
-    self.unlockVisibility = unlockVisibility;
-    self.toLatLng = toLatLng;
-
-    if (!_init(params, pathIn)) {
-        return false;
-    }
-    return self;
-}
-
-var svl = svl || {};
-
-/**
- * Label Container module. This is responsible of storing the label objects that were created in the current session.
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function LabelContainer() {
-    var self = {className: 'LabelContainer'};
-    var currentCanvasLabels = [],
-        prevCanvasLabels = [];
-
-    /** Returns canvas labels */
-    function getCanvasLabels () { return prevCanvasLabels.concat(currentCanvasLabels); }
-
-    /** Get current label */
-    function getCurrentLabels () { return currentCanvasLabels; }
-
-    /** Load labels */
-    function load () { currentCanvasLabels = svl.storage.get("labels"); }
-
-    /**
-     * Push a label into canvasLabels
-     * @param label
-     */
-    function push(label) {
-        currentCanvasLabels.push(label);
-        svl.labelCounter.increment(label.getProperty("labelType"));
-    }
-
-    /** Refresh */
-    function refresh () {
-        prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
-        currentCanvasLabels = [];
-    }
-
-    /**  Flush the canvasLabels */
-    function removeAll() { currentCanvasLabels = []; }
-
-    /**
-     * This function removes a passed label and its child path and points
-     * @method
-     */
-    function removeLabel (label) {
-        if (!label) { return false; }
-        svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
-        svl.labelCounter.decrement(label.getProperty("labelType"));
-        label.remove();
-
-        // Review label correctness if this is a ground truth insertion task.
-        if (("goldenInsertion" in svl) &&
-            svl.goldenInsertion &&
-            svl.goldenInsertion.isRevisingLabels()) {
-            svl.goldenInsertion.reviewLabels();
-        }
-
-        svl.canvas.clear();
-        svl.canvas.render();
-        return this;
-    }
-
-    function save () {
-        svl.storage.set("labels", currentCanvasLabels);
-    }
-
-
-    self.getCanvasLabels = getCanvasLabels;
-    self.getCurrentLabels = getCurrentLabels;
-//    self.load = load;
-    self.push = push;
-    self.refresh = refresh;
-    self.removeAll = removeAll;
-    self.removeLabel = removeLabel;
-//    self.save = save;
-    return self;
-}
-var svl = svl || {};
-
-/**
- * Label Counter module. 
- * @param d3 d3 module
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function LabelCounter (d3) {
-    var self = {className: 'LabelCounter'};
-
-    var radius = 0.4, dR = radius / 2,
-        svgWidth = 200, svgHeight = 120,
-        margin = {top: 10, right: 10, bottom: 10, left: 0},
-        padding = {left: 5, top: 15},
-        width = 200 - margin.left - margin.right,
-        height = 40 - margin.top - margin.bottom,
-        colorScheme = svl.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22;
-
-    // Prepare a group to store svg elements, and declare a text
-    var dotPlots = {
-      "CurbRamp": {
-        id: "CurbRamp",
-        description: "curb ramp",
-        left: margin.left,
-        top: margin.top,
-        fillColor: colorScheme["CurbRamp"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
-        count: 0,
-        data: []
-      },
-      "NoCurbRamp": {
-          id: "NoCurbRamp",
-          description: "missing curb ramp",
-          left: margin.left + width / 2,
-          top: margin.top,
-          // top: 2 * margin.top + margin.bottom + height,
-          fillColor: colorScheme["NoCurbRamp"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
-          count: 0,
-          data: []
-      },
-      "Obstacle": {
-        id: "Obstacle",
-        description: "obstacle",
-        left: margin.left,
-        // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-          top: 2 * margin.top + margin.bottom + height,
-        fillColor: colorScheme["Obstacle"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
-        count: 0,
-        data: []
-      },
-      "SurfaceProblem": {
-        id: "SurfaceProblem",
-        description: "surface problem",
-        left: margin.left + width / 2,
-        //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
-          top: 2 * margin.top + margin.bottom + height,
-        fillColor: colorScheme["SurfaceProblem"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
-        count: 0,
-        data: []
-      },
-        "Other": {
-            id: "Other",
-            description: "other",
-            left: margin.left,
-            top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-            fillColor: colorScheme["Other"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Other.png",
-            count: 0,
-            data: []
-        }
-    };
-
-    var keys = Object.keys(dotPlots);
-
-    var x = d3.scale.linear()
-              .domain([0, 20])
-              .range([0, width]);
-
-    var y = d3.scale.linear()
-            .domain([0, 20])
-            .range([height, 0]);
-
-    var svg = d3.select('#label-counter')
-                  .append('svg')
-                  .attr('width', svgWidth)
-                  .attr('height', svgHeight);
-
-    var chart = svg.append('g')
-                  .attr('width', svgWidth)
-                  .attr('height', svgHeight)
-                  .attr('class', 'chart')
-                  .attr('transform', function () {
-                     return 'translate(0,0)';
-                  });
-
-    for (var key in dotPlots) {
-        dotPlots[key].g = chart.append('g')
-                    .attr('transform', 'translate(' + dotPlots[key].left + ',' + dotPlots[key].top + ')')
-                    .attr('width', width)
-                    .attr('height', height)
-                    .attr('class', 'main');
-
-        dotPlots[key].label = dotPlots[key].g.selectAll("text.label")
-            .data([0])
-            .enter()
-            .append("text")
-            .text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
-                return ret;
-            })
-            .style("font-size", "10px")
-            .attr("class", "visible")
-            .attr('transform', 'translate(0,' + imageHeight + ')');
-
-        dotPlots[key].plot = dotPlots[key].g.append("g")
-            .attr('transform', 'translate(' + (padding.left + imageWidth) + ',' + 0 + ')');
-
-        dotPlots[key].g.append("image")
-            .attr("xlink:href", dotPlots[key].imagePath)
-            .attr("width", imageWidth)
-            .attr("height", imageHeight)
-            .attr('transform', 'translate(0,-15)');
-      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-      //  .data([0])
-      //  .enter()
-      //  .append("text")
-      //  .style("font-size", "11px")
-      //  .style("fill", "gray")
-      //  .attr("class", "visible");
-    }
-
-    /**
-     * Set label counts to 0
-     */
-    function reset () {
-        for (var key in dotPlots) {
-            set(key, 0);
-        }
-    }
-
-    /**
-     * Update the label count visualization.
-     * @param key {string} Label type
-     */
-    function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
-        // Otherwise update all.
-        if (key) {
-          _update(key)
-        } else {
-          for (var key in dotPlots) {
-            _update(key);
-          }
-        }
-
-        // Actual update function
-        function _update(key) {
-            if (keys.indexOf(key) == -1) { key = "Other"; }
-
-            var firstDigit = dotPlots[key].count % 10,
-              higherDigits = (dotPlots[key].count - firstDigit) / 10,
-              count = firstDigit + higherDigits;
-
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
-
-            // Update the dot plot
-            if (dotPlots[key].data.length >= count) {
-              // Remove dots
-              dotPlots[key].data = dotPlots[key].data.slice(0, count);
-
-                dotPlots[key].plot.selectAll("circle")
-                  .transition().duration(500)
-                  .attr("r", function (d, i) {
-                    return i < higherDigits ? x(radius + dR) : x(radius);
-                  })
-                  .attr("cy", function (d, i) {
-                    if (i < higherDigits) {
-                        return 0;
-                    } else {
-                        return x(dR);
-                    }
-                  });
-
-                dotPlots[key].plot.selectAll("circle")
-                  .data(dotPlots[key].data)
-                  .exit()
-                  .transition()
-                  .duration(500)
-                  .attr("cx", function () {
-                    return x(higherDigits);
-                  })
-                  .attr("r", 0)
-                  .remove();
-            } else {
-              // Add dots
-              var len = dotPlots[key].data.length;
-              for (var i = 0; i < count - len; i++) {
-                  dotPlots[key].data.push([len + i, 0, radius])
-              }
-              dotPlots[key].plot.selectAll("circle")
-                .data(dotPlots[key].data)
-                .enter().append("circle")
-                .attr("cx", x(0))
-                .attr("cy", 0)
-                .attr("r", x(radius + dR))
-                .style("fill", dotPlots[key].fillColor)
-                .transition().duration(1000)
-                .attr("cx", function (d, i) {
-                  if (i <= higherDigits) {
-                    return x(d[0] * 2 * (radius + dR));
-                  } else {
-                    return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
-                  }
-                })
-                .attr("cy", function (d, i) {
-                  if (i < higherDigits) {
-                    return 0;
-                  } else {
-                    return x(dR);
-                  }
-                })
-                .attr("r", function (d, i) {
-                  return i < higherDigits ? x(radius + dR) : x(radius);
-                });
-            }
-            dotPlots[key].label.text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
-                return ret;
-            });
-        }
-    }
-
-    /**
-     * Decrement the label count
-     * @param key {string} Label type
-     */
-    function decrement(key) {
-        if (keys.indexOf(key) == -1) { key = "Other"; }
-        if (key in dotPlots && dotPlots[key].count > 0) {
-            dotPlots[key].count -= 1;
-        }
-        update(key);
-    }
-
-    /**
-     * Increment the label count
-     * @param key {string} Label type
-     */
-    function increment(key) {
-        if (keys.indexOf(key) == -1) { key = "Other"; }
-        if (key in dotPlots) {
-            dotPlots[key].count += 1;
-            update(key);
-        }
-    }
-
-    /**
-     * Set the number of label count
-     * @param key {string} Label type
-     * @param num {number} Label type count
-     */
-    function set(key, num) {
-        dotPlots[key].count = num;
-        update(key);
-    }
-
-    // Initialize
-    update();
-
-    self.increment = increment;
-    self.decrement = decrement;
-    self.set = set;
-    self.reset = reset;
-    return self;
-}
-/**
- * LabelFactory module.
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function LabelFactory () {
-    var self = { className: "LabelFactory" },
-        temporaryLabelId = 1;
-
-    function create (path, param) {
-        var label = new Label(path, param);
-        if (label) {
-            if (!('labelId' in param)) {
-                label.setProperty("temporary_label_id", temporaryLabelId);
-                temporaryLabelId++;
-            }
-            return label;
-        }
-    }
-
-    self.create = create;
-    return self;
-}
 /** @namespace */
 var svl = svl || {};
 
@@ -6595,7 +5289,6 @@ function Neighborhood (parameters) {
     self.setProperty = setProperty;
     return self;
 }
-
 /**
  * NeighborhoodContainer module
  * @param parameters
@@ -6661,7 +5354,6 @@ function NeighborhoodContainer (parameters) {
 
     return self;
 }
-
 /**
  * Neighborhood factory module
  * @returns {{className: string}}
@@ -6683,7 +5375,6 @@ function NeighborhoodFactory () {
     self.create = create;
     return self;
 }
-
 var svl = svl || {};
 
 /**
@@ -6763,1016 +5454,6 @@ function OverlayMessageBox ($, params) {
 
     return self;
 }
-
-/**
- * Path module. A Path instance holds and array of Point instances.
- * @param points
- * @param params
- * @returns {{className: string, points: undefined}}
- * @constructor
- * @memberof svl
- */
-function Path (points, params) {
-    var self = { className : 'Path', points : undefined };
-    var parent;
-    var properties = {
-        fillStyle: 'rgba(255,255,255,0.5)',
-        lineCap : 'round', // ['butt','round','square']
-        lineJoin : 'round', // ['round','bevel','miter']
-        lineWidth : '3',
-        numPoints: points.length,
-        originalFillStyle: 'rgba(255,255,255,0.5)',
-        originalStrokeStyle: 'rgba(255,255,255,1)',
-        strokeStyle : 'rgba(255,255,255,1)',
-        strokeStyle_bg : 'rgba(255,255,255,1)' //potentially delete
-    };
-    var status = {
-        visibility: 'visible'
-    };
-
-    function _init(points, params) {
-        var lenPoints;
-        var i;
-        self.points = points;
-        lenPoints = points.length;
-
-        // Set belongs to of the points
-        for (i = 0; i < lenPoints; i += 1) {
-            points[i].setBelongsTo(self);
-        }
-
-        if (params) {
-            for (var attr in params) {
-                if (attr in properties) {
-                    properties[attr] = params[attr];
-                }
-            }
-        }
-        properties.fillStyle = svl.util.color.changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
-        properties.originalFillStyle = properties.fillStyle;
-        properties.originalStrokeStyle = properties.strokeStyle;
-    }
-
-    /**
-     * This method returns the Label object that this path belongs to.
-     * @returns {object|null} Label object.
-     */
-    function belongsTo () {
-        return parent ? parent : null;
-    }
-
-    /**
-     * This function checks if a mouse cursor is on any of a points and return
-     * @param povIn
-     * @returns {{x: number, y: number, width: number, height: number}}
-     */
-    function getBoundingBox(povIn) {
-        var pov = povIn ? povIn : svl.map.getPov();
-        var canvasCoords = getCanvasCoordinates(pov);
-        var xMin, xMax, yMin, yMax, width, height;
-        if (points.length > 2) {
-            xMax = -1;
-            xMin = 1000000;
-            yMax = -1;
-            yMin = 1000000;
-
-            for (var j = 0; j < canvasCoords.length; j += 1) {
-                var coord = canvasCoords[j];
-                if (coord.x < xMin) { xMin = coord.x; }
-                if (coord.x > xMax) { xMax = coord.x; }
-                if (coord.y < yMin) { yMin = coord.y; }
-                if (coord.y > yMax) { yMax = coord.y; }
-            }
-            width = xMax - xMin;
-            height = yMax - yMin;
-        } else {
-            xMin = canvasCoords[0].x;
-            yMin = canvasCoords[0].y;
-            width = 0;
-            height = 0;
-        }
-
-        return { x: xMin, y: yMin, width: width, height: height };
-    }
-
-    /**
-     * Returns fill color of the path
-     * @returns {string}
-     */
-    function getFill() {
-        return properties.fillStyle;
-    }
-
-    /**
-     * Get canvas coordinate
-     * @param pov
-     * @returns {Array}
-     */
-    function getCanvasCoordinates (pov) {
-        // Get canvas coordinates of points that constitute the path.
-        var imCoords = getImageCoordinates(), i, len = imCoords.length, canvasCoord, canvasCoords = [], min = 10000000, max = -1;
-
-        for (i = 0; i < len; i += 1) {
-            if (min > imCoords[i].x) {
-                min = imCoords[i].x;
-            }
-            if (max < imCoords[i].x) {
-                max = imCoords[i].x;
-            }
-        }
-        // Note canvasWidthInGSVImage is approximately equals to the image width of GSV image that fits in one canvas view
-        var canvasWidthInGSVImage = 3328;
-        for (i = 0; i < len; i += 1) {
-            if (pov.heading < 180) {
-                if (max > svl.svImageWidth - canvasWidthInGSVImage) {
-                    if (imCoords[i].x > canvasWidthInGSVImage) {
-                        imCoords[i].x -= svl.svImageWidth;
-                    }
-                }
-            } else {
-                if (min < canvasWidthInGSVImage) {
-                    if (imCoords[i].x < svl.svImageWidth - canvasWidthInGSVImage) {
-                        imCoords[i].x += svl.svImageWidth;
-                    }
-                }
-            }
-            canvasCoord = svl.gsvImageCoordinate2CanvasCoordinate(imCoords[i].x, imCoords[i].y, pov);
-            canvasCoords.push(canvasCoord);
-        }
-
-        return canvasCoords;
-    }
-
-    /**
-     * This method returns an array of image coordinates of points
-     * @returns {Array}
-     */
-    function getImageCoordinates() {
-        var i, len = self.points.length, coords = [];
-        for (i = 0; i < len; i += 1) {
-            coords.push(self.points[i].getGSVImageCoordinate());
-        }
-        return coords;
-    }
-
-    /**
-     * Returns the line width
-     * @returns {string}
-     */
-    function getLineWidth () {
-        return properties.lineWidth;
-    }
-
-    /**
-     * This function returns points.
-     */
-    function getPoints (reference) {
-        if (!reference) {
-            reference = false;
-        }
-
-        if (reference) {
-            // return self.points;
-            return points;
-        } else {
-            // return $.extend(true, [], self.points);
-            return $.extend(true, [], points);
-        }
-    }
-
-    /**
-     * This method returns a property
-     * @param key The field name of the property
-     * @returns {*}
-     */
-    function getProperty (key) {
-        return properties[key];
-    }
-
-    /**
-     * This method returns the status of the field
-     * @param key {string} The field name
-     */
-    function getStatus (key) {
-        return status[key];
-    }
-
-    /**
-     * this method returns a bounding box in terms of svImage coordinates.
-     * @returns {{x: number, y: number, width: number, height: number, boundary: boolean}}
-     */
-    function getSvImageBoundingBox() {
-        var i;
-        var coord;
-        var coordinates = getImageCoordinates();
-        var len = coordinates.length;
-        var xMax = -1;
-        var xMin = 1000000;
-        var yMax = -1000000;
-        var yMin = 1000000;
-        var boundary = false;
-
-        //
-        // Check if thie is an boundary case
-        for (i = 0; i < len; i++) {
-            coord = coordinates[i];
-            if (coord.x < xMin) {
-                xMin = coord.x;
-            }
-            if (coord.x > xMax) {
-                xMax = coord.x;
-            }
-            if (coord.y < yMin) {
-                yMin = coord.y;
-            }
-            if (coord.y > yMax) {
-                yMax = coord.y;
-            }
-        }
-
-        if (xMax - xMin > 5000) {
-            boundary = true;
-            xMax = -1;
-            xMin = 1000000;
-
-            for (i = 0; i < len; i++) {
-                coord = coordinates[i];
-                if (coord.x > 6000) {
-                    if (coord.x < xMin) {
-                        xMin = coord.x;
-                    }
-                } else {
-                    if (coord.x > xMax){
-                        xMax = coord.x;
-                    }
-                }
-            }
-        }
-
-        // If the path is on boundary, swap xMax and xMin.
-        if (boundary) {
-            return {
-                x: xMin,
-                y: yMin,
-                width: (svl.svImageWidth - xMin) + xMax,
-                height: yMax - yMin,
-                boundary: true
-            }
-        } else {
-            return {
-                x: xMin,
-                y: yMin,
-                width: xMax - xMin,
-                height: yMax - yMin,
-                boundary: false
-            }
-        }
-    }
-
-    /**
-     * This function checks if a mouse cursor is on any of a points and return a point if the cursor is indeed on the
-     * point. Otherwise, this function checks if the mouse cursor is on a bounding box of this path. If the cursor is
-     * on the bounding box, then this function returns this path object.
-     * @param x
-     * @param y
-     * @returns {*}
-     */
-    function isOn (x, y) {
-        var boundingBox, i, j, point, pointsLen, result;
-
-        // Check if the passed point (x, y) is on any of points.
-        pointsLen = self.points.length;
-        for (j = 0; j < pointsLen; j += 1) {
-            point = self.points[j];
-            result = point.isOn(x, y);
-            if (result) {
-                return result;
-            }
-        }
-
-        // Check if the passed point (x, y) is on a path bounding box
-        boundingBox = getBoundingBox();
-        if (boundingBox.x < x &&
-            boundingBox.x + boundingBox.width > x &&
-            boundingBox.y < y &&
-            boundingBox.y + boundingBox.height > y) {
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * This method calculates the area overlap between bouding boxes of this path and
-     * another path passed as an argument.
-     * @param path
-     * @param mode
-     * @returns {number}
-     */
-    function overlap (path, mode) {
-        if (!mode) {
-            mode = "boundingbox";
-        }
-
-        var overlap = 0;
-
-        if (mode === "boundingbox") {
-            var boundingbox1 = getSvImageBoundingBox();
-            var boundingbox2 = path.getSvImageBoundingBox();
-            var xOffset;
-            var yOffset;
-
-            //
-            // Check if a bounding box is on a boundary
-            if (!(boundingbox1.boundary && boundingbox2.boundary)) {
-                if (boundingbox1.boundary) {
-                    boundingbox1.x = boundingbox1.x - svl.svImageWidth;
-                    if (boundingbox2.x > 6000) {
-                        boundingbox2.x = boundingbox2.x - svl.svImageWidth;
-                    }
-                } else if (boundingbox2.boundary) {
-                    boundingbox2.x = boundingbox2.x - svl.svImageWidth;
-                    if (boundingbox1.x > 6000) {
-                        boundingbox1.x = boundingbox1.x - svl.svImageWidth;
-                    }
-                }
-            }
-
-
-            if (boundingbox1.x < boundingbox2.x) {
-                xOffset = boundingbox1.x;
-            } else {
-                xOffset = boundingbox2.x;
-            }
-            if (boundingbox1.y < boundingbox2.y) {
-                yOffset = boundingbox1.y;
-            } else {
-                yOffset = boundingbox2.y;
-            }
-
-            boundingbox1.x -= xOffset;
-            boundingbox2.x -= xOffset;
-            boundingbox1.y -= yOffset;
-            boundingbox2.y -= yOffset;
-
-            var b1x1 = boundingbox1.x;
-            var b1x2 = boundingbox1.x + boundingbox1.width;
-            var b1y1 = boundingbox1.y;
-            var b1y2 = boundingbox1.y + boundingbox1.height;
-            var b2x1 = boundingbox2.x;
-            var b2x2 = boundingbox2.x + boundingbox2.width;
-            var b2y1 = boundingbox2.y;
-            var b2y2 = boundingbox2.y + boundingbox2.height;
-            var row = 0;
-            var col = 0;
-            var rowMax = (b1x2 < b2x2) ? b2x2 : b1x2;
-            var colMax = (b1y2 < b2y2) ? b2y2 : b1y2;
-            var countUnion = 0;
-            var countIntersection = 0;
-            var isOnB1 = false;
-            var isOnB2 = false;
-
-            for (row = 0; row < rowMax; row++) {
-                for (col = 0; col < colMax; col++) {
-                    isOnB1 = (b1x1 < row && row < b1x2) && (b1y1 < col && col < b1y2);
-                    isOnB2 = (b2x1 < row && row < b2x2) && (b2y1 < col && col < b2y2);
-                    if (isOnB1 && isOnB2) {
-                        countIntersection += 1;
-                    }
-                    if (isOnB1 || isOnB2) {
-                        countUnion += 1;
-                    }
-                }
-            }
-            overlap = countIntersection / countUnion;
-        }
-
-        return overlap;
-    }
-
-    /**
-     * This method remove all the points in the list points.
-     */
-    function removePoints () {
-        self.points = undefined;
-    }
-
-    /**
-     * This method renders a path.
-     * @param pov
-     * @param ctx
-     */
-    function render (pov, ctx) {
-        if (status.visibility === 'visible') {
-            var j, pathLen, point, currCoord, prevCoord;
-
-            pathLen = self.points.length;
-
-            // Get canvas coordinates to render a path.
-            var canvasCoords = getCanvasCoordinates(pov);
-
-            // Set the fill color
-            point = self.points[0];
-            ctx.save();
-            ctx.beginPath();
-            if (!properties.fillStyle) {
-                properties.fillStyle = svl.util.color.changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
-                properties.originalFillStyle = properties.fillStyle;
-                ctx.fillStyle = properties.fillStyle;
-            } else {
-                ctx.fillStyle = properties.fillStyle;
-            }
-
-            if (pathLen > 1) {
-                // Render fill
-                ctx.moveTo(canvasCoords[0].x, canvasCoords[0].y);
-                for (j = 1; j < pathLen; j += 1) {
-                    ctx.lineTo(canvasCoords[j].x, canvasCoords[j].y);
-                }
-                ctx.lineTo(canvasCoords[0].x, canvasCoords[0].y);
-                ctx.fill();
-                ctx.closePath();
-                ctx.restore();
-            }
-
-            // Render points
-            for (j = 0; j < pathLen; j += 1) {
-                point = self.points[j];
-                point.render(pov, ctx);
-            }
-
-            if (pathLen > 1) {
-                // Render segments
-                for (j = 0; j < pathLen; j += 1) {
-                    if (j > 0) {
-                        currCoord = canvasCoords[j];
-                        prevCoord = canvasCoords[j - 1];
-                    } else {
-                        currCoord = canvasCoords[j];
-                        prevCoord = canvasCoords[pathLen - 1];
-                    }
-                    var r = point.getProperty('radiusInnerCircle');
-                    ctx.save();
-                    ctx.strokeStyle = properties.strokeStyle;
-                    svl.util.shape.lineWithRoundHead(ctx, prevCoord.x, prevCoord.y, r, currCoord.x, currCoord.y, r);
-                    ctx.restore();
-                }
-            }
-        }
-    }
-
-    function render2 (ctx, pov) {
-        return render(pov, ctx);
-    }
-
-    /**
-     * This method renders a bounding box around a path.
-     * @param ctx
-     */
-    function renderBoundingBox (ctx) {
-        // This function takes a bounding box returned by a method getBoundingBox()
-        var boundingBox = getBoundingBox();
-
-        ctx.save();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.beginPath();
-        ctx.moveTo(boundingBox.x, boundingBox.y);
-        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y);
-        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y + boundingBox.height);
-        ctx.lineTo(boundingBox.x, boundingBox.y + boundingBox.height);
-        ctx.lineTo(boundingBox.x, boundingBox.y);
-        ctx.stroke();
-        ctx.closePath();
-        ctx.restore();
-    }
-    
-    /**
-     * This method changes the value of fillStyle to its original fillStyle value
-     * @returns {self}
-     */
-    function resetFillStyle () {
-        properties.fillStyle = properties.originalFillStyle;
-        return this;
-    }
-
-    /**
-     * This method resets the strokeStyle to its original value
-     * @returns {self}
-     */
-    function resetStrokeStyle () {
-        properties.strokeStyle = properties.originalStrokeStyle;
-        return this;
-    }
-
-    /**
-     * This method sets the parent object
-     * @param obj
-     * @returns {setBelongsTo}
-     */
-    function setBelongsTo (obj) {
-        parent = obj;
-        return this;
-    }
-
-    /**
-     * Sets fill color of the path
-     * @param fill
-     */
-    function setFill(fill) {
-        if(fill.substring(0,4) == 'rgba'){
-            properties.fillStyle = fill;
-        } else{
-            fill = 'rgba'+fill.substring(3,fill.length-1)+',0.5)';
-            properties.fillStyle = fill;
-        }
-        return this;
-    }
-
-    function setFillStyle (fill) {
-        // This method sets the fillStyle of the path
-        if(fill!=undefined){
-            properties.fillStyle = fill;
-        }
-        return this;
-    }
-
-    /**
-     * This method sets the line width.
-     * @param lineWidth {number} Line width
-     * @returns {setLineWidth}
-     */
-    function setLineWidth (lineWidth) {
-        if(!isNaN(lineWidth)){
-            properties.lineWidth  = '' + lineWidth;
-        }
-        return this;
-    }
-
-    /**
-     * This method sets the strokeStyle of the path
-     * @param stroke {string} Stroke style
-     * @returns {setStrokeStyle}
-     */
-    function setStrokeStyle (stroke) {
-        properties.strokeStyle = stroke;
-        return this;
-    }
-
-    /**
-     * This method sets the visibility of a path
-     * @param visibility {string} Visibility (visible or hidden)
-     * @returns {setVisibility}
-     */
-    function setVisibility (visibility) {
-        if (visibility === 'visible' || visibility === 'hidden') status.visibility = visibility;
-        return this;
-    }
-
-    self.belongsTo = belongsTo;
-    self.getBoundingBox = getBoundingBox;
-    self.getLineWidth = getLineWidth;
-    self.getFill = getFill;
-    self.getSvImageBoundingBox = getSvImageBoundingBox;
-    self.getImageCoordinates = getImageCoordinates;
-    self.getPoints = getPoints;
-    self.getProperty = getProperty;
-    self.getStatus = getStatus;
-    self.isOn = isOn;
-    self.overlap = overlap;
-    self.removePoints = removePoints;
-    self.render2 = render2;
-    self.render = render;
-    self.renderBoundingBox = renderBoundingBox;
-    self.resetFillStyle = resetFillStyle;
-    self.resetStrokeStyle = resetStrokeStyle;
-    self.setFill = setFill;
-    self.setBelongsTo = setBelongsTo;
-    self.setLineWidth = setLineWidth;
-    self.setFillStyle = setFillStyle;
-    self.setStrokeStyle = setStrokeStyle;
-    self.setVisibility = setVisibility;
-
-    // Initialize
-    _init(points, params);
-
-    return self;
-}
-
-var svl = svl || {};
-
-/**
- * Point object
- *
- * @param x x-coordinate of the point on a canvas
- * @param y y-coordinate of the point on a canvas
- * @param pov Point of view that looks like
- * @param params
- * @returns {{className: string, svImageCoordinate: undefined, canvasCoordinate: undefined, originalCanvasCoordinate: undefined, pov: undefined, originalPov: undefined}}
- * @constructor
- * @memberof svl
- */
-function Point (x, y, pov, params) {
-  'use strict';
-
-    if(params.fillStyle==undefined){
-        params.fillStyle = 'rgba(255,255,255,0.5)';
-    }
-    var self = {
-            className : 'Point',
-            svImageCoordinate : undefined,
-            canvasCoordinate : undefined,
-            originalCanvasCoordinate : undefined,
-            pov : undefined,
-            originalPov : undefined
-        };
-    var belongsTo;
-    var properties = {
-        fillStyleInnerCircle: params.fillStyle,
-        lineWidthOuterCircle: 2,
-        iconImagePath: undefined,
-        originalFillStyleInnerCircle: undefined,
-        originalStrokeStyleOuterCircle: undefined,
-        radiusInnerCircle: 4,
-        radiusOuterCircle: 5,
-        strokeStyleOuterCircle: 'rgba(255,255,255,1)',
-        storedInDatabase: false
-    };
-    var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
-    var status = {
-            'deleted' : false,
-            'visibility' : 'visible',
-            'visibilityIcon' : 'visible'
-    };
-
-    function _init (x, y, pov, params) {
-        // Convert a canvas coordinate (x, y) into a sv image coordinate
-        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
-        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-        
-        // Adjust the zoom level
-        var zoom = pov.zoom;
-        var zoomFactor = svl.zoomFactor[zoom];
-        var svImageHeight = svl.svImageHeight;
-        var svImageWidth = svl.svImageWidth;
-        self.svImageCoordinate = {};
-        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
-        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
-        // svImageCoordinate.x could be negative, so adjust it.
-        if (self.svImageCoordinate.x < 0) {
-            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
-        }
-        // Keep the original canvas coordinate and
-        // canvas pov just in case.
-        self.canvasCoordinate = {
-            x : x,
-            y : y
-        };
-        self.originalCanvasCoordinate = {
-            x : x,
-            y : y
-        };
-        self.pov = {
-            heading : pov.heading,
-            pitch : pov.pitch,
-            zoom : pov.zoom
-        };
-        self.originalPov = {
-            heading : pov.heading,
-            pitch : pov.pitch,
-            zoom : pov.zoom
-        };
-
-        // Set properties
-        for (var propName in properties) {
-            // It is ok if iconImagePath is not specified
-            if(propName === "iconImagePath") {
-                if (params.iconImagePath) {
-                    properties.iconImagePath = params.iconImagePath;
-                } else {
-                    continue;
-                }
-            }
-
-            if (propName in params) {
-                properties[propName] = params[propName];
-            } else {
-                // See if this property must be set.
-                if (unnessesaryProperties.indexOf(propName) === -1) {
-                    // throw self.className + ': "' + propName + '" is not defined.';
-                }
-            }
-        }
-
-        properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
-        properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
-        return true;
-    }
-
-
-    /** Deprecated */
-    function _init2 () { return true; }
-
-    /** Get x canvas coordinate */
-    function getCanvasX () { return self.canvasCoordinate.x; }
-
-    /** Get y canvas coordinate */
-    function getCanvasY () { return self.canvasCoordinate.y; }
-
-    /** return the fill color of this point */
-    function getFill () { return properties.fillStyleInnerCircle; }
-
-    /** Get POV */
-    function getPOV () { return pov; }
-
-    /** Returns an object directly above this object. */
-    function getParent () { return belongsTo ? belongsTo : null; }
-
-
-    /**
-     * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point.
-     * @param pov
-     * @returns {{x, y}}
-     */
-    function getCanvasCoordinate (pov) {
-        self.canvasCoordinate = svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-        return svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-    }
-
-    /**
-     * Get the fill style.
-     * @returns {*}
-     */
-    function getFillStyle () { return  getFill(); }
-
-    function getGSVImageCoordinate () { return $.extend(true, {}, self.svImageCoordinate); }
-
-    function getProperty (name) { return (name in properties) ? properties[name] : null; }
-
-    function getProperties () { return $.extend(true, {}, properties); }
-
-    function isOn (x, y) {
-        var margin = properties.radiusOuterCircle / 2 + 3;
-        if (x < self.canvasCoordinate.x + margin &&
-            x > self.canvasCoordinate.x - margin &&
-            y < self.canvasCoordinate.y + margin &&
-            y > self.canvasCoordinate.y - margin) {
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Renders this point
-     * @param pov
-     * @param ctx
-     */
-    function render (pov, ctx) {
-        if (status.visibility === 'visible') {
-            var coord = self.getCanvasCoordinate(pov),
-                x = coord.x,
-                y = coord.y,
-                r = properties.radiusInnerCircle;
-
-            ctx.save();
-            ctx.strokeStyle = properties.strokeStyleOuterCircle;
-            ctx.lineWidth = properties.lineWidthOuterCircle;
-            ctx.beginPath();
-            ctx.arc(x, y, properties.radiusOuterCircle, 2 * Math.PI, 0, true);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.fillStyle = properties.fillStyleInnerCircle; // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
-            ctx.beginPath();
-            ctx.arc(x, y, properties.radiusInnerCircle, 2 * Math.PI, 0, true);
-            ctx.closePath();
-            ctx.fill();
-
-            // Render an icon
-            var imagePath = getProperty("iconImagePath");
-            if (imagePath) {
-                var imageObj, imageHeight, imageWidth, imageX, imageY;
-                imageObj = new Image();
-                imageHeight = imageWidth = 2 * r - 3;
-                imageX =  x - r + 2;
-                imageY = y - r + 2;
-
-                //ctx.globalAlpha = 0.5;
-                imageObj.src = imagePath;
-
-                try {
-                    ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-                } catch (e) {
-                    // console.debug(e);
-                }
-
-                //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-            }
-            ctx.restore();
-        }
-    }
-
-    /**
-     * This method reverts the fillStyle property to its original value
-     * @returns {resetFillStyle}
-     */
-    function resetFillStyle () {
-        properties.fillStyleInnerCircle = properties.originalFillStyleInnerCircle;
-        return this;
-    }
-
-    /**
-     * Set the svImageCoordinate
-     * @param coord
-     * @returns {self}
-     */
-    function resetSVImageCoordinate (coord) {
-        self.svImageCoordinate = coord;
-        self.canvasCoordinate = {x : 0, y: 0};
-        return this;
-    }
-
-    /**
-     * This method resets the strokeStyle to its original value
-     * @returns {self}
-     */
-    function resetStrokeStyle () {
-        properties.strokeStyleOuterCircle = properties.originalStrokeStyleOuterCircle;
-        return this;
-    }
-
-    /**
-     * This function sets which object (Path)
-     * @param obj
-     * @returns {self}
-     */
-    function setBelongsTo (obj) {
-        belongsTo = obj;
-        return this;
-    }
-
-    /**
-     * This method sets the fill style of inner circle to the specified value
-     * @param value
-     * @returns {self}
-     */
-    function setFillStyle (value) {
-        properties.fillStyleInnerCircle = value;
-        return this;
-    }
-
-    function setIconPath (iconPath) {
-        properties.iconImagePath = iconPath;
-        return this;
-    }
-
-    /**
-     * this method sets the photographerHeading and photographerPitch
-     * @param heading
-     * @param pitch
-     * @returns {self}
-     */
-    function setPhotographerPov (heading, pitch) {
-        properties.photographerHeading = heading;
-        properties.photographerPitch = pitch;
-        return this;
-    }
-
-    /**
-     * This function resets all the properties specified in params.
-     * @param params
-     * @returns {self}
-     */
-    function setProperties (params) {
-        for (var key in params) {
-            if (key in properties) {
-                properties[key] = params[key];
-            }
-        }
-
-        if ('originalCanvasCoordinate' in params) {
-            self.originalCanvasCoordinate = params.originalCanvasCoordinate;
-        }
-
-        //
-        // Set pov parameters
-        self.pov = self.pov || {};
-        if ('pov' in params) { self.pov = params.pov; }
-        if ('heading' in params) { self.pov.heading = params.heading; }
-        if ('pitch' in params) { self.pov.pitch = params.pitch; }
-        if ('zoom' in params) { self.pov.zoom = params.zoom; }
-
-        // Set original pov parameters
-        self.originalPov = self.originalPov || {};
-        if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }
-        if ('originalPitch' in params) { self.originalPov.pitch = params.originalPitch; }
-        if ('originalZoom' in params) { self.originalPov.zoom = params.originalZoom; }
-
-        if (!properties.originalFillStyleInnerCircle) {
-            properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
-        }
-        if (!properties.originalStrokeStyleOuterCircle) {
-            properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
-        }
-        return this;
-    }
-
-    function setStrokeStyle (val) {
-        // This method sets the strokeStyle of an outer circle to val
-        properties.strokeStyleOuterCircle = val;
-        return this;
-    }
-
-    self.belongsTo = getParent;
-    self.getPOV = getPOV;
-    self.getCanvasCoordinate = getCanvasCoordinate;
-    self.getCanvasX = getCanvasX;
-    self.getCanvasY = getCanvasY;
-    self.getFill = getFill;
-    self.getFillStyle = getFillStyle;
-    self.getGSVImageCoordinate = getGSVImageCoordinate;
-    self.getProperty = getProperty;
-    self.getProperties = getProperties;
-    self.isOn = isOn;
-    self.render = render;
-    self.resetFillStyle = resetFillStyle;
-    self.resetSVImageCoordinate = resetSVImageCoordinate;
-    self.resetStrokeStyle = resetStrokeStyle;
-    self.setBelongsTo = setBelongsTo;
-    self.setFillStyle = setFillStyle;
-    self.setIconPath = setIconPath;
-    self.setPhotographerPov = setPhotographerPov;
-    self.setProperties = setProperties;
-    self.setStrokeStyle = setStrokeStyle;
-    self.setVisibility = setVisibility;
-
-    function setVisibility (visibility) {
-        // This method sets the visibility of a path (and points that cons
-        if (visibility === 'visible' || visibility === 'hidden') {
-            status.visibility = visibility;
-        }
-        return this;
-    }
-
-    // Todo. Deprecated method. Get rid of this later.
-    self.resetProperties = self.setProperties;
-
-  var argLen = arguments.length;
-    if (argLen === 4) {
-        _init(x, y, pov, params);
-    } else {
-        _init2();
-    }
-
-    return self;
-}
-
-
-svl.gsvImageCoordinate2CanvasCoordinate = function (xIn, yIn, pov) {
-    // This function takes the current pov of the Street View as a parameter
-    // and returns a canvas coordinate of a point (xIn, yIn).
-    var x, y, zoom = pov.zoom;
-    var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
-    var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
-
-    xIn = xIn * svl.zoomFactor[zoom];
-    yIn = yIn * svl.zoomFactor[zoom];
-
-    x = xIn - (svImageWidth * pov.heading) / 360;
-    x = x / svl.alpha_x + svl.canvasWidth / 2;
-
-    //
-    // When POV is near 0 or near 360, points near the two vertical edges of
-    // the SV image does not appear. Adjust accordingly.
-    var edgeOfSvImageThresh = 360 * svl.alpha_x * (svl.canvasWidth / 2) / (svImageWidth) + 10;
-
-    if (pov.heading < edgeOfSvImageThresh) {
-        // Update the canvas coordinate of the point if
-        // its svImageCoordinate.x is larger than svImageWidth - alpha_x * (svl.canvasWidth / 2).
-        if (svImageWidth - svl.alpha_x * (svl.canvasWidth / 2) < xIn) {
-            x = (xIn - svImageWidth) - (svImageWidth * pov.heading) / 360;
-            x = x / svl.alpha_x + svl.canvasWidth / 2;
-        }
-    } else if (pov.heading > 360 - edgeOfSvImageThresh) {
-        if (svl.alpha_x * (svl.canvasWidth / 2) > xIn) {
-            x = (xIn + svImageWidth) - (svImageWidth * pov.heading) / 360;
-            x = x / svl.alpha_x + svl.canvasWidth / 2;
-        }
-    }
-
-    y = yIn - (svImageHeight / 2) * (pov.pitch / 90);
-    y = y / svl.alpha_y + svl.canvasHeight / 2;
-
-    return {x : x, y : y};
-};
-
-svl.zoomFactor = {
-    1: 1,
-    2: 2.1,
-    3: 4,
-    4: 8,
-    5: 16
-};
 
 var svl = svl || {};
 
@@ -10676,6 +8357,2322 @@ function MissionProgress () {
     _init();
     return self;
 }
+
+var svl = svl || {};
+
+/**
+ * A Label module.
+ * @param pathIn
+ * @param params
+ * @returns {*}
+ * @constructor
+ * @memberof svl
+ */
+function Label (pathIn, params) {
+    var self = { className: 'Label' };
+
+    var path, googleMarker;
+
+    var properties = {
+        canvasWidth: undefined,
+        canvasHeight: undefined,
+        canvasDistortionAlphaX: undefined,
+        canvasDistortionAlphaY: undefined,
+        distanceThreshold: 100,
+        labelerId : 'DefaultValue',
+        labelId: 'DefaultValue',
+        labelType: undefined,
+        labelDescription: undefined,
+        labelFillStyle: undefined,
+        panoId: undefined,
+        panoramaLat: undefined,
+        panoramaLng: undefined,
+        panoramaHeading: undefined,
+        panoramaPitch: undefined,
+        panoramaZoom: undefined,
+        photographerHeading: undefined,
+        photographerPitch: undefined,
+        svImageWidth: undefined,
+        svImageHeight: undefined,
+        svMode: undefined,
+        tagHeight: 20,
+        tagWidth: 1,
+        tagX: -1,
+        tagY: -1,
+        severity: null,
+        temporaryProblem: null,
+        description: null
+    };
+
+    var status = {
+        deleted : false,
+        tagVisibility : 'visible',
+        visibility : 'visible'
+    };
+
+    var lock = {
+        tagVisibility: false,
+        visibility : false
+    };
+
+    function _init (param, pathIn) {
+        try {
+            if (!pathIn) {
+                throw 'The passed "path" is empty.';
+            } else {
+                path = pathIn;
+            }
+
+            for (var attrName in param) {
+                properties[attrName] = param[attrName];
+            }
+
+            // Set belongs to of the path.
+            path.setBelongsTo(self);
+
+            if (typeof google != "undefined" && google && google.maps) {
+                googleMarker = createGoogleMapsMarker(param.labelType);
+                googleMarker.setMap(svl.map.getMap());
+            }
+
+            return true;
+        } catch (e) {
+            console.error(self.className, ':', 'Error initializing the Label object.', e);
+            return false;
+        }
+    }
+
+    /**
+     * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
+     * @param numberOfBlinks
+     * @param fade
+     * @returns {blink}
+     */
+    function blink (numberOfBlinks, fade) {
+        if (!numberOfBlinks) {
+            numberOfBlinks = 3;
+        } else if (numberOfBlinks < 0) {
+            numberOfBlinks = 0;
+        }
+        var interval;
+        var highlighted = true;
+        var path = getPath();
+        var points = path.getPoints();
+
+        var i;
+        var len = points.length;
+
+        var fillStyle = 'rgba(200,200,200,0.1)';
+        var fillStyleHighlight = path.getFillStyle();
+
+        interval = setInterval(function () {
+            if (numberOfBlinks > 0) {
+                if (highlighted) {
+                    highlighted = false;
+                    path.setFillStyle(fillStyle);
+                    for (i = 0; i < len; i++) {
+                        points[i].setFillStyle(fillStyle);
+                    }
+                    svl.canvas.clear().render2();
+                } else {
+                    highlighted = true;
+                    path.setFillStyle(fillStyleHighlight);
+                    for (i = 0; i < len; i++) {
+                        points[i].setFillStyle(fillStyleHighlight);
+                    }
+                    svl.canvas.clear().render2();
+                    numberOfBlinks -= 1;
+                }
+            } else {
+                if (fade) {
+                    path.setFillStyle(fillStyle);
+                    for (i = 0; i < len; i++) {
+                        points[i].setFillStyle(fillStyle);
+                    }
+                    svl.canvas.clear().render2();
+                }
+
+                setAlpha(0.05);
+                svl.canvas.clear().render2();
+                window.clearInterval(interval);
+            }
+        }, 500);
+
+        return this;
+    }
+
+    /**
+     * This method creates a Google Maps marker.
+     * https://developers.google.com/maps/documentation/javascript/markers
+     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+     * @returns {google.maps.Marker}
+     */
+    function createGoogleMapsMarker (labelType) {
+        if (typeof google != "undefined") {
+            var latlng = toLatLng(),
+                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+                imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath
+
+            return new google.maps.Marker({
+                position: googleLatLng,
+                map: svl.map.getMap(),
+                title: "Hi!",
+                icon: url,
+                size: new google.maps.Size(20, 20)
+            });
+        }
+    }
+
+    /**
+     * This method turn the associated Path and Points into gray.
+     * @param mode
+     * @returns {fadeFillStyle}
+     */
+    function fadeFillStyle (mode) {
+        var path = getPath(),
+            points = path.getPoints(),
+            len = points.length, fillStyle;
+
+        if (!mode) { mode = 'default'; }
+
+        fillStyle = mode == 'gray' ? 'rgba(200,200,200,0.5)' : 'rgba(255,165,0,0.8)';
+        path.setFillStyle(fillStyle);
+        for (var i = 0; i < len; i++) {
+            points[i].setFillStyle(fillStyle);
+        }
+        return this;
+    }
+
+    /**
+     * This method changes the fill color of the path and points that constitute the path.
+     * @param fillColor
+     * @returns {fill}
+     */
+    function fill (fillColor) {
+        var path = getPath(), points = path.getPoints(), len = points.length;
+        path.setFillStyle(fillColor);
+        for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
+        return this;
+    }
+
+    /**
+     * This method returns the boudning box of the label's outline.
+     * @param pov
+     * @returns {*}
+     */
+    function getBoundingBox (pov) {
+        return getPath().getBoundingBox(pov);
+    }
+
+    /**
+     * This function returns the coordinate of a point.
+     * @returns {*}
+     */
+    function getCoordinate () {
+        if (path && path.points.length > 0) {
+            var pov = svl.map.getPov();
+            return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
+        }
+        return path;
+    }
+
+    /**
+     * This function return the coordinate of a point in the GSV image coordinate.
+     * @returns {*}
+     */
+    function getGSVImageCoordinate () {
+        if (path && path.points.length > 0) {
+            return path.points[0].getGSVImageCoordinate();
+        }
+    }
+
+    /**
+     * Get image coordinates of the child path
+     * @returns {*}
+     */
+    function getImageCoordinates () {
+        return path ? path.getImageCoordinates() : false;
+    }
+
+    /**
+     * This function returns labelId property
+     * @returns {string}
+     */
+    function getLabelId () {
+        return properties.labelId;
+    }
+
+    /**
+     * This function returns labelType property
+     * @returns {*}
+     */
+    function getLabelType () { return properties.labelType; }
+
+    /**
+     * This function returns the coordinate of a point.
+     * If reference is true, return a reference to the path instead of a copy of the path
+     * @param reference
+     * @returns {*}
+     */
+    function getPath (reference) {
+        if (path) {
+            return reference ? path : $.extend(true, {}, path);
+        }
+        return false;
+    }
+
+    /**
+     * This function returns the coordinate of the first point in the path.
+     * @returns {*}
+     */
+    function getPoint () { return (path && path.points.length > 0) ? path.points[0] : path; }
+
+    /**
+     * This function returns the point objects that constitute the path
+     * If reference is set to true, return the reference to the points
+     * @param reference
+     * @returns {*}
+     */
+    function getPoints (reference) { return path ? path.getPoints(reference) : false; }
+
+    /**
+     * This method returns the pov of this label
+     * @returns {{heading: Number, pitch: Number, zoom: Number}}
+     */
+    function getLabelPov () {
+        var heading, pitch = parseInt(properties.panoramaPitch, 10),
+            zoom = parseInt(properties.panoramaZoom, 10),
+            points = getPoints(),
+            svImageXs = points.map(function(point) { return point.svImageCoordinate.x; }),
+            labelSvImageX;
+
+        if (svImageXs.max() - svImageXs.min() > (svl.svImageWidth / 2)) {
+            svImageXs = svImageXs.map(function (x) {
+                if (x < (svl.svImageWidth / 2)) {
+                    x += svl.svImageWidth;
+                }
+                return x;
+            });
+            labelSvImageX = parseInt(svImageXs.mean(), 10) % svl.svImageWidth;
+        } else {
+            labelSvImageX = parseInt(svImageXs.mean(), 10);
+        }
+        heading = parseInt((labelSvImageX / svl.svImageWidth) * 360, 10) % 360;
+
+        return {
+            heading: parseInt(heading, 10),
+            pitch: pitch,
+            zoom: zoom
+        };
+    }
+
+    /**
+     * Return the deep copy of the properties object,
+     * so the caller can only modify properties from
+     * setProperties() (which I have not implemented.)
+     * JavaScript Deepcopy
+     * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+     */
+    function getProperties () { return $.extend(true, {}, properties); }
+
+    /**
+     * Get a property
+     * @param propName
+     * @returns {boolean}
+     */
+    function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
+
+    /**
+     * Get a status
+     * @param key
+     * @returns {*}
+     */
+    function getStatus (key) { return status[key]; }
+
+    function getVisibility () { return status.visibility; }
+
+    /**
+     * This method changes the fill color of the path and points to orange.
+     */
+    function highlight () { return fill('rgba(255,165,0,0.8)'); }
+
+    /**
+     * Check if the label is deleted
+     * @returns {boolean}
+     */
+    function isDeleted () { return status.deleted; }
+
+
+    /**
+     * Check if a path is under a cursor
+     * @param x
+     * @param y
+     * @returns {boolean}
+     */
+    function isOn (x, y) {
+        if (status.deleted || status.visibility === 'hidden') {  return false; }
+        var result = path.isOn(x, y);
+        return result ? result : false;
+    }
+
+    /**
+     * This method returns the visibility of this label.
+     * @returns {boolean}
+     */
+    function isVisible () {
+        return status.visibility === 'visible';
+    }
+
+    /**
+     * Lock tag visibility
+     * @returns {lockTagVisibility}
+     */
+    function lockTagVisibility () {
+        lock.tagVisibility = true;
+        return this;
+    }
+
+    /**
+     * Lock visibility
+     * @returns {lockVisibility}
+     */
+    function lockVisibility () {
+        lock.visibility = true;
+        return this;
+    }
+
+    /**
+     * This method calculates the area overlap between this label and another label passed as an argument.
+     * @param label
+     * @param mode
+     * @returns {*|number}
+     */
+    function overlap (label, mode) {
+        if (!mode) mode = "boundingbox";
+        if (mode !== "boundingbox") { throw self.className + ": " + mobede + " is not a valid option."; }
+        var path1 = getPath(),
+            path2 = label.getPath();
+        return path1.overlap(path2, mode);
+    }
+
+    /**
+     * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
+     */
+    function remove () {
+        setStatus('deleted', true);
+        setStatus('visibility', 'hidden');
+    }
+
+    /**
+     * This function removes the path and points in the path.
+     */
+    function removePath () {
+        path.removePoints();
+        path = undefined;
+    }
+
+    /**
+     * This method renders this label on a canvas.
+     * @param ctx
+     * @param pov
+     * @param evaluationMode
+     * @returns {self}
+     */
+    function render (ctx, pov, evaluationMode) {
+        if (!evaluationMode) {
+            evaluationMode = false;
+        }
+        if (!status.deleted) {
+            if (status.visibility === 'visible') {
+                // Render a tag
+                // Get a text to render (e.g, attribute type), and
+                // canvas coordinate to render the tag.
+                if(status.tagVisibility == 'visible') {
+                    renderTag(ctx);
+                    // path.renderBoundingBox(ctx);
+                    showDelete();
+                }
+
+                // Render a path
+                path.render2(ctx, pov);
+            } else if (false) {
+                // Render labels that are not in the current panorama but are close enough.
+                // Get the label'svar latLng = toLatLng();
+                var currLat = svl.panorama.location.latLng.lat(),
+                    currLng = svl.panorama.location.latLng.lng();
+                var d = svl.util.math.haversine(currLat, currLng, latLng.lat, latLng.lng);
+                var offset = toOffset();
+
+                if (d < properties.distanceThreshold) {
+                    var dPosition = svl.util.math.latlngInverseOffset(currLat, currLat - latLng.lat, currLng - latLng.lng);
+
+                    var dx = offset.dx - dPosition.dx;
+                    var dy = offset.dy - dPosition.dy;
+                    var dz = offset.dz;
+
+                    var idx = svl.pointCloud.search(svl.panorama.pano, {x: dx, y: dy, z: dz});
+                    var ix = idx / 3 % 512;
+                    var iy = (idx / 3 - ix) / 512;
+                    var imageCoordinateX = ix * 26;
+                    var imageCoordinateY = 3328 - iy * 26;
+                    var canvasPoint = svl.misc.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
+
+                    console.log(canvasPoint);
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255,255,255,1)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(canvasPoint.x, canvasPoint.y, 10, 2 * Math.PI, 0, true);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fillStyle = path.getProperty('fillStyle'); // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
+                    ctx.fill();
+                    ctx.restore();
+
+                    //new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters)
+                    //new Label(new Path(), params)
+                }
+            }
+        }
+
+        // Show a label on the google maps pane.
+        if (!isDeleted()) {
+            if (googleMarker && !googleMarker.map) {
+                googleMarker.setMap(svl.map.getMap());
+            }
+        } else {
+            if (googleMarker && googleMarker.map) {
+                googleMarker.setMap(null);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * This function renders a tag on a canvas to show a property of the label
+     * @param ctx
+     * @returns {boolean}
+     */
+    function renderTag(ctx) {
+        if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
+
+        var labelCoordinate = getCoordinate(),
+            cornerRadius = 3,
+            i, w, height, width,
+            msg = properties.labelDescription,
+            messages = msg.split('\n'),
+            padding = { left: 12, right: 5, bottom: 0, top: 18};
+
+        if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
+
+        // Set rendering properties and draw a tag
+        ctx.save();
+        ctx.font = '10.5pt Calibri';
+        height = properties.tagHeight * messages.length;
+        width = -1;
+        for (i = 0; i < messages.length; i += 1) {
+            w = ctx.measureText(messages[i]).width + 5;
+            if (width < w) { width = w; }
+        }
+        properties.tagWidth = width;
+
+        ctx.lineCap = 'square';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = svl.util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
+
+        // Tag background
+        ctx.beginPath();
+        ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
+        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
+        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + cornerRadius, cornerRadius, 3 * Math.PI / 2, 0, false); // Corner
+        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right + cornerRadius, labelCoordinate.y + height + padding.bottom);
+        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + height + cornerRadius, cornerRadius, 0, Math.PI / 2, false); // Corner
+        ctx.lineTo(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + 2 * cornerRadius);
+        ctx.arc(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
+        ctx.lineTo(labelCoordinate.x, labelCoordinate.y + cornerRadius);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+
+        // Tag text
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
+        ctx.restore();
+    }
+
+    /**
+     * This method turn the fill color of associated Path and Points into their original color.
+     * @returns {resetFillStyle}
+     */
+    function resetFillStyle () {
+        var path = getPath(), points = path.getPoints(),
+            i, len = points.length;
+        path.resetFillStyle();
+        for (i = 0; i < len; i++) {
+            points[i].resetFillStyle();
+        }
+        return this;
+    }
+
+    /**
+     * This function sets properties.tag.x and properties.tag.y to 0
+     * @returns {resetTagCoordinate}
+     */
+    function resetTagCoordinate () {
+        properties.tagX = 0;
+        properties.tagY = 0;
+        return this;
+    }
+
+    /**
+     * This method changes the alpha channel of the fill color of the path and points that constitute the path.
+     * @param alpha
+     * @returns {setAlpha}
+     */
+    function setAlpha (alpha) {
+        var path = getPath(),
+            points = path.getPoints(),
+            len = points.length,
+            fillColor = path.getFill();
+        alpha = alpha ? alpha : 0.3;
+        fillColor = svl.util.color.changeAlphaRGBA(fillColor, alpha);
+        path.setFillStyle(fillColor);
+        for (var i = 0; i < len; i++) {
+            points[i].setFillStyle(fillColor);
+        }
+        return this;
+    }
+
+    /**
+     * This function sets the icon path of the point this label holds.
+     * @param iconPath
+     * @returns {*}
+     */
+    function setIconPath (iconPath) {
+        if (path && path.points[0]) {
+            var point = path.points[0];
+            point.setIconPath(iconPath);
+            return this;
+        }
+        return false;
+    }
+
+    /**
+     * Set the labeler id
+     * @param labelerIdIn
+     * @returns {setLabelerId}
+     */
+    function setLabelerId (labelerIdIn) {
+        properties.labelerId = labelerIdIn;
+        return this;
+    }
+
+    /**
+     * Sets a property
+     * @param key
+     * @param value
+     * @returns {setProperty}
+     */
+    function setProperty (key, value) {
+        properties[key] = value;
+        return this;
+    }
+
+    /**
+     * Set status
+     * @param key
+     * @param value
+     */
+    function setStatus (key, value) {
+        if (key in status) {
+            if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
+                setVisibility(value);
+            } else if (key === 'tagVisibility' && (value === 'visible' || value === 'hidden')) {
+                setTagVisibility(value);
+            } else if (key === 'deleted' && typeof value === 'boolean') {
+                status[key] = value;
+            }
+        }
+    }
+
+    /**
+     * Set the visibility of the tag
+     * @param visibility {string} visible or hidden
+     * @returns {setTagVisibility}
+     */
+    function setTagVisibility (visibility) {
+        if (!lock.tagVisibility) {
+            if (visibility === 'visible' || visibility === 'hidden') {
+                status['tagVisibility'] = visibility;
+            }
+        }
+        return this;
+    }
+
+    /**
+     * This function sets the sub label type of this label. E.g. for a bus stop there are StopSign_OneLeg
+     * @param labelType
+     * @returns {setSubLabelDescription}
+     */
+    function setSubLabelDescription (labelType) {
+        var labelDescriptions = svl.misc.getLabelDescriptions();
+        properties.labelProperties.subLabelDescription = labelDescriptions[labelType].text;
+        return this;
+    }
+
+    /**
+     * Set this label's visibility to the passed visibility
+     * @param visibility
+     * @param labelerIds
+     * @param included
+     * @returns {setVisibilityBasedOnLabelerId}
+     */
+    function setVisibilityBasedOnLabelerId (visibility, labelerIds, included) {
+        if (included === undefined) {
+            if (labelerIds.indexOf(properties.labelerId) !== -1) {
+                unlockVisibility().setVisibility(visibility).lockVisibility();
+            } else {
+                visibility = visibility === 'visible' ? 'hidden' : 'visible';
+                unlockVisibility().setVisibility(visibility).lockVisibility();
+            }
+        } else {
+            if (included) {
+                if (labelerIds.indexOf(properties.labelerId) !== -1) {
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
+                }
+            } else {
+                if (labelerIds.indexOf(properties.labelerId) === -1) {
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
+                }
+            }
+        }
+
+        return this;
+    }
+
+    /**
+     * Set the visibility of the label
+     * @param visibility
+     * @returns {setVisibility}
+     */
+    function setVisibility (visibility) {
+        if (!lock.visibility) { status.visibility = visibility; }
+        return this;
+    }
+
+    /**
+     * Set visibility of labels
+     * @param visibility
+     * @param panoId
+     * @returns {setVisibilityBasedOnLocation}
+     */
+    function setVisibilityBasedOnLocation (visibility, panoramaId) {
+        if (!status.deleted) {
+            if (panoramaId === properties.panoId) {
+                setVisibility(visibility);
+            } else {
+                visibility = visibility == 'visible' ? 'hidden' : 'visible';
+                setVisibility(visibility);
+            }
+        }
+        return this;
+    }
+
+    /**
+     *
+     * @param visibility
+     * @param tables
+     * @param included
+     */
+    function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, tables, included) {
+        var tablesLen = tables.length, matched = false;
+
+        for (var i = 0; i < tablesLen; i += 1) {
+            if (tables[i].userIds.indexOf(properties.labelerId) !== -1) {
+                if (tables[i].labelTypesToRender.indexOf(properties.labelProperties.labelType) !== -1) {
+                    matched = true;
+                }
+            }
+        }
+        if (included === undefined) {
+            if (matched) {
+                unlockVisibility().setVisibility(visibility).lockVisibility();
+            } else {
+                visibility = visibility === 'visible' ? 'hidden' : 'visible';
+                unlockVisibility().setVisibility(visibility).lockVisibility();
+            }
+        } else {
+            if (included) {
+                if (matched) {
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
+                }
+            } else {
+                if (!matched) {
+                    unlockVisibility().setVisibility(visibility).lockVisibility();
+                }
+            }
+        }
+    }
+
+    /**
+     * Show the delete button
+     */
+    function showDelete() {
+        if (status.tagVisibility !== 'hidden') {
+            var boundingBox = path.getBoundingBox(),
+                x = boundingBox.x + boundingBox.width - 20,
+                y = boundingBox.y;
+
+            // Show a delete button
+            $("#delete-icon-holder").css({
+                visibility: 'visible',
+                left : x + 25, // + width - 5,
+                top : y - 20
+            });
+        }
+    }
+
+    /**
+     * Calculate the offset to the label
+     * @returns {{dx: number, dy: number, dz: number}}
+     */
+    function toOffset() {
+        var imageCoordinates = path.getImageCoordinates(),
+            pc = svl.pointCloud.getPointCloud(properties.panoId);
+        if (pc) {
+            var minDx = 1000, minDy = 1000, minDz = 1000,
+                i, p, idx, dx, dy, dz, r, minR;
+            for (i = 0; i < imageCoordinates.length; i++) {
+                p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
+                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                dx = pc.pointCloud[idx];
+                dy = pc.pointCloud[idx + 1];
+                dz = pc.pointCloud[idx + 2];
+                r = dx * dx + dy * dy;
+                minR = minDx * minDx + minDy + minDy;
+
+                if (r < minR) {
+                    minDx = dx;
+                    minDy = dy;
+                    minDz = dz;
+                }
+            }
+            return {dx: minDx, dy: minDy, dz: minDz};
+        }
+    }
+
+    /**
+     * Get the label latlng position
+     * @returns {labelLatLng}
+     */
+    function toLatLng() {
+        if (!properties.labelLat) {
+            var imageCoordinates = path.getImageCoordinates(),
+                pc = svl.pointCloud.getPointCloud(properties.panoId);
+            if (pc) {
+                var minDx = 1000, minDy = 1000, i, delta, latlng,
+                    p, idx, dx, dy, r, minR;
+                for (i = 0; i < imageCoordinates.length; i ++) {
+                    p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                    idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                    dx = pc.pointCloud[idx];
+                    dy = pc.pointCloud[idx + 1];
+                    r = dx * dx + dy * dy;
+                    minR = minDx * minDx + minDy + minDy;
+
+                    if (r < minR) {
+                        minDx = dx;
+                        minDy = dy;
+                    }
+                }
+                delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
+                latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
+                setProperty('labelLat', latlng.lat);
+                setProperty('labelLng', latlng.lng);
+                return latlng;
+            } else {
+                return null;
+            }
+        } else {
+            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };  // Return the cached value
+        }
+
+    }
+
+    /**
+     * Unlock status.visibility
+     * @returns {unlockVisibility}
+     */
+    function unlockVisibility () {
+        lock.visibility = false;
+        return this;
+    }
+
+    /**
+     * Unlock status.tagVisibility
+     * @returns {unlockTagVisibility}
+     */
+    function unlockTagVisibility () {
+        lock.tagVisibility = false;
+        return this;
+    }
+
+    self.resetFillStyle = resetFillStyle;
+    self.blink = blink;
+    self.fadeFillStyle = fadeFillStyle;
+    self.getBoundingBox = getBoundingBox;
+    self.getGSVImageCoordinate = getGSVImageCoordinate;
+    self.getImageCoordinates = getImageCoordinates;
+    self.getLabelId = getLabelId;
+    self.getLabelType = getLabelType;
+    self.getPath = getPath;
+    self.getPoint = getPoint;
+    self.getPoints = getPoints;
+    self.getLabelPov = getLabelPov;
+    self.getProperties = getProperties;
+    self.getProperty = getProperty;
+    self.getstatus = getStatus;
+    self.getVisibility = getVisibility;
+    self.fill = fill;
+    self.isDeleted = isDeleted;
+    self.isOn = isOn;
+    self.isVisible = isVisible;
+    self.highlight = highlight;
+    self.lockTagVisibility = lockTagVisibility;
+    self.lockVisibility = lockVisibility;
+    self.overlap = overlap;
+    self.removePath = removePath;
+    self.render = render;
+    self.remove = remove;
+    self.resetTagCoordinate = resetTagCoordinate;
+    self.setAlpha = setAlpha;
+    self.setIconPath = setIconPath;
+    self.setLabelerId = setLabelerId;
+    self.setProperty = setProperty;
+    self.setStatus = setStatus;
+    self.setTagVisibility = setTagVisibility;
+    self.setSubLabelDescription = setSubLabelDescription;
+    self.setVisibility = setVisibility;
+    self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
+    self.setVisibilityBasedOnLabelerId = setVisibilityBasedOnLabelerId;
+    self.setVisibilityBasedOnLabelerIdAndLabelTypes = setVisibilityBasedOnLabelerIdAndLabelTypes;
+    self.unlockTagVisibility = unlockTagVisibility;
+    self.unlockVisibility = unlockVisibility;
+    self.toLatLng = toLatLng;
+
+    if (!_init(params, pathIn)) {
+        return false;
+    }
+    return self;
+}
+
+var svl = svl || {};
+
+/**
+ * Label Container module. This is responsible of storing the label objects that were created in the current session.
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function LabelContainer() {
+    var self = {className: 'LabelContainer'};
+    var currentCanvasLabels = [],
+        prevCanvasLabels = [];
+
+    /** Returns canvas labels */
+    function getCanvasLabels () { return prevCanvasLabels.concat(currentCanvasLabels); }
+
+    /** Get current label */
+    function getCurrentLabels () { return currentCanvasLabels; }
+
+    /** Load labels */
+    function load () { currentCanvasLabels = svl.storage.get("labels"); }
+
+    /**
+     * Push a label into canvasLabels
+     * @param label
+     */
+    function push(label) {
+        currentCanvasLabels.push(label);
+        svl.labelCounter.increment(label.getProperty("labelType"));
+    }
+
+    /** Refresh */
+    function refresh () {
+        prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
+        currentCanvasLabels = [];
+    }
+
+    /**  Flush the canvasLabels */
+    function removeAll() { currentCanvasLabels = []; }
+
+    /**
+     * This function removes a passed label and its child path and points
+     * @method
+     */
+    function removeLabel (label) {
+        if (!label) { return false; }
+        svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
+        svl.labelCounter.decrement(label.getProperty("labelType"));
+        label.remove();
+
+        // Review label correctness if this is a ground truth insertion task.
+        if (("goldenInsertion" in svl) &&
+            svl.goldenInsertion &&
+            svl.goldenInsertion.isRevisingLabels()) {
+            svl.goldenInsertion.reviewLabels();
+        }
+
+        svl.canvas.clear();
+        svl.canvas.render();
+        return this;
+    }
+
+    function save () {
+        svl.storage.set("labels", currentCanvasLabels);
+    }
+
+
+    self.getCanvasLabels = getCanvasLabels;
+    self.getCurrentLabels = getCurrentLabels;
+//    self.load = load;
+    self.push = push;
+    self.refresh = refresh;
+    self.removeAll = removeAll;
+    self.removeLabel = removeLabel;
+//    self.save = save;
+    return self;
+}
+var svl = svl || {};
+
+/**
+ * Label Counter module. 
+ * @param d3 d3 module
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function LabelCounter (d3) {
+    var self = {className: 'LabelCounter'};
+
+    var radius = 0.4, dR = radius / 2,
+        svgWidth = 200, svgHeight = 120,
+        margin = {top: 10, right: 10, bottom: 10, left: 0},
+        padding = {left: 5, top: 15},
+        width = 200 - margin.left - margin.right,
+        height = 40 - margin.top - margin.bottom,
+        colorScheme = svl.misc.getLabelColors(),
+        imageWidth = 22, imageHeight = 22;
+
+    // Prepare a group to store svg elements, and declare a text
+    var dotPlots = {
+      "CurbRamp": {
+        id: "CurbRamp",
+        description: "curb ramp",
+        left: margin.left,
+        top: margin.top,
+        fillColor: colorScheme["CurbRamp"].fillStyle,
+          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
+        count: 0,
+        data: []
+      },
+      "NoCurbRamp": {
+          id: "NoCurbRamp",
+          description: "missing curb ramp",
+          left: margin.left + width / 2,
+          top: margin.top,
+          // top: 2 * margin.top + margin.bottom + height,
+          fillColor: colorScheme["NoCurbRamp"].fillStyle,
+          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
+          count: 0,
+          data: []
+      },
+      "Obstacle": {
+        id: "Obstacle",
+        description: "obstacle",
+        left: margin.left,
+        // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+          top: 2 * margin.top + margin.bottom + height,
+        fillColor: colorScheme["Obstacle"].fillStyle,
+          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
+        count: 0,
+        data: []
+      },
+      "SurfaceProblem": {
+        id: "SurfaceProblem",
+        description: "surface problem",
+        left: margin.left + width / 2,
+        //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+          top: 2 * margin.top + margin.bottom + height,
+        fillColor: colorScheme["SurfaceProblem"].fillStyle,
+          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
+        count: 0,
+        data: []
+      },
+        "Other": {
+            id: "Other",
+            description: "other",
+            left: margin.left,
+            top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            fillColor: colorScheme["Other"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Other.png",
+            count: 0,
+            data: []
+        }
+    };
+
+    var keys = Object.keys(dotPlots);
+
+    var x = d3.scale.linear()
+              .domain([0, 20])
+              .range([0, width]);
+
+    var y = d3.scale.linear()
+            .domain([0, 20])
+            .range([height, 0]);
+
+    var svg = d3.select('#label-counter')
+                  .append('svg')
+                  .attr('width', svgWidth)
+                  .attr('height', svgHeight);
+
+    var chart = svg.append('g')
+                  .attr('width', svgWidth)
+                  .attr('height', svgHeight)
+                  .attr('class', 'chart')
+                  .attr('transform', function () {
+                     return 'translate(0,0)';
+                  });
+
+    for (var key in dotPlots) {
+        dotPlots[key].g = chart.append('g')
+                    .attr('transform', 'translate(' + dotPlots[key].left + ',' + dotPlots[key].top + ')')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .attr('class', 'main');
+
+        dotPlots[key].label = dotPlots[key].g.selectAll("text.label")
+            .data([0])
+            .enter()
+            .append("text")
+            .text(function () {
+                var ret = dotPlots[key].count + " " + dotPlots[key].description;
+                ret += dotPlots[key].count > 1 ? "s" : "";
+                return ret;
+            })
+            .style("font-size", "10px")
+            .attr("class", "visible")
+            .attr('transform', 'translate(0,' + imageHeight + ')');
+
+        dotPlots[key].plot = dotPlots[key].g.append("g")
+            .attr('transform', 'translate(' + (padding.left + imageWidth) + ',' + 0 + ')');
+
+        dotPlots[key].g.append("image")
+            .attr("xlink:href", dotPlots[key].imagePath)
+            .attr("width", imageWidth)
+            .attr("height", imageHeight)
+            .attr('transform', 'translate(0,-15)');
+      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
+      //  .data([0])
+      //  .enter()
+      //  .append("text")
+      //  .style("font-size", "11px")
+      //  .style("fill", "gray")
+      //  .attr("class", "visible");
+    }
+
+    /**
+     * Set label counts to 0
+     */
+    function reset () {
+        for (var key in dotPlots) {
+            set(key, 0);
+        }
+    }
+
+    /**
+     * Update the label count visualization.
+     * @param key {string} Label type
+     */
+    function update(key) {
+        // If a key is given, udpate the dot plot for that specific data.
+        // Otherwise update all.
+        if (key) {
+          _update(key)
+        } else {
+          for (var key in dotPlots) {
+            _update(key);
+          }
+        }
+
+        // Actual update function
+        function _update(key) {
+            if (keys.indexOf(key) == -1) { key = "Other"; }
+
+            var firstDigit = dotPlots[key].count % 10,
+              higherDigits = (dotPlots[key].count - firstDigit) / 10,
+              count = firstDigit + higherDigits;
+
+            // Update the label
+            //dotPlots[key].countLabel
+            //  .transition().duration(1000)
+            //  .attr("x", function () {
+            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
+            //  })
+            //  .attr("y", function () {
+            //    return x(radius + dR - 0.05);
+            //  })
+            //  // .transition().duration(1000)
+            //  .text(function (d) {
+            //    return dotPlots[key].count;
+            //  });
+
+            // Update the dot plot
+            if (dotPlots[key].data.length >= count) {
+              // Remove dots
+              dotPlots[key].data = dotPlots[key].data.slice(0, count);
+
+                dotPlots[key].plot.selectAll("circle")
+                  .transition().duration(500)
+                  .attr("r", function (d, i) {
+                    return i < higherDigits ? x(radius + dR) : x(radius);
+                  })
+                  .attr("cy", function (d, i) {
+                    if (i < higherDigits) {
+                        return 0;
+                    } else {
+                        return x(dR);
+                    }
+                  });
+
+                dotPlots[key].plot.selectAll("circle")
+                  .data(dotPlots[key].data)
+                  .exit()
+                  .transition()
+                  .duration(500)
+                  .attr("cx", function () {
+                    return x(higherDigits);
+                  })
+                  .attr("r", 0)
+                  .remove();
+            } else {
+              // Add dots
+              var len = dotPlots[key].data.length;
+              for (var i = 0; i < count - len; i++) {
+                  dotPlots[key].data.push([len + i, 0, radius])
+              }
+              dotPlots[key].plot.selectAll("circle")
+                .data(dotPlots[key].data)
+                .enter().append("circle")
+                .attr("cx", x(0))
+                .attr("cy", 0)
+                .attr("r", x(radius + dR))
+                .style("fill", dotPlots[key].fillColor)
+                .transition().duration(1000)
+                .attr("cx", function (d, i) {
+                  if (i <= higherDigits) {
+                    return x(d[0] * 2 * (radius + dR));
+                  } else {
+                    return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
+                  }
+                })
+                .attr("cy", function (d, i) {
+                  if (i < higherDigits) {
+                    return 0;
+                  } else {
+                    return x(dR);
+                  }
+                })
+                .attr("r", function (d, i) {
+                  return i < higherDigits ? x(radius + dR) : x(radius);
+                });
+            }
+            dotPlots[key].label.text(function () {
+                var ret = dotPlots[key].count + " " + dotPlots[key].description;
+                ret += dotPlots[key].count > 1 ? "s" : "";
+                return ret;
+            });
+        }
+    }
+
+    /**
+     * Decrement the label count
+     * @param key {string} Label type
+     */
+    function decrement(key) {
+        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (key in dotPlots && dotPlots[key].count > 0) {
+            dotPlots[key].count -= 1;
+        }
+        update(key);
+    }
+
+    /**
+     * Increment the label count
+     * @param key {string} Label type
+     */
+    function increment(key) {
+        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (key in dotPlots) {
+            dotPlots[key].count += 1;
+            update(key);
+        }
+    }
+
+    /**
+     * Set the number of label count
+     * @param key {string} Label type
+     * @param num {number} Label type count
+     */
+    function set(key, num) {
+        dotPlots[key].count = num;
+        update(key);
+    }
+
+    // Initialize
+    update();
+
+    self.increment = increment;
+    self.decrement = decrement;
+    self.set = set;
+    self.reset = reset;
+    return self;
+}
+/**
+ * LabelFactory module.
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function LabelFactory () {
+    var self = { className: "LabelFactory" },
+        temporaryLabelId = 1;
+
+    function create (path, param) {
+        var label = new Label(path, param);
+        if (label) {
+            if (!('labelId' in param)) {
+                label.setProperty("temporary_label_id", temporaryLabelId);
+                temporaryLabelId++;
+            }
+            return label;
+        }
+    }
+
+    self.create = create;
+    return self;
+}
+/**
+ * Path module. A Path instance holds and array of Point instances.
+ * @param points
+ * @param params
+ * @returns {{className: string, points: undefined}}
+ * @constructor
+ * @memberof svl
+ */
+function Path (points, params) {
+    var self = { className : 'Path', points : undefined };
+    var parent;
+    var properties = {
+        fillStyle: 'rgba(255,255,255,0.5)',
+        lineCap : 'round', // ['butt','round','square']
+        lineJoin : 'round', // ['round','bevel','miter']
+        lineWidth : '3',
+        numPoints: points.length,
+        originalFillStyle: 'rgba(255,255,255,0.5)',
+        originalStrokeStyle: 'rgba(255,255,255,1)',
+        strokeStyle : 'rgba(255,255,255,1)',
+        strokeStyle_bg : 'rgba(255,255,255,1)' //potentially delete
+    };
+    var status = {
+        visibility: 'visible'
+    };
+
+    function _init(points, params) {
+        var lenPoints;
+        var i;
+        self.points = points;
+        lenPoints = points.length;
+
+        // Set belongs to of the points
+        for (i = 0; i < lenPoints; i += 1) {
+            points[i].setBelongsTo(self);
+        }
+
+        if (params) {
+            for (var attr in params) {
+                if (attr in properties) {
+                    properties[attr] = params[attr];
+                }
+            }
+        }
+        properties.fillStyle = svl.util.color.changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
+        properties.originalFillStyle = properties.fillStyle;
+        properties.originalStrokeStyle = properties.strokeStyle;
+    }
+
+    /**
+     * This method returns the Label object that this path belongs to.
+     * @returns {object|null} Label object.
+     */
+    function belongsTo () {
+        return parent ? parent : null;
+    }
+
+    /**
+     * This function checks if a mouse cursor is on any of a points and return
+     * @param povIn
+     * @returns {{x: number, y: number, width: number, height: number}}
+     */
+    function getBoundingBox(povIn) {
+        var pov = povIn ? povIn : svl.map.getPov();
+        var canvasCoords = getCanvasCoordinates(pov);
+        var xMin, xMax, yMin, yMax, width, height;
+        if (points.length > 2) {
+            xMax = -1;
+            xMin = 1000000;
+            yMax = -1;
+            yMin = 1000000;
+
+            for (var j = 0; j < canvasCoords.length; j += 1) {
+                var coord = canvasCoords[j];
+                if (coord.x < xMin) { xMin = coord.x; }
+                if (coord.x > xMax) { xMax = coord.x; }
+                if (coord.y < yMin) { yMin = coord.y; }
+                if (coord.y > yMax) { yMax = coord.y; }
+            }
+            width = xMax - xMin;
+            height = yMax - yMin;
+        } else {
+            xMin = canvasCoords[0].x;
+            yMin = canvasCoords[0].y;
+            width = 0;
+            height = 0;
+        }
+
+        return { x: xMin, y: yMin, width: width, height: height };
+    }
+
+    /**
+     * Returns fill color of the path
+     * @returns {string}
+     */
+    function getFill() {
+        return properties.fillStyle;
+    }
+
+    /**
+     * Get canvas coordinate
+     * @param pov
+     * @returns {Array}
+     */
+    function getCanvasCoordinates (pov) {
+        // Get canvas coordinates of points that constitute the path.
+        var imCoords = getImageCoordinates(), i, len = imCoords.length, canvasCoord, canvasCoords = [], min = 10000000, max = -1;
+
+        for (i = 0; i < len; i += 1) {
+            if (min > imCoords[i].x) {
+                min = imCoords[i].x;
+            }
+            if (max < imCoords[i].x) {
+                max = imCoords[i].x;
+            }
+        }
+        // Note canvasWidthInGSVImage is approximately equals to the image width of GSV image that fits in one canvas view
+        var canvasWidthInGSVImage = 3328;
+        for (i = 0; i < len; i += 1) {
+            if (pov.heading < 180) {
+                if (max > svl.svImageWidth - canvasWidthInGSVImage) {
+                    if (imCoords[i].x > canvasWidthInGSVImage) {
+                        imCoords[i].x -= svl.svImageWidth;
+                    }
+                }
+            } else {
+                if (min < canvasWidthInGSVImage) {
+                    if (imCoords[i].x < svl.svImageWidth - canvasWidthInGSVImage) {
+                        imCoords[i].x += svl.svImageWidth;
+                    }
+                }
+            }
+            canvasCoord = svl.gsvImageCoordinate2CanvasCoordinate(imCoords[i].x, imCoords[i].y, pov);
+            canvasCoords.push(canvasCoord);
+        }
+
+        return canvasCoords;
+    }
+
+    /**
+     * This method returns an array of image coordinates of points
+     * @returns {Array}
+     */
+    function getImageCoordinates() {
+        var i, len = self.points.length, coords = [];
+        for (i = 0; i < len; i += 1) {
+            coords.push(self.points[i].getGSVImageCoordinate());
+        }
+        return coords;
+    }
+
+    /**
+     * Returns the line width
+     * @returns {string}
+     */
+    function getLineWidth () {
+        return properties.lineWidth;
+    }
+
+    /**
+     * This function returns points.
+     */
+    function getPoints (reference) {
+        if (!reference) {
+            reference = false;
+        }
+
+        if (reference) {
+            // return self.points;
+            return points;
+        } else {
+            // return $.extend(true, [], self.points);
+            return $.extend(true, [], points);
+        }
+    }
+
+    /**
+     * This method returns a property
+     * @param key The field name of the property
+     * @returns {*}
+     */
+    function getProperty (key) {
+        return properties[key];
+    }
+
+    /**
+     * This method returns the status of the field
+     * @param key {string} The field name
+     */
+    function getStatus (key) {
+        return status[key];
+    }
+
+    /**
+     * this method returns a bounding box in terms of svImage coordinates.
+     * @returns {{x: number, y: number, width: number, height: number, boundary: boolean}}
+     */
+    function getSvImageBoundingBox() {
+        var i;
+        var coord;
+        var coordinates = getImageCoordinates();
+        var len = coordinates.length;
+        var xMax = -1;
+        var xMin = 1000000;
+        var yMax = -1000000;
+        var yMin = 1000000;
+        var boundary = false;
+
+        //
+        // Check if thie is an boundary case
+        for (i = 0; i < len; i++) {
+            coord = coordinates[i];
+            if (coord.x < xMin) {
+                xMin = coord.x;
+            }
+            if (coord.x > xMax) {
+                xMax = coord.x;
+            }
+            if (coord.y < yMin) {
+                yMin = coord.y;
+            }
+            if (coord.y > yMax) {
+                yMax = coord.y;
+            }
+        }
+
+        if (xMax - xMin > 5000) {
+            boundary = true;
+            xMax = -1;
+            xMin = 1000000;
+
+            for (i = 0; i < len; i++) {
+                coord = coordinates[i];
+                if (coord.x > 6000) {
+                    if (coord.x < xMin) {
+                        xMin = coord.x;
+                    }
+                } else {
+                    if (coord.x > xMax){
+                        xMax = coord.x;
+                    }
+                }
+            }
+        }
+
+        // If the path is on boundary, swap xMax and xMin.
+        if (boundary) {
+            return {
+                x: xMin,
+                y: yMin,
+                width: (svl.svImageWidth - xMin) + xMax,
+                height: yMax - yMin,
+                boundary: true
+            }
+        } else {
+            return {
+                x: xMin,
+                y: yMin,
+                width: xMax - xMin,
+                height: yMax - yMin,
+                boundary: false
+            }
+        }
+    }
+
+    /**
+     * This function checks if a mouse cursor is on any of a points and return a point if the cursor is indeed on the
+     * point. Otherwise, this function checks if the mouse cursor is on a bounding box of this path. If the cursor is
+     * on the bounding box, then this function returns this path object.
+     * @param x
+     * @param y
+     * @returns {*}
+     */
+    function isOn (x, y) {
+        var boundingBox, i, j, point, pointsLen, result;
+
+        // Check if the passed point (x, y) is on any of points.
+        pointsLen = self.points.length;
+        for (j = 0; j < pointsLen; j += 1) {
+            point = self.points[j];
+            result = point.isOn(x, y);
+            if (result) {
+                return result;
+            }
+        }
+
+        // Check if the passed point (x, y) is on a path bounding box
+        boundingBox = getBoundingBox();
+        if (boundingBox.x < x &&
+            boundingBox.x + boundingBox.width > x &&
+            boundingBox.y < y &&
+            boundingBox.y + boundingBox.height > y) {
+            return this;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * This method calculates the area overlap between bouding boxes of this path and
+     * another path passed as an argument.
+     * @param path
+     * @param mode
+     * @returns {number}
+     */
+    function overlap (path, mode) {
+        if (!mode) {
+            mode = "boundingbox";
+        }
+
+        var overlap = 0;
+
+        if (mode === "boundingbox") {
+            var boundingbox1 = getSvImageBoundingBox();
+            var boundingbox2 = path.getSvImageBoundingBox();
+            var xOffset;
+            var yOffset;
+
+            //
+            // Check if a bounding box is on a boundary
+            if (!(boundingbox1.boundary && boundingbox2.boundary)) {
+                if (boundingbox1.boundary) {
+                    boundingbox1.x = boundingbox1.x - svl.svImageWidth;
+                    if (boundingbox2.x > 6000) {
+                        boundingbox2.x = boundingbox2.x - svl.svImageWidth;
+                    }
+                } else if (boundingbox2.boundary) {
+                    boundingbox2.x = boundingbox2.x - svl.svImageWidth;
+                    if (boundingbox1.x > 6000) {
+                        boundingbox1.x = boundingbox1.x - svl.svImageWidth;
+                    }
+                }
+            }
+
+
+            if (boundingbox1.x < boundingbox2.x) {
+                xOffset = boundingbox1.x;
+            } else {
+                xOffset = boundingbox2.x;
+            }
+            if (boundingbox1.y < boundingbox2.y) {
+                yOffset = boundingbox1.y;
+            } else {
+                yOffset = boundingbox2.y;
+            }
+
+            boundingbox1.x -= xOffset;
+            boundingbox2.x -= xOffset;
+            boundingbox1.y -= yOffset;
+            boundingbox2.y -= yOffset;
+
+            var b1x1 = boundingbox1.x;
+            var b1x2 = boundingbox1.x + boundingbox1.width;
+            var b1y1 = boundingbox1.y;
+            var b1y2 = boundingbox1.y + boundingbox1.height;
+            var b2x1 = boundingbox2.x;
+            var b2x2 = boundingbox2.x + boundingbox2.width;
+            var b2y1 = boundingbox2.y;
+            var b2y2 = boundingbox2.y + boundingbox2.height;
+            var row = 0;
+            var col = 0;
+            var rowMax = (b1x2 < b2x2) ? b2x2 : b1x2;
+            var colMax = (b1y2 < b2y2) ? b2y2 : b1y2;
+            var countUnion = 0;
+            var countIntersection = 0;
+            var isOnB1 = false;
+            var isOnB2 = false;
+
+            for (row = 0; row < rowMax; row++) {
+                for (col = 0; col < colMax; col++) {
+                    isOnB1 = (b1x1 < row && row < b1x2) && (b1y1 < col && col < b1y2);
+                    isOnB2 = (b2x1 < row && row < b2x2) && (b2y1 < col && col < b2y2);
+                    if (isOnB1 && isOnB2) {
+                        countIntersection += 1;
+                    }
+                    if (isOnB1 || isOnB2) {
+                        countUnion += 1;
+                    }
+                }
+            }
+            overlap = countIntersection / countUnion;
+        }
+
+        return overlap;
+    }
+
+    /**
+     * This method remove all the points in the list points.
+     */
+    function removePoints () {
+        self.points = undefined;
+    }
+
+    /**
+     * This method renders a path.
+     * @param pov
+     * @param ctx
+     */
+    function render (pov, ctx) {
+        if (status.visibility === 'visible') {
+            var j, pathLen, point, currCoord, prevCoord;
+
+            pathLen = self.points.length;
+
+            // Get canvas coordinates to render a path.
+            var canvasCoords = getCanvasCoordinates(pov);
+
+            // Set the fill color
+            point = self.points[0];
+            ctx.save();
+            ctx.beginPath();
+            if (!properties.fillStyle) {
+                properties.fillStyle = svl.util.color.changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
+                properties.originalFillStyle = properties.fillStyle;
+                ctx.fillStyle = properties.fillStyle;
+            } else {
+                ctx.fillStyle = properties.fillStyle;
+            }
+
+            if (pathLen > 1) {
+                // Render fill
+                ctx.moveTo(canvasCoords[0].x, canvasCoords[0].y);
+                for (j = 1; j < pathLen; j += 1) {
+                    ctx.lineTo(canvasCoords[j].x, canvasCoords[j].y);
+                }
+                ctx.lineTo(canvasCoords[0].x, canvasCoords[0].y);
+                ctx.fill();
+                ctx.closePath();
+                ctx.restore();
+            }
+
+            // Render points
+            for (j = 0; j < pathLen; j += 1) {
+                point = self.points[j];
+                point.render(pov, ctx);
+            }
+
+            if (pathLen > 1) {
+                // Render segments
+                for (j = 0; j < pathLen; j += 1) {
+                    if (j > 0) {
+                        currCoord = canvasCoords[j];
+                        prevCoord = canvasCoords[j - 1];
+                    } else {
+                        currCoord = canvasCoords[j];
+                        prevCoord = canvasCoords[pathLen - 1];
+                    }
+                    var r = point.getProperty('radiusInnerCircle');
+                    ctx.save();
+                    ctx.strokeStyle = properties.strokeStyle;
+                    svl.util.shape.lineWithRoundHead(ctx, prevCoord.x, prevCoord.y, r, currCoord.x, currCoord.y, r);
+                    ctx.restore();
+                }
+            }
+        }
+    }
+
+    function render2 (ctx, pov) {
+        return render(pov, ctx);
+    }
+
+    /**
+     * This method renders a bounding box around a path.
+     * @param ctx
+     */
+    function renderBoundingBox (ctx) {
+        // This function takes a bounding box returned by a method getBoundingBox()
+        var boundingBox = getBoundingBox();
+
+        ctx.save();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
+        ctx.beginPath();
+        ctx.moveTo(boundingBox.x, boundingBox.y);
+        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y);
+        ctx.lineTo(boundingBox.x + boundingBox.width, boundingBox.y + boundingBox.height);
+        ctx.lineTo(boundingBox.x, boundingBox.y + boundingBox.height);
+        ctx.lineTo(boundingBox.x, boundingBox.y);
+        ctx.stroke();
+        ctx.closePath();
+        ctx.restore();
+    }
+    
+    /**
+     * This method changes the value of fillStyle to its original fillStyle value
+     * @returns {self}
+     */
+    function resetFillStyle () {
+        properties.fillStyle = properties.originalFillStyle;
+        return this;
+    }
+
+    /**
+     * This method resets the strokeStyle to its original value
+     * @returns {self}
+     */
+    function resetStrokeStyle () {
+        properties.strokeStyle = properties.originalStrokeStyle;
+        return this;
+    }
+
+    /**
+     * This method sets the parent object
+     * @param obj
+     * @returns {setBelongsTo}
+     */
+    function setBelongsTo (obj) {
+        parent = obj;
+        return this;
+    }
+
+    /**
+     * Sets fill color of the path
+     * @param fill
+     */
+    function setFill(fill) {
+        if(fill.substring(0,4) == 'rgba'){
+            properties.fillStyle = fill;
+        } else{
+            fill = 'rgba'+fill.substring(3,fill.length-1)+',0.5)';
+            properties.fillStyle = fill;
+        }
+        return this;
+    }
+
+    function setFillStyle (fill) {
+        // This method sets the fillStyle of the path
+        if(fill!=undefined){
+            properties.fillStyle = fill;
+        }
+        return this;
+    }
+
+    /**
+     * This method sets the line width.
+     * @param lineWidth {number} Line width
+     * @returns {setLineWidth}
+     */
+    function setLineWidth (lineWidth) {
+        if(!isNaN(lineWidth)){
+            properties.lineWidth  = '' + lineWidth;
+        }
+        return this;
+    }
+
+    /**
+     * This method sets the strokeStyle of the path
+     * @param stroke {string} Stroke style
+     * @returns {setStrokeStyle}
+     */
+    function setStrokeStyle (stroke) {
+        properties.strokeStyle = stroke;
+        return this;
+    }
+
+    /**
+     * This method sets the visibility of a path
+     * @param visibility {string} Visibility (visible or hidden)
+     * @returns {setVisibility}
+     */
+    function setVisibility (visibility) {
+        if (visibility === 'visible' || visibility === 'hidden') status.visibility = visibility;
+        return this;
+    }
+
+    self.belongsTo = belongsTo;
+    self.getBoundingBox = getBoundingBox;
+    self.getLineWidth = getLineWidth;
+    self.getFill = getFill;
+    self.getSvImageBoundingBox = getSvImageBoundingBox;
+    self.getImageCoordinates = getImageCoordinates;
+    self.getPoints = getPoints;
+    self.getProperty = getProperty;
+    self.getStatus = getStatus;
+    self.isOn = isOn;
+    self.overlap = overlap;
+    self.removePoints = removePoints;
+    self.render2 = render2;
+    self.render = render;
+    self.renderBoundingBox = renderBoundingBox;
+    self.resetFillStyle = resetFillStyle;
+    self.resetStrokeStyle = resetStrokeStyle;
+    self.setFill = setFill;
+    self.setBelongsTo = setBelongsTo;
+    self.setLineWidth = setLineWidth;
+    self.setFillStyle = setFillStyle;
+    self.setStrokeStyle = setStrokeStyle;
+    self.setVisibility = setVisibility;
+
+    // Initialize
+    _init(points, params);
+
+    return self;
+}
+
+var svl = svl || {};
+
+/**
+ * Point object
+ *
+ * @param x x-coordinate of the point on a canvas
+ * @param y y-coordinate of the point on a canvas
+ * @param pov Point of view that looks like
+ * @param params
+ * @returns {{className: string, svImageCoordinate: undefined, canvasCoordinate: undefined, originalCanvasCoordinate: undefined, pov: undefined, originalPov: undefined}}
+ * @constructor
+ * @memberof svl
+ */
+function Point (x, y, pov, params) {
+  'use strict';
+
+    if(params.fillStyle==undefined){
+        params.fillStyle = 'rgba(255,255,255,0.5)';
+    }
+    var self = {
+            className : 'Point',
+            svImageCoordinate : undefined,
+            canvasCoordinate : undefined,
+            originalCanvasCoordinate : undefined,
+            pov : undefined,
+            originalPov : undefined
+        };
+    var belongsTo;
+    var properties = {
+        fillStyleInnerCircle: params.fillStyle,
+        lineWidthOuterCircle: 2,
+        iconImagePath: undefined,
+        originalFillStyleInnerCircle: undefined,
+        originalStrokeStyleOuterCircle: undefined,
+        radiusInnerCircle: 4,
+        radiusOuterCircle: 5,
+        strokeStyleOuterCircle: 'rgba(255,255,255,1)',
+        storedInDatabase: false
+    };
+    var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
+    var status = {
+            'deleted' : false,
+            'visibility' : 'visible',
+            'visibilityIcon' : 'visible'
+    };
+
+    function _init (x, y, pov, params) {
+        // Convert a canvas coordinate (x, y) into a sv image coordinate
+        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
+        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
+        
+        // Adjust the zoom level
+        var zoom = pov.zoom;
+        var zoomFactor = svl.zoomFactor[zoom];
+        var svImageHeight = svl.svImageHeight;
+        var svImageWidth = svl.svImageWidth;
+        self.svImageCoordinate = {};
+        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
+        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
+        // svImageCoordinate.x could be negative, so adjust it.
+        if (self.svImageCoordinate.x < 0) {
+            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
+        }
+        // Keep the original canvas coordinate and
+        // canvas pov just in case.
+        self.canvasCoordinate = {
+            x : x,
+            y : y
+        };
+        self.originalCanvasCoordinate = {
+            x : x,
+            y : y
+        };
+        self.pov = {
+            heading : pov.heading,
+            pitch : pov.pitch,
+            zoom : pov.zoom
+        };
+        self.originalPov = {
+            heading : pov.heading,
+            pitch : pov.pitch,
+            zoom : pov.zoom
+        };
+
+        // Set properties
+        for (var propName in properties) {
+            // It is ok if iconImagePath is not specified
+            if(propName === "iconImagePath") {
+                if (params.iconImagePath) {
+                    properties.iconImagePath = params.iconImagePath;
+                } else {
+                    continue;
+                }
+            }
+
+            if (propName in params) {
+                properties[propName] = params[propName];
+            } else {
+                // See if this property must be set.
+                if (unnessesaryProperties.indexOf(propName) === -1) {
+                    // throw self.className + ': "' + propName + '" is not defined.';
+                }
+            }
+        }
+
+        properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
+        properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
+        return true;
+    }
+
+
+    /** Deprecated */
+    function _init2 () { return true; }
+
+    /** Get x canvas coordinate */
+    function getCanvasX () { return self.canvasCoordinate.x; }
+
+    /** Get y canvas coordinate */
+    function getCanvasY () { return self.canvasCoordinate.y; }
+
+    /** return the fill color of this point */
+    function getFill () { return properties.fillStyleInnerCircle; }
+
+    /** Get POV */
+    function getPOV () { return pov; }
+
+    /** Returns an object directly above this object. */
+    function getParent () { return belongsTo ? belongsTo : null; }
+
+
+    /**
+     * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point.
+     * @param pov
+     * @returns {{x, y}}
+     */
+    function getCanvasCoordinate (pov) {
+        self.canvasCoordinate = svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
+        return svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
+    }
+
+    /**
+     * Get the fill style.
+     * @returns {*}
+     */
+    function getFillStyle () { return  getFill(); }
+
+    function getGSVImageCoordinate () { return $.extend(true, {}, self.svImageCoordinate); }
+
+    function getProperty (name) { return (name in properties) ? properties[name] : null; }
+
+    function getProperties () { return $.extend(true, {}, properties); }
+
+    function isOn (x, y) {
+        var margin = properties.radiusOuterCircle / 2 + 3;
+        if (x < self.canvasCoordinate.x + margin &&
+            x > self.canvasCoordinate.x - margin &&
+            y < self.canvasCoordinate.y + margin &&
+            y > self.canvasCoordinate.y - margin) {
+            return this;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Renders this point
+     * @param pov
+     * @param ctx
+     */
+    function render (pov, ctx) {
+        if (status.visibility === 'visible') {
+            var coord = self.getCanvasCoordinate(pov),
+                x = coord.x,
+                y = coord.y,
+                r = properties.radiusInnerCircle;
+
+            ctx.save();
+            ctx.strokeStyle = properties.strokeStyleOuterCircle;
+            ctx.lineWidth = properties.lineWidthOuterCircle;
+            ctx.beginPath();
+            ctx.arc(x, y, properties.radiusOuterCircle, 2 * Math.PI, 0, true);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillStyle = properties.fillStyleInnerCircle; // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
+            ctx.beginPath();
+            ctx.arc(x, y, properties.radiusInnerCircle, 2 * Math.PI, 0, true);
+            ctx.closePath();
+            ctx.fill();
+
+            // Render an icon
+            var imagePath = getProperty("iconImagePath");
+            if (imagePath) {
+                var imageObj, imageHeight, imageWidth, imageX, imageY;
+                imageObj = new Image();
+                imageHeight = imageWidth = 2 * r - 3;
+                imageX =  x - r + 2;
+                imageY = y - r + 2;
+
+                //ctx.globalAlpha = 0.5;
+                imageObj.src = imagePath;
+
+                try {
+                    ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+                } catch (e) {
+                    // console.debug(e);
+                }
+
+                //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+            }
+            ctx.restore();
+        }
+    }
+
+    /**
+     * This method reverts the fillStyle property to its original value
+     * @returns {resetFillStyle}
+     */
+    function resetFillStyle () {
+        properties.fillStyleInnerCircle = properties.originalFillStyleInnerCircle;
+        return this;
+    }
+
+    /**
+     * Set the svImageCoordinate
+     * @param coord
+     * @returns {self}
+     */
+    function resetSVImageCoordinate (coord) {
+        self.svImageCoordinate = coord;
+        self.canvasCoordinate = {x : 0, y: 0};
+        return this;
+    }
+
+    /**
+     * This method resets the strokeStyle to its original value
+     * @returns {self}
+     */
+    function resetStrokeStyle () {
+        properties.strokeStyleOuterCircle = properties.originalStrokeStyleOuterCircle;
+        return this;
+    }
+
+    /**
+     * This function sets which object (Path)
+     * @param obj
+     * @returns {self}
+     */
+    function setBelongsTo (obj) {
+        belongsTo = obj;
+        return this;
+    }
+
+    /**
+     * This method sets the fill style of inner circle to the specified value
+     * @param value
+     * @returns {self}
+     */
+    function setFillStyle (value) {
+        properties.fillStyleInnerCircle = value;
+        return this;
+    }
+
+    function setIconPath (iconPath) {
+        properties.iconImagePath = iconPath;
+        return this;
+    }
+
+    /**
+     * this method sets the photographerHeading and photographerPitch
+     * @param heading
+     * @param pitch
+     * @returns {self}
+     */
+    function setPhotographerPov (heading, pitch) {
+        properties.photographerHeading = heading;
+        properties.photographerPitch = pitch;
+        return this;
+    }
+
+    /**
+     * This function resets all the properties specified in params.
+     * @param params
+     * @returns {self}
+     */
+    function setProperties (params) {
+        for (var key in params) {
+            if (key in properties) {
+                properties[key] = params[key];
+            }
+        }
+
+        if ('originalCanvasCoordinate' in params) {
+            self.originalCanvasCoordinate = params.originalCanvasCoordinate;
+        }
+
+        //
+        // Set pov parameters
+        self.pov = self.pov || {};
+        if ('pov' in params) { self.pov = params.pov; }
+        if ('heading' in params) { self.pov.heading = params.heading; }
+        if ('pitch' in params) { self.pov.pitch = params.pitch; }
+        if ('zoom' in params) { self.pov.zoom = params.zoom; }
+
+        // Set original pov parameters
+        self.originalPov = self.originalPov || {};
+        if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }
+        if ('originalPitch' in params) { self.originalPov.pitch = params.originalPitch; }
+        if ('originalZoom' in params) { self.originalPov.zoom = params.originalZoom; }
+
+        if (!properties.originalFillStyleInnerCircle) {
+            properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
+        }
+        if (!properties.originalStrokeStyleOuterCircle) {
+            properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
+        }
+        return this;
+    }
+
+    function setStrokeStyle (val) {
+        // This method sets the strokeStyle of an outer circle to val
+        properties.strokeStyleOuterCircle = val;
+        return this;
+    }
+
+    self.belongsTo = getParent;
+    self.getPOV = getPOV;
+    self.getCanvasCoordinate = getCanvasCoordinate;
+    self.getCanvasX = getCanvasX;
+    self.getCanvasY = getCanvasY;
+    self.getFill = getFill;
+    self.getFillStyle = getFillStyle;
+    self.getGSVImageCoordinate = getGSVImageCoordinate;
+    self.getProperty = getProperty;
+    self.getProperties = getProperties;
+    self.isOn = isOn;
+    self.render = render;
+    self.resetFillStyle = resetFillStyle;
+    self.resetSVImageCoordinate = resetSVImageCoordinate;
+    self.resetStrokeStyle = resetStrokeStyle;
+    self.setBelongsTo = setBelongsTo;
+    self.setFillStyle = setFillStyle;
+    self.setIconPath = setIconPath;
+    self.setPhotographerPov = setPhotographerPov;
+    self.setProperties = setProperties;
+    self.setStrokeStyle = setStrokeStyle;
+    self.setVisibility = setVisibility;
+
+    function setVisibility (visibility) {
+        // This method sets the visibility of a path (and points that cons
+        if (visibility === 'visible' || visibility === 'hidden') {
+            status.visibility = visibility;
+        }
+        return this;
+    }
+
+    // Todo. Deprecated method. Get rid of this later.
+    self.resetProperties = self.setProperties;
+
+  var argLen = arguments.length;
+    if (argLen === 4) {
+        _init(x, y, pov, params);
+    } else {
+        _init2();
+    }
+
+    return self;
+}
+
+
+svl.gsvImageCoordinate2CanvasCoordinate = function (xIn, yIn, pov) {
+    // This function takes the current pov of the Street View as a parameter
+    // and returns a canvas coordinate of a point (xIn, yIn).
+    var x, y, zoom = pov.zoom;
+    var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
+    var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
+
+    xIn = xIn * svl.zoomFactor[zoom];
+    yIn = yIn * svl.zoomFactor[zoom];
+
+    x = xIn - (svImageWidth * pov.heading) / 360;
+    x = x / svl.alpha_x + svl.canvasWidth / 2;
+
+    //
+    // When POV is near 0 or near 360, points near the two vertical edges of
+    // the SV image does not appear. Adjust accordingly.
+    var edgeOfSvImageThresh = 360 * svl.alpha_x * (svl.canvasWidth / 2) / (svImageWidth) + 10;
+
+    if (pov.heading < edgeOfSvImageThresh) {
+        // Update the canvas coordinate of the point if
+        // its svImageCoordinate.x is larger than svImageWidth - alpha_x * (svl.canvasWidth / 2).
+        if (svImageWidth - svl.alpha_x * (svl.canvasWidth / 2) < xIn) {
+            x = (xIn - svImageWidth) - (svImageWidth * pov.heading) / 360;
+            x = x / svl.alpha_x + svl.canvasWidth / 2;
+        }
+    } else if (pov.heading > 360 - edgeOfSvImageThresh) {
+        if (svl.alpha_x * (svl.canvasWidth / 2) > xIn) {
+            x = (xIn + svImageWidth) - (svImageWidth * pov.heading) / 360;
+            x = x / svl.alpha_x + svl.canvasWidth / 2;
+        }
+    }
+
+    y = yIn - (svImageHeight / 2) * (pov.pitch / 90);
+    y = y / svl.alpha_y + svl.canvasHeight / 2;
+
+    return {x : x, y : y};
+};
+
+svl.zoomFactor = {
+    1: 1,
+    2: 2.1,
+    3: 4,
+    4: 8,
+    5: 16
+};
 
 var svl = svl || {};
 svl.util = svl.util || {};
