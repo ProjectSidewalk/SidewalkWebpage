@@ -13,6 +13,7 @@ module.exports = function(grunt) {
                     'src/SVLabel/task/*.js',
                     'src/SVLabel/mission/*.js',
                     'src/SVLabel/label/*.js',
+                    'src/SVLabel/neighborhood/*.js',
                     'src/SVLabel/Util/*.js',
                     'src/SVLabel/Onboarding/Onboarding.js'
                 ],
@@ -40,6 +41,7 @@ module.exports = function(grunt) {
                 'src/SVLabel/task/*.js',
                 'src/SVLabel/mission/*.js',
                 'src/SVLabel/label/*.js',
+                'src/SVLabel/neighborhood/*.js',
                 'src/SVLabel/util/*.js',
                 'src/SVLabel/onboarding/onboarding.js'
             ],
