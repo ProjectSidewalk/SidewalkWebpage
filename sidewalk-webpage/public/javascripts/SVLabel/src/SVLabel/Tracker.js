@@ -106,8 +106,9 @@ function Tracker () {
 
         // Todo. Submit the data collected thus far if actions is too long.
         if (actions.length > 150) {
-            var data = svl.form.compileSubmissionData();
-            svl.form.submit(data);
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
         }
 
         if ("trackerViewer" in svl) {

@@ -106,13 +106,13 @@ function Form ($, params) {
      * This method gathers all the data needed for submission.
      * @returns {{}}
      */
-    function compileSubmissionData () {
+    function compileSubmissionData (task) {
         var data = {};
-
-        var task = svl.taskContainer.getCurrentTask();
+        
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
-            task_start: task.getTaskStart()
+            task_start: task.getTaskStart(),
+            audit_task_id: task.getAuditTaskId()
         };
 
         data.environment = {
@@ -189,36 +189,7 @@ function Form ($, params) {
 
         return data;
     }
-
-    /**
-     * This method checks whether users can submit labels or skip this task by first checking if they assessed all
-     * the angles of the street view. Enable/disable form a submit button and a skip button.
-     * @returns {boolean}
-     */
-    //function checkSubmittable () {
-    //    if ('missionProgress' in svl && svl.missionProgress) {
-    //        var completionRate = svl.missionProgress.getMissionCompletionRate();
-    //    } else {
-    //        var completionRate = 0;
-    //    }
-    //
-    //    var labelCount = svl.canvas.getNumLabels();
-    //
-    //    if (1 - completionRate < 0.01) {
-    //        if (labelCount > 0) {
-    //            enableSubmit();
-    //            disableSkip();
-    //        } else {
-    //            disableSubmit();
-    //            enableSkip();
-    //        }
-    //        return true;
-    //    } else {
-    //        disableSubmit();
-    //        disableSkip();
-    //        return false;
-    //    }
-    //}
+    
 
     /**
      * Disable clicking the submit button
@@ -276,22 +247,42 @@ function Form ($, params) {
     }
 
     /** This method returns whether the task is in preview mode or not. */
-    function isPreviewMode () { return properties.isPreviewMode; }
+    function isPreviewMode () {
+        return properties.isPreviewMode;
+    }
 
-    function lockDisableSubmit () { lock.disableSubmit = true; return this; }
+    function lockDisableSubmit () {
+        lock.disableSubmit = true;
+        return this;
+    }
 
-    function lockDisableSkip () { lock.disableSkip = true; return this; }
+    function lockDisableSkip () {
+        lock.disableSkip = true;
+        return this;
+    }
 
-    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
+    function setPreviousLabelingTaskId (val) {
+        properties.previousLabelingTaskId = val;
+        return this;
+    }
 
     /** This method sets the taskDescription */
-    function setTaskDescription (val) { properties.taskDescription = val; return this; }
+    function setTaskDescription (val) {
+        properties.taskDescription = val;
+        return this;
+    }
 
     /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
-    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
+    function setTaskPanoramaId (val) {
+        properties.taskPanoramaId = val;
+        return this;
+    }
 
     /** This method sets the number of remaining tasks */
-    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
+    function setTaskRemaining (val) {
+        properties.taskRemaining = val;
+        return this;
+    }
 
     /**
      *
@@ -330,10 +321,11 @@ function Form ($, params) {
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
-        var data = compileSubmissionData();
+        var task = svl.taskContainer.getCurrentTask();
+        var data = compileSubmissionData(task);
         data.incomplete = dataIn;
         svl.tracker.push('TaskSkip');
-        submit(data);
+        submit(data, task);
 
         if ("taskContainer" in svl) svl.taskContainer.initNextTask();
 
@@ -345,7 +337,7 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data) {
+    function submit(data, task) {
         svl.tracker.push('TaskSubmit');
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
@@ -358,9 +350,7 @@ function Form ($, params) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                if (result.error) {
-                    console.error(result.error);
-                }
+                if (result) task.setProperty("auditTaskId", result.audit_task_id);
             },
             error: function (result) {
                 console.error(result);
@@ -369,10 +359,16 @@ function Form ($, params) {
     }
 
     /** Unlock disable submit */
-    function unlockDisableSubmit () { lock.disableSubmit = false; return this; }
+    function unlockDisableSubmit () {
+        lock.disableSubmit = false;
+        return this;
+    }
 
     /** Unlock disable skip */
-    function unlockDisableSkip () { lock.disableSkipButton = false; return this; }
+    function unlockDisableSkip () {
+        lock.disableSkipButton = false;
+        return this;
+    }
 
     //self.checkSubmittable = checkSubmittable;
     self.compileSubmissionData = compileSubmissionData;

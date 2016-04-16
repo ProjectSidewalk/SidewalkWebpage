@@ -88,9 +88,10 @@ function Mission(parameters) {
     function getMissionCompletionRate (unit) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
 
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(getProperty("regionId"), unit);
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
             return completedDistance / targetDistance;
         } else {
             return 0;

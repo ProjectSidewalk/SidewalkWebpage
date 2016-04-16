@@ -2742,13 +2742,13 @@ function Form ($, params) {
      * This method gathers all the data needed for submission.
      * @returns {{}}
      */
-    function compileSubmissionData () {
+    function compileSubmissionData (task) {
         var data = {};
-
-        var task = svl.taskContainer.getCurrentTask();
+        
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
-            task_start: task.getTaskStart()
+            task_start: task.getTaskStart(),
+            audit_task_id: task.getAuditTaskId()
         };
 
         data.environment = {
@@ -2825,36 +2825,7 @@ function Form ($, params) {
 
         return data;
     }
-
-    /**
-     * This method checks whether users can submit labels or skip this task by first checking if they assessed all
-     * the angles of the street view. Enable/disable form a submit button and a skip button.
-     * @returns {boolean}
-     */
-    //function checkSubmittable () {
-    //    if ('missionProgress' in svl && svl.missionProgress) {
-    //        var completionRate = svl.missionProgress.getMissionCompletionRate();
-    //    } else {
-    //        var completionRate = 0;
-    //    }
-    //
-    //    var labelCount = svl.canvas.getNumLabels();
-    //
-    //    if (1 - completionRate < 0.01) {
-    //        if (labelCount > 0) {
-    //            enableSubmit();
-    //            disableSkip();
-    //        } else {
-    //            disableSubmit();
-    //            enableSkip();
-    //        }
-    //        return true;
-    //    } else {
-    //        disableSubmit();
-    //        disableSkip();
-    //        return false;
-    //    }
-    //}
+    
 
     /**
      * Disable clicking the submit button
@@ -2912,22 +2883,42 @@ function Form ($, params) {
     }
 
     /** This method returns whether the task is in preview mode or not. */
-    function isPreviewMode () { return properties.isPreviewMode; }
+    function isPreviewMode () {
+        return properties.isPreviewMode;
+    }
 
-    function lockDisableSubmit () { lock.disableSubmit = true; return this; }
+    function lockDisableSubmit () {
+        lock.disableSubmit = true;
+        return this;
+    }
 
-    function lockDisableSkip () { lock.disableSkip = true; return this; }
+    function lockDisableSkip () {
+        lock.disableSkip = true;
+        return this;
+    }
 
-    function setPreviousLabelingTaskId (val) { properties.previousLabelingTaskId = val; return this; }
+    function setPreviousLabelingTaskId (val) {
+        properties.previousLabelingTaskId = val;
+        return this;
+    }
 
     /** This method sets the taskDescription */
-    function setTaskDescription (val) { properties.taskDescription = val; return this; }
+    function setTaskDescription (val) {
+        properties.taskDescription = val;
+        return this;
+    }
 
     /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
-    function setTaskPanoramaId (val) { properties.taskPanoramaId = val; return this; }
+    function setTaskPanoramaId (val) {
+        properties.taskPanoramaId = val;
+        return this;
+    }
 
     /** This method sets the number of remaining tasks */
-    function setTaskRemaining (val) { properties.taskRemaining = val; return this; }
+    function setTaskRemaining (val) {
+        properties.taskRemaining = val;
+        return this;
+    }
 
     /**
      *
@@ -2966,10 +2957,11 @@ function Form ($, params) {
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
-        var data = compileSubmissionData();
+        var task = svl.taskContainer.getCurrentTask();
+        var data = compileSubmissionData(task);
         data.incomplete = dataIn;
         svl.tracker.push('TaskSkip');
-        submit(data);
+        submit(data, task);
 
         if ("taskContainer" in svl) svl.taskContainer.initNextTask();
 
@@ -2981,7 +2973,7 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data) {
+    function submit(data, task) {
         svl.tracker.push('TaskSubmit');
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
@@ -2994,9 +2986,7 @@ function Form ($, params) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                if (result.error) {
-                    console.error(result.error);
-                }
+                if (result) task.setProperty("auditTaskId", result.audit_task_id);
             },
             error: function (result) {
                 console.error(result);
@@ -3005,10 +2995,16 @@ function Form ($, params) {
     }
 
     /** Unlock disable submit */
-    function unlockDisableSubmit () { lock.disableSubmit = false; return this; }
+    function unlockDisableSubmit () {
+        lock.disableSubmit = false;
+        return this;
+    }
 
     /** Unlock disable skip */
-    function unlockDisableSkip () { lock.disableSkipButton = false; return this; }
+    function unlockDisableSkip () {
+        lock.disableSkipButton = false;
+        return this;
+    }
 
     //self.checkSubmittable = checkSubmittable;
     self.compileSubmissionData = compileSubmissionData;
@@ -5539,7 +5535,8 @@ function PopUpMessage ($, param) {
             setMessage("Do you want to create an account to keep track of your progress?");
             appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
                 // Store the data in LocalStorage.
-                var data = svl.form.compileSubmissionData(),
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task),
                     staged = svl.storage.get("staged");
                 staged.push(data);
                 svl.storage.set("staged", staged);
@@ -5553,11 +5550,13 @@ function PopUpMessage ($, param) {
 
                 svl.user.setProperty('firstTask', false);
                 // Submit the data as an anonymous user.
-                var data = svl.form.compileSubmissionData();
-                svl.form.submit(data);
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task);
+                svl.form.submit(data, task);
             });
             appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
-                var data = svl.form.compileSubmissionData(),
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task),
                     staged = svl.storage.get("staged");
                 staged.push(data);
                 svl.storage.set("staged", staged);
@@ -6368,8 +6367,9 @@ function Tracker () {
 
         // Todo. Submit the data collected thus far if actions is too long.
         if (actions.length > 150) {
-            var data = svl.form.compileSubmissionData();
-            svl.form.submit(data);
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
         }
 
         if ("trackerViewer" in svl) {
@@ -6863,8 +6863,13 @@ function Task (turf, geojson, currentLat, currentLng) {
         lastLng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
-        status = { isCompleted: false },
-        properties = { streetEdgeId: null };
+        status = {
+            isCompleted: false
+        },
+        properties = {
+            auditTaskId: null,
+            streetEdgeId: null
+        };
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -6897,10 +6902,21 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
-     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     * Get the index of the segment in the line that is closest to the point
+     * @param point A geojson Point feature
+     * @param line A geojson LineString Feature
      */
-    function reverseCoordinates () {
-        _geojson.features[0].geometry.coordinates.reverse();
+    function closestSegment(point, line) {
+        var coords = line.geometry.coordinates,
+            lenCoord = coords.length,
+            segment, lengthArray = [], minValue;
+
+        for (var i = 0; i < lenCoord - 1; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            lengthArray.push(pointSegmentDistance(point, segment));
+        }
+        minValue = Math.min.apply(null, lengthArray);
+        return lengthArray.indexOf(minValue);
     }
 
 
@@ -6911,6 +6927,58 @@ function Task (turf, geojson, currentLat, currentLng) {
     function complete () {
         status.isCompleted = true;
         return this;
+    }
+
+
+    function completedTaskPaths () {
+        var i,
+            newPaths,
+            latlng = svl.map.getPosition(),
+            lat = latlng.lat,
+            lng = latlng.lng,
+            line = _geojson.features[0],
+            currentPoint = turf.point([lng, lat]),
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment,
+            completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
+            incompletePath = [];
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
+        }
+        completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+
+        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
+            incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
+        }
+
+        // Create paths
+        newPaths = [
+            new google.maps.Polyline({
+                path: completedPath,
+                geodesic: true,
+                strokeColor: '#00ff00',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            }),
+            new google.maps.Polyline({
+                path: incompletePath,
+                geodesic: true,
+                strokeColor: '#ff0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            })
+        ];
+
+        return newPaths;
+    }
+
+
+    function getAuditTaskId () {
+        return properties.auditTaskId;
     }
 
     /**
@@ -6940,6 +7008,15 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
+     * Return the property
+     * @param key Field name
+     * @returns {null}
+     */
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    /**
      * Get the first coordinate in the geojson
      * @returns {{lat: *, lng: *}}
      */
@@ -6949,13 +7026,43 @@ function Task (turf, geojson, currentLat, currentLng) {
         return { lat: lat, lng: lng };
     }
 
-
-
     /**
      * Returns the street edge id of the current task.
      */
     function getStreetEdgeId () {
         return _geojson.features[0].properties.street_edge_id;
+    }
+
+
+    /**
+     * References:
+     * http://turfjs.org/static/docs/module-turf_point-on-line.html
+     * http://turfjs.org/static/docs/module-turf_distance.html
+     */
+    function getTaskCompletionRate () {
+        var i,
+            point,
+            lineLength,
+            cumsumRate,
+            latlng = svl.map.getPosition(),
+            line = _geojson.features[0],
+            currentPoint = turf.point([latlng.lng, latlng.lat]),
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment,
+            cumSum = 0;
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            cumSum += turf.lineDistance(segment);
+        }
+
+        point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
+        cumSum += turf.distance(snapped, point);
+        lineLength = turf.lineDistance(line);
+        cumsumRate = cumSum / lineLength;
+
+        return taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
     }
 
     /**
@@ -7075,101 +7182,6 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
-     * Get the index of the segment in the line that is closest to the point
-     * @param point A geojson Point feature
-     * @param line A geojson LineString Feature
-     */
-    function closestSegment(point, line) {
-        var coords = line.geometry.coordinates,
-            lenCoord = coords.length,
-            segment, lengthArray = [], minValue;
-
-        for (var i = 0; i < lenCoord - 1; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            lengthArray.push(pointSegmentDistance(point, segment));
-        }
-        minValue = Math.min.apply(null, lengthArray);
-        return lengthArray.indexOf(minValue);
-    }
-
-    /**
-     * References:
-     * http://turfjs.org/static/docs/module-turf_point-on-line.html
-     * http://turfjs.org/static/docs/module-turf_distance.html
-     */
-    function getTaskCompletionRate () {
-        var i,
-            point,
-            lineLength,
-            cumsumRate,
-            latlng = svl.map.getPosition(),
-            line = _geojson.features[0],
-            currentPoint = turf.point([latlng.lng, latlng.lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = closestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            cumSum = 0;
-        for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            cumSum += turf.lineDistance(segment);
-        }
-
-        point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-        cumSum += turf.distance(snapped, point);
-        lineLength = turf.lineDistance(line);
-        cumsumRate = cumSum / lineLength;
-
-        return taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
-    }
-
-    function completedTaskPaths () {
-        var i,
-            newPaths,
-            latlng = svl.map.getPosition(),
-            lat = latlng.lat,
-            lng = latlng.lng,
-            line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = closestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
-            incompletePath = [];
-        for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
-        }
-        completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-
-        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
-            incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
-        }
-
-        // Create paths
-        newPaths = [
-            new google.maps.Polyline({
-                path: completedPath,
-                geodesic: true,
-                strokeColor: '#00ff00',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            }),
-            new google.maps.Polyline({
-                path: incompletePath,
-                geodesic: true,
-                strokeColor: '#ff0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            })
-        ];
-
-        return newPaths;
-    }
-
-    /**
      * Render the task path on the Google Maps pane.
      * Todo. This should be Map.js's responsibility.
      * Reference:
@@ -7214,8 +7226,11 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
+    /**
+     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     */
+    function reverseCoordinates () {
+        _geojson.features[0].geometry.coordinates.reverse();
     }
 
     function setProperty (key, value) {
@@ -7224,9 +7239,9 @@ function Task (turf, geojson, currentLat, currentLng) {
 
     _init (geojson, currentLat, currentLng);
 
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
     self.complete = complete;
+    self.getAuditTaskId = getAuditTaskId;
+    self.getProperty = getProperty;
     self.getDistanceWalked = getDistanceWalked;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
@@ -7243,11 +7258,10 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isConnectedTo = isConnectedTo;
     self.render = render;
     self.reverseCoordinates = reverseCoordinates;
+    self.setProperty = setProperty;
 
     return self;
 }
-
-
 /**
  * TaskContainer module.
  * @param turf
@@ -7307,15 +7321,15 @@ function TaskContainer (turf) {
             svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
-            var data = svl.form.compileSubmissionData(),
+            var data = svl.form.compileSubmissionData(task),
                 staged = svl.storage.get("staged");
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged);
+                svl.form.submit(staged, task);
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
-                svl.form.submit(data);
+                svl.form.submit(data, task);
             }
         }
 
@@ -7798,9 +7812,10 @@ function Mission(parameters) {
     function getMissionCompletionRate (unit) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
 
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(getProperty("regionId"), unit);
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
             return completedDistance / targetDistance;
         } else {
             return 0;
@@ -13041,8 +13056,9 @@ function Onboarding ($) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
-            var data = svl.form.compileSubmissionData();
-            svl.form.submit(data);
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);

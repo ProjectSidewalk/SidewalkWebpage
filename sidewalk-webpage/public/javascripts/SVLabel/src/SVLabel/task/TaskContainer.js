@@ -57,15 +57,15 @@ function TaskContainer (turf) {
             svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
-            var data = svl.form.compileSubmissionData(),
+            var data = svl.form.compileSubmissionData(task),
                 staged = svl.storage.get("staged");
 
             if (staged.length > 0) {
                 staged.push(data);
-                svl.form.submit(staged);
+                svl.form.submit(staged, task);
                 svl.storage.set("staged", []);  // Empty the staged data.
             } else {
-                svl.form.submit(data);
+                svl.form.submit(data, task);
             }
         }
 

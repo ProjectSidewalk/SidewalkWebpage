@@ -17,8 +17,13 @@ function Task (turf, geojson, currentLat, currentLng) {
         lastLng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
-        status = { isCompleted: false },
-        properties = { streetEdgeId: null };
+        status = {
+            isCompleted: false
+        },
+        properties = {
+            auditTaskId: null,
+            streetEdgeId: null
+        };
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -51,10 +56,21 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
-     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     * Get the index of the segment in the line that is closest to the point
+     * @param point A geojson Point feature
+     * @param line A geojson LineString Feature
      */
-    function reverseCoordinates () {
-        _geojson.features[0].geometry.coordinates.reverse();
+    function closestSegment(point, line) {
+        var coords = line.geometry.coordinates,
+            lenCoord = coords.length,
+            segment, lengthArray = [], minValue;
+
+        for (var i = 0; i < lenCoord - 1; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            lengthArray.push(pointSegmentDistance(point, segment));
+        }
+        minValue = Math.min.apply(null, lengthArray);
+        return lengthArray.indexOf(minValue);
     }
 
 
@@ -65,6 +81,58 @@ function Task (turf, geojson, currentLat, currentLng) {
     function complete () {
         status.isCompleted = true;
         return this;
+    }
+
+
+    function completedTaskPaths () {
+        var i,
+            newPaths,
+            latlng = svl.map.getPosition(),
+            lat = latlng.lat,
+            lng = latlng.lng,
+            line = _geojson.features[0],
+            currentPoint = turf.point([lng, lat]),
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment,
+            completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
+            incompletePath = [];
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
+        }
+        completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+
+        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
+            incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
+        }
+
+        // Create paths
+        newPaths = [
+            new google.maps.Polyline({
+                path: completedPath,
+                geodesic: true,
+                strokeColor: '#00ff00',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            }),
+            new google.maps.Polyline({
+                path: incompletePath,
+                geodesic: true,
+                strokeColor: '#ff0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            })
+        ];
+
+        return newPaths;
+    }
+
+
+    function getAuditTaskId () {
+        return properties.auditTaskId;
     }
 
     /**
@@ -94,6 +162,15 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
+     * Return the property
+     * @param key Field name
+     * @returns {null}
+     */
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    /**
      * Get the first coordinate in the geojson
      * @returns {{lat: *, lng: *}}
      */
@@ -103,13 +180,43 @@ function Task (turf, geojson, currentLat, currentLng) {
         return { lat: lat, lng: lng };
     }
 
-
-
     /**
      * Returns the street edge id of the current task.
      */
     function getStreetEdgeId () {
         return _geojson.features[0].properties.street_edge_id;
+    }
+
+
+    /**
+     * References:
+     * http://turfjs.org/static/docs/module-turf_point-on-line.html
+     * http://turfjs.org/static/docs/module-turf_distance.html
+     */
+    function getTaskCompletionRate () {
+        var i,
+            point,
+            lineLength,
+            cumsumRate,
+            latlng = svl.map.getPosition(),
+            line = _geojson.features[0],
+            currentPoint = turf.point([latlng.lng, latlng.lat]),
+            snapped = turf.pointOnLine(line, currentPoint),
+            closestSegmentIndex = closestSegment(currentPoint, line),
+            coords = line.geometry.coordinates,
+            segment,
+            cumSum = 0;
+        for (i = 0; i < closestSegmentIndex; i++) {
+            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            cumSum += turf.lineDistance(segment);
+        }
+
+        point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
+        cumSum += turf.distance(snapped, point);
+        lineLength = turf.lineDistance(line);
+        cumsumRate = cumSum / lineLength;
+
+        return taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
     }
 
     /**
@@ -229,101 +336,6 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
-     * Get the index of the segment in the line that is closest to the point
-     * @param point A geojson Point feature
-     * @param line A geojson LineString Feature
-     */
-    function closestSegment(point, line) {
-        var coords = line.geometry.coordinates,
-            lenCoord = coords.length,
-            segment, lengthArray = [], minValue;
-
-        for (var i = 0; i < lenCoord - 1; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            lengthArray.push(pointSegmentDistance(point, segment));
-        }
-        minValue = Math.min.apply(null, lengthArray);
-        return lengthArray.indexOf(minValue);
-    }
-
-    /**
-     * References:
-     * http://turfjs.org/static/docs/module-turf_point-on-line.html
-     * http://turfjs.org/static/docs/module-turf_distance.html
-     */
-    function getTaskCompletionRate () {
-        var i,
-            point,
-            lineLength,
-            cumsumRate,
-            latlng = svl.map.getPosition(),
-            line = _geojson.features[0],
-            currentPoint = turf.point([latlng.lng, latlng.lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = closestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            cumSum = 0;
-        for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            cumSum += turf.lineDistance(segment);
-        }
-
-        point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-        cumSum += turf.distance(snapped, point);
-        lineLength = turf.lineDistance(line);
-        cumsumRate = cumSum / lineLength;
-
-        return taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
-    }
-
-    function completedTaskPaths () {
-        var i,
-            newPaths,
-            latlng = svl.map.getPosition(),
-            lat = latlng.lat,
-            lng = latlng.lng,
-            line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = closestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
-            incompletePath = [];
-        for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
-        }
-        completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-
-        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
-            incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
-        }
-
-        // Create paths
-        newPaths = [
-            new google.maps.Polyline({
-                path: completedPath,
-                geodesic: true,
-                strokeColor: '#00ff00',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            }),
-            new google.maps.Polyline({
-                path: incompletePath,
-                geodesic: true,
-                strokeColor: '#ff0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            })
-        ];
-
-        return newPaths;
-    }
-
-    /**
      * Render the task path on the Google Maps pane.
      * Todo. This should be Map.js's responsibility.
      * Reference:
@@ -368,8 +380,11 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
+    /**
+     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     */
+    function reverseCoordinates () {
+        _geojson.features[0].geometry.coordinates.reverse();
     }
 
     function setProperty (key, value) {
@@ -378,9 +393,9 @@ function Task (turf, geojson, currentLat, currentLng) {
 
     _init (geojson, currentLat, currentLng);
 
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
     self.complete = complete;
+    self.getAuditTaskId = getAuditTaskId;
+    self.getProperty = getProperty;
     self.getDistanceWalked = getDistanceWalked;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
@@ -397,7 +412,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isConnectedTo = isConnectedTo;
     self.render = render;
     self.reverseCoordinates = reverseCoordinates;
+    self.setProperty = setProperty;
 
     return self;
 }
-

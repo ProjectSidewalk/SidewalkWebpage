@@ -1053,8 +1053,9 @@ function Onboarding ($) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
-            var data = svl.form.compileSubmissionData();
-            svl.form.submit(data);
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
             svl.ui.onboarding.background.css("visibility", "hidden");
             svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);

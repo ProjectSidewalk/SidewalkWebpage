@@ -89,7 +89,8 @@ function PopUpMessage ($, param) {
             setMessage("Do you want to create an account to keep track of your progress?");
             appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
                 // Store the data in LocalStorage.
-                var data = svl.form.compileSubmissionData(),
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task),
                     staged = svl.storage.get("staged");
                 staged.push(data);
                 svl.storage.set("staged", staged);
@@ -103,11 +104,13 @@ function PopUpMessage ($, param) {
 
                 svl.user.setProperty('firstTask', false);
                 // Submit the data as an anonymous user.
-                var data = svl.form.compileSubmissionData();
-                svl.form.submit(data);
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task);
+                svl.form.submit(data, task);
             });
             appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
-                var data = svl.form.compileSubmissionData(),
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task),
                     staged = svl.storage.get("staged");
                 staged.push(data);
                 svl.storage.set("staged", staged);
