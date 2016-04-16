@@ -9,18 +9,11 @@ function MissionProgress () {
     var status = {
             currentCompletionRate: 0,
             currentMission: null,
-            previousHeading: 0,
-            surveyedAngles: undefined
+            previousHeading: 0
         };
 
     function _init() {
         // Fill in the surveyed angles
-        var i;
-        status.surveyedAngles = new Array(100);
-        for (i = 0; i < 100; i++) {
-            status.surveyedAngles[i] = 0;
-        }
-
         printCompletionRate();
     }
 

@@ -244,16 +244,16 @@ function Main ($, d3, turf, params) {
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
                         var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                        missions.map(function (m) { if (!m.isCompleted()) return m;});
+                        missions = missions.filter(function (m) { return !m.isCompleted(); });
                         mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 }
                 
                 // Check if this an anonymous user or not. 
-                // If not, update the database and record that that this user has completed the onboarding.
+                // If not, record that that this user has completed the onboarding.
                 if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
-                    missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                        missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
                     var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                     onboardingMission.setProperty("isCompleted", true);
                     svl.missionContainer.addToCompletedMissions(onboardingMission);
@@ -265,6 +265,7 @@ function Main ($, d3, turf, params) {
                     svl.modalMission.setMission(mission);
                 }
 
+                // Call another callback function
                 missionLoadComplete = true;
                 handleDataLoadComplete();
             }

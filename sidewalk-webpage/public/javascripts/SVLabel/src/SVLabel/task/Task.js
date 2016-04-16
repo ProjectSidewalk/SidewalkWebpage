@@ -97,10 +97,8 @@ function Task (turf, geojson, currentLat, currentLng) {
      * @params {units} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in meters
      */
-    function getCumulativeDistance (units) {
+    function getDistanceWalked (units) {
         if (!units) units = "kilometers";
-
-        var distance = svl.taskContainer.getCompletedTaskDistance(units);
 
         var i,
             point,
@@ -111,19 +109,18 @@ function Task (turf, geojson, currentLat, currentLng) {
             closestSegmentIndex = closestSegment(currentPoint, line),
             coords = line.geometry.coordinates,
             segment,
-            cumSum = 0;
+            distance = 0;
         for (i = 0; i < closestSegmentIndex; i++) {
             segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
-            cumSum += turf.lineDistance(segment);
+            distance += turf.lineDistance(segment);
         }
 
         // Check if the snapped point is not too far away from the current point. Then add the distance between the
         // snapped point and the last segment point to cumSum.
         if (turf.distance(snapped, currentPoint, units) < 100) {
             point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-            cumSum += turf.distance(snapped, point);
+            distance += turf.distance(snapped, point);
         }
-        distance += cumSum;
 
         return distance;
     }
@@ -258,7 +255,7 @@ function Task (turf, geojson, currentLat, currentLng) {
         for (i = closestSegmentIndex; i < coords.length - 1; i++) {
             incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
         }
-        
+
         // Create paths
         newPaths = [
             new google.maps.Polyline({
@@ -338,7 +335,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.complete = complete;
-    self.getCumulativeDistance = getCumulativeDistance;
+    self.getDistanceWalked = getDistanceWalked;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
     self.getStreetEdgeId = getStreetEdgeId;

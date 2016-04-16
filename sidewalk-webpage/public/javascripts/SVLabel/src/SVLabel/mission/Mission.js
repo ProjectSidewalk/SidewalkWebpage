@@ -90,17 +90,8 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
 
-            var cumulativeDistance = svl.taskContainer.getCumulativeDistance(unit);
-            return cumulativeDistance / targetDistance;
-
-            // var task = svl.taskContainer.getCurrentTask();
-            //
-            // if (task) {
-            //     var cumulativeDistance = task.getCumulativeDistance(unit);
-            //     return cumulativeDistance / targetDistance;
-            // } else {
-            //     return 0;
-            // }
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(getProperty("regionId"), unit);
+            return completedDistance / targetDistance;
         } else {
             return 0;
         }

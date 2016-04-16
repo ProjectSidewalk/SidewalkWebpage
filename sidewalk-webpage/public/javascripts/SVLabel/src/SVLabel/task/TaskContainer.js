@@ -90,15 +90,23 @@ function TaskContainer (turf) {
      * @params {units} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in meters
      */
-    function getCompletedTaskDistance (units) {
+    function getCompletedTaskDistance (regionId, units) {
         if (!units) units = "kilometers";
 
-        var geojson, feature, i, len = length(), distance = 0;
+        var completedTasks = getCompletedTasks(regionId),
+            geojson,
+            feature,
+            i,
+            len = completedTasks.length,
+            distance = 0;
         for (i = 0; i < len; i++) {
-            geojson = previousTasks[i].getGeoJSON();
+            geojson = completedTasks[i].getGeoJSON();
             feature = geojson.features[0];
             distance += turf.lineDistance(feature, units);
         }
+
+        if (currentTask) distance += currentTask.getDistanceWalked(units);
+
         return distance;
     }
 
