@@ -7619,33 +7619,6 @@ function TaskContainer (turf) {
             sessionDistance = getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
         }
 
-        // if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
-        //     if (!svl.user.getProperty('recordedAuditDistance')) {
-        //         // Get the distance previously traveled if it is not cached
-        //         var i, distanceAudited = 0;
-        //         $.getJSON("/contribution/streets", function (data) {
-        //             if (data && 'features' in data) {
-        //                 for (i = data.features.length - 1; i >= 0; i--) {
-        //                     distanceAudited += turf.lineDistance(data.features[i], 'miles');
-        //                 }
-        //             } else {
-        //                 distanceAudited = 0;
-        //             }
-        //             svl.user.setProperty('recordedAuditDistance', distanceAudited);
-        //             distance = sessionDistance + distanceAudited;
-        //             svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-        //         });
-        //     } else {
-        //         // use the cached recordedAuditDistance if it exists
-        //         distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
-        //         svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-        //     }
-        // } else {
-        //     // If the user is using the application as an anonymous, just use the session distance.
-        //     distance = sessionDistance;
-        //
-        // }
-
         distance += sessionDistance;
         svl.ui.progress.auditedDistance.html(distance.toFixed(2));
         return this;
