@@ -45,20 +45,15 @@ function TaskContainer (turf) {
     /**
      * End the current task.
      */
-    function endTask () {
-        if ('statusMessage' in svl) {
-            svl.statusMessage.animate();
-            svl.statusMessage.setCurrentStatusTitle("Great!");
-            svl.statusMessage.setCurrentStatusDescription("You have finished auditing accessibility of this street and sidewalks. Keep it up!");
-            svl.statusMessage.setBackgroundColor("rgb(254, 255, 223)");
-        }
+    function endTask (task) {
         if ('tracker' in svl) svl.tracker.push("TaskEnd");
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        task.complete();
 
-        // Update the audited miles
-        if ('ui' in svl) updateAuditedDistance();
+        // Update the total distance across neighborhoods that the user has audited
+        updateAuditedDistance("miles");
 
-        // if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && svl.taskContainer.isFirstTask())) {
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance() > 0.5)) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.5)) {
             svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
@@ -74,15 +69,15 @@ function TaskContainer (turf) {
             }
         }
 
-        push(currentTask); // Push the data into previousTasks
+        push(task); // Push the data into previousTasks
 
         // Clear the current paths
-        var _geojson = currentTask.getGeoJSON(),
+        var _geojson = task.getGeoJSON(),
             gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
         previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
         paths = null;
 
-        return currentTask;
+        return task;
     }
 
     /**
@@ -97,17 +92,23 @@ function TaskContainer (turf) {
             geojson,
             feature,
             i,
-            len = completedTasks.length,
+            len,
             distance = 0;
-        for (i = 0; i < len; i++) {
-            geojson = completedTasks[i].getGeoJSON();
-            feature = geojson.features[0];
-            distance += turf.lineDistance(feature, units);
+
+        if (completedTasks) {
+            len = completedTasks.length;
+            for (i = 0; i < len; i++) {
+                geojson = completedTasks[i].getGeoJSON();
+                feature = geojson.features[0];
+                distance += turf.lineDistance(feature, units);
+            }
+
+            if (currentTask) distance += currentTask.getDistanceWalked(units);
+
+            return distance;
+        } else {
+            return 0;
         }
-
-        if (currentTask) distance += currentTask.getDistanceWalked(units);
-
-        return distance;
     }
 
     /**
@@ -116,7 +117,14 @@ function TaskContainer (turf) {
      * @returns {Array}
      */
     function getCompletedTasks (regionId) {
-        if (!(regionId in taskStoreByRegionId) || !Array.isArray(taskStoreByRegionId[regionId])) return null;
+        if (!(regionId in taskStoreByRegionId)) {
+            console.error("getCompletedTasks needs regionId");
+            return null;
+        }
+        if (!Array.isArray(taskStoreByRegionId[regionId])) {
+            console.error("taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
+            return null;
+        }
         return taskStoreByRegionId[regionId].filter(function (task) {
             return task.isCompleted();
         });
@@ -128,6 +136,20 @@ function TaskContainer (turf) {
      */
     function getCurrentTask () {
         return currentTask;
+    }
+
+    function getIncompleteTasks (regionId) {
+        if (!(regionId in taskStoreByRegionId)) {
+            console.error("regionId is not specified");
+            return null;
+        }
+        if (!Array.isArray(taskStoreByRegionId[regionId])) {
+            console.error("taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
+            return null;
+        }
+        return taskStoreByRegionId[regionId].filter(function (task) {
+            return !task.isCompleted();
+        });
     }
 
     function getTasksInRegion (regionId) {
@@ -151,62 +173,106 @@ function TaskContainer (turf) {
     }
 
     /**
+     * Find tasks (i.e., street edges) in the region that are connected to the given task.
+     * @param regionId {number} Region id
+     * @param taskIn {object} Task
+     * @param threshold {number} Distance threshold
+     * @returns {Array}
+     */
+    function findConnectedTask (regionId, taskIn, threshold, unit) {
+        var i,
+            len,
+            tasks = getTasksInRegion(regionId),
+            connectedTasks = [];
+
+        if (!threshold) threshold = 0.01;  // 0.01 km.
+        if (!unit) unit = "kilometers";
+
+        tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+        len = tasks.length;
+
+        for (i = 0; i < len; i++) {
+            if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                connectedTasks.push(tasks[i]);
+            }
+        }
+        return connectedTasks;
+    }
+
+    /**
      * Get the next task and set it as a current task.
-     * Todo. I want to move this to TaskFactory.
-     * Todo. I don't like querying the next task with $.ajax every time I need a new street task. Task container should get a set of tasks in the beginning and supply a task from the locally held data.
      * @param task Current task
      * @returns {*} Next task
      */
     function nextTask (task) {
-        var newTask = null;
+        var newTask = null,
+            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
+            candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task);
 
-        // Todo. Search for the next task in the region
-        // In case
-        if (task) {
-            var streetEdgeId = task.getStreetEdgeId(),
-                _geojson = task.getGeoJSON();
-            // When the current street edge id is given (i.e., when you are simply walking around).
-            var len = _geojson.features[0].geometry.coordinates.length - 1,
-                latEnd = _geojson.features[0].geometry.coordinates[len][1],
-                lngEnd = _geojson.features[0].geometry.coordinates[len][0];
+        candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
 
-            $.ajax({
-                async: false,
-                url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
-                type: 'get',
-                success: function (json) {
-                    newTask = svl.taskFactory.create(json, latEnd, lngEnd);
-                },
-                error: function (result) {
-                    throw result;
-                }
-            });
+        if (candidateTasks.length > 0) {
+            newTask = candidateTasks[0];
         } else {
-            // No street edge id is provided (e.g., the user skipped the task to explore another location.)
-            $.ajax({
-                async: false,
-                url: "/task",
-                type: 'get',
-                success: function (json) {
-                    // Check if Street View is available at the location. If it's not available, report it to the
-                    // server and go to the next task.
-                    // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-                    // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
-                    var len = json.features[0].geometry.coordinates.length - 1,
-                        lat1 = json.features[0].geometry.coordinates[0][1],
-                        lng1 = json.features[0].geometry.coordinates[0][0],
-                        lat2 = json.features[0].geometry.coordinates[len][1],
-                        lng2 = json.features[0].geometry.coordinates[len][0];
-
-                    newTask = svl.taskFactory.create(json);
-                },
-                error: function (result) {
-                    throw result;
-                }
-            });
+            candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
+            newTask = candidateTasks[0];
         }
 
+        var c1 = task.getLastCoordinate(),
+            c2 = newTask.getStartCoordinate(),
+            p1 = turf.point([c1.lng, c1.lat]),
+            p2 = turf.point([c2.lng, c2.lat]);
+        if (turf.distance(p1, p2, "kilometers") > 0.025) {
+            newTask.reverseCoordinates();
+        }
         return newTask;
+
+        // In case
+        // if (task) {
+        //     var streetEdgeId = task.getStreetEdgeId(),
+        //         _geojson = task.getGeoJSON();
+        //     // When the current street edge id is given (i.e., when you are simply walking around).
+        //     var len = _geojson.features[0].geometry.coordinates.length - 1,
+        //         latEnd = _geojson.features[0].geometry.coordinates[len][1],
+        //         lngEnd = _geojson.features[0].geometry.coordinates[len][0];
+        //
+        //     $.ajax({
+        //         async: false,
+        //         url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
+        //         type: 'get',
+        //         success: function (json) {
+        //             newTask = svl.taskFactory.create(json, latEnd, lngEnd);
+        //         },
+        //         error: function (result) {
+        //             throw result;
+        //         }
+        //     });
+        // } else {
+        //     // No street edge id is provided (e.g., the user skipped the task to explore another location.)
+        //     $.ajax({
+        //         async: false,
+        //         url: "/task",
+        //         type: 'get',
+        //         success: function (json) {
+        //             // Check if Street View is available at the location. If it's not available, report it to the
+        //             // server and go to the next task.
+        //             // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
+        //             // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
+        //             var len = json.features[0].geometry.coordinates.length - 1,
+        //                 lat1 = json.features[0].geometry.coordinates[0][1],
+        //                 lng1 = json.features[0].geometry.coordinates[0][0],
+        //                 lat2 = json.features[0].geometry.coordinates[len][1],
+        //                 lng2 = json.features[0].geometry.coordinates[len][0];
+        //
+        //             newTask = svl.taskFactory.create(json);
+        //         },
+        //         error: function (result) {
+        //             throw result;
+        //         }
+        //     });
+        // }
+        //
+        // return newTask;
     }
 
     /**
@@ -214,6 +280,7 @@ function TaskContainer (turf) {
      * @param task
      */
     function push (task) {
+        // Todo. Check for the duplicates.
         previousTasks.push(task);
     }
 
@@ -289,38 +356,48 @@ function TaskContainer (turf) {
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
+     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood. Also get rid of the async call.
      * @returns {updateAuditedDistance}
      */
-    function updateAuditedDistance () {
-        var distance, sessionDistance = getCompletedTaskDistance();
+    function updateAuditedDistance (unit) {
+        if (!unit) unit = "kilometers";
+        var distance = 0,
+            sessionDistance = 0,
+            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
-        if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
-            if (!svl.user.getProperty('recordedAuditDistance')) {
-                // Get the distance previously traveled if it is not cached
-                var i, distanceAudited = 0;
-                $.getJSON("/contribution/streets", function (data) {
-                    if (data && 'features' in data) {
-                        for (i = data.features.length - 1; i >= 0; i--) {
-                            distanceAudited += turf.lineDistance(data.features[i], 'miles');
-                        }
-                    } else {
-                        distanceAudited = 0;
-                    }
-                    svl.user.setProperty('recordedAuditDistance', distanceAudited);
-                    distance = sessionDistance + distanceAudited;
-                    svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-                });
-            } else {
-                // use the cached recordedAuditDistance if it exists
-                distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
-                svl.ui.progress.auditedDistance.html(distance.toFixed(2));
-            }
-        } else {
-            // If the user is using the application as an anonymous, just use the session distance.
-            distance = sessionDistance;
-            svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        if (neighborhood) {
+            sessionDistance = getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
         }
 
+        // if ('user' in svl && svl.user.getProperty('username') != "anonymous") {
+        //     if (!svl.user.getProperty('recordedAuditDistance')) {
+        //         // Get the distance previously traveled if it is not cached
+        //         var i, distanceAudited = 0;
+        //         $.getJSON("/contribution/streets", function (data) {
+        //             if (data && 'features' in data) {
+        //                 for (i = data.features.length - 1; i >= 0; i--) {
+        //                     distanceAudited += turf.lineDistance(data.features[i], 'miles');
+        //                 }
+        //             } else {
+        //                 distanceAudited = 0;
+        //             }
+        //             svl.user.setProperty('recordedAuditDistance', distanceAudited);
+        //             distance = sessionDistance + distanceAudited;
+        //             svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        //         });
+        //     } else {
+        //         // use the cached recordedAuditDistance if it exists
+        //         distance = sessionDistance + svl.user.getProperty('recordedAuditDistance');
+        //         svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        //     }
+        // } else {
+        //     // If the user is using the application as an anonymous, just use the session distance.
+        //     distance = sessionDistance;
+        //
+        // }
+
+        distance += sessionDistance;
+        svl.ui.progress.auditedDistance.html(distance.toFixed(2));
         return this;
     }
 

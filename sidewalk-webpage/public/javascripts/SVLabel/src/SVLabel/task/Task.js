@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * Task module.
  * @param turf
@@ -13,7 +11,10 @@ var svl = svl || {};
 function Task (turf, geojson, currentLat, currentLng) {
     var self = {className: 'Task'},
         _geojson,
-        lat, lng,
+        lat,
+        lng,
+        lastLat,
+        lastLng,
         taskCompletionRate = 0,
         paths, previousPaths = [],
         status = { isCompleted: false },
@@ -40,16 +41,22 @@ function Task (turf, geojson, currentLat, currentLng) {
             var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
                 d2 = svl.util.math.haversine(lat2, lng2, currentLat, currentLng);
 
-            if (d2 < d1) {
-                // Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
-                _geojson.features[0].geometry.coordinates.reverse();
-            }
+            if (d2 < d1) reverseCoordinates();
         }
 
         lat = _geojson.features[0].geometry.coordinates[0][1];
         lng = _geojson.features[0].geometry.coordinates[0][0];
+
         paths = null;
     }
+
+    /**
+     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     */
+    function reverseCoordinates () {
+        _geojson.features[0].geometry.coordinates.reverse();
+    }
+
 
     /**
      * Set the isCompleted status to true
@@ -74,6 +81,29 @@ function Task (turf, geojson, currentLat, currentLng) {
     function getGeometry () {
         return _geojson ? _geojson.features[0].geometry : null;
     }
+
+    /**
+     * Get the last coordinate in the geojson.
+     * @returns {{lat: *, lng: *}}
+     */
+    function getLastCoordinate () {
+        var len = geojson.features[0].geometry.coordinates.length - 1,
+            lat = _geojson.features[0].geometry.coordinates[len][1],
+            lng = _geojson.features[0].geometry.coordinates[len][0];
+        return { lat: lat, lng: lng };
+    }
+
+    /**
+     * Get the first coordinate in the geojson
+     * @returns {{lat: *, lng: *}}
+     */
+    function getStartCoordinate () {
+        var lat = _geojson.features[0].geometry.coordinates[0][1],
+            lng = _geojson.features[0].geometry.coordinates[0][0];
+        return { lat: lat, lng: lng };
+    }
+
+
 
     /**
      * Returns the street edge id of the current task.
@@ -125,10 +155,6 @@ function Task (turf, geojson, currentLat, currentLng) {
         return distance;
     }
 
-    /** Returns the starting location */
-    function initialLocation() { 
-        return _geojson ? { lat: lat, lng: lng } : null; 
-    }
 
     /**
      * This method checks if the task is completed by comparing the
@@ -157,6 +183,26 @@ function Task (turf, geojson, currentLat, currentLng) {
      */
     function isCompleted () {
         return status.isCompleted;
+    }
+
+    /**
+     * Checks if the current task is connected to the given task
+     * @param task
+     * @param threshold
+     * @param unit
+     * @returns {boolean}
+     */
+    function isConnectedTo (task, threshold, unit) {
+        if (!threshold) threshold = 0.01;
+        if (!unit) unit = "kilometers";
+
+        var lastCoordinate = getLastCoordinate(),
+            targetCoordinate1 = task.getStartCoordinate(),
+            targetCoordinate2 = task.getLastCoordinate(),
+            p = turf.point([lastCoordinate.lng, lastCoordinate.lat]),
+            p1 = turf.point([targetCoordinate1.lng, targetCoordinate1.lat]),
+            p2 = turf.point([targetCoordinate2.lng, targetCoordinate2.lat]);
+        return turf.distance(p, p1, unit) < threshold || turf.distance(p, p2, unit) < threshold;
     }
 
     /**
@@ -338,15 +384,19 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.getDistanceWalked = getDistanceWalked;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
+    self.getLastCoordinate = getLastCoordinate;
+    self.getStartCoordinate = getStartCoordinate;
     self.getStreetEdgeId = getStreetEdgeId;
     self.getTaskStart = getTaskStart;
     self.getTaskCompletionRate = function () {
         return taskCompletionRate ? taskCompletionRate : 0;
     };
-    self.initialLocation = initialLocation;
+    self.initialLocation = getStartCoordinate;
     self.isAtEnd = isAtEnd;
     self.isCompleted = isCompleted;
+    self.isConnectedTo = isConnectedTo;
     self.render = render;
+    self.reverseCoordinates = reverseCoordinates;
 
     return self;
 }

@@ -67,7 +67,7 @@ function Tracker () {
         }
 
         try {
-            latlng = getPosition();
+            latlng = svl.map.getPosition();
         } catch (err) {
             latlng = {
                 lat: null,
@@ -82,7 +82,7 @@ function Tracker () {
         }
 
         try {
-            panoId = getPanoId();
+            panoId = svl.map.getPanoId();
         } catch (err) {
             panoId = null;
         }

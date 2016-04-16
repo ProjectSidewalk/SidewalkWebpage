@@ -7,7 +7,7 @@
 function AudioEffect () {
     var self = { className: 'AudioEffect' };
 
-    if (typeof Audio == "undefined") var Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
+    if (typeof Audio == "undefined") Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
 
     var audios = {
             applause: new Audio(svl.rootDirectory + 'audio/applause.mp3'),

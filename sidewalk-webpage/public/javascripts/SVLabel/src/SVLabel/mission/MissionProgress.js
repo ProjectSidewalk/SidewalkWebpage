@@ -109,7 +109,8 @@ function MissionProgress () {
             if (currentRegion) {
                 // Update mission completion rate.
                 var completedMissions = [],
-                    regionId = currentRegion.getProperty("regionId");
+                    regionId = currentRegion.getProperty("regionId"),
+                    missionComplete = false;
                 missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
                 missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
                 missions = missions.filter(function (m) { return !m.isCompleted(); });
@@ -123,9 +124,10 @@ function MissionProgress () {
                 len = missions.length;
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
-                    if (completionRate >= 1.0) {
+                    if (completionRate >= 0.999) {
                         complete(missions[i]);
                         completedMissions.push(missions[i]);
+                        missionComplete = true;
                     }
                 }
                 // Submit the staged missions
@@ -134,6 +136,11 @@ function MissionProgress () {
                 // Present the mission completion messages.
                 if (completedMissions.length > 0) {
                     showMissionCompleteWindow(completedMissions);
+                }
+
+                if (missionComplete && "audioEffect" in svl) {
+                    svl.audioEffect.play("yay");
+                    svl.audioEffect.play("applause");
                 }
             }
         }

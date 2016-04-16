@@ -472,8 +472,8 @@ function Map ($, turf, params) {
             var task = svl.taskContainer.getCurrentTask();
             if (task) {
                 if (task.isAtEnd(position.lat(), position.lng(), 25)) {
-                    var currentTask = svl.taskContainer.endTask(task);
-                    var newTask = svl.taskContainer.nextTask(currentTask);
+                    svl.taskContainer.endTask(task);
+                    var newTask = svl.taskContainer.nextTask(task);
                     svl.taskContainer.setCurrentTask(newTask);
 
                     var geometry = newTask.getGeometry();
@@ -777,6 +777,7 @@ function Map ($, turf, params) {
             window.clearTimeout(_streetViewInit);
         }
     }
+
 
     /**
      * Load the state of the map
