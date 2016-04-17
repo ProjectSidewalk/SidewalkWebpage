@@ -367,7 +367,7 @@ object AuditTaskTable {
     */
   def getTasksInRegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
     val selectTaskQuery = Q.query[Int, NewTask](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp, NULL as audit_task_id
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, NULL as audit_task_id
         |FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS st_e
         |ON st_e.geom && region.geom
