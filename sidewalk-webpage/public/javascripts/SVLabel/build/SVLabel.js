@@ -6014,7 +6014,7 @@ function Map ($, params) {
 
             }
         } else {
-            setViewControlLayerCursor('default');
+            setViewControlLayerCursor('OpenHand');
             // $divViewControlLayer.css("cursor", "default");
         }
 
@@ -13604,9 +13604,9 @@ function Onboarding ($, params) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'On this context menu, <span class="bold">you can rate the quality of the curb ramp, ' +
+                    "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
                     'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
-                    '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
+                    '<span class="bold">Let’s rate it as 1, passable.<br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
