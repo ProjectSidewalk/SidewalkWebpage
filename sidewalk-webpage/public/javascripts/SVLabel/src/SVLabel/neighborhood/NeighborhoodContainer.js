@@ -1,40 +1,4 @@
 /**
- * Neighborhood module.
- * @param parameters
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function Neighborhood (parameters) {
-    var self = { className: "Neighborhood"},
-        properties = {
-            regionId: null
-        };
-
-    /** Initialize */
-    function _init (parameters) {
-        if ('regionId' in parameters) setProperty("regionId", parameters.regionId)
-    }
-
-    /** Get property */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
-    }
-
-    /** Set property */
-    function setProperty (key, value) {
-        properties[key] = value;
-        return this;
-    }
-
-    _init(parameters);
-
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    return self;
-}
-
-/**
  * NeighborhoodContainer module
  * @param parameters
  * @returns {{className: string}}
@@ -49,6 +13,8 @@ function NeighborhoodContainer (parameters) {
         };
 
     function _init (parameters) {
+        parameters = parameters || {};
+        if ("currentNeighborhood" in parameters) setStatus("currentNeighborhood", parameters.currentNeighborhood);
     }
 
 
@@ -95,27 +61,5 @@ function NeighborhoodContainer (parameters) {
     self.setCurrentNeighborhood = setCurrentNeighborhood;
     self.setStatus = setStatus;
 
-    return self;
-}
-
-/**
- * Neighborhood factory module
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function NeighborhoodFactory () {
-    var self = { className: "NeighborhoodFactory" };
-
-    /**
-     * Create a neighborhood instance.
-     * @param regionId
-     * @returns {Neighborhood}
-     */
-    function create (regionId) {
-        return new Neighborhood({regionId: regionId});
-    }
-
-    self.create = create;
     return self;
 }

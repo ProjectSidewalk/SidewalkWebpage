@@ -23,7 +23,6 @@ import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Play.current
-import play.extras.geojson
 
 import scala.concurrent.Future
 
@@ -32,87 +31,13 @@ import scala.concurrent.Future
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
 
   /**
-   * Returns an audit page.
-    *
-    * @return
-   */
-  def audit = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
-
-        // Check and make sure that the user has been assigned to a region
-        if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
-
-        // Check if a user still has tasks available for them.
-        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
-          UserCurrentRegionTable.assignNextRegion(user.userId)
-        }
-
-
-        val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None =>
-        // Check if s/he has gone through an onboarding.
-        val cookie = request.cookies.get("sidewalk-onboarding")
-        val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), None, None)))
-    }
-  }
-
-  /**
-   * Audit a given region
-    *
-    * @param regionId region id
-   * @return
-   */
-  def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val region: Option[Region] = RegionTable.getRegion(regionId)
-    request.identity match {
-      case Some(user) =>
-        val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
-
-        // Update the currently assigned region for the user
-        UserCurrentRegionTable.update(user.userId, regionId)
-
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None =>
-        // Check if s/he has gone through an onboarding.
-        val cookie = request.cookies.get("sidewalk-onboarding")
-        val task: NewTask = AuditTaskTable.getNewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
-    }
-  }
-
-  /**
-   * Audit a given street
-   *
-   * @param streetEdgeId street edge id
-   * @return
-   */
-  def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val regions: List[Region] = RegionTable.getRegionsIntersectingStreet(streetEdgeId)
-    val region: Option[Region] = try {
-      Some(regions.head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None
-    }
-
-    val task: NewTask = AuditTaskTable.getNewTask(streetEdgeId)
-    request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
-    }
-  }
-
-  /**
-   * Get a task for a user.
- *
-   * @return
+   * This method returns a task definition in the GeoJSON format.
+   * @return Task definition
    */
   def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -122,12 +47,22 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Get a next task.
- *
+    * This method returns a task definition specified by the streetEdgeId.
+    * @return Task definition
+    */
+  def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+    val task = AuditTaskTable.getNewTask(streetEdgeId)
+    Future.successful(Ok(task.toJSON))
+  }
+
+
+  /**
+   * This method queries the task (i.e., a street edge to audit) that is connected to the current task (specified by
+    * street edge id) and returns it in the GeoJson format.
    * @param streetEdgeId street edge id
    * @param lat current latitude
    * @param lng current longitude
-   * @return
+   * @return Task definition
    */
   def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
     Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
@@ -150,11 +85,26 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+    *
+    * @param regionId Region id
+    * @return
+    */
+  def getTasksInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId, user.userId).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+      case None =>
+        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+    }
+  }
 
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
+
   /**
    * Parse the submitted data and insert them into tables.
- *
+   *
    * @return
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
@@ -284,65 +234,4 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
-  /**
-    * Parse the submitted comment and insert it into the comment table
-    *
-    * @return
-    */
-  def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[CommentSubmission]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-
-        val userId: String = request.identity match {
-          case Some(user) => user.userId.toString
-          case None =>
-            val user: Option[DBUser] = UserTable.find("anonymous")
-            user.get.userId.toString
-        }
-        val ipAddress: String = request.remoteAddress
-
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val timestamp: Timestamp = new Timestamp(now.getTime)
-        val comment = AuditTaskComment(0, submission.streetEdgeId, userId, ipAddress, submission.gsvPanoramaId,
-          submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
-        val commentId: Int = AuditTaskCommentTable.save(comment)
-
-        Future.successful(Ok(Json.obj("comment_id" -> commentId)))
-      }
-    )
-  }
-
-  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[CommentSubmission]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-
-        val userId: String = request.identity match {
-          case Some(user) => user.userId.toString
-          case None =>
-            val user: Option[DBUser] = UserTable.find("anonymous")
-            user.get.userId.toString
-        }
-        val ipAddress: String = request.remoteAddress
-
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val timestamp: Timestamp = new Timestamp(now.getTime)
-
-        // Todo
-
-        Future.successful(Ok)
-      }
-    )
-  }
 }

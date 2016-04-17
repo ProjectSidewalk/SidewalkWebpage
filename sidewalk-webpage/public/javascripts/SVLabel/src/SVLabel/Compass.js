@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function Compass (d3) {
+function Compass (d3, turf) {
     "use strict";
     var self = { className : 'Compass' },
         blinkInterval;
@@ -72,6 +72,28 @@ function Compass (d3) {
             svl.ui.compass.messageHolder.toggleClass("white-background-75");
             svl.ui.compass.messageHolder.toggleClass("highlight-50");
         }, 500);
+    }
+
+    /**
+     * Check if the user is following the route that we specified
+     * @param threshold
+     * @param unit
+     * @returns {boolean}
+     */
+    function checkEnRoute (threshold, unit) {
+        var task = svl.taskContainer.getCurrentTask();
+        if (!unit) unit = "kilometers";
+        if (!threshold) threshold = 0.05;  // 50 m
+
+        if (task) {
+            var geojson = task.getGeoJSON(),
+                latlng = svl.map.getPosition(),
+                line = geojson.features[0],
+                currentPoint = turf.point([latlng.lng, latlng.lat]),
+                snapped = turf.pointOnLine(line, currentPoint);
+            return turf.distance(currentPoint, snapped, unit) < threshold;
+        }
+        return true;
     }
 
     /**
@@ -170,8 +192,8 @@ function Compass (d3) {
             direction = angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        // message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
-        message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
+        // message =  image + "<span class='bold'>" + directionToDirectionMessage(direction) + "</span>";
         svl.ui.compass.message.html(message);
     }
 
@@ -187,6 +209,7 @@ function Compass (d3) {
      */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
+        blinkInterval = null;
         svl.ui.compass.messageHolder.addClass("white-background-75");
         svl.ui.compass.messageHolder.removeClass("highlight-50");
     }
@@ -209,6 +232,12 @@ function Compass (d3) {
         }
 
         setTurnMessage();
+
+        if (checkEnRoute()) {
+            stopBlinking();
+        } else {
+            blink();
+        }
     }
 
     /**

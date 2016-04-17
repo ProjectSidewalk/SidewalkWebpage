@@ -1,18 +1,18 @@
 describe("Specs for the Canvas module.", function () {
   var param = {};
-  var canvas = new Canvas($, param);
+  var canvas = Canvas($, param);
 
   // A fake label class.
   var FakeLabel = function (param) {
-    var oPublic = {};
+    var self = {};
     var status = {};
     status.deleted = false;
     status.visible = true;
-    oPublic.className = 'Label';
-    oPublic.name = ((typeof param == 'object') && ('name' in param)) ? param.name : null;
-    oPublic.isVisible = function () { return status.visible; };
-    oPublic.isDeleted = function () { return status.deleted; };
-    return oPublic;
+    self.className = 'Label';
+    self.name = ((typeof param == 'object') && ('name' in param)) ? param.name : null;
+    self.isVisible = function () { return status.visible; };
+    self.isDeleted = function () { return status.deleted; };
+    return self;
   };
 
   beforeEach(function () {
@@ -23,7 +23,7 @@ describe("Specs for the Canvas module.", function () {
     it("should not set invalid status", function () {
       expect(function () { canvas.setStatus('foo'); }).toThrow("Canvas: Illegal status name.");
     });
-  })
+  });
 
   describe("The method cancelDrawing", function () {
     it("should set status.drawing to false", function () {
@@ -76,42 +76,6 @@ describe("Specs for the Canvas module.", function () {
       canvas.setCurrentLabel(null);
       expect(canvas.getCurrentLabel()).toBeNull();
     });
-  });
-
-  describe("The method getLabels", function () {
-    var label1 = new FakeLabel({name: 'label1'});
-    var label2 = new FakeLabel({name: 'label2'});
-    var label3 = new FakeLabel({name: 'label3'});
-
-    it("should return an empty array when there are no labels", function () {
-      // Check if a variable is an array
-      // http://stackoverflow.com/questions/218798/in-javascript-how-can-we-identify-whether-an-object-is-a-hash-or-an-array
-      expect(canvas.getLabels() instanceof Array).toBeTruthy();
-      expect(canvas.getLabels().length).toBe(0);
-    });
-
-    it("should return an array of labels", function () {
-      canvas.pushLabel(label1).pushLabel(label2).pushLabel(label3);
-      expect(canvas.getLabels().length).toBe(3);
-      expect(canvas.getLabels()[0].name).toBe('label1');
-      expect(canvas.getLabels()[1].name).toBe('label2');
-      expect(canvas.getLabels()[2].name).toBe('label3');
-    });
-  });
-
-  describe("The method getNumLabels", function () {
-    var label1 = new FakeLabel({name: 'label1'});
-    var label2 = new FakeLabel({name: 'label2'});
-    var label3 = new FakeLabel({name: 'label3'});
-
-    it("should return 0 when there are not labels", function () {
-      expect(canvas.getNumLabels()).toBe(0);
-    });
-
-    it("should return the number of elements in the labels array.", function () {
-      canvas.pushLabel(label1).pushLabel(label2).pushLabel(label3);
-      expect(canvas.getNumLabels()).toBe(3);
-    })
   });
 
   describe("The method getStatus", function () {

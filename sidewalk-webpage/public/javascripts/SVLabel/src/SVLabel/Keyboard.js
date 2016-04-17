@@ -54,9 +54,6 @@ function Keyboard ($) {
     function documentKeyDown(e) {
         // The callback method that is triggered with a keyUp event.
         if (!status.focusOnTextField) {
-          if ('tracker' in svl) {
-            svl.tracker.push('KeyDown', {'keyCode': e.keyCode});
-          }
             switch (e.keyCode) {
                 case 16:
                     // "Shift"
@@ -76,9 +73,6 @@ function Keyboard ($) {
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
-          if ('tracker' in svl) {
-            svl.tracker.push('KeyUp', {'keyCode': e.keyCode});
-          }
             switch (e.keyCode) {
                 case 16:
                     // "Shift"
@@ -111,7 +105,7 @@ function Keyboard ($) {
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
                     svl.ribbon.modeSwitchClick("CurbRamp");
-                    break
+                    break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
                     svl.ribbon.modeSwitchClick("Walk");

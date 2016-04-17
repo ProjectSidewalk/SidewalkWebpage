@@ -10,6 +10,7 @@ var svl = svl || {};
  */
 function PopUpMessage ($, param) {
     var self = {className: 'PopUpMessage'},
+        status = { haveAskedToSignIn: false },
         buttons = [],
         OKButton = '<button id="pop-up-message-ok-button">OK</button>';
 
@@ -76,6 +77,52 @@ function PopUpMessage ($, param) {
      */
     function hideBackground () {
         svl.ui.popUpMessage.holder.css({ width: '', height: '' });
+    }
+
+    /**
+     * Prompt a user who's not logged in to sign up/sign in.
+     * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
+     */
+    function promptSignIn () {
+        if (!status.haveAskedToSignIn) {
+            setTitle("You've been contributing a lot!");
+            setMessage("Do you want to create an account to keep track of your progress?");
+            appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
+                // Store the data in LocalStorage.
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task),
+                    staged = svl.storage.get("staged");
+                staged.push(data);
+                svl.storage.set("staged", staged);
+
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
+                $('#sign-in-modal-container').modal('show');
+            });
+            appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
+                if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
+
+                svl.user.setProperty('firstTask', false);
+                // Submit the data as an anonymous user.
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task);
+                svl.form.submit(data, task);
+            });
+            appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
+                var task = svl.taskContainer.getCurrentTask();
+                var data = svl.form.compileSubmissionData(task),
+                    staged = svl.storage.get("staged");
+                staged.push(data);
+                svl.storage.set("staged", staged);
+
+                $("#sign-in-modal").removeClass("hidden");
+                $("#sign-up-modal").addClass("hidden");
+                $('#sign-in-modal-container').modal('show');
+            });
+            setPosition(0, 260, '100%');
+            show(true);
+        }
+        status.haveAskedToSignIn = true;
     }
 
     /**
@@ -159,6 +206,7 @@ function PopUpMessage ($, param) {
     self.appendOKButton = appendOKButton;
     self.hide = hide;
     self.hideBackground = hideBackground;
+    self.promptSignIn = promptSignIn;
     self.reset = reset;
     self.show = show;
     self.showBackground = showBackground;

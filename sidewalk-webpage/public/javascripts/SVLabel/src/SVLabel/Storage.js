@@ -1,7 +1,10 @@
-var svl = svl || {};
-
 /**
- * Storage module. 
+ * Storage module. This is a wrapper around web browser's Local Storage. It allows you to store data on the user's
+ * broser using a set method, and you can retrieve the data using the get method.
+ *
+ * Refrernces:
+ * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
+ *
  * @param JSON
  * @param params
  * @returns {{className: string}}
@@ -31,6 +34,10 @@ function Storage(JSON, params) {
         if (!get("labels")) {
             set("labels", []);
         }
+
+        if (!get("completedOnboarding")) {
+            set("completedOnboarding", null);
+        }
     }
 
     /**
@@ -44,8 +51,12 @@ function Storage(JSON, params) {
     /**
      * Refresh
      */
-    function refresh () {
+    function clear () {
         _init();
+        set("staged", []);
+        set("tracker", []);
+        set("labels", []);
+        set("completedOnboarding", null);
     }
 
     /**
@@ -58,7 +69,7 @@ function Storage(JSON, params) {
     }
 
     self.get = get;
-    self.refresh = refresh;
+    self.clear = clear;
     self.set = set;
     _init();
     return self;

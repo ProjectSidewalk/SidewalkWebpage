@@ -7,18 +7,18 @@
 <nav class="navbar navbar-default navbar-static-top">
     <div class="container">
         <div class="navbar-header">
-            <a class="navbar-brand" href="@routes.ApplicationController.index">Project Sidewalk</a>
+            <a class="navbar-brand" href="@routes.ApplicationController.index">Project Sidewalk <sub>beta</sub></a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-right">
                 @*<li>*@
                     @*<a href='@routes.ApplicationController.about'>About</a>*@
                 @*</li>*@
+                @*<li>*@
+                    @*<a href='@routes.ApplicationController.map'>Access Score</a>*@
+                @*</li>*@
                 <li>
-                    <a href='@routes.ApplicationController.map'>Access Score</a>
-                </li>
-                <li>
-                    <a href='@routes.TaskController.audit'>Map Accessibility</a>
+                    <a href='@routes.AuditController.audit'>Start Auditing</a>
                 </li>
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown">

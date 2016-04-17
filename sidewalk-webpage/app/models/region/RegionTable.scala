@@ -39,6 +39,14 @@ object RegionTable {
   val regions = TableQuery[RegionTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
+  // Create a round robin neighborhood supplier to be used in getRegion.
+  // http://stackoverflow.com/questions/19771992/is-there-a-round-robin-circular-queue-avaliable-in-scala-collections
+  // http://stackoverflow.com/questions/7619642/consume-items-from-a-scala-iterator
+  val neighborhoodRoundRobin = db.withSession { implicit session =>
+    val neighborhoods = regions.filter(_.regionTypeId === 2).list
+    Iterator.continually(neighborhoods).flatten
+  }
+
   /**
    * Returns a list of all the sidewalk edges
     *
@@ -46,6 +54,14 @@ object RegionTable {
    */
   def all: List[Region] = db.withSession { implicit session =>
     regions.list
+  }
+
+  /**
+    * Get a region supplied in a round-robin fashion.
+    * @return
+    */
+  def getRegion: Option[Region] = db.withSession { implicit session =>
+    Some(neighborhoodRoundRobin.next)
   }
 
   /**

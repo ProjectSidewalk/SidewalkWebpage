@@ -2,13 +2,14 @@ package controllers
 
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
-import models.mission.MissionTable
+import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.user.User
-import play.api.libs.json.{JsValue, JsArray, Json}
+import play.api.libs.json.{JsArray, JsError, JsValue, Json}
+import play.api.mvc.BodyParsers
 
 import scala.concurrent.Future
 
@@ -64,7 +65,8 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         val missions = MissionTable.incomplete(user.userId).map(m => Json.toJson(m))
         Future.successful(Ok(JsArray(missions)))
       case _ =>
-        Future.successful(Ok(JsArray(Seq())))
+        val missions = MissionTable.all.map(m => Json.toJson(m))
+        Future.successful(Ok(JsArray(missions)))
     }
   }
 
@@ -82,4 +84,31 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         Future.successful(Ok(JsArray(Seq())))
     }
   }
+
+  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+
+    var submission = request.body.validate[Seq[Mission]]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        request.identity match {
+          case Some(user) =>
+            for (mission <- submission) yield {
+              // Check if duplicate user-mission exists. If not, save it.
+              if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
+                MissionUserTable.save(mission.missionId, user.userId.toString)
+              }
+            }
+          case _ =>
+        }
+
+        Future.successful(Ok(Json.obj()))
+      }
+    )
+  }
 }
+

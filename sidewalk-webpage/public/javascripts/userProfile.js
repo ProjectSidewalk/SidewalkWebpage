@@ -64,7 +64,7 @@ function initializeNeighborhoodPolygons(map) {
     function onEachNeighborhoodFeature(feature, layer) {
 
         var regionId = feature.properties.region_id,
-            url = "/audit/task/region/" + regionId,
+            url = "/audit/region/" + regionId,
             popupContent = "Do you want to explore this area to find accessibility issues? " +
                 "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
         layer.bindPopup(popupContent);

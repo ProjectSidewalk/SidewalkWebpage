@@ -26,4 +26,28 @@ class MissionUserTable(tag: Tag) extends Table[MissionUser](tag, Some("sidewalk"
 object MissionUserTable {
   val db = play.api.db.slick.DB
   val missionUsers = TableQuery[MissionUserTable]
+
+  def exists(missionId: Int, userId: String): Boolean = db.withTransaction { implicit session =>
+    val l = missionUsers.list
+    l.count(m => m.missionId == missionId && m.userId.toString == userId) > 0
+  }
+
+  /**
+    * Insert a new mission user
+    * @param missionId mission id
+    * @param userId user id
+    * @return missionUserId
+    */
+  def save(missionId: Int, userId: String): Int = save(MissionUser(0, missionId, userId))
+
+  /**
+    * Insert a new mission user
+    * @param missionUser A MissionUser object
+    * @return missionUserId
+    */
+  def save(missionUser: MissionUser): Int = db.withTransaction { implicit session =>
+    val missionUserId: Int =
+      (missionUsers returning missionUsers.map(_.missionUserId)) += missionUser
+    missionUserId
+  }
 }

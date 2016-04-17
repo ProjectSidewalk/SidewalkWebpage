@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * MissionProgress module.
  * @returns {{className: string}}
@@ -11,25 +9,11 @@ function MissionProgress () {
     var status = {
             currentCompletionRate: 0,
             currentMission: null,
-            previousHeading: 0,
-            surveyedAngles: undefined
+            previousHeading: 0
         };
 
-    var $divCurrentCompletionRate;
-    var $divCurrentCompletionBar;
-    var $divCurrentCompletionBarFiller;
-
     function _init() {
-        $divCurrentCompletionRate = svl.ui.progressPov.rate;
-        $divCurrentCompletionBar = svl.ui.progressPov.bar;
-        $divCurrentCompletionBarFiller = svl.ui.progressPov.filler;
-
         // Fill in the surveyed angles
-        status.surveyedAngles = new Array(100);
-        for (var i=0; i < 100; i++) {
-            status.surveyedAngles[i] = 0;
-        }
-
         printCompletionRate();
     }
 
@@ -47,15 +31,15 @@ function MissionProgress () {
 
     /**
      * This method prints what percent of the intersection the user has observed.
+     * @param completionRate {number} Mission completion rate.
      * @returns {printCompletionRate}
      */
-    function printCompletionRate (mission) {
-        if (mission) {
-            var completionRate = mission.getMissionCompletionRate() * 100;
-            completionRate = completionRate.toFixed(0, 10);
-            completionRate = completionRate + "% complete";
-            $divCurrentCompletionRate.html(completionRate);
-        }
+    function printCompletionRate (completionRate) {
+        completionRate *= 100;
+        if (completionRate > 100) completionRate = 100;
+        completionRate = completionRate.toFixed(0, 10);
+        completionRate = completionRate + "% complete";
+        svl.ui.progressPov.rate.html(completionRate);
         return this;
     }
     
@@ -98,7 +82,7 @@ function MissionProgress () {
         } else if (label == "area-coverage-mission") {
             svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
-            console.error("It shouldn't reach here.");
+            console.warn("It shouldn't reach here.");
         }
     }
 
@@ -106,18 +90,27 @@ function MissionProgress () {
      * This method updates the mission completion rate and its visualization.
      */
     function update () {
-        if ("missionContainer" in svl) {
-            var i, len, missions,
+        if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
+        if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
+            var i,
+                len,
+                missions,
                 currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
                 completionRate;
-            printCompletionRate(currentMission);
-            updateMissionCompletionBar(currentMission);
+
+            // Update the mission completion rate in the progress bar
+            if (currentMission) {
+                completionRate = currentMission.getMissionCompletionRate();
+                printCompletionRate(completionRate);
+                updateMissionCompletionBar(completionRate);
+            }
 
             if (currentRegion) {
                 // Update mission completion rate.
                 var completedMissions = [],
-                    regionId = currentRegion.getProperty("regionId");
+                    regionId = currentRegion.getProperty("regionId"),
+                    missionComplete = false;
                 missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
                 missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
                 missions = missions.filter(function (m) { return !m.isCompleted(); });
@@ -131,9 +124,10 @@ function MissionProgress () {
                 len = missions.length;
                 for (i = 0; i < len; i++) {
                     completionRate = missions[i].getMissionCompletionRate();
-                    if (completionRate >= 1.0) {
+                    if (completionRate >= 0.999) {
                         complete(missions[i]);
                         completedMissions.push(missions[i]);
+                        missionComplete = true;
                     }
                 }
                 // Submit the staged missions
@@ -143,6 +137,11 @@ function MissionProgress () {
                 if (completedMissions.length > 0) {
                     showMissionCompleteWindow(completedMissions);
                 }
+
+                if (missionComplete && "audioEffect" in svl) {
+                    svl.audioEffect.play("yay");
+                    svl.audioEffect.play("applause");
+                }
             }
         }
     }
@@ -150,33 +149,32 @@ function MissionProgress () {
     /**
      * This method updates the filler of the completion bar
      */
-    function updateMissionCompletionBar (mission) {
-        if (mission) {
-            var r, g, color, completionRate = mission.getMissionCompletionRate();
-            var colorIntensity = 230;
-            if (completionRate < 0.5) {
-                r = colorIntensity;
-                g = parseInt(colorIntensity * completionRate * 2);
-            } else {
-                r = parseInt(colorIntensity * (1 - completionRate) * 2);
-                g = colorIntensity;
-            }
-            color = 'rgba(' + r + ',' + g + ',0,1)';
-            completionRate *=  100;
-            completionRate = completionRate.toFixed(0, 10);
-            completionRate -= 0.8;
-            completionRate = completionRate + "%";
-            $divCurrentCompletionBarFiller.css({
-                background: color,
-                width: completionRate
-            });
+    function updateMissionCompletionBar (completionRate) {
+        var r, g, color, colorIntensity = 230;
+        if (completionRate < 0.5) {
+            r = colorIntensity;
+            g = parseInt(colorIntensity * completionRate * 2);
+        } else {
+            r = parseInt(colorIntensity * (1 - completionRate) * 2);
+            g = colorIntensity;
         }
+        color = 'rgba(' + r + ',' + g + ',0,1)';
+        completionRate *=  100;
+        if (completionRate > 100) completionRate = 100;
+        completionRate = completionRate.toFixed(0, 10);
+        // completionRate -= 0.8;
+        completionRate = completionRate + "%";
+        svl.ui.progressPov.filler.css({
+            background: color,
+            width: completionRate
+        });
         return this;
     }
 
     self.showNextMission = showNextMission;
     self.showMissionCompleteWindow = showMissionCompleteWindow;
     self.update = update;
+    self.updateMissionCompletionBar = updateMissionCompletionBar;
 
     _init();
     return self;

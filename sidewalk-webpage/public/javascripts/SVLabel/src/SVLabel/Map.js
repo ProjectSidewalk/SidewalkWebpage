@@ -1,12 +1,14 @@
 /**
  * The Map module. This module is responsible for the interaction with Street View and Google Maps.
+ * Todo. Need to clean this module up...
  * @param $ {object} jQuery object
+ * @param turf {object} turf object
  * @param params {object} parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Map ($, params) {
+function Map ($, turf, params) {
     var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
@@ -48,11 +50,11 @@ function Map ($, params) {
             svLinkArrowsLoaded : false
         };
 
-    var initialPositionUpdate = true;
-    var panoramaOptions;
-    var streetViewService = new google.maps.StreetViewService();
-    var STREETVIEW_MAX_DISTANCE = 50;
-    var googleMapsPaneBlinkInterval;
+    var initialPositionUpdate = true,
+        panoramaOptions,
+        STREETVIEW_MAX_DISTANCE = 50,
+        googleMapsPaneBlinkInterval;
+    svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -69,20 +71,9 @@ function Map ($, params) {
 
     // Maps variables
     var fenway, map, mapOptions, mapStyleOptions;
-    var svgListenerAdded = false;
 
     // Street View variables
     var _streetViewInit;
-
-    // jQuery doms
-    var $canvas;
-    var $divLabelDrawingLayer;
-    var $divPano;
-    var $divStreetViewHolder;
-    var $divViewControlLayer;
-    var $spanModeSwitchWalk;
-    var $spanModeSwitchDraw;
-
 
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
@@ -104,12 +95,12 @@ function Map ($, params) {
     }
 
     // fenway = new google.maps.LatLng(params.targetLat, params.targetLng);
-    fenway = new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng);
+    fenway = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
 
     mapOptions = {
         center: fenway,
         mapTypeControl:false,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
         maxZoom : 20,
         minZoom : 14,
         overviewMapControl:false,
@@ -122,8 +113,7 @@ function Map ($, params) {
     };
 
     var mapCanvas = document.getElementById("google-maps");
-    map = new google.maps.Map(mapCanvas, mapOptions);
-    properties.map = map;
+    map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
 
     // Styling google map.
     // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
@@ -149,8 +139,7 @@ function Map ($, params) {
         }
     ];
 
-
-    map.setOptions({styles: mapStyleOptions});
+    if (map) map.setOptions({styles: mapStyleOptions});
 
     function _init(params) {
         params = params || {};
@@ -181,50 +170,48 @@ function Map ($, params) {
             };
 
         } else {
-            throw self.className + ' init(): The pano id nor panorama position is give. Cannot initialize the panorama.';
+            console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
 
         var panoCanvas = document.getElementById('pano');
-        svl.panorama = new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions);
-        svl.panorama.set('addressControl', false);
-        svl.panorama.set('clickToGo', false);
-        svl.panorama.set('disableDefaultUI', true);
-        svl.panorama.set('linksControl', true);
-        svl.panorama.set('navigationControl', false);
-        svl.panorama.set('panControl', false);
-        svl.panorama.set('zoomControl', false);
-        svl.panorama.set('keyboardShortcuts', true);
+        svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
+        if (svl.panorama) {
+            svl.panorama.set('addressControl', false);
+            svl.panorama.set('clickToGo', false);
+            svl.panorama.set('disableDefaultUI', true);
+            svl.panorama.set('linksControl', true);
+            svl.panorama.set('navigationControl', false);
+            svl.panorama.set('panControl', false);
+            svl.panorama.set('zoomControl', false);
+            svl.panorama.set('keyboardShortcuts', true);
+        }
+
 
         properties.initialPanoId = params.taskPanoId;
-        $canvas = svl.ui.map.canvas;
-        $divLabelDrawingLayer = svl.ui.map.drawingLayer;
-        $divPano = svl.ui.map.pano;
-        $divStreetViewHolder = svl.ui.map.streetViewHolder;
-        $divViewControlLayer = svl.ui.map.viewControlLayer;
-        $spanModeSwitchWalk = svl.ui.map.modeSwitchWalk;
-        $spanModeSwitchDraw = svl.ui.map.modeSwitchDraw;
 
         // Set so the links to panoaramas that are not listed on availablePanoIds will be removed
         status.availablePanoIds = params.availablePanoIds;
 
         // Attach listeners to dom elements
-        $divViewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
-        $divViewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
-        $divViewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
-        $divViewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
+        svl.ui.map.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
+        svl.ui.map.viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
+        svl.ui.map.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
+        svl.ui.map.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
 
 
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
-        google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
-        google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
-        google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
+        if (typeof google != "undefined") {
+            google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
+            google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
+            google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
+            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+        }
 
         // Connect the map view and panorama view
-        map.setStreetView(svl.panorama);
+        if (map && svl.panorama) map.setStreetView(svl.panorama);
 
         // Set it to walking mode initially.
-        google.maps.event.addListenerOnce(svl.panorama, "pano_changed", self.modeSwitchWalkClick);
 
         _streetViewInit = setInterval(initStreetView, 100);
 
@@ -234,7 +221,7 @@ function Map ($, params) {
         // For Internet Explore, append an extra canvas in viewControlLayer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            $divViewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
+            svl.ui.map.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
     }
 
@@ -304,7 +291,7 @@ function Map ($, params) {
         if (!status.lockDisableWalking) {
             // Disable clicking links and changing POV
             hideLinks();
-            $spanModeSwitchWalk.css('opacity', 0.5);
+            svl.ui.map.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
         }
         return this;
@@ -336,7 +323,7 @@ function Map ($, params) {
         if (!status.lockDisableWalking) {
             // Enable clicking links and changing POV
             showLinks();
-            $spanModeSwitchWalk.css('opacity', 1);
+            svl.ui.map.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
         }
         return this;
@@ -355,7 +342,7 @@ function Map ($, params) {
      * @returns {null}
      */
     function getMap() {
-        return properties.map;
+        return map;
     }
 
     /**
@@ -379,7 +366,7 @@ function Map ($, params) {
      * @returns {*}
      */
     function getPanoramaLayer () {
-        return $divPano.children(':first').children(':first').children(':first').children(':eq(5)');
+        return svl.ui.map.pano.children(':first').children(':first').children(':first').children(':eq(5)');
     }
 
     /**
@@ -432,7 +419,7 @@ function Map ($, params) {
      * @returns {*}
      */
     function getLinkLayer () {
-        return $divPano.find('svg').parent();
+        return svl.ui.map.pano.find('svg').parent();
     }
 
     /**
@@ -473,29 +460,45 @@ function Map ($, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
-        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
 
-        // End of the task if the user is close enough to the end point
-        var task = svl.taskContainer.getCurrentTask();
-        if (task) {
-            task.render();
-            if (task.isAtEnd(position.lat(), position.lng(), 10)) {
-                svl.taskContainer.endTask(task);
+        // Todo. This method is expanding... Maybe use a pub-sub design so the code will be cleaner.
+        if ("canvas" in svl && svl.canvas) updateCanvas();
+        if ("compass" in svl) svl.compass.update();
+        if ("missionProgress" in svl) svl.missionProgress.update();
+        if ("taskContainer" in svl) {
+            svl.taskContainer.update();
+
+            // End of the task if the user is close enough to the end point
+            var task = svl.taskContainer.getCurrentTask();
+            if (task) {
+                if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+                    svl.taskContainer.endTask(task);
+                    var newTask = svl.taskContainer.nextTask(task);
+                    svl.taskContainer.setCurrentTask(newTask);
+
+                    var geometry = newTask.getGeometry();
+                    if (geometry) {
+                        var lat = geometry.coordinates[0][1],
+                            lng = geometry.coordinates[0][0],
+                            currentLatLng = getPosition(),
+                            newTaskPosition = turf.point([lng, lat]),
+                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+
+                        // Jump to the new location if it's really far away.
+                        if (distance > 0.1) setPosition(lat, lng);
+                    }
+                }
             }
         }
 
-        // Set the heading angle.
+        // Set the heading angle when the user is dropped to the new position
         if (initialPositionUpdate && 'compass' in svl) {
             var pov = svl.panorama.getPov(),
                 compassAngle = svl.compass.getCompassAngle();
             pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
-
-        }
-        if ('compass' in svl) { svl.compass.update(); }
-        if ('missionProgress' in svl) {
-            svl.missionProgress.update();
         }
     }
 
@@ -524,7 +527,7 @@ function Map ($, params) {
             try {
                 if (!svl.keyboard.isShiftDown()) {
                     setViewControlLayerCursor('ClosedHand');
-                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
                 } else {
                     setViewControlLayerCursor('ZoomOut');
                 }
@@ -572,7 +575,7 @@ function Map ($, params) {
             try {
                 if (!svl.keyboard.isShiftDown()) {
                     setViewControlLayerCursor('OpenHand');
-                    // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
                 } else {
                     setViewControlLayerCursor('ZoomOut');
                 }
@@ -599,7 +602,6 @@ function Map ($, params) {
                 }
             } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
                 // Double click
-                // canvas.doubleClickOnCanvas(mouseStatus.leftUpX, mouseStatus.leftDownY);
                 svl.tracker.push('ViewControl_DoubleClick');
                 if (!status.disableClickZoom) {
 
@@ -609,29 +611,27 @@ function Map ($, params) {
                         svl.tracker.push('ViewControl_ZoomOut');
                     } else {
                         // If Shift is up, then zoom in wiht double click.
-                        // svl.zoomControl.zoomIn();
                         svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
                         svl.tracker.push('ViewControl_ZoomIn');
                     }
                 } else {
+                    // Double click to walk. First check whether Street View is available at the point where user has
+                    // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
+                    // then jump to the scene
                     if (!status.disableWalking) {
-                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov());
-                        var latlng = getPosition();
-                        var newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
+                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
+                            latlng = getPosition(),
+                            newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                         if (newLatlng) {
                             var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                            if (distance < 25) {
-                                var latLng = new google.maps.LatLng(newLatlng.lat, newLatlng.lng);
-                                streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                    if (status === google.maps.StreetViewStatus.OK) {
-                                        svl.panorama.setPano(streetViewPanoramaData.location.pano);
-                                    }
+                            if (distance < STREETVIEW_MAX_DISTANCE) {
+                                svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                    if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
                                 });
                             }
                         }
                     }
                 }
-
             }
         }
         mouseStatus.prevMouseUpTime = currTime;
@@ -660,7 +660,7 @@ function Map ($, params) {
                 try {
                     if (!svl.keyboard.isShiftDown()) {
                         setViewControlLayerCursor('OpenHand');
-                        // $divViewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                        // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
                     } else {
                         setViewControlLayerCursor('ZoomOut');
                     }
@@ -671,8 +671,13 @@ function Map ($, params) {
 
             }
         } else {
+<<<<<<< HEAD
             setViewControlLayerCursor('OpenHand');
             // $divViewControlLayer.css("cursor", "default");
+=======
+            setViewControlLayerCursor('default');
+            // svl.ui.map.viewControlLayer.css("cursor", "default");
+>>>>>>> master
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
@@ -771,12 +776,13 @@ function Map ($, params) {
      */
     function initStreetView () {
         // Initialize the Street View interface
-        var numPath = $divViewControlLayer.find("path").length;
+        var numPath = svl.ui.map.viewControlLayer.find("path").length;
         if (numPath !== 0) {
             status.svLinkArrowsLoaded = true;
             window.clearTimeout(_streetViewInit);
         }
     }
+
 
     /**
      * Load the state of the map
@@ -815,13 +821,13 @@ function Map ($, params) {
     function makeLinksClickable () {
         // Bring the layer with arrows forward.
         var $links = getLinkLayer();
-        $divViewControlLayer.append($links);
+        svl.ui.map.viewControlLayer.append($links);
 
         if (properties.browser === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
-            $divViewControlLayer.append($canvas);
+            svl.ui.map.viewControlLayer.append(svl.ui.map.canvas);
         } else if (properties.browser === 'msie') {
-            $divViewControlLayer.insertBefore($divLabelDrawingLayer);
+            svl.ui.map.viewControlLayer.insertBefore(svl.ui.map.drawingLayer);
         }
     }
 
@@ -829,11 +835,11 @@ function Map ($, params) {
      *
      */
     function modeSwitchLabelClick () {
-        $divLabelDrawingLayer.css('z-index','1');
-        $divViewControlLayer.css('z-index', '0');
-        // $divStreetViewHolder.append($divLabelDrawingLayer);
+        svl.ui.map.drawingLayer.css('z-index','1');
+        svl.ui.map.viewControlLayer.css('z-index', '0');
+        // svl.ui.map.streetViewHolder.append(svl.ui.map.drawingLayer);
 
-        if (properties.browser === 'mozilla') { $divLabelDrawingLayer.append($canvas); }
+        if (properties.browser === 'mozilla') { svl.ui.map.drawingLayer.append(svl.ui.map.canvas); }
         hideLinks();
     }
 
@@ -841,8 +847,8 @@ function Map ($, params) {
      * This function brings a div element for drawing labels in front of
      */
     function modeSwitchWalkClick () {
-        $divViewControlLayer.css('z-index', '1');
-        $divLabelDrawingLayer.css('z-index','0');
+        svl.ui.map.viewControlLayer.css('z-index', '1');
+        svl.ui.map.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
             // Show the link arrows on top of the panorama and make links clickable
             showLinks();
@@ -900,7 +906,7 @@ function Map ($, params) {
     function setPosition (lat, lng) {
         var latlng = new google.maps.LatLng(lat, lng);
         svl.panorama.setPosition(latlng);
-        properties.map.setCenter(latlng);
+        map.setCenter(latlng);
         return this;
     }
 
@@ -931,16 +937,16 @@ function Map ($, params) {
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
-                $divViewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
+                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
                 break;
             case 'OpenHand':
-                $divViewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
+                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
                 break;
             case 'ClosedHand':
-                $divViewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
+                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
                 break;
             default:
-                $divViewControlLayer.css("cursor", "default");
+                svl.ui.map.viewControlLayer.css("cursor", "default");
         }
     }
 
@@ -955,7 +961,7 @@ function Map ($, params) {
         // moved to user control layer, keep calling the modeSwitchWalkClick()
         // to bring arrows to the top layer. Once loaded, move svLinkArrowsLoaded to true.
         if (!status.svLinkArrowsLoaded) {
-            var numPath = $divViewControlLayer.find("path").length;
+            var numPath = svl.ui.map.viewControlLayer.find("path").length;
             if (numPath === 0) {
                 makeLinksClickable();
             } else {
@@ -1093,8 +1099,6 @@ function Map ($, params) {
      * @returns {setPov}
      */
     function setPov (pov, duration, callback) {
-        // Change the pov.
-        //
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var end = false;

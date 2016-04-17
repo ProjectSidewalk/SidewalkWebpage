@@ -1,16 +1,7 @@
-////////////////////////////////////////////////////////////////////////////////
-// Global variables
-////////////////////////////////////////////////////////////////////////////////
-// var canvasWidth = 720;
-// var canvasHeight = 480;
-// var svImageHeight = 6656;
-// var svImageWidth = 13312;
-
 // Image distortion coefficient. Need to figure out how to compute these.
 // It seems like these constants do not depend on browsers... (tested on Chrome, Firefox, and Safari.)
 // Distortion coefficient for a window size 640x360: var alpha_x = 5.2, alpha_y = -5.25;
 // Distortion coefficient for a window size 720x480:
-
 var svl = svl || {};
 svl.canvasWidth = 720;
 svl.canvasHeight = 480;
@@ -101,10 +92,6 @@ function Canvas ($, param) {
     var systemLabels = [];
     var labels = [];
 
-    // jQuery doms
-    var $divLabelDrawingLayer = svl.ui.canvas.drawingLayer.length === 0 ? null : svl.ui.canvas.drawingLayer;
-    var $divHolderLabelDeleteIcon = svl.ui.canvas.deleteIconHolder.length === 0 ? null : svl.ui.canvas.deleteIconHolder;
-    var $labelDeleteIcon = svl.ui.canvas.deleteIcon.length === 0 ? null : svl.ui.canvas.deleteIcon;
 
     // Initialization
     function _init (param) {
@@ -121,14 +108,14 @@ function Canvas ($, param) {
         }
 
         // Attach listeners to dom elements
-        if ($divLabelDrawingLayer) {
-          $divLabelDrawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
-          $divLabelDrawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
-          $divLabelDrawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
-            $divLabelDrawingLayer.on('mouseout', handleDrawingLayerMouseOut);
+        if (svl.ui.canvas.drawingLayer) {
+            svl.ui.canvas.drawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
+            svl.ui.canvas.drawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
+            svl.ui.canvas.drawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
+            svl.ui.canvas.drawingLayer.on('mouseout', handleDrawingLayerMouseOut);
         }
-        if ($labelDeleteIcon) {
-          $labelDeleteIcon.bind("click", labelDeleteIconClick);
+        if (svl.ui.canvas.deleteIcon) {
+          svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);
         }
 
         // Point radius
@@ -399,8 +386,8 @@ function Canvas ($, param) {
                 //
                 // Sometimes (especially during ground truth insertion if you force a delete icon to show up all the time),
                 // currLabel would not be set properly. In such a case, find a label underneath the delete icon.
-                var x = $divHolderLabelDeleteIcon.css('left');
-                var y = $divHolderLabelDeleteIcon.css('top');
+                var x = svl.ui.canvas.deleteIconHolder.css('left');
+                var y = svl.ui.canvas.deleteIconHolder.css('top');
                 x = x.replace("px", "");
                 y = y.replace("px", "");
                 x = parseInt(x, 10) + 5;
@@ -419,7 +406,7 @@ function Canvas ($, param) {
             if (currLabel) {
                 svl.labelContainer.removeLabel(currLabel);
                 svl.actionStack.push('deleteLabel', self.getCurrentLabel());
-                $divHolderLabelDeleteIcon.css('visibility', 'hidden');
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
                 // a label is deleted.
@@ -883,35 +870,12 @@ function Canvas ($, param) {
      * @method
      */
     function removeAllLabels () {
-        svl.labelContainer.removeAll();
+        if ("labelContainer" in svl) {
+            svl.labelContainer.removeAll();
+        }
         return this;
     }
 
-    /**
-     * This function removes a passed label and its child path and points
-     * @method
-     */
-//    function removeLabel (label) {
-//        if (!label) {
-//            return false;
-//        }
-//        svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
-//
-//        label.setStatus('deleted', true);
-//        label.setStatus('visibility', 'hidden');
-//
-//
-//        // Review label correctness if this is a ground truth insertion task.
-//        if (("goldenInsertion" in svl) &&
-//            svl.goldenInsertion &&
-//            svl.goldenInsertion.isRevisingLabels()) {
-//            svl.goldenInsertion.reviewLabels();
-//        }
-//
-//        self.clear();
-//        self.render2();
-//        return this;
-//    }
 
     /**
      * Renders labels
@@ -1048,43 +1012,14 @@ function Canvas ($, param) {
     }
 
     /**
-     * @method
+     * This sets the status of the canvas object
+     * @param key
+     * @param value
+     * @returns {*}
      */
     function setStatus (key, value) {
-        // This function is allows other objects to access status
-        // of this object
         if (key in status) {
-            if (key === 'disableLabeling') {
-                if (typeof value === 'boolean') {
-                    if (value) {
-                        self.disableLabeling();
-                    } else {
-                        self.enableLabeling();
-                    }
-                    return this;
-                } else {
-                    return false;
-                }
-            } else if (key === 'disableMenuClose') {
-                if (typeof value === 'boolean') {
-                    if (value) {
-                        self.disableMenuClose();
-                    } else {
-                        self.enableMenuClose();
-                    }
-                    return this;
-                } else {
-                    return false;
-                }
-            } else if (key === 'disableLabelDelete') {
-                if (value === true) {
-                    self.disableLabelDelete();
-                } else if (value === false) {
-                    self.enableLabelDelete();
-                }
-            } else {
-                status[key] = value;
-            }
+            status[key] = value;
         } else {
             throw self.className + ": Illegal status name.";
         }
@@ -1109,11 +1044,11 @@ function Canvas ($, param) {
                 label.setTagVisibility('visible');
                 isAnyVisible = true;
             } else {
-                $divHolderLabelDeleteIcon.css('visibility', 'hidden');
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
             // If any of the tags is visible, show a deleting icon on it.
             if (!isAnyVisible) {
-                $divHolderLabelDeleteIcon.css('visibility', 'hidden');
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
             self.clear().render2();
             return this;
@@ -1256,7 +1191,6 @@ function Canvas ($, param) {
     self.lockShowLabelTag = lockShowLabelTag;
     self.pushLabel = pushLabel;
     self.removeAllLabels = removeAllLabels;
-    self.removeLabel = svl.labelContainer.removeLabel;
     self.render = render2;
     self.render2 = render2;
     self.renderBoundingBox = renderBoundingBox;

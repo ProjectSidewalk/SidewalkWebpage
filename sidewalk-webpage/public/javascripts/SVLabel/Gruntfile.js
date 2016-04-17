@@ -7,10 +7,13 @@ module.exports = function(grunt) {
         concat: {
             dist: {
                 src: [
-                    'src/Fog.js',
                     'lib/gsv/GSVPano.js',
                     'lib/gsv/GSVPanoPointCloud.js',
                     'src/SVLabel/*.js',
+                    'src/SVLabel/task/*.js',
+                    'src/SVLabel/mission/*.js',
+                    'src/SVLabel/label/*.js',
+                    'src/SVLabel/neighborhood/*.js',
                     'src/SVLabel/Util/*.js',
                     'src/SVLabel/Onboarding/Onboarding.js'
                 ],
@@ -34,14 +37,27 @@ module.exports = function(grunt) {
         },
         jasmine: {
             src: [
-                'src/SVLabel/*.js'
+                'src/SVLabel/*.js',
+                'src/SVLabel/task/*.js',
+                'src/SVLabel/mission/*.js',
+                'src/SVLabel/label/*.js',
+                'src/SVLabel/neighborhood/*.js',
+                'src/SVLabel/util/*.js',
+                'src/SVLabel/onboarding/onboarding.js'
             ],
             options: {
                 specs: [
-                    'spec/SVLabel/*.js'
+                    'spec/SVLabel/*.js',
+                    'spec/SVLabel/onboarding/*.js'
                 ],
                 helpers: 'spec/SpecHelper.js',
-                vendor: ['lib/jquery-2.1.4.min.js']
+                vendor: [
+                    'lib/jquery-2.1.4.min.js',
+                    'lib/d3.v3.js',
+                    'lib/turf.min.js',
+                    'lib/gsv/*.js',
+                    'lib/kinetic-v4.3.3.min.js'
+                ]
             }
         },
         jsdoc : {

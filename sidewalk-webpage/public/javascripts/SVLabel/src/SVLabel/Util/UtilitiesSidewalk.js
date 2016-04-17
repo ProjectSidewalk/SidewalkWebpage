@@ -1,293 +1,314 @@
-/** @namespace */
 var svl = svl || {};
-svl.misc = {};
+svl.misc = svl.misc || {};
 
+function UtilitiesMisc (JSON) {
+    var self = { className: "UtilitiesMisc" };
 
-/**
- *
- * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
+    /**
+     *
+     * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
 
- * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
- * @param ix
- * @param iy
- * @param pov
- * @param zoomFactor
- * @returns {{x: number, y: number}}
- */
-function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
-    if (!zoomFactor) {
-        zoomFactor = 1;
+     * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
+     * @param ix
+     * @param iy
+     * @param pov
+     * @param zoomFactor
+     * @returns {{x: number, y: number}}
+     */
+    function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
+        if (!zoomFactor) {
+            zoomFactor = 1;
+        }
+
+        var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
+        var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
+        return {x: canvasX, y: canvasY};
     }
 
-    var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
-    var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
-    return {x: canvasX, y: canvasY};
+    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
+        var zoomFactor = svl.zoomFactor[pov.zoom];
+        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+        return { x: x, y: y };
+    }
+
+    function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
+        // This function takes a pair of lat/lng coordinates.
+        //
+        if (typeof SourceLat !== 'number') {
+            SourceLat = parseFloat(SourceLat);
+        }
+        if (typeof SourceLng !== 'number') {
+            SourceLng = parseFloat(SourceLng);
+        }
+        if (typeof TargetLng !== 'number') {
+            TargetLng = parseFloat(TargetLng);
+        }
+        if (typeof TargetLat !== 'number') {
+            TargetLat = parseFloat(TargetLat);
+        }
+
+        var dLng = TargetLng - SourceLng;
+        var dLat = TargetLat - SourceLat;
+
+        if (dLat === 0 || dLng === 0) {
+            return 0;
+        }
+
+        var angle = toDegrees(Math.atan(dLng / dLat));
+        //var angle = toDegrees(Math.atan(dLat / dLng));
+
+        return 90 - angle;
+    }
+
+    function getLabelCursorImagePath() {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'cursorImagePath' : undefined
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
+            },
+            Other: {
+                id: 'Other',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+            }
+        }
+    }
+
+    // Returns image paths corresponding to each label type.
+    function getIconImagePaths(category) {
+        var imagePaths = {
+            Walk : {
+                id : 'Walk',
+                iconImagePath : null,
+                googleMapsIconImagePath: null
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
+            },
+            Other: {
+                id: 'Other',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+            },
+            Void: {
+                id: 'Void',
+                iconImagePath : null
+            }
+        };
+
+        return category ? imagePaths[category] : imagePaths;
+    }
+
+    function getLabelInstructions () {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'instructionalText' : 'Audit the streets and find all the accessibility attributes',
+                'textColor' : 'rgba(255,255,255,1)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Other: {
+                id: 'Other',
+                instructionalText: 'Label mode',
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                instructionalText: "Label a part of sidewalk that cannot be observed",
+                textColor: 'rgba(255,255,255,1)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                instructionalText: 'Label missing sidewalk',
+                textColor: 'rgba(255,255,255,1)'
+            }
+        }
+    }
+
+    /**
+     * Todo. This should be moved to RibbonMenu.js
+     * @returns {{Walk: {id: string, text: string, labelRibbonConnection: string}, CurbRamp: {id: string, labelRibbonConnection: string}, NoCurbRamp: {id: string, labelRibbonConnection: string}, Obstacle: {id: string, labelRibbonConnection: string}, SurfaceProblem: {id: string, labelRibbonConnection: string}, Other: {id: string, labelRibbonConnection: string}, Occlusion: {id: string, labelRibbonConnection: string}, NoSidewalk: {id: string, labelRibbonConnection: string}}}
+     */
+    function getRibbonConnectionPositions () {
+        return {
+            'Walk' : {
+                'id' : 'Walk',
+                'text' : 'Walk',
+                'labelRibbonConnection' : '25px'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                labelRibbonConnection: '100px'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                labelRibbonConnection: '174px'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                labelRibbonConnection: '248px'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                labelRibbonConnection: '322px'
+            },
+            Other: {
+                id: 'Other',
+                labelRibbonConnection: '396px'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                labelRibbonConnection: '396px'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                labelRibbonConnection: '396px'
+            }
+        }
+    }
+
+    function getLabelDescriptions (category) {
+        var descriptions = {
+            'Walk' : {
+                'id' : 'Walk',
+                'text' : 'Walk'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                text: 'Curb Ramp'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                text: 'Missing Curb Ramp'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                text: 'Obstacle in a Path'
+            },
+            Other: {
+                id: 'Other',
+                text: 'Other'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                text: "Can't see the sidewalk"
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                text: 'No Sidewalk'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                text: 'Surface Problem'
+            },
+            Void: {
+                id: 'Void',
+                text: 'Void'
+            },
+            Unclear: {
+                id: 'Unclear',
+                text: 'Unclear'
+            }
+        };
+        return category ? descriptions[category] : descriptions;
+    }
+
+    /**
+     * References: Ajax without jQuery.
+     * http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
+     * http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
+     * @param streetEdgeId
+     */
+    function reportNoStreetView (streetEdgeId) {
+        var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
+        x.open('POST', url, async);
+        x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
+    }
+
+    self.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
+    self.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
+    self.getHeadingEstimate = getHeadingEstimate;
+    self.getLabelCursorImagePath = getLabelCursorImagePath;
+    self.getIconImagePaths = getIconImagePaths;
+    self.getLabelInstructions = getLabelInstructions;
+    self.getRibbonConnectionPositions = getRibbonConnectionPositions;
+    self.getLabelDescriptions = getLabelDescriptions;
+    self.getLabelColors = ColorScheme.SidewalkColorScheme2;
+    self.reportNoStreetView = reportNoStreetView;
+
+    return self;
 }
-svl.misc.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
-
-
-svl.misc.canvasCoordinateToImageCoordinate = function (canvasX, canvasY, pov) {
-    var zoomFactor = svl.zoomFactor[pov.zoom];
-    var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-    var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-    return { x: x, y: y };
-};
-//self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
-//self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
-
-
-function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
-    // This function takes a pair of lat/lng coordinates.
-    //
-    if (typeof SourceLat !== 'number') {
-        SourceLat = parseFloat(SourceLat);
-    }
-    if (typeof SourceLng !== 'number') {
-        SourceLng = parseFloat(SourceLng);
-    }
-    if (typeof TargetLng !== 'number') {
-        TargetLng = parseFloat(TargetLng);
-    }
-    if (typeof TargetLat !== 'number') {
-        TargetLat = parseFloat(TargetLat);
-    }
-
-    var dLng = TargetLng - SourceLng;
-    var dLat = TargetLat - SourceLat;
-
-    if (dLat === 0 || dLng === 0) {
-        return 0;
-    }
-
-    var angle = toDegrees(Math.atan(dLng / dLat));
-    //var angle = toDegrees(Math.atan(dLat / dLng));
-
-    return 90 - angle;
-}
-
-
-function getLabelCursorImagePath() {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'cursorImagePath' : undefined
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
-        },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
-        },
-        Other: {
-            id: 'Other',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-        }
-    }
-}
-svl.misc.getLabelCursorImagePath = getLabelCursorImagePath;
-
-
-// Returns image paths corresponding to each label type.
-function getIconImagePaths(category) {
-    var imagePaths = {
-        Walk : {
-            id : 'Walk',
-            iconImagePath : null,
-            googleMapsIconImagePath: null
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
-        },
-        Obstacle: {
-            id: 'Obstacle',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
-        },
-        Other: {
-            id: 'Other',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-            googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
-        },
-        Void: {
-            id: 'Void',
-            iconImagePath : null
-        }
-    };
-
-    return category ? imagePaths[category] : imagePaths;
-}
-svl.misc.getIconImagePaths = getIconImagePaths;
-
-
-// This function is used in OverlayMessageBox.js.
-svl.misc.getLabelInstructions = function () {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'instructionalText' : 'Audit the streets and find all the accessibility attributes',
-            'textColor' : 'rgba(255,255,255,1)'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
-          textColor: 'rgba(255,255,255,1)'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        Other: {
-            id: 'Other',
-            instructionalText: 'Label mode',
-            textColor: 'rgba(255,255,255,1)'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            instructionalText: "Label a part of sidewalk that cannot be observed",
-            textColor: 'rgba(255,255,255,1)'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            instructionalText: 'Label missing sidewalk',
-            textColor: 'rgba(255,255,255,1)'
-        }
-    }
-};
-
-svl.misc.getRibbonConnectionPositions = function  () {
-    return {
-        'Walk' : {
-            'id' : 'Walk',
-            'text' : 'Walk',
-            'labelRibbonConnection' : '25px'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            labelRibbonConnection: '100px'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            labelRibbonConnection: '174px'
-        },
-        Obstacle: {
-          id: 'Obstacle',
-          labelRibbonConnection: '248px'
-        },
-        SurfaceProblem: {
-          id: 'SurfaceProblem',
-          labelRibbonConnection: '322px'
-        },
-        Other: {
-            id: 'Other',
-            labelRibbonConnection: '396px'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            labelRibbonConnection: '396px'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            labelRibbonConnection: '396px'
-        }
-    }
-};
-
-svl.misc.getLabelDescriptions = function (category) {
-    var descriptions = {
-        'Walk' : {
-            'id' : 'Walk',
-            'text' : 'Walk'
-        },
-        CurbRamp: {
-            id: 'CurbRamp',
-            text: 'Curb Ramp'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            text: 'Missing Curb Ramp'
-        },
-        Obstacle: {
-            id: 'Obstacle',
-            text: 'Obstacle in a Path'
-        },
-        Other: {
-            id: 'Other',
-            text: 'Other'
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            text: "Can't see the sidewalk"
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            text: 'No Sidewalk'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            text: 'Surface Problem'
-        },
-        Void: {
-            id: 'Void',
-            text: 'Void'
-        },
-        Unclear: {
-            id: 'Unclear',
-            text: 'Unclear'
-        }
-    };
-    return category ? descriptions[category] : descriptions;
-};
 
 var ColorScheme = (function () {
     function SidewalkColorScheme () {
@@ -439,14 +460,4 @@ var ColorScheme = (function () {
     };
 }());
 
-svl.misc.getLabelColors = ColorScheme.SidewalkColorScheme2;
-
-// Ajax without jQuery.
-// http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
-// http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
-svl.misc.reportNoStreetView = function (streetEdgeId) {
-    var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
-    x.open('POST', url, async);
-    x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
-};
+svl.misc = UtilitiesMisc(JSON);

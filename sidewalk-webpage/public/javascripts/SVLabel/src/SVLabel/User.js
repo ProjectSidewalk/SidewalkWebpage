@@ -1,9 +1,6 @@
-var svl = svl || {};
-
 /**
  * User module.
  * Todo. Need to move user related information here.
- * @param $
  * @param param
  * @returns {{className: string}}
  * @constructor

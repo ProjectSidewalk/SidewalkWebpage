@@ -1,5 +1,7 @@
 @import models.user.User
 @import models.region.Region
+@import models.mission.MissionTable
+@import play.api.libs.json.Json
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[Region], user: Option[User] = None)
 
 @main(title) {
@@ -257,10 +259,16 @@
                     </div>
                     <div id="modal-skip-content">
                         <div class="radio">
-                            <label><input class="modal-skip-radio-buttons" type="radio" value="IWantToExplore" name="modal-skip-radio">I want to explore another area!</label>
+                            <label>
+                                <input class="modal-skip-radio-buttons" type="radio" value="IWantToExplore" name="modal-skip-radio">
+                                I want to explore another area!
+                            </label>
                         </div>
                         <div class="radio">
-                            <label><input class="modal-skip-radio-buttons" type="radio" value="GSVNotAvailable" name="modal-skip-radio">Street View is not available and I cannot walk towards the goal.</label>
+                            <label>
+                                <input class="modal-skip-radio-buttons" type="radio" value="GSVNotAvailable" name="modal-skip-radio">
+                                I cannot go the direction that you want me to walk.
+                            </label>
                         </div>
                         <div>
                             <button class="button" id="modal-skip-ok-button">OK</button>&nbsp;
@@ -410,7 +418,10 @@
                 </p>
                 <p>
                     <span class="bold">We’ll begin with a short, interactive tutorial to get you started.</span>
-                    If you’ve taken the tutorial before, click “Skip.” Thanks for your help in improving the accessibility of the cities.
+                    @if(!user) {
+                        If you’ve taken the tutorial before, click “Skip.”
+                    }
+                    Thanks for your help in improving the accessibility of the cities.
                 </p>
             </div>
         </div>
@@ -462,11 +473,14 @@
         svl.storage = new Storage(JSON);
 
         @if(user) {
-        var userParam = { username : '@user.get.username' };
-        svl.user = new User(userParam);
+            var userParam = {
+                username : '@user.get.username',
+                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.completed(user.get.userId).map(_.toJSON))))
+            };
+            svl.user = new User(userParam);
         } else {
-        var userParam = { username : "anonymous" };
-        svl.user = new User(userParam);
+            var userParam = { username : "anonymous" };
+            svl.user = new User(userParam);
         }
 
         @if(task) {
@@ -480,6 +494,8 @@
             var streetViewService = new google.maps.StreetViewService();
             var STREETVIEW_MAX_DISTANCE = 25;
             var latLng = new google.maps.LatLng(lat1, lng1);
+
+            // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
@@ -492,7 +508,6 @@
                 } else {
                     throw "Error loading Street View imagey.";
                 }
-
             });
         }
 
@@ -537,10 +552,7 @@
                 mainParam.regionId = @region.get.regionId;
             }
 
-            svl.main = Main($, mainParam);
-
-            svl.onboarding = new Onboarding($, {});
-
+            svl.main = Main($, d3, turf, mainParam);
         }
     </script>
 

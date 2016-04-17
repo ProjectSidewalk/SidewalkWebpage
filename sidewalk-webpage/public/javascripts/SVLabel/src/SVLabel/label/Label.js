@@ -9,12 +9,9 @@ var svl = svl || {};
  * @memberof svl
  */
 function Label (pathIn, params) {
-    var self = {
-        className: 'Label'
-    };
+    var self = { className: 'Label' };
 
-    var path;
-    var googleMarker;
+    var path, googleMarker;
 
     var properties = {
         canvasWidth: undefined,
@@ -58,7 +55,7 @@ function Label (pathIn, params) {
         visibility : false
     };
 
-    function init (param, pathIn) {
+    function _init (param, pathIn) {
         try {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
@@ -73,8 +70,11 @@ function Label (pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            googleMarker = createGoogleMapsMarker(param.labelType);
-            googleMarker.setMap(svl.map.getMap());
+            if (typeof google != "undefined" && google && google.maps) {
+                googleMarker = createGoogleMapsMarker(param.labelType);
+                googleMarker.setMap(svl.map.getMap());
+            }
+
             return true;
         } catch (e) {
             console.error(self.className, ':', 'Error initializing the Label object.', e);
@@ -148,18 +148,20 @@ function Label (pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function createGoogleMapsMarker (labelType) {
-        var latlng = toLatLng(),
-            googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-            imagePaths = svl.misc.getIconImagePaths(),
-            url = imagePaths[labelType].googleMapsIconImagePath
+        if (typeof google != "undefined") {
+            var latlng = toLatLng(),
+                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
+                imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath
 
-        return new google.maps.Marker({
-            position: googleLatLng,
-            map: svl.map.getMap(),
-            title: "Hi!",
-            icon: url,
-            size: new google.maps.Size(20, 20)
-        });
+            return new google.maps.Marker({
+                position: googleLatLng,
+                map: svl.map.getMap(),
+                title: "Hi!",
+                icon: url,
+                size: new google.maps.Size(20, 20)
+            });
+        }
     }
 
     /**
@@ -226,16 +228,20 @@ function Label (pathIn, params) {
     }
 
     /**
-     *
+     * Get image coordinates of the child path
      * @returns {*}
      */
-    function getImageCoordinates () { return path ? path.getImageCoordinates() : false; }
+    function getImageCoordinates () {
+        return path ? path.getImageCoordinates() : false;
+    }
 
     /**
      * This function returns labelId property
      * @returns {string}
      */
-    function getLabelId () { return properties.labelId; }
+    function getLabelId () {
+        return properties.labelId;
+    }
 
     /**
      * This function returns labelType property
@@ -354,7 +360,9 @@ function Label (pathIn, params) {
      * This method returns the visibility of this label.
      * @returns {boolean}
      */
-    function isVisible () { return status.visibility === 'visible'; }
+    function isVisible () {
+        return status.visibility === 'visible';
+    }
 
     /**
      * Lock tag visibility
@@ -381,16 +389,10 @@ function Label (pathIn, params) {
      * @returns {*|number}
      */
     function overlap (label, mode) {
-        if (!mode) {
-            mode = "boundingbox";
-        }
-
-        if (mode !== "boundingbox") {
-            throw self.className + ": " + mobede + " is not a valid option.";
-        }
+        if (!mode) mode = "boundingbox";
+        if (mode !== "boundingbox") { throw self.className + ": " + mobede + " is not a valid option."; }
         var path1 = getPath(),
             path2 = label.getPath();
-
         return path1.overlap(path2, mode);
     }
 
@@ -496,11 +498,11 @@ function Label (pathIn, params) {
         if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
 
         var labelCoordinate = getCoordinate(),
-            cornerRadius = 3;
-        var i, w, height, width,
+            cornerRadius = 3,
+            i, w, height, width,
             msg = properties.labelDescription,
-            messages = msg.split('\n');
-        var padding = { left: 12, right: 5, bottom: 0, top: 18};
+            messages = msg.split('\n'),
+            padding = { left: 12, right: 5, bottom: 0, top: 18};
 
         if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
 
@@ -545,11 +547,10 @@ function Label (pathIn, params) {
      * @returns {resetFillStyle}
      */
     function resetFillStyle () {
-        var path = getPath(),
-            points = path.getPoints(),
-            len = points.length;
+        var path = getPath(), points = path.getPoints(),
+            i, len = points.length;
         path.resetFillStyle();
-        for (var i = 0; i < len; i++) {
+        for (i = 0; i < len; i++) {
             points[i].resetFillStyle();
         }
         return this;
@@ -574,9 +575,9 @@ function Label (pathIn, params) {
         var path = getPath(),
             points = path.getPoints(),
             len = points.length,
-            fillColor = path.getFillStyle();
-        fillColor = svl.util.color.changeAlphaRGBA(fillColor, 0.3);
-
+            fillColor = path.getFill();
+        alpha = alpha ? alpha : 0.3;
+        fillColor = svl.util.color.changeAlphaRGBA(fillColor, alpha);
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) {
             points[i].setFillStyle(fillColor);
@@ -636,6 +637,11 @@ function Label (pathIn, params) {
         }
     }
 
+    /**
+     * Set the visibility of the tag
+     * @param visibility {string} visible or hidden
+     * @returns {setTagVisibility}
+     */
     function setTagVisibility (visibility) {
         if (!lock.tagVisibility) {
             if (visibility === 'visible' || visibility === 'hidden') {
@@ -651,9 +657,8 @@ function Label (pathIn, params) {
      * @returns {setSubLabelDescription}
      */
     function setSubLabelDescription (labelType) {
-        var labelDescriptions = svl.misc.getLabelDescriptions(),
-            labelDescription = labelDescriptions[labelType].text;
-        properties.labelProperties.subLabelDescription = labelDescription;
+        var labelDescriptions = svl.misc.getLabelDescriptions();
+        properties.labelProperties.subLabelDescription = labelDescriptions[labelType].text;
         return this;
     }
 
@@ -761,8 +766,7 @@ function Label (pathIn, params) {
                 y = boundingBox.y;
 
             // Show a delete button
-            var $divHolderLabelDeleteIcon = $("#delete-icon-holder");
-            $divHolderLabelDeleteIcon.css({
+            $("#delete-icon-holder").css({
                 visibility: 'visible',
                 left : x + 25, // + width - 5,
                 top : y - 20
@@ -770,22 +774,24 @@ function Label (pathIn, params) {
         }
     }
 
+    /**
+     * Calculate the offset to the label
+     * @returns {{dx: number, dy: number, dz: number}}
+     */
     function toOffset() {
-        var imageCoordinates = path.getImageCoordinates();
-        var lat = properties.panoramaLat;
-        var pc = svl.pointCloud.getPointCloud(properties.panoId);
+        var imageCoordinates = path.getImageCoordinates(),
+            pc = svl.pointCloud.getPointCloud(properties.panoId);
         if (pc) {
-            var minDx = 1000;
-            var minDy = 1000;
-            var minDz = 1000;
-            for (var i = 0; i < imageCoordinates.length; i++) {
-                var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
-                var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                var dx = pc.pointCloud[idx];
-                var dy = pc.pointCloud[idx + 1];
-                var dz = pc.pointCloud[idx + 2];
-                var r = dx * dx + dy * dy;
-                var minR = minDx * minDx + minDy + minDy;
+            var minDx = 1000, minDy = 1000, minDz = 1000,
+                i, p, idx, dx, dy, dz, r, minR;
+            for (i = 0; i < imageCoordinates.length; i++) {
+                p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
+                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                dx = pc.pointCloud[idx];
+                dy = pc.pointCloud[idx + 1];
+                dz = pc.pointCloud[idx + 2];
+                r = dx * dx + dy * dy;
+                minR = minDx * minDx + minDy + minDy;
 
                 if (r < minR) {
                     minDx = dx;
@@ -803,29 +809,26 @@ function Label (pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates();
-            var lat = properties.panoramaLat;
-            var pc = svl.pointCloud.getPointCloud(properties.panoId);
+            var imageCoordinates = path.getImageCoordinates(),
+                pc = svl.pointCloud.getPointCloud(properties.panoId);
             if (pc) {
-                var minDx = 1000;
-                var minDy = 1000;
-                var delta;
-                for (var i = 0; i < imageCoordinates.length; i ++) {
-                    var p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                    var idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                    var dx = pc.pointCloud[idx];
-                    var dy = pc.pointCloud[idx + 1];
-                    var r = dx * dx + dy * dy;
-                    var minR = minDx * minDx + minDy + minDy;
+                var minDx = 1000, minDy = 1000, i, delta, latlng,
+                    p, idx, dx, dy, r, minR;
+                for (i = 0; i < imageCoordinates.length; i ++) {
+                    p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                    idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
+                    dx = pc.pointCloud[idx];
+                    dy = pc.pointCloud[idx + 1];
+                    r = dx * dx + dy * dy;
+                    minR = minDx * minDx + minDy + minDy;
 
-                    if ( r < minR) {
+                    if (r < minR) {
                         minDx = dx;
                         minDy = dy;
-
                     }
                 }
                 delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
-                var latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
+                latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
                 setProperty('labelLat', latlng.lat);
                 setProperty('labelLng', latlng.lng);
                 return latlng;
@@ -833,27 +836,33 @@ function Label (pathIn, params) {
                 return null;
             }
         } else {
-            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };
+            return { lat: getProperty('labelLat'), lng: getProperty('labelLng') };  // Return the cached value
         }
 
     }
 
+    /**
+     * Unlock status.visibility
+     * @returns {unlockVisibility}
+     */
     function unlockVisibility () {
         lock.visibility = false;
         return this;
     }
 
+    /**
+     * Unlock status.tagVisibility
+     * @returns {unlockTagVisibility}
+     */
     function unlockTagVisibility () {
         lock.tagVisibility = false;
         return this;
     }
 
-
     self.resetFillStyle = resetFillStyle;
     self.blink = blink;
     self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
-    //self.getCoordinate = getCoordinate;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
@@ -893,7 +902,7 @@ function Label (pathIn, params) {
     self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    if (!init(params, pathIn)) {
+    if (!_init(params, pathIn)) {
         return false;
     }
     return self;

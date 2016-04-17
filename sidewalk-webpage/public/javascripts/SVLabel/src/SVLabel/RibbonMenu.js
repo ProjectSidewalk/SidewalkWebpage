@@ -23,9 +23,6 @@ function RibbonMenu ($, params) {
         },
         blinkInterval;
 
-    // jQuery DOM elements
-    var $divStreetViewHolder,  $ribbonButtonBottomLines, $ribbonConnector, $spansModeSwitches, $subcategories, $subcategoryHolder;
-
     function _init () {
         var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
         if (browser === 'mozilla') {
@@ -38,16 +35,8 @@ function RibbonMenu ($, params) {
 
         // Initialize the jQuery DOM elements
         if (svl.ui && svl.ui.ribbonMenu) {
-
-            $divStreetViewHolder = svl.ui.ribbonMenu.streetViewHolder;
-            $ribbonButtonBottomLines = svl.ui.ribbonMenu.bottonBottomBorders;
-            $ribbonConnector = svl.ui.ribbonMenu.connector;
-            $spansModeSwitches = svl.ui.ribbonMenu.buttons;
-            $subcategories = svl.ui.ribbonMenu.subcategories;
-            $subcategoryHolder = svl.ui.ribbonMenu.subcategoryHolder;
-
             // Initialize the color of the lines at the bottom of ribbon menu icons
-            $.each($ribbonButtonBottomLines, function (i, v) {
+            $.each(svl.ui.ribbonMenu.bottonBottomBorders, function (i, v) {
                 var labelType = $(v).attr("val"), color = labelColors[labelType].fillStyle;
                 if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
@@ -58,12 +47,12 @@ function RibbonMenu ($, params) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
 
-            $spansModeSwitches.bind({
+            svl.ui.ribbonMenu.buttons.bind({
                 click: handleModeSwitchClickCallback,
                 mouseenter: handleModeSwitchMouseEnter,
                 mouseleave: handleModeSwitchMouseLeave
             });
-            $subcategories.on({
+            svl.ui.ribbonMenu.subcategories.on({
                click: handleSubcategoryClick
             });
         }
@@ -115,9 +104,9 @@ function RibbonMenu ($, params) {
                 setModeSwitchBackgroundColors(labelType);
 
 
-                $ribbonConnector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
-                $ribbonConnector.css("border-left-color", borderColor);
-                $divStreetViewHolder.css("border-color", borderColor);
+                svl.ui.ribbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
+                svl.ui.ribbonMenu.connector.css("border-left-color", borderColor);
+                svl.ui.ribbonMenu.streetViewHolder.css("border-color", borderColor);
             }
 
             // Set the instructional message
@@ -175,16 +164,16 @@ function RibbonMenu ($, params) {
     }
 
     function showSubcategories () {
-        $subcategoryHolder.css('visibility', 'visible');
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
     function hideSubcategories () {
-        $subcategoryHolder.css('visibility', 'hidden');
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
 
     function setModeSwitchBackgroundColors (mode) {
         // background: -moz-linear-gradient(center top , #fff, #eee);
         // background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
-        if (svl.ui && svl.ui.ribbonMenu) {
+        if ("ui" in svl && svl.ui && svl.ui.ribbonMenu) {
           var labelType;
           var labelColors;
           var borderColor;
@@ -194,7 +183,7 @@ function RibbonMenu ($, params) {
           labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
-          $.each($spansModeSwitches, function (i, v) {
+          $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
               labelType = $(v).attr("val");
               if (labelType === mode) {
                   if (labelType === 'Walk') {
@@ -226,7 +215,7 @@ function RibbonMenu ($, params) {
           labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
-          $.each($spansModeSwitches, function (i, v) {
+          $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
               labelType = $(v).attr("val");
               if (labelType=== mode) {
                   $(this).css({
@@ -259,11 +248,15 @@ function RibbonMenu ($, params) {
         return this;
     }
 
+    /**
+     * Disable switching modes
+     * @returns {disableModeSwitch}
+     */
     function disableModeSwitch () {
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = true;
             if (svl.ui && svl.ui.ribbonMenu) {
-                $spansModeSwitches.css('opacity', 0.5);
+                svl.ui.ribbonMenu.buttons.css('opacity', 0.5);
             }
         }
         return this;
@@ -275,7 +268,7 @@ function RibbonMenu ($, params) {
      */
     function disableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
-            $.each($spansModeSwitches, function (i, v) {
+            $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
                 var labelType = $(v).attr("val");
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
@@ -289,20 +282,27 @@ function RibbonMenu ($, params) {
         return this;
     }
 
+    /**
+     * This method enables mode switch.
+     * @returns {enableModeSwitch}
+     */
     function enableModeSwitch () {
-        // This method enables mode switch.
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = false;
-            if (svl.ui && svl.ui.ribbonMenu) {
-                $spansModeSwitches.css('opacity', 1);
+            if (svl.ui && svl.ui.ribbonMenu && svl.ui.ribbonMenu.buttons) {
+                svl.ui.ribbonMenu.buttons.css('opacity', 1);
             }
         }
         return this;
     }
 
+    /**
+     * Enable clicking landmark buttons
+     * @returns {enableLandmarkLabels}
+     */
     function enableLandmarkLabels () {
         if (svl.ui && svl.ui.ribbonMenu) {
-            $.each($spansModeSwitches, function (i, v) {
+            $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
                 $(v).css('opacity', 1);
             });
         }
@@ -395,6 +395,7 @@ function RibbonMenu ($, params) {
             }, 500);
         }
     }
+
 
     function stopBlinking () {
         clearInterval(blinkInterval);

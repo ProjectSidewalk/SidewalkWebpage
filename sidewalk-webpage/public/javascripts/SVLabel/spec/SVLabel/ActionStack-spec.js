@@ -1,4 +1,4 @@
-describe("The ActionStack module's basic API", function () {
+describe("The ActionStack module.", function () {
   var stackParam = {
     domIds: {
       redoButton: "",

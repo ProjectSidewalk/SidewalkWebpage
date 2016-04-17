@@ -9,7 +9,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Main ($, params) {
+function Main ($, d3, turf, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -167,10 +167,12 @@ function Main ($, params) {
     }
 
     function _init (params) {
+        var params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
+        if (!("storage" in svl)) svl.storage = new Storage(JSON);
         svl.labelContainer = LabelContainer();
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
@@ -179,7 +181,7 @@ function Main ($, params) {
         svl.statusField = StatusField();
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
-        svl.ribbon = RibbonMenu($);
+        svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
@@ -187,22 +189,87 @@ function Main ($, params) {
         svl.tracker = Tracker();
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
-        svl.compass = Compass(d3);
+        svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
 
+        var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            var neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            svl.neighborhoodContainer.add(neighborhood);
+            svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+        } else {
+            var regionId = 0;
+            neighborhood = svl.neighborhoodFactory.create(regionId);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        svl.missionContainer = MissionContainer ($, {currentNeighborhood: svl.neighborhoodContainer.getStatus("currentNeighborhood")});
+        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
+        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
+
+        //
+        var taskLoadComplete = false, missionLoadComplete = false;
+        function handleDataLoadComplete () {
+            if (taskLoadComplete && missionLoadComplete) {
+                // Do stuff
+                svl.missionProgress.update();
+            }
+        }
+
+        svl.taskContainer.requestTasksInARegion(neighborhood.getProperty("regionId"), function () {
+            taskLoadComplete = true;
+            handleDataLoadComplete();
+        });
+
+        svl.missionContainer = MissionContainer ($, {
+            callback: function () {
+                // Check if the user has completed the onboarding tutorial.
+                // If not, let them work on the the tutorial.
+                var completedMissions = svl.missionContainer.getCompletedMissions(),
+                    missionLabels = completedMissions.map(function (m) { return m.label; }),
+                    neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
+                    mission;
+                
+                // Set the current mission to onboarding or something else.
+                if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
+                    svl.onboarding = new Onboarding($);
+                    mission = svl.missionContainer.getCurrentMission();
+                } else {
+                    mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
+                    if (mission.isCompleted()) {
+                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+                        missions = missions.filter(function (m) { return !m.isCompleted(); });
+                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                    }
+                    svl.missionContainer.setCurrentMission(mission);
+                }
+                
+                // Check if this an anonymous user or not. 
+                // If not, record that that this user has completed the onboarding.
+                if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
+                        missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+                    onboardingMission.setProperty("isCompleted", true);
+                    svl.missionContainer.addToCompletedMissions(onboardingMission);
+                    svl.missionContainer.stage(onboardingMission).commit();
+                }
+
+                // Popup the message explaining the goal of the current mission if the current mission is not onboarding
+                if (mission.getProperty("label") != "onboarding") {
+                    svl.modalMission.setMission(mission);
+                }
+
+                // Call another callback function
+                missionLoadComplete = true;
+                handleDataLoadComplete();
+            }
+        });
         svl.missionFactory = MissionFactory ();
 
         svl.form.disableSubmit();
@@ -237,11 +304,13 @@ function Main ($, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = new Map($, mapParam);
+        svl.map = new Map($, turf, mapParam);
         svl.map.disableClickZoom();
 
-        var task = svl.taskContainer.getCurrentTask();
-        if (task) {
+        if ("taskContainer" in svl) {
+            var task = svl.taskContainer.getCurrentTask();
+        }
+        if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
     }

@@ -1,15 +1,6 @@
 describe("Tests for the Keyboard module.", function () {
   var keyboard = new Keyboard($);
 
-  describe("The clearShiftDown method", function() {
-    it("should set status.shiftDown to false", function() {
-      keyboard.setStatus('shiftDown', true);
-      expect(keyboard.getStatus('shiftDown')).toBe(true);
-      keyboard.clearShiftDown();
-      expect(keyboard.getStatus('shiftDown')).toBeFalsy();
-    });
-  });
-
   describe("The getStatus method", function() {
   	it("should get status that shiftDown should be true", function() {
   		keyboard.setStatus('shiftDown', true);

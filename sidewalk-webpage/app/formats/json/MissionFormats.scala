@@ -5,6 +5,16 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object MissionFormats {
+  case class MissionSubmission(label: String, level: Int, regionId: Option[Int], distance: Option[Double], coverage: Option[Double])
+
+  implicit val missionSubmissionReads: Reads[MissionSubmission] = (
+    (JsPath \ "label").read[String] and
+      (JsPath \ "level").read[Int] and
+      (JsPath \ "region_id").readNullable[Int] and
+      (JsPath \ "distance").readNullable[Double] and
+      (JsPath \ "coverage").readNullable[Double]
+    )(MissionSubmission.apply _)
+
   implicit val missionReads: Reads[Mission] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "region_id").readNullable[Int] and
@@ -24,4 +34,6 @@ object MissionFormats {
       (__ \ "coverage").writeNullable[Double] and
       (__ \ "deleted").write[Boolean]
     )(unlift(Mission.unapply _))
+
+
 }
