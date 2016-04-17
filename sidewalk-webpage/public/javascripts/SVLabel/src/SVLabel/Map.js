@@ -672,7 +672,7 @@ function Map ($, turf, params) {
             }
         } else {
 <<<<<<< HEAD
-            setViewControlLayerCursor('OpenHand');
+            setViewControlLayerCursor('default');
             // $divViewControlLayer.css("cursor", "default");
 =======
             setViewControlLayerCursor('default');
