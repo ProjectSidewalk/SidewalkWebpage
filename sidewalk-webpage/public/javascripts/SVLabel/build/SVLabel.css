@@ -875,6 +875,55 @@ footer {
     width: 150px;
     margin-top: 17px;
 }
+
+.modal-background {
+    position: absolute;
+    left: -55px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    height: 100%;
+    width: 110%;
+}
+
+.modal-foreground {
+    background: rgba(255, 255, 255, 1);
+    color: rgba(80, 80, 80, 1);
+    font-size: 14pt;
+    padding: 10px;
+    position: absolute;
+    top: 118px;
+    left: 8px;
+    visibility: visible;
+    width: 720px;
+    z-index: 1;
+    min-height: 480px;
+
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
+}
+
+#modal-curb-ramp-foreground {
+    border: solid 3px rgba(0, 222, 38, 1);
+}
+
+#modal-no-curb-ramp-foreground {
+    border: solid 3px rgba(233, 39, 113, 1);
+}
+
+#modal-obstacle-foreground {
+    border: solid 3px rgba(0, 161, 203, 1);
+}
+
+#modal-surface-problem-foreground {
+    border: solid 3px rgba(241, 141, 5, 1);
+}
 #tracker-holder {
     position: absolute;
     top: 0;
@@ -1303,6 +1352,34 @@ footer {
     margin-top: 0;
     margin-bottom: 0;
     border-top: 1px dashed #eee;
+}
+
+.ribbon-mode-switch-info-buttons {
+    position: absolute;
+    top: 46px;
+    left: -3px;
+    height: 20px;
+    width: 20px;
+}
+
+.ribbon-mode-switch-info-buttons polygon.curb-ramp {
+    fill: rgba(0, 222, 38, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.no-curb-ramp {
+    fill: rgba(233, 39, 113, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.obstacle {
+    fill: rgba(0, 161, 203, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.surface-problem {
+    fill: rgba(241, 141, 5, 1);
+}
+
+.ribbon-mode-switch-info-buttons text {
+    visibility: visible;
 }
 #Holder_LabeledLandmarks {
     position: relative;

@@ -90,6 +90,7 @@ function Main ($, d3, turf, params) {
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
+        svl.ui.ribbonMenu.informationButtons = $(".ribbon-mode-switch-info-buttons");
 
         // Context menu
         svl.ui.contextMenu = {};
@@ -111,6 +112,14 @@ function Main ($, d3, turf, params) {
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
         svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svl.ui.modalComment.textarea = $("#modal-comment-textarea");
+
+        svl.ui.modalExample = {};
+        svl.ui.modalExample.background = $(".modal-background");
+        svl.ui.modalExample.close = $(".modal-example-close-buttons");
+        svl.ui.modalExample.curbRamp = $("#modal-curb-ramp-example");
+        svl.ui.modalExample.noCurbRamp = $("#modal-no-curb-ramp-example");
+        svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
+        svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
         // Mission
         svl.ui.modalMission = {};
@@ -195,6 +204,7 @@ function Main ($, d3, turf, params) {
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
+        svl.modalExample = ModalExample();
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();

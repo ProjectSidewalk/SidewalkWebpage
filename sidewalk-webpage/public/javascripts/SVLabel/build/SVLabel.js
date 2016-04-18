@@ -3219,6 +3219,7 @@ function Main ($, d3, turf, params) {
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
+        svl.ui.ribbonMenu.informationButtons = $(".ribbon-mode-switch-info-buttons");
 
         // Context menu
         svl.ui.contextMenu = {};
@@ -3240,6 +3241,14 @@ function Main ($, d3, turf, params) {
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
         svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svl.ui.modalComment.textarea = $("#modal-comment-textarea");
+
+        svl.ui.modalExample = {};
+        svl.ui.modalExample.background = $(".modal-background");
+        svl.ui.modalExample.close = $(".modal-example-close-buttons");
+        svl.ui.modalExample.curbRamp = $("#modal-curb-ramp-example");
+        svl.ui.modalExample.noCurbRamp = $("#modal-no-curb-ramp-example");
+        svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
+        svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
         // Mission
         svl.ui.modalMission = {};
@@ -3324,6 +3333,7 @@ function Main ($, d3, turf, params) {
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
+        svl.modalExample = ModalExample();
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
@@ -4915,6 +4925,59 @@ function ModalComment ($) {
     return self;
 }
 /**
+ * Modal windows for the examples of accessibility attributes
+ * @returns {{className: string}}
+ * @constructor
+ */
+function ModalExample () {
+    var self = { className: "ModalExample" };
+
+    function _init () {
+        svl.ui.modalExample.close.on("click", handleCloseButtonClick);
+        svl.ui.modalExample.background.on("click", handleBackgroundClick);
+    }
+
+    function handleBackgroundClick () {
+        hide();
+    }
+
+    function handleCloseButtonClick () {
+        hide();
+    }
+
+    function hide () {
+        svl.ui.modalExample.curbRamp.addClass("hidden");
+        svl.ui.modalExample.noCurbRamp.addClass("hidden");
+        svl.ui.modalExample.obstacle.addClass("hidden");
+        svl.ui.modalExample.surfaceProblem.addClass("hidden");
+    }
+
+    function show (key) {
+        hide();
+        switch (key) {
+            case "CurbRamp":
+                svl.ui.modalExample.curbRamp.removeClass("hidden");
+                break;
+            case "NoCurbRamp":
+                svl.ui.modalExample.noCurbRamp.removeClass("hidden");
+                break;
+            case "Obstacle":
+                svl.ui.modalExample.obstacle.removeClass("hidden");
+                break;
+            case "SurfaceProblem":
+                svl.ui.modalExample.surfaceProblem.removeClass("hidden");
+                break;
+        }
+    }
+
+    self.hide = hide;
+    self.show = show;
+
+    _init();
+    
+    return self;
+}
+/**
  * ModalMission module
  * @param $
  * @returns {{className: string}}
@@ -5615,6 +5678,10 @@ function RibbonMenu ($, params) {
             $signInModalPassword.on('focus', disableModeSwitch);
             $signInModalPassword.on('blur', enableModeSwitch);
         }
+
+
+        // Handle info button click
+        svl.ui.ribbonMenu.informationButtons.on("click", handleInfoButtonClick);
     }
 
     /**
@@ -5666,6 +5733,14 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function handleInfoButtonClick (e) {
+        e.stopPropagation();
+        if ("modalExample" in svl) {
+            var category = $(this).attr("val");
+            svl.modalExample.show(category);
+        }
+    }
+
     function handleSubcategoryClick (e) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
@@ -5712,9 +5787,6 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function showSubcategories () {
-        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
-    }
     function hideSubcategories () {
         svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
@@ -5786,6 +5858,10 @@ function RibbonMenu ($, params) {
           });
         }
         return this;
+    }
+
+    function showSubcategories () {
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
 
     /**
