@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * ActionStack keeps track of user's actions so you can undo/redo labeling.
  * @param {object} $ jQuery ojbect

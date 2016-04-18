@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * A ModalSkip module
  * @param $
