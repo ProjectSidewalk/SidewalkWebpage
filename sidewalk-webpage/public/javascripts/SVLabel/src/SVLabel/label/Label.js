@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * A Label module.
  * @param pathIn

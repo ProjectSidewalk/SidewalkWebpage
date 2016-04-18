@@ -461,8 +461,6 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
 
 /**
  * ActionStack keeps track of user's actions so you can undo/redo labeling.
- * @param {object} $ jQuery ojbect
- * @param {object} params Other parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -8238,8 +8236,6 @@ function MissionProgress () {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  * A Label module.
  * @param pathIn
@@ -9148,8 +9144,6 @@ function Label (pathIn, params) {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  * Label Container module. This is responsible of storing the label objects that were created in the current session.
  * @returns {{className: string}}
@@ -9225,8 +9219,6 @@ function LabelContainer() {
 //    self.save = save;
     return self;
 }
-var svl = svl || {};
-
 /**
  * Label Counter module. 
  * @param d3 d3 module
@@ -10138,8 +10130,6 @@ function Path (points, params) {
 
     return self;
 }
-
-var svl = svl || {};
 
 /**
  * Point object
