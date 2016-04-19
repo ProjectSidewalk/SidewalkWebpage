@@ -8269,13 +8269,16 @@ function MissionProgress () {
 
             // Update the mission completion rate in the progress bar
             if (currentMission) {
+                var missionsInCurrentRegion = svl.missionContainer.getMissionsByRegionId(currentRegion.getProperty("regionId"));
+
+
                 completionRate = currentMission.getMissionCompletionRate();
                 printCompletionRate(completionRate);
                 updateMissionCompletionBar(completionRate);
             }
 
+            // Check if missions are completed.
             if (currentRegion) {
-                // Update mission completion rate.
                 var completedMissions = [],
                     regionId = currentRegion.getProperty("regionId"),
                     missionComplete = false;
