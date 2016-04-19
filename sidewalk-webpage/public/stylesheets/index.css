@@ -46,6 +46,10 @@ svg {
     background: rgba(255, 255, 255, 0.6);
 }
 
+video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+}
+
 .header-icon {
     width: 200px;
 }
