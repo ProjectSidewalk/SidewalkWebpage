@@ -177,6 +177,7 @@ function TaskContainer (turf) {
      * @param regionId {number} Region id
      * @param taskIn {object} Task
      * @param threshold {number} Distance threshold
+     * @param unit {string} Distance unit
      * @returns {Array}
      */
     function findConnectedTask (regionId, taskIn, threshold, unit) {
@@ -189,15 +190,21 @@ function TaskContainer (turf) {
         if (!unit) unit = "kilometers";
 
         tasks = tasks.filter(function (t) { return !t.isCompleted(); });
-        tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
-        len = tasks.length;
 
-        for (i = 0; i < len; i++) {
-            if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                connectedTasks.push(tasks[i]);
+        if (taskIn) {
+            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+            len = tasks.length;
+
+            for (i = 0; i < len; i++) {
+                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                    connectedTasks.push(tasks[i]);
+                }
             }
+            return connectedTasks;
+        } else {
+            return tasks;
         }
-        return connectedTasks;
+
     }
 
     /**
@@ -218,14 +225,17 @@ function TaskContainer (turf) {
             candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
             newTask = candidateTasks[0];
         }
-        
-        var c1 = task.getLastCoordinate(),
-            c2 = newTask.getStartCoordinate(),
-            p1 = turf.point([c1.lng, c1.lat]),
-            p2 = turf.point([c2.lng, c2.lat]);
-        if (turf.distance(p1, p2, "kilometers") > 0.025) {
-            newTask.reverseCoordinates();
+
+        if (task) {
+            var c1 = task.getLastCoordinate(),
+                c2 = newTask.getStartCoordinate(),
+                p1 = turf.point([c1.lng, c1.lat]),
+                p2 = turf.point([c2.lng, c2.lat]);
+            if (turf.distance(p1, p2, "kilometers") > 0.025) {
+                newTask.reverseCoordinates();
+            }
         }
+
         return newTask;
 
         // In case
