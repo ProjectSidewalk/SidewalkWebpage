@@ -2648,8 +2648,8 @@ function Form ($, params) {
      * @returns {{}}
      */
     function compileSubmissionData (task) {
-        var data = {};
-        
+        var i, j, len, data = {};
+
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
@@ -2673,8 +2673,7 @@ function Form ($, params) {
 
         data.labels = [];
         var labels = svl.labelContainer.getCurrentLabels();
-
-        for(var i = 0; i < labels.length; i += 1) {
+        for(i = 0; i < labels.length; i += 1) {
             var label = labels[i],
                 prop = label.getProperties(),
                 points = label.getPath().getPoints(),
@@ -2697,7 +2696,7 @@ function Form ($, params) {
                 description: label.getProperty('description')
             };
 
-            for (var j = 0; j < pathLen; j += 1) {
+            for (j = 0; j < pathLen; j += 1) {
                 var point = points[j],
                     gsvImageCoordinate = point.getGSVImageCoordinate(),
                     pointParam = {
@@ -2721,12 +2720,42 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
-        // Add the value in the comment field if there are any.
-        //var comment = svl.ui.form.commentField.val();
-        //data.comment = null;
-        //if (comment !== svl.ui.form.commentField.attr('title')) {
-        //    data.comment = svl.ui.form.commentField.val();
-        //}
+        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
+        data.gsv_panoramas = [];
+        if ("panoramaContainer" in svl && svl.panoramaContainer) {
+            var temp,
+                panoramaData,
+                link,
+                linksc,
+                panoramas = svl.panoramaContainer.getStagedPanoramas();
+            len = panoramas.length;
+
+            for (i = 0; i < len; i++) {
+                panoramaData = panoramas[i].data();
+                links = [];
+
+                if ("links" in panoramaData) {
+                    for (j = 0; j < panoramaData.links.length; j++) {
+                        link = panoramaData.links[j];
+                        links.push({
+                            target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
+                            yaw_deg: ("heading" in link) ? link.heading : 0.0,
+                            description: ("description" in link) ? link.description : ""
+                        });
+                    }
+                }
+
+                temp = {
+                    panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
+                    image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
+                    links: links,
+                    copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
+                };
+
+                data.gsv_panoramas.push(temp);
+                panoramas[i].setProperty("submitted", true);
+            }
+        }
 
         return data;
     }
@@ -3133,12 +3162,14 @@ var svl = svl || {};
 /**
  * The main module of SVLabel
  * @param $: jQuery object
+ * @param d3 D3 library
+ * @param google Google Maps library
  * @param params: other parameters
  * @returns {{moduleName: string}}
  * @constructor
  * @memberof svl
  */
-function Main ($, d3, turf, params) {
+function Main ($, d3, google, turf, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -3334,6 +3365,7 @@ function Main ($, d3, turf, params) {
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
         svl.modalExample = ModalExample();
+        svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
@@ -9212,6 +9244,12 @@ function LabelContainer() {
     function push(label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
+        
+        // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
+        var panoramaId = label.getProperty("panoId");
+        if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
+            svl.panoramaContainer.requestPanoramaMetaData(panoramaId);
+        }
     }
 
     /** Refresh */
@@ -10708,8 +10746,24 @@ function NeighborhoodFactory () {
 }
 function Panorama(data) {
     var self = { className: "Panorama" },
-        _data = data;
+        _data = data,
+        properties = { submitted: false };
 
+    function getData () {
+        return _data;
+    }
+
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    function setProperty (key, value) {
+        properties[key] = value;
+    }
+
+    self.data = getData;
+    self.getProperty = getProperty;
+    self.setProperty = setProperty;
     return self;
 }
 function PanoramaContainer (google) {
@@ -10737,6 +10791,24 @@ function PanoramaContainer (google) {
     }
 
     /**
+     * Get all the panorama instances stored in the container
+     * @returns {Array}
+     */
+    function getPanoramas () {
+        return Object.keys(container).map(function (panoramaId) { return container[panoramaId]; });
+    }
+
+    /**
+     * Get panorama instances that have not been submitted to the server
+     * @returns {Array}
+     */
+    function getStagedPanoramas () {
+        var panoramas = getPanoramas();
+        panoramas = panoramas.filter(function (pano) { return !pano.getProperty("submitted"); });
+        return panoramas;
+    }
+
+    /**
      * Street View Service https://developers.google.com/maps/documentation/javascript/streetview#StreetViewServiceResponses
      */
     function processSVData (data, status) {
@@ -10750,11 +10822,17 @@ function PanoramaContainer (google) {
     /**
      * Request the panorama meta data.
      */
-    function requestPanoramaMetaData () {
-        svl.streetViewService.getPanorama({pano: "arQPa5r-8vmDl3LSobOXBg"}, processSVData);
+    function requestPanoramaMetaData (panoramaId) {
+        if ("streetViewService") {
+            svl.streetViewService.getPanorama({ pano: panoramaId }, processSVData);
+        } else {
+            console.error("Street View Service not loaded")
+        }
     }
 
     self.getPanorama = getPanorama;
+    self.getPanoramas = getPanoramas;
+    self.getStagedPanoramas = getStagedPanoramas;
     self.requestPanoramaMetaData = requestPanoramaMetaData;
     return self;
 }

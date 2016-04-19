@@ -1,10 +1,10 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Date, Calendar}
+import java.util.{Calendar, Date}
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Silhouette, Environment}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
@@ -14,11 +14,12 @@ import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
-import models.mission.{MissionStatus, Mission, MissionTable}
+import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
 import models.street.StreetEdgeAssignmentCountTable
-import models.user.{UserCurrentRegionTable, User}
+import models.user.{User, UserCurrentRegionTable}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -205,6 +206,22 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
             env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
+
+          // Insert Street View metadata
+          for (panorama <- data.gsvPanoramas) {
+            // Check the presence of the data
+            if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
+              val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "")
+              GSVDataTable.save(gsvData)
+
+              for (link <- panorama.links) {
+                if (!GSVLinkTable.linkExists(panorama.gsvPanoramaId, link.targetGsvPanoramaId)) {
+                  val gsvLink: GSVLink = GSVLink(panorama.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, "", link.description)
+                  GSVLinkTable.save(gsvLink)
+                }
+              }
+            }
+          }
 
           // Check if the user has cleared any mission
           val completed: List[Mission] = request.identity match {

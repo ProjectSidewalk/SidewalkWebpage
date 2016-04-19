@@ -105,8 +105,8 @@ function Form ($, params) {
      * @returns {{}}
      */
     function compileSubmissionData (task) {
-        var data = {};
-        
+        var i, j, len, data = {};
+
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
@@ -130,8 +130,7 @@ function Form ($, params) {
 
         data.labels = [];
         var labels = svl.labelContainer.getCurrentLabels();
-
-        for(var i = 0; i < labels.length; i += 1) {
+        for(i = 0; i < labels.length; i += 1) {
             var label = labels[i],
                 prop = label.getProperties(),
                 points = label.getPath().getPoints(),
@@ -154,7 +153,7 @@ function Form ($, params) {
                 description: label.getProperty('description')
             };
 
-            for (var j = 0; j < pathLen; j += 1) {
+            for (j = 0; j < pathLen; j += 1) {
                 var point = points[j],
                     gsvImageCoordinate = point.getGSVImageCoordinate(),
                     pointParam = {
@@ -178,12 +177,42 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
-        // Add the value in the comment field if there are any.
-        //var comment = svl.ui.form.commentField.val();
-        //data.comment = null;
-        //if (comment !== svl.ui.form.commentField.attr('title')) {
-        //    data.comment = svl.ui.form.commentField.val();
-        //}
+        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
+        data.gsv_panoramas = [];
+        if ("panoramaContainer" in svl && svl.panoramaContainer) {
+            var temp,
+                panoramaData,
+                link,
+                linksc,
+                panoramas = svl.panoramaContainer.getStagedPanoramas();
+            len = panoramas.length;
+
+            for (i = 0; i < len; i++) {
+                panoramaData = panoramas[i].data();
+                links = [];
+
+                if ("links" in panoramaData) {
+                    for (j = 0; j < panoramaData.links.length; j++) {
+                        link = panoramaData.links[j];
+                        links.push({
+                            target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
+                            yaw_deg: ("heading" in link) ? link.heading : 0.0,
+                            description: ("description" in link) ? link.description : ""
+                        });
+                    }
+                }
+
+                temp = {
+                    panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
+                    image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
+                    links: links,
+                    copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
+                };
+
+                data.gsv_panoramas.push(temp);
+                panoramas[i].setProperty("submitted", true);
+            }
+        }
 
         return data;
     }

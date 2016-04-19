@@ -665,9 +665,12 @@
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
+            } else {
+                mainParam.regionId = 1;
             }
+            mainParam.regionId = 0;
 
-            svl.main = Main($, d3, turf, mainParam);
+            svl.main = Main($, d3, google, turf, mainParam);
         }
     </script>
 

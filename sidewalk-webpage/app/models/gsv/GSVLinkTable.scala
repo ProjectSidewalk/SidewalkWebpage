@@ -20,4 +20,23 @@ class GSVLinkTable(tag: Tag) extends Table[GSVLink](tag, Some("sidewalk"), "gsv_
 object GSVLinkTable {
   val db = play.api.db.slick.DB
   val gsvLinks = TableQuery[GSVLinkTable]
+
+  /**
+    * This method checks if the link already exists or not.
+    * @param panoramaId Google Street View panorama id
+    * @return
+    */
+  def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = db.withTransaction { implicit session =>
+    gsvLinks.list.filter(x => x.gsvPanoramaId == panoramaId && x.targetGsvPanoramaId == targetPanoramaId).nonEmpty
+  }
+
+  /**
+    * Save a GSVLink object
+    * @param link GSVLink object
+    * @return
+    */
+  def save(link: GSVLink): String = db.withTransaction { implicit session =>
+    gsvLinks += link
+    link.gsvPanoramaId
+  }
 }

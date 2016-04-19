@@ -37,7 +37,7 @@ object AuditTaskCommentTable {
 
   /**
     * Get all task records of the given user
-    * @param username
+    * @param username Username
     * @return
     */
   def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
@@ -51,7 +51,7 @@ object AuditTaskCommentTable {
 
   /**
     * Insert a task record
-    * @param comment
+    * @param comment AuditTaskComment object
     * @return
     */
   def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
