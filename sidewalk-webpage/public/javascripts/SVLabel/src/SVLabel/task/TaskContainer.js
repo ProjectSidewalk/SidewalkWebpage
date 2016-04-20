@@ -177,6 +177,7 @@ function TaskContainer (turf) {
      * @param regionId {number} Region id
      * @param taskIn {object} Task
      * @param threshold {number} Distance threshold
+     * @param unit {string} Distance unit
      * @returns {Array}
      */
     function findConnectedTask (regionId, taskIn, threshold, unit) {
@@ -189,15 +190,21 @@ function TaskContainer (turf) {
         if (!unit) unit = "kilometers";
 
         tasks = tasks.filter(function (t) { return !t.isCompleted(); });
-        tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
-        len = tasks.length;
 
-        for (i = 0; i < len; i++) {
-            if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                connectedTasks.push(tasks[i]);
+        if (taskIn) {
+            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+            len = tasks.length;
+
+            for (i = 0; i < len; i++) {
+                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                    connectedTasks.push(tasks[i]);
+                }
             }
+            return connectedTasks;
+        } else {
+            return tasks;
         }
-        return connectedTasks;
+
     }
 
     /**
@@ -218,62 +225,18 @@ function TaskContainer (turf) {
             candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
             newTask = candidateTasks[0];
         }
-        
-        var c1 = task.getLastCoordinate(),
-            c2 = newTask.getStartCoordinate(),
-            p1 = turf.point([c1.lng, c1.lat]),
-            p2 = turf.point([c2.lng, c2.lat]);
-        if (turf.distance(p1, p2, "kilometers") > 0.025) {
-            newTask.reverseCoordinates();
-        }
-        return newTask;
 
-        // In case
-        // if (task) {
-        //     var streetEdgeId = task.getStreetEdgeId(),
-        //         _geojson = task.getGeoJSON();
-        //     // When the current street edge id is given (i.e., when you are simply walking around).
-        //     var len = _geojson.features[0].geometry.coordinates.length - 1,
-        //         latEnd = _geojson.features[0].geometry.coordinates[len][1],
-        //         lngEnd = _geojson.features[0].geometry.coordinates[len][0];
-        //
-        //     $.ajax({
-        //         async: false,
-        //         url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
-        //         type: 'get',
-        //         success: function (json) {
-        //             newTask = svl.taskFactory.create(json, latEnd, lngEnd);
-        //         },
-        //         error: function (result) {
-        //             throw result;
-        //         }
-        //     });
-        // } else {
-        //     // No street edge id is provided (e.g., the user skipped the task to explore another location.)
-        //     $.ajax({
-        //         async: false,
-        //         url: "/task",
-        //         type: 'get',
-        //         success: function (json) {
-        //             // Check if Street View is available at the location. If it's not available, report it to the
-        //             // server and go to the next task.
-        //             // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-        //             // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
-        //             var len = json.features[0].geometry.coordinates.length - 1,
-        //                 lat1 = json.features[0].geometry.coordinates[0][1],
-        //                 lng1 = json.features[0].geometry.coordinates[0][0],
-        //                 lat2 = json.features[0].geometry.coordinates[len][1],
-        //                 lng2 = json.features[0].geometry.coordinates[len][0];
-        //
-        //             newTask = svl.taskFactory.create(json);
-        //         },
-        //         error: function (result) {
-        //             throw result;
-        //         }
-        //     });
-        // }
-        //
-        // return newTask;
+        if (task) {
+            var c1 = task.getLastCoordinate(),
+                c2 = newTask.getStartCoordinate(),
+                p1 = turf.point([c1.lng, c1.lat]),
+                p2 = turf.point([c2.lng, c2.lat]);
+            if (turf.distance(p1, p2, "kilometers") > 0.025) {
+                newTask.reverseCoordinates();
+            }
+        }
+
+        return newTask;
     }
 
     /**

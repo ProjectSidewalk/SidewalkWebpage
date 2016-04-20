@@ -81,7 +81,7 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> a Path</span>
+                            <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> Path</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="Obstacle"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="Obstacle">
                                 <polygon points="0,0, 0,20, 20,20" class="obstacle" />
@@ -529,7 +529,7 @@
                 </p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures01.png")' id="onboarding-example-image-1"
-                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in a path, and a surface problem.">
+                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
                 <p>
                     <span class="bold">We’ll begin with a short, interactive tutorial to get you started.</span>
@@ -567,7 +567,7 @@
                 </p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
-                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in a path, and a surface problem.">
+                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
                 <p>
                     Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
@@ -665,9 +665,12 @@
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
+            } else {
+                mainParam.regionId = 1;
             }
+            mainParam.regionId = 0;
 
-            svl.main = Main($, d3, turf, mainParam);
+            svl.main = Main($, d3, google, turf, mainParam);
         }
     </script>
 

@@ -253,7 +253,7 @@ function UtilitiesMisc (JSON) {
             },
             Obstacle: {
                 id: 'Obstacle',
-                text: 'Obstacle in a Path'
+                text: 'Obstacle in Path'
             },
             Other: {
                 id: 'Other',

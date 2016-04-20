@@ -4,12 +4,14 @@ var svl = svl || {};
 /**
  * The main module of SVLabel
  * @param $: jQuery object
+ * @param d3 D3 library
+ * @param google Google Maps library
  * @param params: other parameters
  * @returns {{moduleName: string}}
  * @constructor
  * @memberof svl
  */
-function Main ($, d3, turf, params) {
+function Main ($, d3, google, turf, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -205,6 +207,7 @@ function Main ($, d3, turf, params) {
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
         svl.modalExample = ModalExample();
+        svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();

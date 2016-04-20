@@ -899,6 +899,7 @@ footer {
     min-height: 480px;
 
     border-radius: 3px 3px 3px 3px;
+    z-index: 2;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
 }

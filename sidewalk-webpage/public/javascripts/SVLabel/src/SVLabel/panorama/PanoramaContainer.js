@@ -23,6 +23,24 @@ function PanoramaContainer (google) {
     }
 
     /**
+     * Get all the panorama instances stored in the container
+     * @returns {Array}
+     */
+    function getPanoramas () {
+        return Object.keys(container).map(function (panoramaId) { return container[panoramaId]; });
+    }
+
+    /**
+     * Get panorama instances that have not been submitted to the server
+     * @returns {Array}
+     */
+    function getStagedPanoramas () {
+        var panoramas = getPanoramas();
+        panoramas = panoramas.filter(function (pano) { return !pano.getProperty("submitted"); });
+        return panoramas;
+    }
+
+    /**
      * Street View Service https://developers.google.com/maps/documentation/javascript/streetview#StreetViewServiceResponses
      */
     function processSVData (data, status) {
@@ -36,11 +54,17 @@ function PanoramaContainer (google) {
     /**
      * Request the panorama meta data.
      */
-    function requestPanoramaMetaData () {
-        svl.streetViewService.getPanorama({pano: "arQPa5r-8vmDl3LSobOXBg"}, processSVData);
+    function requestPanoramaMetaData (panoramaId) {
+        if ("streetViewService") {
+            svl.streetViewService.getPanorama({ pano: panoramaId }, processSVData);
+        } else {
+            console.error("Street View Service not loaded")
+        }
     }
 
     self.getPanorama = getPanorama;
+    self.getPanoramas = getPanoramas;
+    self.getStagedPanoramas = getStagedPanoramas;
     self.requestPanoramaMetaData = requestPanoramaMetaData;
     return self;
 }

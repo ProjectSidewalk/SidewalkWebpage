@@ -13,8 +13,10 @@ object TaskSubmissionFormats {
   case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryProblem: Option[JsBoolean], description: Option[String], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int])
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int])
   case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
-  case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission])
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
+  case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
+  case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
+  case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
 
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
@@ -91,13 +93,28 @@ object TaskSubmissionFormats {
       (JsPath \ "assignment_start").read[String]
     )(AMTAssignmentSubmission.apply _)
 
+  implicit val gsvLinkSubmissionReads: Reads[GSVLinkSubmission] = (
+    (JsPath \ "target_gsv_panorama_id").read[String] and
+      (JsPath \ "yaw_deg").read[Double] and
+      (JsPath \ "description").read[String]
+    )(GSVLinkSubmission.apply _)
+
+  implicit val gsvPanoramaSubmissionReads: Reads[GSVPanoramaSubmission] = (
+    (JsPath \ "panorama_id").read[String] and
+      (JsPath \ "image_date").read[String] and
+      (JsPath \ "links").read[Seq[GSVLinkSubmission]] and
+      (JsPath \ "copyright").read[String]
+    )(GSVPanoramaSubmission.apply _)
+
   implicit val auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "assignment").readNullable[AMTAssignmentSubmission] and
       (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "labels").read[Seq[LabelSubmission]] and
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
-      (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission]
+      (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
+      (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]]
     )(AuditTaskSubmission.apply _)
+
 
 }

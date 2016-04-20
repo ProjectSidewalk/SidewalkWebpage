@@ -2648,8 +2648,8 @@ function Form ($, params) {
      * @returns {{}}
      */
     function compileSubmissionData (task) {
-        var data = {};
-        
+        var i, j, len, data = {};
+
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
@@ -2673,8 +2673,7 @@ function Form ($, params) {
 
         data.labels = [];
         var labels = svl.labelContainer.getCurrentLabels();
-
-        for(var i = 0; i < labels.length; i += 1) {
+        for(i = 0; i < labels.length; i += 1) {
             var label = labels[i],
                 prop = label.getProperties(),
                 points = label.getPath().getPoints(),
@@ -2697,7 +2696,7 @@ function Form ($, params) {
                 description: label.getProperty('description')
             };
 
-            for (var j = 0; j < pathLen; j += 1) {
+            for (j = 0; j < pathLen; j += 1) {
                 var point = points[j],
                     gsvImageCoordinate = point.getGSVImageCoordinate(),
                     pointParam = {
@@ -2721,12 +2720,42 @@ function Form ($, params) {
             data.labels.push(temp)
         }
 
-        // Add the value in the comment field if there are any.
-        //var comment = svl.ui.form.commentField.val();
-        //data.comment = null;
-        //if (comment !== svl.ui.form.commentField.attr('title')) {
-        //    data.comment = svl.ui.form.commentField.val();
-        //}
+        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
+        data.gsv_panoramas = [];
+        if ("panoramaContainer" in svl && svl.panoramaContainer) {
+            var temp,
+                panoramaData,
+                link,
+                linksc,
+                panoramas = svl.panoramaContainer.getStagedPanoramas();
+            len = panoramas.length;
+
+            for (i = 0; i < len; i++) {
+                panoramaData = panoramas[i].data();
+                links = [];
+
+                if ("links" in panoramaData) {
+                    for (j = 0; j < panoramaData.links.length; j++) {
+                        link = panoramaData.links[j];
+                        links.push({
+                            target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
+                            yaw_deg: ("heading" in link) ? link.heading : 0.0,
+                            description: ("description" in link) ? link.description : ""
+                        });
+                    }
+                }
+
+                temp = {
+                    panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
+                    image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
+                    links: links,
+                    copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
+                };
+
+                data.gsv_panoramas.push(temp);
+                panoramas[i].setProperty("submitted", true);
+            }
+        }
 
         return data;
     }
@@ -3133,12 +3162,14 @@ var svl = svl || {};
 /**
  * The main module of SVLabel
  * @param $: jQuery object
+ * @param d3 D3 library
+ * @param google Google Maps library
  * @param params: other parameters
  * @returns {{moduleName: string}}
  * @constructor
  * @memberof svl
  */
-function Main ($, d3, turf, params) {
+function Main ($, d3, google, turf, params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -3334,6 +3365,7 @@ function Main ($, d3, turf, params) {
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
         svl.modalExample = ModalExample();
+        svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
@@ -6260,6 +6292,8 @@ function Tracker () {
                 note = 'labelId:' + param.labelId;
             } else if ("checked" in param) {
                 note = "checked:" + param.checked;
+            } else if ("onboardingTransition" in param) {
+                note = "from:" + param.onboardingTransition;
             } else {
                 note = "";
             }
@@ -7401,6 +7435,7 @@ function TaskContainer (turf) {
      * @param regionId {number} Region id
      * @param taskIn {object} Task
      * @param threshold {number} Distance threshold
+     * @param unit {string} Distance unit
      * @returns {Array}
      */
     function findConnectedTask (regionId, taskIn, threshold, unit) {
@@ -7413,15 +7448,21 @@ function TaskContainer (turf) {
         if (!unit) unit = "kilometers";
 
         tasks = tasks.filter(function (t) { return !t.isCompleted(); });
-        tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
-        len = tasks.length;
 
-        for (i = 0; i < len; i++) {
-            if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                connectedTasks.push(tasks[i]);
+        if (taskIn) {
+            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+            len = tasks.length;
+
+            for (i = 0; i < len; i++) {
+                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                    connectedTasks.push(tasks[i]);
+                }
             }
+            return connectedTasks;
+        } else {
+            return tasks;
         }
-        return connectedTasks;
+
     }
 
     /**
@@ -7442,62 +7483,18 @@ function TaskContainer (turf) {
             candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
             newTask = candidateTasks[0];
         }
-        
-        var c1 = task.getLastCoordinate(),
-            c2 = newTask.getStartCoordinate(),
-            p1 = turf.point([c1.lng, c1.lat]),
-            p2 = turf.point([c2.lng, c2.lat]);
-        if (turf.distance(p1, p2, "kilometers") > 0.025) {
-            newTask.reverseCoordinates();
-        }
-        return newTask;
 
-        // In case
-        // if (task) {
-        //     var streetEdgeId = task.getStreetEdgeId(),
-        //         _geojson = task.getGeoJSON();
-        //     // When the current street edge id is given (i.e., when you are simply walking around).
-        //     var len = _geojson.features[0].geometry.coordinates.length - 1,
-        //         latEnd = _geojson.features[0].geometry.coordinates[len][1],
-        //         lngEnd = _geojson.features[0].geometry.coordinates[len][0];
-        //
-        //     $.ajax({
-        //         async: false,
-        //         url: "/task/next?streetEdgeId=" + streetEdgeId + "&lat=" + latEnd + "&lng=" + lngEnd,
-        //         type: 'get',
-        //         success: function (json) {
-        //             newTask = svl.taskFactory.create(json, latEnd, lngEnd);
-        //         },
-        //         error: function (result) {
-        //             throw result;
-        //         }
-        //     });
-        // } else {
-        //     // No street edge id is provided (e.g., the user skipped the task to explore another location.)
-        //     $.ajax({
-        //         async: false,
-        //         url: "/task",
-        //         type: 'get',
-        //         success: function (json) {
-        //             // Check if Street View is available at the location. If it's not available, report it to the
-        //             // server and go to the next task.
-        //             // http://stackoverflow.com/questions/2675032/how-to-check-if-google-street-view-available-and-display-message
-        //             // https://developers.google.com/maps/documentation/javascript/reference?csw=1#StreetViewService
-        //             var len = json.features[0].geometry.coordinates.length - 1,
-        //                 lat1 = json.features[0].geometry.coordinates[0][1],
-        //                 lng1 = json.features[0].geometry.coordinates[0][0],
-        //                 lat2 = json.features[0].geometry.coordinates[len][1],
-        //                 lng2 = json.features[0].geometry.coordinates[len][0];
-        //
-        //             newTask = svl.taskFactory.create(json);
-        //         },
-        //         error: function (result) {
-        //             throw result;
-        //         }
-        //     });
-        // }
-        //
-        // return newTask;
+        if (task) {
+            var c1 = task.getLastCoordinate(),
+                c2 = newTask.getStartCoordinate(),
+                p1 = turf.point([c1.lng, c1.lat]),
+                p2 = turf.point([c2.lng, c2.lat]);
+            if (turf.distance(p1, p2, "kilometers") > 0.025) {
+                newTask.reverseCoordinates();
+            }
+        }
+
+        return newTask;
     }
 
     /**
@@ -9249,6 +9246,12 @@ function LabelContainer() {
     function push(label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
+        
+        // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
+        var panoramaId = label.getProperty("panoId");
+        if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
+            svl.panoramaContainer.requestPanoramaMetaData(panoramaId);
+        }
     }
 
     /** Refresh */
@@ -10745,8 +10748,24 @@ function NeighborhoodFactory () {
 }
 function Panorama(data) {
     var self = { className: "Panorama" },
-        _data = data;
+        _data = data,
+        properties = { submitted: false };
 
+    function getData () {
+        return _data;
+    }
+
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    function setProperty (key, value) {
+        properties[key] = value;
+    }
+
+    self.data = getData;
+    self.getProperty = getProperty;
+    self.setProperty = setProperty;
     return self;
 }
 function PanoramaContainer (google) {
@@ -10774,6 +10793,24 @@ function PanoramaContainer (google) {
     }
 
     /**
+     * Get all the panorama instances stored in the container
+     * @returns {Array}
+     */
+    function getPanoramas () {
+        return Object.keys(container).map(function (panoramaId) { return container[panoramaId]; });
+    }
+
+    /**
+     * Get panorama instances that have not been submitted to the server
+     * @returns {Array}
+     */
+    function getStagedPanoramas () {
+        var panoramas = getPanoramas();
+        panoramas = panoramas.filter(function (pano) { return !pano.getProperty("submitted"); });
+        return panoramas;
+    }
+
+    /**
      * Street View Service https://developers.google.com/maps/documentation/javascript/streetview#StreetViewServiceResponses
      */
     function processSVData (data, status) {
@@ -10787,11 +10824,17 @@ function PanoramaContainer (google) {
     /**
      * Request the panorama meta data.
      */
-    function requestPanoramaMetaData () {
-        svl.streetViewService.getPanorama({pano: "arQPa5r-8vmDl3LSobOXBg"}, processSVData);
+    function requestPanoramaMetaData (panoramaId) {
+        if ("streetViewService") {
+            svl.streetViewService.getPanorama({ pano: panoramaId }, processSVData);
+        } else {
+            console.error("Street View Service not loaded")
+        }
     }
 
     self.getPanorama = getPanorama;
+    self.getPanoramas = getPanoramas;
+    self.getStagedPanoramas = getStagedPanoramas;
     self.requestPanoramaMetaData = requestPanoramaMetaData;
     return self;
 }
@@ -11802,7 +11845,7 @@ function UtilitiesMisc (JSON) {
             },
             Obstacle: {
                 id: 'Obstacle',
-                text: 'Obstacle in a Path'
+                text: 'Obstacle in Path'
             },
             Other: {
                 id: 'Other',
@@ -12044,6 +12087,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                     return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
                 }
             },
@@ -12068,7 +12112,10 @@ function Onboarding ($) {
                         "text": null
                     }
                 ],
-                "transition": "label-attribute-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
+                    return "label-attribute-1";
+                }
             },
             "label-attribute-1": {
                 "properties": {
@@ -12095,7 +12142,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-attribute-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
+                    return "rate-attribute-1";
+                }
             },
             "rate-attribute-1": {
                 "properties": {
@@ -12114,6 +12164,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
                 }
@@ -12134,6 +12185,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
                 }
@@ -12152,7 +12204,10 @@ function Onboarding ($) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-2"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
+                    return "select-label-type-2";
+                }
             },
             "select-label-type-2": {
                 "properties": {
@@ -12176,7 +12231,10 @@ function Onboarding ($) {
                         "fill": null
                     }
                 ],
-                "transition": "label-attribute-2"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
+                    return "label-attribute-2";
+                }
             },
             "label-attribute-2": {
                 "properties": {
@@ -12203,7 +12261,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-2"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
+                    return "rate-severity-2";
+                }
             },
             "rate-severity-2": {
                 "properties": {
@@ -12220,6 +12281,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
                 }
@@ -12240,6 +12302,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
                 }
@@ -12266,7 +12329,10 @@ function Onboarding ($) {
                         "fill": null
                     }
                 ],
-                "transition": "label-attribute-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
+                    return "label-attribute-3";
+                }
             },
             "label-attribute-3": {
                 "properties": {
@@ -12293,7 +12359,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
+                    return "rate-severity-3";
+                }
             },
             "rate-severity-3": {
                 "properties": {
@@ -12311,6 +12380,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
                 }
@@ -12331,6 +12401,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
                 }
@@ -12348,7 +12419,10 @@ function Onboarding ($) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
+                    return "select-label-type-4";
+                }
             },
             "select-label-type-4": {
                 "properties": {
@@ -12381,7 +12455,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
+                    return "label-attribute-4";
+                }
             },
             "label-attribute-4": {
                 "properties": {
@@ -12408,7 +12485,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
+                    return "rate-severity-4";
+                }
             },
             "rate-severity-4": {
                 "properties": {
@@ -12425,6 +12505,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
                 }
@@ -12445,6 +12526,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
                 }
@@ -12471,7 +12553,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-5"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
+                    return "label-attribute-5";
+                }
             },
             "label-attribute-5": {
                 "properties": {
@@ -12498,7 +12583,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-5"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
+                    return "rate-severity-5";
+                }
             },
             "rate-severity-5": {
                 "properties": {
@@ -12515,6 +12603,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
                 }
@@ -12535,6 +12624,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
                 }
@@ -12562,7 +12652,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-6"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    return "label-attribute-6";
+                }
             },
             "label-attribute-6": {
                 "properties": {
@@ -12590,7 +12683,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "adjust-heading-angle-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
+                    return "adjust-heading-angle-3";
+                }
             },
             "adjust-heading-angle-3": {
                 "properties": {
@@ -12605,7 +12701,10 @@ function Onboarding ($) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "walk-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
+                    return "walk-1";
+                }
             },
             "walk-1": {
                 "properties": {
@@ -12638,6 +12737,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
                     svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                     return "select-label-type-7";
                 }
@@ -12664,7 +12764,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-7"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
+                    return "label-attribute-7";
+                }
             },
             "label-attribute-7": {
                 "properties": {
@@ -12691,7 +12794,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-7"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
+                    return "rate-severity-7";
+                }
             },
             "rate-severity-7": {
                 "properties": {
@@ -12708,6 +12814,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
@@ -12728,6 +12835,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
@@ -12745,7 +12853,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
+                    return "instruction-1";
+                }
             },
             "instruction-1": {
                 "properties": {
@@ -12761,6 +12872,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
                     svl.compass.showMessage();
                     return "instruction-2";
                 }
@@ -12780,7 +12892,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
+                    return "instruction-3";
+                }
             },
             "instruction-3": {
                 "properties": {
@@ -12794,7 +12909,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
+                    return "instruction-4";
+                }
             },
             "instruction-4": {
                 "properties": {
@@ -12810,7 +12928,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-5"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
+                    return "instruction-5";
+                }
             },
             "instruction-5": {
                 "properties": {
@@ -12827,7 +12948,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "outro"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
+                    return "outro";
+                }
             },
             "outro": {
                 "properties": {
@@ -12850,10 +12974,11 @@ function Onboarding ($) {
                 "okButton": false,
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": null
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
+                    return null;
+                }
             }
-            // Done till here
-
         };
 
     function _init () {

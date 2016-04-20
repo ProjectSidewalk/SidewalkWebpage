@@ -31,6 +31,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                     return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
                 }
             },
@@ -55,7 +56,10 @@ function Onboarding ($) {
                         "text": null
                     }
                 ],
-                "transition": "label-attribute-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
+                    return "label-attribute-1";
+                }
             },
             "label-attribute-1": {
                 "properties": {
@@ -82,7 +86,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-attribute-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
+                    return "rate-attribute-1";
+                }
             },
             "rate-attribute-1": {
                 "properties": {
@@ -101,6 +108,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
                 }
@@ -121,6 +129,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
                 }
@@ -139,7 +148,10 @@ function Onboarding ($) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-2"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
+                    return "select-label-type-2";
+                }
             },
             "select-label-type-2": {
                 "properties": {
@@ -163,7 +175,10 @@ function Onboarding ($) {
                         "fill": null
                     }
                 ],
-                "transition": "label-attribute-2"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
+                    return "label-attribute-2";
+                }
             },
             "label-attribute-2": {
                 "properties": {
@@ -190,7 +205,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-2"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
+                    return "rate-severity-2";
+                }
             },
             "rate-severity-2": {
                 "properties": {
@@ -207,6 +225,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
                 }
@@ -227,6 +246,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
                 }
@@ -253,7 +273,10 @@ function Onboarding ($) {
                         "fill": null
                     }
                 ],
-                "transition": "label-attribute-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
+                    return "label-attribute-3";
+                }
             },
             "label-attribute-3": {
                 "properties": {
@@ -280,7 +303,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
+                    return "rate-severity-3";
+                }
             },
             "rate-severity-3": {
                 "properties": {
@@ -298,6 +324,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
                 }
@@ -318,6 +345,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
                 }
@@ -335,7 +363,10 @@ function Onboarding ($) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "select-label-type-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
+                    return "select-label-type-4";
+                }
             },
             "select-label-type-4": {
                 "properties": {
@@ -368,7 +399,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
+                    return "label-attribute-4";
+                }
             },
             "label-attribute-4": {
                 "properties": {
@@ -395,7 +429,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
+                    return "rate-severity-4";
+                }
             },
             "rate-severity-4": {
                 "properties": {
@@ -412,6 +449,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
                 }
@@ -432,6 +470,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
                 }
@@ -458,7 +497,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-5"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
+                    return "label-attribute-5";
+                }
             },
             "label-attribute-5": {
                 "properties": {
@@ -485,7 +527,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-5"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
+                    return "rate-severity-5";
+                }
             },
             "rate-severity-5": {
                 "properties": {
@@ -502,6 +547,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
                 }
@@ -522,6 +568,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
                 }
@@ -549,7 +596,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-6"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    return "label-attribute-6";
+                }
             },
             "label-attribute-6": {
                 "properties": {
@@ -577,7 +627,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "adjust-heading-angle-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
+                    return "adjust-heading-angle-3";
+                }
             },
             "adjust-heading-angle-3": {
                 "properties": {
@@ -592,7 +645,10 @@ function Onboarding ($) {
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
-                "transition": "walk-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
+                    return "walk-1";
+                }
             },
             "walk-1": {
                 "properties": {
@@ -625,6 +681,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
                     svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                     return "select-label-type-7";
                 }
@@ -651,7 +708,10 @@ function Onboarding ($) {
                         "fill": "white"
                     }
                 ],
-                "transition": "label-attribute-7"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
+                    return "label-attribute-7";
+                }
             },
             "label-attribute-7": {
                 "properties": {
@@ -678,7 +738,10 @@ function Onboarding ($) {
                         "fill": "yellow"
                     }
                 ],
-                "transition": "rate-severity-7"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
+                    return "rate-severity-7";
+                }
             },
             "rate-severity-7": {
                 "properties": {
@@ -695,6 +758,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
@@ -715,6 +779,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
@@ -732,7 +797,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-1"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
+                    return "instruction-1";
+                }
             },
             "instruction-1": {
                 "properties": {
@@ -748,6 +816,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
                     svl.compass.showMessage();
                     return "instruction-2";
                 }
@@ -767,7 +836,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-3"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
+                    return "instruction-3";
+                }
             },
             "instruction-3": {
                 "properties": {
@@ -781,7 +853,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-4"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
+                    return "instruction-4";
+                }
             },
             "instruction-4": {
                 "properties": {
@@ -797,7 +872,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "instruction-5"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
+                    return "instruction-5";
+                }
             },
             "instruction-5": {
                 "properties": {
@@ -814,7 +892,10 @@ function Onboarding ($) {
                 },
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": "outro"
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
+                    return "outro";
+                }
             },
             "outro": {
                 "properties": {
@@ -837,10 +918,11 @@ function Onboarding ($) {
                 "okButton": false,
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
-                "transition": null
+                "transition": function () {
+                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
+                    return null;
+                }
             }
-            // Done till here
-
         };
 
     function _init () {

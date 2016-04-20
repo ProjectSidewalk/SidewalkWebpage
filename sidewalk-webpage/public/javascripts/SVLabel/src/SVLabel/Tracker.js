@@ -38,6 +38,8 @@ function Tracker () {
                 note = 'labelId:' + param.labelId;
             } else if ("checked" in param) {
                 note = "checked:" + param.checked;
+            } else if ("onboardingTransition" in param) {
+                note = "from:" + param.onboardingTransition;
             } else {
                 note = "";
             }

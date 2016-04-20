@@ -24,6 +24,20 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_
 
 object GSVDataTable {
   val db = play.api.db.slick.DB
-  val gsvData = TableQuery[GSVDataTable]
+  val gsvDataRecords = TableQuery[GSVDataTable]
+
+  /**
+    * This method checks if the given panorama id already exists in the table
+    * @param panoramaId Google Street View panorama Id
+    * @return
+    */
+  def panoramaExists(panoramaId: String): Boolean = db.withTransaction { implicit session =>
+    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).list.nonEmpty
+  }
+
+  def save(data: GSVData): String = db.withTransaction { implicit session =>
+    gsvDataRecords += data
+    data.gsvPanoramaId
+  }
 
 }
