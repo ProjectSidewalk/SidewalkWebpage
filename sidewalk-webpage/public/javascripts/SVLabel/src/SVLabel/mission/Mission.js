@@ -60,6 +60,32 @@ function Mission(parameters) {
     }
 
     /**
+     * Because the imperial metric system is messed up.
+     * @returns {string}
+     */
+    function imperialDistance () {
+        var distance = getProperty("distance");
+        if (distance) {
+            if (distance < 1500) {
+                if (distance == 250) {
+                    return "1000 feet";
+                } else if (distance == 500) {
+                    return "2000 feet";
+                } else if (distance == 1000) {
+                    return "4000 feet";
+                } else {
+                    return distance * 3;
+                }
+            } else {
+                var miles = distance % 1500;
+                return miles + "miles";
+            }
+        } else {
+            console.error("Distance is null");
+        }
+    }
+
+    /**
      * Set the property to complete
      */
     function complete () {
@@ -169,6 +195,7 @@ function Mission(parameters) {
     self.complete = complete;
     self.getProperty = getProperty;
     self.getMissionCompletionRate = getMissionCompletionRate;
+    self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
