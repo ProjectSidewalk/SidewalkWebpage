@@ -394,6 +394,51 @@ var ColorScheme = (function () {
         return category ? colors[category].fillStyle : colors;
     }
 
+    function SidewalkColorScheme3 (category) {
+        var colors = {
+            Walk : {
+                id : 'Walk',
+                fillStyle : 'rgba(0, 0, 0, 1)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                fillStyle: 'rgba(79, 180, 105, 1)'  // 'rgba(0, 244, 38, 1)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                fillStyle: 'rgba(210, 48, 30, 1)'  // 'rgba(255, 39, 113, 1)'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                fillStyle: 'rgba(29, 150 , 240, 1)'
+            },
+            Other: {
+                id: 'Other',
+                fillStyle: 'rgba(180, 150, 200, 1)' //'rgba(204, 204, 204, 1)'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                fillStyle: 'rgba(179, 179, 179, 1)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                fillStyle: 'rgba(179, 179, 179, 1)'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                fillStyle: 'rgba(240, 200, 30, 1)'
+            },
+            Void: {
+                id: 'Void',
+                fillStyle: 'rgba(255, 255, 255, 1)'
+            },
+            Unclear: {
+                id: 'Unclear',
+                fillStyle: 'rgba(128, 128, 128, 0.5)'
+            }
+        };
+        return category ? colors[category].fillStyle : colors;
+    }
     /**
      * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
      * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}
