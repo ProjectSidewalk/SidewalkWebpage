@@ -671,13 +671,10 @@ function Map ($, turf, params) {
 
             }
         } else {
-<<<<<<< HEAD
+
             setViewControlLayerCursor('default');
             // $divViewControlLayer.css("cursor", "default");
-=======
-            setViewControlLayerCursor('default');
-            // svl.ui.map.viewControlLayer.css("cursor", "default");
->>>>>>> master
+
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {

@@ -4227,7 +4227,7 @@ function Map ($, turf, params) {
         } else {
 
             setViewControlLayerCursor('default');
-            // svl.ui.map.viewControlLayer.css("cursor", "default");
+            // $divViewControlLayer.css("cursor", "default");
 
         }
 
