@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * Label Counter module. 
  * @param d3 d3 module

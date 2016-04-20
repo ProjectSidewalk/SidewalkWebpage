@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * A form module. This module is responsible for communicating with the server side for submitting collected data.
  * @param $ {object} jQuery object

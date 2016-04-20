@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  *
  * @returns {{className: string}}

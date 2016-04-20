@@ -459,101 +459,8 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
 
 };
 
-//function Achievement () {
-//    var self = { className: "Achievement"},
-//        initialAchievement = "incomplete",
-//        achievements = {
-//            "area-coverage": {}
-//        };
-//
-//
-//    function _init() {
-//        // Initialize achievements
-//        if ("neighborhood" in svl && "mission" in svl) {
-//            var ids = svl.neighborhood.getNeighborhoodIds(),
-//                len = ids.length,
-//                areaCoverageMission = svl.mission.getMission("area-coverage"),
-//                i, j;
-//            for (i = 0; i < len; i++) {
-//                for (j = areaCoverageMission.levels.length - 1; j >= 0; j--) {
-//                    achievements["area-coverage"][i] = {};
-//                    achievements["area-coverage"][i][areaCoverageMission.levels[j]] = "incomplete";
-//                }
-//            }
-//        } else {
-//            console.error("Neighborhood not defined");
-//        }
-//    }
-//
-//    /**
-//     * Get the status of the achievement
-//     * @param parameters
-//     */
-//    function getAchievement (parameters) {
-//        if ("missionId" in parameters) {
-//            if (parameters.missionId == "initial-mission") {
-//                return initialAchievement;
-//            } else if (parameters.missionId == "area-coverage" && "areaId" in parameters) {
-//                if (!(parameters.areaId in achievements["area-coverage"])) {
-//                    throw "Unknown NeighborhoodId";
-//                } else if (!(parameters.level in achievements["area-coverage"][parameters.areaId])) {
-//                    throw "Unknown mission level";
-//                } else {
-//                    var level = parseInt(parameters.level, 10);
-//                    return achievements["area-coverage"][parameters.areaId][level];
-//                }
-//            } else {
-//                throw "Check the parameters";
-//            }
-//        }
-//    }
-//
-//    /**
-//     * Set the status of the achievement
-//     * @param parameters An object of parameters, which may specify "missionId", "areaId", "status", "level"
-//     */
-//    function setAchievement (parameters) {
-//        if ("missionId" in parameters && "status" in parameters) {
-//            if (parameters.missionId == "initial-mission") {
-//                // Set the achievement for the "initial-mission"
-//                initialAchievement = parameters.status;
-//            } else if (parameters.missionId == "area-coverage" && "areaId" in parameters && parameters.areaId &&
-//                "level" in parameters && parameters.level in achievements["area-coverage"][parameters.areaId]) {
-//                // Set the achievement for the "area-coverage" mission.
-//                if (!(parameters.areaId in achievements["area-coverage"])) {
-//                    throw "Unknown NeighborhoodId";
-//                } else if (!(parameters.level in achievements["area-coverage"][parameters.areaId])) {
-//                    throw "Unknown mission level";
-//                } else {
-//                    var level = parseInt(parameters.level, 10);
-//                    achievements["area-coverage"][parameters.areaId][level] = parameters.status;
-//                }
-//            }
-//        }
-//    }
-//
-//    /**
-//     * Check if the given mission is completed or not.
-//     * @param parameters
-//     * @returns {boolean}
-//     */
-//    function isCompleted (parameters) {
-//        return getAchievement(parameters) == "complete";
-//    }
-//
-//    self.getAchievement = getAchievement;
-//    self.isCompleted = isCompleted;
-//    self.setAchievement = setAchievement;
-//
-//    _init();
-//    return self;
-//}
-var svl = svl || {};
-
 /**
  * ActionStack keeps track of user's actions so you can undo/redo labeling.
- * @param {object} $ jQuery ojbect
- * @param {object} params Other parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -2634,8 +2541,6 @@ function ContextMenu ($) {
     self.show = show;
     return self;
 }
-var svl = svl || {};
-
 /**
  * A form module. This module is responsible for communicating with the server side for submitting collected data.
  * @param $ {object} jQuery object
@@ -3027,8 +2932,6 @@ function Form ($, params) {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  * A Keyboard module
  * @param $ jQuery
@@ -3316,6 +3219,7 @@ function Main ($, d3, turf, params) {
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
+        svl.ui.ribbonMenu.informationButtons = $(".ribbon-mode-switch-info-buttons");
 
         // Context menu
         svl.ui.contextMenu = {};
@@ -3337,6 +3241,14 @@ function Main ($, d3, turf, params) {
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
         svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svl.ui.modalComment.textarea = $("#modal-comment-textarea");
+
+        svl.ui.modalExample = {};
+        svl.ui.modalExample.background = $(".modal-background");
+        svl.ui.modalExample.close = $(".modal-example-close-buttons");
+        svl.ui.modalExample.curbRamp = $("#modal-curb-ramp-example");
+        svl.ui.modalExample.noCurbRamp = $("#modal-no-curb-ramp-example");
+        svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
+        svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
         // Mission
         svl.ui.modalMission = {};
@@ -3421,6 +3333,7 @@ function Main ($, d3, turf, params) {
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($);
+        svl.modalExample = ModalExample();
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
@@ -5013,8 +4926,59 @@ function ModalComment ($) {
 
     return self;
 }
-var svl = svl || {};
+/**
+ * Modal windows for the examples of accessibility attributes
+ * @returns {{className: string}}
+ * @constructor
+ */
+function ModalExample () {
+    var self = { className: "ModalExample" };
 
+    function _init () {
+        svl.ui.modalExample.close.on("click", handleCloseButtonClick);
+        svl.ui.modalExample.background.on("click", handleBackgroundClick);
+    }
+
+    function handleBackgroundClick () {
+        hide();
+    }
+
+    function handleCloseButtonClick () {
+        hide();
+    }
+
+    function hide () {
+        svl.ui.modalExample.curbRamp.addClass("hidden");
+        svl.ui.modalExample.noCurbRamp.addClass("hidden");
+        svl.ui.modalExample.obstacle.addClass("hidden");
+        svl.ui.modalExample.surfaceProblem.addClass("hidden");
+    }
+
+    function show (key) {
+        hide();
+        switch (key) {
+            case "CurbRamp":
+                svl.ui.modalExample.curbRamp.removeClass("hidden");
+                break;
+            case "NoCurbRamp":
+                svl.ui.modalExample.noCurbRamp.removeClass("hidden");
+                break;
+            case "Obstacle":
+                svl.ui.modalExample.obstacle.removeClass("hidden");
+                break;
+            case "SurfaceProblem":
+                svl.ui.modalExample.surfaceProblem.removeClass("hidden");
+                break;
+        }
+    }
+
+    self.hide = hide;
+    self.show = show;
+
+    _init();
+    
+    return self;
+}
 /**
  * ModalMission module
  * @param $
@@ -5113,8 +5077,6 @@ function ModalMission ($) {
     self.setMissionComplete = setMissionComplete;
     return self;
 }
-
-var svl = svl || {};
 
 /**
  * A ModalSkip module
@@ -5248,8 +5210,6 @@ function ModalSkip ($) {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  *
  * @param $ {object} jQuery object
@@ -5327,8 +5287,6 @@ function OverlayMessageBox ($, params) {
 
     return self;
 }
-
-var svl = svl || {};
 
 /**
  * PointCloud module
@@ -5440,8 +5398,6 @@ function PointCloud ($, params) {
     _init(params);
     return self;
 }
-var svl = svl || {};
-
 /**
  * A MessageBox module
  * @param $
@@ -5658,8 +5614,6 @@ function PopUpMessage ($, param) {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  *
  * @param $
@@ -5726,6 +5680,10 @@ function RibbonMenu ($, params) {
             $signInModalPassword.on('focus', disableModeSwitch);
             $signInModalPassword.on('blur', enableModeSwitch);
         }
+
+
+        // Handle info button click
+        svl.ui.ribbonMenu.informationButtons.on("click", handleInfoButtonClick);
     }
 
     /**
@@ -5777,6 +5735,14 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function handleInfoButtonClick (e) {
+        e.stopPropagation();
+        if ("modalExample" in svl) {
+            var category = $(this).attr("val");
+            svl.modalExample.show(category);
+        }
+    }
+
     function handleSubcategoryClick (e) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
@@ -5823,9 +5789,6 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function showSubcategories () {
-        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
-    }
     function hideSubcategories () {
         svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
@@ -5897,6 +5860,10 @@ function RibbonMenu ($, params) {
           });
         }
         return this;
+    }
+
+    function showSubcategories () {
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
 
     /**
@@ -6088,8 +6055,6 @@ function RibbonMenu ($, params) {
 
     return self;
 }
-
-var svl = svl || {};
 
 /**
  *
@@ -6479,8 +6444,6 @@ function User (param) {
 
     return self;
 }
-
-var svl = svl || {};
 
 /**
  *
@@ -8351,8 +8314,6 @@ function MissionProgress () {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  * A Label module.
  * @param pathIn
@@ -9261,8 +9222,6 @@ function Label (pathIn, params) {
     return self;
 }
 
-var svl = svl || {};
-
 /**
  * Label Container module. This is responsible of storing the label objects that were created in the current session.
  * @returns {{className: string}}
@@ -9338,8 +9297,6 @@ function LabelContainer() {
 //    self.save = save;
     return self;
 }
-var svl = svl || {};
-
 /**
  * Label Counter module. 
  * @param d3 d3 module
@@ -10251,8 +10208,6 @@ function Path (points, params) {
 
     return self;
 }
-
-var svl = svl || {};
 
 /**
  * Point object

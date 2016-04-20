@@ -5,14 +5,7 @@ body {
     font-family: 'Open Sans', 'Noto Sans', sans-serif;
     margin: 0;
 }
-#home-header {
-    background: white;
-    min-height: 400px;
-    height: 60%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
+
 #map {
     background-color: white;
     width: 100%;

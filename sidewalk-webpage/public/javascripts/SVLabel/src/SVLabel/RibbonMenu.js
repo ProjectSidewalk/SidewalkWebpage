@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  *
  * @param $
@@ -66,6 +64,10 @@ function RibbonMenu ($, params) {
             $signInModalPassword.on('focus', disableModeSwitch);
             $signInModalPassword.on('blur', enableModeSwitch);
         }
+
+
+        // Handle info button click
+        svl.ui.ribbonMenu.informationButtons.on("click", handleInfoButtonClick);
     }
 
     /**
@@ -117,6 +119,14 @@ function RibbonMenu ($, params) {
         }
     }
 
+    function handleInfoButtonClick (e) {
+        e.stopPropagation();
+        if ("modalExample" in svl) {
+            var category = $(this).attr("val");
+            svl.modalExample.show(category);
+        }
+    }
+
     function handleSubcategoryClick (e) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
@@ -163,9 +173,6 @@ function RibbonMenu ($, params) {
         }
     }
 
-    function showSubcategories () {
-        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
-    }
     function hideSubcategories () {
         svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
@@ -237,6 +244,10 @@ function RibbonMenu ($, params) {
           });
         }
         return this;
+    }
+
+    function showSubcategories () {
+        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
 
     /**

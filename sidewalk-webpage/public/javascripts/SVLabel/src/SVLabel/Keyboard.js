@@ -1,5 +1,3 @@
-var svl = svl || {};
-
 /**
  * A Keyboard module
  * @param $ jQuery
