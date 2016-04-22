@@ -249,12 +249,38 @@ function TaskContainer (turf) {
     }
 
     /**
+     * Fetch a task based on the street id.
+     * @param regionId
+     * @param streetEdgeId
+     * @param callback
+     * @param async
+     */
+    function fetchATask(regionId, streetEdgeId, callback, async) {
+        if (typeof async == "undefined") async = true;
+        $.ajax({
+            url: "/task/street/" + streetEdgeId,
+            type: 'get',
+            success: function (json) {
+                var lat1 = json.features[0].geometry.coordinates[0][1],
+                    lng1 = json.features[0].geometry.coordinates[0][0],
+                    newTask = svl.taskFactory.create(json, lat1, lng1);
+                if (json.features[0].properties.completed) newTask.complete();
+                storeTask(regionId, newTask);
+                if (callback) callback();
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
+    
+    /**
      * Request the server to populate tasks
      * @param regionId {number} Region id
      * @param callback A callback function
      * @param async {boolean}
      */
-    function requestTasksInARegion(regionId, callback, async) {
+    function fetchTasksInARegion(regionId, callback, async) {
         if (typeof async == "undefined") async = true;
 
         if (typeof regionId == "number") {
@@ -280,6 +306,8 @@ function TaskContainer (turf) {
             console.error("regionId should be an integer value");
         }
     }
+    
+
 
     /**
      * Set the current task
@@ -302,7 +330,9 @@ function TaskContainer (turf) {
      */
     function storeTask(regionId, task) {
         if (!(regionId in taskStoreByRegionId)) taskStoreByRegionId[regionId] = [];
-        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) { return task.getProperty("streetEdgeId"); });
+        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
+            return task.getProperty("streetEdgeId");
+        });
         if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
@@ -340,6 +370,8 @@ function TaskContainer (turf) {
 
     self.initNextTask = initNextTask;
     self.endTask = endTask;
+    self.fetchATask = fetchATask;
+    self.fetchTasksInARegion = fetchTasksInARegion;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
@@ -348,7 +380,7 @@ function TaskContainer (turf) {
     self.length = length;
     self.nextTask = nextTask;
     self.push = push;
-    self.requestTasksInARegion = requestTasksInARegion;
+
     self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
     self.update = update;

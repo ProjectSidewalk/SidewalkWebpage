@@ -944,23 +944,6 @@ function Onboarding ($) {
 
         status.state = getState("initialize");
         visit(status.state);
-
-        // Get the task for the onboarding
-        if ("taskFactory" in svl) {
-            svl.taskFactory.getTask({streetEdgeId: 15250}, svl.taskContainer.setCurrentTask);
-        }
-
-        // Set the current mission to onboarding
-        if ("missionContainer" in svl && "missionFactory" in svl) {
-            var m = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
-            if (!m) {
-                // If the onboarding mission is not yet in the missionContainer, add it there.
-                m = svl.missionFactory.createOnboardingMission(1, false);
-                svl.missionContainer.add(null, m);
-            }
-            svl.missionContainer.setCurrentMission(m);
-        }
-
         initializeHandAnimation();
     }
 

@@ -31,18 +31,32 @@ function Mission(parameters) {
         if ("label" in parameters) {
             var instruction, completionMessage, badgeURL;
             setProperty("label", parameters.label);
-            self.label = parameters.label;  // debug. You don't actually need this.
+            self.label = parameters.label;  // For debugging. You don't actually need this.
+            self.distance = parameters.distance;  // For debugging. You don't actually need this.
 
             if (parameters.label == "initial-mission") {
-                instruction = "Your goal is to <span class='bold'>audit 250 meters of the streets in this neighborhood and find the accessibility attributes!";
+                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
-                var distance = parameters.distance,
-                    distanceString = distance + " meters";
+                var distance = parameters.distance;
+                var distanceString = imperialDistance();
+
                 instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
-                badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
+
+                if (distance == 500) {
+                    // 2000 ft
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_500.png";
+                } else if (distance == 1000) {
+                    // 4000 ft
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_1000.png";
+                } else {
+                    // miles
+                    var level = "level" in parameters ? parameters.level : 1;
+                    level = (level - 1) % 5 + 1;
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_Level" + level + ".png";
+                }
             } else if (parameters.label == "area-coverage-mission") {
                 var coverage = parameters.coverage, coverageString = coverage + "%";
                 instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
