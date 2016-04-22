@@ -288,6 +288,13 @@ function Form ($, params) {
         return this;
     }
 
+    /**
+     * Post a json object
+     * @param url
+     * @param data
+     * @param callback
+     * @param async
+     */
     function postJSON (url, data, callback, async) {
         if (!async) async = true;
         $.ajax({
