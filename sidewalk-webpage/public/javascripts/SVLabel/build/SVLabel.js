@@ -2831,6 +2831,31 @@ function Form ($, params) {
         return this;
     }
 
+    /**
+     * Post a json object
+     * @param url
+     * @param data
+     * @param callback
+     * @param async
+     */
+    function postJSON (url, data, callback, async) {
+        if (!async) async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                if (callback) callback(result);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     function setPreviousLabelingTaskId (val) {
         properties.previousLabelingTaskId = val;
         return this;
@@ -2852,37 +2877,6 @@ function Form ($, params) {
     function setTaskRemaining (val) {
         properties.taskRemaining = val;
         return this;
-    }
-
-    /**
-     *
-     */
-    function showDisabledSubmitButtonMessage () {
-        var completionRate = 0;
-
-        if (!('onboarding' in svl && svl.onboarding) &&
-            (completionRate < 100)) {
-            var message = "You have inspected " + completionRate +
-                "% of the scene. Let's inspect all the corners before you submit the task!",
-                $OkBtn;
-
-            // Clear and render the onboarding canvas
-            var $divOnboardingMessageBox = undefined; //
-
-            if (status.disabledButtonMessageVisibility === 'hidden') {
-                status.disabledButtonMessageVisibility = 'visible';
-                var okButton = '<button id="TempOKButton" class="button bold" style="left:20px;position:relative; width:100px;">OK</button>';
-                $divOnboardingMessageBox.append(okButton);
-                $OkBtn = $("#TempOKButton");
-                $OkBtn.bind('click', function () {
-                    //
-                    // Remove the OK button and clear the message.
-                    $OkBtn.remove();
-                    //messageCanvas.clear();
-                    status.disabledButtonMessageVisibility = 'hidden';
-                });
-            }
-        }
     }
 
     /**
@@ -2949,6 +2943,7 @@ function Form ($, params) {
     self.isPreviewMode = isPreviewMode;
     self.lockDisableSubmit = lockDisableSubmit;
     self.lockDisableSkip = lockDisableSkip;
+    self.postJSON = postJSON;
     self.setPreviousLabelingTaskId = setPreviousLabelingTaskId;
     self.setTaskDescription = setTaskDescription;
     self.setTaskRemaining = setTaskRemaining;
@@ -3371,7 +3366,7 @@ function Main ($, d3, google, turf, params) {
     }
 
     function _init (params) {
-        var params = params || {};
+        params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
@@ -3389,7 +3384,7 @@ function Main ($, d3, google, turf, params) {
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
-        svl.pointCloud = new PointCloud($, { panoIds: [panoId] });
+        svl.pointCloud = PointCloud({ panoIds: [panoId] });
         svl.tracker = Tracker();
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
@@ -3419,33 +3414,31 @@ function Main ($, d3, google, turf, params) {
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
         if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
 
-        //
-        var taskLoadComplete = false, missionLoadComplete = false;
+        // Initialize things that needs data loading.
+        var loadingAnOboardingTaskCompleted = false,
+            loadingTasksCompleted = false,
+            loadingMissionsCompleted = false;
+
+        // This is a callback function that is executed after every loading process is done.
         function handleDataLoadComplete () {
-            if (taskLoadComplete && missionLoadComplete) {
-                // Do stuff
-                svl.missionProgress.update();
-            }
-        }
-
-        svl.taskContainer.requestTasksInARegion(neighborhood.getProperty("regionId"), function () {
-            taskLoadComplete = true;
-            handleDataLoadComplete();
-        });
-
-        svl.missionContainer = MissionContainer ($, {
-            callback: function () {
+            if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingMissionsCompleted) {
                 // Check if the user has completed the onboarding tutorial.
                 // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
                     missionLabels = completedMissions.map(function (m) { return m.label; }),
                     neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
                     mission;
-                
+
                 // Set the current mission to onboarding or something else.
                 if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
-                    svl.onboarding = new Onboarding($);
-                    mission = svl.missionContainer.getCurrentMission();
+                    svl.onboarding = Onboarding($);
+                    mission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
+                    if (!mission) {
+                        // If the onboarding mission is not yet in the missionContainer, add it there.
+                        mission = svl.missionFactory.createOnboardingMission(1, false);
+                        svl.missionContainer.add(null, mission);
+                    }
+                    svl.missionContainer.setCurrentMission(mission);
                 } else {
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
@@ -3455,11 +3448,11 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 }
-                
-                // Check if this an anonymous user or not. 
+
+                // Check if this an anonymous user or not.
                 // If not, record that that this user has completed the onboarding.
                 if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
-                        missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
                     var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                     onboardingMission.setProperty("isCompleted", true);
                     svl.missionContainer.addToCompletedMissions(onboardingMission);
@@ -3471,34 +3464,48 @@ function Main ($, d3, google, turf, params) {
                     svl.modalMission.setMission(mission);
                 }
 
-                // Call another callback function
-                missionLoadComplete = true;
+                if ("missionProgress" in svl) {
+                    svl.missionProgress.update();
+                }
+            }
+        }
+
+        // Fetch an onboarding task.
+        svl.taskContainer.fetchATask("onboarding", 15250, function () {
+            loadingAnOboardingTaskCompleted = true;
+            handleDataLoadComplete();
+        });
+
+        // Fetch tasks in the onboarding region.
+        svl.taskContainer.fetchTasksInARegion(neighborhood.getProperty("regionId"), function () {
+            loadingTasksCompleted = true;
+            handleDataLoadComplete();
+        });
+
+        svl.missionContainer = MissionContainer ($, {
+            callback: function () {
+                loadingMissionsCompleted = true;
                 handleDataLoadComplete();
             }
         });
         svl.missionFactory = MissionFactory ();
 
         svl.form.disableSubmit();
+        svl.form.setTaskRemaining(1);
+        svl.form.setTaskDescription('TestTask');
+        svl.form.setTaskPanoramaId(panoId);      
+        
         svl.tracker.push('TaskStart');
-          // Set map parameters and instantiate it.
+        
+        // Set map parameters and instantiate it.
         var mapParam = {};
         mapParam.canvas = svl.canvas;
         mapParam.overlayMessageBox = svl.overlayMessageBox;
-
-        svl.form.setTaskRemaining(1);
-        svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);
-
         mapParam.Lat = SVLat;
         mapParam.Lng = SVLng;
-        mapParam.panoramaPov = {
-            heading: 0,
-            pitch: -10,
-            zoom: 1
-        };
+        mapParam.panoramaPov = { heading: 0, pitch: -10, zoom: 1 };
         mapParam.taskPanoId = panoId;
-        nearbyPanoIds = [mapParam.taskPanoId];
-        mapParam.availablePanoIds = nearbyPanoIds;
+        mapParam.availablePanoIds = [mapParam.taskPanoId];
 
         if (getStatus("isFirstTask")) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
@@ -3510,19 +3517,24 @@ function Main ($, d3, google, turf, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = new Map($, turf, mapParam);
+        svl.map = Map($, google, turf, mapParam);
         svl.map.disableClickZoom();
 
+        var task;
         if ("taskContainer" in svl) {
-            var task = svl.taskContainer.getCurrentTask();
+            task = svl.taskContainer.getCurrentTask();
         }
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
     }
 
-    function getStatus (key) { return key in status ? status[key] : null; }
-    function setStatus (key, value) { status[key] = value; return this; }
+    function getStatus (key) { 
+        return key in status ? status[key] : null; 
+    }
+    function setStatus (key, value) { 
+        status[key] = value; return this; 
+    }
 
     _initUI();
     _init(params);
@@ -3542,7 +3554,7 @@ function Main ($, d3, google, turf, params) {
  * @constructor
  * @memberof svl
  */
-function Map ($, turf, params) {
+function Map ($, google, turf, params) {
     var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
@@ -4625,11 +4637,11 @@ function Map ($, turf, params) {
      * This method changes the Street View pov. If a transition duration is given, the function smoothly updates the
      * pov over the time.
      * @param pov Target pov
-     * @param duration Transition duration in milli-seconds
+     * @param durationMs Transition duration in milli-seconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}
      */
-    function setPov (pov, duration, callback) {
+    function setPov (pov, durationMs, callback) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var end = false;
@@ -4666,8 +4678,8 @@ function Map ($, turf, params) {
                 }
             }
 
-            if (duration) {
-                var timeSegment = 25; // 25 milli-sec
+            if (durationMs) {
+                var timeSegment = 25; // 25 millisecconds
 
                 // Get how much angle you change over timeSegment of time.
                 var cw = (pov.heading - currentPov.heading + 360) % 360;
@@ -4675,43 +4687,32 @@ function Map ($, turf, params) {
                 var headingDelta;
                 var headingIncrement;
                 if (cw < ccw) {
-                    headingIncrement = cw * (timeSegment / duration);
+                    headingIncrement = cw * (timeSegment / durationMs);
                 } else {
-                    headingIncrement = (-ccw) * (timeSegment / duration);
+                    headingIncrement = (-ccw) * (timeSegment / durationMs);
                 }
 
                 var pitchIncrement;
                 var pitchDelta = pov.pitch - currentPov.pitch;
-                pitchIncrement = pitchDelta * (timeSegment / duration);
+                pitchIncrement = pitchDelta * (timeSegment / durationMs);
 
 
                 interval = window.setInterval(function () {
                     var headingDelta = pov.heading - currentPov.heading;
                     if (Math.abs(headingDelta) > 1) {
-                        //
                         // Update heading angle and pitch angle
-                        /*
-                         var angle = (360 - pov.heading) + currentPov.heading;
-                         if (angle < 180 || angle > 360) {
-                         currentPov.heading -= headingIncrement;
-                         } else {
-                         currentPov.heading += headingIncrement;
-                         }
-                         */
+
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
                         currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
-                        currentPov.pitch = currentPov.pitch; // Math.ceil(currentPov.pitch);
                         svl.panorama.setPov(currentPov);
                     } else {
-                        //
                         // Set the pov to adjust the zoom level. Then clear the interval.
                         // Invoke a callback function if there is one.
                         if (!pov.zoom) {
                             pov.zoom = 1;
                         }
-                        //pov.heading = Math.ceil(pov.heading);
-                        //pov.pitch = Math.ceil(pov.pitch);
+
                         svl.panorama.setZoom(pov.zoom);
                         window.clearInterval(interval);
                         if (callback) {
@@ -4968,22 +4969,10 @@ function ModalComment ($) {
                     lng: latlng ? latlng.lng : null
                 };
 
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: "/audit/comment",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                    if (result.error) {
-                        console.log(result.error);
-                    }
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });        }
+            if ("form" in svl && svl.form) {
+                svl.form.postJSON("/audit/comment", data)
+            }
+        }
     }
 
     _init();
@@ -5125,7 +5114,8 @@ function ModalMission ($) {
         svl.ui.modalMission.box.html(templateHTML);
 
         var message = "<h2>Mission Complete!!!</h2><p>" + mission.getProperty("completionMessage") + "</p>";
-            var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+            var badge = "<img src='" + mission.getProperty("badgeURL") +
+                "' class='img-responsive center-block' alt='badge'/>";
             $("#mission-completion-message").html(message);
             $("#mission-badge-holder").html(badge);
 
@@ -5357,11 +5347,11 @@ function OverlayMessageBox ($, params) {
 
 /**
  * PointCloud module
- * @param $
+ * @param params
  * @constructor
  * @memberof svl
  */
-function PointCloud ($, params) {
+function PointCloud (params) {
     var self = {};
     var _callbacks = {};
     var _pointClouds = {};
@@ -7542,12 +7532,38 @@ function TaskContainer (turf) {
     }
 
     /**
+     * Fetch a task based on the street id.
+     * @param regionId
+     * @param streetEdgeId
+     * @param callback
+     * @param async
+     */
+    function fetchATask(regionId, streetEdgeId, callback, async) {
+        if (typeof async == "undefined") async = true;
+        $.ajax({
+            url: "/task/street/" + streetEdgeId,
+            type: 'get',
+            success: function (json) {
+                var lat1 = json.features[0].geometry.coordinates[0][1],
+                    lng1 = json.features[0].geometry.coordinates[0][0],
+                    newTask = svl.taskFactory.create(json, lat1, lng1);
+                if (json.features[0].properties.completed) newTask.complete();
+                storeTask(regionId, newTask);
+                if (callback) callback();
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
+    
+    /**
      * Request the server to populate tasks
      * @param regionId {number} Region id
      * @param callback A callback function
      * @param async {boolean}
      */
-    function requestTasksInARegion(regionId, callback, async) {
+    function fetchTasksInARegion(regionId, callback, async) {
         if (typeof async == "undefined") async = true;
 
         if (typeof regionId == "number") {
@@ -7573,6 +7589,8 @@ function TaskContainer (turf) {
             console.error("regionId should be an integer value");
         }
     }
+    
+
 
     /**
      * Set the current task
@@ -7595,7 +7613,9 @@ function TaskContainer (turf) {
      */
     function storeTask(regionId, task) {
         if (!(regionId in taskStoreByRegionId)) taskStoreByRegionId[regionId] = [];
-        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) { return task.getProperty("streetEdgeId"); });
+        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
+            return task.getProperty("streetEdgeId");
+        });
         if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
@@ -7633,6 +7653,8 @@ function TaskContainer (turf) {
 
     self.initNextTask = initNextTask;
     self.endTask = endTask;
+    self.fetchATask = fetchATask;
+    self.fetchTasksInARegion = fetchTasksInARegion;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
@@ -7641,7 +7663,7 @@ function TaskContainer (turf) {
     self.length = length;
     self.nextTask = nextTask;
     self.push = push;
-    self.requestTasksInARegion = requestTasksInARegion;
+
     self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
     self.update = update;
@@ -7669,49 +7691,8 @@ function TaskFactory (turf) {
     function create(geojson, lat, lng) {
         return new Task(turf, geojson, lat, lng);
     }
-
-    /**
-     * Query the backend server and create a new task instance.
-     * Todo. DEPRECATED. Use TaskContainer.nextTask(). And move nextTask() here...
-     * @param parameters
-     * @param callback
-     */
-    function getTask (parameters, callback) {
-        if (!parameters || !callback) return;
-
-        if ("streetEdgeId" in parameters && parameters.streetEdgeId) {
-            $.ajax({
-                url: "/task/street/" + parameters.streetEdgeId,
-                type: 'get',
-                success: function (json) {
-                    var lat1 = json.features[0].geometry.coordinates[0][1],
-                        lng1 = json.features[0].geometry.coordinates[0][0];
-                    var newTask = create(json, lat1, lng1);
-                    callback(newTask);
-                },
-                error: function (result) {
-                    throw result;
-                }
-            });
-        } else {
-            $.ajax({
-                url: "/task",
-                type: 'get',
-                success: function (json) {
-                    var lat1 = json.features[0].geometry.coordinates[0][1],
-                        lng1 = json.features[0].geometry.coordinates[0][0];
-                    var newTask = create(json, lat1, lng1);
-                    callback(newTask);
-                },
-                error: function (result) {
-                    throw result;
-                }
-            });
-        }
-    }
-
+    
     self.create = create;
-    self.getTask = getTask;
 
     return self;
 }
@@ -7748,18 +7729,32 @@ function Mission(parameters) {
         if ("label" in parameters) {
             var instruction, completionMessage, badgeURL;
             setProperty("label", parameters.label);
-            self.label = parameters.label;  // debug. You don't actually need this.
+            self.label = parameters.label;  // For debugging. You don't actually need this.
+            self.distance = parameters.distance;  // For debugging. You don't actually need this.
 
             if (parameters.label == "initial-mission") {
-                instruction = "Your goal is to <span class='bold'>audit 250 meters of the streets in this neighborhood and find the accessibility attributes!";
+                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
-                var distance = parameters.distance,
-                    distanceString = distance + " meters";
+                var distance = parameters.distance;
+                var distanceString = imperialDistance();
+
                 instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
-                badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
+
+                if (distance == 500) {
+                    // 2000 ft
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_500.png";
+                } else if (distance == 1000) {
+                    // 4000 ft
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_1000.png";
+                } else {
+                    // miles
+                    var level = "level" in parameters ? parameters.level : 1;
+                    level = (level - 1) % 5 + 1;
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_Level" + level + ".png";
+                }
             } else if (parameters.label == "area-coverage-mission") {
                 var coverage = parameters.coverage, coverageString = coverage + "%";
                 instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
@@ -7923,6 +7918,7 @@ function Mission(parameters) {
 }
 /**
  * MissionContainer module
+ * @param $ jQuery object
  * @param parameters
  * @returns {{className: string}}
  * @constructor
@@ -7962,9 +7958,7 @@ function MissionContainer ($, parameters) {
                 setCurrentMission(nm);
             }
         }
-
-
-
+        
         if ("callback" in parameters) {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
         } else {
@@ -8017,20 +8011,9 @@ function MissionContainer ($, parameters) {
             }
             staged = [];
 
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: "/mission",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-
+            if ("form" in svl && svl.form) {
+                svl.form.postJSON("/mission", data);
+            }
         }
         return this;
     }
@@ -9317,7 +9300,7 @@ function LabelContainer() {
         // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
         var panoramaId = label.getProperty("panoId");
         if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
-            svl.panoramaContainer.requestPanoramaMetaData(panoramaId);
+            svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
         }
     }
 
@@ -10891,7 +10874,7 @@ function PanoramaContainer (google) {
     /**
      * Request the panorama meta data.
      */
-    function requestPanoramaMetaData (panoramaId) {
+    function fetchPanoramaMetaData (panoramaId) {
         if ("streetViewService") {
             svl.streetViewService.getPanorama({ pano: panoramaId }, processSVData);
         } else {
@@ -10902,7 +10885,7 @@ function PanoramaContainer (google) {
     self.getPanorama = getPanorama;
     self.getPanoramas = getPanoramas;
     self.getStagedPanoramas = getStagedPanoramas;
-    self.requestPanoramaMetaData = requestPanoramaMetaData;
+    self.fetchPanoramaMetaData = fetchPanoramaMetaData;
     return self;
 }
 
@@ -13112,23 +13095,6 @@ function Onboarding ($) {
 
         status.state = getState("initialize");
         visit(status.state);
-
-        // Get the task for the onboarding
-        if ("taskFactory" in svl) {
-            svl.taskFactory.getTask({streetEdgeId: 15250}, svl.taskContainer.setCurrentTask);
-        }
-
-        // Set the current mission to onboarding
-        if ("missionContainer" in svl && "missionFactory" in svl) {
-            var m = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
-            if (!m) {
-                // If the onboarding mission is not yet in the missionContainer, add it there.
-                m = svl.missionFactory.createOnboardingMission(1, false);
-                svl.missionContainer.add(null, m);
-            }
-            svl.missionContainer.setCurrentMission(m);
-        }
-
         initializeHandAnimation();
     }
 
