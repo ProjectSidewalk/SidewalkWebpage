@@ -31,18 +31,32 @@ function Mission(parameters) {
         if ("label" in parameters) {
             var instruction, completionMessage, badgeURL;
             setProperty("label", parameters.label);
-            self.label = parameters.label;  // debug. You don't actually need this.
+            self.label = parameters.label;  // For debugging. You don't actually need this.
+            self.distance = parameters.distance;  // For debugging. You don't actually need this.
 
             if (parameters.label == "initial-mission") {
-                instruction = "Your goal is to <span class='bold'>audit 250 meters of the streets in this neighborhood and find the accessibility attributes!";
+                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
-                var distance = parameters.distance,
-                    distanceString = distance + " meters";
+                var distance = parameters.distance;
+                var distanceString = imperialDistance();
+
                 instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
                 completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
-                badgeURL = svl.rootDirectory + "/img/misc/Badge" + distance + "Meters.png";
+
+                if (distance == 500) {
+                    // 2000 ft
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_500.png";
+                } else if (distance == 1000) {
+                    // 4000 ft
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_1000.png";
+                } else {
+                    // miles
+                    var level = "level" in parameters ? parameters.level : 1;
+                    level = (level - 1) % 5 + 1;
+                    badgeURL = svl.rootDirectory + "/img/misc/Badge_Level" + level + ".png";
+                }
             } else if (parameters.label == "area-coverage-mission") {
                 var coverage = parameters.coverage, coverageString = coverage + "%";
                 instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
@@ -56,6 +70,32 @@ function Mission(parameters) {
             setProperty("instruction", instruction);
             setProperty("completionMessage", completionMessage);
             setProperty("badgeURL", badgeURL);
+        }
+    }
+
+    /**
+     * Because the imperial metric system is messed up.
+     * @returns {string}
+     */
+    function imperialDistance () {
+        var distance = getProperty("distance");
+        if (distance) {
+            if (distance < 1500) {
+                if (distance == 250) {
+                    return "1000 feet";
+                } else if (distance == 500) {
+                    return "2000 feet";
+                } else if (distance == 1000) {
+                    return "4000 feet";
+                } else {
+                    return distance * 3;
+                }
+            } else {
+                var miles = distance % 1500;
+                return miles + "miles";
+            }
+        } else {
+            console.error("Distance is null");
         }
     }
 
@@ -169,6 +209,7 @@ function Mission(parameters) {
     self.complete = complete;
     self.getProperty = getProperty;
     self.getMissionCompletionRate = getMissionCompletionRate;
+    self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;

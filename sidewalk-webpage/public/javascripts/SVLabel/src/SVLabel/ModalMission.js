@@ -77,7 +77,8 @@ function ModalMission ($) {
         svl.ui.modalMission.box.html(templateHTML);
 
         var message = "<h2>Mission Complete!!!</h2><p>" + mission.getProperty("completionMessage") + "</p>";
-            var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+            var badge = "<img src='" + mission.getProperty("badgeURL") +
+                "' class='img-responsive center-block' alt='badge'/>";
             $("#mission-completion-message").html(message);
             $("#mission-badge-holder").html(badge);
 

@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function Map ($, turf, params) {
+function Map ($, google, turf, params) {
     var self = { className: 'Map' },
         canvas,
         overlayMessageBox,
@@ -1091,11 +1091,11 @@ function Map ($, turf, params) {
      * This method changes the Street View pov. If a transition duration is given, the function smoothly updates the
      * pov over the time.
      * @param pov Target pov
-     * @param duration Transition duration in milli-seconds
+     * @param durationMs Transition duration in milli-seconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}
      */
-    function setPov (pov, duration, callback) {
+    function setPov (pov, durationMs, callback) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var end = false;
@@ -1132,8 +1132,8 @@ function Map ($, turf, params) {
                 }
             }
 
-            if (duration) {
-                var timeSegment = 25; // 25 milli-sec
+            if (durationMs) {
+                var timeSegment = 25; // 25 millisecconds
 
                 // Get how much angle you change over timeSegment of time.
                 var cw = (pov.heading - currentPov.heading + 360) % 360;
@@ -1141,43 +1141,32 @@ function Map ($, turf, params) {
                 var headingDelta;
                 var headingIncrement;
                 if (cw < ccw) {
-                    headingIncrement = cw * (timeSegment / duration);
+                    headingIncrement = cw * (timeSegment / durationMs);
                 } else {
-                    headingIncrement = (-ccw) * (timeSegment / duration);
+                    headingIncrement = (-ccw) * (timeSegment / durationMs);
                 }
 
                 var pitchIncrement;
                 var pitchDelta = pov.pitch - currentPov.pitch;
-                pitchIncrement = pitchDelta * (timeSegment / duration);
+                pitchIncrement = pitchDelta * (timeSegment / durationMs);
 
 
                 interval = window.setInterval(function () {
                     var headingDelta = pov.heading - currentPov.heading;
                     if (Math.abs(headingDelta) > 1) {
-                        //
                         // Update heading angle and pitch angle
-                        /*
-                         var angle = (360 - pov.heading) + currentPov.heading;
-                         if (angle < 180 || angle > 360) {
-                         currentPov.heading -= headingIncrement;
-                         } else {
-                         currentPov.heading += headingIncrement;
-                         }
-                         */
+
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
                         currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
-                        currentPov.pitch = currentPov.pitch; // Math.ceil(currentPov.pitch);
                         svl.panorama.setPov(currentPov);
                     } else {
-                        //
                         // Set the pov to adjust the zoom level. Then clear the interval.
                         // Invoke a callback function if there is one.
                         if (!pov.zoom) {
                             pov.zoom = 1;
                         }
-                        //pov.heading = Math.ceil(pov.heading);
-                        //pov.pitch = Math.ceil(pov.pitch);
+
                         svl.panorama.setZoom(pov.zoom);
                         window.clearInterval(interval);
                         if (callback) {

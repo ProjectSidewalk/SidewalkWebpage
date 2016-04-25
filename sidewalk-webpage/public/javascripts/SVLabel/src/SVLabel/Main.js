@@ -178,7 +178,7 @@ function Main ($, d3, google, turf, params) {
     }
 
     function _init (params) {
-        var params = params || {};
+        params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
@@ -196,7 +196,7 @@ function Main ($, d3, google, turf, params) {
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
-        svl.pointCloud = new PointCloud($, { panoIds: [panoId] });
+        svl.pointCloud = PointCloud({ panoIds: [panoId] });
         svl.tracker = Tracker();
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
@@ -226,33 +226,31 @@ function Main ($, d3, google, turf, params) {
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
         if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
 
-        //
-        var taskLoadComplete = false, missionLoadComplete = false;
+        // Initialize things that needs data loading.
+        var loadingAnOboardingTaskCompleted = false,
+            loadingTasksCompleted = false,
+            loadingMissionsCompleted = false;
+
+        // This is a callback function that is executed after every loading process is done.
         function handleDataLoadComplete () {
-            if (taskLoadComplete && missionLoadComplete) {
-                // Do stuff
-                svl.missionProgress.update();
-            }
-        }
-
-        svl.taskContainer.requestTasksInARegion(neighborhood.getProperty("regionId"), function () {
-            taskLoadComplete = true;
-            handleDataLoadComplete();
-        });
-
-        svl.missionContainer = MissionContainer ($, {
-            callback: function () {
+            if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingMissionsCompleted) {
                 // Check if the user has completed the onboarding tutorial.
                 // If not, let them work on the the tutorial.
                 var completedMissions = svl.missionContainer.getCompletedMissions(),
                     missionLabels = completedMissions.map(function (m) { return m.label; }),
                     neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
                     mission;
-                
+
                 // Set the current mission to onboarding or something else.
                 if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
-                    svl.onboarding = new Onboarding($);
-                    mission = svl.missionContainer.getCurrentMission();
+                    svl.onboarding = Onboarding($);
+                    mission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
+                    if (!mission) {
+                        // If the onboarding mission is not yet in the missionContainer, add it there.
+                        mission = svl.missionFactory.createOnboardingMission(1, false);
+                        svl.missionContainer.add(null, mission);
+                    }
+                    svl.missionContainer.setCurrentMission(mission);
                 } else {
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
@@ -262,11 +260,11 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 }
-                
-                // Check if this an anonymous user or not. 
+
+                // Check if this an anonymous user or not.
                 // If not, record that that this user has completed the onboarding.
                 if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
-                        missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
+                    missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
                     var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                     onboardingMission.setProperty("isCompleted", true);
                     svl.missionContainer.addToCompletedMissions(onboardingMission);
@@ -278,34 +276,48 @@ function Main ($, d3, google, turf, params) {
                     svl.modalMission.setMission(mission);
                 }
 
-                // Call another callback function
-                missionLoadComplete = true;
+                if ("missionProgress" in svl) {
+                    svl.missionProgress.update();
+                }
+            }
+        }
+
+        // Fetch an onboarding task.
+        svl.taskContainer.fetchATask("onboarding", 15250, function () {
+            loadingAnOboardingTaskCompleted = true;
+            handleDataLoadComplete();
+        });
+
+        // Fetch tasks in the onboarding region.
+        svl.taskContainer.fetchTasksInARegion(neighborhood.getProperty("regionId"), function () {
+            loadingTasksCompleted = true;
+            handleDataLoadComplete();
+        });
+
+        svl.missionContainer = MissionContainer ($, {
+            callback: function () {
+                loadingMissionsCompleted = true;
                 handleDataLoadComplete();
             }
         });
         svl.missionFactory = MissionFactory ();
 
         svl.form.disableSubmit();
+        svl.form.setTaskRemaining(1);
+        svl.form.setTaskDescription('TestTask');
+        svl.form.setTaskPanoramaId(panoId);      
+        
         svl.tracker.push('TaskStart');
-          // Set map parameters and instantiate it.
+        
+        // Set map parameters and instantiate it.
         var mapParam = {};
         mapParam.canvas = svl.canvas;
         mapParam.overlayMessageBox = svl.overlayMessageBox;
-
-        svl.form.setTaskRemaining(1);
-        svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);
-
         mapParam.Lat = SVLat;
         mapParam.Lng = SVLng;
-        mapParam.panoramaPov = {
-            heading: 0,
-            pitch: -10,
-            zoom: 1
-        };
+        mapParam.panoramaPov = { heading: 0, pitch: -10, zoom: 1 };
         mapParam.taskPanoId = panoId;
-        nearbyPanoIds = [mapParam.taskPanoId];
-        mapParam.availablePanoIds = nearbyPanoIds;
+        mapParam.availablePanoIds = [mapParam.taskPanoId];
 
         if (getStatus("isFirstTask")) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
@@ -317,19 +329,24 @@ function Main ($, d3, google, turf, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = new Map($, turf, mapParam);
+        svl.map = Map($, google, turf, mapParam);
         svl.map.disableClickZoom();
 
+        var task;
         if ("taskContainer" in svl) {
-            var task = svl.taskContainer.getCurrentTask();
+            task = svl.taskContainer.getCurrentTask();
         }
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
     }
 
-    function getStatus (key) { return key in status ? status[key] : null; }
-    function setStatus (key, value) { status[key] = value; return this; }
+    function getStatus (key) { 
+        return key in status ? status[key] : null; 
+    }
+    function setStatus (key, value) { 
+        status[key] = value; return this; 
+    }
 
     _initUI();
     _init(params);

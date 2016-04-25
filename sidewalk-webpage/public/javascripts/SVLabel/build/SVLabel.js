@@ -3035,6 +3035,11 @@ function Keyboard ($) {
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
             switch (e.keyCode) {
+                // "Enter"
+                case 13:
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.contextMenu.hide();
+                    }
                 case 16:
                     // "Shift"
                     status.shiftDown = false;
@@ -3047,21 +3052,51 @@ function Keyboard ($) {
                         svl.ribbon.backToWalk();
                     }
                     break;
-                case 49:
+                    case 49:
                     // "1"
-                    svl.ribbon.modeSwitchClick("CurbRamp");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='1'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("CurbRamp");
+                        break;
+                    }
                     break;
                 case 50:
                     // "2"
-                    svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='2'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    }
                     break;
                 case 51:
                     // "3"
-                    svl.ribbon.modeSwitchClick("Obstacle");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='3'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("Obstacle");
+                    }
                     break;
                 case 52:
                     // "4"
-                    svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='4'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+                        svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    }
+                    break;
+                case 53:
+                    // "5"
+                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='5'}).prop("checked", true).trigger("click");
+                    }
+                    else{
+
+                    }
                     break;
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
@@ -7742,6 +7777,32 @@ function Mission(parameters) {
     }
 
     /**
+     * Because the imperial metric system is messed up.
+     * @returns {string}
+     */
+    function imperialDistance () {
+        var distance = getProperty("distance");
+        if (distance) {
+            if (distance < 1500) {
+                if (distance == 250) {
+                    return "1000 feet";
+                } else if (distance == 500) {
+                    return "2000 feet";
+                } else if (distance == 1000) {
+                    return "4000 feet";
+                } else {
+                    return distance * 3;
+                }
+            } else {
+                var miles = distance % 1500;
+                return miles + "miles";
+            }
+        } else {
+            console.error("Distance is null");
+        }
+    }
+
+    /**
      * Set the property to complete
      */
     function complete () {
@@ -7851,6 +7912,7 @@ function Mission(parameters) {
     self.complete = complete;
     self.getProperty = getProperty;
     self.getMissionCompletionRate = getMissionCompletionRate;
+    self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
@@ -8281,15 +8343,20 @@ function MissionProgress () {
      * This method updates the filler of the completion bar
      */
     function updateMissionCompletionBar (completionRate) {
-        var r, g, color, colorIntensity = 230;
-        if (completionRate < 0.5) {
-            r = colorIntensity;
+        var r, g, b, color, colorIntensity = 200;
+        if (completionRate < 0.6) {
+            r = colorIntensity * 1.3;
             g = parseInt(colorIntensity * completionRate * 2);
-        } else {
-            r = parseInt(colorIntensity * (1 - completionRate) * 2);
-            g = colorIntensity;
+            b = 20;
         }
-        color = 'rgba(' + r + ',' + g + ',0,1)';
+        // TODO change green threshold to ~90%
+        else {
+            r = parseInt(colorIntensity * (1 - completionRate) * 1.7);
+            g = colorIntensity;
+            b = 100;
+        }
+        color = 'rgba(' + r + ',' + g + ',' + b + ',1)';
+        printCompletionRate(completionRate);
         completionRate *=  100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
@@ -11986,6 +12053,51 @@ var ColorScheme = (function () {
         return category ? colors[category].fillStyle : colors;
     }
 
+    function SidewalkColorScheme3 (category) {
+        var colors = {
+            Walk : {
+                id : 'Walk',
+                fillStyle : 'rgba(0, 0, 0, 1)'
+            },
+            CurbRamp: {
+                id: 'CurbRamp',
+                fillStyle: 'rgba(79, 180, 105, 1)'  // 'rgba(0, 244, 38, 1)'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                fillStyle: 'rgba(210, 48, 30, 1)'  // 'rgba(255, 39, 113, 1)'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                fillStyle: 'rgba(29, 150 , 240, 1)'
+            },
+            Other: {
+                id: 'Other',
+                fillStyle: 'rgba(180, 150, 200, 1)' //'rgba(204, 204, 204, 1)'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                fillStyle: 'rgba(179, 179, 179, 1)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                fillStyle: 'rgba(179, 179, 179, 1)'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                fillStyle: 'rgba(240, 200, 30, 1)'
+            },
+            Void: {
+                id: 'Void',
+                fillStyle: 'rgba(255, 255, 255, 1)'
+            },
+            Unclear: {
+                id: 'Unclear',
+                fillStyle: 'rgba(128, 128, 128, 0.5)'
+            }
+        };
+        return category ? colors[category].fillStyle : colors;
+    }
     /**
      * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
      * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}

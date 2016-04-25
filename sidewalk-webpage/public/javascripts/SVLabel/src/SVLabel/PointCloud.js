@@ -1,10 +1,10 @@
 /**
  * PointCloud module
- * @param $
+ * @param params
  * @constructor
  * @memberof svl
  */
-function PointCloud ($, params) {
+function PointCloud (params) {
     var self = {};
     var _callbacks = {};
     var _pointClouds = {};

@@ -54,7 +54,7 @@ function PanoramaContainer (google) {
     /**
      * Request the panorama meta data.
      */
-    function requestPanoramaMetaData (panoramaId) {
+    function fetchPanoramaMetaData (panoramaId) {
         if ("streetViewService") {
             svl.streetViewService.getPanorama({ pano: panoramaId }, processSVData);
         } else {
@@ -65,7 +65,7 @@ function PanoramaContainer (google) {
     self.getPanorama = getPanorama;
     self.getPanoramas = getPanoramas;
     self.getStagedPanoramas = getStagedPanoramas;
-    self.requestPanoramaMetaData = requestPanoramaMetaData;
+    self.fetchPanoramaMetaData = fetchPanoramaMetaData;
     return self;
 }
 

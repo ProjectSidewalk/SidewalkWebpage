@@ -288,6 +288,31 @@ function Form ($, params) {
         return this;
     }
 
+    /**
+     * Post a json object
+     * @param url
+     * @param data
+     * @param callback
+     * @param async
+     */
+    function postJSON (url, data, callback, async) {
+        if (!async) async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                if (callback) callback(result);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     function setPreviousLabelingTaskId (val) {
         properties.previousLabelingTaskId = val;
         return this;
@@ -309,37 +334,6 @@ function Form ($, params) {
     function setTaskRemaining (val) {
         properties.taskRemaining = val;
         return this;
-    }
-
-    /**
-     *
-     */
-    function showDisabledSubmitButtonMessage () {
-        var completionRate = 0;
-
-        if (!('onboarding' in svl && svl.onboarding) &&
-            (completionRate < 100)) {
-            var message = "You have inspected " + completionRate +
-                "% of the scene. Let's inspect all the corners before you submit the task!",
-                $OkBtn;
-
-            // Clear and render the onboarding canvas
-            var $divOnboardingMessageBox = undefined; //
-
-            if (status.disabledButtonMessageVisibility === 'hidden') {
-                status.disabledButtonMessageVisibility = 'visible';
-                var okButton = '<button id="TempOKButton" class="button bold" style="left:20px;position:relative; width:100px;">OK</button>';
-                $divOnboardingMessageBox.append(okButton);
-                $OkBtn = $("#TempOKButton");
-                $OkBtn.bind('click', function () {
-                    //
-                    // Remove the OK button and clear the message.
-                    $OkBtn.remove();
-                    //messageCanvas.clear();
-                    status.disabledButtonMessageVisibility = 'hidden';
-                });
-            }
-        }
     }
 
     /**
@@ -406,6 +400,7 @@ function Form ($, params) {
     self.isPreviewMode = isPreviewMode;
     self.lockDisableSubmit = lockDisableSubmit;
     self.lockDisableSkip = lockDisableSkip;
+    self.postJSON = postJSON;
     self.setPreviousLabelingTaskId = setPreviousLabelingTaskId;
     self.setTaskDescription = setTaskDescription;
     self.setTaskRemaining = setTaskRemaining;

@@ -1,5 +1,6 @@
 /**
  * MissionContainer module
+ * @param $ jQuery object
  * @param parameters
  * @returns {{className: string}}
  * @constructor
@@ -39,9 +40,7 @@ function MissionContainer ($, parameters) {
                 setCurrentMission(nm);
             }
         }
-
-
-
+        
         if ("callback" in parameters) {
             $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
         } else {
@@ -94,20 +93,9 @@ function MissionContainer ($, parameters) {
             }
             staged = [];
 
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: "/mission",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-
+            if ("form" in svl && svl.form) {
+                svl.form.postJSON("/mission", data);
+            }
         }
         return this;
     }

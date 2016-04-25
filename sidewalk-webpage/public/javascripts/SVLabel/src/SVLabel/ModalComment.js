@@ -131,22 +131,10 @@ function ModalComment ($) {
                     lng: latlng ? latlng.lng : null
                 };
 
-            $.ajax({
-                // async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: "/audit/comment",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                    if (result.error) {
-                        console.log(result.error);
-                    }
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });        }
+            if ("form" in svl && svl.form) {
+                svl.form.postJSON("/audit/comment", data)
+            }
+        }
     }
 
     _init();
