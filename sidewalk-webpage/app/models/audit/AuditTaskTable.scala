@@ -370,7 +370,7 @@ object AuditTaskTable {
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, NULL as audit_task_id
         |FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS st_e
-        |ON st_e.geom && region.geom
+        |ON ST_Intersects(st_e.geom, region.geom)
         |WHERE region.region_id = ? AND st_e.deleted IS FALSE""".stripMargin
     )
     selectTaskQuery(regionId).list
@@ -391,7 +391,7 @@ object AuditTaskTable {
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, completed_audit.audit_task_id
         |FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS st_e
-        |ON st_e.geom && region.geom
+        |ON ST_Intersects(st_e.geom, region.geom)
         |LEFT JOIN (
         |    SELECT street_edge_id, audit_task_id FROM sidewalk.audit_task
         |    WHERE user_id = ?
@@ -414,7 +414,7 @@ object AuditTaskTable {
         |INNER JOIN sidewalk.region
         |ON user_current_region.region_id = ?
         |INNER JOIN sidewalk.street_edge
-        |ON region.geom && street_edge.geom
+        |ON ST_Intersects(region.geom, street_edge.geom)
         |LEFT JOIN sidewalk.audit_task
         |ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE user_current_region.user_id = ?

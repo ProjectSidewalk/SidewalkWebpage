@@ -1,39 +1,39 @@
-#Holder_QualificationBadges {
-    position: relative;
-    height: 75px;
-}
+/*#Holder_QualificationBadges {*/
+    /*position: relative;*/
+    /*height: 75px;*/
+/*}*/
 
-.BadgeHolder {
-    display: inline-block;
-    text-align: center;
-}
+/*.BadgeHolder {*/
+    /*display: inline-block;*/
+    /*text-align: center;*/
+/*}*/
 
-.Badge {
-    position: relative;
-    height: 30px;
-    width: 30px;
-}
+/*.Badge {*/
+    /*position: relative;*/
+    /*height: 30px;*/
+    /*width: 30px;*/
+/*}*/
 
-.BadgeDescription {
-    font-size: 0.9em;
-    padding-top: 0.1em;
-    text-align: center;
-}
+/*.BadgeDescription {*/
+    /*font-size: 0.9em;*/
+    /*padding-top: 0.1em;*/
+    /*text-align: center;*/
+/*}*/
 
-#BadgeHolder_BusStopAuditor {
-    /* position */
-    position: absolute;
-    left: 0px;
-    top: 2em;
-    height: 80px;
-    width: 100px;
-}
+/*#BadgeHolder_BusStopAuditor {*/
+    /*!* position *!*/
+    /*position: absolute;*/
+    /*left: 0px;*/
+    /*top: 2em;*/
+    /*height: 80px;*/
+    /*width: 100px;*/
+/*}*/
 
-#BadgeHolder_BusStopExplorer {
-    /* position */
-    position: absolute;
-    left: 100px;
-    top: 2em;
-    height: 80px;
-    width: 100px;
-}
+/*#BadgeHolder_BusStopExplorer {*/
+    /*!* position *!*/
+    /*position: absolute;*/
+    /*left: 100px;*/
+    /*top: 2em;*/
+    /*height: 80px;*/
+    /*width: 100px;*/
+/*}*/

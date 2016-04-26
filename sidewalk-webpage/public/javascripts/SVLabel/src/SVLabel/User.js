@@ -16,8 +16,20 @@ function User (param) {
     properties.username = param.username;
 
 
-    function getProperty (key) { return properties[key]; }
+    /**
+     * Get a property
+     * @param key
+     * @returns {*}
+     */
+    function getProperty (key) { 
+        return properties[key]; 
+    }
 
+    /**
+     * Set a property
+     * @param key
+     * @param value
+     */
     function setProperty (key, value) {
         properties[key] = value;
     }

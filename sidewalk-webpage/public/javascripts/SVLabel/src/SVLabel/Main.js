@@ -50,6 +50,9 @@ function Main ($, d3, google, turf, params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
+        
+        svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
+        svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -190,6 +193,8 @@ function Main ($, d3, google, turf, params) {
         svl.form = Form($, params.form);
         svl.overlayMessageBox = OverlayMessageBox($);
         svl.statusField = StatusField();
+        svl.neighborhoodStatus = NeighborhoodStatus();
+
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()

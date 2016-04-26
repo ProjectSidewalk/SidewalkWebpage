@@ -1,3 +1,18 @@
+var completedInitializingOverlayPolygon = false,
+    completedInitializingNeighborhoodPolygons = false,
+    completedInitializingAuditedStreets = false,
+    completedInitializingSubmittedLabels = false,
+    completedInitializingAuditCountChart = false;
+var neighborhoodPolygonStyle = {
+        color: '#888',
+        weight: 1,
+        opacity: 0.25,
+        fillColor: "#ccc",
+        fillOpacity: 0.1
+    },
+    layers = [],
+    currentLayer;
+
 $(document).ready(function () {
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
@@ -34,6 +49,42 @@ $(document).ready(function () {
     initializeAuditCountChart(c3);
 });
 
+
+
+function handleInitializationComplete (map) {
+    if (completedInitializingOverlayPolygon &&
+        completedInitializingNeighborhoodPolygons &&
+        completedInitializingAuditedStreets &&
+        completedInitializingSubmittedLabels &&
+        completedInitializingAuditCountChart) {
+
+        // Search for a region id in the query string. If you find one, focus on that region.
+        var regionId = svl.util.getURLParameter("regionId"),
+            i,
+            len;
+        if (regionId && layers) {
+            len = layers.length;
+            for (i = 0; i < len; i++) {
+                if ("feature" in layers[i] && "properties" in layers[i].feature && regionId == layers[i].feature.properties.region_id) {
+                    var center = turf.center(layers[i].feature),
+                        coordinates = center.geometry.coordinates,
+                        latlng = L.latLng(coordinates[1], coordinates[0]),
+                        zoom = map.getZoom();
+                    zoom = zoom > 14 ? zoom : 14;
+
+                    console.log("hey");
+                    map.setView(latlng, zoom, {animate: true});
+                    layers[i].setStyle({color: "red", fillColor: "red"});
+                    currentLayer = layers[i];
+                    break;
+                }
+
+            }
+
+        }
+    }
+}
+
 /**
  * This function adds a semi-transparent white polygon on top of a map
  */
@@ -45,21 +96,15 @@ function initializeOverlayPolygon (map) {
                 [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
             ]}}]};
     L.geoJson(overlayPolygon).addTo(map);
+    completedInitializingOverlayPolygon = true;
+    handleInitializationComplete(map);
 }
 
 /**
  * render points
  */
 function initializeNeighborhoodPolygons(map) {
-    var neighborhoodPolygonStyle = {
-          color: '#888',
-          weight: 1,
-          opacity: 0.25,
-          fillColor: "#ccc",
-          fillOpacity: 0.1
-        },
-        layers = [],
-        currentLayer;
+
 
     function onEachNeighborhoodFeature(feature, layer) {
 
@@ -101,6 +146,8 @@ function initializeNeighborhoodPolygons(map) {
             onEachFeature: onEachNeighborhoodFeature
           })
           .addTo(map);
+        completedInitializingNeighborhoodPolygons = true;
+        handleInitializationComplete(map);
     });
 
     // Catch click even in popups
@@ -152,6 +199,9 @@ function initializeAuditedStreets(map) {
             distanceAudited += turf.lineDistance(data.features[i]);
         }
         document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
+
+        completedInitializingAuditedStreets = true;
+        handleInitializationComplete(map);
     });
 }
 
@@ -208,6 +258,9 @@ function initializeSubmittedLabels(map) {
             onEachFeature: onEachLabelFeature
         })
         .addTo(map);
+
+        completedInitializingSubmittedLabels = true;
+        handleInitializationComplete(map);
     });
 }
 
@@ -237,5 +290,7 @@ function initializeAuditCountChart (c3) {
                 show: false
             }
         });
+        completedInitializingAuditCountChart = true;
+        handleInitializationComplete(map);
     });
 }

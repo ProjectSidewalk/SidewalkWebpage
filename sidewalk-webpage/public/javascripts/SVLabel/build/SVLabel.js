@@ -3238,6 +3238,9 @@ function Main ($, d3, google, turf, params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
+        
+        svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
+        svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -3378,6 +3381,8 @@ function Main ($, d3, google, turf, params) {
         svl.form = Form($, params.form);
         svl.overlayMessageBox = OverlayMessageBox($);
         svl.statusField = StatusField();
+        svl.neighborhoodStatus = NeighborhoodStatus();
+
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
@@ -3548,6 +3553,7 @@ function Main ($, d3, google, turf, params) {
  * The Map module. This module is responsible for the interaction with Street View and Google Maps.
  * Todo. Need to clean this module up...
  * @param $ {object} jQuery object
+ * @param google {object} Google Maps object
  * @param turf {object} turf object
  * @param params {object} parameters
  * @returns {{className: string}}
@@ -6114,94 +6120,6 @@ function RibbonMenu ($, params) {
 }
 
 /**
- *
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function StatusField () {
-    var self = { className: "StatusField" },
-        blinkInterval;
-
-    // Blink the status field
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            svl.ui.status.holder.toggleClass("highlight-50");
-        }, 500);
-    }
-
-    // Stop blinking
-    function stopBlinking () {
-        window.clearInterval(blinkInterval);
-        svl.ui.status.holder.removeClass("highlight-50");
-    }
-
-    self.blink = blink;
-    self.stopBlinking = stopBlinking;
-
-    return self;
-}
-
-/**
- * A MissionDescription module
- * @param $
- * @param params
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function StatusMessage ($, params) {
-    var self = { className : 'StatusMessage' };
-
-    function _init (params) {    }
-
-    function animate() {
-        svl.ui.statusMessage.holder.removeClass('bounce animated').addClass('bounce animated').one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
-            $(this).removeClass('bounce animated');
-        });
-//        $('#animationSandbox').removeClass().addClass('bounce animated').one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
-//              $(this).removeClass();
-//            });
-    }
-
-    function restoreDefault () {
-        setBackgroundColor('rgb(255, 255, 255)');
-        setCurrentStatusDescription('Your mission is to find and label all the accessibility attributes in the sidewalks and streets.');
-        setCurrentStatusTitle('Mission:');
-    }
-    /**
-     *
-     */
-    function setBackgroundColor (rgb) {
-        svl.ui.statusMessage.holder.css('background', rgb);
-    }
-
-    /**
-     * The method sets what's shown in the current status pane in the interface
-     * @param description {string} A string (or html) to put.
-     * @returns {self}
-     */
-    function setCurrentStatusDescription (description) {
-      svl.ui.statusMessage.description.html(description);
-      return this;
-    }
-
-    function setCurrentStatusTitle (title) {
-        svl.ui.statusMessage.title.html(title);
-        return this;
-    }
-
-    self.animate = animate;
-    self.restoreDefault = restoreDefault;
-    self.setBackgroundColor = setBackgroundColor;
-    self.setCurrentStatusDescription = setCurrentStatusDescription;
-    self.setCurrentStatusTitle = setCurrentStatusTitle;
-    _init(params);
-    return self;
-}
-
-/**
  * Storage module. This is a wrapper around web browser's Local Storage. It allows you to store data on the user's
  * broser using a set method, and you can retrieve the data using the get method.
  *
@@ -6492,8 +6410,20 @@ function User (param) {
     properties.username = param.username;
 
 
-    function getProperty (key) { return properties[key]; }
+    /**
+     * Get a property
+     * @param key
+     * @returns {*}
+     */
+    function getProperty (key) { 
+        return properties[key]; 
+    }
 
+    /**
+     * Set a property
+     * @param key
+     * @param value
+     */
     function setProperty (key, value) {
         properties[key] = value;
     }
@@ -8173,6 +8103,7 @@ function MissionFactory () {
 }
 /**
  * MissionProgress module.
+ * Todo. Rename this to CurrentMissionStatus.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -10726,7 +10657,9 @@ function NeighborhoodContainer (parameters) {
 
     function _init (parameters) {
         parameters = parameters || {};
-        if ("currentNeighborhood" in parameters) setStatus("currentNeighborhood", parameters.currentNeighborhood);
+        if ("currentNeighborhood" in parameters) {
+            setStatus("currentNeighborhood", parameters.currentNeighborhood);
+        }
     }
 
 
@@ -10758,8 +10691,19 @@ function NeighborhoodContainer (parameters) {
         setStatus("currentNeighborhood", neighborhood);
     }
 
+    /**
+     * Set the status
+     * @param key
+     * @param value
+     */
     function setStatus (key, value) {
         status[key] = value;
+        
+        if (key == "currentNeighborhood" && "neighborhoodStatus" in svl && svl.neighborhoodStatus &&
+        typeof value == "object" && "className" in value && value.className == "Neighborhood") {
+            var href = "/contribution/" + svl.user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
+            svl.neighborhoodStatus.setHref(href)
+        }
     }
 
 
@@ -10886,9 +10830,114 @@ function PanoramaContainer (google) {
     self.getPanoramas = getPanoramas;
     self.getStagedPanoramas = getStagedPanoramas;
     self.fetchPanoramaMetaData = fetchPanoramaMetaData;
+<<<<<<< HEAD
+=======
     return self;
 }
 
+
+function NeighborhoodStatus () {
+    var self = {className: "NeighborhoodStatus"};
+
+    function setHref(hrefString) {
+        if (svl.ui.status.neighborhoodLink) {
+            svl.ui.status.neighborhoodLink.attr("href", hrefString)
+        }
+
+    }
+
+    self.setHref = setHref;
+
+>>>>>>> master
+    return self;
+}
+/**
+ *
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function StatusField () {
+    var self = { className: "StatusField" },
+        blinkInterval;
+
+    // Blink the status field
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.status.holder.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    // Stop blinking
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.status.holder.removeClass("highlight-50");
+    }
+
+    self.blink = blink;
+    self.stopBlinking = stopBlinking;
+
+    return self;
+}
+//
+// /**
+//  * A MissionDescription module
+//  * @param $
+//  * @param params
+//  * @returns {{className: string}}
+//  * @constructor
+//  * @memberof svl
+//  */
+// function StatusMessage ($, params) {
+//     var self = { className : 'StatusMessage' };
+//
+//     function _init (params) {    }
+//
+//     function animate() {
+//         svl.ui.statusMessage.holder.removeClass('bounce animated').addClass('bounce animated').one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
+//             $(this).removeClass('bounce animated');
+//         });
+// //        $('#animationSandbox').removeClass().addClass('bounce animated').one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
+// //              $(this).removeClass();
+// //            });
+//     }
+//
+//     function restoreDefault () {
+//         setBackgroundColor('rgb(255, 255, 255)');
+//         setCurrentStatusDescription('Your mission is to find and label all the accessibility attributes in the sidewalks and streets.');
+//         setCurrentStatusTitle('Mission:');
+//     }
+//     /**
+//      *
+//      */
+//     function setBackgroundColor (rgb) {
+//         svl.ui.statusMessage.holder.css('background', rgb);
+//     }
+//
+//     /**
+//      * The method sets what's shown in the current status pane in the interface
+//      * @param description {string} A string (or html) to put.
+//      * @returns {self}
+//      */
+//     function setCurrentStatusDescription (description) {
+//       svl.ui.statusMessage.description.html(description);
+//       return this;
+//     }
+//
+//     function setCurrentStatusTitle (title) {
+//         svl.ui.statusMessage.title.html(title);
+//         return this;
+//     }
+//
+//     self.animate = animate;
+//     self.restoreDefault = restoreDefault;
+//     self.setBackgroundColor = setBackgroundColor;
+//     self.setCurrentStatusDescription = setCurrentStatusDescription;
+//     self.setCurrentStatusTitle = setCurrentStatusTitle;
+//     _init(params);
+//     return self;
+// }
 
 var svl = svl || {};
 svl.util = svl.util || {};
@@ -10910,7 +10959,6 @@ function mouseposition (e, dom) {
 svl.util.mouseposition = mouseposition;
 
 
-//
 // Object prototype
 // http://www.smipple.net/snippet/insin/jQuery.fn.disableTextSelection
 if (typeof Object.create !== 'function') {
@@ -10921,7 +10969,6 @@ if (typeof Object.create !== 'function') {
     };
 }
 
-//
 // Trim function
 // Based on a code on: http://stackoverflow.com/questions/498970/how-do-i-trim-a-string-in-javascript
 if(typeof(String.prototype.trim) === "undefined")
@@ -10932,7 +10979,6 @@ if(typeof(String.prototype.trim) === "undefined")
     };
 }
 
-//
 // Default Text
 function focusCallback() {
     if ($(this).val() === $(this).attr('title')) {
@@ -10952,7 +10998,6 @@ function blurCallback() {
     }
 }
 
-//
 // Based on a snipped posted by Eric Scheid ("ironclad") on November 17, 2000 at:
 // http://www.evolt.org/article/Javascript_to_Parse_URLs_in_the_Browser/17/14435/
 function getURLParameter(argName) {
@@ -10973,6 +11018,7 @@ function getURLParameter(argName) {
     r = (r.length == 1 ? r[0] : '')
     return r;
 }
+svl.util.getURLParameter = getURLParameter;
 
 // Array Remove - By John Resig (MIT Licensed)
 // http://stackoverflow.com/questions/500606/javascript-array-delete-elements

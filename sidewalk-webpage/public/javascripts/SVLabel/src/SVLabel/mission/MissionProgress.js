@@ -1,5 +1,6 @@
 /**
  * MissionProgress module.
+ * Todo. Rename this to CurrentMissionStatus.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
