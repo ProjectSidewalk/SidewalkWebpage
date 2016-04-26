@@ -115,7 +115,7 @@
                                 <hr>
                                 <div class="ribbon-menu-other-subcategories" val="NoSidewalk">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.png")' class="icon-ribbon-menu-medium" alt="No sidewalk icon">
-                                    No sidewalk
+                                    <span class="underline">N</span>o sidewalk
                                 </div>
                                 <hr>
                                 <div class="ribbon-menu-other-subcategories" val="Other">
@@ -674,7 +674,6 @@
             } else {
                 mainParam.regionId = 1;
             }
-            mainParam.regionId = 0;
 
             svl.main = Main($, d3, google, turf, mainParam);
         }

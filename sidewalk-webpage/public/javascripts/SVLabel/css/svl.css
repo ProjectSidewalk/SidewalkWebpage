@@ -53,6 +53,15 @@ text {
     -moz-border-radius: 3px 3px 0 0;
 }
 
+/* Pseudo-classes
+* http://www.w3schools.com/css/css_pseudo_classes.asp */
+.button:hover {
+    background: -moz-linear-gradient(center top , #ccc, #bbb);
+    background: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#bbb));
+    color: #333;
+}
+
+
 .bold {
     font-weight: bold;
 }
@@ -61,12 +70,8 @@ b {
     font-weight: bold;
 }
 
-/* Pseudo-classes
-* http://www.w3schools.com/css/css_pseudo_classes.asp */
-.button:hover {
-    background: -moz-linear-gradient(center top , #ccc, #bbb);
-    background: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#bbb));
-    color: #333;
+.underline {
+    text-decoration: underline;
 }
 
 .defaultTextActive { color:#888; font-style: italic; }
