@@ -10830,8 +10830,6 @@ function PanoramaContainer (google) {
     self.getPanoramas = getPanoramas;
     self.getStagedPanoramas = getStagedPanoramas;
     self.fetchPanoramaMetaData = fetchPanoramaMetaData;
-<<<<<<< HEAD
-=======
     return self;
 }
 
@@ -10848,7 +10846,6 @@ function NeighborhoodStatus () {
 
     self.setHref = setHref;
 
->>>>>>> master
     return self;
 }
 /**
