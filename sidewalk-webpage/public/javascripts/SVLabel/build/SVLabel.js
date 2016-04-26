@@ -3035,6 +3035,7 @@ function Keyboard ($) {
                     if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
                         svl.contextMenu.hide();
                     }
+                    break;
                 case 16:
                     // "Shift"
                     status.shiftDown = false;
@@ -3104,6 +3105,9 @@ function Keyboard ($) {
                 case 77:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
                     svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    break;
+                case 78:
+                    svl.ribbon.modeSwitchClick("NoSidewalk");
                     break;
                 case 79:
                     // "o" for Obstacle
@@ -5753,12 +5757,14 @@ function RibbonMenu ($, params) {
      */
     function modeSwitch (mode) {
         var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
-
+        svl.tracker.push('ModeSwitch_' + labelType);
         if (status.disableModeSwitch === false) {
             var labelColors, ribbonConnectorPositions, borderColor;
 
             // Whenever the ribbon menu is clicked, cancel drawing.
-            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) { svl.canvas.cancelDrawing(); }
+            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
+                svl.canvas.cancelDrawing();
+            }
 
             labelColors = svl.misc.getLabelColors();
             ribbonConnectorPositions = svl.misc.getRibbonConnectionPositions();

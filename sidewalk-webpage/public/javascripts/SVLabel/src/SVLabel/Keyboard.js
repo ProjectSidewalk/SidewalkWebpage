@@ -77,6 +77,7 @@ function Keyboard ($) {
                     if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
                         svl.contextMenu.hide();
                     }
+                    break;
                 case 16:
                     // "Shift"
                     status.shiftDown = false;
@@ -146,6 +147,9 @@ function Keyboard ($) {
                 case 77:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
                     svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    break;
+                case 78:
+                    svl.ribbon.modeSwitchClick("NoSidewalk");
                     break;
                 case 79:
                     // "o" for Obstacle
