@@ -129,6 +129,40 @@
             </div>
             <div id="zoom-control-holder"></div>
             <div id="action-stack-control-holder"></div>
+            <div id="status-holder">
+                <div class="status-box">
+                    <h1 class="status-holder-header-1">Current Neighborhood</h1>
+                    @if(!user) {
+                        <h2>Washington, D.C.</h2>
+                    } else {
+                        <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
+                    }
+                    <div class="status-row">
+                        <span class="status-column-half">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/map2.png")' class="status-icon" alt="Map icon" align="">
+                            <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
+                        </span>
+                        <span class="status-column-half">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
+                            <span><span class="bold" id="status-audited-distance">0</span> <small>labels</small></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="status-box">
+                    <h1>Current Mission</h1>
+                    <h2 id="current-mission-description">Let's make this neighborhood accessible</h2>
+                    <div id='progress-pov-current-completion-bar'>
+                        <div id='progress-pov-current-completion-bar-filler'>
+                            <div id='progress-pov-current-completion-rate'></div>
+                        </div>
+                    </div>
+                    <br class="clear">
+                </div>
+                <div class="status-box">
+                    <h1>Current Mission Labels</h1>
+                    <div id="label-counter"></div>
+                </div>
+            </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="street-view-holder">
                     <div id="ribbon-street-view-connector"><!-- border --></div>
@@ -213,40 +247,12 @@
                         <div id="context-menu-vertical-connector"></div>
                     </div>
                 </div>
-                <div id="status-holder">
-                    <div class="status-box">
-                        <span class="status-holder-header-1">Achievements</span>
-                        <div id="status-achievements-holder">
-                            <div class="status-column-half inline">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/podium.png")' class="status-icon" alt="Podium icon" align="">
-                                <span><span class="bold">2</span><small>nd</small></span>
-                            </div>
-                            <div class="status-column-half inline">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/map.png")' class="status-icon" alt="Podium icon" align="">
-                                <span><span class="bold" id="status-audited-distance">0</span><small>miles</small></span>
-                            </div>
-                            <br class="clear">
-                        </div>
-                    </div>
-                    <div class="status-box">
-                        <span class="status-holder-header-1">Current Mission</span>
-                        <div id="progress-pov-holder">
-                            <div id='progress-pov-current-completion-bar'>
-                                <div id='progress-pov-current-completion-bar-filler'>
-                                    <div id='progress-pov-current-completion-rate'></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="counter-holder">
-                            @*<div id="counter-title"><span class="bold">You have labeled:</span></div>*@
-                            <div id="label-counter"></div>
-                        </div>
-                    </div>
-                </div>
-                <div id="google-maps-holder">
-                    <div id="google-maps" class="google-maps-pane" style=""></div>
-                    <div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>
-                </div>
+
+
+            </div>
+            <div id="google-maps-holder">
+                <div id="google-maps" class="google-maps-pane" style=""></div>
+                <div id="google-maps-overlay" class="google-maps-pane" style="z-index: 1"></div>
             </div>
             <div id="compass-holder" class="">
                 <div id="compass-message-holder" class="animated white-background-75">

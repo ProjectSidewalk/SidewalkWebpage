@@ -14,7 +14,9 @@ function NeighborhoodContainer (parameters) {
 
     function _init (parameters) {
         parameters = parameters || {};
-        if ("currentNeighborhood" in parameters) setStatus("currentNeighborhood", parameters.currentNeighborhood);
+        if ("currentNeighborhood" in parameters) {
+            setStatus("currentNeighborhood", parameters.currentNeighborhood);
+        }
     }
 
 
@@ -46,8 +48,19 @@ function NeighborhoodContainer (parameters) {
         setStatus("currentNeighborhood", neighborhood);
     }
 
+    /**
+     * Set the status
+     * @param key
+     * @param value
+     */
     function setStatus (key, value) {
         status[key] = value;
+        
+        if (key == "currentNeighborhood" && "neighborhoodStatus" in svl && svl.neighborhoodStatus &&
+        typeof value == "object" && "className" in value && value.className == "Neighborhood") {
+            var href = "/contribution/" + svl.user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
+            svl.neighborhoodStatus.setHref(href)
+        }
     }
 
 

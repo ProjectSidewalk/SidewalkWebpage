@@ -18,7 +18,6 @@ function mouseposition (e, dom) {
 svl.util.mouseposition = mouseposition;
 
 
-//
 // Object prototype
 // http://www.smipple.net/snippet/insin/jQuery.fn.disableTextSelection
 if (typeof Object.create !== 'function') {
@@ -29,7 +28,6 @@ if (typeof Object.create !== 'function') {
     };
 }
 
-//
 // Trim function
 // Based on a code on: http://stackoverflow.com/questions/498970/how-do-i-trim-a-string-in-javascript
 if(typeof(String.prototype.trim) === "undefined")
@@ -40,7 +38,6 @@ if(typeof(String.prototype.trim) === "undefined")
     };
 }
 
-//
 // Default Text
 function focusCallback() {
     if ($(this).val() === $(this).attr('title')) {
@@ -60,7 +57,6 @@ function blurCallback() {
     }
 }
 
-//
 // Based on a snipped posted by Eric Scheid ("ironclad") on November 17, 2000 at:
 // http://www.evolt.org/article/Javascript_to_Parse_URLs_in_the_Browser/17/14435/
 function getURLParameter(argName) {
@@ -81,6 +77,7 @@ function getURLParameter(argName) {
     r = (r.length == 1 ? r[0] : '')
     return r;
 }
+svl.util.getURLParameter = getURLParameter;
 
 // Array Remove - By John Resig (MIT Licensed)
 // http://stackoverflow.com/questions/500606/javascript-array-delete-elements

@@ -17,7 +17,7 @@
 }
 
 #progress-pov-current-completion-bar-filler {
-    border-width: 0px;
+    border-width: 0;
     height: 14px;
     position: absolute;
     width: 190px;
