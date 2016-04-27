@@ -29,6 +29,9 @@ text {
 .width-50 {
     width: 50%;
 }
+.width-50-percent {
+    width: 50%;
+}
 
 .width-75 {
     width: 75%;
@@ -61,18 +64,10 @@ text {
     color: #333;
 }
 
-
-.bold {
-    font-weight: bold;
-}
-
-b {
-    font-weight: bold;
-}
-
-.underline {
-    text-decoration: underline;
-}
+b { font-weight: bold; }
+.bold { font-weight: bold; }
+.normal { font-weight: normal; }
+.underline { text-decoration: underline; }
 
 .defaultTextActive { color:#888; font-style: italic; }
 
@@ -829,7 +824,7 @@ footer {
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box, #modal-mission-box {
+#modal-skip-box, #modal-comment-box, #modal-mission-foreground {
     background: rgba(255, 255, 255, 1);
     /*border: 3px solid rgba(200, 200, 200, 1);*/
     color: rgba(80, 80, 80, 1);
@@ -847,11 +842,32 @@ footer {
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
-#modal-mission-box {
-    top: 180px;
-    left: 45px;
-    padding: 30px;
-    width: 640px;
+#modal-mission-foreground {
+    top: 118px;
+    left: 8px;
+    padding: 10px;
+    width: 720px;
+    height: 480px;
+}
+
+#modal-mission-foreground h1 {
+    font-size: 18pt;
+    margin: 3px 0 10px 0;
+}
+
+#modal-mission-foreground h2 {
+    font-size: 16pt;
+    margin: 3px 0 10px 0;
+
+}
+
+#modal-mission-foreground th, #modal-mission-foreground td {
+    padding: 3px;
+    font-size: 10.5pt;
+}
+
+.leaflet-control-attribution {
+    visibility: hidden;
 }
 
 #modal-comment-textarea {
@@ -861,6 +877,12 @@ footer {
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-mission-map {
+    position: absolute;
+    width: 350px;
+    height: 420px;
 }
 
 .modal-mission-images {

@@ -129,7 +129,9 @@ function Main ($, d3, google, turf, params) {
         // Mission
         svl.ui.modalMission = {};
         svl.ui.modalMission.holder = $("#modal-mission-holder");
-        svl.ui.modalMission.box = $("#modal-mission-box");
+        svl.ui.modalMission.foreground = $("#modal-mission-foreground");
+        svl.ui.modalMission.background = $("#modal-mission-background");
+        svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -203,14 +205,14 @@ function Main ($, d3, google, turf, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = PointCloud({ panoIds: [panoId] });
         svl.tracker = Tracker();
-        // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($);
+        svl.modalMission = ModalMission($, L);
+        svl.modalMissionComplete = ModalMissionComplete($, L);
         svl.modalExample = ModalExample();
         svl.panoramaContainer = PanoramaContainer(google);
 
@@ -218,7 +220,7 @@ function Main ($, d3, google, turf, params) {
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         } else {

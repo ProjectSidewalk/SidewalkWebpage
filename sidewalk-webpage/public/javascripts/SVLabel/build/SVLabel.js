@@ -3321,7 +3321,9 @@ function Main ($, d3, google, turf, params) {
         // Mission
         svl.ui.modalMission = {};
         svl.ui.modalMission.holder = $("#modal-mission-holder");
-        svl.ui.modalMission.box = $("#modal-mission-box");
+        svl.ui.modalMission.foreground = $("#modal-mission-foreground");
+        svl.ui.modalMission.background = $("#modal-mission-background");
+        svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -3395,14 +3397,14 @@ function Main ($, d3, google, turf, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = PointCloud({ panoIds: [panoId] });
         svl.tracker = Tracker();
-        // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($);
+        svl.modalMission = ModalMission($, L);
+        svl.modalMissionComplete = ModalMissionComplete($, L);
         svl.modalExample = ModalExample();
         svl.panoramaContainer = PanoramaContainer(google);
 
@@ -3410,7 +3412,7 @@ function Main ($, d3, google, turf, params) {
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         } else {
@@ -4017,7 +4019,6 @@ function Map ($, google, turf, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
 
-        // Todo. This method is expanding... Maybe use a pub-sub design so the code will be cleaner.
         if ("canvas" in svl && svl.canvas) updateCanvas();
         if ("compass" in svl) svl.compass.update();
         if ("missionProgress" in svl) svl.missionProgress.update();
@@ -5050,36 +5051,56 @@ function ModalExample () {
  * @constructor
  * @memberof svl
  */
-function ModalMission ($) {
+function ModalMission ($, L) {
     var self = { className : 'ModalMission'},
         properties = {
             boxTop: 180,
             boxLeft: 45,
             boxWidth: 640
         };
-
+    
     function _init () {
+        svl.ui.modalMission.background.on("click", handleBackgroundClick);
+        svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
     }
 
+    /**
+     * Get a property
+     * @param key
+     * @returns {null}
+     */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Callback function for background click
+     * @param e
+     */
+    function handleBackgroundClick(e) {
+        hideMission();
+    }
+
+    /**
+     * Callback function for button click
+     * @param e
+     */
+    function handleCloseButtonClick(e) {
+        hideMission();
     }
 
     /**
      * Hide a mission
      */
     function hideMission () {
-        svl.ui.modalMission.holder.addClass('hidden');
-        svl.ui.modalMission.box.css({
-            top: getProperty("boxTop"),
-            left: getProperty("boxLeft"),
-            width: getProperty("boxWidth")
-        })
+        svl.ui.modalMission.holder.css('visibility', 'hidden');
+        svl.ui.modalMission.foreground.css('visibility', "hidden");
     }
 
     /** Show a mission */
     function showMissionModal () {
-        svl.ui.modalMission.holder.removeClass('hidden');
+        svl.ui.modalMission.holder.css('visibility', 'visible');
+        svl.ui.modalMission.foreground.css('visibility', "visible");
     }
 
     /**
@@ -5090,56 +5111,126 @@ function ModalMission ($) {
     function setMission (mission, parameters) {
         var label = mission.getProperty("label"),
             templateHTML = $("template.missions[val='" + label + "']").html();
-        svl.ui.modalMission.box.html(templateHTML);
-
-        if (label == "distance-mission") {
-            var distanceString = mission.getProperty("distance") + " meters";
-            $("#mission-target-distance").html(distanceString);
-        } else if (label == "area-coverage-mission") {
-            var coverageString = mission.getProperty("coverage") + "%";
-            $("#modal-mission-area-coverage-rate").html(coverageString);
-        }
-
-        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
-        $("#mission-badge-holder").html(badge);
-
-        if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
-        } else {
-            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
-        }
+        // svl.ui.modalMission.foreground.html(templateHTML);
+        //
+        // if (label == "distance-mission") {
+        //     var distanceString = mission.getProperty("distance") + " meters";
+        //     $("#mission-target-distance").html(distanceString);
+        // } else if (label == "area-coverage-mission") {
+        //     var coverageString = mission.getProperty("coverage") + "%";
+        //     $("#modal-mission-area-coverage-rate").html(coverageString);
+        // }
+        //
+        // var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+        // $("#mission-badge-holder").html(badge);
+        //
+        // if (parameters && "callback" in parameters) {
+        //     $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+        // } else {
+        //     $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
+        // }
 
         showMissionModal();
     }
-
-    /**
-     * Set the mission complete message in the modal window, then show the modal.
-     * @param mission
-     * @param parameters
-     */
-    function setMissionComplete (mission, parameters) {
-        var templateHTML = $("template.missions[val='mission-complete']").html();
-        svl.ui.modalMission.box.html(templateHTML);
-
-        var message = "<h2>Mission Complete!!!</h2><p>" + mission.getProperty("completionMessage") + "</p>";
-            var badge = "<img src='" + mission.getProperty("badgeURL") +
-                "' class='img-responsive center-block' alt='badge'/>";
-            $("#mission-completion-message").html(message);
-            $("#mission-badge-holder").html(badge);
-
-        if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
-        } else {
-            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
-        }
-        
-        showMissionModal();
-    }
+    
 
     _init();
 
     self.setMission = setMission;
-    self.setMissionComplete = setMissionComplete;
+    self.showMissionModal = showMissionModal;
+    return self;
+}
+
+/**
+ * ModalMission module
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function ModalMissionComplete ($, L) {
+    var self = { className : 'ModalMissionComplete'},
+        properties = {
+            boxTop: 180,
+            boxLeft: 45,
+            boxWidth: 640
+        };
+
+    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+
+    // Construct a bounding box for this map that the user cannot move out of
+    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
+    var southWest = L.latLng(38.761, -77.262),
+        northEast = L.latLng(39.060, -76.830),
+        bounds = L.latLngBounds(southWest, northEast),
+        map = L.mapbox.map('modal-mission-map', "kotarohara.8e0c6890", {
+                maxBounds: bounds,
+                maxZoom: 19,
+                minZoom: 9
+            })
+            .fitBounds(bounds);
+
+    function _init () {
+        svl.ui.modalMission.background.on("click", handleBackgroundClick);
+        svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
+    }
+
+    /**
+     * Get a property
+     * @param key
+     * @returns {null}
+     */
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Callback function for background click
+     * @param e
+     */
+    function handleBackgroundClick(e) {
+        hideMission();
+    }
+
+    /**
+     * Callback function for button click
+     * @param e
+     */
+    function handleCloseButtonClick(e) {
+        hideMission();
+    }
+
+    /**
+     * Hide a mission
+     */
+    function hideMission () {
+        svl.ui.modalMission.holder.css('visibility', 'hidden');
+        svl.ui.modalMission.foreground.css('visibility', "hidden");
+        $(".leaflet-control-attribution").remove();
+    }
+
+    /** 
+     * Show a mission
+     */
+    function show () {
+        svl.ui.modalMission.holder.css('visibility', 'visible');
+        svl.ui.modalMission.foreground.css('visibility', "visible");
+
+        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            if (neighborhood) {
+                var center = neighborhood.center();
+                neighborhood.addTo(map);
+                if (center) {
+                    map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
+                }
+            }
+        }
+    }
+
+    _init();
+
+    self.show = show;
     return self;
 }
 
@@ -10620,12 +10711,41 @@ svl.zoomFactor = {
 function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
+            layer: null,
             regionId: null
+        },
+        status = {
+            layerAdded: false
         };
 
-    /** Initialize */
+    /**
+     * Initialize
+     */
     function _init (parameters) {
-        if ('regionId' in parameters) setProperty("regionId", parameters.regionId)
+        if ('regionId' in parameters) setProperty("regionId", parameters.regionId);
+        if ("layer" in parameters) setProperty("layer", parameters.layer);
+    }
+
+    /**
+     * Add a layer to the map
+     * @param map
+     */
+    function addTo(map) {
+        if (map && properties.layer && !status.layerAdded) {
+            status.layerAdded = true;
+            properties.layer.addTo(map);
+            properties.layer.setStyle({
+                color: "red", fillColor: "red"
+            });
+        }
+    }
+
+    /**
+     * Return the center of this polygon
+     * @returns {null}
+     */
+    function center () {
+        return properties.layer ? turf.center(parameters.layer.toGeoJSON()) : null;
     }
 
     /** Get property */
@@ -10641,6 +10761,8 @@ function Neighborhood (parameters) {
 
     _init(parameters);
 
+    self.addTo = addTo;
+    self.center = center;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     return self;
@@ -10735,10 +10857,11 @@ function NeighborhoodFactory () {
     /**
      * Create a neighborhood instance.
      * @param regionId
+     * @param layer Leaflet layer
      * @returns {Neighborhood}
      */
-    function create (regionId) {
-        return new Neighborhood({regionId: regionId});
+    function create (regionId, layer) {
+        return new Neighborhood({regionId: regionId, layer: layer});
     }
 
     self.create = create;

@@ -462,7 +462,6 @@ function Map ($, google, turf, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
 
-        // Todo. This method is expanding... Maybe use a pub-sub design so the code will be cleaner.
         if ("canvas" in svl && svl.canvas) updateCanvas();
         if ("compass" in svl) svl.compass.update();
         if ("missionProgress" in svl) svl.missionProgress.update();

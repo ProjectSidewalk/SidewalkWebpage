@@ -133,7 +133,7 @@ function initializeNeighborhoodPolygons(map) {
                 zoom = map.getZoom();
             zoom = zoom > 14 ? zoom : 14;
 
-            map.setView(latlng, zoom, {animate: true});
+            map.setView(latlng, zoom, { animate: true });
             currentLayer = this;
         });
     }

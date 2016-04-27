@@ -33,9 +33,6 @@
                         Feedback
                     </div>
                 </div>
-                @*<div id="comment-textarea-holder">*@
-                @*<textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>*@
-                @*</div>*@
             </div>
             <div id="ribbon-menu-holder">
                 <span id="ribbon-menu-left-column-holder">
@@ -73,7 +70,7 @@
                             <span class="modeSwitch_Name"><u>M</u>issing Curb Ramp</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="NoCurbRamp"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="NoCurbRamp">
-                                <polygon points="0,0, 0,20, 20,20" class="no-curb-ramp" />
+                                <polygon points="0,0, 0,20, 20,20" class="no-curb-ramp"></polygon>
                                 <text x="3" y="20" fill="white">?</text>
                             </svg>
                         </span>
@@ -81,10 +78,10 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> Path</span>
+                            <span class="modeSwitch_Name"><span class="underline">O</span>bstacle in <br /> Path</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="Obstacle"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="Obstacle">
-                                <polygon points="0,0, 0,20, 20,20" class="obstacle" />
+                                <polygon points="0,0, 0,20, 20,20" class="obstacle"></polygon>
                                 <text x="3" y="20" fill="white">?</text>
                             </svg>
                         </span>
@@ -92,7 +89,7 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><u>S</u>urface Problem</span>
+                            <span class="modeSwitch_Name"><span class="underline">S</span>urface Problem</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="SurfaceProblem"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="SurfaceProblem">
                                 <polygon points="0,0, 0,20, 20,20" class="surface-problem" />
@@ -133,9 +130,9 @@
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
                     @if(!user) {
-                        <h2>Washington, D.C.</h2>
+                    <h2>Washington, D.C.</h2>
                     } else {
-                        <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
+                    <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
                     }
                     <div class="status-row">
                         <span class="status-column-half">
@@ -180,7 +177,6 @@
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClick.png")' id="double-click-icon" width="200" alt="Double click icon"/>
                         </div>
                     </div>
-
                     <div id="userControlLayer"  class="Window_StreetView" style="z-index: 0;">
                         <div id="viewControlLayer"  class="Window_StreetView" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
                             <!-- In IE, it seems like a div element that has nothing inside gets neglected...
@@ -247,8 +243,6 @@
                         <div id="context-menu-vertical-connector"></div>
                     </div>
                 </div>
-
-
             </div>
             <div id="google-maps-holder">
                 <div id="google-maps" class="google-maps-pane" style=""></div>
@@ -260,7 +254,6 @@
                     <div id="compass-message-connector"></div>
                 </div>
             </div>
-
             <div id="page-overlay-holder">
                 <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
             </div>
@@ -295,7 +288,6 @@
                             <button class="button" id="modal-skip-cancel-button">Cancel</button>
                         </div>
                     </div>
-
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -315,9 +307,56 @@
                     </form>
                 </div>
             </div>
-            <div id="modal-mission-holder" class="hidden">
+            <div id="modal-mission-holder">
                 <div id="modal-mission-background"></div>
-                <div id="modal-mission-box">
+                <div id="modal-mission-foreground">
+                    <h1>Current Mission: <span class="normal">Audit Columnbia Heights (10% Complete)</span></h1>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div id="modal-mission-map"></div>
+                        </div>
+                        <div class="col-sm-6">
+                            <h2>Mission Labels</h2>
+                            <table class="table">
+                                <tr>
+                                    <th class="width-50-percent">Curb Ramp</th>
+                                    <td>23</td>
+                                </tr>
+                                <tr>
+                                    <th>Missing Curb Ramp</th>
+                                    <td>2</td>
+                                </tr>
+                                <tr>
+                                    <th>Obstacle in Path</th>
+                                    <td>5</td>
+                                </tr>
+                                <tr>
+                                    <th>Surface Problem</th>
+                                    <td>1</td>
+                                </tr>
+                                <tr>
+                                    <th>Other</th>
+                                    <td>1</td>
+                                </tr>
+                            </table>
+                            <h2>Mission Progress</h2>
+                            <table class="table">
+                                <tr>
+                                    <th class="width-50-percent">Total miles audited so far</th>
+                                    <td>23</td>
+                                </tr>
+                                <tr>
+                                    <th>Total miles audited in this mission</th>
+                                    <td>2</td>
+                                </tr>
+                                <tr>
+                                    <th>Total miles remaining in this neighborhood</th>
+                                    <td>5</td>
+                                </tr>
+                            </table>
+                            <button class="button" id="modal-mission-close-button">OK</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="modal-curb-ramp-example" class="hidden">
@@ -671,8 +710,10 @@
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
+                mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
             } else {
                 mainParam.regionId = 1;
+                mainParam.regionLayer = null;
             }
 
             svl.main = Main($, d3, google, turf, mainParam);
