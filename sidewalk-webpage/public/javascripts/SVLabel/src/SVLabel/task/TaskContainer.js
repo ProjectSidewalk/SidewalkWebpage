@@ -315,6 +315,9 @@ function TaskContainer (turf) {
      */
     function setCurrentTask (task) {
         currentTask = task;
+        if ("tracker" in svl) {
+            svl.tracker.push('TaskStart');
+        }
 
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
