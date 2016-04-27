@@ -53,7 +53,7 @@ function MissionContainer ($, parameters) {
      * @param regionId
      * @param mission
      */
-    function add(regionId, mission) {
+    function addAMission(regionId, mission) {
         if (regionId || regionId === 0) {
             if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
         } else {
@@ -137,7 +137,12 @@ function MissionContainer ($, parameters) {
         return completedMissions;
     }
 
-    /** Get all the completed missions with the given region id */
+    /**
+     * Get all the completed missions with the given region id
+     *
+     * @param regionId A region id
+     * @returns {*}
+     */
     function getMissionsByRegionId (regionId) {
         if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
         var missions = missionStoreByRegionId[regionId];
@@ -168,6 +173,9 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    /**
+     *
+     */
     function refresh () {
         missionStoreByRegionId = { "noRegionId" : []};
         completedMissions = [];
@@ -182,6 +190,7 @@ function MissionContainer ($, parameters) {
      */
     function setCurrentMission (mission) {
         currentMission = mission;
+        mission.computeRoute();
 
         if ("missionProgress" in svl) {
             svl.missionProgress.update();
@@ -201,7 +210,7 @@ function MissionContainer ($, parameters) {
     _init(parameters);
 
     self.addToCompletedMissions = addToCompletedMissions;
-    self.add = add;
+    self.add = addAMission;
     self.commit = commit;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;

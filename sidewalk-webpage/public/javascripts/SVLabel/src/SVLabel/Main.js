@@ -250,8 +250,9 @@ function Main ($, d3, google, turf, params) {
                     neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
                     mission;
 
-                // Set the current mission to onboarding or something else.
+                // Set the current mission
                 if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
+                    // Set the current mission to onboarding
                     svl.onboarding = Onboarding($);
                     mission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
                     if (!mission) {
@@ -261,6 +262,7 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 } else {
+                    // Set the current mission to either the initial-mission or something else.
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
                         var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
@@ -268,6 +270,11 @@ function Main ($, d3, google, turf, params) {
                         mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
                     }
                     svl.missionContainer.setCurrentMission(mission);
+
+                    // Compute the route for the current mission
+                    var currentTask = svl.taskContainer.getCurrentTask();
+                    var route = mission.computeRoute(currentTask);
+                    mission.setRoute(route);
                 }
 
                 // Check if this an anonymous user or not.

@@ -80,6 +80,101 @@ function TaskContainer (turf) {
         return task;
     }
 
+
+    /**
+     * Fetch a task based on the street id.
+     * @param regionId
+     * @param streetEdgeId
+     * @param callback
+     * @param async
+     */
+    function fetchATask(regionId, streetEdgeId, callback, async) {
+        if (typeof async == "undefined") async = true;
+        $.ajax({
+            url: "/task/street/" + streetEdgeId,
+            type: 'get',
+            success: function (json) {
+                var lat1 = json.features[0].geometry.coordinates[0][1],
+                    lng1 = json.features[0].geometry.coordinates[0][0],
+                    newTask = svl.taskFactory.create(json, lat1, lng1);
+                if (json.features[0].properties.completed) newTask.complete();
+                storeTask(regionId, newTask);
+                if (callback) callback();
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
+
+    /**
+     * Request the server to populate tasks
+     * @param regionId {number} Region id
+     * @param callback A callback function
+     * @param async {boolean}
+     */
+    function fetchTasksInARegion(regionId, callback, async) {
+        if (typeof async == "undefined") async = true;
+
+        if (typeof regionId == "number") {
+            $.ajax({
+                url: "/tasks?regionId=" + regionId,
+                async: async,
+                type: 'get',
+                success: function (result) {
+                    var task;
+                    for (var i = 0; i < result.length; i++) {
+                        task = svl.taskFactory.create(result[i]);
+                        if ((result[i].features[0].properties.completed)) task.complete();
+                        storeTask(regionId, task);
+                    }
+
+                    if (callback) callback();
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        } else {
+            console.error("regionId should be an integer value");
+        }
+    }
+
+    /**
+     * Find tasks (i.e., street edges) in the region that are connected to the given task.
+     * @param regionId {number} Region id
+     * @param taskIn {object} Task
+     * @param threshold {number} Distance threshold
+     * @param unit {string} Distance unit
+     * @returns {Array}
+     */
+    function findConnectedTask (regionId, taskIn, threshold, unit) {
+        var i,
+            len,
+            tasks = getTasksInRegion(regionId),
+            connectedTasks = [];
+
+        if (!threshold) threshold = 0.01;  // 0.01 km.
+        if (!unit) unit = "kilometers";
+
+        tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+
+        if (taskIn) {
+            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+            len = tasks.length;
+
+            for (i = 0; i < len; i++) {
+                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                    connectedTasks.push(tasks[i]);
+                }
+            }
+            return connectedTasks;
+        } else {
+            return tasks;
+        }
+
+    }
+
     /**
      * Get the total distance of completed segments
      * @params {units} String can be degrees, radians, miles, or kilometers
@@ -173,41 +268,6 @@ function TaskContainer (turf) {
     }
 
     /**
-     * Find tasks (i.e., street edges) in the region that are connected to the given task.
-     * @param regionId {number} Region id
-     * @param taskIn {object} Task
-     * @param threshold {number} Distance threshold
-     * @param unit {string} Distance unit
-     * @returns {Array}
-     */
-    function findConnectedTask (regionId, taskIn, threshold, unit) {
-        var i,
-            len,
-            tasks = getTasksInRegion(regionId),
-            connectedTasks = [];
-
-        if (!threshold) threshold = 0.01;  // 0.01 km.
-        if (!unit) unit = "kilometers";
-
-        tasks = tasks.filter(function (t) { return !t.isCompleted(); });
-
-        if (taskIn) {
-            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
-            len = tasks.length;
-
-            for (i = 0; i < len; i++) {
-                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                    connectedTasks.push(tasks[i]);
-                }
-            }
-            return connectedTasks;
-        } else {
-            return tasks;
-        }
-
-    }
-
-    /**
      * Get the next task and set it as a current task.
      * @param task Current task
      * @returns {*} Next task
@@ -249,67 +309,6 @@ function TaskContainer (turf) {
     }
 
     /**
-     * Fetch a task based on the street id.
-     * @param regionId
-     * @param streetEdgeId
-     * @param callback
-     * @param async
-     */
-    function fetchATask(regionId, streetEdgeId, callback, async) {
-        if (typeof async == "undefined") async = true;
-        $.ajax({
-            url: "/task/street/" + streetEdgeId,
-            type: 'get',
-            success: function (json) {
-                var lat1 = json.features[0].geometry.coordinates[0][1],
-                    lng1 = json.features[0].geometry.coordinates[0][0],
-                    newTask = svl.taskFactory.create(json, lat1, lng1);
-                if (json.features[0].properties.completed) newTask.complete();
-                storeTask(regionId, newTask);
-                if (callback) callback();
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
-    }
-    
-    /**
-     * Request the server to populate tasks
-     * @param regionId {number} Region id
-     * @param callback A callback function
-     * @param async {boolean}
-     */
-    function fetchTasksInARegion(regionId, callback, async) {
-        if (typeof async == "undefined") async = true;
-
-        if (typeof regionId == "number") {
-            $.ajax({
-                url: "/tasks?regionId=" + regionId,
-                async: async,
-                type: 'get',
-                success: function (result) {
-                    var task;
-                    for (var i = 0; i < result.length; i++) {
-                        task = svl.taskFactory.create(result[i]);
-                        if ((result[i].features[0].properties.completed)) task.complete();
-                        storeTask(regionId, task);
-                    }
-
-                    if (callback) callback();
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-        } else {
-            console.error("regionId should be an integer value");
-        }
-    }
-    
-
-
-    /**
      * Set the current task
      * @param task
      */
@@ -337,6 +336,22 @@ function TaskContainer (turf) {
             return task.getProperty("streetEdgeId");
         });
         if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+    }
+    
+    /**
+     *
+     * @param regionId
+     */
+    function totalLineDistanceInARegion(regionId, unit) {
+        if (!unit) unit = "kilometers";
+        var tasks = getTasksInRegion(regionId);
+
+        if (tasks) {
+            var distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
+            return distanceArray.sum();
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -386,6 +401,7 @@ function TaskContainer (turf) {
 
     self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
+    self.totalLineDistanceInARegion = totalLineDistanceInARegion;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
 

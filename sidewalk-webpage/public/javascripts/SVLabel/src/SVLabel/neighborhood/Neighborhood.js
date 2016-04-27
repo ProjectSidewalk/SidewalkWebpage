@@ -19,7 +19,10 @@ function Neighborhood (parameters) {
      * Initialize
      */
     function _init (parameters) {
-        if ('regionId' in parameters) setProperty("regionId", parameters.regionId);
+        if ('regionId' in parameters) {
+            setProperty("regionId", parameters.regionId);
+            self.regionId = parameters.regionId;  // for debugging
+        }
         if ("layer" in parameters) setProperty("layer", parameters.layer);
     }
 

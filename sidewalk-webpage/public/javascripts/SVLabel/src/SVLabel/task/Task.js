@@ -313,6 +313,16 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
+     * Get the line distance of the task street edge
+     * @param unit
+     * @returns {*}
+     */
+    function lineDistance(unit) {
+        if (!unit) unit = "kilometers";
+        return turf.lineDistance(_geojson.features[0], unit);
+    }
+
+    /**
      * Get a distance between a point and a segment
      * @param point A Geojson Point feature
      * @param segment A Geojson LineString feature with two points
@@ -410,6 +420,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isAtEnd = isAtEnd;
     self.isCompleted = isCompleted;
     self.isConnectedTo = isConnectedTo;
+    self.lineDistance = lineDistance;
     self.render = render;
     self.reverseCoordinates = reverseCoordinates;
     self.setProperty = setProperty;

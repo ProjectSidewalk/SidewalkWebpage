@@ -5,10 +5,8 @@ function NeighborhoodStatus () {
         if (svl.ui.status.neighborhoodLink) {
             svl.ui.status.neighborhoodLink.attr("href", hrefString)
         }
-
     }
 
     self.setHref = setHref;
-
     return self;
 }

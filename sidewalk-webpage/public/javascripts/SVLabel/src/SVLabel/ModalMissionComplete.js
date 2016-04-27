@@ -32,6 +32,17 @@ function ModalMissionComplete ($, L) {
         svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
     }
 
+    function _updateNeighborhoodDistanceBarGraph(regionId, mission, unit) {
+        if (!unit) unit = "kilometers";
+        var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit),
+            totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit),
+            missionDistance = mission.lineDistance(unit);
+
+        if (completedTaskDistance && totalLineDistance && missionDistance) {
+            console.debug("Update the visualization");
+        }
+    }
+
     /**
      * Get a property
      * @param key
@@ -76,11 +87,15 @@ function ModalMissionComplete ($, L) {
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             if (neighborhood) {
+                // Focus on the current region on the map
                 var center = neighborhood.center();
                 neighborhood.addTo(map);
                 if (center) {
                     map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
                 }
+
+                // Update the horizontal bar chart to show how much distance the user has audited
+                _updateNeighborhoodDistanceBarGraph(neighborhood.getProperty("regionId"), mission);
             }
         }
     }

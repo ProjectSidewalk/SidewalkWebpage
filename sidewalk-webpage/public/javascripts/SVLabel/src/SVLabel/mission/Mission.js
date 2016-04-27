@@ -18,8 +18,9 @@ function Mission(parameters) {
             badgeURL: null,
             distance: null,
             coverage: null
-        };
-
+        },
+        _tasksForTheMission = [];
+    
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
@@ -122,6 +123,40 @@ function Mission(parameters) {
     }
 
     /**
+     * Total line distance of the completed tasks in this mission
+     * @param unit
+     */
+    function completedLineDistance (unit) {
+        if (!unit) unit = "kilometers";
+        var completedTasks = _tasksForTheMission.filter(function (t) { return t.isCompleted(); });
+        var distances = completedTasks.map(function (t) { return t.lineDistance(unit); });
+        return distances.sum();
+    }
+
+    /**
+     *
+     * @param currentTask
+     * @param unit
+     * @returns {*}
+     */
+    function computeRoute (currentTask, unit) {
+        if ("taskContainer" in svl && svl.taskContainer) {
+            if (!unit) unit = "kilometers";
+            var tmpDistance  = currentTask.lineDistance(unit);
+            var tasks = [currentTask];
+
+            while (properties.distance > tmpDistance) {
+                currentTask = svl.taskContainer.nextTask(currentTask);
+                tasks.push(currentTask);
+                tmpDistance +=  currentTask.lineDistance(unit);
+            }
+            return tasks;
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Compute and return the mission completion rate
      * @returns {number}
      */
@@ -143,15 +178,30 @@ function Mission(parameters) {
         return key in properties ? properties[key] : null;
     }
 
-    /** Check if the mission is completed or not */
+    /**
+     * Check if the mission is completed or not
+     * Todo. Shouldn't it be isComplete rather than isCompleted???
+     *
+     * @returns {boolean}
+     */
     function isCompleted () {
         return getProperty("isCompleted");
     }
 
-    /** Sets a property */
+    /**
+     * Sets a property
+     */
     function setProperty (key, value) {
         properties[key] = value;
         return this;
+    }
+
+    /**
+     * Set a route
+     * @param tasksInARoute An array of tasks
+     */
+    function setRoute (tasksInARoute) {
+        _tasksForTheMission = tasksInARoute;
     }
 
     /** Compute the remaining audit distance till complete (in meters) */
@@ -207,12 +257,15 @@ function Mission(parameters) {
     _init(parameters);
 
     self.complete = complete;
+    self.completedLineDistance = completedLineDistance;
+    self.computeRoute = computeRoute;
     self.getProperty = getProperty;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
+    self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
 
