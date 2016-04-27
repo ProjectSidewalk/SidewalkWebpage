@@ -36,9 +36,13 @@ function ModalMissionComplete ($, L) {
         if (!unit) unit = "kilometers";
         var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit),
             totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit),
-            missionDistance = mission.lineDistance(unit);
+            missionDistance = mission.getProperty("distance") / 1000;  // meters to km
 
-        if (completedTaskDistance && totalLineDistance && missionDistance) {
+        if (completedTaskDistance != null && totalLineDistance != null && missionDistance != null) {
+            var rateMission = missionDistance / totalLineDistance;
+            var rateCompleted = completedTaskDistance / missionDistance - rateMission;
+            
+
             console.debug("Update the visualization");
         }
     }
@@ -84,9 +88,10 @@ function ModalMissionComplete ($, L) {
         svl.ui.modalMission.holder.css('visibility', 'visible');
         svl.ui.modalMission.foreground.css('visibility', "visible");
 
-        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            if (neighborhood) {
+        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
+                mission = svl.missionContainer.getCurrentMission();
+            if (neighborhood && mission) {
                 // Focus on the current region on the map
                 var center = neighborhood.center();
                 neighborhood.addTo(map);

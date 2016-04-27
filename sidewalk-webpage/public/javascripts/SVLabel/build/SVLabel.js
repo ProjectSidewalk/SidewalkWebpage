@@ -5186,9 +5186,13 @@ function ModalMissionComplete ($, L) {
         if (!unit) unit = "kilometers";
         var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit),
             totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit),
-            missionDistance = mission.lineDistance(unit);
+            missionDistance = mission.getProperty("distance") / 1000;  // meters to km
 
-        if (completedTaskDistance && totalLineDistance && missionDistance) {
+        if (completedTaskDistance != null && totalLineDistance != null && missionDistance != null) {
+            var rateMission = missionDistance / totalLineDistance;
+            var rateCompleted = completedTaskDistance / missionDistance - rateMission;
+            
+
             console.debug("Update the visualization");
         }
     }
@@ -5234,9 +5238,10 @@ function ModalMissionComplete ($, L) {
         svl.ui.modalMission.holder.css('visibility', 'visible');
         svl.ui.modalMission.foreground.css('visibility', "visible");
 
-        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            if (neighborhood) {
+        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
+                mission = svl.missionContainer.getCurrentMission();
+            if (neighborhood && mission) {
                 // Focus on the current region on the map
                 var center = neighborhood.center();
                 neighborhood.addTo(map);
@@ -7575,8 +7580,11 @@ function TaskContainer (turf) {
     }
 
     function getIncompleteTasks (regionId) {
+        if (!regionId && regionId !== 0) {
+            console.error("regionId is not specified")
+        }
         if (!(regionId in taskStoreByRegionId)) {
-            console.error("regionId is not specified");
+            console.error("regionId is not in taskStoreByRegionId. This is probably because you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
             return null;
         }
         if (!Array.isArray(taskStoreByRegionId[regionId])) {
@@ -7678,7 +7686,7 @@ function TaskContainer (turf) {
         });
         if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
-    
+
     /**
      *
      * @param regionId
@@ -7731,9 +7739,11 @@ function TaskContainer (turf) {
     self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.fetchTasksInARegion = fetchTasksInARegion;
+    self.findConnectedTask = findConnectedTask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
+    self.getIncompleteTasks = getIncompleteTasks;
     self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
@@ -7915,17 +7925,33 @@ function Mission(parameters) {
      * @returns {*}
      */
     function computeRoute (currentTask, unit) {
-        if ("taskContainer" in svl && svl.taskContainer) {
+        if ("taskContainer" in svl && svl.taskContainer && "neighborhoodContainer" in svl && svl.neighborhoodContainer) {
             if (!unit) unit = "kilometers";
             var tmpDistance  = currentTask.lineDistance(unit);
-            var tasks = [currentTask];
+            var tasksInARoute = [currentTask];
+            var targetDistance = properties.distance / 1000;
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var incompleteTasks = svl.taskContainer.getIncompleteTasks(neighborhood.getProperty("regionId"));
+            var connectedTasks;
+            var currentTaskIndex;
 
-            while (properties.distance > tmpDistance) {
-                currentTask = svl.taskContainer.nextTask(currentTask);
-                tasks.push(currentTask);
+            while (targetDistance > tmpDistance && incompleteTasks.length > 0) {
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedTo(currentTask) && tasksInARoute.indexOf(t) < 0});
+
+                if (connectedTasks.length > 0) {
+                    connectedTasks = svl.util.shuffle(connectedTasks);
+                    currentTask = connectedTasks[0];
+                } else {
+                    incompleteTasks = svl.util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
+                    currentTask = incompleteTasks[0];  // get the first item in the array
+                }
+                currentTaskIndex = incompleteTasks.indexOf(currentTask);
+                incompleteTasks.splice(currentTaskIndex, 1);  // Remove the current task from the incomplete tasks
+
+                tasksInARoute.push(currentTask);
                 tmpDistance +=  currentTask.lineDistance(unit);
             }
-            return tasks;
+            return tasksInARoute;
         } else {
             return null;
         }
@@ -7951,6 +7977,14 @@ function Mission(parameters) {
     /** Returns a property */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Get an array of tasks for this mission
+     * @returns {Array}
+     */
+    function getRoute () {
+        return _tasksForTheMission;
     }
 
     /**
@@ -8029,12 +8063,22 @@ function Mission(parameters) {
         };
     }
 
+    /**
+     * Total line distance in this mission.
+     * @param unit
+     */
+    function totalLineDistance (unit) {
+        var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
+        return distances.sum();
+    }
+
     _init(parameters);
 
     self.complete = complete;
     self.completedLineDistance = completedLineDistance;
     self.computeRoute = computeRoute;
     self.getProperty = getProperty;
+    self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
@@ -8043,6 +8087,7 @@ function Mission(parameters) {
     self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
+    self.totalLineDistance = totalLineDistance;
 
     return self;
 }
@@ -8071,7 +8116,7 @@ function MissionContainer ($, parameters) {
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
                     completed[i].level, completed[i].distance, completed[i].coverage, true);
-                add(completed[i].regionId, mission);
+                addAMission(completed[i].regionId, mission);
                 addToCompletedMissions(mission);
             }
 
@@ -8079,7 +8124,7 @@ function MissionContainer ($, parameters) {
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
                     incomplete[i].level, incomplete[i].distance, incomplete[i].coverage, false);
-                add(incomplete[i].regionId, mission);
+                addAMission(incomplete[i].regionId, mission);
             }
 
             // Set the current mission.
@@ -8225,7 +8270,7 @@ function MissionContainer ($, parameters) {
      *
      */
     function refresh () {
-        missionStoreByRegionId = { "noRegionId" : []};
+        missionStoreByRegionId = { "noRegionId" : [] };
         completedMissions = [];
         staged = [];
         currentMission = null;
@@ -8238,8 +8283,6 @@ function MissionContainer ($, parameters) {
      */
     function setCurrentMission (mission) {
         currentMission = mission;
-        mission.computeRoute();
-
         if ("missionProgress" in svl) {
             svl.missionProgress.update();
         }
@@ -11387,6 +11430,7 @@ function shuffle(array) {
 
     return copy;
 }
+svl.util.shuffle = shuffle;
 
 
 var svl = svl || {};

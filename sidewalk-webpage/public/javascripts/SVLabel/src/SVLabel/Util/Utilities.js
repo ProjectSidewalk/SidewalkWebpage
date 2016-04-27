@@ -210,4 +210,5 @@ function shuffle(array) {
 
     return copy;
 }
+svl.util.shuffle = shuffle;
 

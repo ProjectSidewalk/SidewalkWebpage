@@ -234,8 +234,11 @@ function TaskContainer (turf) {
     }
 
     function getIncompleteTasks (regionId) {
+        if (!regionId && regionId !== 0) {
+            console.error("regionId is not specified")
+        }
         if (!(regionId in taskStoreByRegionId)) {
-            console.error("regionId is not specified");
+            console.error("regionId is not in taskStoreByRegionId. This is probably because you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
             return null;
         }
         if (!Array.isArray(taskStoreByRegionId[regionId])) {
@@ -337,7 +340,7 @@ function TaskContainer (turf) {
         });
         if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
-    
+
     /**
      *
      * @param regionId
@@ -390,9 +393,11 @@ function TaskContainer (turf) {
     self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.fetchTasksInARegion = fetchTasksInARegion;
+    self.findConnectedTask = findConnectedTask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
+    self.getIncompleteTasks = getIncompleteTasks;
     self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;

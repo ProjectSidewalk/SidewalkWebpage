@@ -140,17 +140,33 @@ function Mission(parameters) {
      * @returns {*}
      */
     function computeRoute (currentTask, unit) {
-        if ("taskContainer" in svl && svl.taskContainer) {
+        if ("taskContainer" in svl && svl.taskContainer && "neighborhoodContainer" in svl && svl.neighborhoodContainer) {
             if (!unit) unit = "kilometers";
             var tmpDistance  = currentTask.lineDistance(unit);
-            var tasks = [currentTask];
+            var tasksInARoute = [currentTask];
+            var targetDistance = properties.distance / 1000;
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var incompleteTasks = svl.taskContainer.getIncompleteTasks(neighborhood.getProperty("regionId"));
+            var connectedTasks;
+            var currentTaskIndex;
 
-            while (properties.distance > tmpDistance) {
-                currentTask = svl.taskContainer.nextTask(currentTask);
-                tasks.push(currentTask);
+            while (targetDistance > tmpDistance && incompleteTasks.length > 0) {
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedTo(currentTask) && tasksInARoute.indexOf(t) < 0});
+
+                if (connectedTasks.length > 0) {
+                    connectedTasks = svl.util.shuffle(connectedTasks);
+                    currentTask = connectedTasks[0];
+                } else {
+                    incompleteTasks = svl.util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
+                    currentTask = incompleteTasks[0];  // get the first item in the array
+                }
+                currentTaskIndex = incompleteTasks.indexOf(currentTask);
+                incompleteTasks.splice(currentTaskIndex, 1);  // Remove the current task from the incomplete tasks
+
+                tasksInARoute.push(currentTask);
                 tmpDistance +=  currentTask.lineDistance(unit);
             }
-            return tasks;
+            return tasksInARoute;
         } else {
             return null;
         }
@@ -176,6 +192,14 @@ function Mission(parameters) {
     /** Returns a property */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Get an array of tasks for this mission
+     * @returns {Array}
+     */
+    function getRoute () {
+        return _tasksForTheMission;
     }
 
     /**
@@ -254,12 +278,22 @@ function Mission(parameters) {
         };
     }
 
+    /**
+     * Total line distance in this mission.
+     * @param unit
+     */
+    function totalLineDistance (unit) {
+        var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
+        return distances.sum();
+    }
+
     _init(parameters);
 
     self.complete = complete;
     self.completedLineDistance = completedLineDistance;
     self.computeRoute = computeRoute;
     self.getProperty = getProperty;
+    self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
@@ -268,6 +302,7 @@ function Mission(parameters) {
     self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
+    self.totalLineDistance = totalLineDistance;
 
     return self;
 }

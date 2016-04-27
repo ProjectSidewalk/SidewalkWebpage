@@ -23,7 +23,7 @@ function MissionContainer ($, parameters) {
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
                     completed[i].level, completed[i].distance, completed[i].coverage, true);
-                add(completed[i].regionId, mission);
+                addAMission(completed[i].regionId, mission);
                 addToCompletedMissions(mission);
             }
 
@@ -31,7 +31,7 @@ function MissionContainer ($, parameters) {
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
                     incomplete[i].level, incomplete[i].distance, incomplete[i].coverage, false);
-                add(incomplete[i].regionId, mission);
+                addAMission(incomplete[i].regionId, mission);
             }
 
             // Set the current mission.
@@ -177,7 +177,7 @@ function MissionContainer ($, parameters) {
      *
      */
     function refresh () {
-        missionStoreByRegionId = { "noRegionId" : []};
+        missionStoreByRegionId = { "noRegionId" : [] };
         completedMissions = [];
         staged = [];
         currentMission = null;
@@ -190,8 +190,6 @@ function MissionContainer ($, parameters) {
      */
     function setCurrentMission (mission) {
         currentMission = mission;
-        mission.computeRoute();
-
         if ("missionProgress" in svl) {
             svl.missionProgress.update();
         }
