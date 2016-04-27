@@ -3397,6 +3397,8 @@ function Main ($, d3, google, turf, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = PointCloud({ panoIds: [panoId] });
         svl.tracker = Tracker();
+        svl.tracker.push('TaskStart');
+        // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
@@ -3504,9 +3506,7 @@ function Main ($, d3, google, turf, params) {
         svl.form.disableSubmit();
         svl.form.setTaskRemaining(1);
         svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);      
-        
-        svl.tracker.push('TaskStart');
+        svl.form.setTaskPanoramaId(panoId);
         
         // Set map parameters and instantiate it.
         var mapParam = {};
@@ -7623,6 +7623,9 @@ function TaskContainer (turf) {
      */
     function setCurrentTask (task) {
         currentTask = task;
+        if ("tracker" in svl) {
+            svl.tracker.push('TaskStart');
+        }
 
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
