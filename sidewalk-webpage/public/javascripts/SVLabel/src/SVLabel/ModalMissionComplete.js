@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function ModalMissionComplete ($, L) {
+function ModalMissionComplete ($, d3, L) {
     var self = { className : 'ModalMissionComplete'},
         properties = {
             boxTop: 180,
@@ -13,10 +13,8 @@ function ModalMissionComplete ($, L) {
             boxWidth: 640
         };
 
+    // Map visualization
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
-
-    // Construct a bounding box for this map that the user cannot move out of
-    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
     var southWest = L.latLng(38.761, -77.262),
         northEast = L.latLng(39.060, -76.830),
         bounds = L.latLngBounds(southWest, northEast),
@@ -26,6 +24,47 @@ function ModalMissionComplete ($, L) {
                 minZoom: 9
             })
             .fitBounds(bounds);
+
+    // Bar chart visualization
+    // Todo. This can be cleaned up!!!
+    var svgWidth = 335,
+        svgHeight = 20;
+    var svg = d3.select("#modal-mission-complete-bar")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+    var gBackground = svg.append("g").attr("class", "g-background");
+    var horizontalBarBackground = gBackground.selectAll("rect")
+        .data([1])
+        .enter().append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "rgba(200, 200, 200, 1)")
+        .attr("height", svgHeight)
+        .attr("width", svgWidth);
+
+    var gBarChart = svg.append("g").attr("class", "g-bar-chart");
+    var previousContribution = [0];
+    var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
+        .data(previousContribution)
+        .enter().append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "steelblue")
+        .attr("height", svgHeight)
+        .attr("width", 0);
+
+    var gBarChart2 = svg.append("g").attr("class", "g-bar-chart");
+    var horizontalBarMission = gBarChart2.selectAll("rect")
+        .data([0])
+        .enter().append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "yellow")
+        .attr("height", svgHeight)
+        .attr("width", 0);
+
 
     function _init () {
         svl.ui.modalMission.background.on("click", handleBackgroundClick);
@@ -39,9 +78,21 @@ function ModalMissionComplete ($, L) {
             missionDistance = mission.getProperty("distance") / 1000;  // meters to km
 
         if (completedTaskDistance != null && totalLineDistance != null && missionDistance != null) {
-            var rateMission = missionDistance / totalLineDistance;
-            var rateCompleted = completedTaskDistance / missionDistance - rateMission;
-            
+            var rateMission = 0.3; // missionDistance / totalLineDistance;
+            var rateCompleted = 0.5; // Math.max(completedTaskDistance / missionDistance - rateMission, 0);
+
+            horizontalBarPreviousContribution.attr("width", 0)
+                .transition()
+                .delay(200)
+                .duration(300)
+                .attr("width", rateCompleted * svgWidth);
+
+            horizontalBarMission.attr("width", 0)
+                .attr("x", rateCompleted * svgWidth)
+                .transition()
+                .delay(600)
+                .duration(300)
+                .attr("width", rateMission * svgWidth);
 
             console.debug("Update the visualization");
         }

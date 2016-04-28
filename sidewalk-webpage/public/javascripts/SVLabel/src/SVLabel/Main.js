@@ -214,7 +214,7 @@ function Main ($, d3, google, turf, params) {
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
-        svl.modalMissionComplete = ModalMissionComplete($, L);
+        svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
         svl.panoramaContainer = PanoramaContainer(google);
 
