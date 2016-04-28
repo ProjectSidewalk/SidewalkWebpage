@@ -132,6 +132,9 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalMission.foreground = $("#modal-mission-foreground");
         svl.ui.modalMission.background = $("#modal-mission-background");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
+        svl.ui.modalMission.totalAuditedDistance = $("#modal-mission-total-audited-distance");
+        svl.ui.modalMission.missionDistance = $("#modal-mission-mission-distance");
+        svl.ui.modalMission.remainingDistance = $("#modal-mission-remaining-distance");
 
         // Zoom control
         svl.ui.zoomControl = {};

@@ -88,30 +88,6 @@ input[type="radio"] {
     width: 15px;
 }
 
-.HorizontalLine_SolidGray {
-    border-bottom: 1px solid rgba(90,90,90,0.5);
-}
-
-.VerticalLine_ThinDottedGray {
-    border-left: 1px dotted #ccc;
-    margin-bottom: 1px;
-    margin-left: 0px;
-    margin-right: 0px;
-    margin-top: 1px;
-}
-
-.VerticalLine_Solid {
-    /* border-top: 3px solid rgba(0,0,0,1); */
-    background: black;
-    /* Position */
-    border-left: 1px solid #ccc;
-
-    margin-bottom: 1px;
-    margin-left: 0px;
-    margin-right: 0px;
-    margin-top: 1px;
-}
-
 .underline {
     text-decoration: underline;
 }

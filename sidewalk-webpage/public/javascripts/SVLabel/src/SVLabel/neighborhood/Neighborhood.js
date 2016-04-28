@@ -30,13 +30,12 @@ function Neighborhood (parameters) {
      * Add a layer to the map
      * @param map
      */
-    function addTo(map) {
+    function addTo(map, layerStyle) {
         if (map && properties.layer && !status.layerAdded) {
+            layerStyle = { color: "rgb(161,217,155)", opacity: 0.5, fillColor: "rgb(255,255,255)", fillOpacity: 0.5, weight: 0 } || layerStyle;
             status.layerAdded = true;
             properties.layer.addTo(map);
-            properties.layer.setStyle({
-                color: "red", fillColor: "red"
-            });
+            properties.layer.setStyle(layerStyle);
         }
     }
 
@@ -46,6 +45,16 @@ function Neighborhood (parameters) {
      */
     function center () {
         return properties.layer ? turf.center(parameters.layer.toGeoJSON()) : null;
+    }
+    
+    function completedLineDistance (unit) {
+        if (!unit) unit = "kilometers";
+        if ("taskContainer" in svl && svl.taskContainer) {
+            return svl.taskContainer.getCompletedTaskDistance(getProperty("regionId"), unit);
+        } else {
+            return null;
+        }
+        
     }
 
     /** Get property */
@@ -59,11 +68,22 @@ function Neighborhood (parameters) {
         return this;
     }
 
+    function totalLineDistanceInARegion (unit) {
+        if (!unit) unit = "kilometers";
+        if ("taskContainer" in svl && svl.taskContainer) {
+            return svl.taskContainer.totalLineDistanceInARegion(getProperty("regionId"), unit);
+        } else {
+            return null;
+        }
+    }
+
     _init(parameters);
 
     self.addTo = addTo;
     self.center = center;
+    self.completedLineDistance = completedLineDistance;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
+    self.totalLineDistance = totalLineDistanceInARegion;
     return self;
 }

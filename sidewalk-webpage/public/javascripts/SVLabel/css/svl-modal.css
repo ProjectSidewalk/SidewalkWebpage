@@ -55,7 +55,8 @@
 
 #modal-mission-foreground th, #modal-mission-foreground td {
     padding: 3px;
-    font-size: 10.5pt;
+    font-size: 9pt;
+    font-weight: normal;
 }
 
 .leaflet-control-attribution {

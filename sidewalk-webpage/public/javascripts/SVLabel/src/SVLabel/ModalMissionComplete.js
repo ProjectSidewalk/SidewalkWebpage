@@ -24,6 +24,17 @@ function ModalMissionComplete ($, d3, L) {
                 minZoom: 9
             })
             .fitBounds(bounds);
+    var overlayPolygon = {
+        "type": "FeatureCollection",
+        "features": [{"type": "Feature", "geometry": {
+            "type": "Polygon", "coordinates": [
+                [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+            ]}}]};
+    var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
+    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)"});
+
+    var missionLayer = [],
+        completeTaskLayer = [];
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
@@ -66,7 +77,6 @@ function ModalMissionComplete ($, d3, L) {
         })
         .style("visibility", "visible");
 
-
     var gBarChart2 = svg.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
         .data([0])
@@ -95,38 +105,67 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
     }
 
-    function _updateNeighborhoodDistanceBarGraph(regionId, mission, unit) {
+    function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
         if (!unit) unit = "kilometers";
-        var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit),
-            totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit),
-            missionDistance = mission.getProperty("distance") / 1000;  // meters to km
+        svl.ui.modalMission.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMission.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMission.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
+    }
 
-        if (completedTaskDistance != null && totalLineDistance != null && missionDistance != null) {
-            var rateMission = 0.3; // missionDistance / totalLineDistance;
-            var rateCompleted = 0.5; // Math.max(completedTaskDistance / missionDistance - rateMission, 0);
+    function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
+        // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+        // var missionTasks = mission.getRoute();
 
-            // Update the visualization
-            horizontalBarPreviousContribution.attr("width", 0)
-                .transition()
-                .delay(200)
-                .duration(800)
-                .attr("width", rateCompleted * svgWidth);
-            horizontalBarPreviousContributionLabel.transition()
-                .delay(200)
-                .text(parseInt(rateCompleted * 100, 10) + "%");
+        if (completedTasks && missionTasks) {
+            // Add layers http://leafletjs.com/reference.html#map-addlayer
+            var i, len, geojsonFeature, layer,
+                completedTaskLayerStyle = { color: "rgb(128, 128, 128)", opacity: 1, weight: 3 },
+                missionTaskLayerStyle = { color: "rgb(49,130,189)", opacity: 1, weight: 3 };
 
-            horizontalBarMission.attr("width", 0)
-                .attr("x", rateCompleted * svgWidth)
-                .transition()
-                .delay(1000)
-                .duration(500)
-                .attr("width", rateMission * svgWidth);
-            horizontalBarMissionLabel.attr("x", rateCompleted * svgWidth + 3)
-                .transition().delay(1000)
-                .text(parseInt(rateMission * 100, 10) + "%");
+            // Add the completed task layer
+            len = completedTasks.length;
+            for (i = 0; i < len; i++) {
+                geojsonFeature = completedTasks[i].getFeature();
+                layer = L.geoJson(geojsonFeature).addTo(map);
+                layer.setStyle(completedTaskLayerStyle);
+            }
 
-            console.debug("Update the visualization");
+            // Add the current mission layer
+            len = missionTasks.length;
+            for (i = 0; i < len; i++) {
+                geojsonFeature = missionTasks[i].getFeature();
+                layer = L.geoJson(geojsonFeature).addTo(map);
+                layer.setStyle(missionTaskLayerStyle);
+            }
         }
+    }
+
+
+    /**
+     * Update the bar graph visualization
+     * @param missionDistanceRate
+     * @param auditedDistanceRate
+     * @private
+     */
+    function _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate) {
+       horizontalBarPreviousContribution.attr("width", 0)
+           .transition()
+           .delay(200)
+           .duration(800)
+           .attr("width", auditedDistanceRate * svgWidth);
+       horizontalBarPreviousContributionLabel.transition()
+           .delay(200)
+           .text(parseInt(auditedDistanceRate * 100, 10) + "%");
+
+       horizontalBarMission.attr("width", 0)
+           .attr("x", auditedDistanceRate * svgWidth)
+           .transition()
+           .delay(1000)
+           .duration(500)
+           .attr("width", missionDistanceRate * svgWidth);
+       horizontalBarMissionLabel.attr("x", auditedDistanceRate * svgWidth + 3)
+           .transition().delay(1000)
+           .text(parseInt(missionDistanceRate * 100, 10) + "%");
     }
 
     /**
@@ -182,7 +221,23 @@ function ModalMissionComplete ($, d3, L) {
                 }
 
                 // Update the horizontal bar chart to show how much distance the user has audited
-                _updateNeighborhoodDistanceBarGraph(neighborhood.getProperty("regionId"), mission);
+                var unit = "miles";
+                var regionId = neighborhood.getProperty("regionId");
+                var auditedDistance = neighborhood.completedLineDistance(unit);
+                var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
+                var missionDistance = mission.totalLineDistance(unit);
+
+                var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+                var missionTasks = mission.getRoute();
+
+                var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit);
+                var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
+
+                var missionDistanceRate = missionDistance / totalLineDistance;
+                var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+                _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
+                _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
+                _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
             }
         }
     }

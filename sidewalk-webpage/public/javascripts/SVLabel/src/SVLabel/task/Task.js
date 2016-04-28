@@ -136,6 +136,14 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
+     * Get a geojson feature
+     * @returns {null}
+     */
+    function getFeature () {
+        return _geojson ? _geojson.features[0] : null;
+    }
+
+    /**
      * Get geojson
      * @returns {*}
      */
@@ -407,6 +415,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.getAuditTaskId = getAuditTaskId;
     self.getProperty = getProperty;
     self.getDistanceWalked = getDistanceWalked;
+    self.getFeature = getFeature;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
     self.getLastCoordinate = getLastCoordinate;

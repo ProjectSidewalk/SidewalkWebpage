@@ -177,11 +177,11 @@ function TaskContainer (turf) {
 
     /**
      * Get the total distance of completed segments
-     * @params {units} String can be degrees, radians, miles, or kilometers
+     * @params {unit} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in meters
      */
-    function getCompletedTaskDistance (regionId, units) {
-        if (!units) units = "kilometers";
+    function getCompletedTaskDistance (regionId, unit) {
+        if (!unit) unit = "kilometers";
 
         var completedTasks = getCompletedTasks(regionId),
             geojson,
@@ -195,10 +195,10 @@ function TaskContainer (turf) {
             for (i = 0; i < len; i++) {
                 geojson = completedTasks[i].getGeoJSON();
                 feature = geojson.features[0];
-                distance += turf.lineDistance(feature, units);
+                distance += turf.lineDistance(feature, unit);
             }
 
-            if (currentTask) distance += currentTask.getDistanceWalked(units);
+            if (currentTask) distance += currentTask.getDistanceWalked(unit);
 
             return distance;
         } else {
