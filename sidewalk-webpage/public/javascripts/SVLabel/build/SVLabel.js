@@ -5190,20 +5190,32 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(200, 200, 200, 1)")
+        .attr("fill", "rgba(240, 240, 240, 1)")
         .attr("height", svgHeight)
         .attr("width", svgWidth);
 
     var gBarChart = svg.append("g").attr("class", "g-bar-chart");
-    var previousContribution = [0];
     var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
-        .data(previousContribution)
+        .data([0])
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "steelblue")
+        .attr("fill", "rgba(23, 55, 94, 1)")
         .attr("height", svgHeight)
         .attr("width", 0);
+    var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
+        .data([""])
+        .enter().append("text")
+        .attr("x", 3)
+        .attr("y", 15)
+        .attr("dx", 3)
+        .attr("fill", "white")
+        .attr("font-size", "10pt")
+        .text(function (d) {
+            return d;
+        })
+        .style("visibility", "visible");
+
 
     var gBarChart2 = svg.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
@@ -5211,9 +5223,21 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "yellow")
+        .attr("fill", "rgba(0,112,192,1)")
         .attr("height", svgHeight)
         .attr("width", 0);
+    var horizontalBarMissionLabel = gBarChart2.selectAll("text")
+        .data([""])
+        .enter().append("text")
+        .attr("x", 3)
+        .attr("y", 15)
+        .attr("dx", 3)
+        .attr("fill", "white")
+        .attr("font-size", "10pt")
+        .text(function (d) {
+            return d;
+        })
+        .style("visibility", "visible");
 
 
     function _init () {
@@ -5231,18 +5255,25 @@ function ModalMissionComplete ($, d3, L) {
             var rateMission = 0.3; // missionDistance / totalLineDistance;
             var rateCompleted = 0.5; // Math.max(completedTaskDistance / missionDistance - rateMission, 0);
 
+            // Update the visualization
             horizontalBarPreviousContribution.attr("width", 0)
                 .transition()
                 .delay(200)
-                .duration(300)
+                .duration(800)
                 .attr("width", rateCompleted * svgWidth);
+            horizontalBarPreviousContributionLabel.transition()
+                .delay(200)
+                .text(parseInt(rateCompleted * 100, 10) + "%");
 
             horizontalBarMission.attr("width", 0)
                 .attr("x", rateCompleted * svgWidth)
                 .transition()
-                .delay(600)
-                .duration(300)
+                .delay(1000)
+                .duration(500)
                 .attr("width", rateMission * svgWidth);
+            horizontalBarMissionLabel.attr("x", rateCompleted * svgWidth + 3)
+                .transition().delay(1000)
+                .text(parseInt(rateMission * 100, 10) + "%");
 
             console.debug("Update the visualization");
         }
