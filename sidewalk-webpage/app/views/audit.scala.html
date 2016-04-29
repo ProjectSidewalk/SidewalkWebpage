@@ -308,55 +308,62 @@
                 </div>
             </div>
             <div id="modal-mission-holder">
-                <div id="modal-mission-background"></div>
-                <div id="modal-mission-foreground">
-                    <h1>Current Mission: <span class="normal">Audit Columnbia Heights (10% Complete)</span></h1>
+                <div id="modal-mission-background" class="modal-background"></div>
+                <div id="modal-mission-foreground" class="modal-foreground">
+                    <h1 id="modal-mission-title">Mission: Audit Columnbia Heights (10% Complete)</h1>
+                    <button class="button" id="modal-mission-close-button">OK</button>
+                </div>
+            </div>
+            <div id="modal-mission-complete-holder">
+                <div id="modal-mission-complete-background" class="modal-background"></div>
+                <div id="modal-mission-complete-foreground" class="modal-foreground">
+                    <h1>Current Mission: <span class="normal" id="modal-mission-complete-title">Audit Columnbia Heights (10% Complete)</span></h1>
                     <div class="row">
                         <div class="col-sm-6">
-                            <div id="modal-mission-map"></div>
+                            <div id="modal-mission-complete-map"></div>
                         </div>
                         <div class="col-sm-6">
                             <h2>Mission Labels</h2>
                             <table class="table">
                                 <tr>
                                     <th class="width-50-percent">Curb Ramp</th>
-                                    <td>23</td>
+                                    <td id="modal-mission-complete-curb-ramp-count"></td>
                                 </tr>
                                 <tr>
                                     <th>Missing Curb Ramp</th>
-                                    <td>2</td>
+                                    <td id="modal-mission-complete-no-curb-ramp-count"></td>
                                 </tr>
                                 <tr>
                                     <th>Obstacle in Path</th>
-                                    <td>5</td>
+                                    <td id="modal-mission-complete-obstacle-count"></td>
                                 </tr>
                                 <tr>
                                     <th>Surface Problem</th>
-                                    <td>1</td>
+                                    <td id="modal-mission-complete-surface-problem-count"></td>
                                 </tr>
                                 <tr>
                                     <th>Other</th>
-                                    <td>1</td>
+                                    <td id="modal-mission-complete-other-count"></td>
                                 </tr>
                             </table>
                             <h2>Neighborhood</h2>
                             <small>Coverage</small>
-                            <div id="modal-mission-complete-bar"></div>
+                            <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
                                 <tr>
                                     <th class="width-50-percent">Total miles audited so far</th>
-                                    <td id="modal-mission-total-audited-distance"></td>
+                                    <td id="modal-mission-complete-total-audited-distance"></td>
                                 </tr>
                                 <tr>
-                                    <th>Total miles audited in this mission</th>
-                                    <td id="modal-mission-mission-distance"></td>
+                                    <th>Miles audited in this mission</th>
+                                    <td id="modal-mission-complete-mission-distance"></td>
                                 </tr>
                                 <tr>
-                                    <th>Total miles remaining</th>
-                                    <td id="modal-mission-remaining-distance"></td>
+                                    <th>Neighborhood miles remaining</th>
+                                    <td id="modal-mission-complete-remaining-distance"></td>
                                 </tr>
                             </table>
-                            <button class="button" id="modal-mission-close-button">OK</button>
+                            <button class="button" id="modal-mission-complete-close-button">OK</button>
                         </div>
                     </div>
                 </div>

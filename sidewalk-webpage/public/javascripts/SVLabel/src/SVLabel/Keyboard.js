@@ -15,30 +15,17 @@ function Keyboard ($) {
     };
 
     var $textareaComment;
-    var $taskDifficultyComment;
-    var $inputSkipOther;
 
     function init () {
         if ('ui' in svl && 'form' in svl.ui) {
             $textareaComment = (svl.ui.form.commentField.length) > 0 ? svl.ui.form.commentField : null;
         }
-        $taskDifficultyComment = ($("#task-difficulty-comment").length > 0) ? $("#task-difficulty-comment") : null;
-        $inputSkipOther = ($("#Text_BusStopAbsenceOtherReason").length > 0) ? $("#Text_BusStopAbsenceOtherReason") : null;
 
         if ($textareaComment) {
           $textareaComment.bind('focus', textFieldFocus);
           $textareaComment.bind('blur', textFieldBlur);
         }
 
-        if ($taskDifficultyComment) {
-            $taskDifficultyComment.bind('focus', textFieldFocus);
-            $taskDifficultyComment.bind('blur', textFieldBlur);
-        }
-
-        if ($inputSkipOther) {
-          $inputSkipOther.bind('focus', textFieldFocus);
-          $inputSkipOther.bind('blur', textFieldBlur);
-        }
 
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
@@ -71,6 +58,10 @@ function Keyboard ($) {
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
+            // if ("contextMenu" in svl && svl.contextMenu) {
+            //     svl.contextMenu.hide();
+            // }
+
             switch (e.keyCode) {
                 // "Enter"
                 case 13:

@@ -18,7 +18,7 @@ function ModalMissionComplete ($, d3, L) {
     var southWest = L.latLng(38.761, -77.262),
         northEast = L.latLng(39.060, -76.830),
         bounds = L.latLngBounds(southWest, northEast),
-        map = L.mapbox.map('modal-mission-map', "kotarohara.8e0c6890", {
+        map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
                 maxBounds: bounds,
                 maxZoom: 19,
                 minZoom: 9
@@ -31,7 +31,7 @@ function ModalMissionComplete ($, d3, L) {
                 [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
             ]}}]};
     var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)"});
+    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
 
     var missionLayer = [],
         completeTaskLayer = [];
@@ -40,7 +40,7 @@ function ModalMissionComplete ($, d3, L) {
     // Todo. This can be cleaned up!!!
     var svgWidth = 335,
         svgHeight = 20;
-    var svg = d3.select("#modal-mission-complete-bar")
+    var svg = d3.select("#modal-mission-complete-complete-bar")
         .append("svg")
         .attr("width", svgWidth)
         .attr("height", svgHeight);
@@ -101,15 +101,25 @@ function ModalMissionComplete ($, d3, L) {
 
 
     function _init () {
-        svl.ui.modalMission.background.on("click", handleBackgroundClick);
-        svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
+        svl.ui.modalMissionComplete.background.on("click", handleBackgroundClick);
+        svl.ui.modalMissionComplete.closeButton.on("click", handleCloseButtonClick);
+
+        hideMissionComplete();
+    }
+
+    function _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
+        svl.ui.modalMissionComplete.curbRampCount.html(curbRampCount);
+        svl.ui.modalMissionComplete.noCurbRampCount.html(noCurbRampCount);
+        svl.ui.modalMissionComplete.obstacleCount.html(obstacleCount);
+        svl.ui.modalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
+        svl.ui.modalMissionComplete.otherCount.html(otherCount);
     }
 
     function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
         if (!unit) unit = "kilometers";
-        svl.ui.modalMission.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMission.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMission.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
     }
 
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
@@ -182,7 +192,7 @@ function ModalMissionComplete ($, d3, L) {
      * @param e
      */
     function handleBackgroundClick(e) {
-        hideMission();
+        hideMissionComplete();
     }
 
     /**
@@ -190,24 +200,30 @@ function ModalMissionComplete ($, d3, L) {
      * @param e
      */
     function handleCloseButtonClick(e) {
-        hideMission();
+        hideMissionComplete();
     }
 
     /**
      * Hide a mission
      */
-    function hideMission () {
-        svl.ui.modalMission.holder.css('visibility', 'hidden');
-        svl.ui.modalMission.foreground.css('visibility', "hidden");
+    function hideMissionComplete () {
+        svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
+        svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
+        svl.ui.modalMissionComplete.map.css('top', 500);
         $(".leaflet-control-attribution").remove();
+    }
+
+    function setMissionTitle (missionTitle) {
+        svl.ui.modalMissionComplete.missionTitle.html(missionTitle);
     }
 
     /** 
      * Show a mission
      */
-    function show () {
-        svl.ui.modalMission.holder.css('visibility', 'visible');
-        svl.ui.modalMission.foreground.css('visibility', "visible");
+    function show (callback) {
+        svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
+        svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
+        svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
@@ -229,15 +245,22 @@ function ModalMissionComplete ($, d3, L) {
 
                 var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
                 var missionTasks = mission.getRoute();
-
-                var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit);
                 var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
 
                 var missionDistanceRate = missionDistance / totalLineDistance;
                 var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+
+                var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
+                var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
+                var obstacleCount = svl.labelCounter.countLabel("Obstacle");
+                var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
+                var otherCount = svl.labelCounter.countLabel("Other");
+
+                setMissionTitle(mission.getProperty("label"));
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
                 _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
+                _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
             }
         }
     }

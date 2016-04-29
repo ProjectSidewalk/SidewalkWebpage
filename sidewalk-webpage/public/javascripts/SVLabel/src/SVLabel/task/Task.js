@@ -320,6 +320,17 @@ function Task (turf, geojson, currentLat, currentLng) {
         return turf.distance(p, p1, unit) < threshold || turf.distance(p, p2, unit) < threshold;
     }
 
+    function isConnectedToAPoint(point, threshold, unit) {
+        if (!threshold) threshold = 0.01;
+        if (!unit) unit = "kilometers";
+
+        var startCoordinate = getStartCoordinate(),
+            lastCoordinate = getLastCoordinate(),
+            p2 = turf.point([lastCoordinate.lng, lastCoordinate.lat]),
+            p1 = turf.point([startCoordinate.lng, startCoordinate.lat]);
+        return turf.distance(point, p1, unit) < threshold || turf.distance(point, p2, unit) < threshold;
+    }
+
     /**
      * Get the line distance of the task street edge
      * @param unit
@@ -429,6 +440,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isAtEnd = isAtEnd;
     self.isCompleted = isCompleted;
     self.isConnectedTo = isConnectedTo;
+    self.isConnectedToAPoint = isConnectedToAPoint;
     self.lineDistance = lineDistance;
     self.render = render;
     self.reverseCoordinates = reverseCoordinates;

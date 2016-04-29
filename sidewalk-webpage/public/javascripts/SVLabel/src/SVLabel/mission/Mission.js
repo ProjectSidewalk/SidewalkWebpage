@@ -145,13 +145,34 @@ function Mission(parameters) {
             var tmpDistance  = currentTask.lineDistance(unit);
             var tasksInARoute = [currentTask];
             var targetDistance = properties.distance / 1000;
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(); // Todo. Pass this as a parameter
             var incompleteTasks = svl.taskContainer.getIncompleteTasks(neighborhood.getProperty("regionId"));
             var connectedTasks;
             var currentTaskIndex;
+            var lastCoordinate;
+            var lastPoint;
 
+            if (targetDistance < tmpDistance && incompleteTasks.length == 0) {
+                return tasksInARoute;
+            }
+
+            // Check if there are any street edges connected to the last coordinate of currentTask's street edge.
+            lastCoordinate = currentTask.getLastCoordinate();
+            lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+            connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+            if (connectedTasks.length == 0) {
+                // Reverse the coordinates in the currentTask's street edge if there are no street edges connected to the current last coordinate
+                currentTask.reverseCoordinates();
+                lastCoordinate = currentTask.getLastCoordinate();
+                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+            }
+
+            // Compute a route
             while (targetDistance > tmpDistance && incompleteTasks.length > 0) {
-                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedTo(currentTask) && tasksInARoute.indexOf(t) < 0});
+                lastCoordinate = currentTask.getLastCoordinate();
+                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
 
                 if (connectedTasks.length > 0) {
                     connectedTasks = svl.util.shuffle(connectedTasks);

@@ -1,6 +1,6 @@
 /**
  * MissionProgress module.
- * Todo. Rename this to CurrentMissionStatus.
+ * Todo. Rename this...
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -79,9 +79,9 @@ function MissionProgress () {
     function showNextMission (mission) {
         var label = mission.getProperty("label");
         if (label == "distance-mission") {
-            svl.modalMission.setMission(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
         } else if (label == "area-coverage-mission") {
-            svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
             console.warn("It shouldn't reach here.");
         }
@@ -93,57 +93,73 @@ function MissionProgress () {
     function update () {
         if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
         if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
-            var i,
-                len,
-                missions,
-                currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
+            var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
                 completionRate;
+
+            var _callback = function (e) {
+                var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                svl.missionContainer.setCurrentMission(nextMission);
+                showNextMission(nextMission);
+            };
 
             // Update the mission completion rate in the progress bar
             if (currentMission) {
                 completionRate = currentMission.getMissionCompletionRate();
                 printCompletionRate(completionRate);
                 updateMissionCompletionBar(completionRate);
+
+                if (currentMission.getMissionCompletionRate() > 0.999) {
+                    complete(currentMission);
+                    svl.missionContainer.commit();
+
+                    if ("audioEffect" in svl) {
+                        svl.audioEffect.play("yay");
+                        svl.audioEffect.play("applause");
+                    }
+
+                    svl.modalMissionComplete.show();
+                    svl.ui.modalMissionComplete.closeButton.one("click", _callback)
+                }
             }
 
             // Check if missions are completed.
-            if (currentRegion) {
-                var completedMissions = [],
-                    regionId = currentRegion.getProperty("regionId"),
-                    missionComplete = false;
-                missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
-                missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
-                missions = missions.filter(function (m) { return !m.isCompleted(); });
-                missions.sort(function (a, b) {
-                    var distA = a.getProperty("distance"), distB = b.getProperty("distance");
-                    if (distA < distB) return -1;
-                    else if (distA > distB) return 1;
-                    else return 0;
-                });
-
-                len = missions.length;
-                for (i = 0; i < len; i++) {
-                    completionRate = missions[i].getMissionCompletionRate();
-                    if (completionRate >= 0.999) {
-                        complete(missions[i]);
-                        completedMissions.push(missions[i]);
-                        missionComplete = true;
-                    }
-                }
-                // Submit the staged missions
-                svl.missionContainer.commit();
-
-                // Present the mission completion messages.
-                if (completedMissions.length > 0) {
-                    showMissionCompleteWindow(completedMissions);
-                }
-
-                if (missionComplete && "audioEffect" in svl) {
-                    svl.audioEffect.play("yay");
-                    svl.audioEffect.play("applause");
-                }
-            }
+            // if (currentRegion) {
+            //     var completedMissions = [],
+            //         regionId = currentRegion.getProperty("regionId"),
+            //         missionComplete = false;
+            //     missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
+            //     missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
+            //     missions = missions.filter(function (m) { return !m.isCompleted(); });
+            //     missions.sort(function (a, b) {
+            //         var distA = a.getProperty("distance"), distB = b.getProperty("distance");
+            //         if (distA < distB) return -1;
+            //         else if (distA > distB) return 1;
+            //         else return 0;
+            //     });
+            //
+            //     len = missions.length;
+            //     for (i = 0; i < len; i++) {
+            //         completionRate = missions[i].getMissionCompletionRate();
+            //         if (completionRate >= 0.999) {
+            //             complete(missions[i]);
+            //             completedMissions.push(missions[i]);
+            //             missionComplete = true;
+            //         }
+            //     }
+            //     // Submit the staged missions
+            //     svl.missionContainer.commit();
+            //
+            //     // Present the mission completion messages.
+            //     if (completedMissions.length > 0) {
+            //         showMissionCompleteWindow(completedMissions);
+            //     }
+            //
+            //     if (missionComplete && "audioEffect" in svl) {
+            //         svl.audioEffect.play("yay");
+            //         svl.audioEffect.play("applause");
+            //     }
+            // }
         }
     }
 

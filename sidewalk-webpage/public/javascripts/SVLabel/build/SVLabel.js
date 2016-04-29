@@ -2973,30 +2973,17 @@ function Keyboard ($) {
     };
 
     var $textareaComment;
-    var $taskDifficultyComment;
-    var $inputSkipOther;
 
     function init () {
         if ('ui' in svl && 'form' in svl.ui) {
             $textareaComment = (svl.ui.form.commentField.length) > 0 ? svl.ui.form.commentField : null;
         }
-        $taskDifficultyComment = ($("#task-difficulty-comment").length > 0) ? $("#task-difficulty-comment") : null;
-        $inputSkipOther = ($("#Text_BusStopAbsenceOtherReason").length > 0) ? $("#Text_BusStopAbsenceOtherReason") : null;
 
         if ($textareaComment) {
           $textareaComment.bind('focus', textFieldFocus);
           $textareaComment.bind('blur', textFieldBlur);
         }
 
-        if ($taskDifficultyComment) {
-            $taskDifficultyComment.bind('focus', textFieldFocus);
-            $taskDifficultyComment.bind('blur', textFieldBlur);
-        }
-
-        if ($inputSkipOther) {
-          $inputSkipOther.bind('focus', textFieldFocus);
-          $inputSkipOther.bind('blur', textFieldBlur);
-        }
 
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
@@ -3029,6 +3016,10 @@ function Keyboard ($) {
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
+            // if ("contextMenu" in svl && svl.contextMenu) {
+            //     svl.contextMenu.hide();
+            // }
+
             switch (e.keyCode) {
                 // "Enter"
                 case 13:
@@ -3318,15 +3309,30 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
         svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
-        // Mission
         svl.ui.modalMission = {};
         svl.ui.modalMission.holder = $("#modal-mission-holder");
         svl.ui.modalMission.foreground = $("#modal-mission-foreground");
         svl.ui.modalMission.background = $("#modal-mission-background");
+        svl.ui.modalMission.missionTitle = $("#modal-mission-title");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
-        svl.ui.modalMission.totalAuditedDistance = $("#modal-mission-total-audited-distance");
-        svl.ui.modalMission.missionDistance = $("#modal-mission-mission-distance");
-        svl.ui.modalMission.remainingDistance = $("#modal-mission-remaining-distance");
+
+
+        // Modal Mission Complete
+        svl.ui.modalMissionComplete = {};
+        svl.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
+        svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
+        svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
+        svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
+        svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
+        svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
+        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
+        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
+        svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
+        svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");
+        svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
+        svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
+        svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -5118,27 +5124,27 @@ function ModalMission ($, L) {
      * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
      * @param parameters Object
      */
-    function setMission (mission, parameters) {
+    function setMissionMessage (mission, parameters) {
         var label = mission.getProperty("label"),
             templateHTML = $("template.missions[val='" + label + "']").html();
-        // svl.ui.modalMission.foreground.html(templateHTML);
-        //
-        // if (label == "distance-mission") {
-        //     var distanceString = mission.getProperty("distance") + " meters";
-        //     $("#mission-target-distance").html(distanceString);
-        // } else if (label == "area-coverage-mission") {
-        //     var coverageString = mission.getProperty("coverage") + "%";
-        //     $("#modal-mission-area-coverage-rate").html(coverageString);
-        // }
-        //
-        // var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
-        // $("#mission-badge-holder").html(badge);
-        //
-        // if (parameters && "callback" in parameters) {
-        //     $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
-        // } else {
-        //     $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
-        // }
+        svl.ui.modalMission.foreground.html(templateHTML);
+
+        if (label == "distance-mission") {
+            var distanceString = mission.getProperty("distance") + " meters";
+            $("#mission-target-distance").html(distanceString);
+        } else if (label == "area-coverage-mission") {
+            var coverageString = mission.getProperty("coverage") + "%";
+            $("#modal-mission-area-coverage-rate").html(coverageString);
+        }
+
+        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+        $("#mission-badge-holder").html(badge);
+
+        if (parameters && "callback" in parameters) {
+            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+        } else {
+            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
+        }
 
         showMissionModal();
     }
@@ -5146,8 +5152,11 @@ function ModalMission ($, L) {
 
     _init();
 
-    self.setMission = setMission;
+    self.setMission = setMissionMessage;  // Todo. Deprecated
+    self.setMissionMessage = setMissionMessage;
+    self.show = showMissionModal;
     self.showMissionModal = showMissionModal;
+
     return self;
 }
 
@@ -5171,7 +5180,7 @@ function ModalMissionComplete ($, d3, L) {
     var southWest = L.latLng(38.761, -77.262),
         northEast = L.latLng(39.060, -76.830),
         bounds = L.latLngBounds(southWest, northEast),
-        map = L.mapbox.map('modal-mission-map', "kotarohara.8e0c6890", {
+        map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
                 maxBounds: bounds,
                 maxZoom: 19,
                 minZoom: 9
@@ -5184,7 +5193,7 @@ function ModalMissionComplete ($, d3, L) {
                 [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
             ]}}]};
     var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)"});
+    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
 
     var missionLayer = [],
         completeTaskLayer = [];
@@ -5193,7 +5202,7 @@ function ModalMissionComplete ($, d3, L) {
     // Todo. This can be cleaned up!!!
     var svgWidth = 335,
         svgHeight = 20;
-    var svg = d3.select("#modal-mission-complete-bar")
+    var svg = d3.select("#modal-mission-complete-complete-bar")
         .append("svg")
         .attr("width", svgWidth)
         .attr("height", svgHeight);
@@ -5254,15 +5263,25 @@ function ModalMissionComplete ($, d3, L) {
 
 
     function _init () {
-        svl.ui.modalMission.background.on("click", handleBackgroundClick);
-        svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
+        svl.ui.modalMissionComplete.background.on("click", handleBackgroundClick);
+        svl.ui.modalMissionComplete.closeButton.on("click", handleCloseButtonClick);
+
+        hideMissionComplete();
+    }
+
+    function _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
+        svl.ui.modalMissionComplete.curbRampCount.html(curbRampCount);
+        svl.ui.modalMissionComplete.noCurbRampCount.html(noCurbRampCount);
+        svl.ui.modalMissionComplete.obstacleCount.html(obstacleCount);
+        svl.ui.modalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
+        svl.ui.modalMissionComplete.otherCount.html(otherCount);
     }
 
     function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
         if (!unit) unit = "kilometers";
-        svl.ui.modalMission.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMission.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMission.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
     }
 
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
@@ -5335,7 +5354,7 @@ function ModalMissionComplete ($, d3, L) {
      * @param e
      */
     function handleBackgroundClick(e) {
-        hideMission();
+        hideMissionComplete();
     }
 
     /**
@@ -5343,24 +5362,30 @@ function ModalMissionComplete ($, d3, L) {
      * @param e
      */
     function handleCloseButtonClick(e) {
-        hideMission();
+        hideMissionComplete();
     }
 
     /**
      * Hide a mission
      */
-    function hideMission () {
-        svl.ui.modalMission.holder.css('visibility', 'hidden');
-        svl.ui.modalMission.foreground.css('visibility', "hidden");
+    function hideMissionComplete () {
+        svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
+        svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
+        svl.ui.modalMissionComplete.map.css('top', 500);
         $(".leaflet-control-attribution").remove();
+    }
+
+    function setMissionTitle (missionTitle) {
+        svl.ui.modalMissionComplete.missionTitle.html(missionTitle);
     }
 
     /** 
      * Show a mission
      */
-    function show () {
-        svl.ui.modalMission.holder.css('visibility', 'visible');
-        svl.ui.modalMission.foreground.css('visibility', "visible");
+    function show (callback) {
+        svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
+        svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
+        svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
@@ -5382,15 +5407,22 @@ function ModalMissionComplete ($, d3, L) {
 
                 var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
                 var missionTasks = mission.getRoute();
-
-                var completedTaskDistance = svl.taskContainer.getCompletedTaskDistance(regionId, unit);
                 var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
 
                 var missionDistanceRate = missionDistance / totalLineDistance;
                 var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+
+                var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
+                var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
+                var obstacleCount = svl.labelCounter.countLabel("Obstacle");
+                var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
+                var otherCount = svl.labelCounter.countLabel("Other");
+
+                setMissionTitle(mission.getProperty("label"));
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
                 _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
+                _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
             }
         }
     }
@@ -7377,6 +7409,17 @@ function Task (turf, geojson, currentLat, currentLng) {
         return turf.distance(p, p1, unit) < threshold || turf.distance(p, p2, unit) < threshold;
     }
 
+    function isConnectedToAPoint(point, threshold, unit) {
+        if (!threshold) threshold = 0.01;
+        if (!unit) unit = "kilometers";
+
+        var startCoordinate = getStartCoordinate(),
+            lastCoordinate = getLastCoordinate(),
+            p2 = turf.point([lastCoordinate.lng, lastCoordinate.lat]),
+            p1 = turf.point([startCoordinate.lng, startCoordinate.lat]);
+        return turf.distance(point, p1, unit) < threshold || turf.distance(point, p2, unit) < threshold;
+    }
+
     /**
      * Get the line distance of the task street edge
      * @param unit
@@ -7486,6 +7529,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isAtEnd = isAtEnd;
     self.isCompleted = isCompleted;
     self.isConnectedTo = isConnectedTo;
+    self.isConnectedToAPoint = isConnectedToAPoint;
     self.lineDistance = lineDistance;
     self.render = render;
     self.reverseCoordinates = reverseCoordinates;
@@ -8079,13 +8123,34 @@ function Mission(parameters) {
             var tmpDistance  = currentTask.lineDistance(unit);
             var tasksInARoute = [currentTask];
             var targetDistance = properties.distance / 1000;
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(); // Todo. Pass this as a parameter
             var incompleteTasks = svl.taskContainer.getIncompleteTasks(neighborhood.getProperty("regionId"));
             var connectedTasks;
             var currentTaskIndex;
+            var lastCoordinate;
+            var lastPoint;
 
+            if (targetDistance < tmpDistance && incompleteTasks.length == 0) {
+                return tasksInARoute;
+            }
+
+            // Check if there are any street edges connected to the last coordinate of currentTask's street edge.
+            lastCoordinate = currentTask.getLastCoordinate();
+            lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+            connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+            if (connectedTasks.length == 0) {
+                // Reverse the coordinates in the currentTask's street edge if there are no street edges connected to the current last coordinate
+                currentTask.reverseCoordinates();
+                lastCoordinate = currentTask.getLastCoordinate();
+                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+            }
+
+            // Compute a route
             while (targetDistance > tmpDistance && incompleteTasks.length > 0) {
-                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedTo(currentTask) && tasksInARoute.indexOf(t) < 0});
+                lastCoordinate = currentTask.getLastCoordinate();
+                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
 
                 if (connectedTasks.length > 0) {
                     connectedTasks = svl.util.shuffle(connectedTasks);
@@ -8504,7 +8569,7 @@ function MissionFactory () {
 }
 /**
  * MissionProgress module.
- * Todo. Rename this to CurrentMissionStatus.
+ * Todo. Rename this...
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -8583,9 +8648,9 @@ function MissionProgress () {
     function showNextMission (mission) {
         var label = mission.getProperty("label");
         if (label == "distance-mission") {
-            svl.modalMission.setMission(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
         } else if (label == "area-coverage-mission") {
-            svl.modalMission.setMission(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
             console.warn("It shouldn't reach here.");
         }
@@ -8597,57 +8662,73 @@ function MissionProgress () {
     function update () {
         if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
         if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
-            var i,
-                len,
-                missions,
-                currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
+            var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 currentMission = svl.missionContainer.getCurrentMission(),
                 completionRate;
+
+            var _callback = function (e) {
+                var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                svl.missionContainer.setCurrentMission(nextMission);
+                showNextMission(nextMission);
+            };
 
             // Update the mission completion rate in the progress bar
             if (currentMission) {
                 completionRate = currentMission.getMissionCompletionRate();
                 printCompletionRate(completionRate);
                 updateMissionCompletionBar(completionRate);
+
+                if (currentMission.getMissionCompletionRate() > 0.999) {
+                    complete(currentMission);
+                    svl.missionContainer.commit();
+
+                    if ("audioEffect" in svl) {
+                        svl.audioEffect.play("yay");
+                        svl.audioEffect.play("applause");
+                    }
+
+                    svl.modalMissionComplete.show();
+                    svl.ui.modalMissionComplete.closeButton.one("click", _callback)
+                }
             }
 
             // Check if missions are completed.
-            if (currentRegion) {
-                var completedMissions = [],
-                    regionId = currentRegion.getProperty("regionId"),
-                    missionComplete = false;
-                missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
-                missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
-                missions = missions.filter(function (m) { return !m.isCompleted(); });
-                missions.sort(function (a, b) {
-                    var distA = a.getProperty("distance"), distB = b.getProperty("distance");
-                    if (distA < distB) return -1;
-                    else if (distA > distB) return 1;
-                    else return 0;
-                });
-
-                len = missions.length;
-                for (i = 0; i < len; i++) {
-                    completionRate = missions[i].getMissionCompletionRate();
-                    if (completionRate >= 0.999) {
-                        complete(missions[i]);
-                        completedMissions.push(missions[i]);
-                        missionComplete = true;
-                    }
-                }
-                // Submit the staged missions
-                svl.missionContainer.commit();
-
-                // Present the mission completion messages.
-                if (completedMissions.length > 0) {
-                    showMissionCompleteWindow(completedMissions);
-                }
-
-                if (missionComplete && "audioEffect" in svl) {
-                    svl.audioEffect.play("yay");
-                    svl.audioEffect.play("applause");
-                }
-            }
+            // if (currentRegion) {
+            //     var completedMissions = [],
+            //         regionId = currentRegion.getProperty("regionId"),
+            //         missionComplete = false;
+            //     missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
+            //     missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
+            //     missions = missions.filter(function (m) { return !m.isCompleted(); });
+            //     missions.sort(function (a, b) {
+            //         var distA = a.getProperty("distance"), distB = b.getProperty("distance");
+            //         if (distA < distB) return -1;
+            //         else if (distA > distB) return 1;
+            //         else return 0;
+            //     });
+            //
+            //     len = missions.length;
+            //     for (i = 0; i < len; i++) {
+            //         completionRate = missions[i].getMissionCompletionRate();
+            //         if (completionRate >= 0.999) {
+            //             complete(missions[i]);
+            //             completedMissions.push(missions[i]);
+            //             missionComplete = true;
+            //         }
+            //     }
+            //     // Submit the staged missions
+            //     svl.missionContainer.commit();
+            //
+            //     // Present the mission completion messages.
+            //     if (completedMissions.length > 0) {
+            //         showMissionCompleteWindow(completedMissions);
+            //     }
+            //
+            //     if (missionComplete && "audioEffect" in svl) {
+            //         svl.audioEffect.play("yay");
+            //         svl.audioEffect.play("applause");
+            //     }
+            // }
         }
     }
 
@@ -9816,117 +9897,13 @@ function LabelCounter (d3) {
     }
 
     /**
-     * Set label counts to 0
+     *
+     * @param labelType Label type
+     * @returns {integer}
      */
-    function reset () {
-        for (var key in dotPlots) {
-            set(key, 0);
-        }
-    }
+    function countLabel(labelType) {
+        return labelType in dotPlots ? dotPlots[labelType].count : null;
 
-    /**
-     * Update the label count visualization.
-     * @param key {string} Label type
-     */
-    function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
-        // Otherwise update all.
-        if (key) {
-          _update(key)
-        } else {
-          for (var key in dotPlots) {
-            _update(key);
-          }
-        }
-
-        // Actual update function
-        function _update(key) {
-            if (keys.indexOf(key) == -1) { key = "Other"; }
-
-            var firstDigit = dotPlots[key].count % 10,
-              higherDigits = (dotPlots[key].count - firstDigit) / 10,
-              count = firstDigit + higherDigits;
-
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
-
-            // Update the dot plot
-            if (dotPlots[key].data.length >= count) {
-              // Remove dots
-              dotPlots[key].data = dotPlots[key].data.slice(0, count);
-
-                dotPlots[key].plot.selectAll("circle")
-                  .transition().duration(500)
-                  .attr("r", function (d, i) {
-                    return i < higherDigits ? x(radius + dR) : x(radius);
-                  })
-                  .attr("cy", function (d, i) {
-                    if (i < higherDigits) {
-                        return 0;
-                    } else {
-                        return x(dR);
-                    }
-                  });
-
-                dotPlots[key].plot.selectAll("circle")
-                  .data(dotPlots[key].data)
-                  .exit()
-                  .transition()
-                  .duration(500)
-                  .attr("cx", function () {
-                    return x(higherDigits);
-                  })
-                  .attr("r", 0)
-                  .remove();
-            } else {
-              // Add dots
-              var len = dotPlots[key].data.length;
-              for (var i = 0; i < count - len; i++) {
-                  dotPlots[key].data.push([len + i, 0, radius])
-              }
-              dotPlots[key].plot.selectAll("circle")
-                .data(dotPlots[key].data)
-                .enter().append("circle")
-                .attr("cx", x(0))
-                .attr("cy", 0)
-                .attr("r", x(radius + dR))
-                .style("fill", dotPlots[key].fillColor)
-                .transition().duration(1000)
-                .attr("cx", function (d, i) {
-                  if (i <= higherDigits) {
-                    return x(d[0] * 2 * (radius + dR));
-                  } else {
-                    return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
-                  }
-                })
-                .attr("cy", function (d, i) {
-                  if (i < higherDigits) {
-                    return 0;
-                  } else {
-                    return x(dR);
-                  }
-                })
-                .attr("r", function (d, i) {
-                  return i < higherDigits ? x(radius + dR) : x(radius);
-                });
-            }
-            dotPlots[key].label.text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
-                return ret;
-            });
-        }
     }
 
     /**
@@ -9953,6 +9930,16 @@ function LabelCounter (d3) {
         }
     }
 
+
+    /**
+     * Set label counts to 0
+     */
+    function reset () {
+        for (var key in dotPlots) {
+            set(key, 0);
+        }
+    }
+
     /**
      * Set the number of label count
      * @param key {string} Label type
@@ -9963,11 +9950,118 @@ function LabelCounter (d3) {
         update(key);
     }
 
+    /**
+     * Update the label count visualization.
+     * @param key {string} Label type
+     */
+    function update(key) {
+        // If a key is given, udpate the dot plot for that specific data.
+        // Otherwise update all.
+        if (key) {
+            _update(key)
+        } else {
+            for (var key in dotPlots) {
+                _update(key);
+            }
+        }
+
+        // Actual update function
+        function _update(key) {
+            if (keys.indexOf(key) == -1) { key = "Other"; }
+
+            var firstDigit = dotPlots[key].count % 10,
+                higherDigits = (dotPlots[key].count - firstDigit) / 10,
+                count = firstDigit + higherDigits;
+
+            // Update the label
+            //dotPlots[key].countLabel
+            //  .transition().duration(1000)
+            //  .attr("x", function () {
+            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
+            //  })
+            //  .attr("y", function () {
+            //    return x(radius + dR - 0.05);
+            //  })
+            //  // .transition().duration(1000)
+            //  .text(function (d) {
+            //    return dotPlots[key].count;
+            //  });
+
+            // Update the dot plot
+            if (dotPlots[key].data.length >= count) {
+                // Remove dots
+                dotPlots[key].data = dotPlots[key].data.slice(0, count);
+
+                dotPlots[key].plot.selectAll("circle")
+                    .transition().duration(500)
+                    .attr("r", function (d, i) {
+                        return i < higherDigits ? x(radius + dR) : x(radius);
+                    })
+                    .attr("cy", function (d, i) {
+                        if (i < higherDigits) {
+                            return 0;
+                        } else {
+                            return x(dR);
+                        }
+                    });
+
+                dotPlots[key].plot.selectAll("circle")
+                    .data(dotPlots[key].data)
+                    .exit()
+                    .transition()
+                    .duration(500)
+                    .attr("cx", function () {
+                        return x(higherDigits);
+                    })
+                    .attr("r", 0)
+                    .remove();
+            } else {
+                // Add dots
+                var len = dotPlots[key].data.length;
+                for (var i = 0; i < count - len; i++) {
+                    dotPlots[key].data.push([len + i, 0, radius])
+                }
+                dotPlots[key].plot.selectAll("circle")
+                    .data(dotPlots[key].data)
+                    .enter().append("circle")
+                    .attr("cx", x(0))
+                    .attr("cy", 0)
+                    .attr("r", x(radius + dR))
+                    .style("fill", dotPlots[key].fillColor)
+                    .transition().duration(1000)
+                    .attr("cx", function (d, i) {
+                        if (i <= higherDigits) {
+                            return x(d[0] * 2 * (radius + dR));
+                        } else {
+                            return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
+                        }
+                    })
+                    .attr("cy", function (d, i) {
+                        if (i < higherDigits) {
+                            return 0;
+                        } else {
+                            return x(dR);
+                        }
+                    })
+                    .attr("r", function (d, i) {
+                        return i < higherDigits ? x(radius + dR) : x(radius);
+                    });
+            }
+            dotPlots[key].label.text(function () {
+                var ret = dotPlots[key].count + " " + dotPlots[key].description;
+                ret += dotPlots[key].count > 1 ? "s" : "";
+                return ret;
+            });
+        }
+    }
+
+
     // Initialize
     update();
 
     self.increment = increment;
     self.decrement = decrement;
+    self.countLabel = countLabel;
     self.set = set;
     self.reset = reset;
     return self;
