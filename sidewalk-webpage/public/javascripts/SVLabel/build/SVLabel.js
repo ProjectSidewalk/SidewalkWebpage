@@ -7995,6 +7995,8 @@ function Mission(parameters) {
             completionMessage: null,
             badgeURL: null,
             distance: null,
+            distanceFt: null,
+            distanceMi: null,
             coverage: null
         },
         _tasksForTheMission = [];
@@ -8004,6 +8006,8 @@ function Mission(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
+        if ("distanceFt" in parameters) setProperty("distanceFt", parameters.distanceFt);
+        if ("distanceMi" in parameters) setProperty("distanceMi", parameters.distanceMi);
         if ("coverage" in parameters) setProperty("coverage", parameters.coverage);
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
 
@@ -8329,7 +8333,7 @@ function MissionContainer ($, parameters) {
             len = completed.length;
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
-                    completed[i].level, completed[i].distance, completed[i].coverage, true);
+                    completed[i].level, completed[i].distance, completed[i].distance_ft, completed[i].distance_mi, completed[i].coverage, true);
                 addAMission(completed[i].regionId, mission);
                 addToCompletedMissions(mission);
             }
@@ -8337,7 +8341,7 @@ function MissionContainer ($, parameters) {
             len = incomplete.length;
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
-                    incomplete[i].level, incomplete[i].distance, incomplete[i].coverage, false);
+                    incomplete[i].level, incomplete[i].distance, incomplete[i].distance_ft, incomplete[i].distance_mi, incomplete[i].coverage, false);
                 addAMission(incomplete[i].regionId, mission);
             }
 
@@ -8543,14 +8547,16 @@ function MissionFactory () {
      * @param missionId
      * @param label The label of the mission
      * @param level The level of the mission
-     * @param distance
-     * @param coverage
+     * @param distance Mission distance in meters
+     * @param distanceFt Mission distance in feet
+     * @param distanceMi Mission distance in miles
+     * @param coverage Mission coverage rate
      * @param isCompleted A flag indicating if this mission is completed
      * @returns {svl.Mission}
      */
-    function create (regionId, missionId, label, level, distance, coverage, isCompleted) {
+    function create (regionId, missionId, label, level, distance, distanceFt, distanceMi, coverage, isCompleted) {
         return new Mission({ regionId: regionId, missionId: missionId, label: label, level: level, distance: distance,
-            coverage: coverage, isCompleted: isCompleted });
+            distanceFt: distanceFt, distanceMi: distanceMi, coverage: coverage, isCompleted: isCompleted });
     }
 
     /**

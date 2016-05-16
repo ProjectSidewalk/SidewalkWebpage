@@ -17,6 +17,8 @@ function Mission(parameters) {
             completionMessage: null,
             badgeURL: null,
             distance: null,
+            distanceFt: null,
+            distanceMi: null,
             coverage: null
         },
         _tasksForTheMission = [];
@@ -26,6 +28,8 @@ function Mission(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
+        if ("distanceFt" in parameters) setProperty("distanceFt", parameters.distanceFt);
+        if ("distanceMi" in parameters) setProperty("distanceMi", parameters.distanceMi);
         if ("coverage" in parameters) setProperty("coverage", parameters.coverage);
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
 

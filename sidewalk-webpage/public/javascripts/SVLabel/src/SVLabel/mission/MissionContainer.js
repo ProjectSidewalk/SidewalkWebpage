@@ -22,7 +22,7 @@ function MissionContainer ($, parameters) {
             len = completed.length;
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
-                    completed[i].level, completed[i].distance, completed[i].coverage, true);
+                    completed[i].level, completed[i].distance, completed[i].distance_ft, completed[i].distance_mi, completed[i].coverage, true);
                 addAMission(completed[i].regionId, mission);
                 addToCompletedMissions(mission);
             }
@@ -30,7 +30,7 @@ function MissionContainer ($, parameters) {
             len = incomplete.length;
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
-                    incomplete[i].level, incomplete[i].distance, incomplete[i].coverage, false);
+                    incomplete[i].level, incomplete[i].distance, incomplete[i].distance_ft, incomplete[i].distance_mi, incomplete[i].coverage, false);
                 addAMission(incomplete[i].regionId, mission);
             }
 

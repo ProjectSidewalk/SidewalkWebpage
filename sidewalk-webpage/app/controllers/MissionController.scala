@@ -87,8 +87,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
-
-    var submission = request.body.validate[Seq[Mission]]
+    val submission = request.body.validate[Seq[Mission]]
 
     submission.fold(
       errors => {
