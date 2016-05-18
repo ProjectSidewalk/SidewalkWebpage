@@ -1,6 +1,6 @@
 /**
  * MissionProgress module.
- * Todo. Rename this...
+ * Todo. Rename this... Probably some of these features should be moved to status/MissionStatus.js
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -14,8 +14,7 @@ function MissionProgress () {
         };
 
     function _init() {
-        // Fill in the surveyed angles
-        printCompletionRate();
+        printCompletionRate(0);
     }
 
     /**
@@ -122,44 +121,6 @@ function MissionProgress () {
                     svl.ui.modalMissionComplete.closeButton.one("click", _callback)
                 }
             }
-
-            // Check if missions are completed.
-            // if (currentRegion) {
-            //     var completedMissions = [],
-            //         regionId = currentRegion.getProperty("regionId"),
-            //         missionComplete = false;
-            //     missions = svl.missionContainer.getMissionsByRegionId("noRegionId");
-            //     missions = missions.concat(svl.missionContainer.getMissionsByRegionId(regionId));
-            //     missions = missions.filter(function (m) { return !m.isCompleted(); });
-            //     missions.sort(function (a, b) {
-            //         var distA = a.getProperty("distance"), distB = b.getProperty("distance");
-            //         if (distA < distB) return -1;
-            //         else if (distA > distB) return 1;
-            //         else return 0;
-            //     });
-            //
-            //     len = missions.length;
-            //     for (i = 0; i < len; i++) {
-            //         completionRate = missions[i].getMissionCompletionRate();
-            //         if (completionRate >= 0.999) {
-            //             complete(missions[i]);
-            //             completedMissions.push(missions[i]);
-            //             missionComplete = true;
-            //         }
-            //     }
-            //     // Submit the staged missions
-            //     svl.missionContainer.commit();
-            //
-            //     // Present the mission completion messages.
-            //     if (completedMissions.length > 0) {
-            //         showMissionCompleteWindow(completedMissions);
-            //     }
-            //
-            //     if (missionComplete && "audioEffect" in svl) {
-            //         svl.audioEffect.play("yay");
-            //         svl.audioEffect.play("applause");
-            //     }
-            // }
         }
     }
 
