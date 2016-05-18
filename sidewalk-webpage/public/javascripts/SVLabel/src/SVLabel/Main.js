@@ -213,6 +213,7 @@ function Main ($, d3, google, turf, params) {
         svl.form = Form($, params.form);
         svl.overlayMessageBox = OverlayMessageBox($);
         svl.statusField = StatusField();
+        svl.missionStatus = MissionStatus();
         svl.neighborhoodStatus = NeighborhoodStatus();
 
         svl.labelCounter = LabelCounter(d3);

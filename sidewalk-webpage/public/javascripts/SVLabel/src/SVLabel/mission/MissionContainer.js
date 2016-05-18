@@ -81,7 +81,8 @@ function MissionContainer ($, parameters) {
     }
 
     /**
-     * Submit the currently staged missions to the server
+     * Submit the currently staged missions to the server.
+     * Todo. I no longer have to stage-and-commit... So I can simplify this.
      * @returns {commit}
      */
     function commit () {
@@ -190,14 +191,17 @@ function MissionContainer ($, parameters) {
      */
     function setCurrentMission (mission) {
         currentMission = mission;
-        if ("missionProgress" in svl) {
+
+        if ("missionProgress" in svl && "missionStatus" in svl) {
             svl.missionProgress.update();
+            svl.missionStatus.printMissionMessage(mission);
         }
         return this;
     }
 
     /**
      * Push the completed mission to the staged so it will be submitted to the server.
+     * Todo. I no longer have to stage-and-commit... So I can simplify this.
      * @param mission
      */
     function stage (mission) {
