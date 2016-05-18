@@ -14065,7 +14065,7 @@ function Onboarding ($) {
                     removeAnnotationListener();
                     next.call(this, state.transition);
                 };
-                $target.on("click", callback);
+                $target.on("click", callback);  // This can be changed to "$target.one()"
             } else if (state.properties.action == "AdjustHeadingAngle") {
                 // Tell them to remove a label.
                 showGrabAndDragAnimation({direction: "left-to-right"});
@@ -14096,6 +14096,33 @@ function Onboarding ($) {
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
                 if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+
+                // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
+                // take the user to the right panorama. In that case, programmatically move the user.
+                var currentClick, previousClick, canvasX, canvasY, pov, imageCoordinate;
+                var mouseUpCallback = function (e) {
+                    currentClick = new Date().getTime();
+
+
+                    // Check if the user has double clicked
+                    if (previousClick && currentClick - previousClick < 300) {
+                        canvasX = mouseposition(e, this).x;
+                        canvasY = mouseposition(e, this).y;
+                        pov = svl.map.getPov();
+                        imageCoordinate = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+
+                        // Check if where the user has clicked is in the right spot on the canvas
+                        var doubleClickAnnotationCoordinate = state.annotations.filter(function (x) { return x.type == "double-click"; })[0];
+                        if (Math.sqrt(Math.pow(imageCoordinate.y - doubleClickAnnotationCoordinate.y, 2) +
+                                    Math.pow(imageCoordinate.x - doubleClickAnnotationCoordinate.x, 2)) < 300) {
+                            svl.ui.map.viewControlLayer.off("mouseup", mouseUpCallback);
+                            svl.panorama.setPano(state.properties.panoId);
+                            callback();
+                        }
+                    }
+                    previousClick = currentClick;
+                };
+                svl.ui.map.viewControlLayer.on("mouseup", mouseUpCallback);
             } else if (state.properties.action == "Instruction") {
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.
