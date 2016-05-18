@@ -11359,9 +11359,9 @@ function MissionStatus () {
 
         if (missionLabel == "distance-mission") {
             if (mission.getProperty("level") <= 2) {
-                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distance_ft"));
+                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
             } else {
-                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distance_mi"));
+                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
             }
         } else if (missionLabel == "area-coverage-mission") {
             var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
