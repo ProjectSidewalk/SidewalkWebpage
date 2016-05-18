@@ -17,9 +17,11 @@
                 @*<li>*@
                     @*<a href='@routes.ApplicationController.map'>Access Score</a>*@
                 @*</li>*@
-                <li>
-                    <a href='@routes.AuditController.audit'>Start Auditing</a>
-                </li>
+                @if(url.isDefined && url.get != "/audit") {
+                    <li>
+                        <a href='@routes.AuditController.audit'>Start Auditing</a>
+                    </li>
+                }
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown">
                     @if(user) {
