@@ -13419,7 +13419,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
+                    svl.tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
                     return "walk-1";
                 }
             },
