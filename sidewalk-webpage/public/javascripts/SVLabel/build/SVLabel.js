@@ -11315,7 +11315,7 @@ function MissionStatus () {
     var missionMessages = {
         "onboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
-        "distance-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
+        "distance-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes in this neighborhood",
         "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood more accessible"
     };
     
@@ -11356,6 +11356,17 @@ function MissionStatus () {
     function printMissionMessage (mission) {
         var missionLabel = mission.getProperty("label"),
             missionMessage = getMissionMessage(missionLabel);
+
+        if (missionLabel == "distance-mission") {
+            if (mission.getProperty("level") <= 2) {
+                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distance_ft"));
+            } else {
+                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distance_mi"));
+            }
+        } else if (missionLabel == "area-coverage-mission") {
+            var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
+            missionMessage = missionMessage.replace("__PLACEHOLDER__", coverage);
+        }
 
         svl.ui.status.currentMissionDescription.html(missionMessage);
 
