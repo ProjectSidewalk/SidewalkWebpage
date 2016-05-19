@@ -4057,7 +4057,9 @@ function Map ($, google, turf, params) {
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
                     if (!task.isConnectedTo(newTask)) {
-                        
+                        svl.popUpMessage.notify("Jumped back to your neighborhood!",
+                            "We sent you back into the neighborhood you have been walking around! Please continue to " +
+                            "make this neighborhood more accessible for everyone!");
                     }
 
                     var geometry = newTask.getGeometry();
@@ -5067,8 +5069,7 @@ function PointCloud (params) {
 function PopUpMessage ($, param) {
     var self = {className: 'PopUpMessage'},
         status = { haveAskedToSignIn: false },
-        buttons = [],
-        OKButton = '<button id="pop-up-message-ok-button">OK</button>';
+        buttons = [];
 
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
@@ -5083,37 +5084,24 @@ function PopUpMessage ($, param) {
 
     function appendButton (buttonDom, callback) {
         var $button = $(buttonDom);
-
-        $button.css({
-            margin: '0 10 10 0'
-        });
+        $button.css({ margin: '0 10 10 0' });
         $button.addClass('button');
-
-//        svl.ui.popUpMessage.foreground.css('padding-bottom', '50px');
         svl.ui.popUpMessage.foreground.append($button);
 
         if (callback) {
-            $button.on('click', callback);
+            $button.one('click', callback);
         }
-        $button.on('click', hide);
+        $button.one('click', hide);
         buttons.push($button);
     }
 
-    function appendOKButton(callback) {
-        appendButton(OKButton, callback);
-    }
-
-    function handleClickOK () {
-        $("#pop-up-message-ok-button").on('click', function () {
-            if ('tracker' in svl && svl.tracker) {
-                if (message) {
-                    svl.tracker.push('MessageBox_ClickOk', {message: message});
-                } else {
-                    svl.tracker.push('MessageBox_ClickOk');
-                }
-            }
+    function appendOKButton() {
+        var OKButton = '<button id="pop-up-message-ok-button">OK</button>';
+        function handleClickOK () {
+            if ('tracker' in svl && svl.tracker) svl.tracker.push('PopUpMessage_ClickOk');
             $("#pop-up-message-ok-button").remove();
-        });
+        }
+        appendButton(OKButton, handleClickOK);
     }
 
     function haveAskedToSignIn () {
@@ -5180,6 +5168,14 @@ function PopUpMessage ($, param) {
         setPosition(40, 260, 640);
         show(true);
         status.haveAskedToSignIn = true;
+    }
+
+    function notify(title, message) {
+        setPosition(40, 260, 640);
+        show(true);
+        setTitle(title);
+        setMessage(message);
+        appendOKButton();
     }
 
     /**
@@ -5258,19 +5254,13 @@ function PopUpMessage ($, param) {
         return this;
     }
 
-    self.appendButton = appendButton;
-    self.appendHTML = appendHTML;
-    self.appendOKButton = appendOKButton;
     self.haveAskedToSignIn = haveAskedToSignIn;
     self.hide = hide;
     self.hideBackground = hideBackground;
+    self.notify = notify;
     self.promptSignIn = promptSignIn;
     self.reset = reset;
     self.show = show;
-    self.showBackground = showBackground;
-    self.setPosition = setPosition;
-    self.setTitle = setTitle;
-    self.setMessage = setMessage;
     return self;
 }
 
