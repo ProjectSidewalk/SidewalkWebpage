@@ -130,7 +130,8 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalMission.holder = $("#modal-mission-holder");
         svl.ui.modalMission.foreground = $("#modal-mission-foreground");
         svl.ui.modalMission.background = $("#modal-mission-background");
-        svl.ui.modalMission.missionTitle = $("#modal-mission-title");
+        svl.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svl.ui.modalMission.instruction = $("#modal-mission-instruction");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
 
@@ -230,11 +231,14 @@ function Main ($, d3, google, turf, params) {
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
+
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
         svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
+        svl.modalMissionComplete.hide();
+
         svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;

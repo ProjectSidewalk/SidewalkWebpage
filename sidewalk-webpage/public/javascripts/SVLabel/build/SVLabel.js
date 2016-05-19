@@ -3313,7 +3313,8 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalMission.holder = $("#modal-mission-holder");
         svl.ui.modalMission.foreground = $("#modal-mission-foreground");
         svl.ui.modalMission.background = $("#modal-mission-background");
-        svl.ui.modalMission.missionTitle = $("#modal-mission-title");
+        svl.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svl.ui.modalMission.instruction = $("#modal-mission-instruction");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
 
@@ -3413,11 +3414,14 @@ function Main ($, d3, google, turf, params) {
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
+
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
         svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
+        svl.modalMissionComplete.hide();
+
         svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
@@ -4859,710 +4863,6 @@ function Map ($, google, turf, params) {
     self.unlockRenderLabels = unlockRenderLabels;
 
     _init(params);
-    return self;
-}
-
-/**
- * ModalComment module.
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ModalComment ($) {
-    var self = { className: 'ModalComment'},
-        status = {
-            disableClickOK: true
-        },
-        blinkInterval;
-
-    function _init() {
-        disableClickOK();
-        svl.ui.modalComment.ok.on("click", handleClickOK);
-        svl.ui.modalComment.cancel.on("click", handleClickCancel);
-        //svl.ui.leftColumn.feedback.on("click", showCommentMenu);
-        svl.ui.leftColumn.feedback.on("click", handleClickFeedback);
-        svl.ui.modalComment.textarea.on("focus", handleTextareaFocus);
-        svl.ui.modalComment.textarea.on("blur", handleTextareaBlur);
-        svl.ui.modalComment.textarea.on("input", handleTextareaChange);
-    }
-
-    /**
-     * Blink the feedback button on the left
-     */
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            svl.ui.leftColumn.feedback.toggleClass("highlight-50");
-        }, 500);
-    }
-
-    /**
-     * A callback function for clicking the feedback button on the left
-     * @param e
-     */
-    function handleClickFeedback (e) {
-        svl.tracker.push("ModalComment_ClickFeedback");
-        showCommentMenu();
-    }
-
-    function handleClickOK (e) {
-        e.preventDefault();
-        svl.tracker.push("ModalComment_ClickOK");
-        submitComment();
-        hideCommentMenu();
-    }
-
-    function handleClickCancel (e) {
-        svl.tracker.push("ModalComment_ClickCancel");
-        e.preventDefault();
-        hideCommentMenu();
-    }
-
-    /**
-     * Handles changes in the comment field
-     */
-    function handleTextareaChange () {
-        var comment = svl.ui.modalComment.textarea.val();
-        if (comment.length > 0) {
-            enableClickOK();
-        } else {
-            disableClickOK();
-        }
-    }
-
-    function handleTextareaBlur() {
-        if ('ribbon' in svl) {
-            svl.ribbon.enableModeSwitch();
-        }
-    }
-
-    function handleTextareaFocus() {
-        if ('ribbon' in svl) { svl.ribbon.disableModeSwitch(); }
-    }
-
-    function hideCommentMenu () {
-        svl.ui.modalComment.holder.addClass('hidden');
-    }
-
-    function showCommentMenu () {
-        svl.ui.modalComment.textarea.val("");
-        svl.ui.modalComment.holder.removeClass('hidden');
-        svl.ui.modalComment.ok.addClass("disabled");
-        disableClickOK();
-    }
-
-    function disableClickOK() {
-        svl.ui.modalComment.ok.attr("disabled", true);
-        svl.ui.modalComment.ok.addClass("disabled");
-        status.disableClickOK = true;
-    }
-
-    function enableClickOK () {
-        svl.ui.modalComment.ok.attr("disabled", false);
-        svl.ui.modalComment.ok.removeClass("disabled");
-        status.disableClickOK = false;
-    }
-
-    /**
-     * Stop blinking the feedback button on the left column
-     */
-    function stopBlinking () {
-        window.clearInterval(blinkInterval);
-        svl.ui.leftColumn.feedback.removeClass("highlight-50");
-    }
-
-    /**
-     * Submit the comment
-     */
-    function submitComment () {
-        if ('task' in svl) {
-            var task = svl.taskContainer.getCurrentTask(),
-                streetEdgeId = task.getStreetEdgeId(),
-                gsvPanoramaId = svl.panorama.getPano(),
-                pov = svl.map.getPov(),
-                comment = svl.ui.modalComment.textarea.val();
-
-            var latlng = svl.map.getPosition(),
-                data = {
-                    street_edge_id: streetEdgeId,
-                    gsv_panorama_id: gsvPanoramaId,
-                    heading: pov ? pov.heading : null,
-                    pitch: pov ? pov.pitch : null,
-                    zoom: pov ? pov.zoom : null,
-                    comment: comment,
-                    lat: latlng ? latlng.lat : null,
-                    lng: latlng ? latlng.lng : null
-                };
-
-            if ("form" in svl && svl.form) {
-                svl.form.postJSON("/audit/comment", data)
-            }
-        }
-    }
-
-    _init();
-
-    self.blink = blink;
-    self.stopBlinking = stopBlinking;
-
-    return self;
-}
-/**
- * Modal windows for the examples of accessibility attributes
- * @returns {{className: string}}
- * @constructor
- */
-function ModalExample () {
-    var self = { className: "ModalExample" };
-
-    function _init () {
-        svl.ui.modalExample.close.on("click", handleCloseButtonClick);
-        svl.ui.modalExample.background.on("click", handleBackgroundClick);
-    }
-
-    function handleBackgroundClick () {
-        hide();
-    }
-
-    function handleCloseButtonClick () {
-        hide();
-    }
-
-    function hide () {
-        svl.ui.modalExample.curbRamp.addClass("hidden");
-        svl.ui.modalExample.noCurbRamp.addClass("hidden");
-        svl.ui.modalExample.obstacle.addClass("hidden");
-        svl.ui.modalExample.surfaceProblem.addClass("hidden");
-    }
-
-    function show (key) {
-        hide();
-        switch (key) {
-            case "CurbRamp":
-                svl.ui.modalExample.curbRamp.removeClass("hidden");
-                break;
-            case "NoCurbRamp":
-                svl.ui.modalExample.noCurbRamp.removeClass("hidden");
-                break;
-            case "Obstacle":
-                svl.ui.modalExample.obstacle.removeClass("hidden");
-                break;
-            case "SurfaceProblem":
-                svl.ui.modalExample.surfaceProblem.removeClass("hidden");
-                break;
-        }
-    }
-
-    self.hide = hide;
-    self.show = show;
-
-    _init();
-    
-    return self;
-}
-/**
- * ModalMission module
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ModalMission ($, L) {
-    var self = { className : 'ModalMission'},
-        properties = {
-            boxTop: 180,
-            boxLeft: 45,
-            boxWidth: 640
-        };
-    
-    function _init () {
-        svl.ui.modalMission.background.on("click", handleBackgroundClick);
-        svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
-    }
-
-    /**
-     * Get a property
-     * @param key
-     * @returns {null}
-     */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
-    }
-
-    /**
-     * Callback function for background click
-     * @param e
-     */
-    function handleBackgroundClick(e) {
-        hideMission();
-    }
-
-    /**
-     * Callback function for button click
-     * @param e
-     */
-    function handleCloseButtonClick(e) {
-        hideMission();
-    }
-
-    /**
-     * Hide a mission
-     */
-    function hideMission () {
-        svl.ui.modalMission.holder.css('visibility', 'hidden');
-        svl.ui.modalMission.foreground.css('visibility', "hidden");
-    }
-
-    /** Show a mission */
-    function showMissionModal () {
-        svl.ui.modalMission.holder.css('visibility', 'visible');
-        svl.ui.modalMission.foreground.css('visibility', "visible");
-    }
-
-    /**
-     * Set the mission message in the modal window, then show the modal window.
-     * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
-     * @param parameters Object
-     */
-    function setMissionMessage (mission, parameters) {
-        var label = mission.getProperty("label"),
-            templateHTML = $("template.missions[val='" + label + "']").html();
-        svl.ui.modalMission.foreground.html(templateHTML);
-
-        if (label == "distance-mission") {
-            var distanceString = mission.getProperty("distance") + " meters";
-            $("#mission-target-distance").html(distanceString);
-        } else if (label == "area-coverage-mission") {
-            var coverageString = mission.getProperty("coverage") + "%";
-            $("#modal-mission-area-coverage-rate").html(coverageString);
-        }
-
-        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
-        $("#mission-badge-holder").html(badge);
-
-        if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
-        } else {
-            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
-        }
-
-        showMissionModal();
-    }
-    
-
-    _init();
-
-    self.setMission = setMissionMessage;  // Todo. Deprecated
-    self.setMissionMessage = setMissionMessage;
-    self.show = showMissionModal;
-    self.showMissionModal = showMissionModal;
-
-    return self;
-}
-
-/**
- * ModalMission module
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ModalMissionComplete ($, d3, L) {
-    var self = { className : 'ModalMissionComplete'},
-        properties = {
-            boxTop: 180,
-            boxLeft: 45,
-            boxWidth: 640
-        };
-
-    // Map visualization
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
-    var southWest = L.latLng(38.761, -77.262),
-        northEast = L.latLng(39.060, -76.830),
-        bounds = L.latLngBounds(southWest, northEast),
-        map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
-                maxBounds: bounds,
-                maxZoom: 19,
-                minZoom: 9
-            })
-            .fitBounds(bounds);
-    var overlayPolygon = {
-        "type": "FeatureCollection",
-        "features": [{"type": "Feature", "geometry": {
-            "type": "Polygon", "coordinates": [
-                [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
-            ]}}]};
-    var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
-
-    var missionLayer = [],
-        completeTaskLayer = [];
-
-    // Bar chart visualization
-    // Todo. This can be cleaned up!!!
-    var svgWidth = 335,
-        svgHeight = 20;
-    var svg = d3.select("#modal-mission-complete-complete-bar")
-        .append("svg")
-        .attr("width", svgWidth)
-        .attr("height", svgHeight);
-
-    var gBackground = svg.append("g").attr("class", "g-background");
-    var horizontalBarBackground = gBackground.selectAll("rect")
-        .data([1])
-        .enter().append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("fill", "rgba(240, 240, 240, 1)")
-        .attr("height", svgHeight)
-        .attr("width", svgWidth);
-
-    var gBarChart = svg.append("g").attr("class", "g-bar-chart");
-    var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
-        .data([0])
-        .enter().append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("fill", "rgba(23, 55, 94, 1)")
-        .attr("height", svgHeight)
-        .attr("width", 0);
-    var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
-        .data([""])
-        .enter().append("text")
-        .attr("x", 3)
-        .attr("y", 15)
-        .attr("dx", 3)
-        .attr("fill", "white")
-        .attr("font-size", "10pt")
-        .text(function (d) {
-            return d;
-        })
-        .style("visibility", "visible");
-
-    var gBarChart2 = svg.append("g").attr("class", "g-bar-chart");
-    var horizontalBarMission = gBarChart2.selectAll("rect")
-        .data([0])
-        .enter().append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("fill", "rgba(0,112,192,1)")
-        .attr("height", svgHeight)
-        .attr("width", 0);
-    var horizontalBarMissionLabel = gBarChart2.selectAll("text")
-        .data([""])
-        .enter().append("text")
-        .attr("x", 3)
-        .attr("y", 15)
-        .attr("dx", 3)
-        .attr("fill", "white")
-        .attr("font-size", "10pt")
-        .text(function (d) {
-            return d;
-        })
-        .style("visibility", "visible");
-
-
-    function _init () {
-        svl.ui.modalMissionComplete.background.on("click", handleBackgroundClick);
-        svl.ui.modalMissionComplete.closeButton.on("click", handleCloseButtonClick);
-
-        hideMissionComplete();
-    }
-
-    function _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
-        svl.ui.modalMissionComplete.curbRampCount.html(curbRampCount);
-        svl.ui.modalMissionComplete.noCurbRampCount.html(noCurbRampCount);
-        svl.ui.modalMissionComplete.obstacleCount.html(obstacleCount);
-        svl.ui.modalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
-        svl.ui.modalMissionComplete.otherCount.html(otherCount);
-    }
-
-    function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
-        if (!unit) unit = "kilometers";
-        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
-    }
-
-    function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
-        // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
-        // var missionTasks = mission.getRoute();
-
-        if (completedTasks && missionTasks) {
-            // Add layers http://leafletjs.com/reference.html#map-addlayer
-            var i, len, geojsonFeature, layer,
-                completedTaskLayerStyle = { color: "rgb(128, 128, 128)", opacity: 1, weight: 3 },
-                missionTaskLayerStyle = { color: "rgb(49,130,189)", opacity: 1, weight: 3 };
-
-            // Add the completed task layer
-            len = completedTasks.length;
-            for (i = 0; i < len; i++) {
-                geojsonFeature = completedTasks[i].getFeature();
-                layer = L.geoJson(geojsonFeature).addTo(map);
-                layer.setStyle(completedTaskLayerStyle);
-            }
-
-            // Add the current mission layer
-            len = missionTasks.length;
-            for (i = 0; i < len; i++) {
-                geojsonFeature = missionTasks[i].getFeature();
-                layer = L.geoJson(geojsonFeature).addTo(map);
-                layer.setStyle(missionTaskLayerStyle);
-            }
-        }
-    }
-
-
-    /**
-     * Update the bar graph visualization
-     * @param missionDistanceRate
-     * @param auditedDistanceRate
-     * @private
-     */
-    function _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate) {
-       horizontalBarPreviousContribution.attr("width", 0)
-           .transition()
-           .delay(200)
-           .duration(800)
-           .attr("width", auditedDistanceRate * svgWidth);
-       horizontalBarPreviousContributionLabel.transition()
-           .delay(200)
-           .text(parseInt(auditedDistanceRate * 100, 10) + "%");
-
-       horizontalBarMission.attr("width", 0)
-           .attr("x", auditedDistanceRate * svgWidth)
-           .transition()
-           .delay(1000)
-           .duration(500)
-           .attr("width", missionDistanceRate * svgWidth);
-       horizontalBarMissionLabel.attr("x", auditedDistanceRate * svgWidth + 3)
-           .transition().delay(1000)
-           .text(parseInt(missionDistanceRate * 100, 10) + "%");
-    }
-
-    /**
-     * Get a property
-     * @param key
-     * @returns {null}
-     */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
-    }
-
-    /**
-     * Callback function for background click
-     * @param e
-     */
-    function handleBackgroundClick(e) {
-        hideMissionComplete();
-    }
-
-    /**
-     * Callback function for button click
-     * @param e
-     */
-    function handleCloseButtonClick(e) {
-        hideMissionComplete();
-    }
-
-    /**
-     * Hide a mission
-     */
-    function hideMissionComplete () {
-        svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
-        svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
-        svl.ui.modalMissionComplete.map.css('top', 500);
-        $(".leaflet-control-attribution").remove();
-    }
-
-    function setMissionTitle (missionTitle) {
-        svl.ui.modalMissionComplete.missionTitle.html(missionTitle);
-    }
-
-    /** 
-     * Show a mission
-     */
-    function show (callback) {
-        svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
-        svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
-        svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-
-        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
-                mission = svl.missionContainer.getCurrentMission();
-            if (neighborhood && mission) {
-                // Focus on the current region on the map
-                var center = neighborhood.center();
-                neighborhood.addTo(map);
-                if (center) {
-                    map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
-                }
-
-                // Update the horizontal bar chart to show how much distance the user has audited
-                var unit = "miles";
-                var regionId = neighborhood.getProperty("regionId");
-                var auditedDistance = neighborhood.completedLineDistance(unit);
-                var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
-                var missionDistance = mission.totalLineDistance(unit);
-
-                var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
-                var missionTasks = mission.getRoute();
-                var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
-
-                var missionDistanceRate = missionDistance / totalLineDistance;
-                var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
-
-                var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
-                var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
-                var obstacleCount = svl.labelCounter.countLabel("Obstacle");
-                var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
-                var otherCount = svl.labelCounter.countLabel("Other");
-
-                setMissionTitle(mission.getProperty("label"));
-                _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
-                _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
-                _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
-                _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
-            }
-        }
-    }
-
-    _init();
-
-    self.show = show;
-    return self;
-}
-
-/**
- * A ModalSkip module
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ModalSkip ($) {
-    var self = { className : 'ModalSkip' },
-        status = {
-            disableClickOK: true
-        },
-        blinkInterval;
-
-    function _init () {
-        disableClickOK();
-
-        svl.ui.modalSkip.ok.bind("click", handlerClickOK);
-        svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
-        svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
-        svl.ui.leftColumn.jump.on('click', handleClickJump);
-    }
-
-    /**
-     * Blink the jump button
-     */
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            svl.ui.leftColumn.jump.toggleClass("highlight-50");
-        }, 500);
-    }
-
-    /**
-     * Callback for clicking jump button
-     * @param e
-     */
-    function handleClickJump (e) {
-        e.preventDefault();
-        svl.tracker.push('ModalSkip_ClickJump');
-        svl.modalSkip.showSkipMenu();
-    }
-
-
-    /**
-     * This method handles a click OK event
-     * @param e
-     */
-    function handlerClickOK (e) {
-        svl.tracker.push("ModalSkip_ClickOK");
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
-            position = svl.panorama.getPosition(),
-            incomplete = {
-                issue_description: radioValue,
-                lat: position.lat(),
-                lng: position.lng()
-            };
-
-        if ('form' in svl) svl.form.skipSubmit(incomplete);
-        if ('ribbon' in svl) svl.ribbon.backToWalk();
-        hideSkipMenu();
-    }
-
-    /**
-     * This method handles a click Cancel event
-     * @param e
-     */
-    function handlerClickCancel (e) {
-        svl.tracker.push("ModalSkip_ClickCancel");
-        hideSkipMenu();
-    }
-
-    /**
-     * This method takes care of nothing.
-     * @param e
-     */
-    function handlerClickRadio (e) {
-        svl.tracker.push("ModalSkip_ClickRadio");
-        enableClickOK();
-    }
-
-    /**
-     * Hide a skip menu
-     */
-    function hideSkipMenu () {
-        svl.ui.modalSkip.radioButtons.prop('checked', false);
-        svl.ui.modalSkip.holder.addClass('hidden');
-    }
-
-    /**
-     * Show a skip menu
-     */
-    function showSkipMenu () {
-        svl.ui.modalSkip.holder.removeClass('hidden');
-        disableClickOK();
-    }
-
-    /**
-     * Disable clicking the ok button
-     */
-    function disableClickOK () {
-        svl.ui.modalSkip.ok.attr("disabled", true);
-        svl.ui.modalSkip.ok.addClass("disabled");
-        status.disableClickOK = true;
-    }
-
-    /**
-     * Enable clicking the ok button
-     */
-    function enableClickOK () {
-        svl.ui.modalSkip.ok.attr("disabled", false);
-        svl.ui.modalSkip.ok.removeClass("disabled");
-        status.disableClickOK = false;
-    }
-
-    /**
-     * Stop blinking the jump button
-     */
-    function stopBlinking () {
-        window.clearInterval(blinkInterval);
-        svl.ui.leftColumn.jump.removeClass("highlight-50");
-    }
-
-    _init();
-
-    self.blink = blink;
-    self.showSkipMenu = showSkipMenu;
-    self.hideSkipMenu = hideSkipMenu;
-    self.stopBlinking = stopBlinking;
     return self;
 }
 
@@ -8000,7 +7300,8 @@ function Mission(parameters) {
             distanceMi: null,
             coverage: null
         },
-        _tasksForTheMission = [];
+        _tasksForTheMission = [],
+        labelCountsAtCompletion;
     
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
@@ -8099,6 +7400,13 @@ function Mission(parameters) {
 
         // Reset the label counter
         if ('labelCounter' in svl) {
+            labelCountsAtCompletion = {
+                "CurbRamp": svl.labelCounter.countLabel("CurbRamp"),
+                "NoCurbRamp": svl.labelCounter.countLabel("NoCurbRamp"),
+                "Obstacle": svl.labelCounter.countLabel("Obstacle"),
+                "SurfaceProblem": svl.labelCounter.countLabel("SurfaceProblem"),
+                "Other": svl.labelCounter.countLabel("Other")
+            };
             svl.labelCounter.reset();
         }
         
@@ -8174,6 +7482,14 @@ function Mission(parameters) {
         } else {
             return null;
         }
+    }
+
+    /**
+     * This method returns the label count object
+     * @returns {*}
+     */
+    function getLabelCount () {
+        return labelCountsAtCompletion;
     }
 
     /**
@@ -8296,6 +7612,7 @@ function Mission(parameters) {
     self.complete = complete;
     self.completedLineDistance = completedLineDistance;
     self.computeRoute = computeRoute;
+    self.getLabelCount = getLabelCount;
     self.getProperty = getProperty;
     self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
@@ -8607,35 +7924,6 @@ function MissionProgress () {
             svl.missionContainer.stage(mission);
         }
     }
-    
-    /**
-     * Show a window saying the mission(s) is completed.
-     * @param missions Completed missions
-     */
-    function showMissionCompleteWindow (missions) {
-        if (missions) {
-            var _callback, mission = missions.shift();
-
-            if (missions.length > 0) {
-                _callback = function () {
-                    showMissionCompleteWindow(missions);
-                };
-                svl.modalMission.setMissionComplete(mission, { callback: _callback });
-            } else {
-                _callback = function () {
-                    if ("missionContainer" in svl) {
-                        var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood();
-                        if (currentRegion) {
-                            var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
-                            svl.missionContainer.setCurrentMission(nextMission);
-                            showNextMission(nextMission);
-                        }
-                    }
-                };
-                svl.modalMission.setMissionComplete(mission, { callback: _callback });
-            }
-        }
-    }
 
     /**
      * @param mission Next mission
@@ -8689,10 +7977,7 @@ function MissionProgress () {
         }
     }
     
-    self.showNextMission = showNextMission;
-    self.showMissionCompleteWindow = showMissionCompleteWindow;
     self.update = update;
-
     _init();
     return self;
 }
@@ -11011,14 +10296,17 @@ function PanoramaContainer (google) {
 function LabelCounter (d3) {
     var self = {className: 'LabelCounter'};
 
-    var radius = 0.4, dR = radius / 2,
-        svgWidth = 200, svgHeight = 120,
+    var radius = 0.4,
+        dR = radius / 2,
+        svgWidth = 200,
+        svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
         height = 40 - margin.top - margin.bottom,
         colorScheme = svl.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22;
+        imageWidth = 22,
+        imageHeight = 22;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
@@ -11128,13 +10416,6 @@ function LabelCounter (d3) {
             .attr("width", imageWidth)
             .attr("height", imageHeight)
             .attr('transform', 'translate(0,-15)');
-      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-      //  .data([0])
-      //  .enter()
-      //  .append("text")
-      //  .style("font-size", "11px")
-      //  .style("fill", "gray")
-      //  .attr("class", "visible");
     }
 
     /**
@@ -11214,19 +10495,6 @@ function LabelCounter (d3) {
                 higherDigits = (dotPlots[key].count - firstDigit) / 10,
                 count = firstDigit + higherDigits;
 
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
 
             // Update the dot plot
             if (dotPlots[key].data.length >= count) {
@@ -11513,6 +10781,753 @@ function StatusField () {
 //     _init(params);
 //     return self;
 // }
+
+/**
+ * ModalComment module.
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function ModalComment ($) {
+    var self = { className: 'ModalComment'},
+        status = {
+            disableClickOK: true
+        },
+        blinkInterval;
+
+    function _init() {
+        disableClickOK();
+        svl.ui.modalComment.ok.on("click", handleClickOK);
+        svl.ui.modalComment.cancel.on("click", handleClickCancel);
+        //svl.ui.leftColumn.feedback.on("click", showCommentMenu);
+        svl.ui.leftColumn.feedback.on("click", handleClickFeedback);
+        svl.ui.modalComment.textarea.on("focus", handleTextareaFocus);
+        svl.ui.modalComment.textarea.on("blur", handleTextareaBlur);
+        svl.ui.modalComment.textarea.on("input", handleTextareaChange);
+    }
+
+    /**
+     * Blink the feedback button on the left
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.feedback.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * A callback function for clicking the feedback button on the left
+     * @param e
+     */
+    function handleClickFeedback (e) {
+        svl.tracker.push("ModalComment_ClickFeedback");
+        showCommentMenu();
+    }
+
+    function handleClickOK (e) {
+        e.preventDefault();
+        svl.tracker.push("ModalComment_ClickOK");
+        submitComment();
+        hideCommentMenu();
+    }
+
+    function handleClickCancel (e) {
+        svl.tracker.push("ModalComment_ClickCancel");
+        e.preventDefault();
+        hideCommentMenu();
+    }
+
+    /**
+     * Handles changes in the comment field
+     */
+    function handleTextareaChange () {
+        var comment = svl.ui.modalComment.textarea.val();
+        if (comment.length > 0) {
+            enableClickOK();
+        } else {
+            disableClickOK();
+        }
+    }
+
+    function handleTextareaBlur() {
+        if ('ribbon' in svl) {
+            svl.ribbon.enableModeSwitch();
+        }
+    }
+
+    function handleTextareaFocus() {
+        if ('ribbon' in svl) { svl.ribbon.disableModeSwitch(); }
+    }
+
+    function hideCommentMenu () {
+        svl.ui.modalComment.holder.addClass('hidden');
+    }
+
+    function showCommentMenu () {
+        svl.ui.modalComment.textarea.val("");
+        svl.ui.modalComment.holder.removeClass('hidden');
+        svl.ui.modalComment.ok.addClass("disabled");
+        disableClickOK();
+    }
+
+    function disableClickOK() {
+        svl.ui.modalComment.ok.attr("disabled", true);
+        svl.ui.modalComment.ok.addClass("disabled");
+        status.disableClickOK = true;
+    }
+
+    function enableClickOK () {
+        svl.ui.modalComment.ok.attr("disabled", false);
+        svl.ui.modalComment.ok.removeClass("disabled");
+        status.disableClickOK = false;
+    }
+
+    /**
+     * Stop blinking the feedback button on the left column
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.feedback.removeClass("highlight-50");
+    }
+
+    /**
+     * Submit the comment
+     */
+    function submitComment () {
+        if ('task' in svl) {
+            var task = svl.taskContainer.getCurrentTask(),
+                streetEdgeId = task.getStreetEdgeId(),
+                gsvPanoramaId = svl.panorama.getPano(),
+                pov = svl.map.getPov(),
+                comment = svl.ui.modalComment.textarea.val();
+
+            var latlng = svl.map.getPosition(),
+                data = {
+                    street_edge_id: streetEdgeId,
+                    gsv_panorama_id: gsvPanoramaId,
+                    heading: pov ? pov.heading : null,
+                    pitch: pov ? pov.pitch : null,
+                    zoom: pov ? pov.zoom : null,
+                    comment: comment,
+                    lat: latlng ? latlng.lat : null,
+                    lng: latlng ? latlng.lng : null
+                };
+
+            if ("form" in svl && svl.form) {
+                svl.form.postJSON("/audit/comment", data)
+            }
+        }
+    }
+
+    _init();
+
+    self.blink = blink;
+    self.stopBlinking = stopBlinking;
+
+    return self;
+}
+/**
+ * Modal windows for the examples of accessibility attributes
+ * @returns {{className: string}}
+ * @constructor
+ */
+function ModalExample () {
+    var self = { className: "ModalExample" };
+
+    function _init () {
+        svl.ui.modalExample.close.on("click", handleCloseButtonClick);
+        svl.ui.modalExample.background.on("click", handleBackgroundClick);
+    }
+
+    function handleBackgroundClick () {
+        hide();
+    }
+
+    function handleCloseButtonClick () {
+        hide();
+    }
+
+    function hide () {
+        svl.ui.modalExample.curbRamp.addClass("hidden");
+        svl.ui.modalExample.noCurbRamp.addClass("hidden");
+        svl.ui.modalExample.obstacle.addClass("hidden");
+        svl.ui.modalExample.surfaceProblem.addClass("hidden");
+    }
+
+    function show (key) {
+        hide();
+        switch (key) {
+            case "CurbRamp":
+                svl.ui.modalExample.curbRamp.removeClass("hidden");
+                break;
+            case "NoCurbRamp":
+                svl.ui.modalExample.noCurbRamp.removeClass("hidden");
+                break;
+            case "Obstacle":
+                svl.ui.modalExample.obstacle.removeClass("hidden");
+                break;
+            case "SurfaceProblem":
+                svl.ui.modalExample.surfaceProblem.removeClass("hidden");
+                break;
+        }
+    }
+
+    self.hide = hide;
+    self.show = show;
+
+    _init();
+    
+    return self;
+}
+/**
+ * ModalMission module
+ * @param $ jQuery object
+ * @param L Leaflet object
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function ModalMission ($, L) {
+    var self = { className : 'ModalMission'},
+        properties = {
+            boxTop: 180,
+            boxLeft: 45,
+            boxWidth: 640
+        };
+
+    // Mission titles. Keys are mission labels.
+    var missionTitles = {
+        "initial-mission": "Initial Mission",
+        "distance-mission": "Mission: Make __PLACEHOLDER__ of this neighborhood accessible",
+        "coverage-mission": "Mission: Make __PLACEHOLDER__ of this neighborhood accessible"
+    };
+    
+    function _init () {
+        svl.ui.modalMission.background.on("click", handleBackgroundClick);
+        svl.ui.modalMission.closeButton.on("click", handleCloseButtonClick);
+    }
+
+    /**
+     * Get a property
+     * @param key
+     * @returns {null}
+     */
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Callback function for background click
+     * @param e
+     */
+    function handleBackgroundClick(e) {
+        hideMission();
+    }
+
+    /**
+     * Callback function for button click
+     * @param e
+     */
+    function handleCloseButtonClick(e) {
+        hideMission();
+    }
+
+    /**
+     * Hide a mission
+     */
+    function hideMission () {
+        svl.ui.modalMission.holder.css('visibility', 'hidden');
+        svl.ui.modalMission.foreground.css('visibility', "hidden");
+    }
+
+    /** Show a mission */
+    function showMissionModal () {
+        svl.ui.modalMission.holder.css('visibility', 'visible');
+        svl.ui.modalMission.foreground.css('visibility', "visible");
+    }
+
+    /**
+     * Set the mission message in the modal window, then show the modal window.
+     * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
+     * @param parameters Object
+     */
+    function setMissionMessage (mission, parameters) {
+        // Set the title and the instruction of this mission.
+        var label = mission.getProperty("label"),
+            templateHTML = $("template.missions[val='" + label + "']").html(),
+            missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
+
+
+        if (label == "distance-mission") {
+            // Set the title
+            var distanceString;
+            if (mission.getProperty("level") <= 2) {
+                missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
+                distanceString = mission.getProperty("distanceFt") + "ft";
+            } else {
+                missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
+                distanceString = mission.getProperty("distanceMi") + "mi";
+            }
+            svl.ui.modalMission.missionTitle.html(missionTitle);
+
+            // Set the instruction
+            svl.ui.modalMission.instruction.html(templateHTML);
+            $("#mission-target-distance").html(distanceString);
+        } else if (label == "area-coverage-mission") {
+            // Set the title
+            var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
+            missionTitle = missionTitle.replace("__PLACEHOLDER__", coverage);
+            svl.ui.modalMission.missionTitle.html(missionTitle);
+
+            svl.ui.modalMission.instruction.html(templateHTML);
+            $("#modal-mission-area-coverage-rate").html(coverage);
+        } else {
+            svl.ui.modalMission.instruction.html(templateHTML);
+            svl.ui.modalMission.missionTitle.html(missionTitle);
+        }
+
+        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
+        $("#mission-badge-holder").html(badge);
+
+        if (parameters && "callback" in parameters) {
+            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+        } else {
+            $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
+        }
+
+        showMissionModal();
+    }
+    
+
+    _init();
+
+    self.setMission = setMissionMessage;  // Todo. Deprecated
+    self.setMissionMessage = setMissionMessage;
+    self.show = showMissionModal;
+    self.showMissionModal = showMissionModal;
+
+    return self;
+}
+
+/**
+ * ModalMission module
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function ModalMissionComplete ($, d3, L) {
+    var self = { className : 'ModalMissionComplete'},
+        properties = {
+            boxTop: 180,
+            boxLeft: 45,
+            boxWidth: 640
+        };
+
+    // Map visualization
+    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+    var southWest = L.latLng(38.761, -77.262),
+        northEast = L.latLng(39.060, -76.830),
+        bounds = L.latLngBounds(southWest, northEast),
+        map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
+                maxBounds: bounds,
+                maxZoom: 19,
+                minZoom: 9
+            })
+            .fitBounds(bounds);
+    var overlayPolygon = {
+        "type": "FeatureCollection",
+        "features": [{"type": "Feature", "geometry": {
+            "type": "Polygon", "coordinates": [
+                [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+            ]}}]};
+    var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
+    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
+
+    // Bar chart visualization
+    // Todo. This can be cleaned up!!!
+    var svgCoverageBarWidth = 335,
+        svgCoverageBarHeight = 20;
+    var svgCoverageBar = d3.select("#modal-mission-complete-complete-bar")
+        .append("svg")
+        .attr("width", svgCoverageBarWidth)
+        .attr("height", svgCoverageBarHeight);
+
+    var gBackground = svgCoverageBar.append("g").attr("class", "g-background");
+    var horizontalBarBackground = gBackground.selectAll("rect")
+        .data([1])
+        .enter().append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "rgba(240, 240, 240, 1)")
+        .attr("height", svgCoverageBarHeight)
+        .attr("width", svgCoverageBarWidth);
+
+    var gBarChart = svgCoverageBar.append("g").attr("class", "g-bar-chart");
+    var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
+        .data([0])
+        .enter().append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "rgba(23, 55, 94, 1)")
+        .attr("height", svgCoverageBarHeight)
+        .attr("width", 0);
+    var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
+        .data([""])
+        .enter().append("text")
+        .attr("x", 3)
+        .attr("y", 15)
+        .attr("dx", 3)
+        .attr("fill", "white")
+        .attr("font-size", "10pt")
+        .text(function (d) {
+            return d;
+        })
+        .style("visibility", "visible");
+
+    var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
+    var horizontalBarMission = gBarChart2.selectAll("rect")
+        .data([0])
+        .enter().append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "rgba(0,112,192,1)")
+        .attr("height", svgCoverageBarHeight)
+        .attr("width", 0);
+    var horizontalBarMissionLabel = gBarChart2.selectAll("text")
+        .data([""])
+        .enter().append("text")
+        .attr("x", 3)
+        .attr("y", 15)
+        .attr("dx", 3)
+        .attr("fill", "white")
+        .attr("font-size", "10pt")
+        .text(function (d) {
+            return d;
+        })
+        .style("visibility", "visible");
+
+
+    function _init () {
+        svl.ui.modalMissionComplete.background.on("click", handleBackgroundClick);
+        svl.ui.modalMissionComplete.closeButton.on("click", handleCloseButtonClick);
+
+        hideMissionComplete();
+    }
+
+    function _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
+        svl.ui.modalMissionComplete.curbRampCount.html(curbRampCount);
+        svl.ui.modalMissionComplete.noCurbRampCount.html(noCurbRampCount);
+        svl.ui.modalMissionComplete.obstacleCount.html(obstacleCount);
+        svl.ui.modalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
+        svl.ui.modalMissionComplete.otherCount.html(otherCount);
+    }
+
+    function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
+        if (!unit) unit = "kilometers";
+        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
+    }
+
+    function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
+        // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+        // var missionTasks = mission.getRoute();
+
+        if (completedTasks && missionTasks) {
+            // Add layers http://leafletjs.com/reference.html#map-addlayer
+            var i, len, geojsonFeature, layer,
+                completedTaskLayerStyle = { color: "rgb(128, 128, 128)", opacity: 1, weight: 3 },
+                missionTaskLayerStyle = { color: "rgb(49,130,189)", opacity: 1, weight: 3 };
+
+            // Add the completed task layer
+            len = completedTasks.length;
+            for (i = 0; i < len; i++) {
+                geojsonFeature = completedTasks[i].getFeature();
+                layer = L.geoJson(geojsonFeature).addTo(map);
+                layer.setStyle(completedTaskLayerStyle);
+            }
+
+            // Add the current mission layer
+            len = missionTasks.length;
+            for (i = 0; i < len; i++) {
+                geojsonFeature = missionTasks[i].getFeature();
+                layer = L.geoJson(geojsonFeature).addTo(map);
+                layer.setStyle(missionTaskLayerStyle);
+            }
+        }
+    }
+
+
+    /**
+     * Update the bar graph visualization
+     * @param missionDistanceRate
+     * @param auditedDistanceRate
+     * @private
+     */
+    function _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate) {
+       horizontalBarPreviousContribution.attr("width", 0)
+           .transition()
+           .delay(200)
+           .duration(800)
+           .attr("width", auditedDistanceRate * svgCoverageBarWidth);
+       horizontalBarPreviousContributionLabel.transition()
+           .delay(200)
+           .text(parseInt(auditedDistanceRate * 100, 10) + "%");
+
+       horizontalBarMission.attr("width", 0)
+           .attr("x", auditedDistanceRate * svgCoverageBarWidth)
+           .transition()
+           .delay(1000)
+           .duration(500)
+           .attr("width", missionDistanceRate * svgCoverageBarWidth);
+       horizontalBarMissionLabel.attr("x", auditedDistanceRate * svgCoverageBarWidth + 3)
+           .transition().delay(1000)
+           .text(parseInt(missionDistanceRate * 100, 10) + "%");
+    }
+
+    /**
+     * Get a property
+     * @param key
+     * @returns {null}
+     */
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Callback function for background click
+     * @param e
+     */
+    function handleBackgroundClick(e) {
+        hideMissionComplete();
+    }
+
+    /**
+     * Callback function for button click
+     * @param e
+     */
+    function handleCloseButtonClick(e) {
+        hideMissionComplete();
+    }
+
+    /**
+     * Hide a mission
+     */
+    function hideMissionComplete () {
+        svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
+        svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
+        svl.ui.modalMissionComplete.map.css('top', 500);
+        $(".leaflet-control-attribution").remove();
+    }
+
+    function setMissionTitle (missionTitle) {
+        svl.ui.modalMissionComplete.missionTitle.html(missionTitle);
+    }
+
+    /** 
+     * Show the modal window that presents stats about the completed mission
+     */
+    function show (callback) {
+        svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
+        svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
+        svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+
+        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
+                mission = svl.missionContainer.getCurrentMission();
+            if (neighborhood && mission) {
+                // Focus on the current region on the Leaflet map
+                var center = neighborhood.center();
+                neighborhood.addTo(map);
+                if (center) {
+                    map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
+                }
+
+                // Update the horizontal bar chart to show how much distance the user has audited
+                var unit = "miles";
+                var regionId = neighborhood.getProperty("regionId");
+                var auditedDistance = neighborhood.completedLineDistance(unit);
+                var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
+                var missionDistance = mission.getProperty("distanceMi");
+
+                var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+                var missionTasks = mission.getRoute();
+                var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
+
+                var missionDistanceRate = missionDistance / totalLineDistance;
+                var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+
+                // var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
+                // var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
+                // var obstacleCount = svl.labelCounter.countLabel("Obstacle");
+                // var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
+                // var otherCount = svl.labelCounter.countLabel("Other");
+                var labelCount = mission.getLabelCount();
+                if (labelCount) {
+                    var curbRampCount = labelCount["CurbRamp"];
+                    var noCurbRampCount = labelCount["NoCurbRamp"];
+                    var obstacleCount = labelCount["Obstacle"];
+                    var surfaceProblemCount = labelCount["SurfaceProblem"];
+                    var otherCount = labelCount["Other"];
+                } else {
+                    var curbRampCount = 0;
+                    var noCurbRampCount = 0;
+                    var obstacleCount = 0;
+                    var surfaceProblemCount = 0;
+                    var otherCount = 0;
+                }
+
+
+                setMissionTitle(mission.getProperty("label"));
+                _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
+                _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
+                _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
+                _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
+            }
+        }
+    }
+
+    _init();
+
+    self.hide = hideMissionComplete;
+    self.show = show;
+    return self;
+}
+
+/**
+ * A ModalSkip module
+ * @param $
+ * @returns {{className: string}}
+ * @constructor
+ * @memberof svl
+ */
+function ModalSkip ($) {
+    var self = { className : 'ModalSkip' },
+        status = {
+            disableClickOK: true
+        },
+        blinkInterval;
+
+    function _init () {
+        disableClickOK();
+
+        svl.ui.modalSkip.ok.bind("click", handlerClickOK);
+        svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
+        svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
+        svl.ui.leftColumn.jump.on('click', handleClickJump);
+    }
+
+    /**
+     * Blink the jump button
+     */
+    function blink () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            svl.ui.leftColumn.jump.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Callback for clicking jump button
+     * @param e
+     */
+    function handleClickJump (e) {
+        e.preventDefault();
+        svl.tracker.push('ModalSkip_ClickJump');
+        svl.modalSkip.showSkipMenu();
+    }
+
+
+    /**
+     * This method handles a click OK event
+     * @param e
+     */
+    function handlerClickOK (e) {
+        svl.tracker.push("ModalSkip_ClickOK");
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
+            position = svl.panorama.getPosition(),
+            incomplete = {
+                issue_description: radioValue,
+                lat: position.lat(),
+                lng: position.lng()
+            };
+
+        if ('form' in svl) svl.form.skipSubmit(incomplete);
+        if ('ribbon' in svl) svl.ribbon.backToWalk();
+        hideSkipMenu();
+    }
+
+    /**
+     * This method handles a click Cancel event
+     * @param e
+     */
+    function handlerClickCancel (e) {
+        svl.tracker.push("ModalSkip_ClickCancel");
+        hideSkipMenu();
+    }
+
+    /**
+     * This method takes care of nothing.
+     * @param e
+     */
+    function handlerClickRadio (e) {
+        svl.tracker.push("ModalSkip_ClickRadio");
+        enableClickOK();
+    }
+
+    /**
+     * Hide a skip menu
+     */
+    function hideSkipMenu () {
+        svl.ui.modalSkip.radioButtons.prop('checked', false);
+        svl.ui.modalSkip.holder.addClass('hidden');
+    }
+
+    /**
+     * Show a skip menu
+     */
+    function showSkipMenu () {
+        svl.ui.modalSkip.holder.removeClass('hidden');
+        disableClickOK();
+    }
+
+    /**
+     * Disable clicking the ok button
+     */
+    function disableClickOK () {
+        svl.ui.modalSkip.ok.attr("disabled", true);
+        svl.ui.modalSkip.ok.addClass("disabled");
+        status.disableClickOK = true;
+    }
+
+    /**
+     * Enable clicking the ok button
+     */
+    function enableClickOK () {
+        svl.ui.modalSkip.ok.attr("disabled", false);
+        svl.ui.modalSkip.ok.removeClass("disabled");
+        status.disableClickOK = false;
+    }
+
+    /**
+     * Stop blinking the jump button
+     */
+    function stopBlinking () {
+        window.clearInterval(blinkInterval);
+        svl.ui.leftColumn.jump.removeClass("highlight-50");
+    }
+
+    _init();
+
+    self.blink = blink;
+    self.showSkipMenu = showSkipMenu;
+    self.hideSkipMenu = hideSkipMenu;
+    self.stopBlinking = stopBlinking;
+    return self;
+}
 
 var svl = svl || {};
 svl.util = svl.util || {};

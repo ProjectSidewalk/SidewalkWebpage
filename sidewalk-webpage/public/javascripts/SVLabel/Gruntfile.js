@@ -16,6 +16,7 @@ module.exports = function(grunt) {
                     'src/SVLabel/neighborhood/*.js',
                     'src/SVLabel/panorama/*.js',
                     'src/SVLabel/status/*.js',
+                    'src/SVLabel/modal/*.js',
                     'src/SVLabel/Util/*.js',
                     'src/SVLabel/Onboarding/Onboarding.js'
                 ],
@@ -47,6 +48,7 @@ module.exports = function(grunt) {
                 'src/SVLabel/panorama/*.js',
                 'src/SVLabel/status/*.js',
                 'src/SVLabel/util/*.js',
+                'src/SVLabel/modal/*.js',
                 'src/SVLabel/onboarding/onboarding.js'
             ],
             options: {

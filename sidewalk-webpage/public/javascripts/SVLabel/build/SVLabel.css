@@ -893,8 +893,30 @@ footer {
     padding: 25px 0 0 0;
 }
 
+#modal-mission-complete-holder {
+    visibility: hidden;
+}
+
+#modal-mission-complete-foreground {
+    visibility: hidden;
+}
+
 #modal-mission-complete-holder .button {
     width: 100%;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+}
+
+#modal-mission-foreground h1 {
+    font-size: 24pt;
+    text-align: left;
+}
+
+#modal-mission-close-button {
+    width: 200px;
+    float: right;
 }
 
 #mission-badge-holder img {

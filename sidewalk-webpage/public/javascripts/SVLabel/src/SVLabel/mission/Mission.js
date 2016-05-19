@@ -21,7 +21,8 @@ function Mission(parameters) {
             distanceMi: null,
             coverage: null
         },
-        _tasksForTheMission = [];
+        _tasksForTheMission = [],
+        labelCountsAtCompletion;
     
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
@@ -120,6 +121,13 @@ function Mission(parameters) {
 
         // Reset the label counter
         if ('labelCounter' in svl) {
+            labelCountsAtCompletion = {
+                "CurbRamp": svl.labelCounter.countLabel("CurbRamp"),
+                "NoCurbRamp": svl.labelCounter.countLabel("NoCurbRamp"),
+                "Obstacle": svl.labelCounter.countLabel("Obstacle"),
+                "SurfaceProblem": svl.labelCounter.countLabel("SurfaceProblem"),
+                "Other": svl.labelCounter.countLabel("Other")
+            };
             svl.labelCounter.reset();
         }
         
@@ -195,6 +203,14 @@ function Mission(parameters) {
         } else {
             return null;
         }
+    }
+
+    /**
+     * This method returns the label count object
+     * @returns {*}
+     */
+    function getLabelCount () {
+        return labelCountsAtCompletion;
     }
 
     /**
@@ -317,6 +333,7 @@ function Mission(parameters) {
     self.complete = complete;
     self.completedLineDistance = completedLineDistance;
     self.computeRoute = computeRoute;
+    self.getLabelCount = getLabelCount;
     self.getProperty = getProperty;
     self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;

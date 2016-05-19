@@ -27,35 +27,6 @@ function MissionProgress () {
             svl.missionContainer.stage(mission);
         }
     }
-    
-    /**
-     * Show a window saying the mission(s) is completed.
-     * @param missions Completed missions
-     */
-    function showMissionCompleteWindow (missions) {
-        if (missions) {
-            var _callback, mission = missions.shift();
-
-            if (missions.length > 0) {
-                _callback = function () {
-                    showMissionCompleteWindow(missions);
-                };
-                svl.modalMission.setMissionComplete(mission, { callback: _callback });
-            } else {
-                _callback = function () {
-                    if ("missionContainer" in svl) {
-                        var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood();
-                        if (currentRegion) {
-                            var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
-                            svl.missionContainer.setCurrentMission(nextMission);
-                            showNextMission(nextMission);
-                        }
-                    }
-                };
-                svl.modalMission.setMissionComplete(mission, { callback: _callback });
-            }
-        }
-    }
 
     /**
      * @param mission Next mission
@@ -109,10 +80,7 @@ function MissionProgress () {
         }
     }
     
-    self.showNextMission = showNextMission;
-    self.showMissionCompleteWindow = showMissionCompleteWindow;
     self.update = update;
-
     _init();
     return self;
 }

@@ -33,36 +33,33 @@ function ModalMissionComplete ($, d3, L) {
     var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
     overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
 
-    var missionLayer = [],
-        completeTaskLayer = [];
-
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
-    var svgWidth = 335,
-        svgHeight = 20;
-    var svg = d3.select("#modal-mission-complete-complete-bar")
+    var svgCoverageBarWidth = 335,
+        svgCoverageBarHeight = 20;
+    var svgCoverageBar = d3.select("#modal-mission-complete-complete-bar")
         .append("svg")
-        .attr("width", svgWidth)
-        .attr("height", svgHeight);
+        .attr("width", svgCoverageBarWidth)
+        .attr("height", svgCoverageBarHeight);
 
-    var gBackground = svg.append("g").attr("class", "g-background");
+    var gBackground = svgCoverageBar.append("g").attr("class", "g-background");
     var horizontalBarBackground = gBackground.selectAll("rect")
         .data([1])
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(240, 240, 240, 1)")
-        .attr("height", svgHeight)
-        .attr("width", svgWidth);
+        .attr("height", svgCoverageBarHeight)
+        .attr("width", svgCoverageBarWidth);
 
-    var gBarChart = svg.append("g").attr("class", "g-bar-chart");
+    var gBarChart = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
         .data([0])
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(23, 55, 94, 1)")
-        .attr("height", svgHeight)
+        .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
         .data([""])
@@ -77,14 +74,14 @@ function ModalMissionComplete ($, d3, L) {
         })
         .style("visibility", "visible");
 
-    var gBarChart2 = svg.append("g").attr("class", "g-bar-chart");
+    var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
         .data([0])
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(0,112,192,1)")
-        .attr("height", svgHeight)
+        .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
         .data([""])
@@ -162,18 +159,18 @@ function ModalMissionComplete ($, d3, L) {
            .transition()
            .delay(200)
            .duration(800)
-           .attr("width", auditedDistanceRate * svgWidth);
+           .attr("width", auditedDistanceRate * svgCoverageBarWidth);
        horizontalBarPreviousContributionLabel.transition()
            .delay(200)
            .text(parseInt(auditedDistanceRate * 100, 10) + "%");
 
        horizontalBarMission.attr("width", 0)
-           .attr("x", auditedDistanceRate * svgWidth)
+           .attr("x", auditedDistanceRate * svgCoverageBarWidth)
            .transition()
            .delay(1000)
            .duration(500)
-           .attr("width", missionDistanceRate * svgWidth);
-       horizontalBarMissionLabel.attr("x", auditedDistanceRate * svgWidth + 3)
+           .attr("width", missionDistanceRate * svgCoverageBarWidth);
+       horizontalBarMissionLabel.attr("x", auditedDistanceRate * svgCoverageBarWidth + 3)
            .transition().delay(1000)
            .text(parseInt(missionDistanceRate * 100, 10) + "%");
     }
@@ -218,7 +215,7 @@ function ModalMissionComplete ($, d3, L) {
     }
 
     /** 
-     * Show a mission
+     * Show the modal window that presents stats about the completed mission
      */
     function show (callback) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
@@ -229,7 +226,7 @@ function ModalMissionComplete ($, d3, L) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
                 mission = svl.missionContainer.getCurrentMission();
             if (neighborhood && mission) {
-                // Focus on the current region on the map
+                // Focus on the current region on the Leaflet map
                 var center = neighborhood.center();
                 neighborhood.addTo(map);
                 if (center) {
@@ -241,7 +238,7 @@ function ModalMissionComplete ($, d3, L) {
                 var regionId = neighborhood.getProperty("regionId");
                 var auditedDistance = neighborhood.completedLineDistance(unit);
                 var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
-                var missionDistance = mission.totalLineDistance(unit);
+                var missionDistance = mission.getProperty("distanceMi");
 
                 var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
                 var missionTasks = mission.getRoute();
@@ -250,11 +247,26 @@ function ModalMissionComplete ($, d3, L) {
                 var missionDistanceRate = missionDistance / totalLineDistance;
                 var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
 
-                var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
-                var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
-                var obstacleCount = svl.labelCounter.countLabel("Obstacle");
-                var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
-                var otherCount = svl.labelCounter.countLabel("Other");
+                // var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
+                // var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
+                // var obstacleCount = svl.labelCounter.countLabel("Obstacle");
+                // var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
+                // var otherCount = svl.labelCounter.countLabel("Other");
+                var labelCount = mission.getLabelCount();
+                if (labelCount) {
+                    var curbRampCount = labelCount["CurbRamp"];
+                    var noCurbRampCount = labelCount["NoCurbRamp"];
+                    var obstacleCount = labelCount["Obstacle"];
+                    var surfaceProblemCount = labelCount["SurfaceProblem"];
+                    var otherCount = labelCount["Other"];
+                } else {
+                    var curbRampCount = 0;
+                    var noCurbRampCount = 0;
+                    var obstacleCount = 0;
+                    var surfaceProblemCount = 0;
+                    var otherCount = 0;
+                }
+
 
                 setMissionTitle(mission.getProperty("label"));
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
@@ -267,6 +279,7 @@ function ModalMissionComplete ($, d3, L) {
 
     _init();
 
+    self.hide = hideMissionComplete;
     self.show = show;
     return self;
 }

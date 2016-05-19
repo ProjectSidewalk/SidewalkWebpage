@@ -8,14 +8,17 @@
 function LabelCounter (d3) {
     var self = {className: 'LabelCounter'};
 
-    var radius = 0.4, dR = radius / 2,
-        svgWidth = 200, svgHeight = 120,
+    var radius = 0.4,
+        dR = radius / 2,
+        svgWidth = 200,
+        svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
         height = 40 - margin.top - margin.bottom,
         colorScheme = svl.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22;
+        imageWidth = 22,
+        imageHeight = 22;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
@@ -125,13 +128,6 @@ function LabelCounter (d3) {
             .attr("width", imageWidth)
             .attr("height", imageHeight)
             .attr('transform', 'translate(0,-15)');
-      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-      //  .data([0])
-      //  .enter()
-      //  .append("text")
-      //  .style("font-size", "11px")
-      //  .style("fill", "gray")
-      //  .attr("class", "visible");
     }
 
     /**
@@ -211,19 +207,6 @@ function LabelCounter (d3) {
                 higherDigits = (dotPlots[key].count - firstDigit) / 10,
                 count = firstDigit + higherDigits;
 
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
 
             // Update the dot plot
             if (dotPlots[key].data.length >= count) {

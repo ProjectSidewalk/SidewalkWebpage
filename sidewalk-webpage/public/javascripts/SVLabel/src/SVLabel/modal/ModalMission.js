@@ -1,6 +1,7 @@
 /**
  * ModalMission module
- * @param $
+ * @param $ jQuery object
+ * @param L Leaflet object
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -12,6 +13,13 @@ function ModalMission ($, L) {
             boxLeft: 45,
             boxWidth: 640
         };
+
+    // Mission titles. Keys are mission labels.
+    var missionTitles = {
+        "initial-mission": "Initial Mission",
+        "distance-mission": "Mission: Make __PLACEHOLDER__ of this neighborhood accessible",
+        "coverage-mission": "Mission: Make __PLACEHOLDER__ of this neighborhood accessible"
+    };
     
     function _init () {
         svl.ui.modalMission.background.on("click", handleBackgroundClick);
@@ -63,16 +71,38 @@ function ModalMission ($, L) {
      * @param parameters Object
      */
     function setMissionMessage (mission, parameters) {
+        // Set the title and the instruction of this mission.
         var label = mission.getProperty("label"),
-            templateHTML = $("template.missions[val='" + label + "']").html();
-        svl.ui.modalMission.foreground.html(templateHTML);
+            templateHTML = $("template.missions[val='" + label + "']").html(),
+            missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
+
 
         if (label == "distance-mission") {
-            var distanceString = mission.getProperty("distance") + " meters";
+            // Set the title
+            var distanceString;
+            if (mission.getProperty("level") <= 2) {
+                missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
+                distanceString = mission.getProperty("distanceFt") + "ft";
+            } else {
+                missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
+                distanceString = mission.getProperty("distanceMi") + "mi";
+            }
+            svl.ui.modalMission.missionTitle.html(missionTitle);
+
+            // Set the instruction
+            svl.ui.modalMission.instruction.html(templateHTML);
             $("#mission-target-distance").html(distanceString);
         } else if (label == "area-coverage-mission") {
-            var coverageString = mission.getProperty("coverage") + "%";
-            $("#modal-mission-area-coverage-rate").html(coverageString);
+            // Set the title
+            var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
+            missionTitle = missionTitle.replace("__PLACEHOLDER__", coverage);
+            svl.ui.modalMission.missionTitle.html(missionTitle);
+
+            svl.ui.modalMission.instruction.html(templateHTML);
+            $("#modal-mission-area-coverage-rate").html(coverage);
+        } else {
+            svl.ui.modalMission.instruction.html(templateHTML);
+            svl.ui.modalMission.missionTitle.html(missionTitle);
         }
 
         var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";

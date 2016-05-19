@@ -310,14 +310,15 @@
             <div id="modal-mission-holder">
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-title">Mission: Audit Columnbia Heights (10% Complete)</h1>
+                    <h1 id="modal-mission-header">Mission</h1>
+                    <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
             </div>
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1>Current Mission: <span class="normal" id="modal-mission-complete-title">Audit Columnbia Heights (10% Complete)</span></h1>
+                    <h1>Current Mission: <span class="normal" id="modal-mission-complete-title"></span></h1>
                     <div class="row">
                         <div class="col-sm-6">
                             <div id="modal-mission-complete-map"></div>
@@ -347,16 +348,15 @@
                                 </tr>
                             </table>
                             <h2>Neighborhood</h2>
-                            <small>Coverage</small>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
                                 <tr>
-                                    <th class="width-50-percent">Total miles audited so far</th>
-                                    <td id="modal-mission-complete-total-audited-distance"></td>
-                                </tr>
-                                <tr>
                                     <th>Miles audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance"></td>
+                                </tr>
+                                <tr>
+                                    <th class="width-50-percent">Neighborhood miles audited so far</th>
+                                    <td id="modal-mission-complete-total-audited-distance"></td>
                                 </tr>
                                 <tr>
                                     <th>Neighborhood miles remaining</th>
@@ -480,97 +480,27 @@
     </div>
 
     <template class="missions" val="initial-mission">
-        <div id="modal-mission-header">
-            <div class="row">
-                <div class="col-md-12">
-                    <h1>Mission</h1>
-                </div>
-            </div>
-        </div>
-        <div class="spacer20"></div>
-        <div id="modal-mission-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/StreetAccessibility.png")' class="modal-mission-images center-block" alt="Street accessibility" />
-                </div>
-                <div class="col-md-6">
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    The sidewalk accessibility affects how people with
-                    mobility impairments move about the city.
-                </div>
-                <div class="col-md-6">
-                    Your mission is to <span class="bold">find all the accessibility attributes that affect mobility impaired travelers.</span>
-                </div>
-            </div>
-        </div>
-        <div class="spacer30"></div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
+        <figure>
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+        </figure>
+        <p>The sidewalk accessibility affects how people with mobility impairments move about the city.
+            Your first mission is to <span class="bold">find all the accessibility attributes that affect mobility
+            impaired travelers.</span></p>
     </template>
     <template class="missions" val="distance-mission">
-        <div id="modal-mission-body">
-            <div class="row">
-                <div class="col-md-4" id="mission-badge-holder">
-
-                </div>
-                <div class="col-md-8" id="mission-message">
-                    <h1>Next Mission</h1>
-                    <p>Your goal is to <span class="bold">audit <var id="mission-target-distance">[x]</var> of the entire streets
-                        in this neighborhood</span> and find the accessibility attributes!</p>
-                </div>
-            </div>
-        </div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
+        <figure>
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+        </figure>
+        <p>Your goal is to <span class="bold">audit <var id="mission-target-distance">[x]</var> of the entire streets
+            in this neighborhood</span> and find the accessibility attributes!</p>
     </template>
     <template class="missions" val="area-coverage-mission">
-        <div id="modal-mission-body">
-            <div class="row">
-                <div class="col-md-4" id="mission-badge-holder">
-
-                </div>
-                <div class="col-md-8" id="mission-message">
-                    <h1>Next Mission</h1>
-                    <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets
-                        in this neighborhood</span> and find the accessibility attributes!</p>
-                </div>
-            </div>
-        </div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
+        <figure>
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+        </figure>
+        <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets
+            in this neighborhood</span> and find the accessibility attributes!</p>
     </template>
-    <template class="missions" val="mission-complete">
-        <div id="modal-mission">
-            <div class="row">
-                <div class="col-md-4" id="mission-badge-holder"></div>
-                <div class="col-md-8" id="mission-completion-message">
-                </div>
-            </div>
-        </div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
-    </template>
-
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
