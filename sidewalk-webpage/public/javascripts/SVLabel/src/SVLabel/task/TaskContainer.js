@@ -53,8 +53,8 @@ function TaskContainer (turf) {
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
 
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.5)) {
-            svl.popUpMessage.promptSignIn();
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
+            if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
             var data = svl.form.compileSubmissionData(task),

@@ -475,6 +475,12 @@ function Map ($, google, turf, params) {
                     svl.taskContainer.endTask(task);
                     var newTask = svl.taskContainer.nextTask(task);
                     svl.taskContainer.setCurrentTask(newTask);
+                    
+                    // Check if the interface jumped the user to another discontinuous location. If the user jumped,
+                    // tell them that we moved her to another location in the same neighborhood.
+                    if (!task.isConnectedTo(newTask)) {
+                        
+                    }
 
                     var geometry = newTask.getGeometry();
                     if (geometry) {

@@ -70,7 +70,7 @@ function Main ($, d3, google, turf, params) {
         // Pop up message
         svl.ui.popUpMessage = {};
         svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
-        svl.ui.popUpMessage.box = $("#pop-up-message-box");
+        svl.ui.popUpMessage.foreground = $("#pop-up-message-foreground");
         svl.ui.popUpMessage.background = $("#pop-up-message-background");
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
@@ -212,7 +212,7 @@ function Main ($, d3, google, turf, params) {
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
-        svl.overlayMessageBox = OverlayMessageBox($);
+        svl.overlayMessageBox = OverlayMessageBox();
         svl.statusField = StatusField();
         svl.missionStatus = MissionStatus();
         svl.neighborhoodStatus = NeighborhoodStatus();

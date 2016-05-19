@@ -2,26 +2,21 @@
     position: absolute;
     left: 0;
     top: 0;
-    /* height: 100%;
-    width: 100%; */
+
 }
 
 #pop-up-message-background {
     position: absolute;
-    left: 0;
+    left: -60px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
     height: 100%;
-    width: 100%;
+    width: 1000px;
 }
 
-#pop-up-message-box {
-    background: rgba(69,183,214,1);
-    border: 3px solid rgba(255,255,255,1);
-    color: white;
-    /* background: rgba(255, 255, 255, 1); */
-    /* border: 3px solid rgba(200, 200, 200, 1); */
-    /* color: black; */
+#pop-up-message-foreground {
+    background: rgba(255, 255, 255, 1); /* rgba(69,183,214,1); */
+    border: 3px solid rgba(200,200,200,1);
     font-size: 14pt;
     padding: 10px;
     position: absolute;
@@ -29,4 +24,12 @@
     left: 0;
     visibility: visible;
     width: 730px;
+}
+
+#pop-up-message-foreground p {
+    padding-left: 1px;
+}
+
+#pop-up-message-foreground a {
+    color: rgba(20, 20, 20, 1);
 }

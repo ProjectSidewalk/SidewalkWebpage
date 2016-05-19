@@ -14,7 +14,7 @@ function PopUpMessage ($, param) {
 
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
-        svl.ui.popUpMessage.box.append($html);
+        svl.ui.popUpMessage.foreground.append($html);
 
         if (callback) {
             $html.on("click", callback);
@@ -27,12 +27,12 @@ function PopUpMessage ($, param) {
         var $button = $(buttonDom);
 
         $button.css({
-            margin: '10 10 10 0'
+            margin: '0 10 10 0'
         });
         $button.addClass('button');
 
-//        svl.ui.popUpMessage.box.css('padding-bottom', '50px');
-        svl.ui.popUpMessage.box.append($button);
+//        svl.ui.popUpMessage.foreground.css('padding-bottom', '50px');
+        svl.ui.popUpMessage.foreground.append($button);
 
         if (callback) {
             $button.on('click', callback);
@@ -58,11 +58,14 @@ function PopUpMessage ($, param) {
         });
     }
 
+    function haveAskedToSignIn () {
+        return status.haveAskedToSignIn;
+    }
+
     /**
      * Hides the message box.
      */
     function hide () {
-        // This method hides the message box.
         svl.ui.popUpMessage.holder.removeClass('visible');
         svl.ui.popUpMessage.holder.addClass('hidden');
         hideBackground();  // hide background
@@ -82,44 +85,42 @@ function PopUpMessage ($, param) {
      * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
      */
     function promptSignIn () {
-        if (!status.haveAskedToSignIn) {
-            setTitle("You've been contributing a lot!");
-            setMessage("Do you want to create an account to keep track of your progress?");
-            appendButton('<button id="pop-up-message-sign-up-button">Let me sign up!</button>', function () {
-                // Store the data in LocalStorage.
-                var task = svl.taskContainer.getCurrentTask();
-                var data = svl.form.compileSubmissionData(task),
-                    staged = svl.storage.get("staged");
-                staged.push(data);
-                svl.storage.set("staged", staged);
+        setTitle("You've been contributing a lot!");
+        setMessage("Do you want to create an account to keep track of your progress?");
+        appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
+            // Store the data in LocalStorage.
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task),
+                staged = svl.storage.get("staged");
+            staged.push(data);
+            svl.storage.set("staged", staged);
 
-                $("#sign-in-modal").addClass("hidden");
-                $("#sign-up-modal").removeClass("hidden");
-                $('#sign-in-modal-container').modal('show');
-            });
-            appendButton('<button id="pop-up-message-cancel-button">No</button>', function () {
-                if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
+            $("#sign-in-modal").addClass("hidden");
+            $("#sign-up-modal").removeClass("hidden");
+            $('#sign-in-modal-container').modal('show');
+        });
+        appendButton('<button id="pop-up-message-cancel-button" class="float">No</button>', function () {
+            if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
 
-                svl.user.setProperty('firstTask', false);
-                // Submit the data as an anonymous user.
-                var task = svl.taskContainer.getCurrentTask();
-                var data = svl.form.compileSubmissionData(task);
-                svl.form.submit(data, task);
-            });
-            appendHTML('<br /><a id="pop-up-message-sign-in"><small><span style="color: white; text-decoration: underline;">I do have an account! Let me sign in.</span></small></a>', function () {
-                var task = svl.taskContainer.getCurrentTask();
-                var data = svl.form.compileSubmissionData(task),
-                    staged = svl.storage.get("staged");
-                staged.push(data);
-                svl.storage.set("staged", staged);
+            svl.user.setProperty('firstTask', false);
+            // Submit the data as an anonymous user.
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
+        });
+        appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in"><small><span style="text-decoration: underline;">I do have an account! Let me sign in.</span></small></a></p>', function () {
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task),
+                staged = svl.storage.get("staged");
+            staged.push(data);
+            svl.storage.set("staged", staged);
 
-                $("#sign-in-modal").removeClass("hidden");
-                $("#sign-up-modal").addClass("hidden");
-                $('#sign-in-modal-container').modal('show');
-            });
-            setPosition(0, 260, '100%');
-            show(true);
-        }
+            $("#sign-in-modal").removeClass("hidden");
+            $("#sign-up-modal").addClass("hidden");
+            $('#sign-in-modal-container').modal('show');
+        });
+        setPosition(40, 260, 640);
+        show(true);
         status.haveAskedToSignIn = true;
     }
 
@@ -128,7 +129,7 @@ function PopUpMessage ($, param) {
      */
     function reset () {
         svl.ui.popUpMessage.holder.css({ width: '', height: '' });
-        svl.ui.popUpMessage.box.css({
+        svl.ui.popUpMessage.foreground.css({
                     left: '',
                     top: '',
                     width: '',
@@ -136,7 +137,7 @@ function PopUpMessage ($, param) {
                     zIndex: ''
                 });
 
-        svl.ui.popUpMessage.box.css('padding-bottom', '')
+        svl.ui.popUpMessage.foreground.css('padding-bottom', '')
 
         for (var i = 0; i < buttons.length; i++ ){
             try {
@@ -189,12 +190,12 @@ function PopUpMessage ($, param) {
      * Sets the position of the message.
      */
     function setPosition (x, y, width, height) {
-        svl.ui.popUpMessage.box.css({
+        svl.ui.popUpMessage.foreground.css({
             left: x,
             top: y,
             width: width,
             height: height,
-            zIndex: 1000
+            zIndex: 2
         });
         return this;
     }
@@ -202,6 +203,7 @@ function PopUpMessage ($, param) {
     self.appendButton = appendButton;
     self.appendHTML = appendHTML;
     self.appendOKButton = appendOKButton;
+    self.haveAskedToSignIn = haveAskedToSignIn;
     self.hide = hide;
     self.hideBackground = hideBackground;
     self.promptSignIn = promptSignIn;
