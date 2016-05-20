@@ -269,12 +269,44 @@ function ModalMissionComplete ($, d3, L) {
 
 
                 setMissionTitle(mission.getProperty("label"));
+                _updateTheMissionCompleteMessage();
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
                 _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
                 _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
             }
         }
+    }
+
+    /**
+     * This method randomly select a mission completion message from the list and present it to the user.
+     * @private
+     */
+    function _updateTheMissionCompleteMessage() {
+        var messages = [
+                'Couldn’t have done it better myself.',
+                'Aren’t you proud of yourself? We are.',
+                'WOWZA. Even the sidewalks are impressed. Keep labeling!',
+                'Your auditing is out of this world.',
+                'Incredible. You\'re a machine! ...no wait, I am.',
+                'Gold star. You can wear it proudly on your forehead all day if you\'d like, we won\'t judge.',
+                'Ooh la la! Those accessibility labels are to die for.',
+                'We knew you had it in you all along. Great work!',
+                'Wow you did really well. You also did good! Kind of like superman.',
+                'You\'re one lightning bolt away from being a greek diety. Keep on going!',
+                '"Great job. Every accomplishment starts with the decision to try." - That inspirational poster in your office',
+                'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
+                'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
+                'You. Are. Unstoppable. Keep it up!',
+                'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
+                'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
+                '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. - Chewbacca',
+                'You\'re seriously talented. You could go pro at this.',
+                'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
+                'You might actually be a wizard. These sidewalks are better because of you.'
+            ],
+            message = messages[Math.floor(Math.random() * messages.length)];
+        svl.ui.modalMissionComplete.message.html(message);
     }
 
     _init();

@@ -13,7 +13,7 @@ function PopUpMessage ($, param) {
 
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
-        svl.ui.popUpMessage.foreground.append($html);
+        svl.ui.popUpMessage.content.append($html);
 
         if (callback) {
             $html.on("click", callback);
@@ -26,7 +26,7 @@ function PopUpMessage ($, param) {
         var $button = $(buttonDom);
         $button.css({ margin: '0 10 10 0' });
         $button.addClass('button');
-        svl.ui.popUpMessage.foreground.append($button);
+        svl.ui.popUpMessage.buttonHolder.append($button);
 
         if (callback) {
             $button.one('click', callback);

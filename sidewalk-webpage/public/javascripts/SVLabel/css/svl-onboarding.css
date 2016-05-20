@@ -11,7 +11,7 @@
 #onboarding-background {
     width: 1025px;
     height: 600px;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 1.0);
     position: absolute;
     top: -110px;
     left: -65px;

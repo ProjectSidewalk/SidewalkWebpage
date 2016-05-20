@@ -7,11 +7,16 @@
     text-align: justify;
 }
 
+#modal-mission-holder {
+    visibility: hidden;
+}
+
 #modal-skip-background, #modal-comment-background, #modal-mission-background {
     position: absolute;
     left: -55px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
     height: 100%;
     width: 110%;
 }
@@ -40,18 +45,10 @@
     padding: 10px;
     width: 720px;
     height: 480px;
-}
-
-.modal-foreground {
     background: rgba(255, 255, 255, 1);
     color: rgba(80, 80, 80, 1);
     font-size: 14pt;
-    padding: 10px;
     position: absolute;
-    top: 118px;
-    left: 8px;
-    visibility: visible;
-    width: 720px;
     min-height: 480px;
 
     border-radius: 3px 3px 3px 3px;
@@ -69,6 +66,19 @@
     font-size: 16pt;
     margin: 3px 0 10px 0;
 
+}
+
+.modal-foreground h3 {
+    font-size: 14pt;
+    margin: 3px 0 5px 0;
+}
+
+.modal-foreground p {
+    font-size: 12pt;
+}
+
+.modal-foreground .table {
+    margin-bottom: 10px !important;
 }
 
 .modal-foreground th, .modal-foreground td {
@@ -123,6 +133,12 @@
 
 #modal-mission-foreground {
     padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
 }
 
 #modal-mission-foreground h1 {
