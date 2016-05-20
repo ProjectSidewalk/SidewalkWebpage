@@ -3085,27 +3085,31 @@ function Keyboard ($) {
 
                     }
                     break;
+                case 66:
+                    // "b" for a blocked view
+                    svl.ribbon.modeSwitch("Occlusion");
+                    break;
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
-                    svl.ribbon.modeSwitchClick("CurbRamp");
+                    svl.ribbon.modeSwitch("CurbRamp");
                     break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
-                    svl.ribbon.modeSwitchClick("Walk");
+                    svl.ribbon.modeSwitch("Walk");
                     break;
                 case 77:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
-                    svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    svl.ribbon.modeSwitch("NoCurbRamp");
                     break;
                 case 78:
-                    svl.ribbon.modeSwitchClick("NoSidewalk");
+                    svl.ribbon.modeSwitch("NoSidewalk");
                     break;
                 case 79:
                     // "o" for Obstacle
-                    svl.ribbon.modeSwitchClick("Obstacle");
+                    svl.ribbon.modeSwitch("Obstacle");
                     break;
                 case 83:
-                    svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    svl.ribbon.modeSwitch("SurfaceProblem");
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
@@ -4058,7 +4062,7 @@ function Map ($, google, turf, params) {
                     
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
-                    if (!task.isConnectedTo(newTask)) {
+                    if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
                         svl.popUpMessage.notify("Jumped back to your neighborhood!",
                             "We sent you back into the neighborhood you have been walking around! Please continue to " +
                             "make this neighborhood more accessible for everyone!");
@@ -11035,13 +11039,15 @@ function ModalMission ($, L) {
      */
     function hideMission () {
         svl.ui.modalMission.holder.css('visibility', 'hidden');
-        svl.ui.modalMission.foreground.css('visibility', "hidden");
+        svl.ui.modalMission.foreground.css('visibility', 'hidden');
+        svl.ui.modalMission.background.css('visibility', 'hidden')
     }
 
     /** Show a mission */
     function showMissionModal () {
         svl.ui.modalMission.holder.css('visibility', 'visible');
-        svl.ui.modalMission.foreground.css('visibility', "visible");
+        svl.ui.modalMission.foreground.css('visibility', 'visible');
+        svl.ui.modalMission.background.css('visibility', 'visible')
     }
 
     /**
@@ -12491,12 +12497,12 @@ function UtilitiesMisc (JSON) {
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: "Label a part of sidewalk that cannot be observed",
+                instructionalText: 'Label a <span class="underline">part of sidewalk that cannot be observed</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: 'Label missing sidewalk',
+                instructionalText: 'Label <span class="underline">missing sidewalk</span>',
                 textColor: 'rgba(255,255,255,1)'
             }
         }

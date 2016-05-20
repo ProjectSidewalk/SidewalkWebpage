@@ -184,12 +184,12 @@ function UtilitiesMisc (JSON) {
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: "Label a part of sidewalk that cannot be observed",
+                instructionalText: 'Label a <span class="underline">part of sidewalk that cannot be observed</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: 'Label missing sidewalk',
+                instructionalText: 'Label <span class="underline">missing sidewalk</span>',
                 textColor: 'rgba(255,255,255,1)'
             }
         }
