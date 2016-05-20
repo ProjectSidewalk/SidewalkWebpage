@@ -5137,6 +5137,7 @@ function PopUpMessage ($, param) {
      * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
      */
     function promptSignIn () {
+        svl.ui.popUpMessage.buttonHolder.html("");
         setTitle("You've been contributing a lot!");
         setMessage("Do you want to create an account to keep track of your progress?");
         appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
@@ -5177,6 +5178,7 @@ function PopUpMessage ($, param) {
     }
 
     function notify(title, message) {
+        svl.ui.popUpMessage.buttonHolder.html("");
         setPosition(40, 260, 640);
         show(true);
         setTitle(title);
@@ -7501,9 +7503,19 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var initialMission = svl.missionContainer.getMission(null, "initial-mission", 1);
+            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
+
+            // Get the last completed mission's target distance
+            var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
+            if (distanceAuditedSoFar === 0 && initialMission.isCompleted()) {
+                distanceAuditedSoFar = initialMission.getProperty("distance") / 1000;
+            }
 
             var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-            return completedDistance / targetDistance;
+
+            return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
         } else {
             return 0;
         }
