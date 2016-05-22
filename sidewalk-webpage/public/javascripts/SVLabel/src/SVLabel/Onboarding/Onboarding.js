@@ -48,7 +48,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
-                        "type": "arrow",
+                        "type": "OpenHand", //changed this
                         "x": 10280,
                         "y": -385,
                         "length": 50,
@@ -77,7 +77,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": [
                     {
-                        "type": "arrow",
+                        "type": "OpenHand", //changed this
                         "x": 10280,
                         "y": -385,
                         "length": 50,
@@ -91,7 +91,7 @@ function Onboarding ($) {
                     return "rate-attribute-1";
                 }
             },
-            "rate-attribute-1": {
+            "rate-att ribute-1": {
                 "properties": {
                     "action": "RateSeverity",
                     "labelType": "CurbRamp",
@@ -100,7 +100,7 @@ function Onboarding ($) {
                 "message": {
                     "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
                     'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
-                    '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
+                    '<span class="bold">Let’s rate it as 1, passable.<br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null

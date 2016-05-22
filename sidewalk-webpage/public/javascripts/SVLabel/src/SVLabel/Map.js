@@ -679,8 +679,10 @@ function Map ($, google, turf, params) {
 
             }
         } else {
+
             setViewControlLayerCursor('default');
-            // svl.ui.map.viewControlLayer.css("cursor", "default");
+            // $divViewControlLayer.css("cursor", "default");
+
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
