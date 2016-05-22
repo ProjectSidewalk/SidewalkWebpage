@@ -41,7 +41,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'In this Street View image, we can see a curb ramp. Let’s <span class="bold">click the "Curb Ramp" button</span> to label it!',
+                    "message": 'In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class="bold">"Curb Ramp"</span> button above.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -70,7 +70,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": 'Good! Now, <span class="bold">click the curb ramp in the image to label it.',
+                    "message": 'Good! Now, <span class="bold">click the curb ramp</span> beneath the yellow arrow to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -159,7 +159,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Here, we see a curb ramp. Let’s label it. First <span class="bold">click the "Curb Ramp" button.</span>',
+                    "message": 'Now we’ve found another curb ramp. Let’s label it! <span class="bold">Click the “Curb Ramp” button</span> like before.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -217,7 +217,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'Good! <span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
@@ -257,7 +257,7 @@ function Onboarding ($) {
                     "labelType": "NoCurbRamp"
                 },
                 "message": {
-                    "message": 'There is no curb ramp at the end of this crosswalk. Let’s <span class="bold">click the “Missing Curb Ramp” button to label it.</span>',
+                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Cub Ramp" button</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -287,7 +287,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click the end of the crosswalk to label it.</span>',
+                    "message": 'Now click beneath the yellow arrow to <span class="bold">label the missing curb ramp.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -315,8 +315,7 @@ function Onboarding ($) {
                     "severity": 3
                 },
                 "message": {
-                    "message": 'Since there is one curb ramp right next to the ' +
-                    'missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 3.</span><br>' +
+                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> Just use your best judgment! <br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
@@ -357,7 +356,7 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": 'Great! We need to investigate all of the corners on this intersection, so let’s adjust our view.  <span class="bold">Grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -374,7 +373,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! Here, we can see two curb ramps. <span class="bold">Click the "Curb Ramp" button on the menu</span> to label them both!',
+                    "message": 'OK, this corner has two curb ramps. Let’s label them both! <span class="bold">Click the "Curb Ramp" button.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -413,7 +412,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                    "message": 'Now, <span class="bold">click the curb ramp</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -441,7 +440,7 @@ function Onboarding ($) {
                     "severity": null
                 },
                 "message": {
-                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
@@ -481,7 +480,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! <span class="bold">Click the "Curb Ramp" button on the menu</span> to label another curb ramp!',
+                    "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -580,7 +579,7 @@ function Onboarding ($) {
                     "subcategory": "NoSidewalk"
                 },
                 "message": {
-                    "message": 'Notice that the sidewalk is prematurely ending here. <span class="bold">Move the mouse cursor over the "Other" and click "No Sidewalk" to label it.</span>',
+                    "message": 'Notice that the sidewalk suddenly ends here. Let’s label this. <span class="bold">Click the "Other" button then "No Sidewalk" to label it.</span>',
                     "position": "top-left",
                     "parameters": null
                 },
@@ -611,7 +610,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click on the ground where the sidewalk is missing.</span>',
+                    "message": '<span class="bold">Click on the ground</span> where the sidewalk is missing.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -639,14 +638,14 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": 'Awesome! We’re almost done with the training. Let’s learn how to walk. First, <span class="bold">grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
+                    svl.tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
                     return "walk-1";
                 }
             },
@@ -656,9 +655,7 @@ function Onboarding ($) {
                     "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
                 },
                 "message": {
-                    "message": 'It seems like there is a curb ramp at the end of the crosswalk, but it’s hard to see ' +
-                    'because the image is washed out. <span class="bold">Let’s double click on the road to take ' +
-                    'a step and see it from another angle.</span>',
+                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. Let’s take a step to see if we can get a better look.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -1145,13 +1142,6 @@ function Onboarding ($) {
             
             svl.taskContainer.initNextTask();
 
-            // var task = svl.taskContainer.nextTask();
-            // var geometry, lat, lng;
-            // svl.taskContainer.setCurrentTask(task);
-            // geometry = task.getGeometry();
-            // lat = geometry.coordinates[0][1];
-            // lng = geometry.coordinates[0][0];
-            // svl.map.setPosition(lat, lng);
             return;
         }
 
@@ -1292,7 +1282,7 @@ function Onboarding ($) {
                     removeAnnotationListener();
                     next.call(this, state.transition);
                 };
-                $target.on("click", callback);
+                $target.on("click", callback);  // This can be changed to "$target.one()"
             } else if (state.properties.action == "AdjustHeadingAngle") {
                 // Tell them to remove a label.
                 showGrabAndDragAnimation({direction: "left-to-right"});
@@ -1323,6 +1313,33 @@ function Onboarding ($) {
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
                 if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+
+                // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
+                // take the user to the right panorama. In that case, programmatically move the user.
+                var currentClick, previousClick, canvasX, canvasY, pov, imageCoordinate;
+                var mouseUpCallback = function (e) {
+                    currentClick = new Date().getTime();
+
+
+                    // Check if the user has double clicked
+                    if (previousClick && currentClick - previousClick < 300) {
+                        canvasX = mouseposition(e, this).x;
+                        canvasY = mouseposition(e, this).y;
+                        pov = svl.map.getPov();
+                        imageCoordinate = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+
+                        // Check if where the user has clicked is in the right spot on the canvas
+                        var doubleClickAnnotationCoordinate = state.annotations.filter(function (x) { return x.type == "double-click"; })[0];
+                        if (Math.sqrt(Math.pow(imageCoordinate.y - doubleClickAnnotationCoordinate.y, 2) +
+                                    Math.pow(imageCoordinate.x - doubleClickAnnotationCoordinate.x, 2)) < 300) {
+                            svl.ui.map.viewControlLayer.off("mouseup", mouseUpCallback);
+                            svl.panorama.setPano(state.properties.panoId);
+                            callback();
+                        }
+                    }
+                    previousClick = currentClick;
+                };
+                svl.ui.map.viewControlLayer.on("mouseup", mouseUpCallback);
             } else if (state.properties.action == "Instruction") {
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.

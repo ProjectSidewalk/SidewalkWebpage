@@ -56,7 +56,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         val region: Option[Region] = RegionTable.getRegion
-        val task: NewTask = AuditTaskTable.getNewTask
+        val task: NewTask = AuditTaskTable.getNewTaskInRegion(region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
   }

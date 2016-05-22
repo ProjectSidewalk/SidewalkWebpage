@@ -10,10 +10,11 @@ function NeighborhoodFactory () {
     /**
      * Create a neighborhood instance.
      * @param regionId
+     * @param layer Leaflet layer
      * @returns {Neighborhood}
      */
-    function create (regionId) {
-        return new Neighborhood({regionId: regionId});
+    function create (regionId, layer) {
+        return new Neighborhood({regionId: regionId, layer: layer});
     }
 
     self.create = create;

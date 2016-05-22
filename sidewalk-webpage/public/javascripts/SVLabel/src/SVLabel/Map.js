@@ -462,7 +462,6 @@ function Map ($, google, turf, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
 
-        // Todo. This method is expanding... Maybe use a pub-sub design so the code will be cleaner.
         if ("canvas" in svl && svl.canvas) updateCanvas();
         if ("compass" in svl) svl.compass.update();
         if ("missionProgress" in svl) svl.missionProgress.update();
@@ -476,6 +475,14 @@ function Map ($, google, turf, params) {
                     svl.taskContainer.endTask(task);
                     var newTask = svl.taskContainer.nextTask(task);
                     svl.taskContainer.setCurrentTask(newTask);
+                    
+                    // Check if the interface jumped the user to another discontinuous location. If the user jumped,
+                    // tell them that we moved her to another location in the same neighborhood.
+                    if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+                        svl.popUpMessage.notify("Jumped back to your neighborhood!",
+                            "We sent you back into the neighborhood you have been walking around! Please continue to " +
+                            "make this neighborhood more accessible for everyone!");
+                    }
 
                     var geometry = newTask.getGeometry();
                     if (geometry) {

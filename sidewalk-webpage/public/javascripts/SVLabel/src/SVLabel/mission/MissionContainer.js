@@ -22,16 +22,16 @@ function MissionContainer ($, parameters) {
             len = completed.length;
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
-                    completed[i].level, completed[i].distance, completed[i].coverage, true);
-                add(completed[i].regionId, mission);
+                    completed[i].level, completed[i].distance, completed[i].distance_ft, completed[i].distance_mi, completed[i].coverage, true);
+                addAMission(completed[i].regionId, mission);
                 addToCompletedMissions(mission);
             }
 
             len = incomplete.length;
             for (i = 0; i < len; i++) {
                 mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
-                    incomplete[i].level, incomplete[i].distance, incomplete[i].coverage, false);
-                add(incomplete[i].regionId, mission);
+                    incomplete[i].level, incomplete[i].distance, incomplete[i].distance_ft, incomplete[i].distance_mi, incomplete[i].coverage, false);
+                addAMission(incomplete[i].regionId, mission);
             }
 
             // Set the current mission.
@@ -53,7 +53,7 @@ function MissionContainer ($, parameters) {
      * @param regionId
      * @param mission
      */
-    function add(regionId, mission) {
+    function addAMission(regionId, mission) {
         if (regionId || regionId === 0) {
             if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
         } else {
@@ -81,7 +81,8 @@ function MissionContainer ($, parameters) {
     }
 
     /**
-     * Submit the currently staged missions to the server
+     * Submit the currently staged missions to the server.
+     * Todo. I no longer have to stage-and-commit... So I can simplify this.
      * @returns {commit}
      */
     function commit () {
@@ -137,7 +138,12 @@ function MissionContainer ($, parameters) {
         return completedMissions;
     }
 
-    /** Get all the completed missions with the given region id */
+    /**
+     * Get all the completed missions with the given region id
+     *
+     * @param regionId A region id
+     * @returns {*}
+     */
     function getMissionsByRegionId (regionId) {
         if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
         var missions = missionStoreByRegionId[regionId];
@@ -168,8 +174,11 @@ function MissionContainer ($, parameters) {
         }
     }
 
+    /**
+     *
+     */
     function refresh () {
-        missionStoreByRegionId = { "noRegionId" : []};
+        missionStoreByRegionId = { "noRegionId" : [] };
         completedMissions = [];
         staged = [];
         currentMission = null;
@@ -183,14 +192,16 @@ function MissionContainer ($, parameters) {
     function setCurrentMission (mission) {
         currentMission = mission;
 
-        if ("missionProgress" in svl) {
+        if ("missionProgress" in svl && "missionStatus" in svl) {
             svl.missionProgress.update();
+            svl.missionStatus.printMissionMessage(mission);
         }
         return this;
     }
 
     /**
      * Push the completed mission to the staged so it will be submitted to the server.
+     * Todo. I no longer have to stage-and-commit... So I can simplify this.
      * @param mission
      */
     function stage (mission) {
@@ -201,7 +212,7 @@ function MissionContainer ($, parameters) {
     _init(parameters);
 
     self.addToCompletedMissions = addToCompletedMissions;
-    self.add = add;
+    self.add = addAMission;
     self.commit = commit;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;

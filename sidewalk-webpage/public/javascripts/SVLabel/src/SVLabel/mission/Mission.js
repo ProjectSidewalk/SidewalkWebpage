@@ -17,14 +17,20 @@ function Mission(parameters) {
             completionMessage: null,
             badgeURL: null,
             distance: null,
+            distanceFt: null,
+            distanceMi: null,
             coverage: null
-        };
-
+        },
+        _tasksForTheMission = [],
+        labelCountsAtCompletion;
+    
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
+        if ("distanceFt" in parameters) setProperty("distanceFt", parameters.distanceFt);
+        if ("distanceMi" in parameters) setProperty("distanceMi", parameters.distanceMi);
         if ("coverage" in parameters) setProperty("coverage", parameters.coverage);
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
 
@@ -115,10 +121,96 @@ function Mission(parameters) {
 
         // Reset the label counter
         if ('labelCounter' in svl) {
+            labelCountsAtCompletion = {
+                "CurbRamp": svl.labelCounter.countLabel("CurbRamp"),
+                "NoCurbRamp": svl.labelCounter.countLabel("NoCurbRamp"),
+                "Obstacle": svl.labelCounter.countLabel("Obstacle"),
+                "SurfaceProblem": svl.labelCounter.countLabel("SurfaceProblem"),
+                "Other": svl.labelCounter.countLabel("Other")
+            };
             svl.labelCounter.reset();
         }
         
         setProperty("isCompleted", true);
+    }
+
+    /**
+     * Total line distance of the completed tasks in this mission
+     * @param unit
+     */
+    function completedLineDistance (unit) {
+        if (!unit) unit = "kilometers";
+        var completedTasks = _tasksForTheMission.filter(function (t) { return t.isCompleted(); });
+        var distances = completedTasks.map(function (t) { return t.lineDistance(unit); });
+        return distances.sum();
+    }
+
+    /**
+     *
+     * @param currentTask
+     * @param unit
+     * @returns {*}
+     */
+    function computeRoute (currentTask, unit) {
+        if ("taskContainer" in svl && svl.taskContainer && "neighborhoodContainer" in svl && svl.neighborhoodContainer) {
+            if (!unit) unit = "kilometers";
+            var tmpDistance  = currentTask.lineDistance(unit);
+            var tasksInARoute = [currentTask];
+            var targetDistance = properties.distance / 1000;
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(); // Todo. Pass this as a parameter
+            var incompleteTasks = svl.taskContainer.getIncompleteTasks(neighborhood.getProperty("regionId"));
+            var connectedTasks;
+            var currentTaskIndex;
+            var lastCoordinate;
+            var lastPoint;
+
+            if (targetDistance < tmpDistance && incompleteTasks.length == 0) {
+                return tasksInARoute;
+            }
+
+            // Check if there are any street edges connected to the last coordinate of currentTask's street edge.
+            lastCoordinate = currentTask.getLastCoordinate();
+            lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+            connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+            if (connectedTasks.length == 0) {
+                // Reverse the coordinates in the currentTask's street edge if there are no street edges connected to the current last coordinate
+                currentTask.reverseCoordinates();
+                lastCoordinate = currentTask.getLastCoordinate();
+                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+            }
+
+            // Compute a route
+            while (targetDistance > tmpDistance && incompleteTasks.length > 0) {
+                lastCoordinate = currentTask.getLastCoordinate();
+                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
+
+                if (connectedTasks.length > 0) {
+                    connectedTasks = svl.util.shuffle(connectedTasks);
+                    currentTask = connectedTasks[0];
+                } else {
+                    incompleteTasks = svl.util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
+                    currentTask = incompleteTasks[0];  // get the first item in the array
+                }
+                currentTaskIndex = incompleteTasks.indexOf(currentTask);
+                incompleteTasks.splice(currentTaskIndex, 1);  // Remove the current task from the incomplete tasks
+
+                tasksInARoute.push(currentTask);
+                tmpDistance +=  currentTask.lineDistance(unit);
+            }
+            return tasksInARoute;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * This method returns the label count object
+     * @returns {*}
+     */
+    function getLabelCount () {
+        return labelCountsAtCompletion;
     }
 
     /**
@@ -130,9 +222,19 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var initialMission = svl.missionContainer.getMission(null, "initial-mission", 1);
+            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
+
+            // Get the last completed mission's target distance
+            var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
+            if (distanceAuditedSoFar === 0 && initialMission.isCompleted()) {
+                distanceAuditedSoFar = initialMission.getProperty("distance") / 1000;
+            }
 
             var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-            return completedDistance / targetDistance;
+
+            return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
         } else {
             return 0;
         }
@@ -143,15 +245,38 @@ function Mission(parameters) {
         return key in properties ? properties[key] : null;
     }
 
-    /** Check if the mission is completed or not */
+    /**
+     * Get an array of tasks for this mission
+     * @returns {Array}
+     */
+    function getRoute () {
+        return _tasksForTheMission;
+    }
+
+    /**
+     * Check if the mission is completed or not
+     * Todo. Shouldn't it be isComplete rather than isCompleted???
+     *
+     * @returns {boolean}
+     */
     function isCompleted () {
         return getProperty("isCompleted");
     }
 
-    /** Sets a property */
+    /**
+     * Sets a property
+     */
     function setProperty (key, value) {
         properties[key] = value;
         return this;
+    }
+
+    /**
+     * Set a route
+     * @param tasksInARoute An array of tasks
+     */
+    function setRoute (tasksInARoute) {
+        _tasksForTheMission = tasksInARoute;
     }
 
     /** Compute the remaining audit distance till complete (in meters) */
@@ -204,17 +329,32 @@ function Mission(parameters) {
         };
     }
 
+    /**
+     * Total line distance in this mission.
+     * @param unit
+     */
+    function totalLineDistance (unit) {
+        var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
+        return distances.sum();
+    }
+
     _init(parameters);
 
     self.complete = complete;
+    self.completedLineDistance = completedLineDistance;
+    self.computeRoute = computeRoute;
+    self.getLabelCount = getLabelCount;
     self.getProperty = getProperty;
+    self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
+    self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
+    self.totalLineDistance = totalLineDistance;
 
     return self;
 }

@@ -7,16 +7,21 @@
     text-align: justify;
 }
 
+#modal-mission-holder {
+    visibility: hidden;
+}
+
 #modal-skip-background, #modal-comment-background, #modal-mission-background {
     position: absolute;
     left: -55px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
     height: 100%;
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box, #modal-mission-box {
+#modal-skip-box, #modal-comment-box {
     background: rgba(255, 255, 255, 1);
     /*border: 3px solid rgba(200, 200, 200, 1);*/
     color: rgba(80, 80, 80, 1);
@@ -34,11 +39,60 @@
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
-#modal-mission-box {
-    top: 180px;
-    left: 45px;
-    padding: 30px;
-    width: 640px;
+.modal-foreground {
+    top: 118px;
+    left: 8px;
+    padding: 10px;
+    width: 720px;
+    height: 480px;
+    background: rgba(255, 255, 255, 1);
+    color: rgba(80, 80, 80, 1);
+    font-size: 14pt;
+    position: absolute;
+    min-height: 480px;
+
+    border-radius: 3px 3px 3px 3px;
+    z-index: 2;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-foreground h1 {
+    font-size: 18pt;
+    margin: 3px 0 10px 0;
+}
+
+.modal-foreground h2 {
+    font-size: 16pt;
+    margin: 3px 0 10px 0;
+
+}
+
+.modal-foreground h3 {
+    font-size: 14pt;
+    margin: 3px 0 5px 0;
+}
+
+.modal-foreground p {
+    font-size: 12pt;
+}
+
+.modal-foreground .table {
+    margin-bottom: 10px !important;
+}
+
+.modal-foreground th, .modal-foreground td {
+    padding: 3px !important;
+    font-size: 9pt;
+    font-weight: normal;
+}
+
+.modal-foreground .button {
+    width: 100%;
+}
+
+.leaflet-control-attribution {
+    visibility: hidden;
 }
 
 #modal-comment-textarea {
@@ -50,6 +104,12 @@
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
+#modal-mission-complete-map {
+    position: absolute;
+    width: 350px;
+    height: 420px;
+}
+
 .modal-mission-images {
     width: 60%;
 }
@@ -59,8 +119,36 @@
     padding: 25px 0 0 0;
 }
 
-#modal-mission-holder .button {
+#modal-mission-complete-holder {
+    visibility: hidden;
+}
+
+#modal-mission-complete-foreground {
+    visibility: hidden;
+}
+
+#modal-mission-complete-holder .button {
     width: 100%;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+#modal-mission-foreground h1 {
+    font-size: 24pt;
+    text-align: left;
+}
+
+#modal-mission-close-button {
+    width: 200px;
+    float: right;
 }
 
 #mission-badge-holder img {
@@ -77,24 +165,7 @@
     width: 110%;
 }
 
-.modal-foreground {
-    background: rgba(255, 255, 255, 1);
-    color: rgba(80, 80, 80, 1);
-    font-size: 14pt;
-    padding: 10px;
-    position: absolute;
-    top: 118px;
-    left: 8px;
-    visibility: visible;
-    width: 720px;
-    z-index: 1;
-    min-height: 480px;
 
-    border-radius: 3px 3px 3px 3px;
-    z-index: 2;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
-}
 
 .modal-close-button-holder {
     position: absolute;

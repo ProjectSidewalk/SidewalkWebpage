@@ -136,6 +136,14 @@ function Task (turf, geojson, currentLat, currentLng) {
     }
 
     /**
+     * Get a geojson feature
+     * @returns {null}
+     */
+    function getFeature () {
+        return _geojson ? _geojson.features[0] : null;
+    }
+
+    /**
      * Get geojson
      * @returns {*}
      */
@@ -312,6 +320,27 @@ function Task (turf, geojson, currentLat, currentLng) {
         return turf.distance(p, p1, unit) < threshold || turf.distance(p, p2, unit) < threshold;
     }
 
+    function isConnectedToAPoint(point, threshold, unit) {
+        if (!threshold) threshold = 0.01;
+        if (!unit) unit = "kilometers";
+
+        var startCoordinate = getStartCoordinate(),
+            lastCoordinate = getLastCoordinate(),
+            p2 = turf.point([lastCoordinate.lng, lastCoordinate.lat]),
+            p1 = turf.point([startCoordinate.lng, startCoordinate.lat]);
+        return turf.distance(point, p1, unit) < threshold || turf.distance(point, p2, unit) < threshold;
+    }
+
+    /**
+     * Get the line distance of the task street edge
+     * @param unit
+     * @returns {*}
+     */
+    function lineDistance(unit) {
+        if (!unit) unit = "kilometers";
+        return turf.lineDistance(_geojson.features[0], unit);
+    }
+
     /**
      * Get a distance between a point and a segment
      * @param point A Geojson Point feature
@@ -397,6 +426,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.getAuditTaskId = getAuditTaskId;
     self.getProperty = getProperty;
     self.getDistanceWalked = getDistanceWalked;
+    self.getFeature = getFeature;
     self.getGeoJSON = getGeoJSON;
     self.getGeometry = getGeometry;
     self.getLastCoordinate = getLastCoordinate;
@@ -410,6 +440,8 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isAtEnd = isAtEnd;
     self.isCompleted = isCompleted;
     self.isConnectedTo = isConnectedTo;
+    self.isConnectedToAPoint = isConnectedToAPoint;
+    self.lineDistance = lineDistance;
     self.render = render;
     self.reverseCoordinates = reverseCoordinates;
     self.setProperty = setProperty;

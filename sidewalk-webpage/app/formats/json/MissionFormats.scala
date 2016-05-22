@@ -21,6 +21,8 @@ object MissionFormats {
       (JsPath \ "label").read[String] and
       (JsPath \ "level").read[Int] and
       (JsPath \ "distance").readNullable[Double] and
+      (JsPath \ "distance_ft").readNullable[Double] and
+      (JsPath \ "distance_mi").readNullable[Double] and
       (JsPath \ "coverage").readNullable[Double] and
       (JsPath \ "deleted").read[Boolean]
     )(Mission.apply _)
@@ -31,6 +33,8 @@ object MissionFormats {
       (__ \ "label").write[String] and
       (__ \ "level").write[Int] and
       (__ \ "distance").writeNullable[Double] and
+      (__ \ "distance_ft").writeNullable[Double] and
+      (__ \ "distance_mi").writeNullable[Double] and
       (__ \ "coverage").writeNullable[Double] and
       (__ \ "deleted").write[Boolean]
     )(unlift(Mission.unapply _))

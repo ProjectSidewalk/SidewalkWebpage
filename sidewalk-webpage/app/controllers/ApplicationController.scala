@@ -6,8 +6,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.audit.{NewTask, AuditTaskTable}
 import models.user.User
-import play.api.libs.json.Json
-import play.api.mvc.{BodyParsers, Result, RequestHeader}
+
 import scala.concurrent.Future
 
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])

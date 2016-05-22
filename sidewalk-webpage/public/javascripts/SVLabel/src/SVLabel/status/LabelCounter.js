@@ -8,14 +8,17 @@
 function LabelCounter (d3) {
     var self = {className: 'LabelCounter'};
 
-    var radius = 0.4, dR = radius / 2,
-        svgWidth = 200, svgHeight = 120,
+    var radius = 0.4,
+        dR = radius / 2,
+        svgWidth = 200,
+        svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
         height = 40 - margin.top - margin.bottom,
         colorScheme = svl.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22;
+        imageWidth = 22,
+        imageHeight = 22;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
@@ -125,127 +128,16 @@ function LabelCounter (d3) {
             .attr("width", imageWidth)
             .attr("height", imageHeight)
             .attr('transform', 'translate(0,-15)');
-      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-      //  .data([0])
-      //  .enter()
-      //  .append("text")
-      //  .style("font-size", "11px")
-      //  .style("fill", "gray")
-      //  .attr("class", "visible");
     }
 
     /**
-     * Set label counts to 0
+     *
+     * @param labelType Label type
+     * @returns {integer}
      */
-    function reset () {
-        for (var key in dotPlots) {
-            set(key, 0);
-        }
-    }
+    function countLabel(labelType) {
+        return labelType in dotPlots ? dotPlots[labelType].count : null;
 
-    /**
-     * Update the label count visualization.
-     * @param key {string} Label type
-     */
-    function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
-        // Otherwise update all.
-        if (key) {
-          _update(key)
-        } else {
-          for (var key in dotPlots) {
-            _update(key);
-          }
-        }
-
-        // Actual update function
-        function _update(key) {
-            if (keys.indexOf(key) == -1) { key = "Other"; }
-
-            var firstDigit = dotPlots[key].count % 10,
-              higherDigits = (dotPlots[key].count - firstDigit) / 10,
-              count = firstDigit + higherDigits;
-
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
-
-            // Update the dot plot
-            if (dotPlots[key].data.length >= count) {
-              // Remove dots
-              dotPlots[key].data = dotPlots[key].data.slice(0, count);
-
-                dotPlots[key].plot.selectAll("circle")
-                  .transition().duration(500)
-                  .attr("r", function (d, i) {
-                    return i < higherDigits ? x(radius + dR) : x(radius);
-                  })
-                  .attr("cy", function (d, i) {
-                    if (i < higherDigits) {
-                        return 0;
-                    } else {
-                        return x(dR);
-                    }
-                  });
-
-                dotPlots[key].plot.selectAll("circle")
-                  .data(dotPlots[key].data)
-                  .exit()
-                  .transition()
-                  .duration(500)
-                  .attr("cx", function () {
-                    return x(higherDigits);
-                  })
-                  .attr("r", 0)
-                  .remove();
-            } else {
-              // Add dots
-              var len = dotPlots[key].data.length;
-              for (var i = 0; i < count - len; i++) {
-                  dotPlots[key].data.push([len + i, 0, radius])
-              }
-              dotPlots[key].plot.selectAll("circle")
-                .data(dotPlots[key].data)
-                .enter().append("circle")
-                .attr("cx", x(0))
-                .attr("cy", 0)
-                .attr("r", x(radius + dR))
-                .style("fill", dotPlots[key].fillColor)
-                .transition().duration(1000)
-                .attr("cx", function (d, i) {
-                  if (i <= higherDigits) {
-                    return x(d[0] * 2 * (radius + dR));
-                  } else {
-                    return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
-                  }
-                })
-                .attr("cy", function (d, i) {
-                  if (i < higherDigits) {
-                    return 0;
-                  } else {
-                    return x(dR);
-                  }
-                })
-                .attr("r", function (d, i) {
-                  return i < higherDigits ? x(radius + dR) : x(radius);
-                });
-            }
-            dotPlots[key].label.text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
-                return ret;
-            });
-        }
     }
 
     /**
@@ -272,6 +164,16 @@ function LabelCounter (d3) {
         }
     }
 
+
+    /**
+     * Set label counts to 0
+     */
+    function reset () {
+        for (var key in dotPlots) {
+            set(key, 0);
+        }
+    }
+
     /**
      * Set the number of label count
      * @param key {string} Label type
@@ -282,11 +184,105 @@ function LabelCounter (d3) {
         update(key);
     }
 
+    /**
+     * Update the label count visualization.
+     * @param key {string} Label type
+     */
+    function update(key) {
+        // If a key is given, udpate the dot plot for that specific data.
+        // Otherwise update all.
+        if (key) {
+            _update(key)
+        } else {
+            for (var key in dotPlots) {
+                _update(key);
+            }
+        }
+
+        // Actual update function
+        function _update(key) {
+            if (keys.indexOf(key) == -1) { key = "Other"; }
+
+            var firstDigit = dotPlots[key].count % 10,
+                higherDigits = (dotPlots[key].count - firstDigit) / 10,
+                count = firstDigit + higherDigits;
+
+
+            // Update the dot plot
+            if (dotPlots[key].data.length >= count) {
+                // Remove dots
+                dotPlots[key].data = dotPlots[key].data.slice(0, count);
+
+                dotPlots[key].plot.selectAll("circle")
+                    .transition().duration(500)
+                    .attr("r", function (d, i) {
+                        return i < higherDigits ? x(radius + dR) : x(radius);
+                    })
+                    .attr("cy", function (d, i) {
+                        if (i < higherDigits) {
+                            return 0;
+                        } else {
+                            return x(dR);
+                        }
+                    });
+
+                dotPlots[key].plot.selectAll("circle")
+                    .data(dotPlots[key].data)
+                    .exit()
+                    .transition()
+                    .duration(500)
+                    .attr("cx", function () {
+                        return x(higherDigits);
+                    })
+                    .attr("r", 0)
+                    .remove();
+            } else {
+                // Add dots
+                var len = dotPlots[key].data.length;
+                for (var i = 0; i < count - len; i++) {
+                    dotPlots[key].data.push([len + i, 0, radius])
+                }
+                dotPlots[key].plot.selectAll("circle")
+                    .data(dotPlots[key].data)
+                    .enter().append("circle")
+                    .attr("cx", x(0))
+                    .attr("cy", 0)
+                    .attr("r", x(radius + dR))
+                    .style("fill", dotPlots[key].fillColor)
+                    .transition().duration(1000)
+                    .attr("cx", function (d, i) {
+                        if (i <= higherDigits) {
+                            return x(d[0] * 2 * (radius + dR));
+                        } else {
+                            return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
+                        }
+                    })
+                    .attr("cy", function (d, i) {
+                        if (i < higherDigits) {
+                            return 0;
+                        } else {
+                            return x(dR);
+                        }
+                    })
+                    .attr("r", function (d, i) {
+                        return i < higherDigits ? x(radius + dR) : x(radius);
+                    });
+            }
+            dotPlots[key].label.text(function () {
+                var ret = dotPlots[key].count + " " + dotPlots[key].description;
+                ret += dotPlots[key].count > 1 ? "s" : "";
+                return ret;
+            });
+        }
+    }
+
+
     // Initialize
     update();
 
     self.increment = increment;
     self.decrement = decrement;
+    self.countLabel = countLabel;
     self.set = set;
     self.reset = reset;
     return self;

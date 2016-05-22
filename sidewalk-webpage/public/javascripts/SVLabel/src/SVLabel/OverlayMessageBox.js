@@ -1,12 +1,10 @@
 /**
- *
- * @param $ {object} jQuery object
- * @param params {object} other parameters
+ * This module controls the message shown at the top of the Street View pane.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function OverlayMessageBox ($, params) {
+function OverlayMessageBox () {
     var self = { 'className' : 'OverlayMessageBox' },
         properties = { 'visibility' : 'visible' };
 
@@ -14,7 +12,6 @@ function OverlayMessageBox ($, params) {
         if ("ui" in svl && svl.ui && svl.ui.overlayMessage) {
           setMessage('Walk');
         }
-
     }
 
     /**
@@ -72,6 +69,5 @@ function OverlayMessageBox ($, params) {
     self.setVisibility = setVisibility;
 
     init();
-
     return self;
 }

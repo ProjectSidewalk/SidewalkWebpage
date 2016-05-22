@@ -6,7 +6,6 @@
 
 @main(title) {
     @navbar(user, Some("/audit"))
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
@@ -33,9 +32,6 @@
                         Feedback
                     </div>
                 </div>
-                @*<div id="comment-textarea-holder">*@
-                @*<textarea id="comment-field" placeholder="Please enter any comments about the streets and sidewalks that may affect people with mobility impairments (optional)"></textarea>*@
-                @*</div>*@
             </div>
             <div id="ribbon-menu-holder">
                 <span id="ribbon-menu-left-column-holder">
@@ -73,7 +69,7 @@
                             <span class="modeSwitch_Name"><u>M</u>issing Curb Ramp</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="NoCurbRamp"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="NoCurbRamp">
-                                <polygon points="0,0, 0,20, 20,20" class="no-curb-ramp" />
+                                <polygon points="0,0, 0,20, 20,20" class="no-curb-ramp"></polygon>
                                 <text x="3" y="20" fill="white">?</text>
                             </svg>
                         </span>
@@ -81,10 +77,10 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><u>O</u>bstacle in <br /> Path</span>
+                            <span class="modeSwitch_Name"><span class="underline">O</span>bstacle in <br /> Path</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="Obstacle"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="Obstacle">
-                                <polygon points="0,0, 0,20, 20,20" class="obstacle" />
+                                <polygon points="0,0, 0,20, 20,20" class="obstacle"></polygon>
                                 <text x="3" y="20" fill="white">?</text>
                             </svg>
                         </span>
@@ -92,7 +88,7 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><u>S</u>urface Problem</span>
+                            <span class="modeSwitch_Name"><span class="underline">S</span>urface Problem</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="SurfaceProblem"></div>
                             <svg class="ribbon-mode-switch-info-buttons" val="SurfaceProblem">
                                 <polygon points="0,0, 0,20, 20,20" class="surface-problem" />
@@ -110,7 +106,7 @@
                             <div id="ribbon-menu-other-subcategory-holder">
                                 <div class="ribbon-menu-other-subcategories" val="Occlusion">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
-                                    Can't see the sidewalk
+                                    Can't see the sidewalk (<span class="underline">B</span>)
                                 </div>
                                 <hr>
                                 <div class="ribbon-menu-other-subcategories" val="NoSidewalk">
@@ -133,13 +129,13 @@
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
                     @if(!user) {
-                        <h2>Washington, D.C.</h2>
+                    <h2>Washington, D.C.</h2>
                     } else {
-                        <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
+                    <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
                     }
                     <div class="status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/map2.png")' class="status-icon" alt="Map icon" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
                         </span>
                         <span class="status-column-half">
@@ -180,7 +176,6 @@
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClick.png")' id="double-click-icon" width="200" alt="Double click icon"/>
                         </div>
                     </div>
-
                     <div id="userControlLayer"  class="Window_StreetView" style="z-index: 0;">
                         <div id="viewControlLayer"  class="Window_StreetView" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
                             <!-- In IE, it seems like a div element that has nothing inside gets neglected...
@@ -247,8 +242,6 @@
                         <div id="context-menu-vertical-connector"></div>
                     </div>
                 </div>
-
-
             </div>
             <div id="google-maps-holder">
                 <div id="google-maps" class="google-maps-pane" style=""></div>
@@ -260,15 +253,15 @@
                     <div id="compass-message-connector"></div>
                 </div>
             </div>
-
             <div id="page-overlay-holder">
                 <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
             </div>
             <div id="pop-up-message-holder" class="hidden">
                 <div id="pop-up-message-background"></div>
-                <div id="pop-up-message-box">
-                    <div id="pop-up-message-title" class="bold">Title</div>
-                    <div id="pop-up-message-content">Content</div>
+                <div id="pop-up-message-foreground">
+                    <h2 id="pop-up-message-title" class="bold">Title</h2>
+                    <p id="pop-up-message-content">Content</p>
+                    <div id="pop-up-message-button-holder"></div>
                 </div>
             </div>
             <div id="modal-skip-holder" class="hidden">
@@ -295,7 +288,6 @@
                             <button class="button" id="modal-skip-cancel-button">Cancel</button>
                         </div>
                     </div>
-
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -315,9 +307,66 @@
                     </form>
                 </div>
             </div>
-            <div id="modal-mission-holder" class="hidden">
-                <div id="modal-mission-background"></div>
-                <div id="modal-mission-box">
+            <div id="modal-mission-holder">
+                <div id="modal-mission-background" class="modal-background"></div>
+                <div id="modal-mission-foreground" class="modal-foreground">
+                    <h1 id="modal-mission-header">Mission</h1>
+                    <div id="modal-mission-instruction"></div>
+                    <button class="button" id="modal-mission-close-button">OK</button>
+                </div>
+            </div>
+            <div id="modal-mission-complete-holder">
+                <div id="modal-mission-complete-background" class="modal-background"></div>
+                <div id="modal-mission-complete-foreground" class="modal-foreground">
+                    <h1>Mission Complete! <span class="normal" id="modal-mission-complete-title"></span></h1>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div id="modal-mission-complete-map"></div>
+                        </div>
+                        <div class="col-sm-6">
+                            <p><span id="modal-mission-complete-message"></span></p>
+                            <h3>Mission Labels</h3>
+                            <table class="table">
+                                <tr>
+                                    <th class="width-50-percent">Curb Ramp</th>
+                                    <td id="modal-mission-complete-curb-ramp-count"></td>
+                                </tr>
+                                <tr>
+                                    <th>Missing Curb Ramp</th>
+                                    <td id="modal-mission-complete-no-curb-ramp-count"></td>
+                                </tr>
+                                <tr>
+                                    <th>Obstacle in Path</th>
+                                    <td id="modal-mission-complete-obstacle-count"></td>
+                                </tr>
+                                <tr>
+                                    <th>Surface Problem</th>
+                                    <td id="modal-mission-complete-surface-problem-count"></td>
+                                </tr>
+                                <tr>
+                                    <th>Other</th>
+                                    <td id="modal-mission-complete-other-count"></td>
+                                </tr>
+                            </table>
+                            <h3>Neighborhood</h3>
+                            <div id="modal-mission-complete-complete-bar"></div>
+                            <table class="table">
+                                <tr>
+                                    <th>Miles audited in this mission</th>
+                                    <td id="modal-mission-complete-mission-distance"></td>
+                                </tr>
+                                <tr>
+                                    <th class="width-50-percent">Neighborhood miles audited so far</th>
+                                    <td id="modal-mission-complete-total-audited-distance"></td>
+                                </tr>
+                                <tr>
+                                    <th>Neighborhood miles remaining</th>
+                                    <td id="modal-mission-complete-remaining-distance"></td>
+                                </tr>
+                            </table>
+                            <button class="button" id="modal-mission-complete-close-button">OK</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="modal-curb-ramp-example" class="hidden">
@@ -432,97 +481,27 @@
     </div>
 
     <template class="missions" val="initial-mission">
-        <div id="modal-mission-header">
-            <div class="row">
-                <div class="col-md-12">
-                    <h1>Mission</h1>
-                </div>
-            </div>
-        </div>
-        <div class="spacer20"></div>
-        <div id="modal-mission-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/StreetAccessibility.png")' class="modal-mission-images center-block" alt="Street accessibility" />
-                </div>
-                <div class="col-md-6">
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    The sidewalk accessibility affects how people with
-                    mobility impairments move about the city.
-                </div>
-                <div class="col-md-6">
-                    Your mission is to <span class="bold">find all the accessibility attributes that affect mobility impaired travelers.</span>
-                </div>
-            </div>
-        </div>
-        <div class="spacer30"></div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
+        <figure>
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+        </figure>
+        <p>The sidewalk accessibility affects how people with mobility impairments move about the city.
+            Your first mission is to <span class="bold">find all the accessibility attributes that affect mobility
+            impaired travelers.</span></p>
     </template>
     <template class="missions" val="distance-mission">
-        <div id="modal-mission-body">
-            <div class="row">
-                <div class="col-md-4" id="mission-badge-holder">
-
-                </div>
-                <div class="col-md-8" id="mission-message">
-                    <h1>Next Mission</h1>
-                    <p>Your goal is to <span class="bold">audit <var id="mission-target-distance">[x]</var> of the entire streets
-                        in this neighborhood</span> and find the accessibility attributes!</p>
-                </div>
-            </div>
-        </div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
+        <figure>
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+        </figure>
+        <p>Your goal is to <span class="bold">audit <var id="mission-target-distance">[x]</var> of the entire streets
+            in this neighborhood</span> and find the accessibility attributes!</p>
     </template>
     <template class="missions" val="area-coverage-mission">
-        <div id="modal-mission-body">
-            <div class="row">
-                <div class="col-md-4" id="mission-badge-holder">
-
-                </div>
-                <div class="col-md-8" id="mission-message">
-                    <h1>Next Mission</h1>
-                    <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets
-                        in this neighborhood</span> and find the accessibility attributes!</p>
-                </div>
-            </div>
-        </div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
+        <figure>
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
+        </figure>
+        <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets
+            in this neighborhood</span> and find the accessibility attributes!</p>
     </template>
-    <template class="missions" val="mission-complete">
-        <div id="modal-mission">
-            <div class="row">
-                <div class="col-md-4" id="mission-badge-holder"></div>
-                <div class="col-md-8" id="mission-completion-message">
-                </div>
-            </div>
-        </div>
-        <div id="modal-mission-footer">
-            <div class="row">
-                <div class="col-md-9"></div>
-                <div class="col-md-3"><button class="button ok-button">OK</button></div>
-            </div>
-        </div>
-    </template>
-
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
@@ -671,8 +650,10 @@
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
+                mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
             } else {
                 mainParam.regionId = 1;
+                mainParam.regionLayer = null;
             }
 
             svl.main = Main($, d3, google, turf, mainParam);

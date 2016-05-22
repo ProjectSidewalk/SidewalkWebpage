@@ -70,10 +70,11 @@ function Main ($, d3, google, turf, params) {
         // Pop up message
         svl.ui.popUpMessage = {};
         svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
-        svl.ui.popUpMessage.box = $("#pop-up-message-box");
+        svl.ui.popUpMessage.foreground = $("#pop-up-message-foreground");
         svl.ui.popUpMessage.background = $("#pop-up-message-background");
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
+        svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder")
 
         // Progress
         svl.ui.progress = {};
@@ -126,10 +127,32 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
         svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
-        // Mission
         svl.ui.modalMission = {};
         svl.ui.modalMission.holder = $("#modal-mission-holder");
-        svl.ui.modalMission.box = $("#modal-mission-box");
+        svl.ui.modalMission.foreground = $("#modal-mission-foreground");
+        svl.ui.modalMission.background = $("#modal-mission-background");
+        svl.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svl.ui.modalMission.instruction = $("#modal-mission-instruction");
+        svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
+
+
+        // Modal Mission Complete
+        svl.ui.modalMissionComplete = {};
+        svl.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
+        svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
+        svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
+        svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
+        svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
+        svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
+        svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
+        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
+        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
+        svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
+        svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");
+        svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
+        svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
+        svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -191,8 +214,9 @@ function Main ($, d3, google, turf, params) {
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
-        svl.overlayMessageBox = OverlayMessageBox($);
+        svl.overlayMessageBox = OverlayMessageBox();
         svl.statusField = StatusField();
+        svl.missionStatus = MissionStatus();
         svl.neighborhoodStatus = NeighborhoodStatus();
 
         svl.labelCounter = LabelCounter(d3);
@@ -203,22 +227,27 @@ function Main ($, d3, google, turf, params) {
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = PointCloud({ panoIds: [panoId] });
         svl.tracker = Tracker();
+        svl.tracker.push('TaskStart');
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
+
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($);
+        svl.modalMission = ModalMission($, L);
+        svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
+        svl.modalMissionComplete.hide();
+
         svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         } else {
@@ -246,8 +275,9 @@ function Main ($, d3, google, turf, params) {
                     neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
                     mission;
 
-                // Set the current mission to onboarding or something else.
+                // Set the current mission
                 if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
+                    // Set the current mission to onboarding
                     svl.onboarding = Onboarding($);
                     mission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
                     if (!mission) {
@@ -257,6 +287,7 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 } else {
+                    // Set the current mission to either the initial-mission or something else.
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
                         var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
@@ -264,6 +295,11 @@ function Main ($, d3, google, turf, params) {
                         mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
                     }
                     svl.missionContainer.setCurrentMission(mission);
+
+                    // Compute the route for the current mission
+                    var currentTask = svl.taskContainer.getCurrentTask();
+                    var route = mission.computeRoute(currentTask);
+                    mission.setRoute(route);
                 }
 
                 // Check if this an anonymous user or not.
@@ -310,9 +346,7 @@ function Main ($, d3, google, turf, params) {
         svl.form.disableSubmit();
         svl.form.setTaskRemaining(1);
         svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);      
-        
-        svl.tracker.push('TaskStart');
+        svl.form.setTaskPanoramaId(panoId);
         
         // Set map parameters and instantiate it.
         var mapParam = {};

@@ -15,30 +15,17 @@ function Keyboard ($) {
     };
 
     var $textareaComment;
-    var $taskDifficultyComment;
-    var $inputSkipOther;
 
     function init () {
         if ('ui' in svl && 'form' in svl.ui) {
             $textareaComment = (svl.ui.form.commentField.length) > 0 ? svl.ui.form.commentField : null;
         }
-        $taskDifficultyComment = ($("#task-difficulty-comment").length > 0) ? $("#task-difficulty-comment") : null;
-        $inputSkipOther = ($("#Text_BusStopAbsenceOtherReason").length > 0) ? $("#Text_BusStopAbsenceOtherReason") : null;
 
         if ($textareaComment) {
           $textareaComment.bind('focus', textFieldFocus);
           $textareaComment.bind('blur', textFieldBlur);
         }
 
-        if ($taskDifficultyComment) {
-            $taskDifficultyComment.bind('focus', textFieldFocus);
-            $taskDifficultyComment.bind('blur', textFieldBlur);
-        }
-
-        if ($inputSkipOther) {
-          $inputSkipOther.bind('focus', textFieldFocus);
-          $inputSkipOther.bind('blur', textFieldBlur);
-        }
 
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
@@ -71,6 +58,10 @@ function Keyboard ($) {
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
+            // if ("contextMenu" in svl && svl.contextMenu) {
+            //     svl.contextMenu.hide();
+            // }
+
             switch (e.keyCode) {
                 // "Enter"
                 case 13:
@@ -136,27 +127,31 @@ function Keyboard ($) {
 
                     }
                     break;
+                case 66:
+                    // "b" for a blocked view
+                    svl.ribbon.modeSwitch("Occlusion");
+                    break;
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
-                    svl.ribbon.modeSwitchClick("CurbRamp");
+                    svl.ribbon.modeSwitch("CurbRamp");
                     break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
-                    svl.ribbon.modeSwitchClick("Walk");
+                    svl.ribbon.modeSwitch("Walk");
                     break;
                 case 77:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
-                    svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    svl.ribbon.modeSwitch("NoCurbRamp");
                     break;
                 case 78:
-                    svl.ribbon.modeSwitchClick("NoSidewalk");
+                    svl.ribbon.modeSwitch("NoSidewalk");
                     break;
                 case 79:
                     // "o" for Obstacle
-                    svl.ribbon.modeSwitchClick("Obstacle");
+                    svl.ribbon.modeSwitch("Obstacle");
                     break;
                 case 83:
-                    svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    svl.ribbon.modeSwitch("SurfaceProblem");
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.

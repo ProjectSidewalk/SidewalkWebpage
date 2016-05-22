@@ -9,7 +9,8 @@ import play.api.libs.json.{JsObject, Json}
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double], coverage: Option[Double], deleted: Boolean) {
+case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double],
+                   distance_ft: Option[Double], distance_mi: Option[Double], coverage: Option[Double], deleted: Boolean) {
   def completed(status: MissionStatus): Boolean = label match {
     case "initial-mission" =>
       if (this.distance.getOrElse(Double.PositiveInfinity) < status.currentRegionDistance) true else false
@@ -35,10 +36,12 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def label = column[String]("label", O.NotNull)
   def level = column[Int]("level", O.NotNull)
   def distance = column[Option[Double]]("distance", O.Nullable)
+  def distance_ft = column[Option[Double]]("distance_ft", O.Nullable)
+  def distance_mi = column[Option[Double]]("distance_mi", O.Nullable)
   def coverage = column[Option[Double]]("coverage", O.Nullable)
   def deleted = column[Boolean]("deleted", O.NotNull)
 
-  def * = (missionId, regionId, label, level, distance, coverage, deleted) <> ((Mission.apply _).tupled, Mission.unapply)
+  def * = (missionId, regionId, label, level, distance, distance_ft, distance_mi, coverage, deleted) <> ((Mission.apply _).tupled, Mission.unapply)
 
   def region: ForeignKeyQuery[RegionTable, Region] =
     foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
@@ -60,7 +63,7 @@ object MissionTable {
 
   /**
     * Get a list of all the completed tasks
-    * @param userId
+    * @param userId User's UUID
     * @return
     */
   def completed(userId: UUID): List[Mission] = db.withSession { implicit session =>
@@ -72,8 +75,8 @@ object MissionTable {
 
   /**
     * Get the list of the completed tasks in the given region for the given user
-    * @param userId
-    * @param regionId
+    * @param userId User's UUID
+    * @param regionId region Id
     * @return
     */
   def completed(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
@@ -86,7 +89,7 @@ object MissionTable {
 
   /**
     * Get a list of the incomplete missions for the given user
-    * @param userId
+    * @param userId User's UUID
     * @return
     */
   def incomplete(userId: UUID): List[Mission] = db.withSession { implicit session =>
@@ -101,8 +104,8 @@ object MissionTable {
 
   /**
     * Get a list of incomplete missions in the give region for the given user
-    * @param userId
-    * @param regionId
+    * @param userId User's UUID
+    * @param regionId Region Id
     * @return
     */
   def incomplete(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
