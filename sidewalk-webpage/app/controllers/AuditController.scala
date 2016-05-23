@@ -42,10 +42,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   def audit = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
-
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
+        val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
