@@ -17,8 +17,11 @@
             @text(signInForm("email"), "Email", icon = "at")
             @password(signInForm("password"), "Password", icon = "key")
             <div class="form-group">
+                <div class="checkbox">
+                    <label><input type="checkbox" id="sign-up-page-agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
+                </div>
                 <div>
-                    <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">Submit</button>
+                    <button id="sign-up-page-submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block" disabled>Submit</button>
                 </div>
             </div>
             <div class="sign-in-now">
@@ -26,4 +29,15 @@
             </div>
         }
     </fieldset>
+    <script>
+            $(document).ready(function() {
+                $("#sign-up-page-agree-to-terms").click(function() {
+                    if ($(this).prop("checked")) {
+                        $("#sign-up-page-submit").prop("disabled", false);
+                    } else {
+                        $("#sign-up-page-submit").prop("disabled", true);
+                    }
+                });
+            });
+    </script>
 }

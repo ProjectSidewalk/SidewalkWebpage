@@ -36,6 +36,17 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+    * Returns the terms page
+    * @return
+    */
+  def terms = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => Future.successful(Ok(views.html.terms("Project Sidewalk - Terms", Some(user))))
+      case None => Future.successful(Ok(views.html.terms("Project Sidewalk - About")))
+    }
+  }
+
   def map = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility", Some(user))))

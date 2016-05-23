@@ -6,7 +6,6 @@
 
 @main(title) {
     @navbar(user, Some("/audit"))
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
@@ -107,7 +106,7 @@
                             <div id="ribbon-menu-other-subcategory-holder">
                                 <div class="ribbon-menu-other-subcategories" val="Occlusion">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
-                                    Can't see the sidewalk
+                                    Can't see the sidewalk (<span class="underline">B</span>)
                                 </div>
                                 <hr>
                                 <div class="ribbon-menu-other-subcategories" val="NoSidewalk">
@@ -262,6 +261,7 @@
                 <div id="pop-up-message-foreground">
                     <h2 id="pop-up-message-title" class="bold">Title</h2>
                     <p id="pop-up-message-content">Content</p>
+                    <div id="pop-up-message-button-holder"></div>
                 </div>
             </div>
             <div id="modal-skip-holder" class="hidden">
@@ -318,13 +318,14 @@
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1>Current Mission: <span class="normal" id="modal-mission-complete-title"></span></h1>
+                    <h1>Mission Complete! <span class="normal" id="modal-mission-complete-title"></span></h1>
                     <div class="row">
                         <div class="col-sm-6">
                             <div id="modal-mission-complete-map"></div>
                         </div>
                         <div class="col-sm-6">
-                            <h2>Mission Labels</h2>
+                            <p><span id="modal-mission-complete-message"></span></p>
+                            <h3>Mission Labels</h3>
                             <table class="table">
                                 <tr>
                                     <th class="width-50-percent">Curb Ramp</th>
@@ -347,7 +348,7 @@
                                     <td id="modal-mission-complete-other-count"></td>
                                 </tr>
                             </table>
-                            <h2>Neighborhood</h2>
+                            <h3>Neighborhood</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
                                 <tr>

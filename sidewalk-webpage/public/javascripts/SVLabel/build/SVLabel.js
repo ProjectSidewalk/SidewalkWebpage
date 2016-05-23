@@ -3085,27 +3085,31 @@ function Keyboard ($) {
 
                     }
                     break;
+                case 66:
+                    // "b" for a blocked view
+                    svl.ribbon.modeSwitch("Occlusion");
+                    break;
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
-                    svl.ribbon.modeSwitchClick("CurbRamp");
+                    svl.ribbon.modeSwitch("CurbRamp");
                     break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
-                    svl.ribbon.modeSwitchClick("Walk");
+                    svl.ribbon.modeSwitch("Walk");
                     break;
                 case 77:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
-                    svl.ribbon.modeSwitchClick("NoCurbRamp");
+                    svl.ribbon.modeSwitch("NoCurbRamp");
                     break;
                 case 78:
-                    svl.ribbon.modeSwitchClick("NoSidewalk");
+                    svl.ribbon.modeSwitch("NoSidewalk");
                     break;
                 case 79:
                     // "o" for Obstacle
-                    svl.ribbon.modeSwitchClick("Obstacle");
+                    svl.ribbon.modeSwitch("Obstacle");
                     break;
                 case 83:
-                    svl.ribbon.modeSwitchClick("SurfaceProblem");
+                    svl.ribbon.modeSwitch("SurfaceProblem");
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
@@ -3257,6 +3261,7 @@ function Main ($, d3, google, turf, params) {
         svl.ui.popUpMessage.background = $("#pop-up-message-background");
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
+        svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder")
 
         // Progress
         svl.ui.progress = {};
@@ -3324,6 +3329,7 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
         svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
+        svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
@@ -4056,7 +4062,7 @@ function Map ($, google, turf, params) {
                     
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
-                    if (!task.isConnectedTo(newTask)) {
+                    if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
                         svl.popUpMessage.notify("Jumped back to your neighborhood!",
                             "We sent you back into the neighborhood you have been walking around! Please continue to " +
                             "make this neighborhood more accessible for everyone!");
@@ -5073,7 +5079,7 @@ function PopUpMessage ($, param) {
 
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
-        svl.ui.popUpMessage.foreground.append($html);
+        svl.ui.popUpMessage.content.append($html);
 
         if (callback) {
             $html.on("click", callback);
@@ -5086,7 +5092,7 @@ function PopUpMessage ($, param) {
         var $button = $(buttonDom);
         $button.css({ margin: '0 10 10 0' });
         $button.addClass('button');
-        svl.ui.popUpMessage.foreground.append($button);
+        svl.ui.popUpMessage.buttonHolder.append($button);
 
         if (callback) {
             $button.one('click', callback);
@@ -5131,6 +5137,7 @@ function PopUpMessage ($, param) {
      * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
      */
     function promptSignIn () {
+        svl.ui.popUpMessage.buttonHolder.html("");
         setTitle("You've been contributing a lot!");
         setMessage("Do you want to create an account to keep track of your progress?");
         appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
@@ -5171,6 +5178,7 @@ function PopUpMessage ($, param) {
     }
 
     function notify(title, message) {
+        svl.ui.popUpMessage.buttonHolder.html("");
         setPosition(40, 260, 640);
         show(true);
         setTitle(title);
@@ -7495,9 +7503,19 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var initialMission = svl.missionContainer.getMission(null, "initial-mission", 1);
+            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
+
+            // Get the last completed mission's target distance
+            var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
+            if (distanceAuditedSoFar === 0 && initialMission.isCompleted()) {
+                distanceAuditedSoFar = initialMission.getProperty("distance") / 1000;
+            }
 
             var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-            return completedDistance / targetDistance;
+
+            return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
         } else {
             return 0;
         }
@@ -11033,13 +11051,15 @@ function ModalMission ($, L) {
      */
     function hideMission () {
         svl.ui.modalMission.holder.css('visibility', 'hidden');
-        svl.ui.modalMission.foreground.css('visibility', "hidden");
+        svl.ui.modalMission.foreground.css('visibility', 'hidden');
+        svl.ui.modalMission.background.css('visibility', 'hidden')
     }
 
     /** Show a mission */
     function showMissionModal () {
         svl.ui.modalMission.holder.css('visibility', 'visible');
-        svl.ui.modalMission.foreground.css('visibility', "visible");
+        svl.ui.modalMission.foreground.css('visibility', 'visible');
+        svl.ui.modalMission.background.css('visibility', 'visible')
     }
 
     /**
@@ -11376,12 +11396,44 @@ function ModalMissionComplete ($, d3, L) {
 
 
                 setMissionTitle(mission.getProperty("label"));
+                _updateTheMissionCompleteMessage();
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
                 _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
                 _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
             }
         }
+    }
+
+    /**
+     * This method randomly select a mission completion message from the list and present it to the user.
+     * @private
+     */
+    function _updateTheMissionCompleteMessage() {
+        var messages = [
+                'Couldn’t have done it better myself.',
+                'Aren’t you proud of yourself? We are.',
+                'WOWZA. Even the sidewalks are impressed. Keep labeling!',
+                'Your auditing is out of this world.',
+                'Incredible. You\'re a machine! ...no wait, I am.',
+                'Gold star. You can wear it proudly on your forehead all day if you\'d like, we won\'t judge.',
+                'Ooh la la! Those accessibility labels are to die for.',
+                'We knew you had it in you all along. Great work!',
+                'Wow you did really well. You also did good! Kind of like superman.',
+                'You\'re one lightning bolt away from being a greek diety. Keep on going!',
+                '"Great job. Every accomplishment starts with the decision to try." - That inspirational poster in your office',
+                'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
+                'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
+                'You. Are. Unstoppable. Keep it up!',
+                'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
+                'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
+                '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. - Chewbacca',
+                'You\'re seriously talented. You could go pro at this.',
+                'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
+                'You might actually be a wizard. These sidewalks are better because of you.'
+            ],
+            message = messages[Math.floor(Math.random() * messages.length)];
+        svl.ui.modalMissionComplete.message.html(message);
     }
 
     _init();
@@ -12457,12 +12509,12 @@ function UtilitiesMisc (JSON) {
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: "Label a part of sidewalk that cannot be observed",
+                instructionalText: 'Label a <span class="underline">part of sidewalk that cannot be observed</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: 'Label missing sidewalk',
+                instructionalText: 'Label <span class="underline">missing sidewalk</span>',
                 textColor: 'rgba(255,255,255,1)'
             }
         }
@@ -12823,7 +12875,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'In this Street View image, we can see a curb ramp. Let’s <span class="bold">click the "Curb Ramp" button</span> to label it!',
+                    "message": 'In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class="bold">"Curb Ramp"</span> button above.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -12852,7 +12904,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": 'Good! Now, <span class="bold">click the curb ramp in the image to label it.',
+                    "message": 'Good! Now, <span class="bold">click the curb ramp</span> beneath the yellow arrow to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -12880,7 +12932,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'On this context menu, <span class="bold">you can rate the quality of the curb ramp, ' +
+                    "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
                     'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
                     '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
@@ -12941,7 +12993,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Here, we see a curb ramp. Let’s label it. First <span class="bold">click the "Curb Ramp" button.</span>',
+                    "message": 'Now we’ve found another curb ramp. Let’s label it! <span class="bold">Click the “Curb Ramp” button</span> like before.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -12999,7 +13051,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'Good! <span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
@@ -13039,7 +13091,7 @@ function Onboarding ($) {
                     "labelType": "NoCurbRamp"
                 },
                 "message": {
-                    "message": 'There is no curb ramp at the end of this crosswalk. Let’s <span class="bold">click the “Missing Curb Ramp” button to label it.</span>',
+                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Cub Ramp" button</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13069,7 +13121,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click the end of the crosswalk to label it.</span>',
+                    "message": 'Now click beneath the yellow arrow to <span class="bold">label the missing curb ramp.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13097,8 +13149,7 @@ function Onboarding ($) {
                     "severity": 3
                 },
                 "message": {
-                    "message": 'Since there is one curb ramp right next to the ' +
-                    'missing curb ramp, the problem is less severe. <span class="bold">Let’s rate it as 3.</span><br>' +
+                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> Just use your best judgment! <br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
@@ -13139,7 +13190,7 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": 'Great! We need to investigate all of the corners on this intersection, so let’s adjust our view.  <span class="bold">Grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13156,7 +13207,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! Here, we can see two curb ramps. <span class="bold">Click the "Curb Ramp" button on the menu</span> to label them both!',
+                    "message": 'OK, this corner has two curb ramps. Let’s label them both! <span class="bold">Click the "Curb Ramp" button.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13195,7 +13246,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                    "message": 'Now, <span class="bold">click the curb ramp</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13223,7 +13274,7 @@ function Onboarding ($) {
                     "severity": null
                 },
                 "message": {
-                    "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                    "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
                     "parameters": null
@@ -13263,7 +13314,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! <span class="bold">Click the "Curb Ramp" button on the menu</span> to label another curb ramp!',
+                    "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13362,7 +13413,7 @@ function Onboarding ($) {
                     "subcategory": "NoSidewalk"
                 },
                 "message": {
-                    "message": 'Notice that the sidewalk is prematurely ending here. <span class="bold">Move the mouse cursor over the "Other" and click "No Sidewalk" to label it.</span>',
+                    "message": 'Notice that the sidewalk suddenly ends here. Let’s label this. <span class="bold">Click the "Other" button then "No Sidewalk" to label it.</span>',
                     "position": "top-left",
                     "parameters": null
                 },
@@ -13393,7 +13444,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click on the ground where the sidewalk is missing.</span>',
+                    "message": '<span class="bold">Click on the ground</span> where the sidewalk is missing.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13421,7 +13472,7 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": 'Awesome! We’re almost done with the training. Let’s learn how to walk. First, <span class="bold">grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13438,9 +13489,7 @@ function Onboarding ($) {
                     "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
                 },
                 "message": {
-                    "message": 'It seems like there is a curb ramp at the end of the crosswalk, but it’s hard to see ' +
-                    'because the image is washed out. <span class="bold">Let’s double click on the road to take ' +
-                    'a step and see it from another angle.</span>',
+                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. Let’s take a step to see if we can get a better look.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13927,13 +13976,6 @@ function Onboarding ($) {
             
             svl.taskContainer.initNextTask();
 
-            // var task = svl.taskContainer.nextTask();
-            // var geometry, lat, lng;
-            // svl.taskContainer.setCurrentTask(task);
-            // geometry = task.getGeometry();
-            // lat = geometry.coordinates[0][1];
-            // lng = geometry.coordinates[0][0];
-            // svl.map.setPosition(lat, lng);
             return;
         }
 

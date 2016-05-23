@@ -791,11 +791,16 @@ footer {
     text-align: justify;
 }
 
+#modal-mission-holder {
+    visibility: hidden;
+}
+
 #modal-skip-background, #modal-comment-background, #modal-mission-background {
     position: absolute;
     left: -55px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
     height: 100%;
     width: 110%;
 }
@@ -824,18 +829,10 @@ footer {
     padding: 10px;
     width: 720px;
     height: 480px;
-}
-
-.modal-foreground {
     background: rgba(255, 255, 255, 1);
     color: rgba(80, 80, 80, 1);
     font-size: 14pt;
-    padding: 10px;
     position: absolute;
-    top: 118px;
-    left: 8px;
-    visibility: visible;
-    width: 720px;
     min-height: 480px;
 
     border-radius: 3px 3px 3px 3px;
@@ -853,6 +850,19 @@ footer {
     font-size: 16pt;
     margin: 3px 0 10px 0;
 
+}
+
+.modal-foreground h3 {
+    font-size: 14pt;
+    margin: 3px 0 5px 0;
+}
+
+.modal-foreground p {
+    font-size: 12pt;
+}
+
+.modal-foreground .table {
+    margin-bottom: 10px !important;
 }
 
 .modal-foreground th, .modal-foreground td {
@@ -907,6 +917,12 @@ footer {
 
 #modal-mission-foreground {
     padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
 }
 
 #modal-mission-foreground h1 {
@@ -969,7 +985,7 @@ footer {
 #onboarding-background {
     width: 1025px;
     height: 600px;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 1.0);
     position: absolute;
     top: -110px;
     left: -65px;
@@ -1358,7 +1374,7 @@ footer {
     position: absolute;
     top: 66px;
     left: -3px;
-    width: 250px;
+    width: 260px;
     background: white;
     border-width: 3px;
     border-style: solid;

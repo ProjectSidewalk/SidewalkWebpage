@@ -6,6 +6,10 @@ body {
     margin: 0;
 }
 
+.bold {
+    font-weight: bold;
+}
+
 #map {
     background-color: white;
     width: 100%;

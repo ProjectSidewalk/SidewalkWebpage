@@ -100,8 +100,11 @@
                     @text(forms.SignUpForm.form("email"), "Email", icon = "at")
                     @password(forms.SignUpForm.form("password"), "Password", icon = "key")
                     <div class="form-group">
+                        <div class="checkbox">
+                            <label><input type="checkbox" id="navbar-agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
+                        </div>
                         <div>
-                            <button id="submit" type="submit" value="submit" class="btn btn-primary btn-block">Sign up</button>
+                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>Sign up</button>
                         </div>
                     </div>
                     }
@@ -114,4 +117,15 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+    <script>
+            $(document).ready(function() {
+                $("#navbar-agree-to-terms").click(function() {
+                    if ($(this).prop("checked")) {
+                        $("#sign-up-submit").prop("disabled", false);
+                    } else {
+                        $("#sign-up-submit").prop("disabled", true);
+                    }
+                });
+            });
+    </script>
 }

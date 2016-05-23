@@ -74,6 +74,7 @@ function Main ($, d3, google, turf, params) {
         svl.ui.popUpMessage.background = $("#pop-up-message-background");
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
+        svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder")
 
         // Progress
         svl.ui.progress = {};
@@ -141,6 +142,7 @@ function Main ($, d3, google, turf, params) {
         svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
         svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
+        svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
