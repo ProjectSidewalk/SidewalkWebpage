@@ -8,6 +8,7 @@ POST    /                               controllers.TeaserController.teaserPost
 
 GET     /home                           @controllers.ApplicationController.index
 GET     /about                          @controllers.ApplicationController.about
+GET     /terms                          @controllers.ApplicationController.terms
 GET     /map                            @controllers.ApplicationController.map
 
 # User authentication
