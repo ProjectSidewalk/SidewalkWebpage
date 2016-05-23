@@ -348,7 +348,9 @@ function Form ($, params) {
         svl.tracker.push('TaskSkip');
         submit(data, task);
 
-        if ("taskContainer" in svl) svl.taskContainer.initNextTask();
+        if ("taskContainer" in svl) {
+            svl.taskContainer.initNextTask();
+        }
 
         return false;
     }

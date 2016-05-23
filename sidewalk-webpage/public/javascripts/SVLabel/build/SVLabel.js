@@ -2891,7 +2891,9 @@ function Form ($, params) {
         svl.tracker.push('TaskSkip');
         submit(data, task);
 
-        if ("taskContainer" in svl) svl.taskContainer.initNextTask();
+        if ("taskContainer" in svl) {
+            svl.taskContainer.initNextTask();
+        }
 
         return false;
     }
@@ -6998,7 +7000,6 @@ function TaskContainer (turf) {
 
         if (!threshold) threshold = 0.01;  // 0.01 km.
         if (!unit) unit = "kilometers";
-
         tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
         if (taskIn) {
@@ -7120,7 +7121,7 @@ function TaskContainer (turf) {
     function nextTask (task) {
         var newTask = null,
             neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
-            candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task);
+            candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
 
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
 
