@@ -101,7 +101,7 @@
                     @password(forms.SignUpForm.form("password"), "Password", icon = "key")
                     <div class="form-group">
                         <div class="checkbox">
-                            <label><input type="checkbox" id="agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
+                            <label><input type="checkbox" id="navbar-agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
                         </div>
                         <div>
                             <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>Sign up</button>
@@ -119,7 +119,7 @@
     </div><!-- /.modal -->
     <script>
             $(document).ready(function() {
-                $("#agree-to-terms").click(function() {
+                $("#navbar-agree-to-terms").click(function() {
                     if ($(this).prop("checked")) {
                         $("#sign-up-submit").prop("disabled", false);
                     } else {
