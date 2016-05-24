@@ -619,11 +619,11 @@
             _pointCloudLoader.load(this.panoId);
         });
 
-        $(document).ready(function(){
-            // Solutions to annoying text selection cursor.
-            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
-            document.onselectstart = function () { return false; };
-        });
+//        $(document).ready(function(){
+//            // Solutions to annoying text selection cursor.
+//            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
+//            document.onselectstart = function () { return false; };
+//        });
 
         function init() {
             var mainParam = {}, formParam = {}, initialLocation = svl.taskContainer.getCurrentTask().initialLocation();

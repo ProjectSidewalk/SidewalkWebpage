@@ -31,7 +31,7 @@ function ModalMissionComplete ($, d3, L) {
                 [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
             ]}}]};
     var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
+    overlayPolygonLayer.setStyle({ "fillColor": "rgb(255, 255, 255)", "weight": 0 });
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
@@ -207,6 +207,8 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
         svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
         svl.ui.modalMissionComplete.map.css('top', 500);
+        svl.ui.modalMissionComplete.map.css('left', -500);
+        $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
     }
 
@@ -217,10 +219,13 @@ function ModalMissionComplete ($, d3, L) {
     /** 
      * Show the modal window that presents stats about the completed mission
      */
-    function show (callback) {
+    function show () {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+        // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
+        $(".leaflet-clickable").css('visibility', 'visible');
+
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),

@@ -57,14 +57,14 @@ function ModalMission ($, L) {
     function hideMission () {
         svl.ui.modalMission.holder.css('visibility', 'hidden');
         svl.ui.modalMission.foreground.css('visibility', 'hidden');
-        svl.ui.modalMission.background.css('visibility', 'hidden')
+        svl.ui.modalMission.background.css('visibility', 'hidden');
     }
 
     /** Show a mission */
     function showMissionModal () {
         svl.ui.modalMission.holder.css('visibility', 'visible');
         svl.ui.modalMission.foreground.css('visibility', 'visible');
-        svl.ui.modalMission.background.css('visibility', 'visible')
+        svl.ui.modalMission.background.css('visibility', 'visible');
     }
 
     /**

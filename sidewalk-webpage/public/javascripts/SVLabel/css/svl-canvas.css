@@ -10,8 +10,8 @@
 
 .Window_StreetView {
     position: absolute;
-    left: 0px;
-    top:0px;
+    left: 0;
+    top:0;
     height: 480px;
     width: 720px;
 }

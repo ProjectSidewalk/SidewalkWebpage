@@ -125,3 +125,12 @@ input[type="radio"] {
     top: 90%;
 }
 
+/* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
+#viewControlLayer {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}

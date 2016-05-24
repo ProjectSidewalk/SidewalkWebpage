@@ -3785,6 +3785,8 @@ function Map ($, google, turf, params) {
         svl.ui.map.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
         svl.ui.map.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
 
+        svl.ui.map.viewControlLayer[0].onselectstart = function () { return false; };
+
 
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
@@ -4114,21 +4116,17 @@ function Map ($, google, turf, params) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
+        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
 
-        if (!status.disableWalking) {
+        // if (!status.disableWalking) {
             // Setting a cursor
             // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-            try {
-                if (!svl.keyboard.isShiftDown()) {
-                    setViewControlLayerCursor('ClosedHand');
-                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                } else {
-                    setViewControlLayerCursor('ZoomOut');
-                }
-            } catch (e) {
-                console.error(e);
+            if (svl.keyboard.isShiftDown()) {
+                setViewControlLayerCursor('ZoomOut');
+            } else {
+                setViewControlLayerCursor('ClosedHand');
             }
-        }
+        // }
 
         // Adding delegation on SVG elements
         // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
@@ -4147,7 +4145,6 @@ function Map ($, google, turf, params) {
             }
         }
 
-        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
     }
 
     /**
@@ -4163,20 +4160,16 @@ function Map ($, google, turf, params) {
         mouseStatus.leftUpY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
 
-        if (!status.disableWalking) {
+        // if (!status.disableWalking) {
             // Setting a mouse cursor
             // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-            try {
-                if (!svl.keyboard.isShiftDown()) {
-                    setViewControlLayerCursor('OpenHand');
-                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                } else {
-                    setViewControlLayerCursor('ZoomOut');
-                }
-            } catch (e) {
-                console.error(e);
+            if (!svl.keyboard.isShiftDown()) {
+                setViewControlLayerCursor('OpenHand');
+                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+            } else {
+                setViewControlLayerCursor('ZoomOut');
             }
-        }
+        // }
 
         currTime = new Date().getTime();
 
@@ -4250,23 +4243,19 @@ function Map ($, google, turf, params) {
         // Show a link and fade it out
         if (!status.disableWalking) {
             showLinks(2000);
-            if (!mouseStatus.isLeftDown) {
-                try {
-                    if (!svl.keyboard.isShiftDown()) {
-                        setViewControlLayerCursor('OpenHand');
-                        // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                    } else {
-                        setViewControlLayerCursor('ZoomOut');
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-            } else {
-
-            }
         } else {
-            setViewControlLayerCursor('default');
-            // svl.ui.map.viewControlLayer.css("cursor", "default");
+            hideLinks();
+        }
+
+        if (mouseStatus.isLeftDown) {
+            setViewControlLayerCursor('ClosedHand');
+        } else {
+            if (!svl.keyboard.isShiftDown()) {
+                setViewControlLayerCursor('OpenHand');
+                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+            } else {
+                setViewControlLayerCursor('ZoomOut');
+            }
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
@@ -11053,14 +11042,14 @@ function ModalMission ($, L) {
     function hideMission () {
         svl.ui.modalMission.holder.css('visibility', 'hidden');
         svl.ui.modalMission.foreground.css('visibility', 'hidden');
-        svl.ui.modalMission.background.css('visibility', 'hidden')
+        svl.ui.modalMission.background.css('visibility', 'hidden');
     }
 
     /** Show a mission */
     function showMissionModal () {
         svl.ui.modalMission.holder.css('visibility', 'visible');
         svl.ui.modalMission.foreground.css('visibility', 'visible');
-        svl.ui.modalMission.background.css('visibility', 'visible')
+        svl.ui.modalMission.background.css('visibility', 'visible');
     }
 
     /**
@@ -11159,7 +11148,7 @@ function ModalMissionComplete ($, d3, L) {
                 [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
             ]}}]};
     var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-    overlayPolygonLayer.setStyle({ "fillColor": "rgb(80, 80, 80)", "weight": 0 });
+    overlayPolygonLayer.setStyle({ "fillColor": "rgb(255, 255, 255)", "weight": 0 });
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
@@ -11335,6 +11324,8 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
         svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
         svl.ui.modalMissionComplete.map.css('top', 500);
+        svl.ui.modalMissionComplete.map.css('left', -500);
+        $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
     }
 
@@ -11345,10 +11336,13 @@ function ModalMissionComplete ($, d3, L) {
     /** 
      * Show the modal window that presents stats about the completed mission
      */
-    function show (callback) {
+    function show () {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+        // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
+        $(".leaflet-clickable").css('visibility', 'visible');
+
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),

@@ -199,6 +199,8 @@ function Map ($, google, turf, params) {
         svl.ui.map.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
         svl.ui.map.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
 
+        svl.ui.map.viewControlLayer[0].onselectstart = function () { return false; };
+
 
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
@@ -528,21 +530,17 @@ function Map ($, google, turf, params) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
+        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
 
-        if (!status.disableWalking) {
+        // if (!status.disableWalking) {
             // Setting a cursor
             // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-            try {
-                if (!svl.keyboard.isShiftDown()) {
-                    setViewControlLayerCursor('ClosedHand');
-                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                } else {
-                    setViewControlLayerCursor('ZoomOut');
-                }
-            } catch (e) {
-                console.error(e);
+            if (svl.keyboard.isShiftDown()) {
+                setViewControlLayerCursor('ZoomOut');
+            } else {
+                setViewControlLayerCursor('ClosedHand');
             }
-        }
+        // }
 
         // Adding delegation on SVG elements
         // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
@@ -561,7 +559,6 @@ function Map ($, google, turf, params) {
             }
         }
 
-        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
     }
 
     /**
@@ -577,20 +574,16 @@ function Map ($, google, turf, params) {
         mouseStatus.leftUpY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
 
-        if (!status.disableWalking) {
+        // if (!status.disableWalking) {
             // Setting a mouse cursor
             // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-            try {
-                if (!svl.keyboard.isShiftDown()) {
-                    setViewControlLayerCursor('OpenHand');
-                    // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                } else {
-                    setViewControlLayerCursor('ZoomOut');
-                }
-            } catch (e) {
-                console.error(e);
+            if (!svl.keyboard.isShiftDown()) {
+                setViewControlLayerCursor('OpenHand');
+                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+            } else {
+                setViewControlLayerCursor('ZoomOut');
             }
-        }
+        // }
 
         currTime = new Date().getTime();
 
@@ -664,23 +657,19 @@ function Map ($, google, turf, params) {
         // Show a link and fade it out
         if (!status.disableWalking) {
             showLinks(2000);
-            if (!mouseStatus.isLeftDown) {
-                try {
-                    if (!svl.keyboard.isShiftDown()) {
-                        setViewControlLayerCursor('OpenHand');
-                        // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-                    } else {
-                        setViewControlLayerCursor('ZoomOut');
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-            } else {
-
-            }
         } else {
-            setViewControlLayerCursor('default');
-            // svl.ui.map.viewControlLayer.css("cursor", "default");
+            hideLinks();
+        }
+
+        if (mouseStatus.isLeftDown) {
+            setViewControlLayerCursor('ClosedHand');
+        } else {
+            if (!svl.keyboard.isShiftDown()) {
+                setViewControlLayerCursor('OpenHand');
+                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+            } else {
+                setViewControlLayerCursor('ZoomOut');
+            }
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
