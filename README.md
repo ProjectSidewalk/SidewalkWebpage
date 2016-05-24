@@ -15,14 +15,15 @@ Run `sbt run` or `activator run` on the directory where `build.sbt` is located.
 
 ## Development Instructions
 
-Whenever you are working on the client side code and server side code, you should keep running the local server and `grunt watch`.
+Whenever you are working on the client side code and server side code,
+you should keep running the local server and `grunt watch`. Either
+run a script like `node run.js` to execute these processes or run each of them
+one by one as described below.
 
 ### Run the local server
-Run `sbt run` or `activator run` on the directory where `build.sbt` is located.
+Run `activator run` on the directory where `build.sbt` is located.
 
 ### Run JavaScript task runner
-SVLabel&mdash;the image labeling interface to annotate Street View imagery&mdash;needs to be built before being used on the web application. To do this:
-
-1. Go to the directory where `package.json` and `Gruntfile.js` are located (i.e., `public/javascripts/SVLabel/`).
-2. If you haven't, run `npm install` to install dependencies.
-3. Run `grunt watch`, which reacts to changes in the source code and builds the source code under the SVLabel directory and run unit tests.
+SVLabel&mdash;the image labeling interface to annotate Street View
+imagery&mdash;needs to be built before being used on the web application.
+To do this, run `grunt watch`, which reacts to changes in the source code and builds the source code under the SVLabel directory and run unit tests.
