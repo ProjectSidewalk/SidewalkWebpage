@@ -72,3 +72,6 @@ project/.sbtserver.lock
 
 .DS_Store
 *.mp4
+
+# JavaScript and Node
+node_modules
