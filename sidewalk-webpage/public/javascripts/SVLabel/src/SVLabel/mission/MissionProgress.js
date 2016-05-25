@@ -38,7 +38,7 @@ function MissionProgress () {
         } else if (label == "area-coverage-mission") {
             svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
-            console.warn("It shouldn't reach here.");
+            console.warn("Debug: It shouldn't reach here.");
         }
     }
 

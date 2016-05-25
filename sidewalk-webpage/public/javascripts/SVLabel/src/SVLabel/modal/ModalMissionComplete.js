@@ -223,6 +223,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+        svl.ui.modalMissionComplete.map.css('left', 0);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
 

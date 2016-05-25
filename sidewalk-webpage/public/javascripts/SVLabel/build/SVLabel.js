@@ -7937,7 +7937,7 @@ function MissionProgress () {
         } else if (label == "area-coverage-mission") {
             svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
-            console.warn("It shouldn't reach here.");
+            console.warn("Debug: It shouldn't reach here.");
         }
     }
 
@@ -11340,6 +11340,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+        svl.ui.modalMissionComplete.map.css('left', 0);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
 

@@ -14,5 +14,5 @@ cmd.stdout.on('data', function (data) {
 
 cmd = spawn('grunt', ['watch']);
 cmd.stdout.on('data', function (data) {
-   process.stdout.write('  Grunt: ' + data);
+   process.stdout.write('  ' + data);
 });
