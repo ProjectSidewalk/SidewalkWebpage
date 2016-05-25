@@ -95,7 +95,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val regions: List[Region] = RegionTable.getRegionsIntersectingStreet(streetEdgeId)
+    val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
     val region: Option[Region] = try {
       Some(regions.head)
     } catch {

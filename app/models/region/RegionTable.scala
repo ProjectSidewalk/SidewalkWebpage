@@ -98,11 +98,11 @@ object RegionTable {
     }
   }
 
-  def getRegionsIntersectingStreet(streetEdgeId: Int): List[Region] = db.withSession { implicit session =>
+  def getRegionsIntersectingAStreet(streetEdgeId: Int): List[Region] = db.withSession { implicit session =>
     val selectRegionQuery = Q.query[Int, Region](
       """SELECT * FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge
-        |ON region.geom && street_edge.geom
+        |ON ST_Intersects(region.geom, street_edge.geom)
         |WHERE street_edge.street_edge_id = ?
       """.stripMargin
     )
