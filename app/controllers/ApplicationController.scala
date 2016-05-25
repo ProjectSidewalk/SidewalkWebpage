@@ -5,12 +5,15 @@ import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.audit.{NewTask, AuditTaskTable}
-import models.user.User
+import models.user._
+import models.daos.UserDAO
 
 import scala.concurrent.Future
 
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
+  val anonymousUser = UserDAO.find("anonymous")
 
   /**
    * Returns an index page.

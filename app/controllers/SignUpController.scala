@@ -1,6 +1,7 @@
 package controllers
 
-import java.util.UUID
+import java.sql.Timestamp
+import java.util.{Calendar, Date, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
@@ -12,7 +13,8 @@ import controllers.headers.ProvidesHeader
 import forms.SignUpForm
 import models.daos.slick.UserDAOSlick
 import models.services.UserService
-import models.user.{UserCurrentRegionTable, UserRoleTable, User}
+import models.user._
+
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action
@@ -69,8 +71,16 @@ class SignUpController @Inject() (
                 Redirect(url)
               ))
             } yield {
+              // Set the user role and assign the neighborhood to audit.
               UserRoleTable.addUserRole(user.userId)
               UserCurrentRegionTable.assign(user.userId)
+
+              // Add Timestamp
+              val calendar: Calendar = Calendar.getInstance
+              val now: Date = calendar.getTime
+              val timestamp: Timestamp = new Timestamp(now.getTime)
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "SignUp", timestamp))
+
               env.eventBus.publish(SignUpEvent(user, request, request2lang))
               env.eventBus.publish(LoginEvent(user, request, request2lang))
               result
