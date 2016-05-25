@@ -1,0 +1,76 @@
+#context-menu-holder {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 390px;
+    height: 142px;
+    padding: 5px;
+    background-color: white;
+    border: solid 5px black;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    visibility: hidden;
+    z-index: 1;
+}
+
+#context-menu-vertical-connector {
+    position: absolute;
+    top: -13px;
+    left: 178px;
+    height: 13px;
+    width: 6px;
+    background-color: black;
+}
+
+#context-menu-holder hr {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+#severity-menu {
+    height: 50px;
+}
+
+#severity-menu img {
+    width: 20px;
+    height: 20px;
+}
+
+#severity-menu .radio-inline {
+    font-size: 10pt;
+}
+
+#severity-menu input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+#severity-menu #column-not-passable, #severity-menu #column-passable {
+    position: relative;
+    top: 8px;
+    margin-left: 0;
+    padding: 5px;
+    text-align: center;
+}
+
+#severity-menu .radio-inline label {
+    padding: 4px 0 0 0;
+}
+
+#severity-menu .radio-inline label div {
+    position: relative;
+    top: 22px;
+    left: -15px;
+}
+
+#severity-radio-holder span {
+    font-size: 10pt;
+    padding: 0 5px 0 5px;
+}
+
+#context-menu-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
+}

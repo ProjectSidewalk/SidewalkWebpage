@@ -1,0 +1,48 @@
+
+svg {
+    position: relative;
+}
+
+#map-holder {
+    position: relative;
+}
+
+#map {
+    height: 70%;
+}
+
+#map-label-legend {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.75);
+    left: 15px;
+    width: 220px;
+    bottom: 30px;
+    border: solid 1px #ccc;
+}
+
+#map-label-legend .table {
+    margin-bottom: 0;
+}
+
+#map-label-legend table td {
+    border-top: 0;
+}
+
+.leaflet-overlay-pane svg g:first-child path {
+    fill: #fff !important;
+    fill-opacity: 0.4 !important;
+    stroke-width: 2px !important;
+    stroke-opacity: 1 !important;
+    stroke: #ffffff !important;
+}
+.c3 text {
+    font-size: 9pt;
+}
+
+.c3-axis text {
+    fill: #888;
+}
+
+.c3-axis line, .c3-axis path {
+    stroke: #888;
+}

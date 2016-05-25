@@ -1,0 +1,227 @@
+#ribbon-menu-holder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100px;
+}
+
+.icon-ribbon-menu-large {
+    height: 50px;
+    margin: 0;
+    padding: 4px;
+    position: relative;
+    left: 0;
+    top: -4px;
+}
+
+.icon-ribbon-menu-medium {
+    height: 35px;
+    margin: 0 5px 0 5px;
+    position: relative;
+    left: 0;
+    top: -2px;
+}
+
+#icon-explore {
+    height: 38px;
+    left: 5px;
+    top: 2px;
+}
+
+.modeSwitch {
+    background: -moz-linear-gradient(center top , #fff, #eee);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
+    border-color: rgba(200,200,200,0.75);
+    border-style: solid;
+    border-width: 1px;
+    cursor: pointer;
+    display: inline-block;
+
+    position: relative;
+    height: 71px;
+    width:71px;
+
+    border-radius: 3px 3px 0 0;
+    -webkit-border-radius: 3px 3px 0 0;
+    -moz-border-radius: 3px 3px 0 0;
+}
+
+.modeSwitch_Icon {
+    position: absolute;
+    top: 0;
+    left: 8px;
+}
+
+.modeSwitch_Name {
+    background: transparent;
+    color: black;
+    display: inline-block;
+    font-size: 11px;
+    line-height: 11px;
+    text-align: center;
+    vertical-align: middle;
+
+    position: absolute;
+    top: 40px;
+    left: 0;
+    width: 100%;
+}
+
+#modeSwitchWalk {
+    width: 56px;
+    border: 3px solid rgba(0, 0, 0, 1);
+    background: rgb(204, 204, 204);
+}
+
+.ribbon-menu-mode-switch-horizontal-line {
+    background: black;
+    position: absolute;
+    left: -3px;
+    bottom: -4px;
+    height: 3px;
+    width: 71px;
+}
+
+#ribbon-mode-switch-horizontal-line-walk {
+    left: -3px;
+}
+
+#ribbon-menu-left-column-holder {
+    background: none;
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100px;
+    width: 65px;
+}
+
+#ribbon-menu-left-column-title {
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 20px;
+    width: 55px
+}
+
+#ribbon-menu-left-column-button-holder {
+    margin-left: 5px;
+    margin-right: 5px;
+    position: absolute;
+    left: 0;
+    top: 25px;
+    height: 75px;
+    width: 100%;
+}
+
+#landmark-holder {
+    background: transparent;
+
+    position: absolute;
+    left: 64px;
+    top: 0;
+    height: 100px;
+    width: 470px;
+}
+
+#ribbon-menu-landmark-title {
+    background: transparent;
+    border-bottom: 1px solid #ccc;
+    font-size: 9pt;
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+
+    position: absolute;
+    left: 0;
+    top: 5px;
+    height: 16px;
+    width: 380px;
+}
+
+#ribbon-menu-landmark-button-holder {
+    background: transparent;
+    margin-left: 10px;
+    margin-right: 10px;
+
+    position: absolute;
+    left: 0;
+    top: 25px;
+    height: 75px;
+    width: 470px;
+}
+
+#ribbon-street-view-connector {
+    border-left: 5px solid black;
+    position: absolute;
+    left: 25px;
+    top: -24px;
+    height: 20px;
+    width: 0;
+}
+
+#ribbon-menu-other-subcategory-holder {
+    position: absolute;
+    top: 66px;
+    left: -3px;
+    width: 260px;
+    background: white;
+    border-width: 3px;
+    border-style: solid;
+    border-color: rgba(179, 179, 179, 1);
+    padding: 10px;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    z-index: 1;
+    visibility: hidden;
+}
+
+.ribbon-menu-other-subcategories {
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin: 0 5px 0 5px;
+}
+
+.ribbon-menu-other-subcategories:hover {
+    background-color: #eee;
+}
+
+#ribbon-menu-other-subcategory-holder hr {
+    margin-top: 0;
+    margin-bottom: 0;
+    border-top: 1px dashed #eee;
+}
+
+.ribbon-mode-switch-info-buttons {
+    position: absolute;
+    top: 46px;
+    left: -3px;
+    height: 20px;
+    width: 20px;
+}
+
+.ribbon-mode-switch-info-buttons polygon.curb-ramp {
+    fill: rgba(0, 222, 38, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.no-curb-ramp {
+    fill: rgba(233, 39, 113, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.obstacle {
+    fill: rgba(0, 161, 203, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.surface-problem {
+    fill: rgba(241, 141, 5, 1);
+}
+
+.ribbon-mode-switch-info-buttons text {
+    visibility: visible;
+}

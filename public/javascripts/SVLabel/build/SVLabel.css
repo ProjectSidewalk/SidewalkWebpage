@@ -1,0 +1,1690 @@
+.svl-container {
+    background: rgba(255,255,255,1);
+    padding: 0px;
+    margin: 0px;
+    font-family: SegoeUILight, 'Mono Sans', Helvetica, Arial;
+}
+
+text {
+    visibility: hidden;
+}
+
+.visible {
+    visibility: visible;
+}
+
+.highlight {
+    color: orange;
+    font-weight: bold;
+}
+
+.highlight-50 {
+    background: rgba(255, 255, 0, 0.5) !important;
+}
+
+.white-background-75 {
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.width-50 {
+    width: 50%;
+}
+.width-50-percent {
+    width: 50%;
+}
+
+.width-75 {
+    width: 75%;
+}
+
+.button {
+    background: -moz-linear-gradient(center top , #fff, #eee);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+    color: rgba(96,96,96,1);
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 3px;
+    padding-bottom: 2px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 2px;
+    width: 200px;
+
+    border-radius: 3px 3px 0 0;
+    -webkit-border-radius: 3px 3px 0 0;
+    -moz-border-radius: 3px 3px 0 0;
+}
+
+/* Pseudo-classes
+* http://www.w3schools.com/css/css_pseudo_classes.asp */
+.button:hover {
+    background: -moz-linear-gradient(center top , #ccc, #bbb);
+    background: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#bbb));
+    color: #333;
+}
+
+b { font-weight: bold; }
+.bold { font-weight: bold; }
+.normal { font-weight: normal; }
+.underline { text-decoration: underline; }
+
+.defaultTextActive { color:#888; font-style: italic; }
+
+.inline {
+    float: left;
+}
+
+.InlineBlock {
+    display: inline-block;
+}
+
+.clearBoth {
+    clear: both;
+}
+
+input[type="radio"] {
+    height: 15px;
+    width: 15px;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+#svl-application-holder {
+    background: rgba(255,255,255,1);
+    margin: 0 auto;
+    position: relative;
+    height: 640px;
+    width: 960px;
+}
+
+#interaction-area-holder {
+    border: 3px solid transparent;
+    position: absolute;
+    left: 0;
+    top: 110px;
+    height: 480px;
+    width: 720px;
+}
+
+
+#page-overlay-holder {
+    background: rgba(255,255,255,0.5);
+    left: 0;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    visibility: hidden;
+}
+#ajax-loader-image {
+    left: 45%;
+    position: relative;
+    top: 90%;
+}
+
+/* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
+#viewControlLayer {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+#action-stack-control-holder {
+    font-size: 11px;
+    background: transparent;
+    position: absolute;
+    left: 600px;
+    top: 54px;
+    height: 50px;
+    width: 135px;
+}
+
+.action-stack-button {
+    color: rgba(0,0,0,1);
+    height: 40px;
+    width: 65px;
+}
+
+.action-stack-icons {
+    height: 16px;
+    width: 16px;
+}
+#labelDrawingLayer_LabelMenu {
+    background: rgba(255,255,255,0.9);
+
+    font-size: 12px;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 180px;
+    width: 220px;
+
+    /* Corner */
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    /*
+    -webkit-box-shadow: 1px 1px 2px #E7E7E7;
+    -moz-box-shadow: 1px 1px 2px #E7E7E7;
+    */
+}
+
+.RightClickMenu {
+    padding: 5px;
+}
+
+#labelDrawingLayer_LabelMenuBar {
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    padding-left: 5px;
+    padding-top: 7px;
+    text-align: left;
+    /* Position */
+    height: 20px;
+    width: 215px;
+    border-radius: 3px 3px 0px 0px;
+    -webkit-border-radius: 3px 3px 0px 0px;
+    -moz-border-radius: 3px 3px 0px 0px;
+}
+
+#labelDrawingLayer_LabelMenuOptions {
+    width: 100%;
+}
+
+
+.BusStopLabelMenuItem {
+    padding-bottom: 2px;
+    padding-top: 2px;
+    position: relative;
+}
+
+.Holder_BusStopLabelMenuItemIcon {
+
+}
+
+.BusStopLabelMenuItemIcon {
+    height: 30px;
+    width: 30px;
+}
+
+.Holder_BusStopLabelMenuItemText {
+    position: absolute;
+    top: 10px;
+    left: 40px;
+}
+
+.Holder_RadioButton {
+    padding: 5px;
+    /* Position */
+    height: 20px;
+    width: 100%;
+}
+
+#Holder_BusStopLabelMenuOptionCloseIcon {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+/*******************************************
+ Bus stop location menu
+*/
+#BusStopPositionMenu {
+    background: rgba(255,255,255,0.9);
+
+    font-size: 12px;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 200px;
+    width: 220px;
+
+    /* Corner */
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    /*
+    -webkit-box-shadow: 1px 1px 2px #E7E7E7;
+    -moz-box-shadow: 1px 1px 2px #E7E7E7;
+    */
+}
+
+#BusStopPositionMenu_MenuBar {
+    background: rgba(0,0,0,1);
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    padding-left: 5px;
+    padding-top: 7px;
+    text-align: left;
+    /* Position */
+    height: 35px;
+    width: 215px;
+    -webkit-border-radius: 3px 3px 0px 0px;
+    -moz-border-radius: 3px 3px 0px 0px;
+}
+
+#BusStopPositionMenu_MenuBarText {
+    display: inline-block;
+    width: 180px;
+}
+
+#BusStopPositionMenu_MenuItems {
+    height: 140px;
+    margin-top: 5px;
+    position: relative;
+}
+
+.BusStopPositionMenu_MenuItem {
+    padding-bottom: 2px;
+    padding-top: 2px;
+    /* Position */
+    position: relative;
+    height: 30px;
+}
+
+.BusStopPositionMenu_MenuItemIcon {
+    position: absolute;
+    left: 5px;
+    top: 0px;
+    height: 30px;
+    width: 60px;
+}
+
+.BusStopPositionMenu_MenuItemText {
+    /* Position */
+    position: absolute;
+    left: 90px;
+    top: 10px;
+}
+
+#BusStopPositinoMenu_BackButton {
+    position: absolute;
+    right: 10px;
+    bottom: 5px;
+    width: 50px;
+}
+
+#Holder_BusStopPositionMenuCloseIcon {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+
+/*******************************************
+  Delete Menu
+*/
+#LabelDeleteMenu {
+    background: rgba(255,255,255,0.9);
+    font-size: 12px;
+    padding: 5px;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 40px;
+    width: 200px;
+    /* Corner */
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#LabelDeleteMenu_CancelButton {
+    font-size: 12px;
+    float: right;
+    width: 80px;
+}
+
+#LabelDeleteMenu_DeleteButton {
+    font-size: 12px;
+    float: right;
+    width: 80px;
+}
+
+
+
+#BusStopAbsenceQuestion, #BusStopAbsenceOptions, #BusStopAbsenceButtons {
+    padding: 5px;
+}
+
+.BusStopAbsenceOption {
+    padding: 5px;
+}
+
+input.Radio_BusStopAbsence {
+    height: 15px;
+
+    width: 15px;
+}
+
+input#Text_BusStopAbsenceOtherReason {
+    width: 200px;
+}
+
+
+/*******************************************
+* Styles for example window
+*/
+#Holder_Examples {
+    background: rgba(255,255,255,0.5);
+    visibility: hidden;
+    z-index: 100;
+    /* position */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 940px;
+}
+
+#Examples {
+    background: rgba(0,0,0,0.9);
+    /* position */
+    position: absolute;
+    left: 0;
+    top: 130px;
+    height: 400px;
+    width: 100%;
+}
+
+#Holder_ExamplesCloseButton {
+    /* position */
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 48px;
+    width: 48px;
+}
+
+#ExamplesCloseButton {
+    height: 48px;
+    width: 48px;
+}
+
+.RightClickMenuExample {
+    color: white;
+    padding: 20px;
+    /* Position */
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.RightClickMenuExampleDescription {
+    padding-bottom: 15px;
+}
+
+.RightClickMenuExampleImageHolder {
+    padding-bottom: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 8px;
+}
+
+.ExampleImage {
+    width: 280px;
+    height: 187px;
+}
+
+
+/*******************************************
+ These styles apply to the right click menu holder
+*/
+#Holder_RightClickMenu {
+    visibility: hidden;
+}
+
+.RightClickMenu_CloseIcon {
+    height: 20px;
+    width: 20px;
+}
+
+
+.Holder_BusStopLabelMenuQuestionMarkIcon, .Holder_BusStopPositionMenuQuestionMarkIcon {
+    display: inline-block;
+    position: absolute;
+    left: 190px;
+    top: 15px;
+    height: 10px;
+    width:10px;
+    z-index: 100;
+}
+
+.BusStopLabelMenuQuestionMarkIcon, .BusStopPositionMenuQuestionMarkIcon {
+    height: 10px;
+    width: 10px;
+    z-index: 100;
+}
+
+.Holder_BusStopLabelMenuQuestionMarkIconTooltip, .Holder_BusStopPositionMenuQuestionMarkIconTooltip {
+    background: rgba(0,0,0,0.7);
+    color: white;
+    display: inline-block;
+    padding: 3px;
+    visibility: hidden;
+
+    position: absolute;
+    left: 13px;
+    top:-24px;
+    width: 150px;
+    height: 18px;
+
+    border-radius: 3px 3px 3px 0px;
+    -webkit-border-radius: 3px 3px 3px 0px;
+    -moz-border-radius: 3px 3px 3px 0px;
+}
+#street-view-holder {
+    border: 5px solid black;
+    border-radius: 5px;
+    position: absolute;
+    left: 0px;
+    top:0px;
+    height: 490px;
+    width: 730px;
+}
+
+.Window_StreetView {
+    position: absolute;
+    left: 0;
+    top:0;
+    height: 480px;
+    width: 720px;
+}
+
+
+#delete-icon-holder {
+    cursor: pointer;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    left: 0;
+    top: 10px;
+}
+
+#Holder_LabelEditIcon {
+    cursor: pointer;
+    visibility: hidden;
+    /* Position */
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    left: -40px;
+    top: 10px;
+}
+
+#LabelDeleteIcon, #LabelEditIcon {
+    height: 20px;
+    width: 20px;
+}
+#compass-holder {
+    position: absolute;
+    top: 525px;
+    left: 660px;
+}
+
+#compass-message-holder {
+    position: absolute;
+    right: -65px;
+    top: 0;
+    /*background: rgba(255, 255, 255, 0.75);*/
+    padding: 10px 10px 10px 5px;
+    height: 55px;
+    min-width: 120px;
+    white-space: nowrap;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.compass-message-small {
+    font-size: 8pt;
+    margin: 5px;
+}
+
+#compass-message-connector {
+    visibility: hidden;
+    height: 2px;
+    width: 20px;
+    background: white;
+    position: absolute;
+    right: -20px;
+    top: 25px;
+    border: solid 1px white;
+
+    border-radius: 0 1px 1px 0;
+    -webkit-border-radius: 0 1px 1px 0;
+    -moz-border-radius: 0 1px 1px 0;
+}
+
+.compass-turn-images {
+    position: relative;
+    bottom: 2px;
+    width: 25px;
+    margin: 0 10px 0 0
+}
+#context-menu-holder {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 390px;
+    height: 142px;
+    padding: 5px;
+    background-color: white;
+    border: solid 5px black;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    visibility: hidden;
+    z-index: 1;
+}
+
+#context-menu-vertical-connector {
+    position: absolute;
+    top: -13px;
+    left: 178px;
+    height: 13px;
+    width: 6px;
+    background-color: black;
+}
+
+#context-menu-holder hr {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+#severity-menu {
+    height: 50px;
+}
+
+#severity-menu img {
+    width: 20px;
+    height: 20px;
+}
+
+#severity-menu .radio-inline {
+    font-size: 10pt;
+}
+
+#severity-menu input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+#severity-menu #column-not-passable, #severity-menu #column-passable {
+    position: relative;
+    top: 8px;
+    margin-left: 0;
+    padding: 5px;
+    text-align: center;
+}
+
+#severity-menu .radio-inline label {
+    padding: 4px 0 0 0;
+}
+
+#severity-menu .radio-inline label div {
+    position: relative;
+    top: 22px;
+    left: -15px;
+}
+
+#severity-radio-holder span {
+    font-size: 10pt;
+    padding: 0 5px 0 5px;
+}
+
+#context-menu-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
+}
+#HolderTooltip {
+    background: rgba(0,0,0,0.8);
+    color: white;
+    font-size: 10pt;
+    left:0;
+    padding: 3px 7px;
+    position:absolute;
+    top:0;
+    visibility: hidden;
+}
+
+#task-difficulty-wrapper {
+    background-color: rgba(60,60,60,1);
+    border: 2px solid white;
+    color: white;
+    font-size: 1.4em;
+    margin: 0 22px 0 0;
+    padding: 10px;
+    position:relative;
+    top: 250px;
+    z-index: 4
+}
+
+#task-difficulty-holder ul {
+    margin: 0 0 0 0px;
+    padding: 10px 0 15px 0;
+}
+
+#task-difficulty-holder ul li {
+    display: inline;
+    padding: 0 10px 0 15px;
+}
+
+#task-difficulty-holder ul li input[type="radio"] {
+    position: relative;
+    bottom: 3px;
+}
+
+#task-difficulty-holder label {
+    bottom: 0px;
+    font-size: 0.8em;
+    padding: 0 0 0 3px;
+    position: relative;
+}
+
+#task-difficulty-comment-holder {
+    padding: 20px 0 20px 0;
+}
+
+#task-difficulty-holder #task-difficulty-comment {
+    font-size: 0.8em;
+    height: 1.1em;
+    padding: 3px;
+    width: 65%;
+}
+
+#task-difficulty-holder input[type="button"] {
+    position: relative;
+    margin: 30px 0 10px 0;
+}
+
+/********************************************************************************
+ * Mechanical Turk
+ */
+.amt-preview-warning-holder {
+    background: rgba(255, 128, 128, 1);
+    height: auto;
+    left: 0;
+    position: absolute;
+    text-align: center;
+    top: 0;
+    width: 100%;
+}
+
+.amt-preview-warning {
+    color: white;
+    font-size: 1.4em;
+    padding: 5px;
+}
+#form-holder {
+    background: none;
+    padding-top: 3px;
+    /* Position */
+    position: relative;
+    left: 0px;
+    top: 600px;
+    width: 960px;
+}
+
+
+#comment-field-holder {
+    background: none;
+    padding-top: 5px;
+    position: relative;
+    width: 932px;
+}
+
+#comment-field {
+    height: 30px;
+    width: 100%;
+    margin: 0 5px 0 5px;
+}
+
+footer {
+    color: rgba(100,100,100,1);
+    font-size: 12px;
+    height: 10px;
+    text-align: center;
+    width: 100%;
+}
+#left-column-control-pane {
+    position: relative;
+    left: -55px;
+    top: 305px;
+}
+
+#left-column-button-holder .button {
+    text-align: center;
+    width: 60px;
+    height: 90px;
+    font-size: 8pt;
+    border: 2px #ccc solid;
+    padding: 15px 0 0 0;
+}
+
+
+#left-column-button-holder img {
+    width: 30px;
+}
+#google-maps-holder  {
+    position: absolute;
+    left: 735px;
+    top: 403px;
+}
+
+.google-maps-pane {
+    border: 0 solid black;
+    position: absolute;
+    left: 0;
+    top:0;
+    width: 200px;
+    height: 200px;
+}
+#modal-skip-holder, #modal-comment-holder, #modal-mission-holder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    text-align: justify;
+}
+
+#modal-mission-holder {
+    visibility: hidden;
+}
+
+#modal-skip-background, #modal-comment-background, #modal-mission-background {
+    position: absolute;
+    left: -55px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
+    height: 100%;
+    width: 110%;
+}
+
+#modal-skip-box, #modal-comment-box {
+    background: rgba(255, 255, 255, 1);
+    /*border: 3px solid rgba(200, 200, 200, 1);*/
+    color: rgba(80, 80, 80, 1);
+    font-size: 14pt;
+    padding: 10px;
+    position: relative;
+    top: 35%;
+    left: 8px;
+    visibility: visible;
+    width: 720px;
+    z-index: 1;
+
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-foreground {
+    top: 118px;
+    left: 8px;
+    padding: 10px;
+    width: 720px;
+    height: 480px;
+    background: rgba(255, 255, 255, 1);
+    color: rgba(80, 80, 80, 1);
+    font-size: 14pt;
+    position: absolute;
+    min-height: 480px;
+
+    border-radius: 3px 3px 3px 3px;
+    z-index: 2;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-foreground h1 {
+    font-size: 18pt;
+    margin: 3px 0 10px 0;
+}
+
+.modal-foreground h2 {
+    font-size: 16pt;
+    margin: 3px 0 10px 0;
+
+}
+
+.modal-foreground h3 {
+    font-size: 14pt;
+    margin: 3px 0 5px 0;
+}
+
+.modal-foreground p {
+    font-size: 12pt;
+}
+
+.modal-foreground .table {
+    margin-bottom: 10px !important;
+}
+
+.modal-foreground th, .modal-foreground td {
+    padding: 3px !important;
+    font-size: 9pt;
+    font-weight: normal;
+}
+
+.modal-foreground .button {
+    width: 100%;
+}
+
+.leaflet-control-attribution {
+    visibility: hidden;
+}
+
+#modal-comment-textarea {
+    height: 100px;
+    width: 100%;
+    margin: 5px 0 10px 0;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-mission-complete-map {
+    position: absolute;
+    width: 350px;
+    height: 420px;
+}
+
+.modal-mission-images {
+    width: 60%;
+}
+
+.modal-mission-left-column-images {
+    width: 100%;
+    padding: 25px 0 0 0;
+}
+
+#modal-mission-complete-holder {
+    visibility: hidden;
+}
+
+#modal-mission-complete-foreground {
+    visibility: hidden;
+}
+
+#modal-mission-complete-holder .button {
+    width: 100%;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+#modal-mission-foreground h1 {
+    font-size: 24pt;
+    text-align: left;
+}
+
+#modal-mission-close-button {
+    width: 200px;
+    float: right;
+}
+
+#mission-badge-holder img {
+    width: 150px;
+    margin-top: 17px;
+}
+
+.modal-background {
+    position: absolute;
+    left: -55px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    height: 100%;
+    width: 110%;
+}
+
+
+
+.modal-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
+}
+
+#modal-curb-ramp-foreground {
+    border: solid 3px rgba(0, 222, 38, 1);
+}
+
+#modal-no-curb-ramp-foreground {
+    border: solid 3px rgba(233, 39, 113, 1);
+}
+
+#modal-obstacle-foreground {
+    border: solid 3px rgba(0, 161, 203, 1);
+}
+
+#modal-surface-problem-foreground {
+    border: solid 3px rgba(241, 141, 5, 1);
+}
+#tracker-holder {
+    position: absolute;
+    top: 0;
+    left: 935px;
+}
+
+#onboarding-holder {
+    visibility: hidden;
+}
+
+#onboarding-background {
+    width: 1025px;
+    height: 600px;
+    background: rgba(255, 255, 255, 1.0);
+    position: absolute;
+    top: -110px;
+    left: -65px;
+    z-index: 1;
+    visibility: hidden;
+}
+
+#onboarding-message-holder {
+    width: 300px;
+    margin: 5px;
+    padding: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    font-size: 14pt;
+
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#onboarding-message-holder .button {
+    width: 100%;
+}
+
+.white-background {
+    background: rgba(255, 255, 255, 1);
+    -webkit-transition:background 0.5s;
+    -moz-transition:background 0.5s;
+    -ms-transition:background 0.5s;
+    -o-transition:background 0.5s;
+    transition:background 0.5s;
+}
+
+.yellow-background {
+    background: rgba(255, 255, 166, 1);
+    -webkit-transition:background 0s;
+    -moz-transition:background 0s;
+    -ms-transition:background 0s;
+    -o-transition:background 0s;
+    transition:background 0s;
+}
+
+#onboarding-example-image-1, #onboarding-example-image-2 {
+    width: 980px;
+}
+
+/*** Deprecated ***/
+#Holder_OnboardingMessageBox {
+    background: rgba(69,183,214,0.95);
+    border: 3px solid rgba(255,255,255,1);
+    color : rgba(255,255,255,1);
+    font-size: 20px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    visibility: hidden;
+    z-index: 10;
+}
+
+#Holder_OnboardingCanvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+#Holder_OnboardingMessage {
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 5px;
+    padding-top: 5px;
+}
+
+.OnboardingTipIcons {
+    height: 16px;
+    position: relative;
+    top: 2px;
+    width: 16px;
+}
+
+.Onboarding_MissingCurbRampExamples {
+    height: 85px;
+    margin: 3px;
+    width: 146px;
+}
+
+.Onboarding_DiagonalCurbRampExamples {
+    height: 120px;
+    margin: 3px;
+    width: 218px;
+}
+
+/*
+ * Onboarding 1: Labeling a bus stop
+ */
+.OnboardingLabelingBusStopExample {
+    padding-left: 5px;
+    padding-right: 5px;
+    width: 400px;
+    height: 280px;
+    postion: relative;
+}
+
+.OnboardingLabelingBusStopExampleImage {
+    width: 400px;
+    height: 280px;
+    top: 0;
+    position: absolute;
+}
+
+.OnboardingLabelingBusStopExampleCaption {
+    font-size: 12pt;
+    height: 50px;
+    text-align: left;
+    position: absolute;
+    top: 280px;
+    width: 400px;
+}
+
+.OnboardingBusStopImageBox {
+    background: rgba(255,255,255,1);
+    padding: 1px;
+}
+
+
+#Holder_QuickCheck {
+    background: rgba(60,60,60,1);
+    border: 3px solid rgba(255,255,255,1);
+    color : rgba(255,255,255,1);
+    font-size: 20px;
+    height: 560px;
+    left: 0;
+    padding: 10px;
+    position: absolute;
+    top: 60px;
+    visibility: hidden;
+    width: 940px;
+    z-index: 10;
+}
+
+.QuickCheckImages {
+    border: 5px solid transparent;
+    cursor: pointer;
+    margin: 5px 10px 5px 0px;
+    height: 150px;
+    width: 215px;
+}
+
+#QuickCheckMessageHolder {
+    height: 60px;
+}
+
+.QuickCheckCheckMarkIcons {
+    bottom: 0px;
+    height: 32px;
+    position: absolute;
+    right: 5px;
+    width: 32px;
+}
+
+.QuickCheckErrorMessages {
+    font-size: 11pt;
+    left: 5px;
+    position: absolute;
+    top: 5px;
+    width: 215px;
+}
+#overlay-message-box {
+    background: rgba(0,0,0,0.75);
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 100%;
+}
+
+#overlay-message {
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    position: absolute;
+    top: 2px;
+    left: 3px;
+}
+#pop-up-message-holder {
+    position: absolute;
+    left: 0;
+    top: 0;
+
+}
+
+#pop-up-message-background {
+    position: absolute;
+    left: -60px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    height: 100%;
+    width: 1000px;
+}
+
+#pop-up-message-foreground {
+    background: rgba(255, 255, 255, 1); /* rgba(69,183,214,1); */
+    border: 3px solid rgba(200,200,200,1);
+    font-size: 14pt;
+    padding: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    visibility: visible;
+    width: 730px;
+}
+
+#pop-up-message-foreground p {
+    padding-left: 1px;
+}
+
+#pop-up-message-foreground a {
+    color: rgba(20, 20, 20, 1);
+}
+#ribbon-menu-holder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100px;
+}
+
+.icon-ribbon-menu-large {
+    height: 50px;
+    margin: 0;
+    padding: 4px;
+    position: relative;
+    left: 0;
+    top: -4px;
+}
+
+.icon-ribbon-menu-medium {
+    height: 35px;
+    margin: 0 5px 0 5px;
+    position: relative;
+    left: 0;
+    top: -2px;
+}
+
+#icon-explore {
+    height: 38px;
+    left: 5px;
+    top: 2px;
+}
+
+.modeSwitch {
+    background: -moz-linear-gradient(center top , #fff, #eee);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
+    border-color: rgba(200,200,200,0.75);
+    border-style: solid;
+    border-width: 1px;
+    cursor: pointer;
+    display: inline-block;
+
+    position: relative;
+    height: 71px;
+    width:71px;
+
+    border-radius: 3px 3px 0 0;
+    -webkit-border-radius: 3px 3px 0 0;
+    -moz-border-radius: 3px 3px 0 0;
+}
+
+.modeSwitch_Icon {
+    position: absolute;
+    top: 0;
+    left: 8px;
+}
+
+.modeSwitch_Name {
+    background: transparent;
+    color: black;
+    display: inline-block;
+    font-size: 11px;
+    line-height: 11px;
+    text-align: center;
+    vertical-align: middle;
+
+    position: absolute;
+    top: 40px;
+    left: 0;
+    width: 100%;
+}
+
+#modeSwitchWalk {
+    width: 56px;
+    border: 3px solid rgba(0, 0, 0, 1);
+    background: rgb(204, 204, 204);
+}
+
+.ribbon-menu-mode-switch-horizontal-line {
+    background: black;
+    position: absolute;
+    left: -3px;
+    bottom: -4px;
+    height: 3px;
+    width: 71px;
+}
+
+#ribbon-mode-switch-horizontal-line-walk {
+    left: -3px;
+}
+
+#ribbon-menu-left-column-holder {
+    background: none;
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100px;
+    width: 65px;
+}
+
+#ribbon-menu-left-column-title {
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 20px;
+    width: 55px
+}
+
+#ribbon-menu-left-column-button-holder {
+    margin-left: 5px;
+    margin-right: 5px;
+    position: absolute;
+    left: 0;
+    top: 25px;
+    height: 75px;
+    width: 100%;
+}
+
+#landmark-holder {
+    background: transparent;
+
+    position: absolute;
+    left: 64px;
+    top: 0;
+    height: 100px;
+    width: 470px;
+}
+
+#ribbon-menu-landmark-title {
+    background: transparent;
+    border-bottom: 1px solid #ccc;
+    font-size: 9pt;
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+
+    position: absolute;
+    left: 0;
+    top: 5px;
+    height: 16px;
+    width: 380px;
+}
+
+#ribbon-menu-landmark-button-holder {
+    background: transparent;
+    margin-left: 10px;
+    margin-right: 10px;
+
+    position: absolute;
+    left: 0;
+    top: 25px;
+    height: 75px;
+    width: 470px;
+}
+
+#ribbon-street-view-connector {
+    border-left: 5px solid black;
+    position: absolute;
+    left: 25px;
+    top: -24px;
+    height: 20px;
+    width: 0;
+}
+
+#ribbon-menu-other-subcategory-holder {
+    position: absolute;
+    top: 66px;
+    left: -3px;
+    width: 260px;
+    background: white;
+    border-width: 3px;
+    border-style: solid;
+    border-color: rgba(179, 179, 179, 1);
+    padding: 10px;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+    z-index: 1;
+    visibility: hidden;
+}
+
+.ribbon-menu-other-subcategories {
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin: 0 5px 0 5px;
+}
+
+.ribbon-menu-other-subcategories:hover {
+    background-color: #eee;
+}
+
+#ribbon-menu-other-subcategory-holder hr {
+    margin-top: 0;
+    margin-bottom: 0;
+    border-top: 1px dashed #eee;
+}
+
+.ribbon-mode-switch-info-buttons {
+    position: absolute;
+    top: 46px;
+    left: -3px;
+    height: 20px;
+    width: 20px;
+}
+
+.ribbon-mode-switch-info-buttons polygon.curb-ramp {
+    fill: rgba(0, 222, 38, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.no-curb-ramp {
+    fill: rgba(233, 39, 113, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.obstacle {
+    fill: rgba(0, 161, 203, 1);
+}
+
+.ribbon-mode-switch-info-buttons polygon.surface-problem {
+    fill: rgba(241, 141, 5, 1);
+}
+
+.ribbon-mode-switch-info-buttons text {
+    visibility: visible;
+}
+#Holder_LabeledLandmarks {
+    position: relative;
+    height: 100px;
+}
+
+.LabeledLandmarkHolder {
+    background: transparent;
+    border-bottom: solid 1px #ccc;
+    text-align: left;
+    height: 45px;
+    width: 80px;
+}
+
+#LabeledLandmarkHolder_CurbRamp {
+    position: absolute;
+    left: 10px;
+    top: 20px;
+}
+
+#LabeledLandmarkHolder_NoCurbRamp {
+    position: absolute;
+    left: 120px;
+    top: 20px;
+}
+
+.LabeledLandmark_Icon {
+    height: 45px;
+    width: 45px;
+}
+
+.LabeledLandmark_Description {
+    font-size: 0.8em;
+    text-align: center;
+    visibility: hidden;
+}
+
+.LabeledLandmark_Count {
+    color: #484848;
+    font-size: 1.4em;
+    font-family: SegoeUISemiBold, 'Mono Sans', Helvetica, Arial;
+    visibility: visible;
+    /* position */
+    position: absolute;
+    top: 22px;
+    left: 55px;
+    height: 20px;
+    width: 20px;
+}
+
+#LabeledLandmarks_SubmittedLabelCount {
+    font-size: 8pt;
+    position: absolute;
+    top: 67px;
+}
+#progress-pov-holder {
+    height: 25px;
+    position: relative;
+    width: 202px;
+}
+
+#progress-pov-label {
+    text-align: justify;
+    font-size: 8pt;
+}
+
+#progress-pov-current-completion-bar {
+    background: rgba(210,210,210,1);
+    height: 14px;
+    position: absolute;
+    width: 190px;
+}
+
+#progress-pov-current-completion-bar-filler {
+    border-width: 0;
+    height: 14px;
+    position: absolute;
+    width: 190px;
+}
+
+#progress-pov-current-completion-rate {
+    color: white;
+    font-size: 8pt;
+    width: 100px;
+    padding-left: 5px;
+}
+#progress-holder {
+    position: relative;
+    height: 65px;
+}
+
+#ProgressBarContainer {
+    border: 1px solid rgba(60,60,60,1);
+    position: absolute;
+    top: 52px;
+    left: 0px;
+    height: 4px;
+    width: 200px;
+}
+
+#ProgressBarFilled {
+    background: yellow;
+    border: 0px;
+    position: absolute;
+    height: 4px;
+    width: 100px;
+}
+/*#Holder_QualificationBadges {*/
+    /*position: relative;*/
+    /*height: 75px;*/
+/*}*/
+
+/*.BadgeHolder {*/
+    /*display: inline-block;*/
+    /*text-align: center;*/
+/*}*/
+
+/*.Badge {*/
+    /*position: relative;*/
+    /*height: 30px;*/
+    /*width: 30px;*/
+/*}*/
+
+/*.BadgeDescription {*/
+    /*font-size: 0.9em;*/
+    /*padding-top: 0.1em;*/
+    /*text-align: center;*/
+/*}*/
+
+/*#BadgeHolder_BusStopAuditor {*/
+    /*!* position *!*/
+    /*position: absolute;*/
+    /*left: 0px;*/
+    /*top: 2em;*/
+    /*height: 80px;*/
+    /*width: 100px;*/
+/*}*/
+
+/*#BadgeHolder_BusStopExplorer {*/
+    /*!* position *!*/
+    /*position: absolute;*/
+    /*left: 100px;*/
+    /*top: 2em;*/
+    /*height: 80px;*/
+    /*width: 100px;*/
+/*}*/
+#status-holder {
+    border: 3px dotted transparent;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    left: 735px;
+    top: 53px;
+    width: 200px;
+    color: rgb(127, 127, 127);
+
+}
+
+.status-box {
+    border-bottom: 1px dotted #ccc;
+    margin: 3px 0 15px 0;
+    padding: 0 0 10px 0;
+    text-align: left;
+}
+
+.status-box a {
+    color: rgba(128, 128, 128, 1);
+    text-decoration: underline;
+}
+
+.status-box h1 {
+    font-size: 12pt;
+    margin: 0 0 4px 0;
+}
+
+.status-box h2 {
+    font-size: 9pt;
+    font-weight: normal;
+    margin: 1px 0 5px 1px;
+}
+
+.status-column-half {
+    padding: 5px 5px 5px 5px;
+    margin: 5px 0 5px 0;
+    width: 50%;
+}
+
+.status-icon {
+    width: 25px;
+}
+
+/*#status-pane-title {*/
+    /*border-bottom: 1px solid #ccc;*/
+    /*font-size: 1em;*/
+    /*margin-bottom: 3px;*/
+    /*text-align: center;*/
+/*}*/
+
+
+
+
+
+
+/*#current-status-complete {*/
+    /*background-color: rgb(254, 255, 223);*/
+/*}*/
+
+/*#current-status-title {*/
+    /*font-weight: bold;*/
+/*}*/
+
+/*.status-holder-header-1 {*/
+    /*font-weight: bold;*/
+    /*font-size: 12pt;*/
+/*}*/
+#task-completion-message-holder {
+    position: relative;
+    visibility: hidden;
+}
+
+#task-completion-message-holder img {
+    left: 120px;
+    top: 0;
+    width: 500px;
+    position: relative;
+}
+#zoom-control-holder {
+    background: transparent;
+
+    position: absolute;
+    left: 453px;
+    top: 54px;
+    height: 50px;
+    width: 200px;
+}
+
+.zoom-control-button {
+    color: rgba(0,0,0,1);
+    font-size: 11px;
+    height: 40px;
+    width: 72px;
+}
+
+.zoom-button-icon {
+    height: 18px;
+    width: 18px;
+}
