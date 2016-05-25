@@ -18,7 +18,7 @@ import models.label._
 import models.mission.{MissionStatus, Mission, MissionTable}
 import models.region._
 import models.street.StreetEdgeAssignmentCountTable
-import models.user.{UserCurrentRegionTable, User}
+import models.user._
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -34,14 +34,20 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
+  val anonymousUser: DBUser = UserTable.find("anonymous").get
+
   /**
     * Returns an audit page.
     *
     * @return
     */
   def audit = UserAwareAction.async { implicit request =>
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+
     request.identity match {
       case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "Visit_Audit", timestamp))
+
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
         val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
@@ -54,6 +60,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_Audit", timestamp))
         val region: Option[Region] = RegionTable.getRegion
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
