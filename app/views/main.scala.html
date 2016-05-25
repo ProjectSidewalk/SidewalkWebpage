@@ -1,0 +1,55 @@
+@(title: String)(content: Html)
+
+@import com.mohiva.play.silhouette.impl.providers._
+@import views.html.bootstrap._
+@import forms.SignInForm
+
+@import play.api.Play
+@import play.api.Play.current
+
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>@title</title>
+    <link rel="icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
+    <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
+    <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
+
+    <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
+
+    <!--<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7/leaflet.css" />-->
+    <!--<script src="lib/jquery-1.7.2.min.js"></script>-->
+    <script src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3&key=AIzaSyDzYR4m-3upEQ-bIQam35ixN1BgxnPsY7k&sensor=false"></script>
+
+    <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
+    <link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>
+</head>
+<body>
+    <div id="wrap">
+        @content
+    </div>
+    <footer class="footer">
+        <div class="container">
+            <p class="text-muted footer-text">Project Sidewalk is operated by Makeability Lab at
+                the University of Maryland, College Park. | <a href="@routes.ApplicationController.terms">Terms of Use</a></p>
+        </div>
+    </footer>
+    <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+            ga('create', 'UA-76528208-1', 'auto');
+            ga('send', 'pageview');
+
+    </script>
+</body>
+</html>

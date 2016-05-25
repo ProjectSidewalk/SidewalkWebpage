@@ -1,0 +1,23 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h2>Characterizing Sidewalk Accessibility at Scale</h2>
+                <p>
+                    Poorly maintained sidewalks pose considerable accessibility challenges for people with mobility impairments.
+                    Despite comprehensive civil rights legislation for Americans with disabilities, many city streets and sidewalks in the U.S. remain inaccessible.
+                    The problem is not just that sidewalk accessibility fundamentally affects where and how people travel in cities,
+                    but also that there are few, if any, mechanisms to determine accessible areas of a city a priori.
+                </p>
+                <p>
+                    ...
+                </p>
+            </div>
+        </div>
+    </div>
+}

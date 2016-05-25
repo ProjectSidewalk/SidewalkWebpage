@@ -1,0 +1,7 @@
+@(request: RequestHeader)
+
+@errors.errorMain("Project Sidewalk") {
+
+    <h1>Page not found</h1>
+    <p>You requested: @request.path</p>
+}

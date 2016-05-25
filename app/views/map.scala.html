@@ -1,0 +1,34 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+
+    <div class="container">
+        <div class="row">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div id="map-holder">
+                        <div id="map"></div>
+                        <div id="map-label-legend">
+                            <table class="table">
+                                <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
+                                <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
+                                <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
+                                <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
+                                <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/accessScore.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
+}

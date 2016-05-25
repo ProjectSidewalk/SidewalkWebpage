@@ -1,0 +1,131 @@
+@import models.user.User
+@(user: Option[User] = None, url: Option[String] = Some("/"))
+
+@import views.html.bootstrap._
+
+
+<nav class="navbar navbar-default navbar-static-top">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="@routes.ApplicationController.index">Project Sidewalk <sub>beta</sub></a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                @*<li>*@
+                    @*<a href='@routes.ApplicationController.about'>About</a>*@
+                @*</li>*@
+                @*<li>*@
+                    @*<a href='@routes.ApplicationController.map'>Access Score</a>*@
+                @*</li>*@
+                @if(url.isDefined && url.get != "/audit") {
+                    <li>
+                        <a href='@routes.AuditController.audit'>Start Auditing</a>
+                    </li>
+                }
+                <!--<li><a href="#">Explore Accessibility!</a></li>-->
+                <li class="dropdown">
+                    @if(user) {
+                        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                            <img src='@routes.Assets.at("images/avatar.png")' alt="User avatar" class="avatar-medium">&nbsp;
+                            @user.get.username
+                            <b class="caret"></b>
+                        </a>
+                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                            <li role="presentation">
+                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                    Your dashboard
+                                </a>
+                            </li>
+                            @if(user.get.roles.getOrElse(Seq("")).contains("Administrator")) {
+                                <li role="presentation">
+                                    <a href='@routes.AdminController.index' role="menuitem">
+                                        Admin
+                                    </a>
+                                </li>
+                            }
+                            <li role="presentation">
+                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                            </li>
+                        </ul>
+                    } else {
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container"><img src='@routes.Assets.at("images/avatar.png")' alt="User avatar" class="avatar-medium">&nbsp;Sign in</a>
+                    }
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+@if(!user) {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#form-open-sign-up").on("mouseup", function () {
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
+            });
+
+            $("#form-open-sign-in").on("mouseup", function () {
+                $("#sign-up-modal").addClass("hidden");
+                $("#sign-in-modal").removeClass("hidden");
+            });
+        });
+    </script>
+    <div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="sign-in-modal">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="sign-in-label">Sign in</h4>
+                </div>
+                <div class="modal-body">
+                    @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/"))) {
+                    @text(forms.SignInForm.form("identifier"), "Email address")
+                    @password(forms.SignInForm.form("password"), "Password")
+                    <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <div>
+                        Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+            <div class="modal-content hidden" id="sign-up-modal">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="sign-up-label">Sign up</h4>
+                </div>
+                <div class="modal-body">
+                    @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/"))) {
+                    @text(forms.SignUpForm.form("username"), "Username", icon = "person")
+                    @text(forms.SignUpForm.form("email"), "Email", icon = "at")
+                    @password(forms.SignUpForm.form("password"), "Password", icon = "key")
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label><input type="checkbox" id="navbar-agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
+                        </div>
+                        <div>
+                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>Sign up</button>
+                        </div>
+                    </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <div>
+                        Have an account? <a href="#" id="form-open-sign-in">Sign in!</a>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+    <script>
+            $(document).ready(function() {
+                $("#navbar-agree-to-terms").click(function() {
+                    if ($(this).prop("checked")) {
+                        $("#sign-up-submit").prop("disabled", false);
+                    } else {
+                        $("#sign-up-submit").prop("disabled", true);
+                    }
+                });
+            });
+    </script>
+}
