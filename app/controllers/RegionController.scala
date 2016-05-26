@@ -28,13 +28,13 @@ object RegionController extends Controller {
    * @return
    */
   def listNeighborhoods = Action {
-    val features: List[JsObject] = RegionTable.listRegionOfType("neighborhood").map { region =>
+    val features: List[JsObject] = RegionTable.listNamedRegionOfType("neighborhood").map { region =>
       val coordinates: Array[Coordinate] = region.geom.getCoordinates
       val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
       val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
       val properties = Json.obj(
         "region_id" -> region.regionId,
-        "description" -> region.description
+        "region_name" -> region.name
       )
       Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
     }

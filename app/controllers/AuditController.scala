@@ -50,7 +50,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
-        val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+        // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+        val region: Option[NamedRegion] = RegionTable.getCurrentNamedRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
@@ -61,7 +62,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_Audit", timestamp))
-        val region: Option[Region] = RegionTable.getRegion
+        // val region: Option[Region] = RegionTable.getRegion
+        val region: Option[NamedRegion] = RegionTable.getNamedRegion
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
@@ -74,7 +76,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val region: Option[Region] = RegionTable.getRegion(regionId)
+    // val region: Option[Region] = RegionTable.getRegion(regionId)
+    val region: Option[NamedRegion] = RegionTable.getNamedRegion(regionId)
     request.identity match {
       case Some(user) =>
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
@@ -95,8 +98,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
-    val region: Option[Region] = try {
+    // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
+    val regions: List[NamedRegion] = RegionTable.getNamedRegionsIntersectingAStreet(streetEdgeId)
+    val region: Option[NamedRegion] = try {
       Some(regions.head)
     } catch {
       case e: NoSuchElementException => None

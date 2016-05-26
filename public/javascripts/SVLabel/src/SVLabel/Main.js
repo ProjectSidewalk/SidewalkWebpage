@@ -50,7 +50,8 @@ function Main ($, d3, google, turf, params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
-        
+
+        svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
@@ -247,12 +248,13 @@ function Main ($, d3, google, turf, params) {
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+            svl.neighborhoodStatus.setNeighborhoodName(params.regionName);
         } else {
             var regionId = 0;
-            neighborhood = svl.neighborhoodFactory.create(regionId);
+            neighborhood = svl.neighborhoodFactory.create(regionId, null, null);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }

@@ -3239,7 +3239,8 @@ function Main ($, d3, google, turf, params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
-        
+
+        svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
@@ -3436,12 +3437,13 @@ function Main ($, d3, google, turf, params) {
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+            svl.neighborhoodStatus.setNeighborhoodName(params.regionName);
         } else {
             var regionId = 0;
-            neighborhood = svl.neighborhoodFactory.create(regionId);
+            neighborhood = svl.neighborhoodFactory.create(regionId, null, null);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
@@ -4247,16 +4249,16 @@ function Map ($, google, turf, params) {
             hideLinks();
         }
 
-        if (mouseStatus.isLeftDown) {
-            setViewControlLayerCursor('ClosedHand');
-        } else {
-            if (!svl.keyboard.isShiftDown()) {
-                setViewControlLayerCursor('OpenHand');
-                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-            } else {
-                setViewControlLayerCursor('ZoomOut');
-            }
-        }
+        // if (mouseStatus.isLeftDown) {
+        //     setViewControlLayerCursor('ClosedHand');
+        // } else {
+        //     if (!svl.keyboard.isShiftDown()) {
+        //         setViewControlLayerCursor('OpenHand');
+        //         // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+        //     } else {
+        //         setViewControlLayerCursor('ZoomOut');
+        //     }
+        // }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
@@ -10016,6 +10018,7 @@ function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
             layer: null,
+            name: null,
             regionId: null
         },
         status = {
@@ -10031,6 +10034,9 @@ function Neighborhood (parameters) {
             self.regionId = parameters.regionId;  // for debugging
         }
         if ("layer" in parameters) setProperty("layer", parameters.layer);
+        if ("name" in parameters) {
+            setProperty("name", parameters.name);
+        }
     }
 
     /**
@@ -10187,8 +10193,8 @@ function NeighborhoodFactory () {
      * @param layer Leaflet layer
      * @returns {Neighborhood}
      */
-    function create (regionId, layer) {
-        return new Neighborhood({regionId: regionId, layer: layer});
+    function create (regionId, layer, name) {
+        return new Neighborhood({regionId: regionId, layer: layer, name: name });
     }
 
     self.create = create;
@@ -10683,6 +10689,10 @@ function MissionStatus () {
 function NeighborhoodStatus () {
     var self = {className: "NeighborhoodStatus"};
 
+    function setNeighborhoodName(name) {
+        svl.ui.status.neighborhoodName.html(name + ", ");
+    }
+
     /**
      * Set the href attribute of the link
      * @param hrefString
@@ -10694,6 +10704,7 @@ function NeighborhoodStatus () {
     }
 
     self.setHref = setHref;
+    self.setNeighborhoodName = setNeighborhoodName;
     return self;
 }
 /**
@@ -11340,7 +11351,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-        svl.ui.modalMissionComplete.map.css('left', 0);
+        svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
 
@@ -11391,7 +11402,14 @@ function ModalMissionComplete ($, d3, L) {
                 }
 
 
-                setMissionTitle(mission.getProperty("label"));
+                var missionLabel = mission.getProperty("label");
+                if (missionLabel == "initial-mission") {
+                    setMissionTitle("Initial Mission");
+                } else {
+                    var neighborhoodName = neighborhood.getProperty("name");
+                    setMissionTitle(neighborhoodName);
+                }
+
                 _updateTheMissionCompleteMessage();
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);

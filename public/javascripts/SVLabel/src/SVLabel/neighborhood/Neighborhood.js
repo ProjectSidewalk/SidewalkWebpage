@@ -9,6 +9,7 @@ function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
             layer: null,
+            name: null,
             regionId: null
         },
         status = {
@@ -24,6 +25,9 @@ function Neighborhood (parameters) {
             self.regionId = parameters.regionId;  // for debugging
         }
         if ("layer" in parameters) setProperty("layer", parameters.layer);
+        if ("name" in parameters) {
+            setProperty("name", parameters.name);
+        }
     }
 
     /**
