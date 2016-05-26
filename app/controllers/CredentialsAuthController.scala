@@ -40,6 +40,8 @@ class CredentialsAuthController @Inject() (
     * @return The result to display.
     */
   def authenticate(url: String) = Action.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
@@ -66,7 +68,7 @@ class CredentialsAuthController @Inject() (
             val calendar: Calendar = Calendar.getInstance
             val now: Date = calendar.getTime
             val timestamp: Timestamp = new Timestamp(now.getTime)
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "SignIn", timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
             Logger.debug(authenticator.expirationDate.toDate.toString)
             env.eventBus.publish(LoginEvent(user, request, request2lang))

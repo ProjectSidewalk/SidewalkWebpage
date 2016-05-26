@@ -43,10 +43,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def audit = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val ipAddress: String = request.remoteAddress
+
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "Visit_Audit", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
@@ -61,7 +63,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_Audit", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
         // val region: Option[Region] = RegionTable.getRegion
         val region: Option[NamedRegion] = RegionTable.getNamedRegion
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(region.get.regionId)

@@ -44,6 +44,8 @@ class SignUpController @Inject() (
    * @return The result to display.
    */
   def signUp(url: String) = Action.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
@@ -79,7 +81,7 @@ class SignUpController @Inject() (
               val calendar: Calendar = Calendar.getInstance
               val now: Date = calendar.getTime
               val timestamp: Timestamp = new Timestamp(now.getTime)
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "SignUp", timestamp))
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
 
               env.eventBus.publish(SignUpEvent(user, request, request2lang))
               env.eventBus.publish(LoginEvent(user, request, request2lang))

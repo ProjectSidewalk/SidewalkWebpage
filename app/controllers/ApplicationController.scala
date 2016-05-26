@@ -32,13 +32,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
    */
   def index = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "Visit_Index", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
         Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_Index", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
         Future.successful(Ok(views.html.index("Project Sidewalk")))
     }
   }
@@ -50,13 +51,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
    */
   def about = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "Visit_About", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_About", timestamp))
         Future.successful(Ok(views.html.about("Project Sidewalk - About", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_About", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_About", timestamp))
         Future.successful(Ok(views.html.about("Project Sidewalk - About")))
     }
   }
@@ -67,26 +69,28 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     */
   def terms = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "Visit_Terms", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Terms", timestamp))
         Future.successful(Ok(views.html.terms("Project Sidewalk - Terms", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_Terms", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Terms", timestamp))
         Future.successful(Ok(views.html.terms("Project Sidewalk - About")))
     }
   }
 
   def map = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, "Visit_Map", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
         Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, "Visit_Map", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Map", timestamp))
         Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility")))
     }
   }
