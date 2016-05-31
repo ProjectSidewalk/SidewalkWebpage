@@ -1,7 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, UUID}
+import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
@@ -14,7 +14,7 @@ import forms.SignUpForm
 import models.daos.slick.UserDAOSlick
 import models.services.UserService
 import models.user._
-
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action
@@ -78,9 +78,8 @@ class SignUpController @Inject() (
               UserCurrentRegionTable.assign(user.userId)
 
               // Add Timestamp
-              val calendar: Calendar = Calendar.getInstance
-              val now: Date = calendar.getTime
-              val timestamp: Timestamp = new Timestamp(now.getTime)
+              val now = new DateTime(DateTimeZone.UTC)
+              val timestamp: Timestamp = new Timestamp(now.getMillis)
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
 
               env.eventBus.publish(SignUpEvent(user, request, request2lang))

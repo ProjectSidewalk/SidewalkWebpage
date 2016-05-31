@@ -1,7 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, TimeZone}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
@@ -14,7 +14,7 @@ import controllers.headers.ProvidesHeader
 import forms.SignInForm
 import models.services.UserService
 import models.user._
-
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
@@ -65,9 +65,8 @@ class CredentialsAuthController @Inject() (
             if (!UserCurrentRegionTable.isAssigned(user.userId)) { UserCurrentRegionTable.assign(user.userId) }
 
             // Add Timestamp
-            val calendar: Calendar = Calendar.getInstance
-            val now: Date = calendar.getTime
-            val timestamp: Timestamp = new Timestamp(now.getTime)
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
             Logger.debug(authenticator.expirationDate.toDate.toString)

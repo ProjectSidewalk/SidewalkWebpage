@@ -1,7 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date}
+import java.util.{Calendar, TimeZone}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
@@ -11,7 +11,7 @@ import models.audit.{AuditTaskTable, NewTask}
 import models.user._
 import models.daos.UserDAOImpl
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
@@ -31,7 +31,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
    */
   def index = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -50,7 +51,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
    */
   def about = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -68,7 +70,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def terms = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -82,7 +85,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def map = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {

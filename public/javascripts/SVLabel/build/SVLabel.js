@@ -2638,9 +2638,16 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        //svl.ui.form.skipButton.on('click', handleSkipClick);
-        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        $(window).unload(function () {
+            if ("tracker" in svl) {
+                svl.tracker.push("Unload");
+            }
+            if ("taskContainer" in svl) {
+                var task = svl.taskContainer.getCurrentTask();
+                var data = compileSubmissionData(task);
+                submit(data, task, false);
+            }
+        })
     }
 
     /**
@@ -2903,13 +2910,14 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data, task) {
+    function submit(data, task, async) {
+        if (!async) { async = true; }
         svl.tracker.push('TaskSubmit');
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
         $.ajax({
-            // async: false,
+            async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
             type: 'post',
@@ -5877,7 +5885,8 @@ function Tracker () {
         }
 
         var now = new Date(),
-            timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+            timestamp = new Date().getTime();
+            // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         var item = {
             action : action,

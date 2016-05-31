@@ -1,10 +1,10 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Date, Calendar}
+import java.util.{Calendar, Date, TimeZone}
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Silhouette, Environment}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
@@ -15,10 +15,11 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label._
-import models.mission.{MissionStatus, Mission, MissionTable}
+import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
 import models.street.StreetEdgeAssignmentCountTable
 import models.user._
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -42,7 +43,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def audit = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
 
@@ -137,10 +139,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             user.get.userId.toString
         }
         val ipAddress: String = request.remoteAddress
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
 
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val timestamp: Timestamp = new Timestamp(now.getTime)
         val comment = AuditTaskComment(0, submission.streetEdgeId, userId, ipAddress, submission.gsvPanoramaId,
           submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
         val commentId: Int = AuditTaskCommentTable.save(comment)
@@ -170,10 +171,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             user.get.userId.toString
         }
         val ipAddress: String = request.remoteAddress
-
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val timestamp: Timestamp = new Timestamp(now.getTime)
 
         // Todo
 
