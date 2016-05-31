@@ -368,7 +368,7 @@ function Form ($, params) {
      * the auditing data.
      */
     function submit(data, task, async) {
-        if (!async) { async = true; }
+        if (typeof async == "undefined") { async = true; }
         svl.tracker.push('TaskSubmit');
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
