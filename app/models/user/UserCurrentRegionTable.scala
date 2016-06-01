@@ -21,7 +21,7 @@ class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Som
 object UserCurrentRegionTable {
   val db = play.api.db.slick.DB
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
-  val regions = TableQuery[RegionTable]
+  val regions = TableQuery[RegionTable].filter(_.deleted === false)
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -54,6 +54,21 @@ object UserCurrentRegionTable {
   }
 
   /**
+    * Returns the region id that is currently assigned to the given user
+    *
+    * @param userId user id
+    * @return
+    */
+  def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
+    try {
+      Some(userCurrentRegions.filter(_.userId === userId.toString).list.map(_.regionId).head)
+    } catch {
+      case e: NoSuchElementException => None
+      case _: Throwable => None  // This shouldn't happen.
+    }
+  }
+
+  /**
     * Check if a user has been assigned to some region.
     *
     * @param userId user id
@@ -78,18 +93,5 @@ object UserCurrentRegionTable {
     regionId
   }
 
-  /**
-    * Returns the region id that is currently assigned to the given user
-    *
-    * @param userId user id
-    * @return
-    */
-  def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
-    try {
-      Some(userCurrentRegions.filter(_.userId === userId.toString).list.map(_.regionId).head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // This shouldn't happen.
-    }
-  }
+
 }

@@ -10,7 +10,7 @@ import play.api.Play.current
 import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon)
+case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
@@ -19,8 +19,9 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
   def dataSource = column[String]("data_source", O.Nullable)
   def description = column[String]("description", O.Nullable)
   def geom = column[Polygon]("geom")
+  def deleted = column[Boolean]("deleted")
 
-  def * = (regionId, regionTypeId, dataSource, description, geom) <> ((Region.apply _).tupled, Region.unapply)
+  def * = (regionId, regionTypeId, dataSource, description, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
 
   def regionType: ForeignKeyQuery[RegionTypeTable, RegionType] =
     foreignKey("region_region_type_id_fkey", regionTypeId, TableQuery[RegionTypeTable])(_.regionTypeId)
@@ -33,7 +34,7 @@ object RegionTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val regionConverter = GetResult[Region](r => {
-    Region(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon])
+    Region(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
   })
 
   implicit val namedRegionConverter = GetResult[NamedRegion](r => {
@@ -41,7 +42,7 @@ object RegionTable {
   })
 
   val db = play.api.db.slick.DB
-  val regions = TableQuery[RegionTable]
+  val regions = TableQuery[RegionTable].filter(_.deleted === false)
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
@@ -72,7 +73,7 @@ object RegionTable {
     * @return A list of SidewalkEdge objects.
    */
   def all: List[Region] = db.withSession { implicit session =>
-    regions.list
+    regions.filter(_.regionTypeId === 2).list
   }
 
   /**
@@ -99,7 +100,7 @@ object RegionTable {
     */
   def getRegion(regionId: Int): Option[Region] = db.withSession { implicit session =>
     try {
-      Some(regions.filter(_.regionId === regionId).list.head)
+      Some(regions.filter(_.regionTypeId === 2).filter(_.regionId === regionId).list.head)
     } catch {
       case e: NoSuchElementException => None
       case _: Throwable => None  // Shouldn't reach here
@@ -115,7 +116,7 @@ object RegionTable {
   def getNamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
     try {
       val _regions = for {
-        (_regions, _properties) <- regions.leftJoin(regionProperties).on(_.regionId === _.regionId)
+        (_regions, _properties) <- regions.filter(_.regionTypeId === 2).leftJoin(regionProperties).on(_.regionId === _.regionId)
         if _properties.key === "Neighborhood Name"
       } yield (_regions.regionId, _properties.value.?, _regions.geom)
       Some(_regions.list.map(x => NamedRegion.tupled(x)).head)
@@ -134,7 +135,7 @@ object RegionTable {
   def getCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     try {
       val currentRegions = for {
-        (r, ucr) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+        (r, ucr) <- regions.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
         if ucr.userId === userId.toString
       } yield r
       Some(currentRegions.list.head)
@@ -153,7 +154,7 @@ object RegionTable {
   def getCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     try {
       val currentRegions = for {
-        (r, ucr) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+        (r, ucr) <- regions.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
         if ucr.userId === userId.toString
       } yield r
 
@@ -178,7 +179,7 @@ object RegionTable {
       """SELECT * FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge
         |ON ST_Intersects(region.geom, street_edge.geom)
-        |WHERE street_edge.street_edge_id = ?
+        |WHERE street_edge.street_edge_id = ? and region.region_type_id = 2
       """.stripMargin
     )
     selectRegionQuery(streetEdgeId).list
