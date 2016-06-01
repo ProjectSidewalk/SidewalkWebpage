@@ -75,7 +75,7 @@ class SignUpController @Inject() (
             } yield {
               // Set the user role and assign the neighborhood to audit.
               UserRoleTable.addUserRole(user.userId)
-              UserCurrentRegionTable.assign(user.userId)
+              UserCurrentRegionTable.assignRandomly(user.userId)
 
               // Add Timestamp
               val now = new DateTime(DateTimeZone.UTC)

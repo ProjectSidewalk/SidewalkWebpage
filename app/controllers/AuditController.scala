@@ -53,7 +53,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Check and make sure that the user has been assigned to a region
-        if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
+        if (!UserCurrentRegionTable.isAssigned(user.userId)) {
+          UserCurrentRegionTable.assignRandomly(user.userId)
+        }
         // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
         val region: Option[NamedRegion] = RegionTable.getCurrentNamedRegion(user.userId)
 

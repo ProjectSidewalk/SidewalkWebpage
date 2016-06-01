@@ -62,7 +62,9 @@ class CredentialsAuthController @Inject() (
               idleTimeout = None
             )
 
-            if (!UserCurrentRegionTable.isAssigned(user.userId)) { UserCurrentRegionTable.assign(user.userId) }
+            if (!UserCurrentRegionTable.isAssigned(user.userId)) {
+              UserCurrentRegionTable.assignRandomly(user.userId)
+            }
 
             // Add Timestamp
             val now = new DateTime(DateTimeZone.UTC)

@@ -50,7 +50,7 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 
 object MissionTable {
   val db = play.api.db.slick.DB
-  val missions = TableQuery[MissionTable]
+  val missions = TableQuery[MissionTable].filter(_.deleted === false)
   val missionUsers = TableQuery[MissionUserTable]
   val regionProperties = TableQuery[RegionPropertyTable]
 

@@ -36,10 +36,21 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return region id
     */
-  def assign(userId: UUID): Int = db.withTransaction { implicit session =>
-    val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
-    save(userId, regionId)
-    regionId
+  def assignRandomly(userId: UUID): Int = db.withTransaction { implicit session =>
+    // Check if there are any records
+    val _currentRegions = for {
+      (_regions, _currentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if _currentRegions.userId === userId.toString
+    } yield _currentRegions
+    val currentRegionList = _currentRegions.list
+
+    if (currentRegionList.isEmpty) {
+      val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
+      save(userId, regionId)
+      regionId
+    } else {
+      assignNextRegion(userId)
+    }
   }
 
   /**
@@ -75,7 +86,15 @@ object UserCurrentRegionTable {
     * @return
     */
   def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
-    userCurrentRegions.filter(_.userId === userId.toString).list.nonEmpty
+    val prev = userCurrentRegions.filter(_.userId === userId.toString).list
+
+    val _userCurrentRegions = for {
+      (_regions, _userCurrentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if _userCurrentRegions.userId === userId.toString
+    } yield _userCurrentRegions
+
+    val current = _userCurrentRegions.list
+    _userCurrentRegions.list.nonEmpty
   }
 
   /**
