@@ -32,8 +32,8 @@ function LabelCounter (d3) {
       "NoCurbRamp": {
           id: "NoCurbRamp",
           description: "missing curb ramp",
-          left: margin.left + width / 2,
-          top: margin.top,
+          left: margin.left,
+          top: (2 * margin.top) + margin.bottom + height,
           // top: 2 * margin.top + margin.bottom + height,
           fillColor: colorScheme["NoCurbRamp"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
@@ -43,9 +43,9 @@ function LabelCounter (d3) {
       "Obstacle": {
         id: "Obstacle",
         description: "obstacle",
-        left: margin.left,
+        left: margin.left + (width/1.7),
         // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-          top: 2 * margin.top + margin.bottom + height,
+          top: (2 * margin.top) + margin.bottom + height,
         fillColor: colorScheme["Obstacle"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
         count: 0,
@@ -54,9 +54,9 @@ function LabelCounter (d3) {
       "SurfaceProblem": {
         id: "SurfaceProblem",
         description: "surface problem",
-        left: margin.left + width / 2,
+        left: margin.left,
         //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
-          top: 2 * margin.top + margin.bottom + height,
+          top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
         fillColor: colorScheme["SurfaceProblem"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
         count: 0,
@@ -65,8 +65,8 @@ function LabelCounter (d3) {
         "Other": {
             id: "Other",
             description: "other",
-            left: margin.left,
-            top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            left: margin.left + (width/1.7),
+            top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
             imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Other.png",
             count: 0,
@@ -162,10 +162,11 @@ function LabelCounter (d3) {
         function _update(key) {
             if (keys.indexOf(key) == -1) { key = "Other"; }
 
-            var firstDigit = dotPlots[key].count % 10,
-              higherDigits = (dotPlots[key].count - firstDigit) / 10,
-              count = firstDigit + higherDigits;
-
+            var fiftyCircles = parseInt(dotPlots[key].count / 50),
+              tenCircles = parseInt((dotPlots[key].count % 50) / 10),
+              oneCircles = dotPlots[key].count % 10,
+              count = fiftyCircles + tenCircles + oneCircles;
+          
             // Update the label
             //dotPlots[key].countLabel
             //  .transition().duration(1000)
@@ -180,6 +181,45 @@ function LabelCounter (d3) {
             //    return dotPlots[key].count;
             //  });
 
+            /* 
+            the code of these three functions was being used so much I decided to seperately declare them
+            the d3 calls look much cleaner now :)
+            */
+            function setCX(d, i){
+              if (i < fiftyCircles && fiftyCircles != 0){
+                return x(i * 4 * radius + dR);
+              }
+              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+                return x(fiftyCircles * 4 * radius + dR) + x((i - fiftyCircles) * 2 * (radius + dR));
+              }
+              else{
+                return x(fiftyCircles * 2 * radius + dR) + x(tenCircles * 1.9 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
+              }
+            }
+            
+            function setCY(d, i){
+              if (i < fiftyCircles && fiftyCircles != 0){
+                return 0;
+              }
+              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+                return x(dR);
+              }
+              else{
+                return x(radius);
+              }
+            }
+
+            function setR(d, i){
+              if (i < fiftyCircles && fiftyCircles != 0){
+                return x(2 * radius);
+              }
+              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+                return x(radius + dR);
+              }
+              else{
+                return x(radius);
+              }
+            }
             // Update the dot plot
             if (dotPlots[key].data.length >= count) {
               // Remove dots
@@ -187,16 +227,9 @@ function LabelCounter (d3) {
 
                 dotPlots[key].plot.selectAll("circle")
                   .transition().duration(500)
-                  .attr("r", function (d, i) {
-                    return i < higherDigits ? x(radius + dR) : x(radius);
-                  })
-                  .attr("cy", function (d, i) {
-                    if (i < higherDigits) {
-                        return 0;
-                    } else {
-                        return x(dR);
-                    }
-                  });
+                  .attr("r", setR)
+                  .attr("cy", setCY)
+                  .attr("cx", setCX);
 
                 dotPlots[key].plot.selectAll("circle")
                   .data(dotPlots[key].data)
@@ -204,7 +237,7 @@ function LabelCounter (d3) {
                   .transition()
                   .duration(500)
                   .attr("cx", function () {
-                    return x(higherDigits);
+                    return 0;
                   })
                   .attr("r", 0)
                   .remove();
@@ -215,30 +248,19 @@ function LabelCounter (d3) {
                   dotPlots[key].data.push([len + i, 0, radius])
               }
               dotPlots[key].plot.selectAll("circle")
+                .attr("r", setR) 
+                .attr("cy", setCY)
+                .attr("cx", setCX)
                 .data(dotPlots[key].data)
                 .enter().append("circle")
                 .attr("cx", x(0))
-                .attr("cy", 0)
-                .attr("r", x(radius + dR))
+                .attr("cy", setCY)
+                .attr("r", radius)
                 .style("fill", dotPlots[key].fillColor)
                 .transition().duration(1000)
-                .attr("cx", function (d, i) {
-                  if (i <= higherDigits) {
-                    return x(d[0] * 2 * (radius + dR));
-                  } else {
-                    return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
-                  }
-                })
-                .attr("cy", function (d, i) {
-                  if (i < higherDigits) {
-                    return 0;
-                  } else {
-                    return x(dR);
-                  }
-                })
-                .attr("r", function (d, i) {
-                  return i < higherDigits ? x(radius + dR) : x(radius);
-                });
+                .attr("cx", setCX)
+                .attr("cy", setCY)
+                .attr("r", setR);
             }
             dotPlots[key].label.text(function () {
                 var ret = dotPlots[key].count + " " + dotPlots[key].description;
