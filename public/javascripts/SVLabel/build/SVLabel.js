@@ -2899,7 +2899,7 @@ function Form ($, params) {
         submit(data, task);
 
         if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask();
+            svl.taskContainer.initNextTask(task);
         }
 
         return false;
@@ -6858,7 +6858,7 @@ function TaskContainer (turf) {
 
     /**
      * I had to make this method to wrap the street view service.
-     * @param task
+     * @param task The current task
      */
     function initNextTask (task) {
         var nextTask = svl.taskContainer.nextTask(task),
@@ -11524,8 +11524,13 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        if ('form' in svl) svl.form.skipSubmit(incomplete);
-        if ('ribbon' in svl) svl.ribbon.backToWalk();
+        if (radioValue == "GSVNotAvailable") {
+            var task = svl.taskContainer.getCurrentTask();
+            task.complete();
+            svl.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
+        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
         hideSkipMenu();
     }
 

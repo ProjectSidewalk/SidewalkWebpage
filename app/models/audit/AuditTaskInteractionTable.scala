@@ -1,11 +1,13 @@
 package models.audit
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import models.label._
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
@@ -41,6 +43,7 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
  */
 object AuditTaskInteractionTable {
   val db = play.api.db.slick.DB
+  val auditTasks = TableQuery[AuditTaskTable]
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
@@ -56,6 +59,15 @@ object AuditTaskInteractionTable {
     val interactionId: Int =
       (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)).insert(interaction)
     interactionId
+  }
+
+
+  def auditInteractions(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
+    val _auditTaskInteractions = for {
+      (_auditTasks, _auditTaskInteractions) <- auditTasks.innerJoin(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
+      if _auditTasks.userId === userId.toString
+    } yield _auditTaskInteractions
+    _auditTaskInteractions.list
   }
 
   /**

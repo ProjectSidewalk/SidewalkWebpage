@@ -56,8 +56,13 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        if ('form' in svl) svl.form.skipSubmit(incomplete);
-        if ('ribbon' in svl) svl.ribbon.backToWalk();
+        if (radioValue == "GSVNotAvailable") {
+            var task = svl.taskContainer.getCurrentTask();
+            task.complete();
+            svl.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
+        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
         hideSkipMenu();
     }
 

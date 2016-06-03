@@ -356,7 +356,7 @@ function Form ($, params) {
         submit(data, task);
 
         if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask();
+            svl.taskContainer.initNextTask(task);
         }
 
         return false;

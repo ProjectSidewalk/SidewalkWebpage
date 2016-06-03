@@ -2,17 +2,18 @@ package controllers
 
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
+import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
+import formats.json.TaskFormats._
 import forms._
-import models.audit.{InteractionWithLabel, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
+import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
 import models.user.User
-import play.api.libs.json.{JsObject, Json}
-import play.api.mvc.{BodyParsers, Result, RequestHeader}
+import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.mvc.{BodyParsers, RequestHeader, Result}
 import play.extras.geojson
 
 import scala.concurrent.Future
@@ -93,6 +94,22 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+    *
+    * @return
+    */
+  def getSubmittedTasks = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val tasks = AuditTaskTable.getCompletedTasks(user.userId).map(t => Json.toJson(t))
+        Future.successful(Ok(JsArray(tasks)))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
+  }
+
+  /**
    * Get a list of labels submitted by the user
    * @return
    */
@@ -139,6 +156,18 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(featureCollection))
   }
 
+  def getInteractions = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val interactions = AuditTaskInteractionTable.auditInteractions(user.userId).map(x => Json.toJson(x))
+        Future.successful(Ok(JsArray(interactions)))
+      case None =>
+        Future.successful(Ok(Json.obj(
+          "error" -> "0",
+          "message" -> "We could not find your username."
+        )))
+    }
+  }
 
   /**
    * Get user interaction records

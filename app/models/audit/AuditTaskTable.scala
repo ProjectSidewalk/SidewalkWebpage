@@ -174,6 +174,10 @@ object AuditTaskTable {
     selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
   }
 
+  def getCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
+    auditTasks.filter(_.userId === userId.toString).list
+  }
+
   /**
    * get a new task for the user
    *

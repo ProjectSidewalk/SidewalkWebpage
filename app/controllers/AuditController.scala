@@ -1,23 +1,19 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.MissionFormats._
-import formats.json.CommentSubmissionFormats._
+import formats.json.IssueFormats._
 import formats.json.TaskSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
+import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label._
-import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
-import models.street.StreetEdgeAssignmentCountTable
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -158,23 +154,25 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[CommentSubmission]
+    var submission = request.body.validate[NoStreetView]
 
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
         val ipAddress: String = request.remoteAddress
 
-        // Todo
+        val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
+        StreetEdgeIssueTable.save(issue)
 
         Future.successful(Ok)
       }

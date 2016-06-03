@@ -86,14 +86,11 @@ object UserCurrentRegionTable {
     * @return
     */
   def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
-    val prev = userCurrentRegions.filter(_.userId === userId.toString).list
-
     val _userCurrentRegions = for {
       (_regions, _userCurrentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
       if _userCurrentRegions.userId === userId.toString
     } yield _userCurrentRegions
 
-    val current = _userCurrentRegions.list
     _userCurrentRegions.list.nonEmpty
   }
 
