@@ -43,7 +43,7 @@ object StreetEdgeTable {
   })
 
   val db = play.api.db.slick.DB
-  val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdges = TableQuery[StreetEdgeTable].filter(_.deleted === false)
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
   /**

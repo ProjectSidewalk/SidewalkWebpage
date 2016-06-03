@@ -2,6 +2,7 @@ package models.mission
 
 import java.util.UUID
 
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import play.api.Play.current
@@ -52,6 +53,7 @@ object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable].filter(_.deleted === false)
   val missionUsers = TableQuery[MissionUserTable]
+  val users = TableQuery[UserTable]
   val regionProperties = TableQuery[RegionPropertyTable]
 
   /**
@@ -221,6 +223,19 @@ object MissionTable {
     } yield _missions
 
     _missions.list.map(_.regionId.get).toSet
+  }
+
+  case class MissionCompletedByAUser(username: String, label: String, level: Int, distance_m: Option[Double], distance_ft: Option[Double], distance_mi: Option[Double])
+  def missionsCompletedByUsers: List[MissionCompletedByAUser] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missions.innerJoin(missionUsers).on(_.missionId === _.missionId)
+    } yield (_missions.label, _missions.level, _missionUsers.userId, _missions.distance, _missions.distance_ft, _missions.distance_mi)
+
+    val _missionsCompleted = for {
+      (_users, _missions) <- users.innerJoin(_missions).on(_.userId === _._3)
+    } yield (_users.username, _missions._1, _missions._2, _missions._4, _missions._5, _missions._6)
+
+    _missionsCompleted.list.map(x => MissionCompletedByAUser.tupled(x))
   }
 
   /**

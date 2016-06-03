@@ -19,8 +19,10 @@ POST    /authenticate/credentials       @controllers.CredentialsAuthController.a
 POST    /signUp                         @controllers.SignUpController.signUp(url: String ?= "/")
 
 # Admin
-GET     /admin                          @controllers.AdminController.index
-GET     /admin/:username                @controllers.AdminController.userProfile(username: String)
+GET     /admin                              @controllers.AdminController.index
+GET     /admin/neighborhoodCompletionRate   @controllers.AdminController.getNeighborhoodCompletionRate
+GET     /admin/missionsCompletedByUsers     @controllers.AdminController.missionsCompletedByUsers
+GET     /admin/:username                    @controllers.AdminController.userProfile(username: String)
 
 # Auditing tasks
 GET     /audit                          @controllers.AuditController.audit
@@ -62,6 +64,7 @@ GET     /contribution/auditCounts/all   @controllers.UserProfileController.getAl
 GET     /contribution/auditInteractions @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit     @controllers.UserProfileController.previousAudit
 GET     /contribution/:username         @controllers.UserProfileController.userProfile(username: String)
+
 
 # Geometry API
 GET     /geometry/neighborhoods         controllers.RegionController.listNeighborhoods

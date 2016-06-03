@@ -3,11 +3,13 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
@@ -41,10 +43,18 @@ object RegionTable {
     NamedRegion(r.nextInt, r.nextStringOption, r.nextGeometry[Polygon])
   })
 
+  case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
+  implicit val streetCompletionConverter = GetResult[StreetCompletion](r => {
+    StreetCompletion(r.nextInt, r.nextString, r.nextInt, r.nextInt, r.nextDouble)
+  })
+
   val db = play.api.db.slick.DB
   val regions = TableQuery[RegionTable].filter(_.deleted === false)
+  val neighborhoods = regions.filter(_.regionTypeId === 2)
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
+  val streetEdges = TableQuery[StreetEdgeTable].filter(_.deleted === false)
+  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
   // Create a round robin neighborhood supplier to be used in getRegion.
@@ -78,6 +88,7 @@ object RegionTable {
 
   /**
     * Get a Region in a round-robin fashion.
+    *
     * @return
     */
   def getRegion: Option[Region] = db.withSession { implicit session =>
@@ -86,6 +97,7 @@ object RegionTable {
 
   /**
     * Get a Named Region in a round-robin fashion
+    *
     * @return
     */
   def getNamedRegion: Option[NamedRegion] = db.withSession { implicit session =>
@@ -171,6 +183,7 @@ object RegionTable {
 
   /**
     * Get Regions that intersect with the given street
+    *
     * @param streetEdgeId
     * @return
     */
@@ -179,7 +192,7 @@ object RegionTable {
       """SELECT * FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge
         |ON ST_Intersects(region.geom, street_edge.geom)
-        |WHERE street_edge.street_edge_id = ? and region.region_type_id = 2
+        |WHERE street_edge.street_edge_id = ? AND region.region_type_id = 2 AND region.deleted = FALSE
       """.stripMargin
     )
     selectRegionQuery(streetEdgeId).list
@@ -192,10 +205,29 @@ object RegionTable {
         | ON ST_Intersects(region.geom, street_edge.geom)
         |LEFT JOIN sidewalk.region_property
         | ON region.region_id = region_property.value
-        |WHERE street_edge.street_edge_id = ? AND region_property.key = 'Neighborhood Name'
+        |WHERE street_edge.street_edge_id = ? AND region_property.key = 'Neighborhood Name' AND region.deleted = FALSE
       """.stripMargin
     )
     selectRegionQuery(streetEdgeId).list
+  }
+
+
+  def getStreetsPerRegion: List[StreetCompletion] = db.withSession { implicit session =>
+    val query = Q.queryNA[StreetCompletion](
+      """SELECT region.region_id, region_property.value, street_edge.street_edge_id, street_edge_assignment_count.completion_count, ST_Length(ST_Transform(street_edge.geom, 26918))
+        |FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge
+        |ON ST_Intersects(region.geom, street_edge.geom)
+        |INNER JOIN sidewalk.street_edge_assignment_count
+        |ON street_edge.street_edge_id = street_edge_assignment_count.street_edge_id
+        |INNER JOIN region_property
+        |ON region.region_id = region_property.region_id
+        |WHERE region.region_type_id = 2
+        |and region.deleted = false
+        |AND region_property.key = 'Neighborhood Name'""".stripMargin
+    )
+
+    query.list
   }
 
   /**
@@ -213,6 +245,7 @@ object RegionTable {
 
   /**
     * This method returns a list of NamedRegions
+    *
     * @param regionType
     * @return
     */
