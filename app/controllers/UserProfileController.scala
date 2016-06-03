@@ -110,6 +110,22 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+    *
+    * @return
+    */
+  def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val tasksWithLabels = AuditTaskTable.tasksWithLabels(user.userId).map(x => Json.toJson(x))
+        Future.successful(Ok(JsArray(tasksWithLabels)))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
+  }
+
+  /**
    * Get a list of labels submitted by the user
    * @return
    */

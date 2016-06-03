@@ -22,6 +22,7 @@ POST    /signUp                         @controllers.SignUpController.signUp(url
 GET     /admin                              @controllers.AdminController.index
 GET     /admin/neighborhoodCompletionRate   @controllers.AdminController.getNeighborhoodCompletionRate
 GET     /admin/missionsCompletedByUsers     @controllers.AdminController.missionsCompletedByUsers
+GET     /admin/tasks/:username              @controllers.AdminController.submittedTasksWithLabels(username: String)
 GET     /admin/:username                    @controllers.AdminController.userProfile(username: String)
 
 # Auditing tasks
@@ -55,7 +56,8 @@ GET     /map/edit                       @controllers.MapController.edit
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets           @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all       @controllers.UserProfileController.getAllAuditedStreets
-GET     /contribution/tasks             @controllers.UserProfileController.getSubmittedTasks
+#GET     /contribution/tasks             @controllers.UserProfileController.getSubmittedTasks
+GET     /contribution/tasks             @controllers.UserProfileController.getSubmittedTasksWithLabels
 GET     /contribution/labels            @controllers.UserProfileController.getSubmittedLabels
 GET     /contribution/labels/all        @controllers.UserProfileController.getAllLabels
 GET     /contribution/labelCounts/all   @controllers.UserProfileController.getAllLabelCounts

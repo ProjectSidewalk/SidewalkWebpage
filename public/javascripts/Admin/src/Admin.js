@@ -1,5 +1,9 @@
-var admin = (function Admin ($, c3) {
+function Admin ($, c3) {
     var self = {};
+
+    $.getJSON('/admin/completedTasks', function (data) {
+       console.log(data);
+    });
 
     $.getJSON('/admin/missionsCompletedByUsers', function (data) {
         var i,
@@ -191,4 +195,4 @@ var admin = (function Admin ($, c3) {
         });
     });
     return self;
-})($, c3);
+}

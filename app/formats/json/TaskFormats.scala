@@ -2,6 +2,7 @@ package formats.json
 
 import java.sql.Timestamp
 
+import models.audit.AuditTaskTable.AuditTaskWithALabel
 import models.mission.Mission
 import models.audit.{AuditTask, AuditTaskInteraction}
 import play.api.libs.json._
@@ -38,4 +39,16 @@ object TaskFormats {
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "timestamp").write[Timestamp]
     )(unlift(AuditTaskInteraction.unapply _))
+
+  implicit val auditTaskWithALabelWrites: Writes[AuditTaskWithALabel] = (
+    (__ \ "user_id").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "audit_task_id").write[Int] and
+      (__ \ "street_edge_id").write[Int] and
+      (__ \ "task_start").write[Timestamp] and
+      (__ \ "task_end").writeNullable[Timestamp] and
+      (__ \ "label_id").write[Int] and
+      (__ \ "temporary_label_id").writeNullable[Int] and
+      (__ \ "label_type").write[String]
+    )(unlift(AuditTaskWithALabel.unapply _))
 }

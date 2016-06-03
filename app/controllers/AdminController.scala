@@ -1,10 +1,13 @@
 package controllers
 
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
+import formats.json.TaskFormats._
+import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.MissionTable
 import models.region.RegionTable
@@ -13,7 +16,10 @@ import play.api.libs.json.{JsArray, Json}
 
 import scala.concurrent.Future
 
-
+/**
+  * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
+  * @param env
+  */
 class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -60,12 +66,39 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+    * This method returns the tasks and labels submitted by the given user.
+    * @param username Username
+    * @return
+    */
+  def submittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      UserTable.find(username) match {
+        case Some(user) =>
+          val tasksWithLabels = AuditTaskTable.tasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
+          Future.successful(Ok(JsArray(tasksWithLabels)))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
   def missionsCompletedByUsers = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)) {
       val missionsCompleted = MissionTable.missionsCompletedByUsers.map(x =>
         Json.obj("usrename" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m, "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
       )
       Future.successful(Ok(JsArray(missionsCompleted)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def completedTasks = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+
+      Future.successful(Ok(JsArray()))
     } else {
       Future.successful(Redirect("/"))
     }

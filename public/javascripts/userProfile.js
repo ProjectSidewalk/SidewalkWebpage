@@ -1,4 +1,3 @@
 $(document).ready(function () {
-    prg = UserProgress($, c3, L);
-    console.log(prg);
+    window.progress = Progress(_, $, c3, L);
 });
