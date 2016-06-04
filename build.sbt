@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "0.4-20160523"
+version := "0.4-20160603"
 
 scalaVersion := "2.10.4"
 
@@ -29,7 +29,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.play.extras" %% "play-geojson" % "1.2.0",
   "com.github.tminglei" %% "slick-pg" % "0.8.2",
   "org.slf4j" % "slf4j-api"       % "1.7.7",
-  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7"
+  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
+  "joda-time" % "joda-time" % "2.9.4"
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }

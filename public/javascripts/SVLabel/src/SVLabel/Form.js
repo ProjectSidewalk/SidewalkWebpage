@@ -95,9 +95,16 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        //svl.ui.form.skipButton.on('click', handleSkipClick);
-        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        $(window).unload(function () {
+            if ("tracker" in svl) {
+                svl.tracker.push("Unload");
+            }
+            if ("taskContainer" in svl) {
+                var task = svl.taskContainer.getCurrentTask();
+                var data = compileSubmissionData(task);
+                submit(data, task, false);
+            }
+        })
     }
 
     /**
@@ -349,7 +356,7 @@ function Form ($, params) {
         submit(data, task);
 
         if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask();
+            svl.taskContainer.initNextTask(task);
         }
 
         return false;
@@ -360,13 +367,14 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data, task) {
+    function submit(data, task, async) {
+        if (typeof async == "undefined") { async = true; }
         svl.tracker.push('TaskSubmit');
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
         $.ajax({
-            // async: false,
+            async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
             type: 'post',

@@ -661,16 +661,16 @@ function Map ($, google, turf, params) {
             hideLinks();
         }
 
-        if (mouseStatus.isLeftDown) {
-            setViewControlLayerCursor('ClosedHand');
-        } else {
-            if (!svl.keyboard.isShiftDown()) {
-                setViewControlLayerCursor('OpenHand');
-                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-            } else {
-                setViewControlLayerCursor('ZoomOut');
-            }
-        }
+        // if (mouseStatus.isLeftDown) {
+        //     setViewControlLayerCursor('ClosedHand');
+        // } else {
+        //     if (!svl.keyboard.isShiftDown()) {
+        //         setViewControlLayerCursor('OpenHand');
+        //         // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+        //     } else {
+        //         setViewControlLayerCursor('ZoomOut');
+        //     }
+        // }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.

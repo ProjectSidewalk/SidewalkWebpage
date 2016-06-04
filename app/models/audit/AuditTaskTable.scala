@@ -2,17 +2,20 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
-import java.util.{UUID, Calendar, Date}
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdge, StreetEdgeTable}
+import java.util.{Calendar, Date, TimeZone, UUID}
+
+import models.street.{StreetEdge, StreetEdgeAssignmentCountTable, StreetEdgeTable}
 import models.user.User
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
-import models.daos.slick.DBTableDefinitions.{UserTable, DBUser}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.label.{LabelTable, LabelTypeTable}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
+
 import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
@@ -83,10 +86,36 @@ object AuditTaskTable {
   val db = play.api.db.slick.DB
   val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
+  val labels = TableQuery[LabelTable]
+  val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val users = TableQuery[UserTable]
 
   case class AuditCountPerDay(date: String, count: Int)
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Int, temporaryLabelId: Option[Int], labelType: String)
+
+  /**
+    * Return a list of tasks associated with labels
+    * @param userId
+    * @return
+    */
+  def tasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
+    val userTasks = for {
+      (_users, _tasks) <- users.innerJoin(auditTasks).on(_.userId === _.userId)
+      if _users.userId === userId.toString
+    } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
+
+    val userTaskLabels = for {
+      (_userTasks, _labels) <- userTasks.innerJoin(labels).on(_._3 === _.auditTaskId)
+      if _labels.deleted === false
+    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId, _labels.temporaryLabelId, _labels.labelTypeId)
+
+    val tasksWithLabels = for {
+      (_labelTypes, _userTaskLabels) <- labelTypes.innerJoin(userTaskLabels).on(_.labelTypeId === _._9)
+    } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType)
+
+    tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
+  }
 
   /**
     * This method returns all the tasks
@@ -172,6 +201,10 @@ object AuditTaskTable {
     selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
   }
 
+  def getCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
+    auditTasks.filter(_.userId === userId.toString).list
+  }
+
   /**
    * get a new task for the user
    *
@@ -187,9 +220,7 @@ object AuditTaskTable {
    * @return
    */
   def getNewTask(username: String): NewTask = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val completedTasks = for {
       u <- users.filter(_.username === username)
@@ -204,7 +235,7 @@ object AuditTaskTable {
     // Increment the assignment count and return the task
     val e: StreetEdge = Random.shuffle(edges).head
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
 
   /**
@@ -213,9 +244,7 @@ object AuditTaskTable {
    * @return
    */
   def getNewTask: NewTask = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val edges = (for {
       (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
@@ -226,7 +255,7 @@ object AuditTaskTable {
     val e: StreetEdge = Random.shuffle(edges).head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
 
   /**
@@ -236,9 +265,7 @@ object AuditTaskTable {
     * @return
     */
   def getNewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val edges = (for {
       (_streetEdges, _asgCount) <- streetEdges.innerJoin(assignmentCount)
@@ -249,7 +276,7 @@ object AuditTaskTable {
     val e: StreetEdge = edges.head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
+    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
 
 
@@ -261,9 +288,7 @@ object AuditTaskTable {
   def getConnectedTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
 
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     // Todo: I don't think this query takes into account if the auditor has looked at the area or not.
     val selectEdgeQuery = Q.query[(Float, Float, Int), StreetEdge](
@@ -287,7 +312,7 @@ object AuditTaskTable {
         val e = edges.head
 
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
       case _ =>
         getNewTask // The list is empty for whatever the reason
     }
@@ -302,9 +327,8 @@ object AuditTaskTable {
   def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
 
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
 
     val selectEdgeQuery = Q.query[Int, StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM region
@@ -319,7 +343,7 @@ object AuditTaskTable {
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
       case _ => getNewTask // The list is empty for whatever the reason
     }
   }
@@ -334,9 +358,8 @@ object AuditTaskTable {
   def getNewTaskInRegion(regionId: Int, user: User) = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
 
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
     val userId: String = user.userId.toString
 
     val selectEdgeQuery = Q.query[(String, Int), StreetEdge](
@@ -354,7 +377,7 @@ object AuditTaskTable {
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, currentTimestamp, completed=false)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
       case _ =>
         getNewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
     }
@@ -385,9 +408,7 @@ object AuditTaskTable {
     * @return
     */
   def getTasksInRegion(regionId: Int, userId: UUID): List[NewTask] = db.withSession { implicit session =>
-    val calendar: Calendar = Calendar.getInstance
-    val now: Date = calendar.getTime
-    val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val selectTaskQuery = Q.query[(String, Int), NewTask](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, completed_audit.audit_task_id

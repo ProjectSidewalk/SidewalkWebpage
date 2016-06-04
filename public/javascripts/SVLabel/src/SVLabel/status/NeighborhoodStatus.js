@@ -1,6 +1,10 @@
 function NeighborhoodStatus () {
     var self = {className: "NeighborhoodStatus"};
 
+    function setNeighborhoodName(name) {
+        svl.ui.status.neighborhoodName.html(name + ", ");
+    }
+
     /**
      * Set the href attribute of the link
      * @param hrefString
@@ -12,5 +16,6 @@ function NeighborhoodStatus () {
     }
 
     self.setHref = setHref;
+    self.setNeighborhoodName = setNeighborhoodName;
     return self;
 }

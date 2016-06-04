@@ -1,5 +1,5 @@
 {
-  "name": "my-project-name",
+  "name": "SidewalkWebpage",
   "version": "0.1.0",
   "devDependencies": {
     "grunt": "^0.4.5",
@@ -11,5 +11,10 @@
     "grunt-contrib-uglify": "^0.9.1",
     "grunt-contrib-watch": "^0.6.1",
     "grunt-jsdoc": "^0.6.7"
+  },
+  "scripts": {
+    "build": "npm install && grunt",
+    "start": "grunt watch & activator -jvm-debug 9998 run",
+    "test": "grunt && grunt test"
   }
 }

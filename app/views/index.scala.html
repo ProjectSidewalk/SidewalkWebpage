@@ -1,4 +1,6 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
 @import models.user.User
+@import models.street.StreetEdgeTable
 @(title: String, user: Option[User] = None)
 
 @main(title) {
@@ -154,8 +156,12 @@
         <div class="row">
             <div class="col-lg-12">
                 <p class="text-center">
-                    Help us make sidewalks more accessible for everyone
+                    <span class="bold">@(UserTable.count) people</span> have contributed and made
+                    <span class="bold">@("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))) mi
+                    (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%)</span> of
+                    Washington, D.C. more accessible so far!
                 </p>
+                <p class="text-center">Participate and help us make sidewalks more accessible for everyone.</p>
             </div>
         </div>
         <div class="row">

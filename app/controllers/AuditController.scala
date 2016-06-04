@@ -1,24 +1,21 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Date, Calendar}
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Silhouette, Environment}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.MissionFormats._
-import formats.json.CommentSubmissionFormats._
+import formats.json.IssueFormats._
 import formats.json.TaskSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
+import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label._
-import models.mission.{MissionStatus, Mission, MissionTable}
 import models.region._
-import models.street.StreetEdgeAssignmentCountTable
-import models.user.{UserCurrentRegionTable, User}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
+import models.user._
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -34,17 +31,29 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
+  val anonymousUser: DBUser = UserTable.find("anonymous").get
+
   /**
     * Returns an audit page.
     *
     * @return
     */
   def audit = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+
     request.identity match {
       case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
+
         // Check and make sure that the user has been assigned to a region
-        if (!UserCurrentRegionTable.isAssigned(user.userId)) UserCurrentRegionTable.assign(user.userId)
-        val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+        if (!UserCurrentRegionTable.isAssigned(user.userId)) {
+          UserCurrentRegionTable.assignRandomly(user.userId)
+        }
+        // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+        val region: Option[NamedRegion] = RegionTable.getCurrentNamedRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
@@ -54,7 +63,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val task: NewTask = if (region.isDefined) AuditTaskTable.getNewTaskInRegion(region.get.regionId, user) else AuditTaskTable.getNewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
-        val region: Option[Region] = RegionTable.getRegion
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
+        // val region: Option[Region] = RegionTable.getRegion
+        val region: Option[NamedRegion] = RegionTable.getNamedRegion
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
@@ -67,7 +78,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val region: Option[Region] = RegionTable.getRegion(regionId)
+    // val region: Option[Region] = RegionTable.getRegion(regionId)
+    val region: Option[NamedRegion] = RegionTable.getNamedRegion(regionId)
     request.identity match {
       case Some(user) =>
         val task: NewTask = AuditTaskTable.getNewTaskInRegion(regionId, user)
@@ -88,8 +100,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val regions: List[Region] = RegionTable.getRegionsIntersectingStreet(streetEdgeId)
-    val region: Option[Region] = try {
+    // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
+    val regions: List[NamedRegion] = RegionTable.getNamedRegionsIntersectingAStreet(streetEdgeId)
+    val region: Option[NamedRegion] = try {
       Some(regions.head)
     } catch {
       case e: NoSuchElementException => None
@@ -124,10 +137,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             user.get.userId.toString
         }
         val ipAddress: String = request.remoteAddress
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
 
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val timestamp: Timestamp = new Timestamp(now.getTime)
         val comment = AuditTaskComment(0, submission.streetEdgeId, userId, ipAddress, submission.gsvPanoramaId,
           submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
         val commentId: Int = AuditTaskCommentTable.save(comment)
@@ -142,27 +154,25 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[CommentSubmission]
+    var submission = request.body.validate[NoStreetView]
 
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
         val ipAddress: String = request.remoteAddress
 
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val timestamp: Timestamp = new Timestamp(now.getTime)
-
-        // Todo
+        val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
+        StreetEdgeIssueTable.save(issue)
 
         Future.successful(Ok)
       }

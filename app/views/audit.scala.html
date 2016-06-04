@@ -1,8 +1,8 @@
 @import models.user.User
-@import models.region.Region
+@import models.region.NamedRegion
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[Region], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))
@@ -129,9 +129,11 @@
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
                     @if(!user) {
-                    <h2>Washington, D.C.</h2>
+                    <h2><span id="status-holder-neighborhood-name"></span>Washington, D.C.</h2>
                     } else {
-                    <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
+                    <a href="" target="_blank" id="status-neighborhood-link">
+                        <h2><span id="status-holder-neighborhood-name"></span>Washington, D.C.</h2>
+                    </a>
                     }
                     <div class="status-row">
                         <span class="status-column-half">
@@ -650,9 +652,11 @@
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
+                mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
             } else {
                 mainParam.regionId = 1;
+                mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
 

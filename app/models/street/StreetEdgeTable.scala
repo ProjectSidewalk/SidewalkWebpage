@@ -43,14 +43,59 @@ object StreetEdgeTable {
   })
 
   val db = play.api.db.slick.DB
-  val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdges = TableQuery[StreetEdgeTable].filter(_.deleted === false)
+  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
   /**
    * Returns a list of all the street edges
-   * @return A list of StreetEdge objects.
+    *
+    * @return A list of StreetEdge objects.
    */
   def all: List[StreetEdge] = db.withSession { implicit session =>
     streetEdges.filter(edge => edge.deleted === false).list
+  }
+
+  /**
+    * This method returns the audit completion rate
+    * @param auditCount
+    * @return
+    */
+  def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
+    val allEdges = streetEdges.filter(edge => edge.deleted === false).list
+
+    val completedEdges = (for {
+      (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
+    } yield _streetEdges).list
+
+    completedEdges.length.toFloat / allEdges.length
+  }
+
+  /**
+    * Get the audited distance in miles
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    * @param auditCount
+    * @return
+    */
+  def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
+    val distances = for {
+      (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
+    } yield _streetEdges.geom.transform(2877).length
+    distances.list.sum / 5280
+  }
+
+  /**
+    * Returns a list of street edges that are audited at least auditCount times
+    *
+    * @return
+    */
+  def auditedStreets(auditCount: Int): List[StreetEdge] = db.withSession { implicit session =>
+    val edges = for {
+      (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
+    } yield _streetEdges
+    edges.list
   }
 
   def getWithIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
@@ -76,7 +121,8 @@ object StreetEdgeTable {
 
   /**
    * Save a StreetEdge into the street_edge table
-   * @param edge A StreetEdge object
+    *
+    * @param edge A StreetEdge object
    * @return
    */
   def save(edge: StreetEdge): Int = db.withTransaction { implicit session =>

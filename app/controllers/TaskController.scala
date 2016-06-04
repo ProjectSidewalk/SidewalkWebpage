@@ -1,7 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, TimeZone}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -20,6 +20,7 @@ import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{User, UserCurrentRegionTable}
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -132,14 +133,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             data.auditTask.auditTaskId.get
           } else {
             // Insert audit task
-            val calendar: Calendar = Calendar.getInstance
-            val now: Date = calendar.getTime
-            val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
             val auditTask = request.identity match {
-              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(currentTimestamp))
+              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp))
               case None =>
                 val user: Option[DBUser] = UserTable.find("anonymous")
-                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(currentTimestamp))
+                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp))
             }
 
             if (data.incomplete.isDefined) {
@@ -197,7 +197,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           for (interaction <- data.interactions) {
             AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-              interaction.zoom, interaction.note, interaction.temporaryLabelId, Timestamp.valueOf(interaction.timestamp)))
+              interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))
           }
 
           // Insert environment

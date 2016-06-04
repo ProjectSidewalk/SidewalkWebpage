@@ -21,7 +21,7 @@ class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Som
 object UserCurrentRegionTable {
   val db = play.api.db.slick.DB
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
-  val regions = TableQuery[RegionTable]
+  val regions = TableQuery[RegionTable].filter(_.deleted === false)
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -36,10 +36,21 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return region id
     */
-  def assign(userId: UUID): Int = db.withTransaction { implicit session =>
-    val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
-    save(userId, regionId)
-    regionId
+  def assignRandomly(userId: UUID): Int = db.withTransaction { implicit session =>
+    // Check if there are any records
+    val _currentRegions = for {
+      (_regions, _currentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if _currentRegions.userId === userId.toString
+    } yield _currentRegions
+    val currentRegionList = _currentRegions.list
+
+    if (currentRegionList.isEmpty) {
+      val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
+      save(userId, regionId)
+      regionId
+    } else {
+      assignNextRegion(userId)
+    }
   }
 
   /**
@@ -54,13 +65,33 @@ object UserCurrentRegionTable {
   }
 
   /**
+    * Returns the region id that is currently assigned to the given user
+    *
+    * @param userId user id
+    * @return
+    */
+  def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
+    try {
+      Some(userCurrentRegions.filter(_.userId === userId.toString).list.map(_.regionId).head)
+    } catch {
+      case e: NoSuchElementException => None
+      case _: Throwable => None  // This shouldn't happen.
+    }
+  }
+
+  /**
     * Check if a user has been assigned to some region.
     *
     * @param userId user id
     * @return
     */
   def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
-    userCurrentRegions.filter(_.userId === userId.toString).list.nonEmpty
+    val _userCurrentRegions = for {
+      (_regions, _userCurrentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if _userCurrentRegions.userId === userId.toString
+    } yield _userCurrentRegions
+
+    _userCurrentRegions.list.nonEmpty
   }
 
   /**
@@ -78,18 +109,5 @@ object UserCurrentRegionTable {
     regionId
   }
 
-  /**
-    * Returns the region id that is currently assigned to the given user
-    *
-    * @param userId user id
-    * @return
-    */
-  def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
-    try {
-      Some(userCurrentRegions.filter(_.userId === userId.toString).list.map(_.regionId).head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // This shouldn't happen.
-    }
-  }
+
 }

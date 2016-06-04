@@ -2638,9 +2638,16 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        //svl.ui.form.skipButton.on('click', handleSkipClick);
-        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        $(window).unload(function () {
+            if ("tracker" in svl) {
+                svl.tracker.push("Unload");
+            }
+            if ("taskContainer" in svl) {
+                var task = svl.taskContainer.getCurrentTask();
+                var data = compileSubmissionData(task);
+                submit(data, task, false);
+            }
+        })
     }
 
     /**
@@ -2892,7 +2899,7 @@ function Form ($, params) {
         submit(data, task);
 
         if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask();
+            svl.taskContainer.initNextTask(task);
         }
 
         return false;
@@ -2903,13 +2910,14 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data, task) {
+    function submit(data, task, async) {
+        if (typeof async == "undefined") { async = true; }
         svl.tracker.push('TaskSubmit');
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
         $.ajax({
-            // async: false,
+            async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
             type: 'post',
@@ -3239,7 +3247,8 @@ function Main ($, d3, google, turf, params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
-        
+
+        svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
@@ -3436,12 +3445,13 @@ function Main ($, d3, google, turf, params) {
         svl.neighborhoodFactory = NeighborhoodFactory();
         svl.neighborhoodContainer = NeighborhoodContainer();
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+            svl.neighborhoodStatus.setNeighborhoodName(params.regionName);
         } else {
             var regionId = 0;
-            neighborhood = svl.neighborhoodFactory.create(regionId);
+            neighborhood = svl.neighborhoodFactory.create(regionId, null, null);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
@@ -4247,16 +4257,16 @@ function Map ($, google, turf, params) {
             hideLinks();
         }
 
-        if (mouseStatus.isLeftDown) {
-            setViewControlLayerCursor('ClosedHand');
-        } else {
-            if (!svl.keyboard.isShiftDown()) {
-                setViewControlLayerCursor('OpenHand');
-                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-            } else {
-                setViewControlLayerCursor('ZoomOut');
-            }
-        }
+        // if (mouseStatus.isLeftDown) {
+        //     setViewControlLayerCursor('ClosedHand');
+        // } else {
+        //     if (!svl.keyboard.isShiftDown()) {
+        //         setViewControlLayerCursor('OpenHand');
+        //         // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+        //     } else {
+        //         setViewControlLayerCursor('ZoomOut');
+        //     }
+        // }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
@@ -5875,7 +5885,8 @@ function Tracker () {
         }
 
         var now = new Date(),
-            timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+            timestamp = new Date().getTime();
+            // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         var item = {
             action : action,
@@ -6847,7 +6858,7 @@ function TaskContainer (turf) {
 
     /**
      * I had to make this method to wrap the street view service.
-     * @param task
+     * @param task The current task
      */
     function initNextTask (task) {
         var nextTask = svl.taskContainer.nextTask(task),
@@ -10016,6 +10027,7 @@ function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
             layer: null,
+            name: null,
             regionId: null
         },
         status = {
@@ -10031,6 +10043,9 @@ function Neighborhood (parameters) {
             self.regionId = parameters.regionId;  // for debugging
         }
         if ("layer" in parameters) setProperty("layer", parameters.layer);
+        if ("name" in parameters) {
+            setProperty("name", parameters.name);
+        }
     }
 
     /**
@@ -10187,8 +10202,8 @@ function NeighborhoodFactory () {
      * @param layer Leaflet layer
      * @returns {Neighborhood}
      */
-    function create (regionId, layer) {
-        return new Neighborhood({regionId: regionId, layer: layer});
+    function create (regionId, layer, name) {
+        return new Neighborhood({regionId: regionId, layer: layer, name: name });
     }
 
     self.create = create;
@@ -10298,17 +10313,14 @@ function PanoramaContainer (google) {
 function LabelCounter (d3) {
     var self = {className: 'LabelCounter'};
 
-    var radius = 0.4,
-        dR = radius / 2,
-        svgWidth = 200,
-        svgHeight = 120,
+    var radius = 0.4, dR = radius / 2,
+        svgWidth = 200, svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
         height = 40 - margin.top - margin.bottom,
         colorScheme = svl.misc.getLabelColors(),
-        imageWidth = 22,
-        imageHeight = 22;
+        imageWidth = 22, imageHeight = 22;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
@@ -10325,8 +10337,8 @@ function LabelCounter (d3) {
       "NoCurbRamp": {
           id: "NoCurbRamp",
           description: "missing curb ramp",
-          left: margin.left + width / 2,
-          top: margin.top,
+          left: margin.left,
+          top: (2 * margin.top) + margin.bottom + height,
           // top: 2 * margin.top + margin.bottom + height,
           fillColor: colorScheme["NoCurbRamp"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
@@ -10336,9 +10348,9 @@ function LabelCounter (d3) {
       "Obstacle": {
         id: "Obstacle",
         description: "obstacle",
-        left: margin.left,
+        left: margin.left + (width/1.7),
         // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-          top: 2 * margin.top + margin.bottom + height,
+          top: (2 * margin.top) + margin.bottom + height,
         fillColor: colorScheme["Obstacle"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
         count: 0,
@@ -10347,9 +10359,9 @@ function LabelCounter (d3) {
       "SurfaceProblem": {
         id: "SurfaceProblem",
         description: "surface problem",
-        left: margin.left + width / 2,
+        left: margin.left,
         //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
-          top: 2 * margin.top + margin.bottom + height,
+          top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
         fillColor: colorScheme["SurfaceProblem"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
         count: 0,
@@ -10358,8 +10370,8 @@ function LabelCounter (d3) {
         "Other": {
             id: "Other",
             description: "other",
-            left: margin.left,
-            top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            left: margin.left + (width/1.7),
+            top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
             imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Other.png",
             count: 0,
@@ -10418,16 +10430,149 @@ function LabelCounter (d3) {
             .attr("width", imageWidth)
             .attr("height", imageHeight)
             .attr('transform', 'translate(0,-15)');
+      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
+      //  .data([0])
+      //  .enter()
+      //  .append("text")
+      //  .style("font-size", "11px")
+      //  .style("fill", "gray")
+      //  .attr("class", "visible");
     }
 
     /**
-     *
-     * @param labelType Label type
-     * @returns {integer}
+     * Set label counts to 0
      */
-    function countLabel(labelType) {
-        return labelType in dotPlots ? dotPlots[labelType].count : null;
+    function reset () {
+        for (var key in dotPlots) {
+            set(key, 0);
+        }
+    }
 
+    /**
+     * Update the label count visualization.
+     * @param key {string} Label type
+     */
+    function update(key) {
+        // If a key is given, udpate the dot plot for that specific data.
+        // Otherwise update all.
+        if (key) {
+          _update(key)
+        } else {
+          for (var key in dotPlots) {
+            _update(key);
+          }
+        }
+
+        // Actual update function
+        function _update(key) {
+            if (keys.indexOf(key) == -1) { key = "Other"; }
+
+            var fiftyCircles = parseInt(dotPlots[key].count / 50),
+              tenCircles = parseInt((dotPlots[key].count % 50) / 10),
+              oneCircles = dotPlots[key].count % 10,
+              count = fiftyCircles + tenCircles + oneCircles;
+          
+            // Update the label
+            //dotPlots[key].countLabel
+            //  .transition().duration(1000)
+            //  .attr("x", function () {
+            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
+            //  })
+            //  .attr("y", function () {
+            //    return x(radius + dR - 0.05);
+            //  })
+            //  // .transition().duration(1000)
+            //  .text(function (d) {
+            //    return dotPlots[key].count;
+            //  });
+
+            /* 
+            the code of these three functions was being used so much I decided to seperately declare them
+            the d3 calls look much cleaner now :)
+            */
+            function setCX(d, i){
+              if (i < fiftyCircles && fiftyCircles != 0){
+                return x(i * 4 * radius + dR);
+              }
+              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+                return x(fiftyCircles * 4 * radius + dR) + x((i - fiftyCircles) * 2 * (radius + dR));
+              }
+              else{
+                return x(fiftyCircles * 2 * radius + dR) + x(tenCircles * 1.9 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
+              }
+            }
+            
+            function setCY(d, i){
+              if (i < fiftyCircles && fiftyCircles != 0){
+                return 0;
+              }
+              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+                return x(dR);
+              }
+              else{
+                return x(radius);
+              }
+            }
+
+            function setR(d, i){
+              if (i < fiftyCircles && fiftyCircles != 0){
+                return x(2 * radius);
+              }
+              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+                return x(radius + dR);
+              }
+              else{
+                return x(radius);
+              }
+            }
+            // Update the dot plot
+            if (dotPlots[key].data.length >= count) {
+              // Remove dots
+              dotPlots[key].data = dotPlots[key].data.slice(0, count);
+
+                dotPlots[key].plot.selectAll("circle")
+                  .transition().duration(500)
+                  .attr("r", setR)
+                  .attr("cy", setCY)
+                  .attr("cx", setCX);
+
+                dotPlots[key].plot.selectAll("circle")
+                  .data(dotPlots[key].data)
+                  .exit()
+                  .transition()
+                  .duration(500)
+                  .attr("cx", function () {
+                    return 0;
+                  })
+                  .attr("r", 0)
+                  .remove();
+            } else {
+              // Add dots
+              var len = dotPlots[key].data.length;
+              for (var i = 0; i < count - len; i++) {
+                  dotPlots[key].data.push([len + i, 0, radius])
+              }
+              dotPlots[key].plot.selectAll("circle")
+                .attr("r", setR) 
+                .attr("cy", setCY)
+                .attr("cx", setCX)
+                .data(dotPlots[key].data)
+                .enter().append("circle")
+                .attr("cx", x(0))
+                .attr("cy", setCY)
+                .attr("r", radius)
+                .style("fill", dotPlots[key].fillColor)
+                .transition().duration(1000)
+                .attr("cx", setCX)
+                .attr("cy", setCY)
+                .attr("r", setR);
+            }
+            dotPlots[key].label.text(function () {
+                var ret = dotPlots[key].count + " " + dotPlots[key].description;
+                ret += dotPlots[key].count > 1 ? "s" : "";
+                return ret;
+            });
+        }
     }
 
     /**
@@ -10454,16 +10599,6 @@ function LabelCounter (d3) {
         }
     }
 
-
-    /**
-     * Set label counts to 0
-     */
-    function reset () {
-        for (var key in dotPlots) {
-            set(key, 0);
-        }
-    }
-
     /**
      * Set the number of label count
      * @param key {string} Label type
@@ -10474,105 +10609,11 @@ function LabelCounter (d3) {
         update(key);
     }
 
-    /**
-     * Update the label count visualization.
-     * @param key {string} Label type
-     */
-    function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
-        // Otherwise update all.
-        if (key) {
-            _update(key)
-        } else {
-            for (var key in dotPlots) {
-                _update(key);
-            }
-        }
-
-        // Actual update function
-        function _update(key) {
-            if (keys.indexOf(key) == -1) { key = "Other"; }
-
-            var firstDigit = dotPlots[key].count % 10,
-                higherDigits = (dotPlots[key].count - firstDigit) / 10,
-                count = firstDigit + higherDigits;
-
-
-            // Update the dot plot
-            if (dotPlots[key].data.length >= count) {
-                // Remove dots
-                dotPlots[key].data = dotPlots[key].data.slice(0, count);
-
-                dotPlots[key].plot.selectAll("circle")
-                    .transition().duration(500)
-                    .attr("r", function (d, i) {
-                        return i < higherDigits ? x(radius + dR) : x(radius);
-                    })
-                    .attr("cy", function (d, i) {
-                        if (i < higherDigits) {
-                            return 0;
-                        } else {
-                            return x(dR);
-                        }
-                    });
-
-                dotPlots[key].plot.selectAll("circle")
-                    .data(dotPlots[key].data)
-                    .exit()
-                    .transition()
-                    .duration(500)
-                    .attr("cx", function () {
-                        return x(higherDigits);
-                    })
-                    .attr("r", 0)
-                    .remove();
-            } else {
-                // Add dots
-                var len = dotPlots[key].data.length;
-                for (var i = 0; i < count - len; i++) {
-                    dotPlots[key].data.push([len + i, 0, radius])
-                }
-                dotPlots[key].plot.selectAll("circle")
-                    .data(dotPlots[key].data)
-                    .enter().append("circle")
-                    .attr("cx", x(0))
-                    .attr("cy", 0)
-                    .attr("r", x(radius + dR))
-                    .style("fill", dotPlots[key].fillColor)
-                    .transition().duration(1000)
-                    .attr("cx", function (d, i) {
-                        if (i <= higherDigits) {
-                            return x(d[0] * 2 * (radius + dR));
-                        } else {
-                            return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
-                        }
-                    })
-                    .attr("cy", function (d, i) {
-                        if (i < higherDigits) {
-                            return 0;
-                        } else {
-                            return x(dR);
-                        }
-                    })
-                    .attr("r", function (d, i) {
-                        return i < higherDigits ? x(radius + dR) : x(radius);
-                    });
-            }
-            dotPlots[key].label.text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
-                return ret;
-            });
-        }
-    }
-
-
     // Initialize
     update();
 
     self.increment = increment;
     self.decrement = decrement;
-    self.countLabel = countLabel;
     self.set = set;
     self.reset = reset;
     return self;
@@ -10683,6 +10724,10 @@ function MissionStatus () {
 function NeighborhoodStatus () {
     var self = {className: "NeighborhoodStatus"};
 
+    function setNeighborhoodName(name) {
+        svl.ui.status.neighborhoodName.html(name + ", ");
+    }
+
     /**
      * Set the href attribute of the link
      * @param hrefString
@@ -10694,6 +10739,7 @@ function NeighborhoodStatus () {
     }
 
     self.setHref = setHref;
+    self.setNeighborhoodName = setNeighborhoodName;
     return self;
 }
 /**
@@ -11340,7 +11386,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-        svl.ui.modalMissionComplete.map.css('left', 0);
+        svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
 
@@ -11391,7 +11437,14 @@ function ModalMissionComplete ($, d3, L) {
                 }
 
 
-                setMissionTitle(mission.getProperty("label"));
+                var missionLabel = mission.getProperty("label");
+                if (missionLabel == "initial-mission") {
+                    setMissionTitle("Initial Mission");
+                } else {
+                    var neighborhoodName = neighborhood.getProperty("name");
+                    setMissionTitle(neighborhoodName);
+                }
+
                 _updateTheMissionCompleteMessage();
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
@@ -11497,8 +11550,13 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
 
-        if ('form' in svl) svl.form.skipSubmit(incomplete);
-        if ('ribbon' in svl) svl.ribbon.backToWalk();
+        if (radioValue == "GSVNotAvailable") {
+            var task = svl.taskContainer.getCurrentTask();
+            task.complete();
+            svl.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
+        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
         hideSkipMenu();
     }
 
