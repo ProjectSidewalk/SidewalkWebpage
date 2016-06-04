@@ -166,20 +166,6 @@ function LabelCounter (d3) {
               tenCircles = parseInt((dotPlots[key].count % 50) / 10),
               oneCircles = dotPlots[key].count % 10,
               count = fiftyCircles + tenCircles + oneCircles;
-          
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
 
             /* 
             the code of these three functions was being used so much I decided to seperately declare them
