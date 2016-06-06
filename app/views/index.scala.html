@@ -34,17 +34,25 @@
     @*</div>*@
     <div class="container">
         <div class="row">
-            <div class="col-md-6 height-300-pixel">
+            <div class="col-md-6 height-500-pixel">
                 <div class="spacer-30-percent"></div>
                 <h1 class="text-center landing-page-header">
                     Help us make sidewalks more accessible for everyone
                 </h1>
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/people.svg")' alt="Icons of wheelchair user, cane user, scooter user, and a person with a stroller" class="header-icon img-responsive center-block" align="">
+                <div class="spacer-20-pixel"></div>
                 <p class="text-center">
                     <a href='@routes.AuditController.audit' class="btn" id="participate-button">Participate</a>
                 </p>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 height-500-pixel">
+                <div class="spacer-20-percent"></div>
+                <figure>
+                    <video loop muted alt="Background video showing how the image labeling tool works" id="demo-video">
+                        <source src="@routes.Assets.at("videos/LandingPage.mp4")" type="video/mp4">
+                    </video>
+                    <figcaption class="text-center">Watch the video to see how to find and label accessibility attributes!</figcaption>
+                </figure>
 
             </div>
         </div>
@@ -153,4 +161,12 @@
     @*<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesSidewalk.js")'></script>*@
     @*<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesColor.js")'></script>*@
     <link href='@routes.Assets.at("stylesheets/index.css")' rel="stylesheet"/>
+    <script>
+            $("video").hover(function() {
+                $(this).prop("controls", true);
+            }, function() {
+                $(this).prop("controls", false);
+
+            });
+    </script>
 }
