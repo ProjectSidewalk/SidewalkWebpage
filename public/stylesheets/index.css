@@ -54,6 +54,12 @@ video::-webkit-media-controls-start-playback-button {
     width: 200px;
 }
 
+h1.landing-page-header {
+    font-size: 24px;
+}
+
+.height-300-pixel { height: 300px; }
+.spacer-10-pixel { height: 20px; }
 .spacer-20-pixel { height: 20px; }
 .spacer-50-pixel { height: 50px; }
 .spacer-10-percent {  height: 10%;  }
