@@ -81,8 +81,8 @@ object StreetEdgeTable {
     val distances = for {
       (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
       if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
-    } yield _streetEdges.geom.transform(2877).length
-    distances.list.sum / 5280
+    } yield _streetEdges.geom.transform(26918).length
+    (distances.list.sum * 0.000621371).toFloat
   }
 
   /**
