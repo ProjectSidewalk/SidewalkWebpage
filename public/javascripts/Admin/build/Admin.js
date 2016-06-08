@@ -364,13 +364,6 @@ function Admin ($, c3, turf) {
             })
                 .addTo(map);
         });
-
-        // Catch click even in popups
-        // https://www.mapbox.com/mapbox.js/example/v1.0.0/clicks-in-popups/
-//    $("#map").on('click', '.region-selection-trigger', function () {
-//        var regionId = $(this).attr('regionid');
-//        console.log(regionId)
-//    });
     }
 
     /**
@@ -474,16 +467,7 @@ function Admin ($, c3, turf) {
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
-
-
-
-
-
-
-
-
-
-
+        
 
     return self;
 }

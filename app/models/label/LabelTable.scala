@@ -45,7 +45,10 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
  */
 object LabelTable {
   val db = play.api.db.slick.DB
-  val labels = TableQuery[LabelTable]
+  val labels = TableQuery[LabelTable].filter(_.deleted === false)
+  val auditTasks = TableQuery[AuditTaskTable]
+  val labelTypes = TableQuery[LabelTypeTable]
+  val labelPoints = TableQuery[LabelPointTable]
 
   case class LabelCountPerDay(date: String, count: Int)
 
@@ -70,13 +73,8 @@ object LabelTable {
     * @return
     */
   def submittedLabels: List[LabelLocation] = db.withSession { implicit session =>
-    val auditTasks = TableQuery[AuditTaskTable]
-    val labelTypes = TableQuery[LabelTypeTable]
-    val labelPoints = TableQuery[LabelPointTable]
-
     val _labels = for {
       (_labels, _labelTypes) <- labels.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
-      if _labels.deleted === false
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
     val _points = for {
@@ -94,13 +92,11 @@ object LabelTable {
    * @return
    */
   def submittedLabels(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
-    val auditTasks = TableQuery[AuditTaskTable]
-    val labelTypes = TableQuery[LabelTypeTable]
-    val labelPoints = TableQuery[LabelPointTable]
+
 
     val _labels = for {
       ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labels on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
-      if _auditTasks.userId === userId.toString && _labels.deleted === false
+      if _auditTasks.userId === userId.toString
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
     val _points = for {

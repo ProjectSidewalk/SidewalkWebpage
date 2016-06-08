@@ -30,16 +30,28 @@
                 <h1>Stats</h1>
                 <table class="table table-striped table-condensed">
                     <tr>
-                        <th>Total Users</th>
+                        <th></th>
+                        <th>Overall</th>
+                        <th>Today</th>
+                        <th>Yesterday</th>
+                    </tr>
+                    <tr>
+                        <th>User Count</th>
                         <td>@UserDAOImpl.size</td>
+                        <td>#</td>
+                        <td>#</td>
                     </tr>
                     <tr>
-                        <th>Total Labels</th>
+                        <th>Label Count</th>
                         <td>@LabelTable.size</td>
+                        <td>#</td>
+                        <td>#</td>
                     </tr>
                     <tr>
-                        <th>Total Audits</th>
+                        <th>Audited Street Count</th>
                         <td>@AuditTaskTable.size</td>
+                        <td>#</td>
+                        <td>#</td>
                     </tr>
                 </table>
             </div>
