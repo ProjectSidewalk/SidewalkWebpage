@@ -10439,6 +10439,10 @@ function LabelCounter (d3) {
       //  .attr("class", "visible");
     }
 
+    function countLabel(labelType) {
+        return labelType in dotPlots ? dotPlots[key].count : null;
+    }
+
     /**
      * Set label counts to 0
      */
@@ -10597,7 +10601,7 @@ function LabelCounter (d3) {
 
     // Initialize
     update();
-
+    self.countLabel = countLabel;
     self.increment = increment;
     self.decrement = decrement;
     self.set = set;
