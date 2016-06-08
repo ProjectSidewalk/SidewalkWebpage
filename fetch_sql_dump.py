@@ -1,6 +1,7 @@
 import getpass
 import os
 import paramiko
+import sys
 
 download_directory = "./download"
 if not os.path.exists(download_directory):
@@ -34,4 +35,10 @@ def main(sql_dump_filename, username, password, hostname="sidewalk.umiacs.umd.ed
 if __name__ == '__main__':
     username = raw_input("Username:")
     password = getpass.getpass("Password:")
-    main("test_dump.sql", username, password)
+
+    if len(sys.argv) > 1:
+        sql_dump_filename = sys.argv[1]
+    else:
+        sql_dump_filename = "dump.sql"
+
+    main(sql_dump_filename, username, password)
