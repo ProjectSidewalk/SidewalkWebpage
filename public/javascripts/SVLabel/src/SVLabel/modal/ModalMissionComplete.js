@@ -210,6 +210,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('left', -500);
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
+        $(".g-bar-chart").css('visibility', 'hidden');
     }
 
     function setMissionTitle (missionTitle) {
@@ -226,6 +227,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
+        $(".g-bar-chart").css('visibility', 'visible');
 
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
