@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
-import models.audit.AuditTaskTable
+import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.MissionTable
 import models.region.RegionTable
@@ -99,6 +99,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
 
       Future.successful(Ok(JsArray()))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def fetchAuditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      UserTable.find(username) match {
+        case Some(user) =>
+          val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId)).map(interaction => Json.toJson(interaction))
+          Future.successful(Ok(JsArray(interactions)))
+        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
+      }
     } else {
       Future.successful(Redirect("/"))
     }

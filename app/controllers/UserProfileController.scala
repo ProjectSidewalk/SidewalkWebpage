@@ -175,7 +175,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getInteractions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val interactions = AuditTaskInteractionTable.auditInteractions(user.userId).map(x => Json.toJson(x))
+        val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(user.userId).map(x => Json.toJson(x))
         Future.successful(Ok(JsArray(interactions)))
       case None =>
         Future.successful(Ok(Json.obj(

@@ -1,7 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone}
+import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -102,7 +102,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(Ok(JsArray(tasks)))
     }
   }
-
 
   /**
    * Parse the submitted data and insert them into tables.
@@ -224,6 +223,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
 
           // Check if the user has cleared any mission
+          // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
           val completed: List[Mission] = request.identity match {
             case Some(user) =>
               val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
@@ -250,5 +250,4 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
     )
   }
-
 }

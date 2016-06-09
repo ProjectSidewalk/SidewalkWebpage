@@ -246,7 +246,7 @@ function Main ($, d3, google, turf, params) {
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
-        svl.neighborhoodContainer = NeighborhoodContainer();
+        svl.neighborhoodContainer = NeighborhoodContainer($);
         if ('regionId' in params) {
             neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
@@ -292,9 +292,28 @@ function Main ($, d3, google, turf, params) {
                     // Set the current mission to either the initial-mission or something else.
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
-                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                        missions = missions.filter(function (m) { return !m.isCompleted(); });
-                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                        var missionsArrayLength = 0;
+                        var missions = [];
+                        var regionId = neighborhood.getProperty("regionId");
+                        var haveSwitchedToANewRegion = false;
+                        while (true) {
+                            missions = svl.missionContainer.getMissionsByRegionId(regionId);
+                            missions = missions.filter(function (m) { return !m.isCompleted(); });
+                            if (missions.length > 0) {
+                                if (haveSwitchedToANewRegion) {
+                                    svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                }
+                                break;
+                            }
+                            haveSwitchedToANewRegion = true;
+
+                            // Take care of the case where length of the missions is 0
+                            var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                            var indexOfNextRegion = availableRegionIds.indexOf(regionId) + 1;
+                            if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            regionId = availableRegionIds[indexOfNextRegion];
+                        }
+                        mission = missions[0];
                     }
                     svl.missionContainer.setCurrentMission(mission);
 

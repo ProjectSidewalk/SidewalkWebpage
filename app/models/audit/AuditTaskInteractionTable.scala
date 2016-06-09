@@ -62,7 +62,12 @@ object AuditTaskInteractionTable {
   }
 
 
-  def auditInteractions(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
+  /**
+    * Select all the audit task interactions of the specified user
+    * @param userId User id
+    * @return
+    */
+  def selectAuditTaskInteractionsOfAUser(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
     val _auditTaskInteractions = for {
       (_auditTasks, _auditTaskInteractions) <- auditTasks.innerJoin(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
       if _auditTasks.userId === userId.toString

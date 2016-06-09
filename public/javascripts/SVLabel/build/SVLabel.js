@@ -2892,10 +2892,10 @@ function Form ($, params) {
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
+        svl.tracker.push('TaskSkip');
         var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
-        svl.tracker.push('TaskSkip');
         submit(data, task);
 
         if ("taskContainer" in svl) {
@@ -2912,7 +2912,9 @@ function Form ($, params) {
      */
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
-        svl.tracker.push('TaskSubmit');
+        // svl.tracker.push('TaskSubmit');
+        data.interactions.push(svl.tracker.create("TaskSubmit"));
+
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
@@ -3443,7 +3445,7 @@ function Main ($, d3, google, turf, params) {
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
-        svl.neighborhoodContainer = NeighborhoodContainer();
+        svl.neighborhoodContainer = NeighborhoodContainer($);
         if ('regionId' in params) {
             neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
@@ -3489,9 +3491,28 @@ function Main ($, d3, google, turf, params) {
                     // Set the current mission to either the initial-mission or something else.
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
-                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                        missions = missions.filter(function (m) { return !m.isCompleted(); });
-                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                        var missionsArrayLength = 0;
+                        var missions = [];
+                        var regionId = neighborhood.getProperty("regionId");
+                        var haveSwitchedToANewRegion = false;
+                        while (true) {
+                            missions = svl.missionContainer.getMissionsByRegionId(regionId);
+                            missions = missions.filter(function (m) { return !m.isCompleted(); });
+                            if (missions.length > 0) {
+                                if (haveSwitchedToANewRegion) {
+                                    svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                }
+                                break;
+                            }
+                            haveSwitchedToANewRegion = true;
+
+                            // Take care of the case where length of the missions is 0
+                            var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                            var indexOfNextRegion = availableRegionIds.indexOf(regionId) + 1;
+                            if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            regionId = availableRegionIds[indexOfNextRegion];
+                        }
+                        mission = missions[0];
                     }
                     svl.missionContainer.setCurrentMission(mission);
 
@@ -5811,7 +5832,8 @@ function Tracker () {
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
-    function push (action, param) {
+
+    function create(action, param) {
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
@@ -5886,7 +5908,7 @@ function Tracker () {
 
         var now = new Date(),
             timestamp = new Date().getTime();
-            // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+        // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         var item = {
             action : action,
@@ -5900,6 +5922,11 @@ function Tracker () {
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         };
+        return item;
+    }
+
+    function push (action, param) {
+        var item = create(action, param);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
@@ -5924,7 +5951,8 @@ function Tracker () {
         actions = [];
         push("RefreshTracker");
     }
-    
+
+    self.create = create;
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;
@@ -7799,6 +7827,10 @@ function MissionContainer ($, parameters) {
         return missions;
     }
 
+    function getAvailableRegionIds () {
+        return Object.keys(missionStoreByRegionId);
+    }
+
     function nextMission (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
@@ -7856,6 +7888,7 @@ function MissionContainer ($, parameters) {
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
     self.commit = commit;
+    self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMission = getMission;
@@ -10116,7 +10149,7 @@ function Neighborhood (parameters) {
  * @constructor
  * @memberof svl
  */
-function NeighborhoodContainer (parameters) {
+function NeighborhoodContainer ($, parameters) {
     var self = { className: "NeighborhoodContainer" },
         neighborhoods = {},
         status = {
@@ -10155,6 +10188,24 @@ function NeighborhoodContainer (parameters) {
         return status[key];
     }
 
+    function moveToANewRegion (regionId) {
+        var url = "/neighborhood/new";
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify([regionId]),
+            dataType: 'json',
+            success: function (result) {
+
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     function setCurrentNeighborhood (neighborhood) {
         setStatus("currentNeighborhood", neighborhood);
     }
@@ -10182,6 +10233,7 @@ function NeighborhoodContainer (parameters) {
     self.getCurrentNeighborhood = getCurrentNeighborhood;
     self.getRegionIds = getRegionIds;
     self.getStatus = getStatus;
+    self.moveToANewRegion = moveToANewRegion;
     self.setCurrentNeighborhood = setCurrentNeighborhood;
     self.setStatus = setStatus;
 

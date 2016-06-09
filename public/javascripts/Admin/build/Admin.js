@@ -1,9 +1,140 @@
-function AdminUser(_, $, c3, params) {
+function AdminUser(_, $, c3, d3, params) {
     var self = {};
     var _data = {};
 
     self.username = params.username;
 
+    $.getJSON("/adminapi/interactions/" + self.username, function (data) {
+        var grouped = _.groupBy(data, function (d) { return d.audit_task_id; });
+        var keys = Object.keys(grouped);
+        var keyIndex;
+        var keysLength = keys.length;
+        var padding = { top: 5, right: 10, bottom: 5, left: 100 };
+        var userInteractionSVGArray = [];
+        var svgHeight = 45;
+        var eventProperties = {
+            "Default": {
+                y: 30,
+                fill: "#eee"
+            },
+            "LabelingCanvas_FinishLabeling": {
+                y: 15,
+                fill: "#888"
+            },
+            "TaskStart": {
+                y: 0,
+                fill: "steelblue"
+            },
+            "TaskEnd": {
+                y: 0,
+                fill: "green"
+            },
+            "TaskSkip": {
+                y: 0,
+                fill: "red"
+            },
+            "TaskSubmit": {
+                y: 0,
+                fill: "#eee"
+            },
+            "Unload": {
+                y: 0,
+                fill: "red"
+            }
+        };
+
+        // Draw Gantt charts for each task
+        for (keyIndex = keysLength - 1; keyIndex >= 0; keyIndex--) {
+            var key = keys[keyIndex];
+            var taskInteractionArray = grouped[keys[keyIndex]];
+            var taskInteractionArrayLength = taskInteractionArray.length;
+            var svgWidth = $("#user-activity-chart").width();
+
+            // Sort tasks by timestamp
+            taskInteractionArray.sort(function (a, b) {
+                if (a.timestamp < b.timestamp) return -1;
+                else if (a.timestamp > b.timestamp) return 1;
+                else return 0;
+            });
+
+            // Add the relativeTimestamp field to each record.
+            taskInteractionArray = taskInteractionArray.map(function (o) {
+                o.relativeTimestamp = o.timestamp - taskInteractionArray[0].timestamp;
+                return o;
+            });
+
+            var timestampMax = 600000; // 10 minutes
+            var x = d3.scale.linear().domain([ 0, timestampMax ]).range([ padding.left, svgWidth - padding.left - padding.right ]); //.clamp(true);
+            var y = d3.scale.linear().domain([ 0, svgHeight]).range([ padding.top, svgHeight - padding.top - padding.bottom ]);
+
+            var svg = d3.select("#user-activity-chart").append('svg').attr('width', svgWidth).attr('height', svgHeight);
+
+            // Tooltip: http://bl.ocks.org/biovisualize/1016860
+            var tooltip = d3.select("body")
+                .append("div")
+                .style("position", "absolute")
+                .style("background", "#fefefe")
+                .style("border", "1px solid #eee")
+                .style("font-size", "10px")
+                .style("padding", "1px")
+                .style("z-index", "10")
+                .style("visibility", "hidden");
+
+            var chart = svg.append('g').attr('width', svgWidth).attr('height', svgHeight).attr('transform', function () { return 'translate(0, 0)'; });
+
+            // Mouse event
+            chart.selectAll("circle")
+                .data(taskInteractionArray)
+                .enter().append("circle")
+                .attr("r", 5)
+                .attr("cy", function (d) {
+                    var style = (d.action in eventProperties) ? eventProperties[d.action] : eventProperties["Default"];
+                    return y(style.y);
+                })
+                .attr("cx", function (d) {
+                    return x(d.relativeTimestamp);
+                })
+                .style({stroke: "white", "stroke-width": "2px"})
+                .style("fill", function (d) {
+                    var style = (d.action in eventProperties) ? eventProperties[d.action] : eventProperties["Default"];
+                    return style.fill;
+                })
+                .on("mouseover", function(d){
+                    var labelText = "Action: " + d.action + " " +
+                        "<br />Time: " + (d.relativeTimestamp / 1000 / 60).toFixed(1) + "min" +
+                        "<br />" + d.note;
+                    return tooltip.style("visibility", "visible").html(labelText);
+                })
+                .on("mousemove", function(){ return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px"); })
+                .on("mouseout", function(){ return tooltip.style("visibility", "hidden"); });
+
+            // Draw borders
+            var border = svg.append("line")
+                .style("stroke", "#eee")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", svgWidth)
+                .attr("y2", 0);
+
+            // Draw labels
+            var taskId = "TaskId: " + key;
+            var date = new Date(taskInteractionArray[0].timestamp);
+            var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            var dateLabel = monthNames[date.getMonth()] + " " + date.getDate();
+            var duration = "Duration: " + (taskInteractionArray[taskInteractionArrayLength - 1].relativeTimestamp / 1000 / 60).toFixed(1) + " min";
+            var labelGroup = svg.append('g').attr('width', 100).attr('height', svgHeight);
+            var labels = labelGroup.selectAll("text")
+                .data([taskId, duration, dateLabel])
+                .enter().append("text")
+                .attr("x", function (d) { return x(0) - padding.left; })
+                .attr("y", function (d, i) { return 13 * (i + 1); })
+                .attr("font-size", "10px")
+                .text(function (d) { return d; });
+
+        }
+
+    });
+    
     $.getJSON("/admin/tasks/" + self.username, function (data) {
         _data.tasks = data;
         completedInitializingAuditedTasks = true;
@@ -111,11 +242,9 @@ function Admin ($, c3, turf) {
         var missions = {};
         var printedMissionName;
         for (i = 0; i < len; i++) {
-            console.log(data[i]);
-
             // Set the printed mission name
             if (data[i].label == "initial-mission") {
-                printedMissionName = "Initial Mission (2000 ft)";
+                printedMissionName = "Initial Mission (1000 ft)";
             } else if (data[i].label == "distance-mission") {
                 if (data[i].level <= 2) {
                     printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
@@ -137,12 +266,18 @@ function Admin ($, c3, turf) {
             }
             missions[printedMissionName].count += 1;
         }
+        var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
+        arrayOfMissions.sort(function (a, b) {
+            if (a.count < b.count) { return 1; }
+            else if (a.count > b.count) { return -1; }
+            else { return 0; }
+        });
         
         var missionCountArray = ["Mission Counts"];
         var missionNames = [];
-        for (printedMissionName in missions) {
-            missionCountArray.push(missions[printedMissionName].count);
-            missionNames.push(printedMissionName);
+        for (i = 0; i < arrayOfMissions.length; i++) {
+            missionCountArray.push(arrayOfMissions[i].count);
+            missionNames.push(arrayOfMissions[i].printedMissionName);
         }
         var chart = c3.generate({
             bindto: '#completed-mission-histogram',

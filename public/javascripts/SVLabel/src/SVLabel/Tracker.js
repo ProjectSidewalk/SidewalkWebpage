@@ -16,7 +16,8 @@ function Tracker () {
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
-    function push (action, param) {
+
+    function create(action, param) {
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
@@ -91,7 +92,7 @@ function Tracker () {
 
         var now = new Date(),
             timestamp = new Date().getTime();
-            // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+        // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         var item = {
             action : action,
@@ -105,6 +106,11 @@ function Tracker () {
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         };
+        return item;
+    }
+
+    function push (action, param) {
+        var item = create(action, param);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
@@ -129,7 +135,8 @@ function Tracker () {
         actions = [];
         push("RefreshTracker");
     }
-    
+
+    self.create = create;
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;

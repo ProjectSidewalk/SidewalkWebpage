@@ -450,6 +450,15 @@ object AuditTaskTable {
   }
 
   /**
+    * Get the number of tasks completed by the users.
+    * @param userId
+    * @return
+    */
+  def numberOfCompletedAudits(userId: UUID): Int = db.withSession { implicit session =>
+    auditTasks.filter(_.userId === userId.toString).list.size
+  }
+
+  /**
    * Saves a new audit task.
    *
    * Reference for rturning the last inserted item's id

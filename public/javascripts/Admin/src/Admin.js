@@ -40,11 +40,9 @@ function Admin ($, c3, turf) {
         var missions = {};
         var printedMissionName;
         for (i = 0; i < len; i++) {
-            console.log(data[i]);
-
             // Set the printed mission name
             if (data[i].label == "initial-mission") {
-                printedMissionName = "Initial Mission (2000 ft)";
+                printedMissionName = "Initial Mission (1000 ft)";
             } else if (data[i].label == "distance-mission") {
                 if (data[i].level <= 2) {
                     printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
@@ -66,12 +64,18 @@ function Admin ($, c3, turf) {
             }
             missions[printedMissionName].count += 1;
         }
+        var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
+        arrayOfMissions.sort(function (a, b) {
+            if (a.count < b.count) { return 1; }
+            else if (a.count > b.count) { return -1; }
+            else { return 0; }
+        });
         
         var missionCountArray = ["Mission Counts"];
         var missionNames = [];
-        for (printedMissionName in missions) {
-            missionCountArray.push(missions[printedMissionName].count);
-            missionNames.push(printedMissionName);
+        for (i = 0; i < arrayOfMissions.length; i++) {
+            missionCountArray.push(arrayOfMissions[i].count);
+            missionNames.push(arrayOfMissions[i].printedMissionName);
         }
         var chart = c3.generate({
             bindto: '#completed-mission-histogram',

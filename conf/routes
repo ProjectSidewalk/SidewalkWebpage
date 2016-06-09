@@ -24,6 +24,7 @@ GET     /admin/neighborhoodCompletionRate   @controllers.AdminController.getNeig
 GET     /admin/missionsCompletedByUsers     @controllers.AdminController.missionsCompletedByUsers
 GET     /admin/tasks/:username              @controllers.AdminController.submittedTasksWithLabels(username: String)
 GET     /admin/:username                    @controllers.AdminController.userProfile(username: String)
+GET     /adminapi/interactions/:username    @controllers.AdminController.fetchAuditTaskInteractionsOfAUser(username: String)
 
 # Auditing tasks
 GET     /audit                          @controllers.AuditController.audit
@@ -49,6 +50,9 @@ GET     /mission/incomplete             @controllers.MissionController.getIncomp
 GET     /mission/incomplete/:regionId   @controllers.MissionController.getIncompleteMissionsInRegion(regionId: Int)
 POST    /mission                        @controllers.MissionController.post
 
+# Neighborhoods
+POST    /neighborhood/new               @controllers.RegionController.setANewRegion
+
 # Map Edit
 GET     /map/edit                       @controllers.MapController.edit
 
@@ -69,7 +73,6 @@ GET     /contribution/:username         @controllers.UserProfileController.userP
 
 
 # Geometry API
-GET     /geometry/neighborhoods         controllers.RegionController.listNeighborhoods
 GET     /geometry/streets               controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
 GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
 GET     /geometry/select                controllers.StreetController.select

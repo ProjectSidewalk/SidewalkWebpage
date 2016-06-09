@@ -57,6 +57,19 @@ object LabelTable {
   )
 
   /**
+    * This method returns the number of labels submitted by the given user
+    * @param userId User id
+    * @return A number of labels submitted by the user
+    */
+  def numberOfSubmittedLabels(userId: UUID): Int = db.withSession { implicit session =>
+    val tasks = auditTasks.filter(_.userId === userId.toString)
+    val _labels = for {
+      (_tasks, _labels) <- tasks.innerJoin(labels).on(_.auditTaskId === _.auditTaskId)
+    } yield _labels
+    _labels.list.size
+  }
+
+  /**
    * Saves a new labe in the table
     *
     * @param label
@@ -92,8 +105,6 @@ object LabelTable {
    * @return
    */
   def submittedLabels(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
-
-
     val _labels = for {
       ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labels on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString

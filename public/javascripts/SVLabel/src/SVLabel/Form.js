@@ -349,10 +349,10 @@ function Form ($, params) {
      * @returns {boolean}
      */
     function skipSubmit (dataIn) {
+        svl.tracker.push('TaskSkip');
         var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
-        svl.tracker.push('TaskSkip');
         submit(data, task);
 
         if ("taskContainer" in svl) {
@@ -369,7 +369,9 @@ function Form ($, params) {
      */
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
-        svl.tracker.push('TaskSubmit');
+        // svl.tracker.push('TaskSubmit');
+        data.interactions.push(svl.tracker.create("TaskSubmit"));
+
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
