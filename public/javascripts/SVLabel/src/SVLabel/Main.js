@@ -309,7 +309,7 @@ function Main ($, d3, google, turf, params) {
 
                             // Take care of the case where length of the missions is 0
                             var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                            var indexOfNextRegion = availableRegionIds.indexOf(regionId) + 1;
+                            var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
                             if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
                             regionId = availableRegionIds[indexOfNextRegion];
                         }

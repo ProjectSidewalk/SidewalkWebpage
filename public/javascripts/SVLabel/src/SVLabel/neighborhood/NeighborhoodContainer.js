@@ -45,13 +45,14 @@ function NeighborhoodContainer ($, parameters) {
     }
 
     function moveToANewRegion (regionId) {
+        regionId = parseInt(regionId, 10);
         var url = "/neighborhood/new";
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: url,
             type: 'post',
-            data: JSON.stringify([regionId]),
+            data: JSON.stringify({"region_id": regionId}),
             dataType: 'json',
             success: function (result) {
 
