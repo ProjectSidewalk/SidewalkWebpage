@@ -195,29 +195,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         AuditTaskTable.lastAuditTask(user.userId) match {
           case Some(auditTask) =>
-            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.auditInteractionsWithLabels(auditTask.auditTaskId)
-            val features: List[JsObject] = interactionsWithLabels.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
-              val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
-              val properties = if (interaction.labelType.isEmpty) {
-                Json.obj(
-                  "heading" -> interaction.heading.get.toDouble,
-                  "timestamp" -> interaction.timestamp.getTime
-                )
-              } else {
-                Json.obj(
-                  "heading" -> interaction.heading.get.toDouble,
-                  "timestamp" -> interaction.timestamp.getTime,
-                  "label" -> Json.obj(
-                    "label_type" -> interaction.labelType,
-                    "coordinates" -> Seq(interaction.labelLng, interaction.labelLat)
-                  )
-                )
-              }
-              Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-            }
-            val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-
-
+            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(auditTask.auditTaskId)
+            val featureCollection = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
             Future.successful(Ok(featureCollection))
           case None => Future.successful(Ok(Json.obj(
             "error" -> "0",

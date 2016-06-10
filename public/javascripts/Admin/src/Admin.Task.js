@@ -1,5 +1,5 @@
 function AdminTask(_, $, c3, d3, svl, params) {
-    var self = {};
+    var self = { auditTaskId: params.auditTaskId };
     var _data = {};
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
@@ -42,7 +42,7 @@ function AdminTask(_, $, c3, d3, svl, params) {
         var g = svg.append("g").attr("class", "leaflet-zoom-hide");  // The root group
 
         // Import the sample data and start animating
-        var geojsonURL = "/contribution/auditInteractions";
+        var geojsonURL = "/adminapi/auditpath/" + self.auditTaskId;
         d3.json(geojsonURL, function (collection) {
             animate(collection);
         });
@@ -161,8 +161,8 @@ function AdminTask(_, $, c3, d3, svl, params) {
                                         d3.select(this).attr("r", 5);
                                     });
                                 // Update the chart as well
-                                dotPlotVisualization.increment(label.label_type);
-                                dotPlotVisualization.udpate();
+                                // dotPlotVisualization.increment(label.label_type);
+                                // dotPlotVisualization.udpate();
 
                             }
                         }
@@ -194,209 +194,7 @@ function AdminTask(_, $, c3, d3, svl, params) {
             return map.latLngToLayerPoint(new L.LatLng(y, x))
         }
     })();
-
-
-    function DotPlotVisualization () {
-        var radius = 0.4, dR = radius / 2;
-        var svgWidth = 800, svgHeight = 50;
-        var margin = {top: 10, right: 10, bottom: 10, left: 10},
-            padding = {left: 5, top: 15},
-            width = 200 - margin.left - margin.right,
-            height = 50 - margin.top - margin.bottom;
-        var colorScheme = svl.misc.getLabelColors();
-        // Prepare a group to store svg elements, and declare a text
-        var dotPlots = {
-            "CurbRamp": {
-                id: "CurbRamp",
-                description: "Curb Ramp",
-                left: margin.left,
-                top: margin.top,
-                fillColor: svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5),
-                count: 0,
-                data: []
-            },
-            "NoCurbRamp": {
-                id: "NoCurbRamp",
-                description: "Missing Curb Ramp",
-                left: width + margin.left,
-                top: margin.top,
-                fillColor: colorScheme["NoCurbRamp"].fillStyle,
-                count: 0,
-                data: []
-            },
-            "Obstacle": {
-                id: "Obstacle",
-                description: "Obstacle in Path",
-                left: 2 * width + margin.left,
-                top: margin.top,
-                fillColor: colorScheme["Obstacle"].fillStyle,
-                count: 0,
-                data: []
-            },
-            "SurfaceProblem": {
-                id: "SurfaceProblem",
-                description: "Surface Problem",
-                left: 3 * width + margin.left,
-                top: margin.top,
-                fillColor: colorScheme["SurfaceProblem"].fillStyle,
-                count: 0,
-                data: []
-            }
-        };
-
-        var x = d3.scale.linear()
-            .domain([0, 20])
-            .range([0, width]);
-
-        var y = d3.scale.linear()
-            .domain([0, 20])
-            .range([height, 0]);
-
-        var svg = d3.select('#map-chart')
-            .append('svg')
-            .attr('width', svgWidth)
-            .attr('height', svgHeight)
-
-
-        var chart = svg.append('g')
-            .attr('width', svgWidth)
-            .attr('height', svgHeight)
-            .attr('class', 'chart')
-            .attr('transform', function () {
-                return 'translate(135,10)';
-            });
-
-        for (var key in dotPlots) {
-            dotPlots[key].g = chart.append('g')
-                .attr('transform', 'translate(' + dotPlots[key].left + ',' + dotPlots[key].top + ')')
-                .attr('width', width)
-                .attr('height', height)
-                .attr('class', 'main');
-            dotPlots[key].plot = dotPlots[key].g.append("g")
-                .attr('transform', 'translate(' + padding.left + ',' + padding.top + ')');
-
-            dotPlots[key].label = dotPlots[key].g.selectAll("text.label")
-                .data([0])
-                .enter()
-                .append("text")
-                .text(function () { return dotPlots[key].description; })
-                .style("font-size", "13px");
-            dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-                .data([0])
-                .enter()
-                .append("text")
-                .style("font-size", "13px")
-                .style("fill", "gray");
-        }
-
-        function update(key) {
-            // If a key is given, udpate the dot plot for that specific data.
-            // Otherwise update all.
-            if (key) {
-                _update(key)
-            } else {
-                for (var key in dotPlots) {
-                    _update(key);
-                }
-            }
-
-            // Actual update function
-            function _update(key) {
-                var firstDigit = dotPlots[key].count % 10,
-                    higherDigits = (dotPlots[key].count - firstDigit) / 10,
-                    count = firstDigit + higherDigits;
-
-                // Update the label
-                dotPlots[key].countLabel
-                    .transition().duration(1000)
-                    .attr("x", function () {
-                        return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-                    })
-                    .attr("y", function () {
-                        return x(radius + dR - 0.05);
-                    })
-                    // .transition().duration(1000)
-                    .text(function (d) {
-                        return dotPlots[key].count;
-                    });
-
-                // Update the dot plot
-                if (dotPlots[key].data.length >= count) {
-                    // Remove dots
-                    dotPlots[key].data = dotPlots[key].data.slice(0, count);
-
-                    dotPlots[key].plot.selectAll("circle")
-                        .transition().duration(500)
-                        .attr("r", function (d, i) {
-                            return i < higherDigits ? x(radius + dR) : x(radius);
-                        })
-                        .attr("cy", 0);
-
-                    dotPlots[key].plot.selectAll("circle")
-                        .data(dotPlots[key].data)
-                        .exit()
-                        .transition()
-                        .duration(500)
-                        .attr("cx", function () {
-                            return x(higherDigits);
-                        })
-                        .attr("r", 0)
-                        .remove();
-                } else {
-                    // Add dots
-                    var len = dotPlots[key].data.length;
-                    for (var i = 0; i < count - len; i++) {
-                        dotPlots[key].data.push([len + i, 0, radius])
-                    }
-                    dotPlots[key].plot.selectAll("circle")
-                        .data(dotPlots[key].data)
-                        .enter().append("circle")
-                        .attr("cx", x(0))
-                        .attr("cy", 0)
-                        .attr("r", x(radius + dR))
-                        .style("fill", dotPlots[key].fillColor)
-                        .transition().duration(1000)
-                        .attr("cx", function (d, i) {
-                            if (i <= higherDigits) {
-                                return x(d[0] * 2 * (radius + dR));
-                            } else {
-                                return x((higherDigits) * 2 * (radius + dR)) + x((i - higherDigits) * 2 * radius)
-                            }
-                        })
-                        .attr("cy", function (d, i) {
-                            if (i < higherDigits) {
-                                return 0;
-                            } else {
-                                return x(dR);
-                            }
-                        })
-                        .attr("r", function (d, i) {
-                            return i < higherDigits ? x(radius + dR) : x(radius);
-                        });
-                }
-            }
-        }
-
-        function increment(key) {
-            dotPlots[key].count += 1;
-        }
-
-        // Initialize
-        update();
-        //  setInterval(function () {
-        //    var keys = Object.keys(dotPlots),
-        //      idx = parseInt(keys.length * Math.random(), 10);
-        //    increment[keys[idx]].count += 1
-        //    update(keys[idx]);
-        //  }, 1500);
-
-        return {
-            udpate: update,
-            increment: increment
-        }
-    }
-    var dotPlotVisualization = new DotPlotVisualization();
-
+    
     self.data = _data;
     return self;
 }
