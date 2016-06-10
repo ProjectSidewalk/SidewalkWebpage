@@ -60,7 +60,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * This method queries the task (i.e., a street edge to audit) that is connected to the current task (specified by
-    * street edge id) and returns it in the GeoJson format.
+   * street edge id) and returns it in the GeoJson format.
+   *
+   * Todo: Deprecated
    * @param streetEdgeId street edge id
    * @param lat current latitude
    * @param lng current longitude
@@ -72,7 +74,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a next task, but make sure the task is in the specified region.
- *
+   * Todo: Deprecated
    * @param regionId Region id
    * @return
    */
