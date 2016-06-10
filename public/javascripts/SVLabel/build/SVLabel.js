@@ -13038,8 +13038,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
-                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
+                    "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not passable for a wheelchair user. ' +
                     '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
@@ -13197,7 +13196,7 @@ function Onboarding ($) {
                     "labelType": "NoCurbRamp"
                 },
                 "message": {
-                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Cub Ramp" button</span> to label it.',
+                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Curb Ramp" button</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -14155,9 +14154,8 @@ function Onboarding ($) {
                 };
                 googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
 
-                $target = $("#onboarding-message-holder").find("button");
+                $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
                 callback = function () {
-                    $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
                     svl.panorama.setPano(state.panoId);
@@ -14166,7 +14164,7 @@ function Onboarding ($) {
 
                     if ("compass" in svl) svl.compass.hideMessage();
                 };
-                $target.on("click", callback);
+                $target.one("click", callback);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
