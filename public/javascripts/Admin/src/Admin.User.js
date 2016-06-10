@@ -1,4 +1,4 @@
-function AdminUser(_, $, c3, d3, params) {
+function AdminUser(_, $, c3, d3, svl, params) {
     var self = {};
     var _data = {};
 
@@ -6,6 +6,7 @@ function AdminUser(_, $, c3, d3, params) {
 
     $.getJSON("/adminapi/interactions/" + self.username, function (data) {
         var grouped = _.groupBy(data, function (d) { return d.audit_task_id; });
+        _data.interactions = data;
         var keys = Object.keys(grouped);
         var keyIndex;
         var keysLength = keys.length;
@@ -35,7 +36,7 @@ function AdminUser(_, $, c3, d3, params) {
             },
             "TaskSubmit": {
                 y: 0,
-                fill: "#eee"
+                fill: "steelblue"
             },
             "Unload": {
                 y: 0,
@@ -63,7 +64,7 @@ function AdminUser(_, $, c3, d3, params) {
                 return o;
             });
 
-            var timestampMax = 600000; // 10 minutes
+            var timestampMax = 300000; // 5 minutes
             var x = d3.scale.linear().domain([ 0, timestampMax ]).range([ padding.left, svgWidth - padding.left - padding.right ]); //.clamp(true);
             var y = d3.scale.linear().domain([ 0, svgHeight]).range([ padding.top, svgHeight - padding.top - padding.bottom ]);
 
@@ -94,9 +95,39 @@ function AdminUser(_, $, c3, d3, params) {
                 .attr("cx", function (d) {
                     return x(d.relativeTimestamp);
                 })
-                .style({stroke: "white", "stroke-width": "2px"})
+                .style({opacity: 0.5, stroke: "white", "stroke-width": "2px"})
                 .style("fill", function (d) {
-                    var style = (d.action in eventProperties) ? eventProperties[d.action] : eventProperties["Default"];
+                    var style = !(d.action in eventProperties) ? eventProperties["Default"] : eventProperties[d.action];
+                    // if (!(d.action in eventProperties)) {
+                    //     style = eventProperties["Default"];
+                    // } else if (d.action.indexOf("FinishLabeling")) {
+                    //     if (d.note) {
+                    //         console.log(d.note);
+                    //         var labelType = d.note.split(",")[0].split(":")[1];
+                    //         var colors = svl.misc.getLabelColors();
+                    //
+                    //         console.log(colors);
+                    //         console.log(colors[labelType]);
+                    //         // console.log(labelType);
+                    //         // console.log(svl.util.color.RGBAToRGB(svl.misc.getLabelColors("CurbRamp")));
+                    //
+                    //         style= eventProperties[d.action];
+                    //     } else {
+                    //         style = eventProperties["Default"];
+                    //     }
+                    // } else {
+                    //     style = eventProperties[d.action];
+                    // }
+                    if (d.action.indexOf("FinishLabeling") > -1) {
+                        if (d.note) {
+                            var colors = svl.misc.getLabelColors();
+                            var labelType = d.note.split(",")[0].split(":")[1];
+
+                            if (labelType in colors) {
+                                return svl.util.color.RGBAToRGB(colors[labelType].fillStyle);
+                            }
+                        }
+                    }
                     return style.fill;
                 })
                 .on("mouseover", function(d){
@@ -135,7 +166,7 @@ function AdminUser(_, $, c3, d3, params) {
 
     });
     
-    $.getJSON("/admin/tasks/" + self.username, function (data) {
+    $.getJSON("/adminapi/tasks/" + self.username, function (data) {
         _data.tasks = data;
         completedInitializingAuditedTasks = true;
 
@@ -198,5 +229,6 @@ function AdminUser(_, $, c3, d3, params) {
         $("#task-contribution-table").append(tableRows);
     });
 
+    self.data = _data;
     return self;
 }

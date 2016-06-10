@@ -59,20 +59,6 @@
             <div class="col-lg-12">
                 <div id="user-activity-chart"></div>
             </div>
-            <div class="col-lg-12">
-                <table class="table table-condensed">
-                    <tr>
-                        <th class="col-md-2">Audit Id</th>
-                        <th class="col-md-4">Timestamp</th>
-                        <th class="col-md-6">Interaction Record</th>
-                    </tr>
-                    <tr>
-                        <td>x</td>
-                        <td>x</td>
-                        <td>x</td>
-                    </tr>
-                </table>
-            </div>
         </div>
 
         <div class="row">
@@ -94,14 +80,15 @@
     <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/gantt-chart-d3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesColor.js")'></script>
     <script>
             $(document).ready(function () {
                 var username = '@user.get.username';
-                window.admin = AdminUser(_, $, c3, d3, {username: username});
+                window.admin = AdminUser(_, $, c3, d3, svl, {username: username});
             });
     </script>
 }

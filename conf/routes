@@ -19,12 +19,14 @@ POST    /authenticate/credentials       @controllers.CredentialsAuthController.a
 POST    /signUp                         @controllers.SignUpController.signUp(url: String ?= "/")
 
 # Admin
-GET     /admin                              @controllers.AdminController.index
-GET     /admin/neighborhoodCompletionRate   @controllers.AdminController.getNeighborhoodCompletionRate
-GET     /admin/missionsCompletedByUsers     @controllers.AdminController.missionsCompletedByUsers
-GET     /admin/tasks/:username              @controllers.AdminController.submittedTasksWithLabels(username: String)
-GET     /admin/:username                    @controllers.AdminController.userProfile(username: String)
-GET     /adminapi/interactions/:username    @controllers.AdminController.fetchAuditTaskInteractionsOfAUser(username: String)
+GET     /admin                                  @controllers.AdminController.index
+GET     /admin/user/:username                   @controllers.AdminController.userProfile(username: String)
+GET     /admin/task/:taskId                     @controllers.AdminController.task(taskId: Int)
+
+GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.missionsCompletedByUsers
+GET     /adminapi/neighborhoodCompletionRate    @controllers.AdminController.getNeighborhoodCompletionRate
+GET     /adminapi/tasks/:username               @controllers.AdminController.submittedTasksWithLabels(username: String)
+GET     /adminapi/interactions/:username        @controllers.AdminController.fetchAuditTaskInteractionsOfAUser(username: String)
 
 # Auditing tasks
 GET     /audit                          @controllers.AuditController.audit
@@ -73,6 +75,7 @@ GET     /contribution/:username         @controllers.UserProfileController.userP
 
 
 # Geometry API
+GET     /geometry/neighborhoods         @controllers.RegionController.listNeighborhoods
 GET     /geometry/streets               controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
 GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
 GET     /geometry/select                controllers.StreetController.select

@@ -72,7 +72,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
     var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
@@ -94,7 +94,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
 
     function _init () {

@@ -45,7 +45,7 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
  */
 object LabelTable {
   val db = play.api.db.slick.DB
-  val labels = TableQuery[LabelTable].filter(_.deleted === false)
+  val labels = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
@@ -63,8 +63,10 @@ object LabelTable {
     */
   def numberOfSubmittedLabels(userId: UUID): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
+    val labelsWithoutDeleted = labels.filter(_.deleted === false)
+
     val _labels = for {
-      (_tasks, _labels) <- tasks.innerJoin(labels).on(_.auditTaskId === _.auditTaskId)
+      (_tasks, _labels) <- tasks.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
     _labels.list.size
   }
@@ -86,8 +88,10 @@ object LabelTable {
     * @return
     */
   def submittedLabels: List[LabelLocation] = db.withSession { implicit session =>
+    val labelsWithoutDeleted = labels.filter(_.deleted === false)
+
     val _labels = for {
-      (_labels, _labelTypes) <- labels.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
+      (_labels, _labelTypes) <- labelsWithoutDeleted.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
     val _points = for {
@@ -105,8 +109,10 @@ object LabelTable {
    * @return
    */
   def submittedLabels(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+    val labelsWithoutDeleted = labels.filter(_.deleted === false)
+
     val _labels = for {
-      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labels on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
+      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 

@@ -23,12 +23,14 @@ import scala.concurrent.Future
 class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
       if (user.roles.getOrElse(Seq()).contains("Administrator")) true else false
     case _ => false
   }
 
+  // Pages
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
@@ -48,6 +50,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  def task(taskId: Int) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      AuditTaskTable.find(taskId) match {
+        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
+        case _ => Future.successful(Redirect("/"))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  // JSON APIs
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val streetsPerRegion = RegionTable.getStreetsPerRegion.groupBy(_.regionId)

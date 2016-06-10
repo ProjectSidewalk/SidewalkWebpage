@@ -157,9 +157,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert labels
           for (label <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val l = Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
-              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId)
-            val labelId: Int = LabelTable.save(l)
+            val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
+              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId))
 
             // Insert label points
             for (point <- label.points) {

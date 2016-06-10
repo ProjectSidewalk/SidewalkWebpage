@@ -43,8 +43,10 @@ object StreetEdgeTable {
   })
 
   val db = play.api.db.slick.DB
-  val streetEdges = TableQuery[StreetEdgeTable].filter(_.deleted === false)
+  val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
+
+  val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
   /**
    * Returns a list of all the street edges
@@ -52,7 +54,7 @@ object StreetEdgeTable {
     * @return A list of StreetEdge objects.
    */
   def all: List[StreetEdge] = db.withSession { implicit session =>
-    streetEdges.filter(edge => edge.deleted === false).list
+    streetEdgesWithoutDeleted.list
   }
 
   /**
@@ -61,11 +63,11 @@ object StreetEdgeTable {
     * @return
     */
   def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdges.filter(edge => edge.deleted === false).list
+    val allEdges = streetEdgesWithoutDeleted.list
 
     val completedEdges = (for {
-      (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
+      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _assignmentCounts.completionCount >= auditCount
     } yield _streetEdges).list
 
     completedEdges.length.toFloat / allEdges.length
@@ -79,8 +81,8 @@ object StreetEdgeTable {
     */
   def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
     val distances = for {
-      (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
+      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _assignmentCounts.completionCount >= auditCount
     } yield _streetEdges.geom.transform(26918).length
     (distances.list.sum * 0.000621371).toFloat
   }
@@ -92,8 +94,8 @@ object StreetEdgeTable {
     */
   def auditedStreets(auditCount: Int): List[StreetEdge] = db.withSession { implicit session =>
     val edges = for {
-      (_streetEdges, _assignmentCounts) <- streetEdges.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _streetEdges.deleted === false && _assignmentCounts.completionCount >= auditCount
+      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _assignmentCounts.completionCount >= auditCount
     } yield _streetEdges
     edges.list
   }
@@ -115,7 +117,6 @@ object StreetEdgeTable {
    * Set a record's deleted column to true
    */
   def delete(id: Int) = db.withSession { implicit session =>
-    // streetEdges.filter(_.streetEdgeId == id)
     streetEdges.filter(edge => edge.streetEdgeId === id).map(_.deleted).update(true)
   }
 

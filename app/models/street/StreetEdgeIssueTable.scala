@@ -22,7 +22,6 @@ class StreetEdgeIssueTable(tag: Tag) extends Table[StreetEdgeIssue](tag, Some("s
 
 object StreetEdgeIssueTable {
   val db = play.api.db.slick.DB
-  val streetEdges = TableQuery[StreetEdgeTable].filter(_.deleted === false)
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTable]
 
   /**

@@ -26,13 +26,9 @@ function Admin ($, c3, turf) {
             .fitBounds(bounds)
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
+    
 
-
-    $.getJSON('/admin/completedTasks', function (data) {
-       console.log(data);
-    });
-
-    $.getJSON('/admin/missionsCompletedByUsers', function (data) {
+    $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
         var i,
             len = data.length;
 
@@ -102,7 +98,7 @@ function Admin ($, c3, turf) {
         });
     });
 
-    $.getJSON('/admin/neighborhoodCompletionRate', function (data) {
+    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
         var i,
             len = data.length,
             completionRate,
