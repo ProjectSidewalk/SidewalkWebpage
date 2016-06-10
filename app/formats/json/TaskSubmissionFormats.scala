@@ -16,7 +16,6 @@ object TaskSubmissionFormats {
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
 
-
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
       (JsPath \ "lat").read[Float] and

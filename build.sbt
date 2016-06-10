@@ -21,6 +21,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "0.8.0",
   "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",
+  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "org.webjars" %% "webjars-play" % "2.3.0",
   "org.webjars" % "bootstrap" % "3.1.1",
   "org.webjars" % "jquery" % "1.11.0",

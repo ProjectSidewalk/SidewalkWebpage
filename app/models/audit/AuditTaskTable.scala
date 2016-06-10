@@ -95,8 +95,18 @@ object AuditTaskTable {
   case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Int, temporaryLabelId: Option[Int], labelType: String)
 
   /**
+    * Find a task
+    * @param auditTaskId
+    * @return
+    */
+  def find(auditTaskId: Int): Option[AuditTask] = db.withSession { implicit session =>
+    val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
+    auditTaskList.headOption
+  }
+
+  /**
     * Return a list of tasks associated with labels
-    * @param userId
+    * @param userId User id
     * @return
     */
   def tasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
@@ -447,6 +457,15 @@ object AuditTaskTable {
 
     val availableTasks = selectAvailableTaskQuery((regionId, userId.toString)).list
     availableTasks.nonEmpty
+  }
+
+  /**
+    * Get the number of tasks completed by the users.
+    * @param userId
+    * @return
+    */
+  def numberOfCompletedAudits(userId: UUID): Int = db.withSession { implicit session =>
+    auditTasks.filter(_.userId === userId.toString).list.size
   }
 
   /**

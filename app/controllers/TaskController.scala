@@ -1,7 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone}
+import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -103,7 +103,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
-
   /**
    * Parse the submitted data and insert them into tables.
    *
@@ -158,12 +157,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert labels
           for (label <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.save(
-              Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId,
-                label.photographerHeading, label.photographerPitch,
-                label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId
-              )
-            )
+            val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
+              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId))
 
             // Insert label points
             for (point <- label.points) {
@@ -224,6 +219,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
 
           // Check if the user has cleared any mission
+          // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
           val completed: List[Mission] = request.identity match {
             case Some(user) =>
               val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
@@ -250,5 +246,4 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
     )
   }
-
 }
