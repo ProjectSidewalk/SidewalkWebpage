@@ -157,10 +157,19 @@ function AdminUser(_, $, c3, d3, svl, params) {
             var labels = labelGroup.selectAll("text")
                 .data([taskId, duration, dateLabel])
                 .enter().append("text")
+                .attr("class", "interaction-label")
                 .attr("x", function (d) { return x(0) - padding.left; })
                 .attr("y", function (d, i) { return 13 * (i + 1); })
                 .attr("font-size", "10px")
                 .text(function (d) { return d; });
+
+            labels.filter(function(d){ return typeof(d) == "string" && d.indexOf("TaskId") !== -1; })
+                .style("cursor", "pointer")
+                .on("click", function(d){
+                    var taskId = d.split(" ")[1];
+                    document.location.href = "/admin/task/" + taskId;
+                });
+
 
         }
 
