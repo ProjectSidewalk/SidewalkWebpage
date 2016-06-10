@@ -13038,8 +13038,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
-                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
+                    "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not passable for a wheelchair user. ' +
                     '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
@@ -13197,7 +13196,7 @@ function Onboarding ($) {
                     "labelType": "NoCurbRamp"
                 },
                 "message": {
-                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Cub Ramp" button</span> to label it.',
+                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Curb Ramp" button</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13255,7 +13254,8 @@ function Onboarding ($) {
                     "severity": 3
                 },
                 "message": {
-                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> Just use your best judgment! <br>' +
+                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> ' +
+                    'When you rate accessibility, we just ask that you use <span class="bold">your best judgment!</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
@@ -13595,7 +13595,7 @@ function Onboarding ($) {
                     "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
                 },
                 "message": {
-                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. Let’s take a step to see if we can get a better look.',
+                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. <span class="bold">Let’s take a step</span> to see if we can get a better look. To taske a step, double click on the circle below.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13629,7 +13629,7 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
+                    "message": 'Good, you just took a step! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13659,7 +13659,7 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click on the curb ramp to label it.</span>',
+                    "message": '<span class="bold">Click on the curb ramp (below the yellow arrow) to label it.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13728,7 +13728,8 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": '<span class="bold">Ok, it\'s almost done!</span> Let’s adjust the view to look at the final corner in this intersection. ' +
+                    '<span class="bold">Grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13764,10 +13765,11 @@ function Onboarding ($) {
                     "blinks": ["google-maps", "compass"]
                 },
                 "message": {
-                    "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
+                    "message": 'From here on, we\'ll guide you through your missions with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/Compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps">',
+                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps"> ' +
+                    'See flashing yellow highlights.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13784,7 +13786,8 @@ function Onboarding ($) {
                     "blinks": ["status-field"]
                 },
                 "message": {
-                    "message": 'Your progress will be tracked and shown on the right side of the interface.',
+                    "message": 'Your <span class="bold">progress will be tracked and shown</span> on the right side of the interface. ' +
+                    'Your overall goal is to label as many accessibility problems as you find—such as missing curb ramps.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13802,7 +13805,7 @@ function Onboarding ($) {
                 },
                 "message": {
                     "message": 'Other interface features include: <br>' +
-                    '<span class="bold">Zoom In/Out:</span> Zoom in or out the Street View image<br> ' +
+                    '<span class="bold">Zooming:</span> Zoom in or out of the Street View image<br> ' +
                     '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
                     "position": "top-right",
                     "parameters": null
@@ -13820,10 +13823,10 @@ function Onboarding ($) {
                     "blinks": ["sound", "jump", "feedback"]
                 },
                 "message": {
-                    "message": 'Other interface features include: <br>' +
-                    '<span class="bold">Sound:</span> Turn on/off the sound effects <br> ' +
-                    '<span class="bold">Jump:</span> Click if you want to audit a different street <br>' +
-                    '<span class="bold">Feedback:</span> Provide comments',
+                    "message": 'Finally, you can also control: <br>' +
+                    '<span class="bold">Sound:</span> turn on/off the sound effects <br> ' +
+                    '<span class="bold">Jump:</span> jump to a different street <br>' +
+                    '<span class="bold">Feedback:</span> provide comments about your mission or report bugs',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -14155,9 +14158,8 @@ function Onboarding ($) {
                 };
                 googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
 
-                $target = $("#onboarding-message-holder").find("button");
+                $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
                 callback = function () {
-                    $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
                     svl.panorama.setPano(state.panoId);
@@ -14166,7 +14168,7 @@ function Onboarding ($) {
 
                     if ("compass" in svl) svl.compass.hideMessage();
                 };
-                $target.on("click", callback);
+                $target.one("click", callback);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
