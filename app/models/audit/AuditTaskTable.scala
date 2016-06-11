@@ -97,7 +97,7 @@ object AuditTaskTable {
   val users = TableQuery[UserTable]
 
   case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Int, temporaryLabelId: Option[Int], labelType: String)
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
 
   /**
     * Find a task
@@ -123,13 +123,13 @@ object AuditTaskTable {
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.innerJoin(labels).on(_._3 === _.auditTaskId)
+      (_userTasks, _labels) <- userTasks.leftJoin(labels).on(_._3 === _.auditTaskId)
       if _labels.deleted === false
-    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId, _labels.temporaryLabelId, _labels.labelTypeId)
+    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {
       (_labelTypes, _userTaskLabels) <- labelTypes.innerJoin(userTaskLabels).on(_.labelTypeId === _._9)
-    } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType)
+    } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType.?)
 
     tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
   }
