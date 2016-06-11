@@ -69,6 +69,11 @@ function MissionStatus () {
      */
     function updateMissionCompletionBar (completionRate) {
         var r, g, b, color, colorIntensity = 200;
+
+        // Update the %
+        printCompletionRate(completionRate);
+
+        // Update the bar
         if (completionRate < 0.6) {
             r = colorIntensity * 1.3;
             g = parseInt(colorIntensity * completionRate * 2);

@@ -6,6 +6,7 @@ function Onboarding ($) {
             state: 0,
             isOnboarding: true
         },
+        numStates = 32,  // I'm hard coding the number of the states.
         states = {
             "initialize": {
                 "properties": {
@@ -31,6 +32,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(1/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                     return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
                 }
@@ -57,6 +59,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(2/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
                     return "label-attribute-1";
                 }
@@ -87,6 +90,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(3/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
                     return "rate-attribute-1";
                 }
@@ -107,6 +111,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(4/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
@@ -148,6 +153,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(5/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
                     return "select-label-type-2";
                 }
@@ -175,6 +181,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(6/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
                     return "label-attribute-2";
                 }
@@ -205,6 +212,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(7/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
                     return "rate-severity-2";
                 }
@@ -224,6 +232,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(8/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
@@ -273,6 +282,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(9/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
                     return "label-attribute-3";
                 }
@@ -303,6 +313,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(10/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
                     return "rate-severity-3";
                 }
@@ -323,6 +334,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(11/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
@@ -363,6 +375,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(12/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
                     return "select-label-type-4";
                 }
@@ -399,6 +412,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(13/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
                     return "label-attribute-4";
                 }
@@ -429,6 +443,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(14/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
                     return "rate-severity-4";
                 }
@@ -448,6 +463,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(15/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
@@ -497,6 +513,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(16/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
                     return "label-attribute-5";
                 }
@@ -527,6 +544,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(17/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
                     return "rate-severity-5";
                 }
@@ -546,6 +564,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(18/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
@@ -596,6 +615,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(19/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
                     return "label-attribute-6";
                 }
@@ -627,6 +647,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(20/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
                     return "adjust-heading-angle-3";
                 }
@@ -645,6 +666,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(21/numStates);
                     svl.tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
                     return "walk-1";
                 }
@@ -678,6 +700,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(22/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
                     svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                     return "select-label-type-7";
@@ -706,6 +729,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(23/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
                     return "label-attribute-7";
                 }
@@ -736,6 +760,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(24/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
                     return "rate-severity-7";
                 }
@@ -755,6 +780,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(25/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
@@ -796,6 +822,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(26/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
                     return "instruction-1";
                 }
@@ -814,6 +841,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(27/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
                     svl.compass.showMessage();
                     return "instruction-2";
@@ -836,6 +864,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(28/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
                     return "instruction-3";
                 }
@@ -854,6 +883,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(29/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                     return "instruction-4";
                 }
@@ -873,6 +903,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(30/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
                     return "instruction-5";
                 }
@@ -893,6 +924,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(31/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
                     return "outro";
                 }
@@ -919,6 +951,7 @@ function Onboarding ($) {
                 "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(32/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
                     return null;
                 }
