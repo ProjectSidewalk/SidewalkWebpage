@@ -674,7 +674,7 @@ function Onboarding ($) {
             "walk-1": {
                 "properties": {
                     "action": "WalkTowards",
-                    "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
+                    "panoId": "bdmGHJkiSgmO7_80SnbzXw"
                 },
                 "message": {
                     "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. <span class="bold">Let’s take a step</span> to see if we can get a better look. To taske a step, double click on the circle below.',
@@ -716,7 +716,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": [
                     {
                         "type": "arrow",
@@ -747,7 +747,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": [
                     {
                         "type": "arrow",
@@ -777,7 +777,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(25/numStates);
@@ -799,7 +799,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
@@ -819,7 +819,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(26/numStates);
@@ -838,7 +838,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(27/numStates);
@@ -861,7 +861,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(28/numStates);
@@ -880,7 +880,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(29/numStates);
@@ -900,7 +900,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(30/numStates);
@@ -921,7 +921,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(31/numStates);
@@ -948,7 +948,7 @@ function Onboarding ($) {
                     "background": true
                 },
                 "okButton": false,
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.missionStatus.updateMissionCompletionBar(32/numStates);
@@ -956,6 +956,7 @@ function Onboarding ($) {
                     return null;
                 }
             }
+            
         };
 
     function _init () {
