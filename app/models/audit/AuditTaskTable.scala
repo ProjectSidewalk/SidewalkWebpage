@@ -18,7 +18,7 @@ import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.util.Random
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp])
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)  {
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
@@ -48,8 +48,9 @@ class AuditTaskTable(tag: Tag) extends Table[AuditTask](tag, Some("sidewalk"), "
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def taskStart = column[Timestamp]("task_start", O.NotNull)
   def taskEnd = column[Option[Timestamp]]("task_end", O.Nullable)
+  def completed = column[Boolean]("completed", O.NotNull)
 
-  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
+  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -66,7 +67,7 @@ object AuditTaskTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val auditTaskConverter = GetResult[AuditTask](r => {
-    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption)
+    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean)
   })
 
 //  case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)
@@ -96,6 +97,7 @@ object AuditTaskTable {
 
   /**
     * Find a task
+    *
     * @param auditTaskId
     * @return
     */
@@ -106,6 +108,7 @@ object AuditTaskTable {
 
   /**
     * Return a list of tasks associated with labels
+    *
     * @param userId User id
     * @return
     */
@@ -461,6 +464,7 @@ object AuditTaskTable {
 
   /**
     * Get the number of tasks completed by the users.
+    *
     * @param userId
     * @return
     */
@@ -481,5 +485,28 @@ object AuditTaskTable {
     val auditTaskId: Int =
       (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
     auditTaskId
+  }
+
+  /**
+    * Update the `completed` column of the specified audit task row.
+    * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
+    * @param auditTaskId Audit task id
+    * @param completed A completed flag
+    * @return
+    */
+  def updateCompleted(auditTaskId: Int, completed: Boolean) = db.withTransaction { implicit session =>
+    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.completed
+    q.update(completed)
+  }
+
+  /**
+    * Update the `task_end` column of the specified audit task row
+    * @param auditTaskId
+    * @param timestamp
+    * @return
+    */
+  def updateTaskEnd(auditTaskId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
+    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.taskEnd
+    q.update(Some(timestamp))
   }
 }

@@ -131,22 +131,32 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Check if there is auditTaskId
           val auditTaskId: Int = if (data.auditTask.auditTaskId.isDefined) {
-            data.auditTask.auditTaskId.get
+            // Update the existing audit task row
+            val id = data.auditTask.auditTaskId.get
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            AuditTaskTable.updateTaskEnd(id, timestamp)
+            id
           } else {
             // Insert audit task
             val now = new DateTime(DateTimeZone.UTC)
             val timestamp: Timestamp = new Timestamp(now.getMillis)
             val auditTask = request.identity match {
-              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp))
+              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
               case None =>
                 val user: Option[DBUser] = UserTable.find("anonymous")
-                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp))
+                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
             }
 
             if (data.incomplete.isDefined) {
               StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
             }
             AuditTaskTable.save(auditTask)
+          }
+
+          // Set the task to be completed
+          if (data.auditTask.completed.isDefined && data.auditTask.completed.get) {
+            AuditTaskTable.updateCompleted(auditTaskId, completed=true)
           }
 
 

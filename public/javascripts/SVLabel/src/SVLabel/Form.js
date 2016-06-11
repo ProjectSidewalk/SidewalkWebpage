@@ -117,7 +117,8 @@ function Form ($, params) {
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
-            audit_task_id: task.getAuditTaskId()
+            audit_task_id: task.getAuditTaskId(),
+            completed: task.isCompleted()
         };
 
         data.environment = {
