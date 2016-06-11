@@ -140,17 +140,19 @@ function AdminTask(_, $, c3, d3, svl, params) {
                         // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
                         var counter = d3.select(this).attr("counter");
                         var d = featuresdata[counter];
+
                         if (d) {
                             if ("label" in d.properties) {
                                 var label = d.properties.label;
+                                var fill = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
+                                console.log(label)
+                                console.log(fill)
                                 var p = map.latLngToLayerPoint(new L.LatLng(label.coordinates[1], label.coordinates[0]));
                                 var c = g.append("circle")
                                     .attr("r", 5)
                                     .attr("cx", p.x)
                                     .attr("cy", p.y)
-                                    .attr("fill", function () {
-                                        return svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5);
-                                    })
+                                    .attr("fill", fill)
                                     // .attr("color", "white")
                                     // .attr("stroke", "#ddd")
                                     .attr("stroke-width", 1)

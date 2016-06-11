@@ -20,6 +20,10 @@ import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)  {
+  /**
+    * This method converts the data into the GeoJSON format
+    * @return
+    */
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
     val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
@@ -80,7 +84,7 @@ object AuditTaskTable {
     val x2 = r.nextFloat
     val y2 = r.nextFloat
     val taskStart = r.nextTimestamp
-    val completed = r.nextIntOption.isDefined
+    val completed = r.nextBooleanOption.getOrElse(false)
     NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completed)
   })
 
@@ -337,7 +341,7 @@ object AuditTaskTable {
     * @param regionId region id
    * @return
    */
-  def getNewTaskInRegion(regionId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTaskInARegion(regionId: Int): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
 
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
@@ -402,7 +406,7 @@ object AuditTaskTable {
     * @param regionId Region id
     * @return
     */
-  def getTasksInRegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
+  def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
     val selectTaskQuery = Q.query[Int, NewTask](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, NULL as audit_task_id
         |FROM sidewalk.region
@@ -420,23 +424,19 @@ object AuditTaskTable {
     * @param userId User id
     * @return
     */
-  def getTasksInRegion(regionId: Int, userId: UUID): List[NewTask] = db.withSession { implicit session =>
+  def selectTasksInARegion(regionId: Int, userId: UUID): List[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val selectTaskQuery = Q.query[(String, Int), NewTask](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, completed_audit.audit_task_id
-        |FROM sidewalk.region
-        |INNER JOIN sidewalk.street_edge AS st_e
-        |ON ST_Intersects(st_e.geom, region.geom)
-        |LEFT JOIN (
-        |    SELECT street_edge_id, audit_task_id FROM sidewalk.audit_task
-        |    WHERE user_id = ?
-        |) AS completed_audit
-        |ON st_e.street_edge_id = completed_audit.street_edge_id
-        |WHERE region.region_id = ? AND st_e.deleted IS FALSE""".stripMargin
+    val selectIncompleteTaskQuery = Q.query[(String, Int), NewTask](
+      """SELECT street.street_edge_id, street.geom, street.x1, street.y1, street.x2, street.y2, street.timestamp, audit_task.audit_task_id, audit_task.completed FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge AS street
+        |ON ST_Intersects(street.geom, region.geom)
+        |LEFT JOIN sidewalk.audit_task
+        |ON street.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
+        |WHERE region.region_id = ? AND street.deleted = FALSE AND (audit_task.completed = FALSE OR audit_task.completed IS NULL)""".stripMargin
     )
 
-    selectTaskQuery((userId.toString, regionId)).list
+    selectIncompleteTaskQuery((userId.toString, regionId)).list
   }
 
   /**
@@ -490,6 +490,7 @@ object AuditTaskTable {
   /**
     * Update the `completed` column of the specified audit task row.
     * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
+    *
     * @param auditTaskId Audit task id
     * @param completed A completed flag
     * @return
@@ -501,6 +502,7 @@ object AuditTaskTable {
 
   /**
     * Update the `task_end` column of the specified audit task row
+    *
     * @param auditTaskId
     * @param timestamp
     * @return

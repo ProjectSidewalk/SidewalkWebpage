@@ -39,9 +39,9 @@ POST    /audit/nostreetview             @controllers.AuditController.postNoStree
 # Task API.
 GET     /task                           @controllers.TaskController.getTask
 GET     /task/next                      @controllers.TaskController.getNextTask(streetEdgeId: Int, lat: Float, lng: Float)
-GET     /task/nextInRegion              @controllers.TaskController.getTaskInRegion(regionId: Int)
+GET     /task/nextInRegion              @controllers.TaskController.getATaskInARegion(regionId: Int)
 GET     /task/street/:id                @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
-GET     /tasks                          @controllers.TaskController.getTasksInRegion(regionId: Int)
+GET     /tasks                          @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                           @controllers.TaskController.post
 
 

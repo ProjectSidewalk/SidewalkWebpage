@@ -78,15 +78,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param regionId Region id
    * @return
    */
-  def getTaskInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val task = AuditTaskTable.getNewTaskInRegion(regionId)
-        Future.successful(Ok(task.toJSON))
-      case None =>
-        val task = AuditTaskTable.getNewTaskInRegion(regionId)
-        Future.successful(Ok(task.toJSON))
-    }
+  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
+    Future.successful(Ok(task.toJSON))
   }
 
   /**
@@ -94,13 +88,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @param regionId Region id
     * @return
     */
-  def getTasksInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+  def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId, user.userId).map(_.toJSON)
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
       case None =>
-        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId).map(_.toJSON)
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
     }
   }
