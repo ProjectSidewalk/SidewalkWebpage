@@ -1,9 +1,8 @@
 @import models.user.User
 @import models.daos.slick.DBTableDefinitions.DBUser
 @import models.audit.AuditTask
-
 @import java.util.UUID
-@(title: String, admin: Option[User] = None, task: AuditTask))
+@(title: String, admin: Option[User] = None, task: AuditTask)
 
 @main(title) {
     @navbar(admin)
