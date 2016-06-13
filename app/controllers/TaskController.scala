@@ -43,8 +43,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toJSON))
+      case Some(user) =>
+        val task = AuditTaskTable.selectANewTask(user.username)
+        Future.successful(Ok(task.toJSON))
+      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
     }
   }
 
@@ -53,7 +55,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.getNewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId)
     Future.successful(Ok(task.toJSON))
   }
 
