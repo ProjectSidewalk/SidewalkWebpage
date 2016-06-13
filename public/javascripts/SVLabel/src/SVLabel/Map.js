@@ -486,18 +486,7 @@ function Map ($, google, turf, params) {
                             "make this neighborhood more accessible for everyone!");
                     }
 
-                    var geometry = newTask.getGeometry();
-                    if (geometry) {
-                        var lat = geometry.coordinates[0][1],
-                            lng = geometry.coordinates[0][0],
-                            currentLatLng = getPosition(),
-                            newTaskPosition = turf.point([lng, lat]),
-                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
-
-                        // Jump to the new location if it's really far away.
-                        if (distance > 0.1) setPosition(lat, lng);
-                    }
+                    _moveToTheTaskLocation(newTask);
                 }
             }
         }
@@ -510,6 +499,29 @@ function Map ($, google, turf, params) {
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
+    }
+
+    function _moveToTheTaskLocation(task) {
+        var geometry = task.getGeometry();
+        var callback = function (data, status) {
+            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                svl.misc.reportNoStreetView(task.getStreetEdgeId());
+                svl.taskContainer.endTask(task);
+
+                // Get a new task and repeat
+                task = svl.taskContainer.nextTask(task);
+                svl.taskContainer.setCurrentTask(task);
+                _moveToTheTaskLocation(task);
+            }
+        };
+        // Jump to the new location if it's really far away.
+        var lat = geometry.coordinates[0][1],
+            lng = geometry.coordinates[0][0],
+            currentLatLng = getPosition(),
+            newTaskPosition = turf.point([lng, lat]),
+            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+        if (distance > 0.1) setPosition(lat, lng, callback);
     }
 
     /**
@@ -761,8 +773,7 @@ function Map ($, google, turf, params) {
         }
     }
 
-
-
+    
     /**
      * Initailize Street View
      */
@@ -891,14 +902,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
+     * 
+     * @param panoramaId
+     * @returns {setPano}
+     */
+    function setPano (panoramaId) {
+        svl.panorama.setPano(panoramaId);
+        return this;
+    }
+
+    /**
      * Set map position
      * @param lat
      * @param lng
      */
-    function setPosition (lat, lng) {
-        var latlng = new google.maps.LatLng(lat, lng);
-        svl.panorama.setPosition(latlng);
-        map.setCenter(latlng);
+    function setPosition (lat, lng, callback) {
+        // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+        var gLatLng = new google.maps.LatLng(lat, lng);
+
+        svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            if (status === google.maps.StreetViewStatus.OK) {
+                svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                // svl.panorama.setPosition(gLatLng);
+                map.setCenter(gLatLng);
+            } else {
+                console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
+            }
+            if (callback) callback(streetViewPanoramaData, status);
+        });
+        
         return this;
     }
 
