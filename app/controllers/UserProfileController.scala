@@ -100,7 +100,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedTasks = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasks = AuditTaskTable.getCompletedTasks(user.userId).map(t => Json.toJson(t))
+        val tasks = AuditTaskTable.selectCompletedTasks(user.userId).map(t => Json.toJson(t))
         Future.successful(Ok(JsArray(tasks)))
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",

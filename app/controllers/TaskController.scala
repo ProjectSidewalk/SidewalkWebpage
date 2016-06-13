@@ -43,8 +43,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toJSON))
+      case Some(user) =>
+        val task = AuditTaskTable.selectANewTask(user.username)
+        Future.successful(Ok(task.toJSON))
+      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
     }
   }
 
@@ -53,7 +55,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.getNewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId)
     Future.successful(Ok(task.toJSON))
   }
 
@@ -228,7 +230,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
           val completed: List[Mission] = request.identity match {
             case Some(user) =>
-              val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+              val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
               if (region.isDefined) {
                 val missions: List[Mission] = MissionTable.incomplete(user.userId, region.get.regionId)
                 val status = MissionStatus(0.0, 0.0, 0)

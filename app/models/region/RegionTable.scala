@@ -79,11 +79,11 @@ object RegionTable {
   }
 
   /**
-   * Returns a list of all the sidewalk edges
+   * Returns a list of all the neighborhood regions
     *
     * @return A list of SidewalkEdge objects.
    */
-  def all: List[Region] = db.withSession { implicit session =>
+  def selectAllNeighborhoods: List[Region] = db.withSession { implicit session =>
     regionsWithoutDeleted.filter(_.regionTypeId === 2).list
   }
 
@@ -92,7 +92,7 @@ object RegionTable {
     *
     * @return
     */
-  def getRegion: Option[Region] = db.withSession { implicit session =>
+  def selectARegionRoundRobin: Option[Region] = db.withSession { implicit session =>
     Some(neighborhoodRoundRobin.next)
   }
 
@@ -101,7 +101,7 @@ object RegionTable {
     *
     * @return
     */
-  def getNamedRegion: Option[NamedRegion] = db.withSession { implicit session =>
+  def selectANamedRegionRoundRobin: Option[NamedRegion] = db.withSession { implicit session =>
     Some(namedRegionRoundRobin.next)
   }
 
@@ -111,9 +111,10 @@ object RegionTable {
     * @param regionId region id
     * @return
     */
-  def getRegion(regionId: Int): Option[Region] = db.withSession { implicit session =>
+  def selectANeighborhood(regionId: Int): Option[Region] = db.withSession { implicit session =>
     try {
-      Some(regionsWithoutDeleted.filter(_.regionTypeId === 2).filter(_.regionId === regionId).list.head)
+      val l = neighborhoods.filter(_.regionId === regionId).list
+      l.headOption
     } catch {
       case e: NoSuchElementException => None
       case _: Throwable => None  // Shouldn't reach here
@@ -126,13 +127,15 @@ object RegionTable {
     * @param regionId region id
     * @return
     */
-  def getNamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
+  def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
     try {
+      val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
       val _regions = for {
-        (_regions, _properties) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).leftJoin(regionProperties).on(_.regionId === _.regionId)
+        (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
         if _properties.key === "Neighborhood Name"
-      } yield (_regions.regionId, _properties.value.?, _regions.geom)
-      Some(_regions.list.map(x => NamedRegion.tupled(x)).head)
+      } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
+      val namedRegionsList = _regions.list.map(x => NamedRegion.tupled(x))
+      namedRegionsList.headOption
     } catch {
       case e: NoSuchElementException => None
       case _: Throwable => None  // Shouldn't reach here
@@ -145,7 +148,7 @@ object RegionTable {
     * @param userId user id
     * @return
     */
-  def getCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
+  def selectTheCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     try {
       val currentRegions = for {
         (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
