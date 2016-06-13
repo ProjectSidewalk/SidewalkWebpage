@@ -230,7 +230,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
           val completed: List[Mission] = request.identity match {
             case Some(user) =>
-              val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+              val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
               if (region.isDefined) {
                 val missions: List[Mission] = MissionTable.incomplete(user.userId, region.get.regionId)
                 val status = MissionStatus(0.0, 0.0, 0)

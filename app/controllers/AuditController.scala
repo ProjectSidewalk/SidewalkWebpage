@@ -65,7 +65,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
         // val region: Option[Region] = RegionTable.getRegion
-        val region: Option[NamedRegion] = RegionTable.getNamedRegion
+        val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
         val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
@@ -79,7 +79,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     // val region: Option[Region] = RegionTable.getRegion(regionId)
-    val region: Option[NamedRegion] = RegionTable.getNamedRegion(regionId)
+    val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
     request.identity match {
       case Some(user) =>
         // Update the currently assigned region for the user
