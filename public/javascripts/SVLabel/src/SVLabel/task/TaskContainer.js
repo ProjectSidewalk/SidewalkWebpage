@@ -196,13 +196,12 @@ function TaskContainer (turf) {
                 feature = geojson.features[0];
                 distance += turf.lineDistance(feature, unit);
             }
-
-            if (currentTask) distance += currentTask.getDistanceWalked(unit);
-
-            return distance;
-        } else {
-            return 0;
         }
+        
+        if (currentTask) {
+            distance += currentTask.getDistanceWalked(unit);
+        }
+        return distance;
     }
 
     /**
