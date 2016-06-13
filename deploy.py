@@ -85,8 +85,8 @@ def deploy_application(zip_file_path, username, password, hostname="sidewalk.umi
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         zip_file_path = sys.argv[1]
-        # username = raw_input("Username:")
-        # password = getpass.getpass("Password:")
-        # deploy_application(zip_file_path, username, password)
+        username = raw_input("Username:")
+        password = getpass.getpass("Password:")
+        deploy_application(zip_file_path, username, password)
     else:
         print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"
