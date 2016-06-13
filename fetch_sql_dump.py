@@ -4,7 +4,7 @@ import paramiko
 import subprocess
 import sys
 
-download_directory = "./download"
+download_directory = "./resources"
 if not os.path.exists(download_directory):
     os.makedirs(download_directory)
 
@@ -28,7 +28,7 @@ def fetch_sql_dump(sql_dump_filename, username, password, hostname="sidewalk.umi
     transport = paramiko.Transport((hostname, port))
     transport.connect(username=username, password=password)
     sftp = paramiko.SFTPClient.from_transport(transport)
-    sftp.get(remote_filename, "./download/" + sql_dump_filename)
+    sftp.get(remote_filename, sql_dump_filename)
     sftp.close()
     transport.close()
     print "Download complete"
