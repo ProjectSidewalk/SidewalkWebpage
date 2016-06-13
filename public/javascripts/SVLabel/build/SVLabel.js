@@ -2889,19 +2889,21 @@ function Form ($, params) {
 
     /**
      * Submit the data collected so far and move to another location.
+     * 
+     * Todo. I hate the fact that this method sets the new task as a side effect.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
-    function skipSubmit (dataIn) {
+    function skipSubmit (dataIn, task) {
         svl.tracker.push('TaskSkip');
-        var task = svl.taskContainer.getCurrentTask();
+        // var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
         submit(data, task);
 
-        if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask(task);
-        }
+        // if ("taskContainer" in svl) {
+        //     svl.taskContainer.initNextTask(task);
+        // }
 
         return false;
     }
@@ -4113,18 +4115,7 @@ function Map ($, google, turf, params) {
                             "make this neighborhood more accessible for everyone!");
                     }
 
-                    var geometry = newTask.getGeometry();
-                    if (geometry) {
-                        var lat = geometry.coordinates[0][1],
-                            lng = geometry.coordinates[0][0],
-                            currentLatLng = getPosition(),
-                            newTaskPosition = turf.point([lng, lat]),
-                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
-
-                        // Jump to the new location if it's really far away.
-                        if (distance > 0.1) setPosition(lat, lng);
-                    }
+                    _moveToTheTaskLocation(newTask);
                 }
             }
         }
@@ -4137,6 +4128,29 @@ function Map ($, google, turf, params) {
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
+    }
+
+    function _moveToTheTaskLocation(task) {
+        var geometry = task.getGeometry();
+        var callback = function (data, status) {
+            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                svl.misc.reportNoStreetView(task.getStreetEdgeId());
+                svl.taskContainer.endTask(task);
+
+                // Get a new task and repeat
+                task = svl.taskContainer.nextTask(task);
+                svl.taskContainer.setCurrentTask(task);
+                _moveToTheTaskLocation(task);
+            }
+        };
+        // Jump to the new location if it's really far away.
+        var lat = geometry.coordinates[0][1],
+            lng = geometry.coordinates[0][0],
+            currentLatLng = getPosition(),
+            newTaskPosition = turf.point([lng, lat]),
+            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+        if (distance > 0.1) setPosition(lat, lng, callback);
     }
 
     /**
@@ -4388,8 +4402,7 @@ function Map ($, google, turf, params) {
         }
     }
 
-
-
+    
     /**
      * Initailize Street View
      */
@@ -4518,14 +4531,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
+     * 
+     * @param panoramaId
+     * @returns {setPano}
+     */
+    function setPano (panoramaId) {
+        svl.panorama.setPano(panoramaId);
+        return this;
+    }
+
+    /**
      * Set map position
      * @param lat
      * @param lng
      */
-    function setPosition (lat, lng) {
-        var latlng = new google.maps.LatLng(lat, lng);
-        svl.panorama.setPosition(latlng);
-        map.setCenter(latlng);
+    function setPosition (lat, lng, callback) {
+        // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+        var gLatLng = new google.maps.LatLng(lat, lng);
+
+        svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            if (status === google.maps.StreetViewStatus.OK) {
+                svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                // svl.panorama.setPosition(gLatLng);
+                map.setCenter(gLatLng);
+            } else {
+                console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
+            }
+            if (callback) callback(streetViewPanoramaData, status);
+        });
+        
         return this;
     }
 
@@ -11568,7 +11602,6 @@ function ModalSkip ($) {
 
     function _init () {
         disableClickOK();
-
         svl.ui.modalSkip.ok.bind("click", handlerClickOK);
         svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
         svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
@@ -11609,14 +11642,22 @@ function ModalSkip ($) {
                 lat: position.lat(),
                 lng: position.lng()
             };
+        var task = svl.taskContainer.getCurrentTask();
 
         if (radioValue == "GSVNotAvailable") {
-            var task = svl.taskContainer.getCurrentTask();
             task.complete();
             svl.misc.reportNoStreetView(task.getStreetEdgeId());
         }
-        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
-        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
+
+        if ('form' in svl && "taskContainer" in svl) {
+            svl.form.skipSubmit(incomplete, task);
+            svl.taskContainer.initNextTask(task);
+        }
+        
+        if ('ribbon' in svl) { 
+            svl.ribbon.backToWalk(); 
+        }
+
         hideSkipMenu();
     }
 
