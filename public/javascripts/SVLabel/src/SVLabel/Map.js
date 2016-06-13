@@ -229,7 +229,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
-     * Remove icons on Google Maps
+     * A helper function to move a user to the task location
+     * @param task
+     * @private
+     */
+    function _moveToTheTaskLocation(task) {
+        var geometry = task.getGeometry();
+        var callback = function (data, status) {
+            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                svl.misc.reportNoStreetView(task.getStreetEdgeId());
+                svl.taskContainer.endTask(task);
+
+                // Get a new task and repeat
+                task = svl.taskContainer.nextTask(task);
+                svl.taskContainer.setCurrentTask(task);
+                _moveToTheTaskLocation(task);
+            }
+        };
+        // Jump to the new location if it's really far away.
+        var lat = geometry.coordinates[0][1],
+            lng = geometry.coordinates[0][0],
+            currentLatLng = getPosition(),
+            newTaskPosition = turf.point([lng, lat]),
+            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+        if (distance > 0.1) setPosition(lat, lng, callback);
+    }
+
+    /**
+     * A helper method to remove icons on Google Maps
      */
     function _removeIcon() {
         var doms = $('.gmnoprint'), $images;
@@ -499,29 +527,6 @@ function Map ($, google, turf, params) {
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
-    }
-
-    function _moveToTheTaskLocation(task) {
-        var geometry = task.getGeometry();
-        var callback = function (data, status) {
-            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                svl.misc.reportNoStreetView(task.getStreetEdgeId());
-                svl.taskContainer.endTask(task);
-
-                // Get a new task and repeat
-                task = svl.taskContainer.nextTask(task);
-                svl.taskContainer.setCurrentTask(task);
-                _moveToTheTaskLocation(task);
-            }
-        };
-        // Jump to the new location if it's really far away.
-        var lat = geometry.coordinates[0][1],
-            lng = geometry.coordinates[0][0],
-            currentLatLng = getPosition(),
-            newTaskPosition = turf.point([lng, lat]),
-            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
-        if (distance > 0.1) setPosition(lat, lng, callback);
     }
 
     /**

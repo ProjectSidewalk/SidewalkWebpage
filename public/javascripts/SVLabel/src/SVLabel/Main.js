@@ -176,6 +176,9 @@ function Main ($, d3, google, turf, params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        
+        svl.ui.bottomToolbar = {};
+        svl.ui.bottomToolbar.onboardingLink = $("#toolbar-onboarding-link");
 
         // Navigation compass
         svl.ui.compass = {};
@@ -234,13 +237,15 @@ function Main ($, d3, google, turf, params) {
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
-
+        
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
         svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
         svl.modalMissionComplete.hide();
+
+        svl.toolbar = Toolbar($);
 
         svl.panoramaContainer = PanoramaContainer(google);
 
