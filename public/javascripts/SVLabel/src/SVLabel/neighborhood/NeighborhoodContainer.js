@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function NeighborhoodContainer (parameters) {
+function NeighborhoodContainer ($, parameters) {
     var self = { className: "NeighborhoodContainer" },
         neighborhoods = {},
         status = {
@@ -44,6 +44,25 @@ function NeighborhoodContainer (parameters) {
         return status[key];
     }
 
+    function moveToANewRegion (regionId) {
+        regionId = parseInt(regionId, 10);
+        var url = "/neighborhood/new";
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify({"region_id": regionId}),
+            dataType: 'json',
+            success: function (result) {
+
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     function setCurrentNeighborhood (neighborhood) {
         setStatus("currentNeighborhood", neighborhood);
     }
@@ -71,6 +90,7 @@ function NeighborhoodContainer (parameters) {
     self.getCurrentNeighborhood = getCurrentNeighborhood;
     self.getRegionIds = getRegionIds;
     self.getStatus = getStatus;
+    self.moveToANewRegion = moveToANewRegion;
     self.setCurrentNeighborhood = setCurrentNeighborhood;
     self.setStatus = setStatus;
 

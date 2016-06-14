@@ -19,11 +19,16 @@ POST    /authenticate/credentials       @controllers.CredentialsAuthController.a
 POST    /signUp                         @controllers.SignUpController.signUp(url: String ?= "/")
 
 # Admin
-GET     /admin                              @controllers.AdminController.index
-GET     /admin/neighborhoodCompletionRate   @controllers.AdminController.getNeighborhoodCompletionRate
-GET     /admin/missionsCompletedByUsers     @controllers.AdminController.missionsCompletedByUsers
-GET     /admin/tasks/:username              @controllers.AdminController.submittedTasksWithLabels(username: String)
-GET     /admin/:username                    @controllers.AdminController.userProfile(username: String)
+GET     /admin                                  @controllers.AdminController.index
+GET     /admin/user/:username                   @controllers.AdminController.userProfile(username: String)
+GET     /admin/task/:taskId                     @controllers.AdminController.task(taskId: Int)
+
+GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.getMissionsCompletedByUsers
+GET     /adminapi/neighborhoodCompletionRate    @controllers.AdminController.getNeighborhoodCompletionRate
+GET     /adminapi/tasks/:username               @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
+GET     /adminapi/interactions/:username        @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
+GET     /adminapi/onboardingInteractions        @controllers.AdminController.getOnboardingTaskInteractions
+GET     /adminapi/auditpath/:id                 @controllers.AdminController.getAnAuditTaskPath(id: Int)
 
 # Auditing tasks
 GET     /audit                          @controllers.AuditController.audit
@@ -35,9 +40,9 @@ POST    /audit/nostreetview             @controllers.AuditController.postNoStree
 # Task API.
 GET     /task                           @controllers.TaskController.getTask
 GET     /task/next                      @controllers.TaskController.getNextTask(streetEdgeId: Int, lat: Float, lng: Float)
-GET     /task/nextInRegion              @controllers.TaskController.getTaskInRegion(regionId: Int)
+GET     /task/nextInRegion              @controllers.TaskController.getATaskInARegion(regionId: Int)
 GET     /task/street/:id                @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
-GET     /tasks                          @controllers.TaskController.getTasksInRegion(regionId: Int)
+GET     /tasks                          @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                           @controllers.TaskController.post
 
 
@@ -48,6 +53,9 @@ GET     /mission/complete/:regionId     @controllers.MissionController.getComple
 GET     /mission/incomplete             @controllers.MissionController.getIncompleteMissions
 GET     /mission/incomplete/:regionId   @controllers.MissionController.getIncompleteMissionsInRegion(regionId: Int)
 POST    /mission                        @controllers.MissionController.post
+
+# Neighborhoods
+POST    /neighborhood/new               @controllers.RegionController.setANewRegion
 
 # Map Edit
 GET     /map/edit                       @controllers.MapController.edit
@@ -69,7 +77,7 @@ GET     /contribution/:username         @controllers.UserProfileController.userP
 
 
 # Geometry API
-GET     /geometry/neighborhoods         controllers.RegionController.listNeighborhoods
+GET     /geometry/neighborhoods         @controllers.RegionController.listNeighborhoods
 GET     /geometry/streets               controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
 GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
 GET     /geometry/select                controllers.StreetController.select

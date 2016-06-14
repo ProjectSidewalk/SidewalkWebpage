@@ -6,6 +6,8 @@ import java.util.UUID
 import models.label._
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.libs.json.{JsObject, Json}
+import play.extras.geojson
 
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
@@ -61,8 +63,21 @@ object AuditTaskInteractionTable {
     interactionId
   }
 
+  /**
+    * Select all audit task interaction records of the specified action
+    * @param actionType
+    * @return
+    */
+  def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
+    auditTaskInteractions.filter(_.action === actionType).list
+  }
 
-  def auditInteractions(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
+  /**
+    * Select all the audit task interactions of the specified user
+    * @param userId User id
+    * @return
+    */
+  def selectAuditTaskInteractionsOfAUser(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
     val _auditTaskInteractions = for {
       (_auditTasks, _auditTaskInteractions) <- auditTasks.innerJoin(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
       if _auditTasks.userId === userId.toString
@@ -76,8 +91,8 @@ object AuditTaskInteractionTable {
     * @param auditTaskId
    * @return
    */
-  def auditInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    auditTaskInteractions.filter(record => record.auditTaskId === auditTaskId).list
+  def selectAuditTaskInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
+    auditTaskInteractions.filter(_.auditTaskId === auditTaskId).list
   }
 
   /**
@@ -87,7 +102,7 @@ object AuditTaskInteractionTable {
     * @param auditTaskId
     * @return
     */
-  def auditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
+  def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
     val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
       """SELECT interaction.audit_task_interaction_id, interaction.audit_task_id, interaction.action,
         |interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
@@ -106,5 +121,36 @@ object AuditTaskInteractionTable {
     )
     val interactions: List[InteractionWithLabel] = selectInteractionWithLabelQuery(auditTaskId).list
     interactions
+  }
+
+
+  // Helper methods
+
+  /**
+    * This method takes an output of the method `selectAuditInteractionsWithLabels` and
+    * returns a GeoJSON feature collection
+    * @param interactions
+    */
+  def auditTaskInteractionsToGeoJSON(interactions: List[InteractionWithLabel]): JsObject = {
+    val features: List[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
+      val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
+      val properties = if (interaction.labelType.isEmpty) {
+        Json.obj(
+          "heading" -> interaction.heading.get.toDouble,
+          "timestamp" -> interaction.timestamp.getTime
+        )
+      } else {
+        Json.obj(
+          "heading" -> interaction.heading.get.toDouble,
+          "timestamp" -> interaction.timestamp.getTime,
+          "label" -> Json.obj(
+            "label_type" -> interaction.labelType,
+            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat)
+          )
+        )
+      }
+      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+    }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
 }

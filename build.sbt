@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "0.4-20160610"
+version := "0.4-20160613"
 
 scalaVersion := "2.10.4"
 
@@ -25,6 +25,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "0.8.0",
   "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",
+  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "org.webjars" %% "webjars-play" % "2.3.0",
   "org.webjars" % "bootstrap" % "3.1.1",
   "org.webjars" % "jquery" % "1.11.0",
@@ -64,7 +65,5 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(FormatXml, false)
   .setPreference(DoubleIndentClassDeclaration, false)
   .setPreference(PreserveDanglingCloseParenthesis, true)
-
-fork in run := true
 
 fork in run := true

@@ -21,7 +21,9 @@ class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Som
 object UserCurrentRegionTable {
   val db = play.api.db.slick.DB
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
-  val regions = TableQuery[RegionTable].filter(_.deleted === false)
+  val regions = TableQuery[RegionTable]
+
+  val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -39,7 +41,7 @@ object UserCurrentRegionTable {
   def assignRandomly(userId: UUID): Int = db.withTransaction { implicit session =>
     // Check if there are any records
     val _currentRegions = for {
-      (_regions, _currentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      (_regions, _currentRegions) <- regionsWithoutDeleted.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
       if _currentRegions.userId === userId.toString
     } yield _currentRegions
     val currentRegionList = _currentRegions.list
@@ -87,7 +89,7 @@ object UserCurrentRegionTable {
     */
   def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
     val _userCurrentRegions = for {
-      (_regions, _userCurrentRegions) <- regions.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      (_regions, _userCurrentRegions) <- regionsWithoutDeleted.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
       if _userCurrentRegions.userId === userId.toString
     } yield _userCurrentRegions
 
@@ -108,6 +110,4 @@ object UserCurrentRegionTable {
     q.update(regionId)
     regionId
   }
-
-
 }

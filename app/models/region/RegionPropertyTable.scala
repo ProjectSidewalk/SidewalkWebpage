@@ -24,4 +24,17 @@ object RegionPropertyTable {
   def all: List[RegionProperty] = db.withSession { implicit session =>
     regionProperties.list
   }
+
+  /**
+    * Return the neighborhood name of the given region
+    * @param regionId Region id
+    * @return
+    */
+  def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
+    val regionProperty = regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").list.headOption
+    regionProperty match {
+      case Some(rp) => Some(rp.value)
+      case _ => None
+    }
+  }
 }

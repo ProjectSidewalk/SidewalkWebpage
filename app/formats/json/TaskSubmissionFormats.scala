@@ -9,13 +9,12 @@ object TaskSubmissionFormats {
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
   case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryProblem: Option[JsBoolean], description: Option[String], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int])
-  case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int])
+  case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean])
   case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
-
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
@@ -82,7 +81,8 @@ object TaskSubmissionFormats {
   implicit val auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and
       (JsPath \ "task_start").read[String] and
-      (JsPath \ "audit_task_id").readNullable[Int]
+      (JsPath \ "audit_task_id").readNullable[Int] and
+      (JsPath \ "completed").readNullable[Boolean]
     )(TaskSubmission.apply _)
 
   implicit val amtAssignmentReads: Reads[AMTAssignmentSubmission] = (

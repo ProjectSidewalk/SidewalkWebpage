@@ -2660,7 +2660,8 @@ function Form ($, params) {
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
-            audit_task_id: task.getAuditTaskId()
+            audit_task_id: task.getAuditTaskId(),
+            completed: task.isCompleted()
         };
 
         data.environment = {
@@ -2888,19 +2889,21 @@ function Form ($, params) {
 
     /**
      * Submit the data collected so far and move to another location.
+     * 
+     * Todo. I hate the fact that this method sets the new task as a side effect.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
-    function skipSubmit (dataIn) {
-        var task = svl.taskContainer.getCurrentTask();
+    function skipSubmit (dataIn, task) {
+        svl.tracker.push('TaskSkip');
+        // var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
-        svl.tracker.push('TaskSkip');
         submit(data, task);
 
-        if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask(task);
-        }
+        // if ("taskContainer" in svl) {
+        //     svl.taskContainer.initNextTask(task);
+        // }
 
         return false;
     }
@@ -2912,7 +2915,9 @@ function Form ($, params) {
      */
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
-        svl.tracker.push('TaskSubmit');
+        // svl.tracker.push('TaskSubmit');
+        data.interactions.push(svl.tracker.create("TaskSubmit"));
+
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
@@ -3373,6 +3378,9 @@ function Main ($, d3, google, turf, params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        
+        svl.ui.bottomToolbar = {};
+        svl.ui.bottomToolbar.onboardingLink = $("#toolbar-onboarding-link");
 
         // Navigation compass
         svl.ui.compass = {};
@@ -3431,7 +3439,7 @@ function Main ($, d3, google, turf, params) {
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
-
+        
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
@@ -3439,11 +3447,13 @@ function Main ($, d3, google, turf, params) {
         svl.modalExample = ModalExample();
         svl.modalMissionComplete.hide();
 
+        svl.toolbar = Toolbar($);
+
         svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
-        svl.neighborhoodContainer = NeighborhoodContainer();
+        svl.neighborhoodContainer = NeighborhoodContainer($);
         if ('regionId' in params) {
             neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
@@ -3486,16 +3496,44 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 } else {
-                    // Set the current mission to either the initial-mission or something else.
+                    // Set the current mission.
+                    var haveSwitchedToANewRegion = false;
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
                     if (mission.isCompleted()) {
-                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                        missions = missions.filter(function (m) { return !m.isCompleted(); });
-                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                        // If the initial-mission has already been completed, set the current mission to another mission
+                        // that has not been completed yet.
+                        var missionsArrayLength = 0;
+                        var missions = [];
+                        var regionId = neighborhood.getProperty("regionId");
+
+                        while (true) {
+                            // Check if there are incomplete missions in the current neighborhood (i.e., missions.length > 0?)
+                            missions = svl.missionContainer.getMissionsByRegionId(regionId);
+                            missions = missions.filter(function (m) { return !m.isCompleted(); });
+                            if (missions.length > 0) {
+                                if (haveSwitchedToANewRegion) {
+                                    // If moving to the new neighborhood, update the database
+                                    svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                }
+                                svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
+                                break;
+                            }
+                            haveSwitchedToANewRegion = true;
+
+                            var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                            var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
+                            if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            regionId = availableRegionIds[indexOfNextRegion];
+                        }
+                        mission = missions[0];
                     }
                     svl.missionContainer.setCurrentMission(mission);
 
                     // Compute the route for the current mission
+                    if (haveSwitchedToANewRegion) {
+                        var newTask = svl.taskContainer.nextTask();
+                        svl.taskContainer.setCurrentTask(newTask);
+                    }
                     var currentTask = svl.taskContainer.getCurrentTask();
                     var route = mission.computeRoute(currentTask);
                     mission.setRoute(route);
@@ -3825,7 +3863,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
-     * Remove icons on Google Maps
+     * A helper function to move a user to the task location
+     * @param task
+     * @private
+     */
+    function _moveToTheTaskLocation(task) {
+        var geometry = task.getGeometry();
+        var callback = function (data, status) {
+            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                svl.misc.reportNoStreetView(task.getStreetEdgeId());
+                svl.taskContainer.endTask(task);
+
+                // Get a new task and repeat
+                task = svl.taskContainer.nextTask(task);
+                svl.taskContainer.setCurrentTask(task);
+                _moveToTheTaskLocation(task);
+            }
+        };
+        // Jump to the new location if it's really far away.
+        var lat = geometry.coordinates[0][1],
+            lng = geometry.coordinates[0][0],
+            currentLatLng = getPosition(),
+            newTaskPosition = turf.point([lng, lat]),
+            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+        if (distance > 0.1) setPosition(lat, lng, callback);
+    }
+
+    /**
+     * A helper method to remove icons on Google Maps
      */
     function _removeIcon() {
         var doms = $('.gmnoprint'), $images;
@@ -4082,18 +4148,7 @@ function Map ($, google, turf, params) {
                             "make this neighborhood more accessible for everyone!");
                     }
 
-                    var geometry = newTask.getGeometry();
-                    if (geometry) {
-                        var lat = geometry.coordinates[0][1],
-                            lng = geometry.coordinates[0][0],
-                            currentLatLng = getPosition(),
-                            newTaskPosition = turf.point([lng, lat]),
-                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
-
-                        // Jump to the new location if it's really far away.
-                        if (distance > 0.1) setPosition(lat, lng);
-                    }
+                    _moveToTheTaskLocation(newTask);
                 }
             }
         }
@@ -4357,8 +4412,7 @@ function Map ($, google, turf, params) {
         }
     }
 
-
-
+    
     /**
      * Initailize Street View
      */
@@ -4487,14 +4541,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
+     * 
+     * @param panoramaId
+     * @returns {setPano}
+     */
+    function setPano (panoramaId) {
+        svl.panorama.setPano(panoramaId);
+        return this;
+    }
+
+    /**
      * Set map position
      * @param lat
      * @param lng
      */
-    function setPosition (lat, lng) {
-        var latlng = new google.maps.LatLng(lat, lng);
-        svl.panorama.setPosition(latlng);
-        map.setCenter(latlng);
+    function setPosition (lat, lng, callback) {
+        // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+        var gLatLng = new google.maps.LatLng(lat, lng);
+
+        svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            if (status === google.maps.StreetViewStatus.OK) {
+                svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                // svl.panorama.setPosition(gLatLng);
+                map.setCenter(gLatLng);
+            } else {
+                console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
+            }
+            if (callback) callback(streetViewPanoramaData, status);
+        });
+        
         return this;
     }
 
@@ -5793,6 +5868,20 @@ function Storage(JSON, params) {
     _init();
     return self;
 }
+function Toolbar ($) {
+    var self = {};
+
+    function _init() {
+        svl.ui.bottomToolbar.onboardingLink.on("click", _handleOnboardingLinkClick);    
+    }
+    
+    function _handleOnboardingLinkClick (e) {
+        svl.onboarding = Onboarding($);
+    }
+
+    _init();
+    return self;
+}
 /**
  *
  * @returns {{className: string}}
@@ -5811,7 +5900,8 @@ function Tracker () {
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
-    function push (action, param) {
+
+    function create(action, param) {
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
@@ -5886,7 +5976,7 @@ function Tracker () {
 
         var now = new Date(),
             timestamp = new Date().getTime();
-            // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+        // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         var item = {
             action : action,
@@ -5900,6 +5990,11 @@ function Tracker () {
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         };
+        return item;
+    }
+
+    function push (action, param) {
+        var item = create(action, param);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
@@ -5924,7 +6019,8 @@ function Tracker () {
         actions = [];
         push("RefreshTracker");
     }
-    
+
+    self.create = create;
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;
@@ -7040,13 +7136,12 @@ function TaskContainer (turf) {
                 feature = geojson.features[0];
                 distance += turf.lineDistance(feature, unit);
             }
-
-            if (currentTask) distance += currentTask.getDistanceWalked(unit);
-
-            return distance;
-        } else {
-            return 0;
         }
+        
+        if (currentTask) {
+            distance += currentTask.getDistanceWalked(unit);
+        }
+        return distance;
     }
 
     /**
@@ -7504,16 +7599,11 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
-            var initialMission = svl.missionContainer.getMission(null, "initial-mission", 1);
             var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
             missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
 
             // Get the last completed mission's target distance
             var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
-            if (distanceAuditedSoFar === 0 && initialMission.isCompleted()) {
-                distanceAuditedSoFar = initialMission.getProperty("distance") / 1000;
-            }
-
             var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
 
             return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
@@ -7799,6 +7889,10 @@ function MissionContainer ($, parameters) {
         return missions;
     }
 
+    function getAvailableRegionIds () {
+        return Object.keys(missionStoreByRegionId);
+    }
+
     function nextMission (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
@@ -7856,6 +7950,7 @@ function MissionContainer ($, parameters) {
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
     self.commit = commit;
+    self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMission = getMission;
@@ -10116,7 +10211,7 @@ function Neighborhood (parameters) {
  * @constructor
  * @memberof svl
  */
-function NeighborhoodContainer (parameters) {
+function NeighborhoodContainer ($, parameters) {
     var self = { className: "NeighborhoodContainer" },
         neighborhoods = {},
         status = {
@@ -10155,6 +10250,25 @@ function NeighborhoodContainer (parameters) {
         return status[key];
     }
 
+    function moveToANewRegion (regionId) {
+        regionId = parseInt(regionId, 10);
+        var url = "/neighborhood/new";
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify({"region_id": regionId}),
+            dataType: 'json',
+            success: function (result) {
+
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     function setCurrentNeighborhood (neighborhood) {
         setStatus("currentNeighborhood", neighborhood);
     }
@@ -10182,6 +10296,7 @@ function NeighborhoodContainer (parameters) {
     self.getCurrentNeighborhood = getCurrentNeighborhood;
     self.getRegionIds = getRegionIds;
     self.getStatus = getStatus;
+    self.moveToANewRegion = moveToANewRegion;
     self.setCurrentNeighborhood = setCurrentNeighborhood;
     self.setStatus = setStatus;
 
@@ -10679,6 +10794,11 @@ function MissionStatus () {
      */
     function updateMissionCompletionBar (completionRate) {
         var r, g, b, color, colorIntensity = 200;
+
+        // Update the %
+        printCompletionRate(completionRate);
+
+        // Update the bar
         if (completionRate < 0.6) {
             r = colorIntensity * 1.3;
             g = parseInt(colorIntensity * completionRate * 2);
@@ -11225,7 +11345,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
     var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
@@ -11247,7 +11367,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
 
     function _init () {
@@ -11363,6 +11483,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('left', -500);
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
+        $(".g-bar-chart").css('visibility', 'hidden');
     }
 
     function setMissionTitle (missionTitle) {
@@ -11379,6 +11500,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
+        $(".g-bar-chart").css('visibility', 'visible');
 
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
@@ -11498,7 +11620,6 @@ function ModalSkip ($) {
 
     function _init () {
         disableClickOK();
-
         svl.ui.modalSkip.ok.bind("click", handlerClickOK);
         svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
         svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
@@ -11539,14 +11660,22 @@ function ModalSkip ($) {
                 lat: position.lat(),
                 lng: position.lng()
             };
+        var task = svl.taskContainer.getCurrentTask();
 
         if (radioValue == "GSVNotAvailable") {
-            var task = svl.taskContainer.getCurrentTask();
             task.complete();
             svl.misc.reportNoStreetView(task.getStreetEdgeId());
         }
-        if ('form' in svl) { svl.form.skipSubmit(incomplete); }
-        if ('ribbon' in svl) { svl.ribbon.backToWalk(); }
+
+        if ('form' in svl && "taskContainer" in svl) {
+            svl.form.skipSubmit(incomplete, task);
+            svl.taskContainer.initNextTask(task);
+        }
+        
+        if ('ribbon' in svl) { 
+            svl.ribbon.backToWalk(); 
+        }
+
         hideSkipMenu();
     }
 
@@ -11865,6 +11994,12 @@ function UtilitiesColor () {
         return newRGBA;
     }
 
+    function RGBAToRGB (rgba) {
+        var rgbaValueArray = rgba.substring(5, rgba.length - 1).split(",");
+        var rgb = "rgb(" + rgbaValueArray[0] + "," + rgbaValueArray[1] + "," + rgbaValueArray[2] + ")";
+        return rgb;
+    }
+
     function changeAlphaRGBA(rgba, alpha) {
         // This function updates alpha value of the given rgba value.
         // Ex. if the input is rgba(200,200,200,0.5) and alpha 0.8,
@@ -12057,6 +12192,7 @@ function UtilitiesColor () {
     }
 
     self.RGBToRGBA = RGBToRGBA;
+    self.RGBAToRGB = RGBAToRGB;
     self.changeAlphaRGBA = changeAlphaRGBA;
     self.changeDarknessRGBA = changeDarknessRGBA;
     self.rgbToHsl = rgbToHsl;
@@ -12884,6 +13020,7 @@ function Onboarding ($) {
             state: 0,
             isOnboarding: true
         },
+        numStates = 32,  // I'm hard coding the number of the states.
         states = {
             "initialize": {
                 "properties": {
@@ -12909,6 +13046,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(1/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                     return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
                 }
@@ -12935,6 +13073,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(2/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
                     return "label-attribute-1";
                 }
@@ -12965,6 +13104,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(3/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
                     return "rate-attribute-1";
                 }
@@ -12976,8 +13116,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
-                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
+                    "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not passable for a wheelchair user. ' +
                     '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
@@ -12986,6 +13125,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(4/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
@@ -13027,6 +13167,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(5/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
                     return "select-label-type-2";
                 }
@@ -13054,6 +13195,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(6/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
                     return "label-attribute-2";
                 }
@@ -13084,6 +13226,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(7/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
                     return "rate-severity-2";
                 }
@@ -13103,6 +13246,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(8/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
@@ -13135,7 +13279,7 @@ function Onboarding ($) {
                     "labelType": "NoCurbRamp"
                 },
                 "message": {
-                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Cub Ramp" button</span> to label it.',
+                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Curb Ramp" button</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13152,6 +13296,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(9/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
                     return "label-attribute-3";
                 }
@@ -13182,6 +13327,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(10/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
                     return "rate-severity-3";
                 }
@@ -13193,7 +13339,8 @@ function Onboarding ($) {
                     "severity": 3
                 },
                 "message": {
-                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> Just use your best judgment! <br>' +
+                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> ' +
+                    'When you rate accessibility, we just ask that you use <span class="bold">your best judgment!</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
@@ -13201,6 +13348,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(11/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
@@ -13241,6 +13389,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(12/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
                     return "select-label-type-4";
                 }
@@ -13277,6 +13426,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(13/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
                     return "label-attribute-4";
                 }
@@ -13307,6 +13457,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(14/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
                     return "rate-severity-4";
                 }
@@ -13326,6 +13477,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(15/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
@@ -13375,6 +13527,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(16/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
                     return "label-attribute-5";
                 }
@@ -13405,6 +13558,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(17/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
                     return "rate-severity-5";
                 }
@@ -13424,6 +13578,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(18/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
@@ -13474,6 +13629,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(19/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
                     return "label-attribute-6";
                 }
@@ -13505,6 +13661,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(20/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
                     return "adjust-heading-angle-3";
                 }
@@ -13523,6 +13680,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(21/numStates);
                     svl.tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
                     return "walk-1";
                 }
@@ -13530,10 +13688,10 @@ function Onboarding ($) {
             "walk-1": {
                 "properties": {
                     "action": "WalkTowards",
-                    "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
+                    "panoId": "bdmGHJkiSgmO7_80SnbzXw"
                 },
                 "message": {
-                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. Let’s take a step to see if we can get a better look.',
+                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. <span class="bold">Let’s take a step</span> to see if we can get a better look. To taske a step, double click on the circle below.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13556,6 +13714,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(22/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
                     svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                     return "select-label-type-7";
@@ -13567,11 +13726,11 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
+                    "message": 'Good, you just took a step! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": [
                     {
                         "type": "arrow",
@@ -13584,6 +13743,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(23/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
                     return "label-attribute-7";
                 }
@@ -13597,11 +13757,11 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click on the curb ramp to label it.</span>',
+                    "message": '<span class="bold">Click on the curb ramp (below the yellow arrow) to label it.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": [
                     {
                         "type": "arrow",
@@ -13614,6 +13774,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(24/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
                     return "rate-severity-7";
                 }
@@ -13630,9 +13791,10 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(25/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
@@ -13651,7 +13813,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
@@ -13666,13 +13828,15 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": '<span class="bold">Ok, it\'s almost done!</span> Let’s adjust the view to look at the final corner in this intersection. ' +
+                    '<span class="bold">Grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(26/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
                     return "instruction-1";
                 }
@@ -13688,9 +13852,10 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(27/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
                     svl.compass.showMessage();
                     return "instruction-2";
@@ -13702,16 +13867,18 @@ function Onboarding ($) {
                     "blinks": ["google-maps", "compass"]
                 },
                 "message": {
-                    "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
+                    "message": 'From here on, we\'ll guide you through your missions with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/Compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps">',
+                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps"> ' +
+                    'See flashing yellow highlights.',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(28/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
                     return "instruction-3";
                 }
@@ -13722,13 +13889,15 @@ function Onboarding ($) {
                     "blinks": ["status-field"]
                 },
                 "message": {
-                    "message": 'Your progress will be tracked and shown on the right side of the interface.',
+                    "message": 'Your <span class="bold">progress will be tracked and shown</span> on the right side of the interface. ' +
+                    'Your overall goal is to label as many accessibility problems as you find—such as missing curb ramps.',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(29/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                     return "instruction-4";
                 }
@@ -13740,14 +13909,15 @@ function Onboarding ($) {
                 },
                 "message": {
                     "message": 'Other interface features include: <br>' +
-                    '<span class="bold">Zoom In/Out:</span> Zoom in or out the Street View image<br> ' +
+                    '<span class="bold">Zooming:</span> Zoom in or out of the Street View image<br> ' +
                     '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(30/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
                     return "instruction-5";
                 }
@@ -13758,16 +13928,17 @@ function Onboarding ($) {
                     "blinks": ["sound", "jump", "feedback"]
                 },
                 "message": {
-                    "message": 'Other interface features include: <br>' +
-                    '<span class="bold">Sound:</span> Turn on/off the sound effects <br> ' +
-                    '<span class="bold">Jump:</span> Click if you want to audit a different street <br>' +
-                    '<span class="bold">Feedback:</span> Provide comments',
+                    "message": 'Finally, you can also control: <br>' +
+                    '<span class="bold">Sound:</span> turn on/off the sound effects <br> ' +
+                    '<span class="bold">Jump:</span> jump to a different street <br>' +
+                    '<span class="bold">Feedback:</span> provide comments about your mission or report bugs',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(31/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
                     return "outro";
                 }
@@ -13791,17 +13962,21 @@ function Onboarding ($) {
                     "background": true
                 },
                 "okButton": false,
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(32/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
                     return null;
                 }
             }
+            
         };
 
     function _init () {
         status.isOnboarding = true;
+
+        svl.tracker.push('Onboarding_Start');
 
         if ("ui" in svl) {
             var canvas = svl.ui.onboarding.canvas.get(0);
@@ -13993,6 +14168,7 @@ function Onboarding ($) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
+            svl.tracker.push('Onboarding_End');
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);
@@ -14093,9 +14269,8 @@ function Onboarding ($) {
                 };
                 googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
 
-                $target = $("#onboarding-message-holder").find("button");
+                $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
                 callback = function () {
-                    $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
                     svl.panorama.setPano(state.panoId);
@@ -14104,7 +14279,7 @@ function Onboarding ($) {
 
                     if ("compass" in svl) svl.compass.hideMessage();
                 };
-                $target.on("click", callback);
+                $target.one("click", callback);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.

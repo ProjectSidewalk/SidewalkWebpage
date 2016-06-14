@@ -473,6 +473,12 @@
             </div>
 
             <div id="annotation-holder"></div>
+            <div id="bottom-toolbar-holder" class="toolbar">
+                <p class="text-right">
+                    @*<a href="#">FAQ</a>&nbsp;|&nbsp;*@
+                    <a href="#" id="toolbar-onboarding-link">Interactive tutorial</a>
+                </p>
+            </div>
             <div id="task-completion-message-holder">
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/GoodJob.png")' alt="Task completion message: Good Job!" />
             </div>
@@ -507,41 +513,33 @@
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
-                <h2>Help Us Improve Street and Sidewalk Accessibility</h2>
                 <p>
-                    Hi, we’re exploring new ways to find accessibility problems in cities,
-                    and we need your help! We want you to use this web interface to
-                    <span class="bold">find and label accessibility attributes that affect how wheelchair
-                        users move about the city.</span> Accessibility attributes include:
+                    In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing
+                        missions to find and label accessibility features and problems in the environment, including:
                 </p>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures01.png")' id="onboarding-example-image-1"
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
+
+            </div>
+            <div class="col-md-6">
                 <p>
-                    <span class="bold">We’ll begin with a short, interactive tutorial to get you started.</span>
-                    @if(!user) {
-                        If you’ve taken the tutorial before, click “Skip.”
-                    }
-                    Thanks for your help in improving the accessibility of the cities.
+                    <span class="bold">We’ll begin with a short, interactive tutorial.</span>
                 </p>
             </div>
-        </div>
-        <div class="row">
-            @if(user) {
-                <div class="col-md-10"></div>
-                <div class="col-md-2">
-                    <button class="button" id="onboarding-ok-button" value="OK">OK</button>
-                </div>
-            } else {
-                <div class="col-md-8"></div>
-                <div class="col-md-2">
-                    <button class="button" id="onboarding-ok-button" value="OK">OK</button>
-                </div>
-                <div class="col-md-2">
-                    <button class="button" value="Skip">Skip</button>
-                </div>
-            }
+            <div class="col-md-offset-3 col-md-3">
+                <p>
+                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
+                </p>
+            </div>
+            <div class="col-md-12">
+                <p class="text-right"><span style='font-size: 65%;'>
+                    Already taken the tutorial? Have an account?
+                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a> now
+                    or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                </span></p>
+            </div>
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">
