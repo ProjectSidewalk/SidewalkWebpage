@@ -81,12 +81,23 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val onboardingTransitions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
+      val jsonObjectList = onboardingTransitions.map(x => Json.toJson(x))
+
+      Future.successful(Ok(JsArray(jsonObjectList)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
   /**
     * This method returns the tasks and labels submitted by the given user.
     * @param username Username
     * @return
     */
-  def submittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
+  def getSubmittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
@@ -99,7 +110,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def missionsCompletedByUsers = UserAwareAction.async{ implicit request =>
+  def getMissionsCompletedByUsers = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)) {
       val missionsCompleted = MissionTable.missionsCompletedByUsers.map(x =>
         Json.obj("usrename" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m, "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
@@ -124,7 +135,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @param username
     * @return
     */
-  def auditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
+  def getAuditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
@@ -150,7 +161,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def auditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
+  def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
         case Some(task) =>

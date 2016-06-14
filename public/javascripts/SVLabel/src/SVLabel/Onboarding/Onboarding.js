@@ -962,6 +962,8 @@ function Onboarding ($) {
     function _init () {
         status.isOnboarding = true;
 
+        svl.tracker.push('Onboarding_Start');
+
         if ("ui" in svl) {
             var canvas = svl.ui.onboarding.canvas.get(0);
             if (canvas) ctx = canvas.getContext('2d');
@@ -1152,6 +1154,7 @@ function Onboarding ($) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
+            svl.tracker.push('Onboarding_End');
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);

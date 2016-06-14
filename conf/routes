@@ -23,11 +23,12 @@ GET     /admin                                  @controllers.AdminController.ind
 GET     /admin/user/:username                   @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                     @controllers.AdminController.task(taskId: Int)
 
-GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.missionsCompletedByUsers
+GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate    @controllers.AdminController.getNeighborhoodCompletionRate
-GET     /adminapi/tasks/:username               @controllers.AdminController.submittedTasksWithLabels(username: String)
-GET     /adminapi/interactions/:username        @controllers.AdminController.auditTaskInteractionsOfAUser(username: String)
-GET     /adminapi/auditpath/:id                 @controllers.AdminController.auditTaskPath(id: Int)
+GET     /adminapi/tasks/:username               @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
+GET     /adminapi/interactions/:username        @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
+GET     /adminapi/onboardingInteractions        @controllers.AdminController.getOnboardingTaskInteractions
+GET     /adminapi/auditpath/:id                 @controllers.AdminController.getAnAuditTaskPath(id: Int)
 
 # Auditing tasks
 GET     /audit                          @controllers.AuditController.audit
