@@ -4,9 +4,71 @@
 @main(title) {
     @navbar(user)
     <div class="container">
-        <h2>FAQ</h2>
+        <h1>FAQ</h1>
         <div class="row">
-            <div class="col-sm-12"><h3>Conflicting Street View images from different time</h3></div>
+            <div class="col-sm-12"><h2>Are there keyboard shortcuts to for the image labeling interface?</h2></div>
+            <div class="col-sm-12">
+                <div class="spacer10"></div>
+                <p class="text-justify">
+                    YES! Here is the list of keyboard short cuts:
+                </p>
+                <table class="table table-striped table-condensed">
+                    <tr>
+                        <th class="col-sm-2"></th>
+                        <th class="col-sm-2">Key</th>
+                        <th>What it does</th>
+                    </tr>
+                    <tr>
+                        <th>Mode Switch</th>
+                        <th>E</th>
+                        <td>Switch to the Exploration mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>C</th>
+                        <td>Switch to the Curb Ramp mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>M</th>
+                        <td>Switch to the Missing Curb Ramp mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>O</th>
+                        <td>Switch to the Obstacle in Path mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>S</th>
+                        <td>Switch to the Surface Problem mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>B</th>
+                        <td>Switch to the "Can't see the sidewalk" mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>N</th>
+                        <td>Switch to the "No Sidewalk" mode</td>
+                    </tr>
+                    <tr>
+                        <th>Interface Control</th>
+                        <th>Z</th>
+                        <td>Zoom in</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>Shift + Z</th>
+                        <td>Zoom out</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="spacer30"></div>
+        <div class="row">
+            <div class="col-sm-12"><h2>What should I do when I find conflicting Street View images?</h2></div>
             <div class="col-sm-6">
                 <figure class="text-center">
                     <img src='@routes.Assets.at("images/faq/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
@@ -30,5 +92,6 @@
                 </p>
             </div>
         </div>
+        <div class="spacer30"></div>
     </div>
 }
