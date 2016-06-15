@@ -3027,7 +3027,10 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
-        // console.log(e.keyCode);
+        if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
+            // Don't allow users to use keyboard shortcut during the onboarding.
+            return;
+        }
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
@@ -3499,7 +3502,7 @@ function Main ($, d3, google, turf, params) {
                     // Set the current mission.
                     var haveSwitchedToANewRegion = false;
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-                    if (mission.isCompleted()) {
+                    if (!mission || mission.isCompleted()) {
                         // If the initial-mission has already been completed, set the current mission to another mission
                         // that has not been completed yet.
                         var missionsArrayLength = 0;

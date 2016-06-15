@@ -297,7 +297,7 @@ function Main ($, d3, google, turf, params) {
                     // Set the current mission.
                     var haveSwitchedToANewRegion = false;
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-                    if (mission.isCompleted()) {
+                    if (!mission || mission.isCompleted()) {
                         // If the initial-mission has already been completed, set the current mission to another mission
                         // that has not been completed yet.
                         var missionsArrayLength = 0;
