@@ -6,8 +6,8 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import play.api.libs.json._
-
 import controllers.headers.ProvidesHeader
+
 import math._
 import models.user.{User, UserCurrentRegionTable}
 
@@ -16,9 +16,11 @@ import play.api.mvc._
 import models.region._
 import play.api.libs.json.Json
 import play.api.libs.json.Json._
+import play.extras.geojson.{Feature => JsonFeature, LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
+import com.vividsolutions.jts.geom.{Coordinate, CoordinateSequence, GeometryFactory, LineString, PrecisionModel}
+import models.street.StreetEdgeTable
+import play.extras.geojson
 
-import play.extras.geojson.LatLng
-import com.vividsolutions.jts.geom.{LineString, Coordinate, CoordinateSequence, GeometryFactory, PrecisionModel}
 import collection.immutable.Seq
 
 
@@ -35,12 +37,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @return
     */
   def getAccessScoreGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double) = UserAwareAction.async { implicit request =>
-    import play.extras.geojson.Point
     val r = scala.util.Random
 
-    val latLngList: List[LatLng] = makeALatLngGrid(lat1, lng1, lat2, lng2, stepSize)
+    val latLngList: List[JsonLatLng] = makeALatLngGrid(lat1, lng1, lat2, lng2, stepSize)
     val features: List[JsObject] = latLngList.map { latLng =>
-      val point = Point(latLng)
+      val point = JsonPoint(latLng)
       val properties = Json.obj(
         "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
         "significance" -> Json.obj(
@@ -60,6 +61,103 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     Future.successful(Ok(featureCollection))
   }
 
+  /**
+    *
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def getAccessScoreNeighborhood(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    val r = scala.util.Random
+    val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsIn(lat1, lng1, lat2, lng2)
+    val features: List[JsObject] = neighborhoods.map { region =>
+      val coordinates: Array[Coordinate] = region.geom.getCoordinates
+      val latlngs: Seq[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
+      val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(Seq(latlngs))
+      val properties = Json.obj(
+        "region_id" -> region.regionId,
+        "region_name" -> region.name,
+        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
+        "significance" -> Json.obj(
+          "NoCurbRamp" -> 1.0,
+          "Obstacle" -> 1.0,
+          "SurfaceProblem" -> 1.0
+        ),
+        "feature" -> Json.obj(
+          "NoCurbRamp" -> 1.0,
+          "Obstacle" -> 1.0,
+          "SurfaceProblem" -> 1.0
+        )
+      )
+      Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+    }
+    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+    Future.successful(Ok(featureCollection))
+  }
+
+  def getAccessScorePoint(lat: Double, lng: Double) = UserAwareAction.async { implicit request =>
+    val r = scala.util.Random
+    val feature = JsonFeature(JsonPoint(JsonLatLng(lat, lng)),
+      properties = Some(Json.obj(
+        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
+        "significance" -> Json.obj(
+          "NoCurbRamp" -> 1.0,
+          "Obstacle" -> 1.0,
+          "SurfaceProblem" -> 1.0
+        ),
+        "feature" -> Json.obj(
+          "NoCurbRamp" -> 1.0,
+          "Obstacle" -> 1.0,
+          "SurfaceProblem" -> 1.0
+        )
+      ))
+    )
+    val json = Json.toJson(feature)
+    Future.successful(Ok(json))
+  }
+
+  /**
+    * AccessScore:Street
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def getAccessScoreStreet(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    val r = scala.util.Random
+    val minLat = min(lat1, lat2)
+    val maxLat = max(lat1, lat2)
+    val minLng = min(lng1, lng2)
+    val maxLng = max(lng1, lng2)
+
+    val streetEdges = StreetEdgeTable.selectStreetsIn(minLat, minLng, maxLat, maxLng)
+    val features: List[JsObject] = streetEdges.map { edge =>
+      val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+      val latlngs: List[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
+      val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
+      val properties = Json.obj(
+        "street_edge_id" -> edge.streetEdgeId,
+        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
+        "significance" -> Json.obj(
+          "NoCurbRamp" -> 1.0,
+          "Obstacle" -> 1.0,
+          "SurfaceProblem" -> 1.0
+        ),
+        "feature" -> Json.obj(
+          "NoCurbRamp" -> 1.0,
+          "Obstacle" -> 1.0,
+          "SurfaceProblem" -> 1.0
+        )
+      )
+      Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+    }
+    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+    Future.successful(Ok(featureCollection))
+  }
+
 
   // Helper methodss
   /**
@@ -71,8 +169,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param stepSize A step size in meters
     * @return A list of latlng grid
     */
-  def makeALatLngGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double): List[LatLng] =
-    makeALatLngGrid(LatLng(lat1, lng1), LatLng(lat2, lng2), stepSize)
+  def makeALatLngGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double): List[JsonLatLng] =
+    makeALatLngGrid(JsonLatLng(lat1, lng1), JsonLatLng(lat2, lng2), stepSize)
 
   /**
     * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
@@ -81,7 +179,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param stepSize A step size in meters
     * @return A list of latlng grid
     */
-  def makeALatLngGrid(latLng1: LatLng, latLng2: LatLng, stepSize: Double): List[LatLng] = {
+  def makeALatLngGrid(latLng1: JsonLatLng, latLng2: JsonLatLng, stepSize: Double): List[JsonLatLng] = {
     val minLat: Double = min(latLng1.lat, latLng2.lat)
     val maxLat: Double = max(latLng1.lat, latLng2.lat)
     val minLng: Double = min(latLng1.lng, latLng2.lng)
@@ -98,9 +196,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val latRange = minLat to maxLat by stepSizeLat
 
     val latLngs = for {
-      lat <- latRange;
+      lat <- latRange
       lng <- lngRange
-    } yield LatLng(lat, lng)
+    } yield JsonLatLng(lat, lng)
     latLngs.toList
   }
 
@@ -131,5 +229,5 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param latLng2
     * @return Distance in meters
     */
-  def haversine(latLng1: LatLng, latLng2: LatLng): Double = haversine(latLng1.lat, latLng1.lng, latLng2.lat, latLng2.lng)
+  def haversine(latLng1: JsonLatLng, latLng2: JsonLatLng): Double = haversine(latLng1.lat, latLng1.lng, latLng2.lat, latLng2.lng)
 }

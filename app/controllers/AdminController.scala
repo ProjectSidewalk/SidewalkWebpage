@@ -65,7 +65,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // JSON APIs
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val streetsPerRegion = RegionTable.getStreetsPerRegion.groupBy(_.regionId)
+      val streetsPerRegion = RegionTable.selectStreetsInRegions.groupBy(_.regionId)
 
       val completionRates = streetsPerRegion.map {
         case (regionId, streets) =>

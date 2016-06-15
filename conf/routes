@@ -83,6 +83,10 @@ GET     /geometry/join/:limit           controllers.StreetController.join(limit:
 GET     /geometry/select                controllers.StreetController.select
 
 GET     /v1/access/grid                 @controllers.ProjectSidewalkAPIController.getAccessScoreGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double ?= 500.0)
+GET     /v1/access/neighborhood         @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhood(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/point                @controllers.ProjectSidewalkAPIController.getAccessScorePoint(lat: Double, lng: Double)
+GET     /v1/access/street               @controllers.ProjectSidewalkAPIController.getAccessScoreStreet(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+
 
 # GET     /api/sidewalks                  controllers.SidewalkController.listSidewalks
 # POST    /sidewalks                    controllers.SidewalkController.createSidewalks

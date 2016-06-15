@@ -3,7 +3,8 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeTable}
+import math._
+import models.street.StreetEdgeAssignmentCountTable
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -167,7 +168,7 @@ object RegionTable {
     * @param userId user id
     * @return
     */
-  def getCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def selectTheCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     try {
       val currentRegions = for {
         (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
@@ -185,24 +186,7 @@ object RegionTable {
     }
   }
 
-  /**
-    * Get Regions that intersect with the given street
-    *
-    * @param streetEdgeId
-    * @return
-    */
-  def getRegionsIntersectingAStreet(streetEdgeId: Int): List[Region] = db.withSession { implicit session =>
-    val selectRegionQuery = Q.query[Int, Region](
-      """SELECT * FROM sidewalk.region
-        |INNER JOIN sidewalk.street_edge
-        |ON ST_Intersects(region.geom, street_edge.geom)
-        |WHERE street_edge.street_edge_id = ? AND region.region_type_id = 2 AND region.deleted = FALSE
-      """.stripMargin
-    )
-    selectRegionQuery(streetEdgeId).list
-  }
-
-  def getNamedRegionsIntersectingAStreet(streetEdgeId: Int): List[NamedRegion] = db.withSession { implicit session =>
+  def selectNamedRegionsIntersectingAStreet(streetEdgeId: Int): List[NamedRegion] = db.withSession { implicit session =>
     val selectRegionQuery = Q.query[Int, NamedRegion](
       """SELECT region.region_id, region_property.value, region.geom FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge
@@ -216,7 +200,7 @@ object RegionTable {
   }
 
 
-  def getStreetsPerRegion: List[StreetCompletion] = db.withSession { implicit session =>
+  def selectStreetsInRegions: List[StreetCompletion] = db.withSession { implicit session =>
     val query = Q.queryNA[StreetCompletion](
       """SELECT region.region_id, region_property.value, street_edge.street_edge_id, street_edge_assignment_count.completion_count, ST_Length(ST_Transform(street_edge.geom, 26918))
         |FROM sidewalk.region
@@ -227,24 +211,31 @@ object RegionTable {
         |INNER JOIN region_property
         |ON region.region_id = region_property.region_id
         |WHERE region.region_type_id = 2
-        |and region.deleted = false
+        |AND region.deleted = false
         |AND region_property.key = 'Neighborhood Name'""".stripMargin
     )
 
     query.list
   }
 
-  /**
-   * Returns a list of regions of a given type.
-    *
-    * @param regionType A type of regions (e.g., "city", "neighborhood")
-   * @return
-   */
-  def listRegionOfType(regionType: String): List[Region] = db.withSession { implicit session =>
-    val _regions = for {
-      (_regions, _regionTypes) <- regionsWithoutDeleted.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.regionType === regionType
-    } yield _regions
-    _regions.list
+
+  def selectNamedNeighborhoodsIn(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = db.withTransaction { implicit session =>
+    // http://postgis.net/docs/ST_MakeEnvelope.html
+    // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
+    val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
+      """SELECT region.region_id, region_property.value, region.geom
+        | FROM sidewalk.region
+        |LEFT JOIN sidewalk.region_property
+        | ON region.region_id = region_property.region_id
+        |WHERE region.deleted = FALSE
+        | AND region.region_type_id = 2
+        | AND ST_Intersects(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
+    )
+    val minLat = min(lat1, lat2)
+    val minLng = min(lng1, lng2)
+    val maxLat = max(lat1, lat2)
+    val maxLng = max(lng1, lng2)
+    selectNamedNeighborhoodQuery((minLng, minLat, maxLng, maxLat)).list
   }
 
   /**
@@ -253,7 +244,7 @@ object RegionTable {
     * @param regionType
     * @return
     */
-  def listNamedRegionOfType(regionType: String): List[NamedRegion] = db.withSession { implicit session =>
+  def selectNamedRegionsOfAType(regionType: String): List[NamedRegion] = db.withSession { implicit session =>
 
     val _regions = for {
       (_regions, _regionTypes) <- regionsWithoutDeleted.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.regionType === regionType
