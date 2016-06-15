@@ -1,0 +1,34 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <h2>FAQ</h2>
+        <div class="row">
+            <div class="col-sm-12"><h3>Conflicting Street View images from different time</h3></div>
+            <div class="col-sm-6">
+                <figure class="text-center">
+                    <img src='@routes.Assets.at("images/faq/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
+                    <figcaption>An older Street View image without a curb ramp at the end of crosswalk. You should label the problem as a "Missing Curb Ramp."</figcaption>
+                </figure>
+            </div>
+            <div class="col-sm-6">
+                <figure class="text-center">
+                    <img src='@routes.Assets.at("images/faq/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive" align="">
+                    <figcaption>A newer Street View image of the same location. The problem is fixed and there is a curb ramp, so you should label this as a "Curb Ramp."</figcaption>
+                </figure>
+            </div>
+            <div class="col-sm-12">
+                <div class="spacer10"></div>
+                <p class="text-justify">
+                    From time to time, you'd observe <span class="bold">Street View images taken at the same location at different time</span>, and
+                    the environment in the images may be conflicting--just like the pair of the Street View images shown above.
+                    In the older image on the left, there is no curb ramp at the end of the crosswalk, but the problem is fixed
+                    in the newer image on the right. If you find a similar case, please <span class="bold">label the accessibility features in both images so we can keep track
+                    of how the environment has changed over time!</span>
+                </p>
+            </div>
+        </div>
+    </div>
+}

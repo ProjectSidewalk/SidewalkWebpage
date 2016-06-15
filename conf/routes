@@ -10,6 +10,7 @@ GET     /home                                   @controllers.ApplicationControll
 GET     /about                                  @controllers.ApplicationController.about
 GET     /terms                                  @controllers.ApplicationController.terms
 GET     /map                                    @controllers.ApplicationController.map
+GET     /faq                                    @controllers.ApplicationController.faq
 
 # User authentication
 GET     /signIn                                 @controllers.UserController.signIn(url: String ?= "/")
