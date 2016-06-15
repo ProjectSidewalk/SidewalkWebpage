@@ -3027,7 +3027,10 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
-        // console.log(e.keyCode);
+        if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
+            // Don't allow users to use keyboard shortcut during the onboarding.
+            return;
+        }
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
