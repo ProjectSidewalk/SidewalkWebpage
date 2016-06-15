@@ -47,8 +47,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns an about page
-    *
-    * @return
+   * @return
    */
   def about = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
@@ -65,6 +64,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+    * Returns an FAQ page
+    * @return
+    */
   def faq = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
