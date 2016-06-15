@@ -82,7 +82,9 @@ GET     /geometry/streets               controllers.StreetController.getStreets(
 GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
 GET     /geometry/select                controllers.StreetController.select
 
-GET     /api/sidewalks                  controllers.SidewalkController.listSidewalks
+GET     /v1/access/grid                 @controllers.ProjectSidewalkAPIController.getAccessScoreGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double ?= 500.0)
+
+# GET     /api/sidewalks                  controllers.SidewalkController.listSidewalks
 # POST    /sidewalks                    controllers.SidewalkController.createSidewalks
 # PUT     /sidewalks                    controllers.SidewalkController.editSidewalks
 # DELETE  /sidewalks/:id                controllers.SidewalkController.removeSidewalk(id: Int)
