@@ -30,6 +30,8 @@ GET     /adminapi/tasks/:username               @controllers.AdminController.get
 GET     /adminapi/interactions/:username        @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
 GET     /adminapi/onboardingInteractions        @controllers.AdminController.getOnboardingTaskInteractions
 GET     /adminapi/auditpath/:id                 @controllers.AdminController.getAnAuditTaskPath(id: Int)
+GET     /adminapi/auditedStreets/:username      @controllers.AdminController.getStreetsAuditedByAUser(username: String)
+GET     /adminapi/labelLocations/:username      @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit

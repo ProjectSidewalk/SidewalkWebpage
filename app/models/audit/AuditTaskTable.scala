@@ -167,7 +167,7 @@ object AuditTaskTable {
     *
     * @return
     */
-  def auditedStreets: List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
     val _streetEdges = (for {
       (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges).filter(edge => edge.deleted === false)
@@ -180,7 +180,7 @@ object AuditTaskTable {
    * @param userId User Id
    * @return
    */
-  def auditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
+  def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
     val _streetEdges = (for {
       (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
     } yield _streetEdges).filter(edge => edge.deleted === false)
