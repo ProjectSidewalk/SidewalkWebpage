@@ -12,8 +12,23 @@
 
 @main(title) {
     @navbar(admin)
-
     <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="map-holder">
+                    <div id="admin-map"></div>
+                    <div id="map-label-legend">
+                        <table class="table">
+                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
+                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
+                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
+                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
+                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="row">
             <h1>General Info and Stats</h1>
             <div class="col-lg-12">

@@ -87,7 +87,7 @@ object LabelTable {
     * This method returns all the submitted labels
     * @return
     */
-  def submittedLabels: List[LabelLocation] = db.withSession { implicit session =>
+  def selectLocationsOfLabels: List[LabelLocation] = db.withSession { implicit session =>
     val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
     val _labels = for {
@@ -108,7 +108,7 @@ object LabelTable {
     * @param userId
    * @return
    */
-  def submittedLabels(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def selectLocationsOfLabelsSubmittedByAUser(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
     val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
     val _labels = for {

@@ -27,6 +27,7 @@ function Admin (_, $, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
     
+    // Draw an onboarding interaction chart
     $.getJSON("/adminapi/onboardingInteractions", function (data) {
         function cmp (a, b) {
             return a.timestamp - b.timestamp;
@@ -88,23 +89,6 @@ function Admin (_, $, c3, turf) {
             }
         });
     });
-
-    // A helper method to make an histogram of an array.
-    function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
-        arrayOfNumbers.sort(function (a, b) { return a - b; });
-        var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
-        var dividedArray = arrayOfNumbers.map(function (x) { return x / stepSize; });
-        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf,0);
-        for (var i = 0; i < dividedArray.length; i++) {
-            var binIndex = Math.floor(dividedArray[i] - 0.0000001);
-            histogram[binIndex] += 1;
-        }
-        return {
-            histogram: histogram,
-            stepSize: stepSize,
-            numberOfBins: numberOfBins
-        };
-    }
 
     $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
         var i,
@@ -469,6 +453,23 @@ function Admin (_, $, c3, turf) {
             })
                 .addTo(map);
         });
+    }
+
+    // A helper method to make an histogram of an array.
+    function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
+        arrayOfNumbers.sort(function (a, b) { return a - b; });
+        var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
+        var dividedArray = arrayOfNumbers.map(function (x) { return x / stepSize; });
+        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf,0);
+        for (var i = 0; i < dividedArray.length; i++) {
+            var binIndex = Math.floor(dividedArray[i] - 0.0000001);
+            histogram[binIndex] += 1;
+        }
+        return {
+            histogram: histogram,
+            stepSize: stepSize,
+            numberOfBins: numberOfBins
+        };
     }
     initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
