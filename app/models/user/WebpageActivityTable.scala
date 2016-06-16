@@ -22,8 +22,13 @@ object WebpageActivityTable {
   val activities = TableQuery[WebpageActivityTable]
 
   def save(activity: WebpageActivity): Int = db.withTransaction { implicit session =>
-    val webpageActivityId: Int =
-      (activities returning activities.map(_.webpageActivityId)) += activity
-    webpageActivityId
+    if (activity.ipAddress == "128.8.132.187") {
+      // Don't save data if the activity is from the remote proxy. Todo: The IP address of the remote proxy server should be store
+      0
+    } else {
+      val webpageActivityId: Int =
+        (activities returning activities.map(_.webpageActivityId)) += activity
+      webpageActivityId
+    }
   }
 }

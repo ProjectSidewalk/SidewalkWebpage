@@ -176,6 +176,9 @@ function Main ($, d3, google, turf, params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        
+        svl.ui.bottomToolbar = {};
+        svl.ui.bottomToolbar.onboardingLink = $("#toolbar-onboarding-link");
 
         // Navigation compass
         svl.ui.compass = {};
@@ -234,13 +237,15 @@ function Main ($, d3, google, turf, params) {
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
-
+        
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
         svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
         svl.modalMissionComplete.hide();
+
+        svl.toolbar = Toolbar($);
 
         svl.panoramaContainer = PanoramaContainer(google);
 
@@ -289,25 +294,30 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 } else {
-                    // Set the current mission to either the initial-mission or something else.
+                    // Set the current mission.
+                    var haveSwitchedToANewRegion = false;
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-                    if (mission.isCompleted()) {
+                    if (!mission || mission.isCompleted()) {
+                        // If the initial-mission has already been completed, set the current mission to another mission
+                        // that has not been completed yet.
                         var missionsArrayLength = 0;
                         var missions = [];
                         var regionId = neighborhood.getProperty("regionId");
-                        var haveSwitchedToANewRegion = false;
+
                         while (true) {
+                            // Check if there are incomplete missions in the current neighborhood (i.e., missions.length > 0?)
                             missions = svl.missionContainer.getMissionsByRegionId(regionId);
                             missions = missions.filter(function (m) { return !m.isCompleted(); });
                             if (missions.length > 0) {
                                 if (haveSwitchedToANewRegion) {
+                                    // If moving to the new neighborhood, update the database
                                     svl.neighborhoodContainer.moveToANewRegion(regionId);
                                 }
+                                svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                                 break;
                             }
                             haveSwitchedToANewRegion = true;
 
-                            // Take care of the case where length of the missions is 0
                             var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
                             var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
                             if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
@@ -318,6 +328,10 @@ function Main ($, d3, google, turf, params) {
                     svl.missionContainer.setCurrentMission(mission);
 
                     // Compute the route for the current mission
+                    if (haveSwitchedToANewRegion) {
+                        var newTask = svl.taskContainer.nextTask();
+                        svl.taskContainer.setCurrentTask(newTask);
+                    }
                     var currentTask = svl.taskContainer.getCurrentTask();
                     var route = mission.computeRoute(currentTask);
                     mission.setRoute(route);

@@ -19,7 +19,8 @@ object TaskFormats {
       (__ \ "user_id").write[String] and
       (__ \ "street_edge_id").write[Int] and
       (__ \ "task_start").write[Timestamp] and
-      (__ \ "task_end").writeNullable[Timestamp]
+      (__ \ "task_end").writeNullable[Timestamp] and
+      (__ \ "completed").write[Boolean]
     )(unlift(AuditTask.unapply _))
 
   // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],
@@ -47,8 +48,8 @@ object TaskFormats {
       (__ \ "street_edge_id").write[Int] and
       (__ \ "task_start").write[Timestamp] and
       (__ \ "task_end").writeNullable[Timestamp] and
-      (__ \ "label_id").write[Int] and
+      (__ \ "label_id").writeNullable[Int] and
       (__ \ "temporary_label_id").writeNullable[Int] and
-      (__ \ "label_type").write[String]
+      (__ \ "label_type").writeNullable[String]
     )(unlift(AuditTaskWithALabel.unapply _))
 }

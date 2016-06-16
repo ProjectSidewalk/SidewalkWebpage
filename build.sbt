@@ -4,9 +4,13 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "0.4-20160603"
+version := "0.4-20160613"
 
 scalaVersion := "2.10.4"
+
+sources in (Compile,doc) := Seq.empty
+
+publishArtifact in (Compile, packageDoc) := false
 
 resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
 
@@ -61,7 +65,5 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(FormatXml, false)
   .setPreference(DoubleIndentClassDeclaration, false)
   .setPreference(PreserveDanglingCloseParenthesis, true)
-
-fork in run := true
 
 fork in run := true

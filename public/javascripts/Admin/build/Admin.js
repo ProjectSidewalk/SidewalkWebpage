@@ -140,17 +140,19 @@ function AdminTask(_, $, c3, d3, svl, params) {
                         // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
                         var counter = d3.select(this).attr("counter");
                         var d = featuresdata[counter];
+
                         if (d) {
                             if ("label" in d.properties) {
                                 var label = d.properties.label;
+                                var fill = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
+                                console.log(label)
+                                console.log(fill)
                                 var p = map.latLngToLayerPoint(new L.LatLng(label.coordinates[1], label.coordinates[0]));
                                 var c = g.append("circle")
                                     .attr("r", 5)
                                     .attr("cx", p.x)
                                     .attr("cy", p.y)
-                                    .attr("fill", function () {
-                                        return svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5);
-                                    })
+                                    .attr("fill", fill)
                                     // .attr("color", "white")
                                     // .attr("stroke", "#ddd")
                                     .attr("stroke-width", 1)
@@ -441,7 +443,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
     self.data = _data;
     return self;
 }
-function Admin ($, c3, turf) {
+function Admin (_, $, c3, turf) {
     var self = {};
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
@@ -470,6 +472,84 @@ function Admin ($, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
     
+    $.getJSON("/adminapi/onboardingInteractions", function (data) {
+        function cmp (a, b) {
+            return a.timestamp - b.timestamp;
+        }
+
+        // Group the audit task interaction records by audit_task_id, then go through each group and compute
+        // the duration between the first time stamp and the last time stamp.
+        var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
+        var completionDurationArray = [];
+        var record1;
+        var record2;
+        var duration;
+        for (var auditTaskId in grouped) {
+            grouped[auditTaskId].sort(cmp);
+            record1 = grouped[auditTaskId][0];
+            record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
+            duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
+            completionDurationArray.push(duration);
+        }
+        completionDurationArray.sort(function (a, b) { return a - b; });
+
+        // Bounce rate
+        var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
+        var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
+
+        // Histogram of duration
+        completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
+        var numberOfBins = 10;
+        var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
+        console.log(histogram);
+        var counts = histogram.histogram;
+        counts.unshift("Count");
+        var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
+
+        $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
+
+        var chart = c3.generate({
+            bindto: '#onboarding-completion-duration-histogram',
+            data: {
+                columns: [
+                    counts
+                ],
+                type: 'bar'
+            },
+            axis: {
+                x: {
+                    label: "Onboarding Completion Time (s)",
+                    type: 'category',
+                    categories: bins
+                },
+                y: {
+                    label: "Count",
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+    });
+
+    // A helper method to make an histogram of an array.
+    function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
+        arrayOfNumbers.sort(function (a, b) { return a - b; });
+        var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
+        var dividedArray = arrayOfNumbers.map(function (x) { return x / stepSize; });
+        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf,0);
+        for (var i = 0; i < dividedArray.length; i++) {
+            var binIndex = Math.floor(dividedArray[i] - 0.0000001);
+            histogram[binIndex] += 1;
+        }
+        return {
+            histogram: histogram,
+            stepSize: stepSize,
+            numberOfBins: numberOfBins
+        };
+    }
 
     $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
         var i,

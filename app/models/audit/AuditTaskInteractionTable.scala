@@ -63,6 +63,14 @@ object AuditTaskInteractionTable {
     interactionId
   }
 
+  /**
+    * Select all audit task interaction records of the specified action
+    * @param actionType
+    * @return
+    */
+  def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
+    auditTaskInteractions.filter(_.action === actionType).list
+  }
 
   /**
     * Select all the audit task interactions of the specified user

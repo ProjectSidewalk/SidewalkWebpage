@@ -43,8 +43,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(AuditTaskTable.getNewTask(user.username).toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.getNewTask.toJSON))
+      case Some(user) =>
+        val task = AuditTaskTable.selectANewTask(user.username)
+        Future.successful(Ok(task.toJSON))
+      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
     }
   }
 
@@ -53,14 +55,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.getNewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId)
     Future.successful(Ok(task.toJSON))
   }
 
 
   /**
    * This method queries the task (i.e., a street edge to audit) that is connected to the current task (specified by
-    * street edge id) and returns it in the GeoJson format.
+   * street edge id) and returns it in the GeoJson format.
+   *
+   * Todo: Deprecated
    * @param streetEdgeId street edge id
    * @param lat current latitude
    * @param lng current longitude
@@ -72,19 +76,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Get a next task, but make sure the task is in the specified region.
- *
+   * Todo: Deprecated
    * @param regionId Region id
    * @return
    */
-  def getTaskInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val task = AuditTaskTable.getNewTaskInRegion(regionId)
-        Future.successful(Ok(task.toJSON))
-      case None =>
-        val task = AuditTaskTable.getNewTaskInRegion(regionId)
-        Future.successful(Ok(task.toJSON))
-    }
+  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
+    Future.successful(Ok(task.toJSON))
   }
 
   /**
@@ -92,13 +90,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @param regionId Region id
     * @return
     */
-  def getTasksInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+  def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId, user.userId).map(_.toJSON)
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
       case None =>
-        val tasks: List[JsObject] = AuditTaskTable.getTasksInRegion(regionId).map(_.toJSON)
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
     }
   }
@@ -129,22 +127,32 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Check if there is auditTaskId
           val auditTaskId: Int = if (data.auditTask.auditTaskId.isDefined) {
-            data.auditTask.auditTaskId.get
+            // Update the existing audit task row
+            val id = data.auditTask.auditTaskId.get
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            AuditTaskTable.updateTaskEnd(id, timestamp)
+            id
           } else {
             // Insert audit task
             val now = new DateTime(DateTimeZone.UTC)
             val timestamp: Timestamp = new Timestamp(now.getMillis)
             val auditTask = request.identity match {
-              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp))
+              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
               case None =>
                 val user: Option[DBUser] = UserTable.find("anonymous")
-                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp))
+                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
             }
 
             if (data.incomplete.isDefined) {
               StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
             }
             AuditTaskTable.save(auditTask)
+          }
+
+          // Set the task to be completed
+          if (data.auditTask.completed.isDefined && data.auditTask.completed.get) {
+            AuditTaskTable.updateCompleted(auditTaskId, completed=true)
           }
 
 
@@ -222,7 +230,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
           val completed: List[Mission] = request.identity match {
             case Some(user) =>
-              val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+              val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
               if (region.isDefined) {
                 val missions: List[Mission] = MissionTable.incomplete(user.userId, region.get.regionId)
                 val status = MissionStatus(0.0, 0.0, 0)

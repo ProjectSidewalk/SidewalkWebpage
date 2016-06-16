@@ -117,7 +117,8 @@ function Form ($, params) {
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
-            audit_task_id: task.getAuditTaskId()
+            audit_task_id: task.getAuditTaskId(),
+            completed: task.isCompleted()
         };
 
         data.environment = {
@@ -345,19 +346,21 @@ function Form ($, params) {
 
     /**
      * Submit the data collected so far and move to another location.
+     * 
+     * Todo. I hate the fact that this method sets the new task as a side effect.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
-    function skipSubmit (dataIn) {
+    function skipSubmit (dataIn, task) {
         svl.tracker.push('TaskSkip');
-        var task = svl.taskContainer.getCurrentTask();
+        // var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
         submit(data, task);
 
-        if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask(task);
-        }
+        // if ("taskContainer" in svl) {
+        //     svl.taskContainer.initNextTask(task);
+        // }
 
         return false;
     }
