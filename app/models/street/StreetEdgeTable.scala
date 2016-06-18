@@ -131,32 +131,5 @@ object StreetEdgeTable {
     streetEdges += edge
     edge.streetEdgeId // return the edge id.
   }
-
-  /**
-   * http://stackoverflow.com/questions/19891881/scala-slick-plain-sql-retrieve-result-as-a-map
-   * http://stackoverflow.com/questions/25578793/how-to-return-a-listuser-when-using-sql-with-slick
-   * https://websketchbook.wordpress.com/2015/03/23/make-plain-sql-queries-work-with-slick-play-framework/
-   *
-   * @param id
-   * @return
-   */
-  def randomQuery(id: Int) = db.withSession { implicit session =>
-    //    import scala.slick.jdbc.meta._
-    //    import scala.slick.jdbc.{StaticQuery => Q}
-    //    import Q.interpolation
-    //
-    //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
-    //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
-    //    user
-  }
-
-
-  def numberOfStreetsInRegions() = db.withSession {implicit session =>
-    val query = """SELECT region.region_id, COUNT(st_e.*) AS number_of_streets FROM sidewalk.region
-                |INNER JOIN sidewalk.street_edge AS st_e
-                |ON ST_Intersects(st_e.geom, region.geom)
-                |GROUP BY region.region_id
-                |""".stripMargin
-  }
 }
 
