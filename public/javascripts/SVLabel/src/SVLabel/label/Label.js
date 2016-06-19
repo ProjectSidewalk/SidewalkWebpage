@@ -54,7 +54,6 @@ function Label (pathIn, params) {
     };
 
     function _init (param, pathIn) {
-        try {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
             } else {
@@ -72,12 +71,6 @@ function Label (pathIn, params) {
                 googleMarker = createGoogleMapsMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
-
-            return true;
-        } catch (e) {
-            console.error(self.className, ':', 'Error initializing the Label object.', e);
-            return false;
-        }
     }
 
     /**
@@ -147,10 +140,23 @@ function Label (pathIn, params) {
      */
     function createGoogleMapsMarker (labelType) {
         if (typeof google != "undefined") {
-            var latlng = toLatLng(),
-                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-                imagePaths = svl.misc.getIconImagePaths(),
-                url = imagePaths[labelType].googleMapsIconImagePath
+            var latlng = toLatLng();
+
+            if (latlng) {
+                var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
+            } else {
+                // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
+                var cameraLat = getProperty("panoramaLat");
+                var cameraLng = getProperty("panoramaLng");
+                var cameraHeading = svl.util.math.toRadians(getProperty("panoramaHeading"));
+                var dx = 10 * Math.sin(cameraHeading);
+                var dy = 10 * Math.cos(cameraHeading);
+                var dLatLng = svl.util.math.latlngOffset(cameraLat, dx, dy);
+                var googleLatLng = new google.maps.LatLng(cameraLat + dLatLng.dlat, cameraLng + dLatLng.dlng);  // Todo
+            }
+
+            var imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath;
 
             return new google.maps.Marker({
                 position: googleLatLng,
@@ -900,8 +906,6 @@ function Label (pathIn, params) {
     self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    if (!_init(params, pathIn)) {
-        return false;
-    }
+    _init(params, pathIn);
     return self;
 }

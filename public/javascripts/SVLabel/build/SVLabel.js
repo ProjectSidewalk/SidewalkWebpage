@@ -2719,9 +2719,14 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : labelLatLng.lat,
-                        lng : labelLatLng.lng
+                        lat : null,
+                        lng : null
                     };
+
+                if (labelLatLng) {
+                    pointParam.lat = labelLatLng.lat;
+                    pointParam.lng = labelLatLng.lng;
+                }
                 temp.label_points.push(pointParam);
             }
 
@@ -5087,7 +5092,7 @@ function PointCloud (params) {
             createPointCloud(panoId);
             return null;
         } else {
-            return _pointClouds[panoId];
+            return (panoId in _pointClouds) ? _pointClouds[panoId] : null;
         }
     }
 
@@ -8146,7 +8151,6 @@ function Label (pathIn, params) {
     };
 
     function _init (param, pathIn) {
-        try {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
             } else {
@@ -8164,12 +8168,6 @@ function Label (pathIn, params) {
                 googleMarker = createGoogleMapsMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
-
-            return true;
-        } catch (e) {
-            console.error(self.className, ':', 'Error initializing the Label object.', e);
-            return false;
-        }
     }
 
     /**
@@ -8239,10 +8237,23 @@ function Label (pathIn, params) {
      */
     function createGoogleMapsMarker (labelType) {
         if (typeof google != "undefined") {
-            var latlng = toLatLng(),
-                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-                imagePaths = svl.misc.getIconImagePaths(),
-                url = imagePaths[labelType].googleMapsIconImagePath
+            var latlng = toLatLng();
+
+            if (latlng) {
+                var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
+            } else {
+                // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
+                var cameraLat = getProperty("panoramaLat");
+                var cameraLng = getProperty("panoramaLng");
+                var cameraHeading = svl.util.math.toRadians(getProperty("panoramaHeading"));
+                var dx = 10 * Math.sin(cameraHeading);
+                var dy = 10 * Math.cos(cameraHeading);
+                var dLatLng = svl.util.math.latlngOffset(cameraLat, dx, dy);
+                var googleLatLng = new google.maps.LatLng(cameraLat + dLatLng.dlat, cameraLng + dLatLng.dlng);  // Todo
+            }
+
+            var imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath;
 
             return new google.maps.Marker({
                 position: googleLatLng,
@@ -8992,9 +9003,7 @@ function Label (pathIn, params) {
     self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    if (!_init(params, pathIn)) {
-        return false;
-    }
+    _init(params, pathIn);
     return self;
 }
 
@@ -12223,15 +12232,17 @@ svl.util.math.toDegrees = toDegrees;
  * @param angleInDegree
  * @returns {number}
  */
-function toRadians (angleInDegree) { return angleInDegree * (Math.PI / 180); }
+function toRadians (angleInDegree) {
+    return angleInDegree * (Math.PI / 180);
+}
 svl.util.math.toRadians = toRadians;
 
 /**
  * Given a latlng point and a dx and dy (in meters), return a latlng offset (dlng, dlat) .
  * I.e., the new point would be (lng + dlng, lat + dlat)
  * @param lat Current latitude.
- * @param dx Distance along the x-axis
- * @param dy Distance along the y-axis
+ * @param dx Distance along the x-axis in meters
+ * @param dy Distance along the y-axis in meters
  */
 function latlngOffset(lat, dx, dy) {
     var dlat = dy / 111111;
