@@ -320,7 +320,8 @@ function ModalMissionComplete ($, d3, L) {
                 'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
                 'You might actually be a wizard. These sidewalks are better because of you.'
             ],
-            message = messages[Math.floor(Math.random() * messages.length)];
+            emojis = [' :D', ' :)', ' ;-)'],
+            message = messages[Math.floor(Math.random() * messages.length)] + emojis[Math.floor(Math.random() * emojis.length)];
         svl.ui.modalMissionComplete.message.html(message);
     }
 
