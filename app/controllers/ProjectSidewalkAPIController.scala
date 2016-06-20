@@ -29,6 +29,9 @@ import collection.immutable.Seq
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
+
+
   def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     val r = scala.util.Random
     val minLat = min(lat1, lat2)
@@ -103,29 +106,53 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def getAccessScoreNeighborhood(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     val r = scala.util.Random
-    val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsIn(lat1, lng1, lat2, lng2)
-    val features: List[JsObject] = neighborhoods.map { region =>
-      val coordinates: Array[Coordinate] = region.geom.getCoordinates
+    // Retrieve data and cluster them by location and label type.
+    val minLat = min(lat1, lat2)
+    val maxLat = max(lat1, lat2)
+    val minLng = min(lng1, lng2)
+    val maxLng = max(lng1, lng2)
+
+    // Retrieve data and cluster them by location and label type.
+    val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
+    val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
+    val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
+    val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(lat1, lng1, lat2, lng2)
+
+    val neighborhoodJson = for (neighborhood <- neighborhoods) yield {
+      // prepare a geometry
+      val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
       val latlngs: Seq[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
       val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(Seq(latlngs))
+
+      // Get access score
+      // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
+      val streetsIntersectingTheNeighborhood = streetEdges.filter(_.geom.intersects(neighborhood.geom))
+      val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
+      val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
+      val significance = Array(1.0, -1.0, -1.0, -1.0)
+      val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
+
       val properties = Json.obj(
-        "region_id" -> region.regionId,
-        "region_name" -> region.name,
-        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
+        "region_id" -> neighborhood.regionId,
+        "region_name" -> neighborhood.name,
+        "score" -> accessScore,
         "significance" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
+          "CurbRamp" -> 1.0,
+          "NoCurbRamp" -> -1.0,
+          "Obstacle" -> -1.0,
+          "SurfaceProblem" -> -1.0
         ),
         "feature" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
+          "CurbRamp" -> averagedStreetFeatures(0),
+          "NoCurbRamp" -> averagedStreetFeatures(1),
+          "Obstacle" -> averagedStreetFeatures(2),
+          "SurfaceProblem" -> averagedStreetFeatures(3)
         )
       )
       Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+
+    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
     Future.successful(Ok(featureCollection))
   }
 
@@ -167,7 +194,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @return
     */
   def getAccessScoreStreet(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
-    val r = scala.util.Random
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)
@@ -176,39 +202,38 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     // Retrieve data and cluster them by location and label type.
     val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
     val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
-    val streetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsWithin(minLat, minLng, maxLat, maxLng)
+    val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
+    val streetAccessScores = computeAccessScoresForStreets(streetEdges, clusteredLabelLocations)
 
-    val streetJson = computeAccessScoresForStreets(streetEdges, clusteredLabelLocations)
-
-    val features: List[JsObject] = streetEdges.map { edge =>
-      val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-      val latlngs: List[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
+    val streetJson = streetAccessScores.map { streetAccessScore =>
+      val latlngs: List[JsonLatLng] = streetAccessScore.streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
       val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
       val properties = Json.obj(
-        "street_edge_id" -> edge.streetEdgeId,
-        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
+        "street_edge_id" -> streetAccessScore.streetEdge.streetEdgeId,
+        "score" -> streetAccessScore.score,
         "significance" -> Json.obj(
-          "CurbRamp" -> 1.0,
-          "NoCurbRamp" -> -1.0,
-          "Obstacle" -> -1.0,
-          "SurfaceProblem" -> -1.0
+          "CurbRamp" -> streetAccessScore.significance(0),
+          "NoCurbRamp" -> streetAccessScore.significance(1),
+          "Obstacle" -> streetAccessScore.significance(2),
+          "SurfaceProblem" -> streetAccessScore.significance(3)
         ),
         "feature" -> Json.obj(
-          "CurbRamp" -> 1.0,
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
+          "CurbRamp" -> streetAccessScore.features(0),
+          "NoCurbRamp" -> streetAccessScore.features(1),
+          "Obstacle" -> streetAccessScore.features(2),
+          "SurfaceProblem" -> streetAccessScore.features(3)
         )
       )
-
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     }
+
+
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> streetJson)
     Future.successful(Ok(featureCollection))
   }
 
 
-  // Helper methodss
+  // Helper methods
   def clusterLabelLocations(labelLocations: List[LabelLocation]): List[LabelLocation] = {
     // Cluster together the labelLocations
     var clusterIndex = 1
@@ -251,26 +276,22 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     clustered.flatten.toList
   }
 
+
   /**
     * Retrieve streets in the given bounding box and corresponding labels for each street.
     *
     * References:
     * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
     */
-
-  def computeAccessScoresForStreets(streets: List[StreetEdge], labelLocations: List[LabelLocation]): List[JsObject] = {
+  def computeAccessScoresForStreets(streets: List[StreetEdge], labelLocations: List[LabelLocation]): List[AccessScoreStreet] = {
     val radius = 1.5E-4  // Approximately 5 meters
     val pm = new PrecisionModel()
     val srid = 4326
     val factory: GeometryFactory = new GeometryFactory(pm, srid)
 
-    val streetJson = streets.map { edge =>
+    val streetAccessScores = streets.map { edge =>
       // Expand each edge a little bit and count the number of accessibility features.
       val buffer: Geometry = edge.geom.buffer(radius)
-
-//      val c: Seq[JsonLatLng] = buffer.getCoordinates.map(c => JsonLatLng(c.y, c.x)).toList
-//      val bufferPolygon = JsonPolygon(Seq(c))
-//      val jsonObj = Json.obj("type" -> "Feature", "geometry" -> bufferPolygon, "properties" -> Json.obj("id" -> 1))
 
       //  Increment a value in Map: http://stackoverflow.com/questions/15505048/access-initialize-and-update-values-in-a-mutable-map
       val labelCounter = collection.mutable.Map[String, Int](
@@ -286,32 +307,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         }
       }
 
-      // Compute an access score. Todo. Finalize the equation
+      // Compute an access score.
       val features = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(1.0, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(features, significance)
-
-      val latlngs: List[JsonLatLng] = edge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
-      val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
-      val properties = Json.obj(
-        "street_edge_id" -> edge.streetEdgeId,
-        "score" -> accessScore,
-        "significance" -> Json.obj(
-          "CurbRamp" -> 1.0,
-          "NoCurbRamp" -> -1.0,
-          "Obstacle" -> -1.0,
-          "SurfaceProblem" -> -1.0
-        ),
-        "feature" -> Json.obj(
-          "CurbRamp" -> labelCounter("CurbRamp").toDouble,
-          "NoCurbRamp" -> labelCounter("NoCurbRamp").toDouble,
-          "Obstacle" -> labelCounter("Obstacle").toDouble,
-          "SurfaceProblem" -> labelCounter("SurfaceProblem").toDouble
-        )
-      )
-      Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+      AccessScoreStreet(edge, accessScore, features, significance)
     }
-    streetJson
+    streetAccessScores
   }
 
   def computeAccessScore(features: Array[Double], significance: Array[Double]): Double = {

@@ -218,8 +218,7 @@ object RegionTable {
     query.list
   }
 
-
-  def selectNamedNeighborhoodsIn(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = db.withTransaction { implicit session =>
+  def selectNamedNeighborhoodsIntersecting(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = db.withTransaction { implicit session =>
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
@@ -230,6 +229,25 @@ object RegionTable {
         |WHERE region.deleted = FALSE
         | AND region.region_type_id = 2
         | AND ST_Intersects(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
+    )
+    val minLat = min(lat1, lat2)
+    val minLng = min(lng1, lng2)
+    val maxLat = max(lat1, lat2)
+    val maxLng = max(lng1, lng2)
+    selectNamedNeighborhoodQuery((minLng, minLat, maxLng, maxLat)).list
+  }
+
+  def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = db.withTransaction { implicit session =>
+    // http://postgis.net/docs/ST_MakeEnvelope.html
+    // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
+    val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
+      """SELECT region.region_id, region_property.value, region.geom
+        | FROM sidewalk.region
+        |LEFT JOIN sidewalk.region_property
+        | ON region.region_id = region_property.region_id
+        |WHERE region.deleted = FALSE
+        | AND region.region_type_id = 2
+        | AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
     )
     val minLat = min(lat1, lat2)
     val minLng = min(lng1, lng2)
