@@ -176,7 +176,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     // Retrieve data and cluster them by location and label type.
     val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
     val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
-    val streetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIn(minLat, minLng, maxLat, maxLng)
+    val streetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsWithin(minLat, minLng, maxLat, maxLng)
 
     val streetJson = computeAccessScoresForStreets(streetEdges, clusteredLabelLocations)
 
