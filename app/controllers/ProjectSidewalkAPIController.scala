@@ -158,6 +158,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   /**
     * AccessScore:Street
+    *
+    * E.g., /v1/access/street?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
     * @param lat1
     * @param lng1
     * @param lat2
@@ -186,11 +188,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "street_edge_id" -> edge.streetEdgeId,
         "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
         "significance" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
+          "CurbRamp" -> 1.0,
+          "NoCurbRamp" -> -1.0,
+          "Obstacle" -> -1.0,
+          "SurfaceProblem" -> -1.0
         ),
         "feature" -> Json.obj(
+          "CurbRamp" -> 1.0,
           "NoCurbRamp" -> 1.0,
           "Obstacle" -> 1.0,
           "SurfaceProblem" -> 1.0
@@ -270,6 +274,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       //  Increment a value in Map: http://stackoverflow.com/questions/15505048/access-initialize-and-update-values-in-a-mutable-map
       val labelCounter = collection.mutable.Map[String, Int](
+        "CurbRamp" -> 0,
         "NoCurbRamp" -> 0,
         "Obstacle" -> 0,
         "SurfaceProblem" -> 0
@@ -282,8 +287,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
 
       // Compute an access score. Todo. Finalize the equation
-      val features = Array(labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
-      val significance = Array(-1.0, -1.0, -1.0)
+      val features = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
+      val significance = Array(1.0, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(features, significance)
 
       val latlngs: List[JsonLatLng] = edge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
@@ -292,11 +297,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "street_edge_id" -> edge.streetEdgeId,
         "score" -> accessScore,
         "significance" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
+          "CurbRamp" -> 1.0,
+          "NoCurbRamp" -> -1.0,
+          "Obstacle" -> -1.0,
+          "SurfaceProblem" -> -1.0
         ),
         "feature" -> Json.obj(
+          "CurbRamp" -> labelCounter("CurbRamp").toDouble,
           "NoCurbRamp" -> labelCounter("NoCurbRamp").toDouble,
           "Obstacle" -> labelCounter("Obstacle").toDouble,
           "SurfaceProblem" -> labelCounter("SurfaceProblem").toDouble
