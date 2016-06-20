@@ -58,5 +58,10 @@ object DBTableDefinitions {
         case None => None
       }
     }
+
+    def count: Int = db.withTransaction { implicit session =>
+      val users = slickUsers.list
+      users.length
+    }
   }
 }

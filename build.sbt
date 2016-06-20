@@ -4,9 +4,13 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "0.4-20160523"
+version := "0.4-20160613"
 
 scalaVersion := "2.10.4"
+
+sources in (Compile,doc) := Seq.empty
+
+publishArtifact in (Compile, packageDoc) := false
 
 resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
 
@@ -21,6 +25,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "0.8.0",
   "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",
+  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "org.webjars" %% "webjars-play" % "2.3.0",
   "org.webjars" % "bootstrap" % "3.1.1",
   "org.webjars" % "jquery" % "1.11.0",
@@ -29,7 +34,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.play.extras" %% "play-geojson" % "1.2.0",
   "com.github.tminglei" %% "slick-pg" % "0.8.2",
   "org.slf4j" % "slf4j-api"       % "1.7.7",
-  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7"
+  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
+  "joda-time" % "joda-time" % "2.9.4"
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
@@ -49,6 +55,8 @@ scalacOptions ++= Seq(
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
 
+javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+
 //********************************************************
 // Scalariform settings
 //********************************************************
@@ -59,7 +67,5 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(FormatXml, false)
   .setPreference(DoubleIndentClassDeclaration, false)
   .setPreference(PreserveDanglingCloseParenthesis, true)
-
-fork in run := true
 
 fork in run := true

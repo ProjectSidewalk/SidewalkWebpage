@@ -1,81 +1,67 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
 @import models.user.User
+@import models.street.StreetEdgeTable
 @(title: String, user: Option[User] = None)
 
 @main(title) {
     @navbar(user)
-    <div id="video-holder">
-        <video autoplay loop muted alt="Background video showing how the image labeling tool works" id="background-video">
-            <source src="@routes.Assets.at("videos/LandingPage.mp4")" type="video/mp4">
-        </video>
-        <div id="video-foreground" class="container">
-            <div class="row">
-                <div class="col-lg-12 spacer-30-percent"></div>
-                <div class="col-lg-12">
-                    <h1 class="text-center">
-                        Help us make sidewalks more accessible for everyone
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/people.svg")' alt="Icons of wheelchair user, cane user, scooter user, and a person with a stroller" class="header-icon" align="">
-                    </h1>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-lg-12">
-                    <p class="text-center"><a href='@routes.AuditController.audit' class="btn" id="participate-button">Participate</a></p>
-                </div>
-            </div>
-            <div class="col-lg-12 spacer-20-pixel"></div>
-            <div class="row">
-                <div class="col-lg-12">
-                    <p class="text-center"><a data-scroll href="#how-it-works" style="color: #333">How does it work?</a></p>
-                </div>
-            </div>
-        </div>
-    </div>
-    @*<header class="jumbotron subhead" id="home-header">*@
-        @*<div class="item">*@
-
-        @*</div>*@
-    @*</header>*@
-
-    @*<header class="jumbotron subhead" id="home-header">*@
-        @*<div class="item active">*@
-            @*<div id="map"></div>*@
-            @*<div id="map-chart"></div>*@
-        @*</div>*@
-        @*<div id="carousel-example-generic" class="carousel slide">*@
-            <!-- Indicators -->
-            <!--<ol class="carousel-indicators">-->
-                <!--<li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>-->
-                <!--<li data-target="#carousel-example-generic" data-slide-to="1"></li>-->
-            <!--</ol>-->
-
-            <!-- Wrapper for slides -->
-            @*<div class="carousel-inner">*@
-                @*<div class="item active">*@
-                    @*<div id="map"></div>*@
-                    @*<div id="map-chart"></div>*@
-                @*</div>*@
-                @*<div class="item">*@
-                    @*<video style="height: 100%" id="audit-video" autoplay loop>*@
-                        @*<source src='@routes.Assets.at("videos/SVLabelDemo.mp4")' type="video/mp4">*@
-                        @*Your browser does not support the video tag.*@
-                    @*</video>*@
+    @*<div id="video-holder">*@
+        @*<video loop muted alt="Background video showing how the image labeling tool works" id="background-video">*@
+            @*<source src="@routes.Assets.at("videos/SVLabelDemo.mp4")" type="video/mp4">*@
+        @*</video>*@
+        @*<div id="video-foreground" class="container">*@
+            @*<div class="row">*@
+                @*<div class="col-lg-12 spacer-30-percent"></div>*@
+                @*<div class="col-lg-12">*@
+                    @*<h1 class="text-center">*@
+                        @*Help us make sidewalks more accessible for everyone*@
+                        @*<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/people.svg")' alt="Icons of wheelchair user, cane user, scooter user, and a person with a stroller" class="header-icon" align="">*@
+                    @*</h1>*@
                 @*</div>*@
             @*</div>*@
-
-            @*<!-- Controls -->*@
-            @*<a class="left carousel-control" href="#carousel-example-generic" data-slide="prev">*@
-                @*<span class="glyphicon glyphicon-chevron-left"></span>*@
-            @*</a>*@
-            @*<a class="right carousel-control" href="#carousel-example-generic" data-slide="next">*@
-                @*<span class="glyphicon glyphicon-chevron-right"></span>*@
-            @*</a>*@
+            @*<div class="row">*@
+                @*<div class="col-lg-12">*@
+                    @*<p class="text-center"><a href='@routes.AuditController.audit' class="btn" id="participate-button">Participate</a></p>*@
+                @*</div>*@
+            @*</div>*@
+            @*<div class="col-lg-12 spacer-20-pixel"></div>*@
+            @*<div class="row">*@
+                @*<div class="col-lg-12">*@
+                    @*<p class="text-center"><a data-scroll href="#how-it-works" style="color: #333">How does it work?</a></p>*@
+                @*</div>*@
+            @*</div>*@
         @*</div>*@
-
-    @*</header>*@
+    @*</div>*@
     <div class="container">
-        <div class="row"><div class="spacer-50-pixel"></div></div>
-        <div class="row" id="how-it-works"><div class="col-lg-12"><h2 class="text-center">How does it work?</h2></div></div>
-        <div class="row"><div class="spacer-20-pixel"></div></div>
+        <div class="row">
+            <div class="col-md-12 height-500-pixel">
+                <div class="spacer-30-percent"></div>
+                <h1 class="text-center landing-page-header">
+                    Help us make sidewalks more accessible for everyone
+                </h1>
+                <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/people.svg")' alt="Icons of wheelchair user, cane user, scooter user, and a person with a stroller" class="header-icon img-responsive center-block" align="">
+                <div class="spacer-20-pixel"></div>
+                <p class="text-center">
+                    <a href='@routes.AuditController.audit' class="btn" id="participate-button">Participate</a>
+                </p>
+            </div>
+            @*<div class="col-md-6 height-500-pixel">*@
+                @*<div class="spacer-20-percent"></div>*@
+                @*<figure>*@
+                    @*<video loop muted alt="Background video showing how the image labeling tool works" id="demo-video">*@
+                        @*<source src="@routes.Assets.at("videos/LandingPage.mp4")" type="video/mp4">*@
+                    @*</video>*@
+                    @*<figcaption class="text-center">Watch the video to see how to find and label accessibility attributes!</figcaption>*@
+                @*</figure>*@
+
+            @*</div>*@
+        </div>
+        @*<div class="row">*@
+            @*<img src='@routes.Assets.at("images/HorizontalSeparatorWithAWheelchair.png")' alt="Horizontal separator" class="img-responsive center-block" align="">*@
+            @*<div class="spacer-20-pixel"></div>*@
+        @*</div>*@
+        @*<div class="row" id="how-it-works"><div class="col-lg-12"><h2 class="text-center">How does it work?</h2></div></div>*@
+        @*<div class="row"><div class="spacer-20-pixel"></div></div>*@
         <div class="row">
             <div class="col-md-3">
 
@@ -139,6 +125,8 @@
                     we could visualize whether one neighborhood has problems or not. The visualization allows a person
                     with mobility impairment (e.g., a wheelchair user) to decide if they can go to their destination
                     alone or they need someone to tag along to help them navigate inaccessible sidewalks.
+                    The collected accessibility data will also be used to train computers to automatically
+                    find and label accessibility attributes at scale and fast.
                 </p>
             </div>
         </div>
@@ -154,8 +142,12 @@
         <div class="row">
             <div class="col-lg-12">
                 <p class="text-center">
-                    Help us make sidewalks more accessible for everyone
+                    <span class="bold">@(UserTable.count) people</span> have contributed and made
+                    <span class="bold">@("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))) mi
+                    (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%)</span> of
+                    Washington, D.C. more accessible so far!
                 </p>
+                <p class="text-center">Participate and help us make sidewalks more accessible for everyone.</p>
             </div>
         </div>
         <div class="row">
@@ -171,4 +163,12 @@
     @*<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesSidewalk.js")'></script>*@
     @*<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesColor.js")'></script>*@
     <link href='@routes.Assets.at("stylesheets/index.css")' rel="stylesheet"/>
+    <script>
+            $("video").hover(function() {
+                $(this).prop("controls", true);
+            }, function() {
+                $(this).prop("controls", false);
+
+            });
+    </script>
 }

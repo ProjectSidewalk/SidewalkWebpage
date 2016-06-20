@@ -72,7 +72,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
     var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
@@ -94,7 +94,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
 
     function _init () {
@@ -210,6 +210,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('left', -500);
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
+        $(".g-bar-chart").css('visibility', 'hidden');
     }
 
     function setMissionTitle (missionTitle) {
@@ -223,9 +224,10 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-        svl.ui.modalMissionComplete.map.css('left', 0);
+        svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
+        $(".g-bar-chart").css('visibility', 'visible');
 
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
@@ -274,7 +276,14 @@ function ModalMissionComplete ($, d3, L) {
                 }
 
 
-                setMissionTitle(mission.getProperty("label"));
+                var missionLabel = mission.getProperty("label");
+                if (missionLabel == "initial-mission") {
+                    setMissionTitle("Initial Mission");
+                } else {
+                    var neighborhoodName = neighborhood.getProperty("name");
+                    setMissionTitle(neighborhoodName);
+                }
+
                 _updateTheMissionCompleteMessage();
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);

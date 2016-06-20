@@ -1,11 +1,15 @@
 package models.audit
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import models.label._
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+import play.api.libs.json.{JsObject, Json}
+import play.extras.geojson
+
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
@@ -41,6 +45,7 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
  */
 object AuditTaskInteractionTable {
   val db = play.api.db.slick.DB
+  val auditTasks = TableQuery[AuditTaskTable]
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
@@ -59,13 +64,35 @@ object AuditTaskInteractionTable {
   }
 
   /**
+    * Select all audit task interaction records of the specified action
+    * @param actionType
+    * @return
+    */
+  def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
+    auditTaskInteractions.filter(_.action === actionType).list
+  }
+
+  /**
+    * Select all the audit task interactions of the specified user
+    * @param userId User id
+    * @return
+    */
+  def selectAuditTaskInteractionsOfAUser(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
+    val _auditTaskInteractions = for {
+      (_auditTasks, _auditTaskInteractions) <- auditTasks.innerJoin(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
+      if _auditTasks.userId === userId.toString
+    } yield _auditTaskInteractions
+    _auditTaskInteractions.list
+  }
+
+  /**
    * Get a list of audit task interaction
     *
     * @param auditTaskId
    * @return
    */
-  def auditInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    auditTaskInteractions.filter(record => record.auditTaskId === auditTaskId).list
+  def selectAuditTaskInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
+    auditTaskInteractions.filter(_.auditTaskId === auditTaskId).list
   }
 
   /**
@@ -75,7 +102,7 @@ object AuditTaskInteractionTable {
     * @param auditTaskId
     * @return
     */
-  def auditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
+  def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
     val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
       """SELECT interaction.audit_task_interaction_id, interaction.audit_task_id, interaction.action,
         |interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
@@ -94,5 +121,36 @@ object AuditTaskInteractionTable {
     )
     val interactions: List[InteractionWithLabel] = selectInteractionWithLabelQuery(auditTaskId).list
     interactions
+  }
+
+
+  // Helper methods
+
+  /**
+    * This method takes an output of the method `selectAuditInteractionsWithLabels` and
+    * returns a GeoJSON feature collection
+    * @param interactions
+    */
+  def auditTaskInteractionsToGeoJSON(interactions: List[InteractionWithLabel]): JsObject = {
+    val features: List[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
+      val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
+      val properties = if (interaction.labelType.isEmpty) {
+        Json.obj(
+          "heading" -> interaction.heading.get.toDouble,
+          "timestamp" -> interaction.timestamp.getTime
+        )
+      } else {
+        Json.obj(
+          "heading" -> interaction.heading.get.toDouble,
+          "timestamp" -> interaction.timestamp.getTime,
+          "label" -> Json.obj(
+            "label_type" -> interaction.labelType,
+            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat)
+          )
+        )
+      }
+      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+    }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
 }

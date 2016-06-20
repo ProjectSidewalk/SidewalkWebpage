@@ -44,13 +44,60 @@ object StreetEdgeTable {
 
   val db = play.api.db.slick.DB
   val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
+
+  val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
   /**
    * Returns a list of all the street edges
-   * @return A list of StreetEdge objects.
+    *
+    * @return A list of StreetEdge objects.
    */
   def all: List[StreetEdge] = db.withSession { implicit session =>
-    streetEdges.filter(edge => edge.deleted === false).list
+    streetEdgesWithoutDeleted.list
+  }
+
+  /**
+    * This method returns the audit completion rate
+    * @param auditCount
+    * @return
+    */
+  def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
+    val allEdges = streetEdgesWithoutDeleted.list
+
+    val completedEdges = (for {
+      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _assignmentCounts.completionCount >= auditCount
+    } yield _streetEdges).list
+
+    completedEdges.length.toFloat / allEdges.length
+  }
+
+  /**
+    * Get the audited distance in miles
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    * @param auditCount
+    * @return
+    */
+  def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
+    val distances = for {
+      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _assignmentCounts.completionCount >= auditCount
+    } yield _streetEdges.geom.transform(26918).length
+    (distances.list.sum * 0.000621371).toFloat
+  }
+
+  /**
+    * Returns a list of street edges that are audited at least auditCount times
+    *
+    * @return
+    */
+  def auditedStreets(auditCount: Int): List[StreetEdge] = db.withSession { implicit session =>
+    val edges = for {
+      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+      if _assignmentCounts.completionCount >= auditCount
+    } yield _streetEdges
+    edges.list
   }
 
   def getWithIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
@@ -70,13 +117,13 @@ object StreetEdgeTable {
    * Set a record's deleted column to true
    */
   def delete(id: Int) = db.withSession { implicit session =>
-    // streetEdges.filter(_.streetEdgeId == id)
     streetEdges.filter(edge => edge.streetEdgeId === id).map(_.deleted).update(true)
   }
 
   /**
    * Save a StreetEdge into the street_edge table
-   * @param edge A StreetEdge object
+    *
+    * @param edge A StreetEdge object
    * @return
    */
   def save(edge: StreetEdge): Int = db.withTransaction { implicit session =>

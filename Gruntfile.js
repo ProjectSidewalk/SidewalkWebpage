@@ -5,7 +5,7 @@ module.exports = function(grunt) {
         pkg: grunt.file.readJSON('package.json'),
 
         concat: {
-            dist: {
+            dist_svl: {
                 src: [
                     'public/javascripts/SVLabel/lib/gsv/GSVPano.js',
                     'public/javascripts/SVLabel/lib/gsv/GSVPanoPointCloud.js',
@@ -21,6 +21,18 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/Onboarding/Onboarding.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
+            },
+            dist_progress: {
+                src: [
+                    'public/javascripts/Progress/src/*.js'
+                ],
+                dest: 'public/javascripts/Progress/build/Progress.js'
+            },
+            dist_admin: {
+                src: [
+                    'public/javascripts/Admin/src/*.js'
+                ],
+                dest: 'public/javascripts/Admin/build/Admin.js'
             }
         },
         uglify: {
@@ -73,8 +85,16 @@ module.exports = function(grunt) {
         },
         watch : {
             scripts: {
-                files: ['public/javascripts/SVLabel/src/**/*.js', 'public/javascripts/SVLabel/css/*.css'],
-                tasks: ['concat', 'concat_css'],
+                files: [
+                    'public/javascripts/SVLabel/src/**/*.js',
+                    'public/javascripts/SVLabel/css/*.css',
+                    'public/javascripts/Progress/src/**/*.js',
+                    'public/javascripts/Admin/src/**/*.js'
+                ],
+                tasks: [
+                    'concat',
+                    'concat_css'
+                ],
                 options: {
                     interrupt: true
                 }
@@ -93,5 +113,5 @@ module.exports = function(grunt) {
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
-
+    grunt.registerTask('dist', ['concat:dist_svl', 'concat:dist_progress', 'concat:dist_admin']);
 };

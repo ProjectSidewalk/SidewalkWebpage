@@ -1,8 +1,8 @@
 @import models.user.User
-@import models.region.Region
+@import models.region.NamedRegion
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[Region], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))
@@ -129,9 +129,11 @@
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
                     @if(!user) {
-                    <h2>Washington, D.C.</h2>
+                    <h2><span id="status-holder-neighborhood-name" style="display: inline;"></span>D.C.</h2>
                     } else {
-                    <a href="" target="_blank" id="status-neighborhood-link"><h2>Washington, D.C.</h2></a>
+                    <a href="" target="_blank" id="status-neighborhood-link">
+                        <h2><span id="status-holder-neighborhood-name" style="display: inline;"></span>D.C.</h2>
+                    </a>
                     }
                     <div class="status-row">
                         <span class="status-column-half">
@@ -155,7 +157,6 @@
                     <br class="clear">
                 </div>
                 <div class="status-box">
-                    <h1>Current Mission Labels</h1>
                     <div id="label-counter"></div>
                 </div>
             </div>
@@ -295,7 +296,10 @@
                 <div id="modal-comment-box">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
-                            <p>Please enter any comments about the streets and sidewalks that may affect people with mobility impairments.</p>
+                            <p>
+                                Any thoughts? Found something confusing? Spotted a bug? <br />
+                                Send us comments!
+                            </p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
@@ -471,6 +475,11 @@
             </div>
 
             <div id="annotation-holder"></div>
+            <div id="bottom-toolbar-holder" class="toolbar">
+                <p class="text-right">
+                    @*<a href="@routes.ApplicationController.faq()" target="_blank">FAQ</a>&nbsp;|&nbsp;<a href="#" id="toolbar-onboarding-link">Retake tutorial</a>*@
+                </p>
+            </div>
             <div id="task-completion-message-holder">
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/GoodJob.png")' alt="Task completion message: Good Job!" />
             </div>
@@ -505,41 +514,33 @@
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
-                <h2>Help Us Improve Street and Sidewalk Accessibility</h2>
                 <p>
-                    Hi, we’re exploring new ways to find accessibility problems in cities,
-                    and we need your help! We want you to use this web interface to
-                    <span class="bold">find and label accessibility attributes that affect how wheelchair
-                        users move about the city.</span> Accessibility attributes include:
+                    In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing
+                        missions to find and label accessibility features and problems in the environment, including:
                 </p>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures01.png")' id="onboarding-example-image-1"
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
+
+            </div>
+            <div class="col-md-6">
                 <p>
-                    <span class="bold">We’ll begin with a short, interactive tutorial to get you started.</span>
-                    @if(!user) {
-                        If you’ve taken the tutorial before, click “Skip.”
-                    }
-                    Thanks for your help in improving the accessibility of the cities.
+                    <span class="bold">We’ll begin with a short, interactive tutorial.</span>
                 </p>
             </div>
-        </div>
-        <div class="row">
-            @if(user) {
-                <div class="col-md-10"></div>
-                <div class="col-md-2">
-                    <button class="button" id="onboarding-ok-button" value="OK">OK</button>
-                </div>
-            } else {
-                <div class="col-md-8"></div>
-                <div class="col-md-2">
-                    <button class="button" id="onboarding-ok-button" value="OK">OK</button>
-                </div>
-                <div class="col-md-2">
-                    <button class="button" value="Skip">Skip</button>
-                </div>
-            }
+            <div class="col-md-offset-3 col-md-3">
+                <p>
+                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
+                </p>
+            </div>
+            <div class="col-md-12">
+                <p class="text-right"><span style='font-size: 65%;'>
+                    Already taken the tutorial? Have an account?
+                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a> now
+                    or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                </span></p>
+            </div>
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">
@@ -619,11 +620,11 @@
             _pointCloudLoader.load(this.panoId);
         });
 
-//        $(document).ready(function(){
-//            // Solutions to annoying text selection cursor.
-//            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
-//            document.onselectstart = function () { return false; };
-//        });
+        $(document).ready(function(){
+            // Solutions to annoying text selection cursor.
+            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
+            document.onselectstart = function () { return false; };
+        });
 
         function init() {
             var mainParam = {}, formParam = {}, initialLocation = svl.taskContainer.getCurrentTask().initialLocation();
@@ -650,9 +651,11 @@
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
+                mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
             } else {
                 mainParam.regionId = 1;
+                mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
 

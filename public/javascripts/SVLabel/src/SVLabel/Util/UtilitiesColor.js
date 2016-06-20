@@ -29,6 +29,12 @@ function UtilitiesColor () {
         return newRGBA;
     }
 
+    function RGBAToRGB (rgba) {
+        var rgbaValueArray = rgba.substring(5, rgba.length - 1).split(",");
+        var rgb = "rgb(" + rgbaValueArray[0] + "," + rgbaValueArray[1] + "," + rgbaValueArray[2] + ")";
+        return rgb;
+    }
+
     function changeAlphaRGBA(rgba, alpha) {
         // This function updates alpha value of the given rgba value.
         // Ex. if the input is rgba(200,200,200,0.5) and alpha 0.8,
@@ -221,6 +227,7 @@ function UtilitiesColor () {
     }
 
     self.RGBToRGBA = RGBToRGBA;
+    self.RGBAToRGB = RGBAToRGB;
     self.changeAlphaRGBA = changeAlphaRGBA;
     self.changeDarknessRGBA = changeDarknessRGBA;
     self.rgbToHsl = rgbToHsl;

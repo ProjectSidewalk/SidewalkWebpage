@@ -23,6 +23,8 @@ object UserCurrentRegionTable {
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
   val regions = TableQuery[RegionTable]
 
+  val regionsWithoutDeleted = regions.filter(_.deleted === false)
+
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
     val userCurrentRegionId: Int =
@@ -36,10 +38,21 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return region id
     */
-  def assign(userId: UUID): Int = db.withTransaction { implicit session =>
-    val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
-    save(userId, regionId)
-    regionId
+  def assignRandomly(userId: UUID): Int = db.withTransaction { implicit session =>
+    // Check if there are any records
+    val _currentRegions = for {
+      (_regions, _currentRegions) <- regionsWithoutDeleted.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if _currentRegions.userId === userId.toString
+    } yield _currentRegions
+    val currentRegionList = _currentRegions.list
+
+    if (currentRegionList.isEmpty) {
+      val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
+      save(userId, regionId)
+      regionId
+    } else {
+      assignNextRegion(userId)
+    }
   }
 
   /**
@@ -51,31 +64,6 @@ object UserCurrentRegionTable {
     val regionIds = MissionTable.incompleteRegions(userId)
     val regionId = scala.util.Random.shuffle(regionIds).head
     update(userId, regionId)
-  }
-
-  /**
-    * Check if a user has been assigned to some region.
-    *
-    * @param userId user id
-    * @return
-    */
-  def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
-    userCurrentRegions.filter(_.userId === userId.toString).list.nonEmpty
-  }
-
-  /**
-    * Update the current region
-    *
-    * Reference:
-    * http://slick.typesafe.com/doc/2.1.0/queries.html#updating
-    *
-    * @param userId user ID
-    * @param regionId region id
-    */
-  def update(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
-    val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
-    q.update(regionId)
-    regionId
   }
 
   /**
@@ -91,5 +79,35 @@ object UserCurrentRegionTable {
       case e: NoSuchElementException => None
       case _: Throwable => None  // This shouldn't happen.
     }
+  }
+
+  /**
+    * Check if a user has been assigned to some region.
+    *
+    * @param userId user id
+    * @return
+    */
+  def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
+    val _userCurrentRegions = for {
+      (_regions, _userCurrentRegions) <- regionsWithoutDeleted.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if _userCurrentRegions.userId === userId.toString
+    } yield _userCurrentRegions
+
+    _userCurrentRegions.list.nonEmpty
+  }
+
+  /**
+    * Update the current region
+    *
+    * Reference:
+    * http://slick.typesafe.com/doc/2.1.0/queries.html#updating
+    *
+    * @param userId user ID
+    * @param regionId region id
+    */
+  def update(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
+    val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
+    q.update(regionId)
+    regionId
   }
 }

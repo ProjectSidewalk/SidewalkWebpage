@@ -63,6 +63,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case Some(user) =>
         val missions = MissionTable.incomplete(user.userId).map(m => Json.toJson(m))
+
         Future.successful(Ok(JsArray(missions)))
       case _ =>
         val missions = MissionTable.all.map(m => Json.toJson(m))
@@ -79,6 +80,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case Some(user) =>
         val missions = MissionTable.incomplete(user.userId, regionId).map(m => Json.toJson(m))
+        // val missions = MissionTable.incompleteRegionalMissions(user.userId, regionId).map(m => Json.toJson(m))
         Future.successful(Ok(JsArray(missions)))
       case _ =>
         Future.successful(Ok(JsArray(Seq())))

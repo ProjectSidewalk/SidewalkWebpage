@@ -1,6 +1,6 @@
 package formats.json
 
-import models.mission.Mission
+import models.mission._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -39,5 +39,15 @@ object MissionFormats {
       (__ \ "deleted").write[Boolean]
     )(unlift(Mission.unapply _))
 
-
+  implicit val missionRegionWrites: Writes[RegionalMission] = (
+    (__ \ "missionId").write[Int] and
+      (__ \ "regionId").writeNullable[Int] and
+      (__ \ "region_name").writeNullable[String] and
+      (__ \ "label").write[String] and
+      (__ \ "level").write[Int] and
+      (__ \ "distance").writeNullable[Double] and
+      (__ \ "distance_ft").writeNullable[Double] and
+      (__ \ "distance_mi").writeNullable[Double] and
+      (__ \ "coverage").writeNullable[Double]
+    )(unlift(RegionalMission.unapply _))
 }

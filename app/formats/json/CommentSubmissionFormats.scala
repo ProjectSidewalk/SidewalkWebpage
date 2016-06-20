@@ -5,9 +5,7 @@ import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
 object CommentSubmissionFormats {
-  case class CommentSubmission(streetEdgeId: Int, comment: String, gsvPanoramaId: Option[String],
-                               heading: Option[Double], pitch: Option[Double], zoom: Option[Int],
-                               lat: Option[Double], lng: Option[Double])
+  case class CommentSubmission(streetEdgeId: Int, comment: String, gsvPanoramaId: Option[String], heading: Option[Double], pitch: Option[Double], zoom: Option[Int], lat: Option[Double], lng: Option[Double])
 
   implicit val commentSubmissionReads: Reads[CommentSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and

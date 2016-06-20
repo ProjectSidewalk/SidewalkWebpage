@@ -157,6 +157,10 @@ function MissionContainer ($, parameters) {
         return missions;
     }
 
+    function getAvailableRegionIds () {
+        return Object.keys(missionStoreByRegionId);
+    }
+
     function nextMission (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
@@ -214,6 +218,7 @@ function MissionContainer ($, parameters) {
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
     self.commit = commit;
+    self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMission = getMission;

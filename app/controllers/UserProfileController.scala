@@ -2,17 +2,18 @@ package controllers
 
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
+import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
+import formats.json.TaskFormats._
 import forms._
-import models.audit.{InteractionWithLabel, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
+import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
 import models.user.User
-import play.api.libs.json.{JsObject, Json}
-import play.api.mvc.{BodyParsers, Result, RequestHeader}
+import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.mvc.{BodyParsers, RequestHeader, Result}
 import play.extras.geojson
 
 import scala.concurrent.Future
@@ -52,7 +53,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val streets = AuditTaskTable.auditedStreets(user.userId)
+        val streets = AuditTaskTable.selectStreetsAuditedByAUser(user.userId)
         val features: List[JsObject] = streets.map { edge =>
           val coordinates: Array[Coordinate] = edge.geom.getCoordinates
           val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
@@ -75,7 +76,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def getAllAuditedStreets = UserAwareAction.async { implicit request =>
-    val streets = AuditTaskTable.auditedStreets
+    val streets = AuditTaskTable.selectStreetsAudited
     val features: List[JsObject] = streets.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
@@ -93,13 +94,45 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+    *
+    * @return
+    */
+  def getSubmittedTasks = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val tasks = AuditTaskTable.selectCompletedTasks(user.userId).map(t => Json.toJson(t))
+        Future.successful(Ok(JsArray(tasks)))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
+  }
+
+  /**
+    *
+    * @return
+    */
+  def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val tasksWithLabels = AuditTaskTable.tasksWithLabels(user.userId).map(x => Json.toJson(x))
+        Future.successful(Ok(JsArray(tasksWithLabels)))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
+  }
+
+  /**
    * Get a list of labels submitted by the user
    * @return
    */
   def getSubmittedLabels = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = LabelTable.submittedLabels(user.userId)
+        val labels = LabelTable.selectLocationsOfLabelsSubmittedByAUser(user.userId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
@@ -124,7 +157,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def getAllLabels = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.submittedLabels
+    val labels = LabelTable.selectLocationsOfLabels
     val features: List[JsObject] = labels.map { label =>
       val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties = Json.obj(
@@ -139,6 +172,18 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(featureCollection))
   }
 
+  def getInteractions = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(user.userId).map(x => Json.toJson(x))
+        Future.successful(Ok(JsArray(interactions)))
+      case None =>
+        Future.successful(Ok(Json.obj(
+          "error" -> "0",
+          "message" -> "We could not find your username."
+        )))
+    }
+  }
 
   /**
    * Get user interaction records
@@ -150,29 +195,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         AuditTaskTable.lastAuditTask(user.userId) match {
           case Some(auditTask) =>
-            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.auditInteractionsWithLabels(auditTask.auditTaskId)
-            val features: List[JsObject] = interactionsWithLabels.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
-              val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
-              val properties = if (interaction.labelType.isEmpty) {
-                Json.obj(
-                  "heading" -> interaction.heading.get.toDouble,
-                  "timestamp" -> interaction.timestamp.getTime
-                )
-              } else {
-                Json.obj(
-                  "heading" -> interaction.heading.get.toDouble,
-                  "timestamp" -> interaction.timestamp.getTime,
-                  "label" -> Json.obj(
-                    "label_type" -> interaction.labelType,
-                    "coordinates" -> Seq(interaction.labelLng, interaction.labelLat)
-                  )
-                )
-              }
-              Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-            }
-            val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-
-
+            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(auditTask.auditTaskId)
+            val featureCollection = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
             Future.successful(Ok(featureCollection))
           case None => Future.successful(Ok(Json.obj(
             "error" -> "0",

@@ -14,7 +14,6 @@ function ModalSkip ($) {
 
     function _init () {
         disableClickOK();
-
         svl.ui.modalSkip.ok.bind("click", handlerClickOK);
         svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
         svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
@@ -55,9 +54,22 @@ function ModalSkip ($) {
                 lat: position.lat(),
                 lng: position.lng()
             };
+        var task = svl.taskContainer.getCurrentTask();
 
-        if ('form' in svl) svl.form.skipSubmit(incomplete);
-        if ('ribbon' in svl) svl.ribbon.backToWalk();
+        if (radioValue == "GSVNotAvailable") {
+            task.complete();
+            svl.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+
+        if ('form' in svl && "taskContainer" in svl) {
+            svl.form.skipSubmit(incomplete, task);
+            svl.taskContainer.initNextTask(task);
+        }
+        
+        if ('ribbon' in svl) { 
+            svl.ribbon.backToWalk(); 
+        }
+
         hideSkipMenu();
     }
 

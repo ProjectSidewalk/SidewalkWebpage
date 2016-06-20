@@ -14,7 +14,7 @@ function TaskContainer (turf) {
 
     /**
      * I had to make this method to wrap the street view service.
-     * @param task
+     * @param task The current task
      */
     function initNextTask (task) {
         var nextTask = svl.taskContainer.nextTask(task),
@@ -196,13 +196,12 @@ function TaskContainer (turf) {
                 feature = geojson.features[0];
                 distance += turf.lineDistance(feature, unit);
             }
-
-            if (currentTask) distance += currentTask.getDistanceWalked(unit);
-
-            return distance;
-        } else {
-            return 0;
         }
+        
+        if (currentTask) {
+            distance += currentTask.getDistanceWalked(unit);
+        }
+        return distance;
     }
 
     /**

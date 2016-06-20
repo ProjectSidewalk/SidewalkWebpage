@@ -2,17 +2,17 @@ package controllers
 
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
+import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
 import models.user.User
+
 import play.api.libs.json.Json
 import play.api.mvc.{BodyParsers, Result, RequestHeader}
 
 import scala.concurrent.Future
-
 
 /**
  * The basic application controller.
@@ -62,6 +62,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signOut(url: String) = SecuredAction.async { implicit request =>
 //    val result = Future.successful(Redirect(routes.UserController.index()))
+
     val result = Future.successful(Redirect(url))
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)

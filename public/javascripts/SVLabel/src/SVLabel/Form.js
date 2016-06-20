@@ -95,9 +95,16 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        //svl.ui.form.skipButton.on('click', handleSkipClick);
-        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        $(window).unload(function () {
+            if ("tracker" in svl) {
+                svl.tracker.push("Unload");
+            }
+            if ("taskContainer" in svl) {
+                var task = svl.taskContainer.getCurrentTask();
+                var data = compileSubmissionData(task);
+                submit(data, task, false);
+            }
+        })
     }
 
     /**
@@ -110,7 +117,8 @@ function Form ($, params) {
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
-            audit_task_id: task.getAuditTaskId()
+            audit_task_id: task.getAuditTaskId(),
+            completed: task.isCompleted()
         };
 
         data.environment = {
@@ -338,19 +346,21 @@ function Form ($, params) {
 
     /**
      * Submit the data collected so far and move to another location.
+     * 
+     * Todo. I hate the fact that this method sets the new task as a side effect.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
-    function skipSubmit (dataIn) {
-        var task = svl.taskContainer.getCurrentTask();
+    function skipSubmit (dataIn, task) {
+        svl.tracker.push('TaskSkip');
+        // var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
-        svl.tracker.push('TaskSkip');
         submit(data, task);
 
-        if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask();
-        }
+        // if ("taskContainer" in svl) {
+        //     svl.taskContainer.initNextTask(task);
+        // }
 
         return false;
     }
@@ -360,13 +370,16 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data, task) {
-        svl.tracker.push('TaskSubmit');
+    function submit(data, task, async) {
+        if (typeof async == "undefined") { async = true; }
+        // svl.tracker.push('TaskSubmit');
+        data.interactions.push(svl.tracker.create("TaskSubmit"));
+
         svl.labelContainer.refresh();
         if (data.constructor !== Array) { data = [data]; }
 
         $.ajax({
-            // async: false,
+            async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
             type: 'post',
