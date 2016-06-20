@@ -8,6 +8,7 @@ POST    /                               controllers.TeaserController.teaserPost
 
 GET     /home                           @controllers.ApplicationController.index
 GET     /about                          @controllers.ApplicationController.about
+GET     /developer                      @controllers.ApplicationController.developer
 GET     /terms                          @controllers.ApplicationController.terms
 GET     /map                            @controllers.ApplicationController.map
 
@@ -78,21 +79,16 @@ GET     /contribution/:username         @controllers.UserProfileController.userP
 
 # Geometry API
 GET     /geometry/neighborhoods         @controllers.RegionController.listNeighborhoods
-GET     /geometry/streets               controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
-GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
-GET     /geometry/select                controllers.StreetController.select
+#GET     /geometry/streets               controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
+#GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
+#GET     /geometry/select                controllers.StreetController.select
 
-GET     /v1/feature                     @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/grid                 @controllers.ProjectSidewalkAPIController.getAccessScoreGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double ?= 500.0)
-GET     /v1/access/neighborhood         @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhood(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/point                @controllers.ProjectSidewalkAPIController.getAccessScorePoint(lat: Double, lng: Double)
-GET     /v1/access/street               @controllers.ProjectSidewalkAPIController.getAccessScoreStreet(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/features             @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/score/neighborhoods  @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/score/streets        @controllers.ProjectSidewalkAPIController.getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+# GET     /v1/access/score/point          @controllers.ProjectSidewalkAPIController.getAccessScorePoint(lat: Double, lng: Double)
+# GET     /v1/access/score/grid           @controllers.ProjectSidewalkAPIController.getAccessScoreGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double ?= 500.0)
 
-
-# GET     /api/sidewalks                  controllers.SidewalkController.listSidewalks
-# POST    /sidewalks                    controllers.SidewalkController.createSidewalks
-# PUT     /sidewalks                    controllers.SidewalkController.editSidewalks
-# DELETE  /sidewalks/:id                controllers.SidewalkController.removeSidewalk(id: Int)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                   controllers.Assets.at(path="/public", file)

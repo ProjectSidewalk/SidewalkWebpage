@@ -98,13 +98,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   /**
     *
+    * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
     * @param lat1
     * @param lng1
     * @param lat2
     * @param lng2
     * @return
     */
-  def getAccessScoreNeighborhood(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     val r = scala.util.Random
     // Retrieve data and cluster them by location and label type.
     val minLat = min(lat1, lat2)
@@ -127,29 +128,45 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       // Get access score
       // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
       val streetsIntersectingTheNeighborhood = streetEdges.filter(_.geom.intersects(neighborhood.geom))
-      val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
-      val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
-      val significance = Array(1.0, -1.0, -1.0, -1.0)
-      val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
+      if (streetsIntersectingTheNeighborhood.nonEmpty) {
+        val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
+        val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
+        val significance = Array(1.0, -1.0, -1.0, -1.0)
+        val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
 
-      val properties = Json.obj(
-        "region_id" -> neighborhood.regionId,
-        "region_name" -> neighborhood.name,
-        "score" -> accessScore,
-        "significance" -> Json.obj(
-          "CurbRamp" -> 1.0,
-          "NoCurbRamp" -> -1.0,
-          "Obstacle" -> -1.0,
-          "SurfaceProblem" -> -1.0
-        ),
-        "feature" -> Json.obj(
-          "CurbRamp" -> averagedStreetFeatures(0),
-          "NoCurbRamp" -> averagedStreetFeatures(1),
-          "Obstacle" -> averagedStreetFeatures(2),
-          "SurfaceProblem" -> averagedStreetFeatures(3)
+        val properties = Json.obj(
+          "region_id" -> neighborhood.regionId,
+          "region_name" -> neighborhood.name,
+          "score" -> accessScore,
+          "significance" -> Json.obj(
+            "CurbRamp" -> 1.0,
+            "NoCurbRamp" -> -1.0,
+            "Obstacle" -> -1.0,
+            "SurfaceProblem" -> -1.0
+          ),
+          "feature" -> Json.obj(
+            "CurbRamp" -> averagedStreetFeatures(0),
+            "NoCurbRamp" -> averagedStreetFeatures(1),
+            "Obstacle" -> averagedStreetFeatures(2),
+            "SurfaceProblem" -> averagedStreetFeatures(3)
+          )
         )
-      )
-      Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+        Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+      } else {
+        val properties = Json.obj(
+          "region_id" -> neighborhood.regionId,
+          "region_name" -> neighborhood.name,
+          "score" -> None.asInstanceOf[Option[Double]],
+          "significance" -> Json.obj(
+            "CurbRamp" -> 1.0,
+            "NoCurbRamp" -> -1.0,
+            "Obstacle" -> -1.0,
+            "SurfaceProblem" -> -1.0
+          ),
+          "feature" -> None.asInstanceOf[Option[Array[Double]]]
+        )
+        Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+      }
     }
 
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
@@ -193,7 +210,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreStreet(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)

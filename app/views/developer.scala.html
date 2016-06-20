@@ -1,0 +1,139 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <h1>Developer Zone</h1>
+        <p class="text-justify">
+            <span class="bold">Hey, we need your help!</span>
+            We have been collecting geographical data about accessibility.
+            We made a few basic applications, but we want to open up the data to you so you can develop stuff.
+                You can help either by (i) helping us collect data, and (ii) developing technologies using our data.
+            Let's make tools to support people with mobility impairments!
+        </p>
+        <div class="row">
+            <div class="col-lg-12">
+                <h2>Access APIs</h2>
+                <p>[Explain about the APIs a bit]</p>
+            </div>
+        </div>
+        <hr>
+        <div class="spacer-20-pixel"></div>
+        <div class="row">
+            <div class="col-sm-4">
+                <div id="developer-access-feature-map">Map</div>
+            </div>
+            <div class="col-sm-8">
+                <h3>Access Features</h3>
+                <p>[Todo. Explain about the API]</p>
+                <table class="table">
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v1/access/features</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Parameters</th>
+                        <td>
+                            <span class="bold">Required:</span>
+                            <ul>
+                                <li>
+                                    <code>lat1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lat2=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng2=[double]</code><br />
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Success Response</th>
+                        <td>
+                            [TODO]
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Example</th>
+                        <td>
+                            <a target="_blank" href='/v1/access/features?lat1=38.899&lng1=-77.006&lat2=38.917&lng2=-76.977'><code>/v1/access/features?lat1=38.899&lng1=-77.006&lat2=38.917&lng2=-76.977</code></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <hr>
+        <div class="spacer-20-pixel"></div>
+        <div class="row">
+            <div class="col-sm-4">
+                <div id="developer-access-score-streets-map">Map</div>
+            </div>
+            <div class="col-sm-8">
+                <h3>Access Score: Streets</h3>
+                <p>[Todo. Explain about the API]</p>
+                <table class="table">
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v1/access/score/streets</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Parameters</th>
+                        <td>
+                            <span class="bold">Required:</span>
+                            <ul>
+                                <li>
+                                    <code>lat1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lat2=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng2=[double]</code><br />
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Success Response</th>
+                        <td>
+                            [TODO]
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Example</th>
+                        <td>
+                            <a target="_blank" href='/v1/access/score/streets?lat1=38.899&lng1=-77.006&lat2=38.917&lng2=-76.977'><code>/v1/access/score/streets?lat1=38.899&lng1=-77.006&lat2=38.917&lng2=-76.977</code></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <hr>
+        <div class="spacer-20-pixel"></div>
+        <div class="row">
+            <div class="col-sm-4">
+                <div id="developer-access-score-neighborhoods-map">Map</div>
+            </div>
+            <div class="col-sm-8">
+                <h3>Access Score: Neighborhood</h3>
+                <p>Explain about the API</p>
+            </div>
+        </div>
+    </div>
+}
