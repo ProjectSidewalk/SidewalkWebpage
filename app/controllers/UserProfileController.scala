@@ -132,7 +132,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedLabels = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = LabelTable.submittedLabels(user.userId)
+        val labels = LabelTable.selectLocationsOfLabelsByUserId(user.userId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
@@ -157,7 +157,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def getAllLabels = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.submittedLabels
+    val labels = LabelTable.selectLocationsOfLabels
     val features: List[JsObject] = labels.map { label =>
       val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties = Json.obj(
@@ -238,7 +238,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def getAllLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.labelCounts
+    val labelCounts = LabelTable.selectLabelCountsPerDay
     val json = Json.arr(labelCounts.map(x => Json.obj(
       "date" -> x.date, "count" -> x.count
     )))

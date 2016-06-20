@@ -59,6 +59,7 @@ object StreetEdgeTable {
 
   /**
     * This method returns the audit completion rate
+    *
     * @param auditCount
     * @return
     */
@@ -76,6 +77,7 @@ object StreetEdgeTable {
   /**
     * Get the audited distance in miles
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    *
     * @param auditCount
     * @return
     */
