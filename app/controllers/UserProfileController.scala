@@ -53,7 +53,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val streets = AuditTaskTable.auditedStreets(user.userId)
+        val streets = AuditTaskTable.selectStreetsAuditedByAUser(user.userId)
         val features: List[JsObject] = streets.map { edge =>
           val coordinates: Array[Coordinate] = edge.geom.getCoordinates
           val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
@@ -76,7 +76,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def getAllAuditedStreets = UserAwareAction.async { implicit request =>
-    val streets = AuditTaskTable.auditedStreets
+    val streets = AuditTaskTable.selectStreetsAudited
     val features: List[JsObject] = streets.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
