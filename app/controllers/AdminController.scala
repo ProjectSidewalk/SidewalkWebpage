@@ -5,10 +5,12 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.label.LabelTable
 import models.mission.MissionTable
 import models.region.RegionTable
 import models.user.User
@@ -81,6 +83,60 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      UserTable.find(username) match {
+        case Some(user) =>
+          val labels = LabelTable.selectLocationsOfLabelsSubmittedByAUser(UUID.fromString(user.userId))
+          val features: List[JsObject] = labels.map { label =>
+            val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+            val properties = Json.obj(
+              "audit_task_id" -> label.auditTaskId,
+              "label_id" -> label.labelId,
+              "gsv_panorama_id" -> label.gsvPanoramaId,
+              "label_type" -> label.labelType
+            )
+            Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+          }
+          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+          Future.successful(Ok(featureCollection))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def getStreetsAuditedByAUser(username: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      UserTable.find(username) match {
+        case Some(user) =>
+          val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
+          val features: List[JsObject] = streets.map { edge =>
+            val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+            val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+            val properties = Json.obj(
+              "street_edge_id" -> edge.streetEdgeId,
+              "source" -> edge.source,
+              "target" -> edge.target,
+              "way_type" -> edge.wayType
+            )
+            Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+          }
+          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+          Future.successful(Ok(featureCollection))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+    * This method returns the onboarding interaction data
+    * @return
+    */
   def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val onboardingTransitions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")

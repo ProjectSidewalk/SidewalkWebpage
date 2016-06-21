@@ -1,0 +1,97 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <h1>FAQ</h1>
+        <div class="row">
+            <div class="col-sm-12"><h2>Are there keyboard shortcuts to for the image labeling interface?</h2></div>
+            <div class="col-sm-12">
+                <div class="spacer10"></div>
+                <p class="text-justify">
+                    YES! Here is the list of keyboard short cuts:
+                </p>
+                <table class="table table-striped table-condensed">
+                    <tr>
+                        <th class="col-sm-2"></th>
+                        <th class="col-sm-2">Key</th>
+                        <th>What it does</th>
+                    </tr>
+                    <tr>
+                        <th>Mode Switch</th>
+                        <th>E</th>
+                        <td>Switch to the Exploration mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>C</th>
+                        <td>Switch to the Curb Ramp mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>M</th>
+                        <td>Switch to the Missing Curb Ramp mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>O</th>
+                        <td>Switch to the Obstacle in Path mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>S</th>
+                        <td>Switch to the Surface Problem mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>B</th>
+                        <td>Switch to the "Can't see the sidewalk" mode</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>N</th>
+                        <td>Switch to the "No Sidewalk" mode</td>
+                    </tr>
+                    <tr>
+                        <th>Interface Control</th>
+                        <th>Z</th>
+                        <td>Zoom in</td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>Shift + Z</th>
+                        <td>Zoom out</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="spacer30"></div>
+        <div class="row">
+            <div class="col-sm-12"><h2>What should I do when I find conflicting Street View images?</h2></div>
+            <div class="col-sm-6">
+                <figure class="text-center">
+                    <img src='@routes.Assets.at("images/faq/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
+                    <figcaption>An older Street View image without a curb ramp at the end of crosswalk. You should label the problem as a "Missing Curb Ramp."</figcaption>
+                </figure>
+            </div>
+            <div class="col-sm-6">
+                <figure class="text-center">
+                    <img src='@routes.Assets.at("images/faq/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive" align="">
+                    <figcaption>A newer Street View image of the same location. The problem is fixed and there is a curb ramp, so you should label this as a "Curb Ramp."</figcaption>
+                </figure>
+            </div>
+            <div class="col-sm-12">
+                <div class="spacer10"></div>
+                <p class="text-justify">
+                    From time to time, you'd observe <span class="bold">Street View images taken at the same location at different time</span>, and
+                    the environment in the images may be conflicting--just like the pair of the Street View images shown above.
+                    In the older image on the left, there is no curb ramp at the end of the crosswalk, but the problem is fixed
+                    in the newer image on the right. If you find a similar case, please <span class="bold">label the accessibility features in both images so we can keep track
+                    of how the environment has changed over time!</span>
+                </p>
+            </div>
+        </div>
+        <div class="spacer30"></div>
+    </div>
+}

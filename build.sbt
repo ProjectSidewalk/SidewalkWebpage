@@ -55,6 +55,8 @@ scalacOptions ++= Seq(
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
 
+javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+
 //********************************************************
 // Scalariform settings
 //********************************************************

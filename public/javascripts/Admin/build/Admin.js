@@ -203,9 +203,92 @@ function AdminTask(_, $, c3, d3, svl, params) {
 function AdminUser(_, $, c3, d3, svl, params) {
     var self = {};
     var _data = {};
-
     self.username = params.username;
 
+    // Initialize the map
+    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+
+    // Construct a bounding box for this map that the user cannot move out of
+    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
+    var southWest = L.latLng(38.761, -77.262),
+        northEast = L.latLng(39.060, -76.830),
+        bounds = L.latLngBounds(southWest, northEast),
+
+    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
+        tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
+        mapboxTiles = L.tileLayer(tileUrl, {
+            attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+        }),
+        map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+            // set that bounding box as maxBounds to restrict moving the map
+            // see full maxBounds documentation:
+            // http://leafletjs.com/reference.html#map-maxbounds
+            maxBounds: bounds,
+            maxZoom: 19,
+            minZoom: 9
+        })
+        // .addLayer(mapboxTiles)
+            .fitBounds(bounds)
+            .setView([38.892, -77.038], 12),
+        popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
+
+    // Visualize audited streets
+    $.getJSON("/adminapi/auditedStreets/" + self.username, function (data) {
+        // Render audited street segments
+        L.geoJson(data, {
+            pointToLayer: L.mapbox.marker.style,
+            style: function(feature) {
+                var style = {}; // $.extend(true, {}, streetLinestringStyle);
+                var randomInt = Math.floor(Math.random() * 5);
+                style.color = "#000";
+                style["stroke-width"] = 3;
+                style.opacity = 0.75;
+                style.weight = 3;
+
+                return style;
+            }
+        })
+            .addTo(map);
+    });
+
+    // Visualize the labels collected
+    $.getJSON("/adminapi/labelLocations/" + self.username, function (data) {
+        var colorMapping = svl.misc.getLabelColors(),
+            geojsonMarkerOptions = {
+                radius: 5,
+                fillColor: "#ff7800",
+                color: "#ffffff",
+                weight: 1,
+                opacity: 0.5,
+                fillOpacity: 0.5,
+                "stroke-width": 1
+            },
+            labelCounter = {
+                "CurbRamp": 0,
+                "NoCurbRamp": 0,
+                "Obstacle": 0,
+                "SurfaceProblem": 0
+            };
+
+        for (var i = data.features.length - 1; i >= 0; i--) labelCounter[data.features[i].properties.label_type] += 1;
+
+        document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+        document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
+
+        // Render submitted labels
+        L.geoJson(data, {
+            pointToLayer: function (feature, latlng) {
+                var style = $.extend(true, {}, geojsonMarkerOptions);
+                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                return L.circleMarker(latlng, style);
+            }
+        }).addTo(map);
+    });
+
+    // Visualize user interactions
     $.getJSON("/adminapi/interactions/" + self.username, function (data) {
         var grouped = _.groupBy(data, function (d) { return d.audit_task_id; });
         _data.interactions = data;
@@ -472,6 +555,7 @@ function Admin (_, $, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
     
+    // Draw an onboarding interaction chart
     $.getJSON("/adminapi/onboardingInteractions", function (data) {
         function cmp (a, b) {
             return a.timestamp - b.timestamp;
@@ -533,23 +617,6 @@ function Admin (_, $, c3, turf) {
             }
         });
     });
-
-    // A helper method to make an histogram of an array.
-    function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
-        arrayOfNumbers.sort(function (a, b) { return a - b; });
-        var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
-        var dividedArray = arrayOfNumbers.map(function (x) { return x / stepSize; });
-        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf,0);
-        for (var i = 0; i < dividedArray.length; i++) {
-            var binIndex = Math.floor(dividedArray[i] - 0.0000001);
-            histogram[binIndex] += 1;
-        }
-        return {
-            histogram: histogram,
-            stepSize: stepSize,
-            numberOfBins: numberOfBins
-        };
-    }
 
     $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
         var i,
@@ -914,6 +981,23 @@ function Admin (_, $, c3, turf) {
             })
                 .addTo(map);
         });
+    }
+
+    // A helper method to make an histogram of an array.
+    function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
+        arrayOfNumbers.sort(function (a, b) { return a - b; });
+        var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
+        var dividedArray = arrayOfNumbers.map(function (x) { return x / stepSize; });
+        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf,0);
+        for (var i = 0; i < dividedArray.length; i++) {
+            var binIndex = Math.floor(dividedArray[i] - 0.0000001);
+            histogram[binIndex] += 1;
+        }
+        return {
+            histogram: histogram,
+            stepSize: stepSize,
+            numberOfBins: numberOfBins
+        };
     }
     initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
