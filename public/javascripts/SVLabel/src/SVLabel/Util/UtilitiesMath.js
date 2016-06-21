@@ -17,15 +17,17 @@ svl.util.math.toDegrees = toDegrees;
  * @param angleInDegree
  * @returns {number}
  */
-function toRadians (angleInDegree) { return angleInDegree * (Math.PI / 180); }
+function toRadians (angleInDegree) {
+    return angleInDegree * (Math.PI / 180);
+}
 svl.util.math.toRadians = toRadians;
 
 /**
  * Given a latlng point and a dx and dy (in meters), return a latlng offset (dlng, dlat) .
  * I.e., the new point would be (lng + dlng, lat + dlat)
  * @param lat Current latitude.
- * @param dx Distance along the x-axis
- * @param dy Distance along the y-axis
+ * @param dx Distance along the x-axis in meters
+ * @param dy Distance along the y-axis in meters
  */
 function latlngOffset(lat, dx, dy) {
     var dlat = dy / 111111;

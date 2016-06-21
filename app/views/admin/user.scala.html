@@ -46,7 +46,7 @@
                         <td>@user.get.userId</td>
                         <td>@user.get.email</td>
                         <td>@AuditTaskTable.numberOfCompletedAudits(UUID.fromString(user.get.userId))</td>
-                        <td>@LabelTable.numberOfSubmittedLabels(UUID.fromString(user.get.userId))</td>
+                        <td>@LabelTable.selectNumberOfLabelsByUserId(UUID.fromString(user.get.userId))</td>
                         <td>#</td>
                     </tr>
                 </table>

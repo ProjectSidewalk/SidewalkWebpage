@@ -53,7 +53,7 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     * @return
     */
   def listNeighborhoods = UserAwareAction.async { implicit request =>
-    val features: List[JsObject] = RegionTable.listNamedRegionOfType("neighborhood").map { region =>
+    val features: List[JsObject] = RegionTable.selectNamedRegionsOfAType("neighborhood").map { region =>
       val coordinates: Array[Coordinate] = region.geom.getCoordinates
       val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
     val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))

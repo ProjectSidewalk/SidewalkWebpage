@@ -2,19 +2,16 @@ package models.label
 
 import java.util.UUID
 
+import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q}
 
-
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int,
-                 photographerHeading: Float, photographerPitch: Float,
-                  panoramaLat: Float, panoramaLng: Float, deleted: Boolean, temporaryLabelId: Option[Int])
-case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
-                          lat: Float, lng: Float)
+case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: Boolean, temporaryLabelId: Option[Int])
+case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 /**
  *
  */
@@ -52,16 +49,21 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  def size: Int = db.withTransaction( implicit session =>
-    labels.list.size
+  implicit val labelLocationConverter = GetResult[LabelLocation](r =>
+    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
+  )
+
+  def selectLabelCount: Int = db.withTransaction( implicit session =>
+    labels.filter(_.deleted === false).list.size
   )
 
   /**
     * This method returns the number of labels submitted by the given user
+    *
     * @param userId User id
     * @return A number of labels submitted by the user
     */
-  def numberOfSubmittedLabels(userId: UUID): Int = db.withSession { implicit session =>
+  def selectNumberOfLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
@@ -85,6 +87,7 @@ object LabelTable {
 
   /**
     * This method returns all the submitted labels
+    *
     * @return
     */
   def selectLocationsOfLabels: List[LabelLocation] = db.withSession { implicit session =>
@@ -103,12 +106,36 @@ object LabelTable {
   }
 
   /**
+    * Retrieve Label Locations within a given bounding box
+    * @param minLat
+    * @param minLng
+    * @param maxLat
+    * @param maxLng
+    * @return
+    */
+  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
+    val undeletedLabels = labels.filter(_.deleted === false)
+
+    val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
+      """select label.label_id, label.audit_task_id, label.gsv_panorama_id, label_type.label_type, label_point.lat, label_point.lng from sidewalk.label
+        |INNER JOIN sidewalk.label_type
+        |ON label.label_type_id = label_type.label_type_id
+        |INNER JOIN sidewalk.label_point
+        |ON label.label_id = label_point.label_id
+        |WHERE label.deleted = false
+        |AND label_point.lat IS NOT NULL
+        |AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+    )
+    selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
+  }
+
+  /**
    * This method retunrs a list of labels submitted by the given user.
     *
     * @param userId
    * @return
    */
-  def selectLocationsOfLabelsSubmittedByAUser(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
     val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
     val _labels = for {
@@ -124,7 +151,7 @@ object LabelTable {
     labelLocationList
   }
 
-  def labelCounts: List[LabelCountPerDay] = db.withSession { implicit session =>
+  def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.queryNA[(String, Int)](
       """SELECT calendar_date::date, COUNT(label_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
         |FROM    generate_series(0, 30) n) AS calendar

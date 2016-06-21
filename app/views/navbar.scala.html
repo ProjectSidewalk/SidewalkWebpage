@@ -17,9 +17,12 @@
                 @*<li>*@
                     @*<a href='@routes.ApplicationController.map'>Access Score</a>*@
                 @*</li>*@
+                <li>
+                    <a href='@routes.ApplicationController.developer'>Developer</a>
+                </li>
                 @if(url.isDefined && url.get != "/audit") {
                     <li>
-                        <a href='@routes.AuditController.audit'>Start Auditing</a>
+                        <a href='@routes.AuditController.audit' class="bold">Start Auditing</a>
                     </li>
                 } else {
                     <li>

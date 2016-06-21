@@ -55,7 +55,7 @@ function PointCloud (params) {
             createPointCloud(panoId);
             return null;
         } else {
-            return _pointClouds[panoId];
+            return (panoId in _pointClouds) ? _pointClouds[panoId] : null;
         }
     }
 

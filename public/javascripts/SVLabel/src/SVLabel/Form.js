@@ -176,9 +176,14 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : labelLatLng.lat,
-                        lng : labelLatLng.lng
+                        lat : null,
+                        lng : null
                     };
+
+                if (labelLatLng) {
+                    pointParam.lat = labelLatLng.lat;
+                    pointParam.lng = labelLatLng.lng;
+                }
                 temp.label_points.push(pointParam);
             }
 

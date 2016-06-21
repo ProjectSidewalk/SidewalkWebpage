@@ -1,0 +1,289 @@
+@import models.user.User
+@import models.street.StreetEdgeTable
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <h1>Developer Zone</h1>
+        <p class="text-justify">
+            <span class="bold">Hey, we need your help!</span>
+            Use the sidewalk accessibility data that we have collected to make new technologies
+            that support people with mobility impairments!
+        </p>
+        <p class="text-justify">
+            We serve the accessibility data in two formats: <span class="bold">Access Features and Access Scores.</span> Access Feature contains
+            point-level information on what accessibility features exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
+            Access Score is a numerical value that indicates how (in)accesible a given area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score: Street API for an example.</a>
+        </p>
+        <p class="text-justify">
+            You can get the data either through the <a data-scroll href="#access-api-header">REST APIs</a> or <a data-scroll href="#access-dataset">download the zip file.</a>
+        </p>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <h2 id="access-api-header">Access APIs</h2>
+            </div>
+        </div>
+        <hr>
+        <div class="spacer-20-pixel"></div>
+        <div class="row" id="access-api-access-feature-row">
+            <div class="col-sm-4">
+                <div id="developer-access-feature-map" class="map"></div>
+            </div>
+            <div class="col-sm-8">
+                <h3>Access Features</h3>
+                <table class="table">
+                    <tr>
+                        <td colspan="2">
+                            This API serves point-level location data on accessibility features. The major categories of the features include:
+                            "Curb Ramp," "Missing Curb Ramp," "Obstacles," and "Surface Problem."
+                            You would occasionally find an accessibility feature like "No Sidewalk."
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v1/access/features</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Parameters</th>
+                        <td>
+                            <dl>
+                                <dt>Required:</dt>
+                                <dd>You need to pass a pair of latlng coordinates to define a bounding
+                                    box, which is used to specify where you want to query the data from.</dd>
+                            </dl>
+                            <ul>
+                                <li>
+                                    <code>lat1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lat2=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng2=[double]</code><br />
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Success Response</th>
+                        <td>
+                            <dl>
+                                <dt>200</dt>
+                                <dd>
+                                    The API returns all the available accessibility features in the specified area
+                                    as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
+                                        <a href="http://geojson.org/geojson-spec.html#point">Point features.</a>
+                                </dd>
+                            </dl>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Example</th>
+                        <td>
+                            <a target="_blank" href='/v1/access/features?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982'>
+                                <code>/v1/access/features?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982</code>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <hr>
+        <div class="spacer-20-pixel"></div>
+        <div class="row" id="access-api-access-score-street-row">
+            <div class="col-sm-4">
+                <div id="developer-access-score-streets-map" class="map"></div>
+            </div>
+            <div class="col-sm-8">
+                <h3>Access Score: Streets</h3>
+                <table class="table">
+                    <tr>
+                        <td colspan="2">
+                            This API serves Accessibility Scores of the streets within a specified region.
+                            Accessibility Score is a numerical value between 0 and 1, where 0 means inaccessible and
+                            1 means accessible.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v1/access/score/streets</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Parameters</th>
+                        <td>
+                            <dl>
+                                <dt>Required:</dt>
+                                <dd>You need to pass a pair of latlng coordinates to define a bounding
+                                    box, which is used to specify where you want to query the data from.</dd>
+                            </dl>
+                            <ul>
+                                <li>
+                                    <code>lat1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lat2=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng2=[double]</code><br />
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Success Response</th>
+                        <td>
+                            <dl>
+                                <dt>200</dt>
+                                <dd>
+                                    The API returns the streets that has been audited at least once as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
+                                    <a href="http://geojson.org/geojson-spec.html#linestring">LineString features.</a> Each LineString feature
+                                    include street's geometry as well as the corresponding Access Score.
+                                </dd>
+                            </dl>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Example</th>
+                        <td>
+                            <a target="_blank" href='/v1/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971'>
+                                <code>/v1/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971</code>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <hr>
+        <div class="spacer-20-pixel"></div>
+        <div class="row">
+            <div class="col-sm-4">
+                <div id="developer-access-score-neighborhoods-map" class="map">Map</div>
+            </div>
+            <div class="col-sm-8">
+                <h3>Access Score: Neighborhood</h3>
+                <table class="table">
+                    <tr>
+                        <td colspan="2">
+                            This API serves Accessibility Scores of the neighborhoods within a specified region.
+                            Accessibility Score is a numerical value between 0 and 1, where 0 means inaccessible and
+                            1 means accessible.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v1/access/score/neighborhoods</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Parameters</th>
+                        <td>
+                            <dl>
+                                <dt>Required:</dt>
+                                <dd>You need to pass a pair of latlng coordinates to define a bounding
+                                    box, which is used to specify where you want to query the data from.</dd>
+                            </dl>
+                            <ul>
+                                <li>
+                                    <code>lat1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng1=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lat2=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>lng2=[double]</code><br />
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Success Response</th>
+                        <td>
+                            <dl>
+                                <dt>200</dt>
+                                <dd>
+                                    The API returns neighborhoods in a given area as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
+                                    <a href="http://geojson.org/geojson-spec.html#polygon">Polygon features.</a> Each Polygon feature
+                                    includes its geometry as well as the corresponding Access Score.
+                                </dd>
+                            </dl>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Example</th>
+                        <td>
+                            <a target="_blank" href='/v1/access/score/neighborhoods?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971'>
+                                <code>/v1/access/score/neighborhoods?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971</code>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <h2 id="access-dataset">Access Dataset</h2>
+                <p>We are working on this!</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <h2>Warning</h2>
+                <p class="text-justify">
+                    We are still in the experimental stage of the project, and so we want you to keep in mind a few things, for example:
+                </p>
+                <ol>
+                    <li>APIs' design (e.g., URL, response formats) could change</li>
+                    <li>we are focusing on collecting data only from Washington, D.C. at the moment</li>
+                    <li>since we have only covered @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))% of the entire area of DC,
+                        you would find neighborhoods where we don't have the accessibility data yet
+                        (note you can help us by <a href='@routes.AuditController.audit'>contributing to data collection too ;)</a>).</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <h2>License</h2>
+                <p>
+                    We are working on this! We'll choose a license that gives as much flexibilities as possible for
+                    developers and researchers to use the data ;)
+                </p>
+            </div>
+        </div>
+    </div>
+    <style>
+        .map {
+            margin: 25px 0 0 0;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/smooth-scroll.js")'></script>
+    <script type="text/javascript">smoothScroll.init();</script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/developer.js")'></script>
+}
