@@ -1,0 +1,22 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h1>CMSC389N, Summer 2016</h1>
+                <p>The following instruction is for CMSC389N student to get extra credit.</p>
+                <ol>
+                    <li>
+                        Register using your UMD id. <a href='@routes.UserController.signUp("/")'>Click here to sign up.</a>
+                    </li>
+                    <li>
+                        Click Start Auditing
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+}

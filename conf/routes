@@ -12,7 +12,7 @@ GET     /developer                              @controllers.ApplicationControll
 GET     /terms                                  @controllers.ApplicationController.terms
 GET     /map                                    @controllers.ApplicationController.map
 GET     /faq                                    @controllers.ApplicationController.faq
-
+GET     /student                                @controllers.ApplicationController.student
 
 # User authentication
 GET     /signIn                                 @controllers.UserController.signIn(url: String ?= "/")

@@ -2921,11 +2921,16 @@ function Form ($, params) {
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
         // svl.tracker.push('TaskSubmit');
-        data.interactions.push(svl.tracker.create("TaskSubmit"));
 
-        svl.labelContainer.refresh();
+
+
         if (data.constructor !== Array) { data = [data]; }
 
+        if ('interactions' in data[0] && data[0].constructor === Array) {
+            data[0].interactions.push(svl.tracker.create("TaskSubmit"));
+        }
+
+        svl.labelContainer.refresh();
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -7041,7 +7046,7 @@ function TaskContainer (turf) {
             }
         }
 
-        push(task); // Push the data into previousTasks
+        pushATask(task); // Push the data into previousTasks
 
         // Clear the current paths
         var _geojson = task.getGeoJSON(),
@@ -7276,7 +7281,7 @@ function TaskContainer (turf) {
      * Push a task to previousTasks
      * @param task
      */
-    function push (task) {
+    function pushATask (task) {
         if (previousTasks.indexOf(task) < 0) {
             previousTasks.push(task);
         }
@@ -7383,7 +7388,7 @@ function TaskContainer (turf) {
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.nextTask = nextTask;
-    self.push = push;
+    self.push = pushATask;
 
     self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
