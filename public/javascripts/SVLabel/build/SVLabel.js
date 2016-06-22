@@ -6573,7 +6573,7 @@ function Task (turf, geojson, currentLat, currentLng) {
 
 
     /**
-     * Set the isCompleted status to true
+     * Set the isCompleted status to true and change the color of the street into green.
      * @returns {complete}
      */
     function complete () {
@@ -6862,17 +6862,39 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
+    function eraseFromGoogleMaps () {
+        if ('map' in svl && google && paths) {
+            for (var i = 0; i < paths.length; i++) {
+                paths[i].setMap(null);
+            }
+        }
+    }
+
     /**
      * Render the task path on the Google Maps pane.
-     * Todo. This should be Map.js's responsibility.
      * Reference:
      * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
      */
     function render () {
         if ('map' in svl && google) {
-            if (paths) {
-                // Remove the existing paths and switch with the new ones
+            if (isCompleted()) {
+                // If the task has been completed already, set the paths to a green polyline
+                var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
+                    return new google.maps.LatLng(coord[1], coord[0]);
+                });
+                paths = [
+                    new google.maps.Polyline({
+                        path: gCoordinates,
+                        geodesic: true,
+                        strokeColor: '#00ff00',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2
+                    })
+                ];
+            } else if (paths) {
+                // check if paths--a list of Google Maps Polylines to render on the Google Maps pane for this task's street edge--already exists.
+                // If `paths` exist, remove it
                 for (var i = 0; i < paths.length; i++) {
                     paths[i].setMap(null);
                 }
@@ -6884,6 +6906,7 @@ function Task (turf, geojson, currentLat, currentLng) {
                     paths = completedTaskPaths();
                 }
             } else {
+                // If this is a new task and the this Task instance's `paths` is not set yet, create a red GMaps Polyline.
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);
                 });
@@ -6898,9 +6921,9 @@ function Task (turf, geojson, currentLat, currentLng) {
                 ];
             }
 
-            for (i = 0; i < previousPaths.length; i++) {
-                previousPaths[i].setMap(svl.map.getMap());
-            }
+            // for (i = 0; i < previousPaths.length; i++) {
+            //     previousPaths[i].setMap(svl.map.getMap());
+            // }
             for (i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
@@ -6941,6 +6964,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isConnectedToAPoint = isConnectedToAPoint;
     self.lineDistance = lineDistance;
     self.render = render;
+    self.eraseFromGoogleMaps = eraseFromGoogleMaps;
     self.reverseCoordinates = reverseCoordinates;
     self.setProperty = setProperty;
 
@@ -7117,7 +7141,7 @@ function TaskContainer (turf) {
             }
             return connectedTasks;
         } else {
-            return tasks;
+            return svl.util.shuffle(tasks);
         }
 
     }
@@ -7253,8 +7277,17 @@ function TaskContainer (turf) {
      * @param task
      */
     function push (task) {
-        // Todo. Check for the duplicates.
-        previousTasks.push(task);
+        if (previousTasks.indexOf(task) < 0) {
+            previousTasks.push(task);
+        }
+    }
+
+    /**
+     * Pop a task at the end of previousTasks
+     * @returns {*}
+     */
+    function pop () {
+        return previousTasks.pop();
     }
 
     /**
@@ -7310,7 +7343,9 @@ function TaskContainer (turf) {
      */
     function update () {
         var i, len = previousTasks.length;
-        for (i = 0; i < len; i++) previousTasks[i].render();
+        for (i = 0; i < len; i++) {
+            previousTasks[i].render();
+        }
         currentTask.render();
     }
 
@@ -11674,15 +11709,19 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
         var task = svl.taskContainer.getCurrentTask();
+        
+        // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
+        task.eraseFromGoogleMaps();
 
         if (radioValue == "GSVNotAvailable") {
             task.complete();
+            svl.taskContainer.push(task);  // Pushed to completed tasks.
             svl.misc.reportNoStreetView(task.getStreetEdgeId());
         }
 
         if ('form' in svl && "taskContainer" in svl) {
             svl.form.skipSubmit(incomplete, task);
-            svl.taskContainer.initNextTask(task);
+            svl.taskContainer.initNextTask();
         }
         
         if ('ribbon' in svl) { 

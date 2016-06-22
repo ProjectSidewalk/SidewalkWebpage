@@ -192,7 +192,7 @@ object RegionTable {
         |INNER JOIN sidewalk.street_edge
         | ON ST_Intersects(region.geom, street_edge.geom)
         |LEFT JOIN sidewalk.region_property
-        | ON region.region_id = region_property.value
+        | ON region.region_id = region_property.region_id
         |WHERE street_edge.street_edge_id = ? AND region_property.key = 'Neighborhood Name' AND region.deleted = FALSE
       """.stripMargin
     )

@@ -169,7 +169,7 @@ function TaskContainer (turf) {
             }
             return connectedTasks;
         } else {
-            return tasks;
+            return svl.util.shuffle(tasks);
         }
 
     }
@@ -305,8 +305,17 @@ function TaskContainer (turf) {
      * @param task
      */
     function push (task) {
-        // Todo. Check for the duplicates.
-        previousTasks.push(task);
+        if (previousTasks.indexOf(task) < 0) {
+            previousTasks.push(task);
+        }
+    }
+
+    /**
+     * Pop a task at the end of previousTasks
+     * @returns {*}
+     */
+    function pop () {
+        return previousTasks.pop();
     }
 
     /**
@@ -362,7 +371,9 @@ function TaskContainer (turf) {
      */
     function update () {
         var i, len = previousTasks.length;
-        for (i = 0; i < len; i++) previousTasks[i].render();
+        for (i = 0; i < len; i++) {
+            previousTasks[i].render();
+        }
         currentTask.render();
     }
 

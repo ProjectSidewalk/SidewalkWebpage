@@ -176,11 +176,11 @@ function AdminTask(_, $, c3, d3, svl, params) {
                 .each("start", function () {
                     var thisMarker = d3.select(d3.select(this).node().children[0]);
                     thisMarker.transition()
-                        .delay(500)
-                        .duration(250)
+                        // .delay(500)
+                        // .duration(250)
                         .attr("r", 1);
                 })
-                .duration(750)
+                // .duration(750)
                 .remove();
         }
 
