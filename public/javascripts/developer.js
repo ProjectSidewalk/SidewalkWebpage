@@ -61,7 +61,7 @@ $(document).ready(function () {
     $.getJSON("/v1/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971", function (data) {
         function style(feature) {
             return {
-                weight: 2,
+                weight: 5,
                 opacity:0.7,
                 color: getColor(feature.properties.score),
                 dashArray: '3'

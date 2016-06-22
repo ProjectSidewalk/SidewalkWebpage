@@ -10783,7 +10783,7 @@ function MissionStatus () {
     var missionMessages = {
         "onboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
-        "distance-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes in this neighborhood",
+        "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood.",
         "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood more accessible"
     };
     
