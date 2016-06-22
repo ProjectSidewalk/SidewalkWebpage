@@ -43,7 +43,7 @@ def deploy_application(zip_file_path, username, password, hostname="sidewalk.umi
 
     # Unzip the app and remove the zip file.
     print "Unzipping the files."
-    command = "unzip %s -d %s" % (sidewalk_app_directory + "/" + zip_file_name, sidewalk_app_directory + "/")
+    command = "unzip %s -d %s" % (sidewalk_app_directory + "/" + zip_file_name, sidewalk_app_directory)
 
     print command
     client.exec_command(command)
