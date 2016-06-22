@@ -232,10 +232,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case Some(user) =>
               val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
               if (region.isDefined) {
-                val missions: List[Mission] = MissionTable.incomplete(user.userId, region.get.regionId)
+                val missions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId)
                 val status = MissionStatus(0.0, 0.0, 0)
                 missions.filter(m => m.completed(status))
-                MissionTable.incomplete(user.userId, region.get.regionId) // debug
               } else {
                 List()
               }
