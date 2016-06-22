@@ -92,7 +92,9 @@ object MissionTable {
     val _missions = for {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId) if _missionUsers.userId === userId.toString
     } yield _missions
-    _missions.list.size
+
+    val missionsWithoutOnboarding = _missions.list.filter(_.label != "onboarding")
+    missionsWithoutOnboarding.size
   }
 
   /**
