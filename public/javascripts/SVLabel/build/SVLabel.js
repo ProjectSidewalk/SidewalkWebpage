@@ -7029,7 +7029,19 @@ function TaskContainer (turf) {
     function endTask (task) {
         if ('tracker' in svl) svl.tracker.push("TaskEnd");
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+
         task.complete();
+        // Todo. I'm not sure why, but chainging the state of the `task` has no effect on the task in the `taskStoreByRegionId`. Apparently task is not a reference.
+        // Go through the tasks and mark the completed task as isCompleted=true
+        var neighborhoodTasks = taskStoreByRegionId[neighborhood.getProperty("regionId")];
+        var i = 0,
+            len = neighborhoodTasks.length;
+        for (; i < len; i++) {
+            if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
+                neighborhoodTasks[i].complete();
+            }
+        }
+
 
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
