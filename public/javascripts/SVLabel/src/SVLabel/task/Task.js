@@ -41,6 +41,10 @@ function Task (turf, geojson, currentLat, currentLng) {
 
         setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
 
+        if (_geojson.features[0].properties.completed) {
+            complete();
+        }
+
         if (currentLat && currentLng) {
             // Continuing from the previous task (i.e., currentLat and currentLng exist).
             var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),

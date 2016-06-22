@@ -6544,6 +6544,10 @@ function Task (turf, geojson, currentLat, currentLng) {
 
         setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
 
+        if (_geojson.features[0].properties.completed) {
+            complete();
+        }
+
         if (currentLat && currentLng) {
             // Continuing from the previous task (i.e., currentLat and currentLng exist).
             var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
@@ -7647,14 +7651,19 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+
+
             var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
             missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
 
-            // Get the last completed mission's target distance
-            var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-
-            return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
+            var lastMissionDistance;
+            if (missions.length > 0) {
+                lastMissionDistance = missions[missions.length - 1].getProperty("distance") / 1000;
+            } else {
+                lastMissionDistance = 0;
+            }
+            return Math.max(0, completedDistance - lastMissionDistance) / (targetDistance - lastMissionDistance);
         } else {
             return 0;
         }

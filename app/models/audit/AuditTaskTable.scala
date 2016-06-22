@@ -84,6 +84,7 @@ object AuditTaskTable {
     val x2 = r.nextFloat
     val y2 = r.nextFloat
     val taskStart = r.nextTimestamp
+    val auditTaskId = r.nextIntOption
     val completed = r.nextBooleanOption.getOrElse(false)
     NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completed)
   })
@@ -435,10 +436,11 @@ object AuditTaskTable {
         |ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task
         |ON street.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
-        |WHERE region.region_id = ? AND street.deleted = FALSE AND (audit_task.completed = FALSE OR audit_task.completed IS NULL)""".stripMargin
+        |WHERE region.region_id = ? AND street.deleted = FALSE""".stripMargin
     )
 
-    selectIncompleteTaskQuery((userId.toString, regionId)).list
+    val result = selectIncompleteTaskQuery((userId.toString, regionId))
+    result.list
   }
 
   /**
