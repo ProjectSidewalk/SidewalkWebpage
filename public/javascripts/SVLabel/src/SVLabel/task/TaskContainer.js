@@ -211,7 +211,8 @@ function TaskContainer (turf) {
         }
         
         if (currentTask) {
-            distance += currentTask.getDistanceWalked(unit);
+            var currentTaskDistance = currentTask.getDistanceWalked(unit);
+            distance += currentTaskDistance;
         }
         return distance;
     }
@@ -392,7 +393,7 @@ function TaskContainer (turf) {
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
-     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood. Also get rid of the async call.
+     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {

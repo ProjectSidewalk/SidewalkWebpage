@@ -246,8 +246,8 @@ function Task (turf, geojson, currentLat, currentLng) {
      * @params {units} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in meters
      */
-    function getDistanceWalked (units) {
-        if (!units) units = "kilometers";
+    function getDistanceWalked (unit) {
+        if (!unit) unit = "kilometers";
 
         var i,
             point,
@@ -259,16 +259,21 @@ function Task (turf, geojson, currentLat, currentLng) {
             coords = line.geometry.coordinates,
             segment,
             distance = 0;
+        var coordinates = [];
         for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
-            distance += turf.lineDistance(segment);
+            // segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
+            // distance += turf.lineDistance(segment, unit);
+            coordinates.push([coords[i][0], coords[i][1]])
         }
+        coordinates.push([coords[i][0], coords[i][1]]);
+        segment = turf.linestring(coordinates);
+        distance += turf.lineDistance(segment, unit);
 
         // Check if the snapped point is not too far away from the current point. Then add the distance between the
         // snapped point and the last segment point to cumSum.
-        if (turf.distance(snapped, currentPoint, units) < 100) {
+        if (turf.distance(snapped, currentPoint, unit) < 100) {
             point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-            distance += turf.distance(snapped, point);
+            distance += turf.distance(snapped, point, unit);
         }
 
         return distance;
@@ -384,6 +389,7 @@ function Task (turf, geojson, currentLat, currentLng) {
      */
     function render () {
         if ('map' in svl && google) {
+            eraseFromGoogleMaps();
             if (isCompleted()) {
                 // If the task has been completed already, set the paths to a green polyline
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
@@ -401,9 +407,9 @@ function Task (turf, geojson, currentLat, currentLng) {
             } else if (paths) {
                 // check if paths--a list of Google Maps Polylines to render on the Google Maps pane for this task's street edge--already exists.
                 // If `paths` exist, remove it
-                for (var i = 0; i < paths.length; i++) {
-                    paths[i].setMap(null);
-                }
+                // for (var i = 0; i < paths.length; i++) {
+                //     paths[i].setMap(null);
+                // }
 
                 var newTaskCompletionRate = getTaskCompletionRate();
 
