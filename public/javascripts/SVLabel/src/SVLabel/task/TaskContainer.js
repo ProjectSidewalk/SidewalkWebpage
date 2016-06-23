@@ -12,6 +12,8 @@ function TaskContainer (turf) {
         paths, previousPaths = [],
         taskStoreByRegionId = {};
 
+    svl.taskStoreByRegionId = taskStoreByRegionId;  // debug
+
     /**
      * I had to make this method to wrap the street view service.
      * @param task The current task
@@ -358,7 +360,7 @@ function TaskContainer (turf) {
         var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
             return task.getProperty("streetEdgeId");
         });
-        if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
     /**

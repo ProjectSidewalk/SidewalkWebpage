@@ -440,8 +440,16 @@ object AuditTaskTable {
         |WHERE region.region_id = ? AND street.deleted = FALSE""".stripMargin
     )
 
-    val result = selectIncompleteTaskQuery((userId.toString, regionId))
-    result.list
+    val result = selectIncompleteTaskQuery((userId.toString, regionId)).list
+    val uniqueTasks = for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield {
+      val completedTasks = tasks.filter(_.completed)
+      if (completedTasks.isEmpty) {
+        tasks.head
+      } else {
+        completedTasks.head
+      }
+    }
+    uniqueTasks.toList
   }
 
   /**
