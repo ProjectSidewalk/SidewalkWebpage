@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "0.4-20160613"
+version := "0.4-20160622"
 
 scalaVersion := "2.10.4"
 
@@ -54,6 +54,8 @@ scalacOptions ++= Seq(
   "-Ywarn-nullary-override", // Warn when non-nullary overrides nullary, e.g. def foo() over def foo.
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
+
+javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 //********************************************************
 // Scalariform settings

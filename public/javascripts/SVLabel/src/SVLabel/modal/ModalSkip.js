@@ -55,15 +55,19 @@ function ModalSkip ($) {
                 lng: position.lng()
             };
         var task = svl.taskContainer.getCurrentTask();
+        
+        // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
+        task.eraseFromGoogleMaps();
 
         if (radioValue == "GSVNotAvailable") {
             task.complete();
+            svl.taskContainer.push(task);  // Pushed to completed tasks.
             svl.misc.reportNoStreetView(task.getStreetEdgeId());
         }
 
         if ('form' in svl && "taskContainer" in svl) {
             svl.form.skipSubmit(incomplete, task);
-            svl.taskContainer.initNextTask(task);
+            svl.taskContainer.initNextTask();
         }
         
         if ('ribbon' in svl) { 

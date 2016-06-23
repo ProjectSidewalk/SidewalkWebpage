@@ -53,7 +53,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           UserCurrentRegionTable.assignRandomly(user.userId)
         }
         // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
-        val region: Option[NamedRegion] = RegionTable.getCurrentNamedRegion(user.userId)
+        val region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
@@ -101,7 +101,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
     // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
-    val regions: List[NamedRegion] = RegionTable.getNamedRegionsIntersectingAStreet(streetEdgeId)
+    val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
     val region: Option[NamedRegion] = try {
       Some(regions.head)
     } catch {

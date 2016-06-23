@@ -312,8 +312,8 @@ function Main ($, d3, google, turf, params) {
                                 if (haveSwitchedToANewRegion) {
                                     // If moving to the new neighborhood, update the database
                                     svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                    svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                                 }
-                                svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                                 break;
                             }
                             haveSwitchedToANewRegion = true;

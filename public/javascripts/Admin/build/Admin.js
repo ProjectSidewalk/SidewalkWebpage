@@ -176,11 +176,11 @@ function AdminTask(_, $, c3, d3, svl, params) {
                 .each("start", function () {
                     var thisMarker = d3.select(d3.select(this).node().children[0]);
                     thisMarker.transition()
-                        .delay(500)
-                        .duration(250)
+                        // .delay(500)
+                        // .duration(250)
                         .attr("r", 1);
                 })
-                .duration(750)
+                // .duration(750)
                 .remove();
         }
 
@@ -246,6 +246,11 @@ function AdminUser(_, $, c3, d3, svl, params) {
                 style.weight = 3;
 
                 return style;
+            },
+            onEachFeature: function (feature, layer) {
+                layer.on({
+                    click: function (e) { console.log(feature); }
+                })
             }
         })
             .addTo(map);
@@ -297,7 +302,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
         var keysLength = keys.length;
         var padding = { top: 5, right: 10, bottom: 5, left: 100 };
         var userInteractionSVGArray = [];
-        var svgHeight = 45;
+        var svgHeight = 60;
         var eventProperties = {
             "Default": {
                 y: 30,
@@ -331,10 +336,13 @@ function AdminUser(_, $, c3, d3, svl, params) {
 
         // Draw Gantt charts for each task
         for (keyIndex = keysLength - 1; keyIndex >= 0; keyIndex--) {
+
             var key = keys[keyIndex];
             var taskInteractionArray = grouped[keys[keyIndex]];
             var taskInteractionArrayLength = taskInteractionArray.length;
             var svgWidth = $("#user-activity-chart").width();
+
+            console.log(taskInteractionArray)
 
             // Sort tasks by timestamp
             taskInteractionArray.sort(function (a, b) {
@@ -383,26 +391,6 @@ function AdminUser(_, $, c3, d3, svl, params) {
                 .style({opacity: 0.5, stroke: "white", "stroke-width": "2px"})
                 .style("fill", function (d) {
                     var style = !(d.action in eventProperties) ? eventProperties["Default"] : eventProperties[d.action];
-                    // if (!(d.action in eventProperties)) {
-                    //     style = eventProperties["Default"];
-                    // } else if (d.action.indexOf("FinishLabeling")) {
-                    //     if (d.note) {
-                    //         console.log(d.note);
-                    //         var labelType = d.note.split(",")[0].split(":")[1];
-                    //         var colors = svl.misc.getLabelColors();
-                    //
-                    //         console.log(colors);
-                    //         console.log(colors[labelType]);
-                    //         // console.log(labelType);
-                    //         // console.log(svl.util.color.RGBAToRGB(svl.misc.getLabelColors("CurbRamp")));
-                    //
-                    //         style= eventProperties[d.action];
-                    //     } else {
-                    //         style = eventProperties["Default"];
-                    //     }
-                    // } else {
-                    //     style = eventProperties[d.action];
-                    // }
                     if (d.action.indexOf("FinishLabeling") > -1) {
                         if (d.note) {
                             var colors = svl.misc.getLabelColors();
@@ -434,6 +422,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
 
             // Draw labels
             var taskId = "TaskId: " + key;
+
             var date = new Date(taskInteractionArray[0].timestamp);
             var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             var dateLabel = monthNames[date.getMonth()] + " " + date.getDate();

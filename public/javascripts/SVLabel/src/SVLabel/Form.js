@@ -176,9 +176,14 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : labelLatLng.lat,
-                        lng : labelLatLng.lng
+                        lat : null,
+                        lng : null
                     };
+
+                if (labelLatLng) {
+                    pointParam.lat = labelLatLng.lat;
+                    pointParam.lng = labelLatLng.lng;
+                }
                 temp.label_points.push(pointParam);
             }
 
@@ -373,11 +378,16 @@ function Form ($, params) {
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
         // svl.tracker.push('TaskSubmit');
-        data.interactions.push(svl.tracker.create("TaskSubmit"));
 
-        svl.labelContainer.refresh();
+
+
         if (data.constructor !== Array) { data = [data]; }
 
+        if ('interactions' in data[0] && data[0].constructor === Array) {
+            data[0].interactions.push(svl.tracker.create("TaskSubmit"));
+        }
+
+        svl.labelContainer.refresh();
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',

@@ -59,6 +59,7 @@ object StreetEdgeTable {
 
   /**
     * This method returns the audit completion rate
+    *
     * @param auditCount
     * @return
     */
@@ -76,6 +77,7 @@ object StreetEdgeTable {
   /**
     * Get the audited distance in miles
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    *
     * @param auditCount
     * @return
     */
@@ -100,13 +102,57 @@ object StreetEdgeTable {
     edges.list
   }
 
-  def getWithIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
-
+  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.street_edge AS st_e
-       | WHERE st_e.deleted = FALSE AND st_e.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)""".stripMargin
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+       |FROM sidewalk.street_edge AS st_e
+       |WHERE st_e.deleted = FALSE AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
+  }
+
+  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
+    // http://postgis.net/docs/ST_MakeEnvelope.html
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT DISTINCT(street_edge.street_edge_id), street_edge.geom, street_edge.source, street_edge.target, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2, street_edge.way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |  INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  WHERE street_edge.deleted = FALSE
+        |  AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |  AND audit_task.completed = TRUE""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
+  }
+
+  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT DISTINCT(st_e.street_edge_id), st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+        |FROM sidewalk.street_edge AS st_e
+        |WHERE st_e.deleted = FALSE
+        |AND ST_Within(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
+  }
+
+  def selectAuditedStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT DISTINCT(street_edge.street_edge_id), street_edge.geom, street_edge.source, street_edge.target, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2, street_edge.way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |  INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  WHERE street_edge.deleted = FALSE
+        |  AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |  AND audit_task.completed = TRUE""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
@@ -129,33 +175,6 @@ object StreetEdgeTable {
   def save(edge: StreetEdge): Int = db.withTransaction { implicit session =>
     streetEdges += edge
     edge.streetEdgeId // return the edge id.
-  }
-
-  /**
-   * http://stackoverflow.com/questions/19891881/scala-slick-plain-sql-retrieve-result-as-a-map
-   * http://stackoverflow.com/questions/25578793/how-to-return-a-listuser-when-using-sql-with-slick
-   * https://websketchbook.wordpress.com/2015/03/23/make-plain-sql-queries-work-with-slick-play-framework/
-   *
-   * @param id
-   * @return
-   */
-  def randomQuery(id: Int) = db.withSession { implicit session =>
-    //    import scala.slick.jdbc.meta._
-    //    import scala.slick.jdbc.{StaticQuery => Q}
-    //    import Q.interpolation
-    //
-    //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
-    //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
-    //    user
-  }
-
-
-  def numberOfStreetsInRegions() = db.withSession {implicit session =>
-    val query = """SELECT region.region_id, COUNT(st_e.*) AS number_of_streets FROM sidewalk.region
-                |INNER JOIN sidewalk.street_edge AS st_e
-                |ON ST_Intersects(st_e.geom, region.geom)
-                |GROUP BY region.region_id
-                |""".stripMargin
   }
 }
 

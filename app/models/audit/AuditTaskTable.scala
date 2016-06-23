@@ -168,8 +168,9 @@ object AuditTaskTable {
     * @return
     */
   def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
+    val completedTasks = auditTasks.filter(_.completed === true)
     val _streetEdges = (for {
-      (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+      (_auditTasks, _streetEdges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges).filter(edge => edge.deleted === false)
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
   }
@@ -181,11 +182,12 @@ object AuditTaskTable {
    * @return
    */
   def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
+    val completedTasks = auditTasks.filter(_.completed === true)
     val _streetEdges = (for {
-      (_auditTasks, _streetEdges) <- auditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
+      (_auditTasks, _streetEdges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
     } yield _streetEdges).filter(edge => edge.deleted === false)
 
-    _streetEdges.list
+    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
   def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
@@ -430,15 +432,24 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val selectIncompleteTaskQuery = Q.query[(String, Int), NewTask](
-      """SELECT street.street_edge_id, street.geom, street.x1, street.y1, street.x2, street.y2, street.timestamp, audit_task.audit_task_id, audit_task.completed FROM sidewalk.region
+      """SELECT street.street_edge_id, street.geom, street.x1, street.y1, street.x2, street.y2, street.timestamp, audit_task.completed FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task
         |ON street.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
-        |WHERE region.region_id = ? AND street.deleted = FALSE AND (audit_task.completed = FALSE OR audit_task.completed IS NULL)""".stripMargin
+        |WHERE region.region_id = ? AND street.deleted = FALSE""".stripMargin
     )
 
-    selectIncompleteTaskQuery((userId.toString, regionId)).list
+    val result = selectIncompleteTaskQuery((userId.toString, regionId)).list
+    val uniqueTasks = for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield {
+      val completedTasks = tasks.filter(_.completed)
+      if (completedTasks.isEmpty) {
+        tasks.head
+      } else {
+        completedTasks.head
+      }
+    }
+    uniqueTasks.toList
   }
 
   /**
