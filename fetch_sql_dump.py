@@ -13,21 +13,24 @@ def fetch_sql_dump(sql_dump_filename, username, password, hostname="sidewalk.umi
     remote_home_directory = "/nfshomes/kotaro"
     remote_sql_dump_directory = remote_home_directory + "/sql_dump"
     remote_filename = remote_sql_dump_directory + "/" + sql_dump_filename
+    local_filename = download_directory + "/" + sql_dump_filename
 
     # Create a sql dump
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname, username=username, password=password)
     stdin, stdout, stderr = client.exec_command('scl enable postgresql92 "./dump_sidewalk_tables.sh %s"' % sql_dump_filename)
+    stdout.read()
     client.close()
     print "Created the database dump %s on the remote server" % sql_dump_filename
 
     # Download the file
-    print "Downloading the database dump..."
+    print "Opening a sftp port"
     port = 22
     transport = paramiko.Transport((hostname, port))
     transport.connect(username=username, password=password)
     sftp = paramiko.SFTPClient.from_transport(transport)
+    print "Downloading the database dump %s to local path %s" % (remote_filename, sql_dump_filename)
     sftp.get(remote_filename, sql_dump_filename)
     sftp.close()
     transport.close()
@@ -50,8 +53,9 @@ if __name__ == '__main__':
 
         if command == "fetch":
             username = raw_input("Username:")
+            filename = sql_dump_filename
             password = getpass.getpass("Password:")
-            fetch_sql_dump(sql_dump_filename, username, password)
+            fetch_sql_dump(filename, username, password)
         elif command == "overwrite":
             username = raw_input("Username:")
             password = getpass.getpass("Password:")
