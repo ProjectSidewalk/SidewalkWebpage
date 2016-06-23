@@ -2,7 +2,10 @@
 @import models.daos._
 @import models.audit._
 @import models.label._
+@import models.mission.MissionTable
+@import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
+@import java.util.UUID
 
 @(title: String, user: Option[User] = None)
 
@@ -27,7 +30,7 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h1>Stats</h1>
+                <h1>Activities</h1>
                 <table class="table table-striped table-condensed">
                     <tr>
                         <th></th>
@@ -36,27 +39,49 @@
                         <th>Yesterday</th>
                     </tr>
                     <tr>
-                        <th>User Count</th>
+                        <th>Users</th>
                         <td>@UserDAOImpl.size</td>
                         <td>#</td>
                         <td>#</td>
                     </tr>
                     <tr>
-                        <th>Label Count</th>
-                        <td>@LabelTable.selectLabelCount</td>
+                        <th>Labels</th>
+                        <td>@LabelTable.countLabels</td>
                         <td>#</td>
                         <td>#</td>
                     </tr>
                     <tr>
-                        <th>Audited Street Count</th>
-                        <td>@AuditTaskTable.size</td>
+                        <th>Audits</th>
+                        <td>@AuditTaskTable.countCompletedAudits</td>
                         <td>#</td>
                         <td>#</td>
                     </tr>
                 </table>
             </div>
             <div class="col-lg-4">
-                <h1></h1>
+                <h1>Coverage</h1>
+                <table class="table table-striped table-condensed">
+                    <tr>
+                        <th></th>
+                        <th>Coverage</th>
+                    </tr>
+                    <tr>
+                        <th>Audited Streets</th>
+                        <td>@StreetEdgeTable.countAuditedStreets()</td>
+                    </tr>
+                    <tr>
+                        <th>Distance</th>
+                        <td>@("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                    </tr>
+                    <tr>
+                        <th>
+                            Rate
+                        </th>
+                        <td>
+                            @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%
+                        </td>
+                    </tr>
+                </table>
             </div>
             <div class="col-lg-4">
                 <h1></h1>
@@ -132,18 +157,18 @@
                         <th class="col-md-2">Username</th>
                         <th class="col-md-2">User Id</th>
                         <th class="col-md-2">Email</th>
-                        <th class="col-md-2">Total Audit Count</th>
-                        <th class="col-md-2">Total Label Count</th>
-                        <th class="col-md-2">Total Feedback Count</th>
+                        <th class="col-md-2">Mission Count</th>
+                        <th class="col-md-2">Audit Count</th>
+                        <th class="col-md-2">Label Count</th>
                     </tr>
                     @UserDAOImpl.all.map { u =>
                         <tr>
                             <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                             <td>@u.userId</td>
                             <td>@u.email</td>
-                            <td>#</td>
-                            <td>#</td>
-                            <td>#</td>
+                            <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(u.userId))</td>
+                            <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(u.userId))</td>
+                            <td>@LabelTable.countLabelsByUserId(UUID.fromString(u.userId))</td>
                         </tr>
                     }
                 </table>

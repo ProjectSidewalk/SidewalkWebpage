@@ -116,7 +116,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasksWithLabels = AuditTaskTable.tasksWithLabels(user.userId).map(x => Json.toJson(x))
+        val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(user.userId).map(x => Json.toJson(x))
         Future.successful(Ok(JsArray(tasksWithLabels)))
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
@@ -217,7 +217,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAuditCounts = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val auditCounts = AuditTaskTable.auditCounts(user.userId)
+        val auditCounts = AuditTaskTable.selectAuditCountsPerDayByUserId(user.userId)
         val json = Json.arr(auditCounts.map(x => Json.obj(
           "date" -> x.date, "count" -> x.count
         )))
