@@ -5,6 +5,38 @@
  * @constructor
  * @memberof svl
  */
+ // taken from 
+ // http://stackoverflow.com/questions/7799722/how-do-i-implement-move-forward-action-for-google-street-view
+ function difference(link, angle) {
+    
+    var diff = Math.abs(svl.panorama.pov.heading % 360 - link.heading + angle);
+    if(diff>180)
+      diff=Math.abs(360-diff);
+
+    return diff;
+
+}
+
+function movePano(angle) {
+  var curr;
+  var found = false;
+  for(var i = 0; i < svl.panorama.links.length; i++) {
+    var differ = difference(svl.panorama.links[i], angle);
+    if(curr == undefined) {
+      curr = svl.panorama.links[i];
+    }
+    var diffCurr = difference(curr, angle);
+    if(diffCurr > differ && differ <= 45 ) {
+        curr = svl.panorama.links[i];
+        found = true;
+    }
+  }
+  if(found){
+    svl.panorama.setPano(curr.pano);
+    }
+}
+
+
 function Keyboard ($) {
     var self = {
             className : 'Keyboard'
@@ -54,6 +86,24 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
+        switch (e.keyCode) {
+            // "left"
+            case 37:
+                movePano(270);
+                break;
+            // "up"
+            case 38:
+                movePano(0);
+                break;
+            // "right"
+            case 39:
+                movePano(90);
+                break;
+            // "down"
+            case 40:
+                movePano(180);
+                break;
+        }
         if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
             // Don't allow users to use keyboard shortcut during the onboarding.
             return;
