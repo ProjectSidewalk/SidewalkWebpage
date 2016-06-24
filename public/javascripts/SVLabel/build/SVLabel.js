@@ -2920,9 +2920,6 @@ function Form ($, params) {
      */
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
-        // svl.tracker.push('TaskSubmit');
-
-
 
         if (data.constructor !== Array) { data = [data]; }
 

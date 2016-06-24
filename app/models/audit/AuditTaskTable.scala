@@ -461,13 +461,13 @@ object AuditTaskTable {
     val selectAvailableTaskQuery = Q.query[(Int, String), AuditTask](
       """SELECT audit_task.* FROM sidewalk.user_current_region
         |INNER JOIN sidewalk.region
-        |ON region.region_id = ?
+        |  ON region.region_id = ?
         |INNER JOIN sidewalk.street_edge
-        |ON ST_Intersects(region.geom, street_edge.geom)
+        |  ON ST_Intersects(region.geom, street_edge.geom)
         |LEFT JOIN sidewalk.audit_task
-        |ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE user_current_region.user_id = ?
-        |AND audit_task.audit_task_id IS NULL
+        |  AND audit_task.audit_task_id IS NULL
       """.stripMargin
     )
 
