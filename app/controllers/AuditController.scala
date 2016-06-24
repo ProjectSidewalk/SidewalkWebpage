@@ -56,7 +56,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
-        if (true || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) || !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
+        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) || !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
           UserCurrentRegionTable.assignNextRegion(user.userId)
         }
 

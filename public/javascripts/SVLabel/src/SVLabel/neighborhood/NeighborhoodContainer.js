@@ -34,6 +34,14 @@ function NeighborhoodContainer ($, parameters) {
     function getCurrentNeighborhood () {
         return getStatus("currentNeighborhood");
     }
+    
+    function getNextRegionId (currentRegionId, availableRegionIds) {
+        var indexOfNextRegion = availableRegionIds.indexOf(currentRegionId.toString()) + 1;
+        if (indexOfNextRegion < 0) { 
+            indexOfNextRegion = 0; 
+        }
+        return availableRegionIds[indexOfNextRegion];
+    }
 
     /** Return a list of neighborhood ids */
     function getRegionIds () {
@@ -88,6 +96,7 @@ function NeighborhoodContainer ($, parameters) {
     self.add = add;
     self.get = get;
     self.getCurrentNeighborhood = getCurrentNeighborhood;
+    self.getNextRegionId = getNextRegionId;
     self.getRegionIds = getRegionIds;
     self.getStatus = getStatus;
     self.moveToANewRegion = moveToANewRegion;

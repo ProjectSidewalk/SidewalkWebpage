@@ -319,9 +319,10 @@ function Main ($, d3, google, turf, params) {
                             haveSwitchedToANewRegion = true;
 
                             var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                            var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
-                            if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
-                            regionId = availableRegionIds[indexOfNextRegion];
+                            regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
+                            // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
+                            // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            // regionId = availableRegionIds[indexOfNextRegion];
                         }
                         mission = missions[0];
                     }
