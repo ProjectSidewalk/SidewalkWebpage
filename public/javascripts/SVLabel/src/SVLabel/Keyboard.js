@@ -1,3 +1,44 @@
+window.addEventListener("keydown", function(e) {
+    // space and arrow keys
+    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+        e.preventDefault();
+    }
+}, false);
+
+ // taken from 
+ // http://stackoverflow.com/questions/7799722/how-do-i-implement-move-forward-action-for-google-street-view
+ function difference(link, angle) {
+    
+    var diff = Math.abs((svl.panorama.pov.heading % 360) - link.heading + angle);
+    if(diff>180)
+        diff=Math.abs(360-diff);
+
+    return diff;
+
+}
+
+function movePano(angle) {
+  var curr;
+  var found = false;
+  for(var i = 0; i < svl.panorama.links.length; i++) {
+    var diffLast = difference(svl.panorama.links[i], angle);
+    if(curr == undefined) {
+      curr = svl.panorama.links[i];
+    }
+    if(diffLast <= 45){
+        found = true;
+    }
+    var diffCurr = difference(curr, angle);
+    if(diffCurr > diffLast && diffLast <= 45 ) {
+        curr = svl.panorama.links[i];
+        found = true;
+    }
+  }
+  if(found){
+    svl.panorama.setPano(curr.pano);
+    }
+}
+
 /**
  * A Keyboard module
  * @param $ jQuery
@@ -54,6 +95,24 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
+        switch (e.keyCode) {
+            // "left"
+            case 37:
+                movePano(270);
+                break;
+            // "up"
+            case 38:
+                movePano(0);
+                break;
+            // "right"
+            case 39:
+                movePano(90);
+                break;
+            // "down"
+            case 40:
+                movePano(180);
+                break;
+        }
         if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
             // Don't allow users to use keyboard shortcut during the onboarding.
             return;
