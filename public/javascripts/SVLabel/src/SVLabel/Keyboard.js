@@ -46,6 +46,8 @@ function movePano(angle) {
  * @constructor
  * @memberof svl
  */
+
+
 function Keyboard ($) {
     var self = {
             className : 'Keyboard'
