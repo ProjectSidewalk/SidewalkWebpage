@@ -413,10 +413,11 @@ object AuditTaskTable {
   def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
     val selectTaskQuery = Q.query[Int, NewTask](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, NULL as audit_task_id
-        |FROM sidewalk.region
+        |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS st_e
-        |ON ST_Intersects(st_e.geom, region.geom)
-        |WHERE region.region_id = ? AND st_e.deleted IS FALSE""".stripMargin
+        |  ON ST_Intersects(st_e.geom, region.geom)
+        |WHERE region.region_id = ?
+        |  AND st_e.deleted IS FALSE""".stripMargin
     )
     selectTaskQuery(regionId).list
   }
@@ -432,12 +433,14 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val selectIncompleteTaskQuery = Q.query[(String, Int), NewTask](
-      """SELECT street.street_edge_id, street.geom, street.x1, street.y1, street.x2, street.y2, street.timestamp, audit_task.completed FROM sidewalk.region
+      """SELECT street.street_edge_id, street.geom, street.x1, street.y1, street.x2, street.y2, street.timestamp, audit_task.completed
+        |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
-        |ON ST_Intersects(street.geom, region.geom)
+        |  ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task
-        |ON street.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
-        |WHERE region.region_id = ? AND street.deleted = FALSE""".stripMargin
+        |  ON street.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
+        |WHERE region.region_id = ?
+        |  AND street.deleted = FALSE""".stripMargin
     )
 
     val result = selectIncompleteTaskQuery((userId.toString, regionId)).list

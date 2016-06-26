@@ -137,7 +137,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-  def map = UserAwareAction.async { implicit request =>
+  def demo = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
@@ -145,10 +145,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
-        Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility", Some(user))))
+        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Map", timestamp))
-        Future.successful(Ok(views.html.map("Project Sidewalk - Explore Accessibility")))
+        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility")))
     }
   }
 }

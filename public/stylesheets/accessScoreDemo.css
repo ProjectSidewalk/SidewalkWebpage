@@ -1,0 +1,51 @@
+svg {
+    position: relative;
+}
+
+#map-holder {
+    position: relative;
+}
+
+#map {
+    height: calc(100% - 116px); /* 100% - (header + footer height) */
+}
+
+#map-legend {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.75);
+    right: 15px;
+    width: 700px;
+    bottom: 15px;
+    border: solid 1px #ccc;
+    font-size: 12px;
+    padding: 0 0 5px 0;
+}
+
+.map-legend-svg-spans svg {
+    padding: 5px 0 0 0;
+}
+
+
+.leaflet-overlay-pane svg g:first-child path {
+    fill: #fff !important;
+    fill-opacity: 0.4 !important;
+    stroke-width: 2px !important;
+    stroke-opacity: 1 !important;
+    stroke: #ffffff !important;
+}
+
+.table-fixed thead {
+    width: 97%;
+}
+.table-fixed tbody {
+    height: 230px;
+    overflow-y: auto;
+    width: 100%;
+}
+.table-fixed thead, .table-fixed tbody, .table-fixed tr, .table-fixed td, .table-fixed th {
+    display: block;
+}
+.table-fixed tbody td, .table-fixed thead > tr> th {
+    float: left;
+    border-bottom-width: 0;
+}
