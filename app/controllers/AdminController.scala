@@ -157,7 +157,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val tasksWithLabels = AuditTaskTable.tasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
+          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }

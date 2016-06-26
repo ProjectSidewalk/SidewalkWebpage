@@ -3,6 +3,7 @@
 @import models.audit.AuditTaskCommentTable
 @import models.audit.AuditTaskTable
 @import models.label.LabelTable
+@import models.mission.MissionTable
 
 @import java.util.UUID
 @import models.user.UserCurrentRegionTable
@@ -37,17 +38,17 @@
                         <th class="col-md-2">Username</th>
                         <th class="col-md-2">User Id</th>
                         <th class="col-md-2">Email</th>
+                        <th class="col-md-2">Mission Count</th>
                         <th class="col-md-2">Audited Street Count</th>
                         <th class="col-md-2">Label Count</th>
-                        <th class="col-md-2">Feedback Count</th>
                     </tr>
                     <tr>
                         <td>@user.get.username</td>
                         <td>@user.get.userId</td>
                         <td>@user.get.email</td>
-                        <td>@AuditTaskTable.numberOfCompletedAudits(UUID.fromString(user.get.userId))</td>
-                        <td>@LabelTable.selectNumberOfLabelsByUserId(UUID.fromString(user.get.userId))</td>
-                        <td>#</td>
+                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
                     </tr>
                 </table>
             </div>

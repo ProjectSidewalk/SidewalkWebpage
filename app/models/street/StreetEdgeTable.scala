@@ -1,11 +1,14 @@
 package models.street
 
 import java.sql.Timestamp
+
 import com.vividsolutions.jts.geom.LineString
+import models.audit.AuditTaskTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,
                       x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
@@ -43,9 +46,11 @@ object StreetEdgeTable {
   })
 
   val db = play.api.db.slick.DB
+  val auditTasks = TableQuery[AuditTaskTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
+  val completedAuditTasks = auditTasks.filter(_.completed === true)
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
   /**
@@ -66,12 +71,7 @@ object StreetEdgeTable {
   def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
     val allEdges = streetEdgesWithoutDeleted.list
 
-    val completedEdges = (for {
-      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _assignmentCounts.completionCount >= auditCount
-    } yield _streetEdges).list
-
-    completedEdges.length.toFloat / allEdges.length
+    countAuditedStreets(auditCount).toFloat / allEdges.length
   }
 
   /**
@@ -82,11 +82,28 @@ object StreetEdgeTable {
     * @return
     */
   def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
-    val distances = for {
-      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _assignmentCounts.completionCount >= auditCount
-    } yield _streetEdges.geom.transform(26918).length
-    (distances.list.sum * 0.000621371).toFloat
+    //    val distances = for {
+    //      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+    //      if _assignmentCounts.completionCount >= auditCount
+    //    } yield _streetEdges.geom.transform(26918).length
+    //    (distances.list.sum * 0.000621371).toFloat
+
+    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+    val edges = for {
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _streetEdges
+    val distances: List[Float] = edges.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+    (distances.sum * 0.000621371).toFloat
+  }
+
+  /**
+    * Count the number of streets that have been audited at least a given number of times
+    *
+    * @param auditCount
+    * @return
+    */
+  def countAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount).size
   }
 
   /**
@@ -94,12 +111,21 @@ object StreetEdgeTable {
     *
     * @return
     */
-  def auditedStreets(auditCount: Int): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreets(auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
     val edges = for {
-      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _assignmentCounts.completionCount >= auditCount
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
-    edges.list
+
+    val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
+      // Filter out group of edges with the size less than the passed `auditCount`
+      if (auditCount > 0 && groupedEdges.size >= auditCount) {
+        Some(groupedEdges.head)
+      } else {
+        None
+      }
+    }).toList.flatten
+
+    uniqueStreetEdges
   }
 
   def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>

@@ -70,9 +70,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param lng current longitude
    * @return Task definition
    */
-  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
-  }
+//  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
+//    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
+//  }
 
   /**
    * Get a next task, but make sure the task is in the specified region.
@@ -80,10 +80,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param regionId Region id
    * @return
    */
-  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
-    Future.successful(Ok(task.toJSON))
-  }
+//  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
+//    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
+//    Future.successful(Ok(task.toJSON))
+//  }
 
   /**
     *

@@ -100,6 +100,46 @@ object AuditTaskTable {
   case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
 
   /**
+    * This method returns all the tasks
+    *
+    * @return
+    */
+  def all: List[AuditTask] = db.withSession { implicit session =>
+    auditTasks.list
+  }
+
+  def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
+    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
+      """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
+        |FROM    generate_series(0, 30) n) AS calendar
+        |LEFT JOIN sidewalk.audit_task
+        |ON audit_task.task_start::date = calendar_date::date
+        |GROUP BY calendar_date
+        |ORDER BY calendar_date""".stripMargin
+    )
+    selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
+  }
+
+  /**
+    * Returns the number of tasks completed
+    * @return
+    */
+  def countCompletedAudits: Int = db.withSession { implicit session =>
+    auditTasks.filter(_.completed).list.size
+  }
+
+  /**
+    * Returns the number of tasks completed by the given user
+    *
+    * @param userId
+    * @return
+    */
+  def countCompletedAuditsByUserId(userId: UUID): Int = db.withSession { implicit session =>
+    auditTasks.filter(_.userId === userId.toString).filter(_.completed).list.size
+  }
+
+
+  /**
     * Find a task
     *
     * @param auditTaskId
@@ -111,12 +151,35 @@ object AuditTaskTable {
   }
 
   /**
+    * Verify if there are tasks available for the user in the given region
+    *
+    * @param userId user id
+    */
+  def isTaskAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
+    val selectAvailableTaskQuery = Q.query[(Int, String), AuditTask](
+      """SELECT audit_task.* FROM sidewalk.user_current_region
+        |INNER JOIN sidewalk.region
+        |ON region.region_id = ?
+        |INNER JOIN sidewalk.street_edge
+        |ON ST_Intersects(region.geom, street_edge.geom)
+        |LEFT JOIN sidewalk.audit_task
+        |ON street_edge.street_edge_id = audit_task.street_edge_id
+        |WHERE user_current_region.user_id = ?
+        |AND audit_task.audit_task_id IS NULL
+      """.stripMargin
+    )
+
+    val availableTasks = selectAvailableTaskQuery((regionId, userId.toString)).list
+    availableTasks.nonEmpty
+  }
+
+  /**
     * Return a list of tasks associated with labels
     *
     * @param userId User id
     * @return
     */
-  def tasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
+  def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
     val userTasks = for {
       (_users, _tasks) <- users.innerJoin(auditTasks).on(_.userId === _.userId)
       if _users.userId === userId.toString
@@ -134,23 +197,6 @@ object AuditTaskTable {
     tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
   }
 
-  /**
-    * This method returns all the tasks
-    *
-    * @return
-    */
-  def all: List[AuditTask] = db.withSession { implicit session =>
-    auditTasks.list
-  }
-
-  /**
-    * This method returns the size of the entire table
-    *
-    * @return
-    */
-  def size: Int = db.withSession { implicit session =>
-    auditTasks.list.size
-  }
 
   /**
    * Get the last audit task that the user conducted
@@ -190,24 +236,13 @@ object AuditTaskTable {
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
-  def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
-    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |FROM    generate_series(0, 30) n) AS calendar
-        |LEFT JOIN sidewalk.audit_task
-        |ON audit_task.task_start::date = calendar_date::date
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
-  }
 
   /**
     * Return audit counts for the last 31 days.
     *
     * @param userId User id
     */
-  def auditCounts(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
+  def selectAuditCountsPerDayByUserId(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.query[String, (String, Int)](
       """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
         |FROM    generate_series(0, 30) n) AS calendar
@@ -220,6 +255,11 @@ object AuditTaskTable {
     selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
   }
 
+  /**
+    *
+    * @param userId
+    * @return
+    */
   def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
     auditTasks.filter(_.userId === userId.toString).list
   }
@@ -300,44 +340,6 @@ object AuditTaskTable {
 
 
   /**
-   * Get a task that is connected to the end point of the current task (street edge)
-   *
-   * @param streetEdgeId Street edge id
-   */
-  def getConnectedTask(streetEdgeId: Int, lat: Float, lng: Float): NewTask = db.withSession { implicit session =>
-    import models.street.StreetEdgeTable.streetEdgeConverter  // For plain query
-
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    // Todo: I don't think this query takes into account if the auditor has looked at the area or not.
-    val selectEdgeQuery = Q.query[(Float, Float, Int), StreetEdge](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
-         | FROM sidewalk.street_edge_street_node AS st_e_st_n
-         | INNER JOIN (SELECT st_n.street_node_id FROM sidewalk.street_node AS st_n
-         |   ORDER BY st_n.geom <-> st_setsrid(st_makepoint(?, ?), 4326)
-         |   LIMIT 1) AS st_n_view
-         | ON st_e_st_n.street_node_id = st_n_view.street_node_id
-         | INNER JOIN sidewalk.street_edge AS st_e
-         | ON st_e_st_n.street_edge_id = st_e.street_edge_id
-         | INNER JOIN sidewalk.street_edge_assignment_count AS st_e_asg
-         | ON st_e.street_edge_id = st_e_asg.street_edge_id
-         | WHERE NOT st_e_st_n.street_edge_id = ?
-         | ORDER BY st_e_asg.completion_count ASC""".stripMargin
-    )
-
-    val edges: List[StreetEdge] = selectEdgeQuery((lng, lat, streetEdgeId)).list
-    edges match {
-      case edges if edges.nonEmpty =>
-        val e = edges.head
-
-        StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
-      case _ =>
-        selectANewTask // The list is empty for whatever the reason
-    }
-  }
-
-  /**
    * Get a task that is in a given region
     *
     * @param regionId region id
@@ -345,9 +347,7 @@ object AuditTaskTable {
    */
   def selectANewTaskInARegion(regionId: Int): NewTask = db.withSession { implicit session =>
     import models.street.StreetEdgeTable.streetEdgeConverter
-
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
 
     val selectEdgeQuery = Q.query[Int, StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM region
@@ -452,38 +452,6 @@ object AuditTaskTable {
     uniqueTasks.toList
   }
 
-  /**
-    * Verify if there are tasks available for the user in the given region
-    *
-    * @param userId user id
-    */
-  def isTaskAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
-    val selectAvailableTaskQuery = Q.query[(Int, String), AuditTask](
-      """SELECT audit_task.* FROM sidewalk.user_current_region
-        |INNER JOIN sidewalk.region
-        |  ON region.region_id = ?
-        |INNER JOIN sidewalk.street_edge
-        |  ON ST_Intersects(region.geom, street_edge.geom)
-        |LEFT JOIN sidewalk.audit_task
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |WHERE user_current_region.user_id = ?
-        |  AND audit_task.audit_task_id IS NULL
-      """.stripMargin
-    )
-
-    val availableTasks = selectAvailableTaskQuery((regionId, userId.toString)).list
-    availableTasks.nonEmpty
-  }
-
-  /**
-    * Get the number of tasks completed by the users.
-    *
-    * @param userId
-    * @return
-    */
-  def numberOfCompletedAudits(userId: UUID): Int = db.withSession { implicit session =>
-    auditTasks.filter(_.userId === userId.toString).list.size
-  }
 
   /**
    * Saves a new audit task.

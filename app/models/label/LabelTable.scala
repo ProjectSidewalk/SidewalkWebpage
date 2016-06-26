@@ -53,7 +53,7 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
   )
 
-  def selectLabelCount: Int = db.withTransaction( implicit session =>
+  def countLabels: Int = db.withTransaction( implicit session =>
     labels.filter(_.deleted === false).list.size
   )
 
@@ -63,7 +63,7 @@ object LabelTable {
     * @param userId User id
     * @return A number of labels submitted by the user
     */
-  def selectNumberOfLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
+  def countLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
