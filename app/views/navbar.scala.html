@@ -19,7 +19,17 @@
                 @*</li>*@
                 @if(url.isDefined && url.get != "/audit") {
                     <li>
+                        <a href='@routes.ApplicationController.demo'>Demo</a>
+                    </li>
+                    <li>
                         <a href='@routes.ApplicationController.developer'>Developer</a>
+                    </li>
+                } else {
+                    <li>
+                        <a href='@routes.ApplicationController.demo' target="_blank">Demo</a>
+                    </li>
+                    <li>
+                        <a href='@routes.ApplicationController.developer' target="_blank">Developer</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/audit") {
