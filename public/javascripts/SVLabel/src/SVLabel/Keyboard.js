@@ -1,44 +1,3 @@
-window.addEventListener("keydown", function(e) {
-    // space and arrow keys
-    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-        e.preventDefault();
-    }
-}, false);
-
- // taken from 
- // http://stackoverflow.com/questions/7799722/how-do-i-implement-move-forward-action-for-google-street-view
- function difference(link, angle) {
-    
-    var diff = Math.abs((svl.panorama.pov.heading % 360) - link.heading + angle);
-    if(diff>180)
-        diff=Math.abs(360-diff);
-
-    return diff;
-
-}
-
-function movePano(angle) {
-  var curr;
-  var found = false;
-  for(var i = 0; i < svl.panorama.links.length; i++) {
-    var diffLast = difference(svl.panorama.links[i], angle);
-    if(curr == undefined) {
-      curr = svl.panorama.links[i];
-    }
-    if(diffLast <= 45){
-        found = true;
-    }
-    var diffCurr = difference(curr, angle);
-    if(diffCurr > diffLast && diffLast <= 45 ) {
-        curr = svl.panorama.links[i];
-        found = true;
-    }
-  }
-  if(found){
-    svl.panorama.setPano(curr.pano);
-    }
-}
-
 /**
  * A Keyboard module
  * @param $ jQuery
@@ -73,6 +32,52 @@ function Keyboard ($) {
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
     }
+     // taken from 
+    // http://stackoverflow.com/questions/7799722/how-do-i-implement-move-forward-action-for-google-street-view
+    function headingDifference(link, angle) {
+    
+        var diff = Math.abs((svl.panorama.pov.heading % 360) - link.heading + angle);
+        if(diff>180)
+            diff=Math.abs(360-diff);
+
+        return diff;
+
+    }
+
+    function movePano(angle) {
+        var curr;
+        var found = false;
+        var len =  svl.panorama.links.length;
+        for(var i = 0; i < len; i++) {
+            var diffLast = headingDifference(svl.panorama.links[i], angle);
+            if(curr == undefined) {
+                curr = svl.panorama.links[i];
+            }
+            if(diffLast <= 90){
+                found = true;
+            }
+            var diffCurr = headingDifference(curr, angle);
+            if(diffCurr > diffLast && diffLast <= 90) {
+                curr = svl.panorama.links[i];
+                found = true;
+            }
+        }
+        if(found){
+            svl.panorama.setPano(curr.pano);
+        }
+    }
+
+    function rotatePov(degree){
+        var heading =  svl.panorama.pov.heading;
+        var pitch = svl.panorama.pov.pitch;
+        var zoom = svl.panorama.pov.zoom;
+        heading += degree;
+        if(heading < 0)
+            heading += 360;
+        heading = heading % 360;
+        svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
+
+    }
 
     /**
      * This is a callback for a key down event
@@ -80,6 +85,23 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyDown(e) {
+        if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) { 
+            e.preventDefault();
+        }
+    
+        switch (e.keyCode) {
+            // "left"
+            // rotate pano
+            case 37:
+                rotatePov(-2);
+                break;
+             // "right"
+            // rotate pano
+            case 39:
+                rotatePov(2);
+                break;
+
+        }
         // The callback method that is triggered with a keyUp event.
         if (!status.focusOnTextField) {
             switch (e.keyCode) {
@@ -91,6 +113,9 @@ function Keyboard ($) {
         }
     }
 
+    function documentKeyPress (e) {
+
+    }
     /**
      * This is a callback for a key up event.
      * @param {object} e An event object
@@ -98,17 +123,9 @@ function Keyboard ($) {
      */
     function documentKeyUp (e) {
         switch (e.keyCode) {
-            // "left"
-            case 37:
-                movePano(270);
-                break;
             // "up"
             case 38:
                 movePano(0);
-                break;
-            // "right"
-            case 39:
-                movePano(90);
                 break;
             // "down"
             case 40:
