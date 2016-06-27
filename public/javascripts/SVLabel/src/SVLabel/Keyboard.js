@@ -5,8 +5,6 @@
  * @constructor
  * @memberof svl
  */
-
-
 function Keyboard ($) {
     var self = {
             className : 'Keyboard'
@@ -28,55 +26,41 @@ function Keyboard ($) {
           $textareaComment.bind('blur', textFieldBlur);
         }
 
-
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
     }
-     // taken from 
-    // http://stackoverflow.com/questions/7799722/how-do-i-implement-move-forward-action-for-google-street-view
-    function headingDifference(link, angle) {
-    
-        var diff = Math.abs((svl.panorama.pov.heading % 360) - link.heading + angle);
-        if(diff>180)
-            diff=Math.abs(360-diff);
-
-        return diff;
-
+    function toRadians (angle) {
+        return angle * (Math.PI / 180);
     }
-
+    // Move in the direction of a link closest to a given angle
     function movePano(angle) {
-        var curr;
-        var found = false;
-        var len =  svl.panorama.links.length;
-        for(var i = 0; i < len; i++) {
-            var diffLast = headingDifference(svl.panorama.links[i], angle);
-            if(curr == undefined) {
-                curr = svl.panorama.links[i];
-            }
-            if(diffLast <= 90){
-                found = true;
-            }
-            var diffCurr = headingDifference(curr, angle);
-            if(diffCurr > diffLast && diffLast <= 90) {
-                curr = svl.panorama.links[i];
-                found = true;
-            }
-        }
-        if(found){
-            svl.panorama.setPano(curr.pano);
+        // take the cosine of the difference for each link to the current heading in radians and stores them to an array
+        var cosines = svl.panorama.links.map(function(link) { return Math.cos(toRadians(svl.panorama.pov.heading + angle) - toRadians(link.heading))});
+        // finds index of greatest value in cosines array
+        var maxVal = Math.max.apply(null, cosines);
+        var maxIndex = cosines.indexOf(maxVal);
+        //in the case of one link, this prevents you from moving in that direction if you press the opposite
+        if(cosines[maxIndex] > 0.5){
+            // transitions panorama to the link of the greatest cosine (closest to direction)
+            svl.panorama.setPano(svl.panorama.links[maxIndex].pano);
         }
     }
+    // abstract movePano with more meaningful function name for the following two
+    function moveForward(){
+        movePano(0);
+    }
 
+    function moveBackward(){
+        movePano(180);
+    }
+    // change the heading of the current panorama point of view by a particular degree value
     function rotatePov(degree){
         var heading =  svl.panorama.pov.heading;
+        // pitch and zoom arent changed but are needed for the setPov call
         var pitch = svl.panorama.pov.pitch;
         var zoom = svl.panorama.pov.zoom;
-        heading += degree;
-        if(heading < 0)
-            heading += 360;
-        heading = heading % 360;
+        heading = (heading + degree + 360) % 360;
         svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
-
     }
 
     /**
@@ -85,6 +69,7 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyDown(e) {
+        // lock scrolling in response to key pressing
         if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) { 
             e.preventDefault();
         }
@@ -113,9 +98,6 @@ function Keyboard ($) {
         }
     }
 
-    function documentKeyPress (e) {
-
-    }
     /**
      * This is a callback for a key up event.
      * @param {object} e An event object
@@ -125,11 +107,11 @@ function Keyboard ($) {
         switch (e.keyCode) {
             // "up"
             case 38:
-                movePano(0);
+                moveForward();
                 break;
             // "down"
             case 40:
-                movePano(180);
+                moveBackward();
                 break;
         }
         if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
