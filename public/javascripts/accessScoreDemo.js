@@ -1,3 +1,5 @@
+var neighborhoodPolygonLayer;
+
 $(document).ready(function () {
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -44,7 +46,74 @@ $(document).ready(function () {
             }
         } ]
     }).addTo(map);
+
+
+    // Attach events to range sliders
+    $(".access-score-range-slider").on("change", function (e) {
+        var significance = {};
+        $(".access-score-range-slider").each(function (i, d) {
+            var name = $(d).attr("name");
+            var value = $(d).val();
+            significance[name] = parseFloat(value) / 100;
+        });
+        updateAccessScore(significance);
+    });
 });
+
+// Access score color
+function getColor(d) {
+    return d > 0.75 ? '#4dac26' :
+        d > 0.5 ? '#b8e186' :
+            d > 0.25 ? '#f1b6da' :
+                '#d01c8b';
+}
+
+/**
+ * Update the access score visualization
+ * @param significance
+ */
+function updateAccessScore (significance) {
+    if (neighborhoodPolygonLayer) {
+        var neighborhoodLayers = neighborhoodPolygonLayer.getLayers(),
+            i = 0,
+            len = neighborhoodLayers.length;
+
+        for (; i < len; i++) {
+            var properties = neighborhoodLayers[i].feature.properties,
+                featureVector = properties.feature;
+            if (featureVector) {
+                // Compute the Access Score by computing the sigmoid of the inner product of the feature vector and significance vector.
+                var keys = Object.keys(featureVector),
+                    innerProduct = 0;
+                for (var keyIdx in keys) {
+                    var key = keys[keyIdx];
+                    var k = key == "CurbRamp" ? 1 : -1;
+                    innerProduct += k * featureVector[key] * significance[key];
+                }
+                var score = 1 / ( 1 + Math.exp( -innerProduct ) );
+                console.log(properties);
+
+                properties.significance = significance;
+
+                var neighborhoodPolygonStyle = {
+                    color: getColor(score),
+                    weight: 1,
+                    opacity: 0.5,
+                    fillColor: getColor(score),
+                    fillOpacity: 0.5
+                };
+
+                neighborhoodLayers[i].setStyle(neighborhoodPolygonStyle);
+
+                // Set popup content
+                var popupContent = properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
+                popupContent += properties.score ? ("Access Score: " + score.toFixed(1)) : "Access Score not available";
+                neighborhoodLayers[i]._popup.setContent(popupContent);
+                neighborhoodLayers[i]._popup.update()
+            }
+        }
+    }
+}
 
 /**
  * Render accessibiltiy feature points
@@ -52,14 +121,6 @@ $(document).ready(function () {
 function initializeNeighborhoodPolygons(map) {
     var layers = [],
         currentLayer;
-
-    // Access score color
-    function getColor(d) {
-        return d > 0.75 ? '#4dac26' :
-            d > 0.5 ? '#b8e186' :
-                d > 0.25 ? '#f1b6da' :
-                    '#d01c8b';
-    }
 
     function onEachNeighborhoodFeature(feature, layer) {
         var properties = feature.properties,
@@ -111,7 +172,7 @@ function initializeNeighborhoodPolygons(map) {
             fillColor: "#ccc",
             fillOpacity: 0.3
         };
-        var featureLayer = L.geoJson(data, {
+        neighborhoodPolygonLayer = L.geoJson(data, {
             style: function (feature) {
                 return neighborhoodPolygonStyle;
             },
@@ -121,14 +182,12 @@ function initializeNeighborhoodPolygons(map) {
         // Attache zoom events. Show the neighborhood polygon layer only when the view is zoomed out ( zoom <= 14)
         map.on('zoomend ', function(e) {
             if ( map.getZoom() > 15 ) {
-                map.removeLayer( featureLayer );
+                map.removeLayer( neighborhoodPolygonLayer );
             } else if (
-                map.getZoom() <= 15 ){ map.addLayer( featureLayer );
+                map.getZoom() <= 15 ){ map.addLayer( neighborhoodPolygonLayer );
             }
         });
     });
-
-
 }
 
 function initializeSubmittedLabels(map) {
