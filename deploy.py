@@ -97,35 +97,36 @@ def deploy_application(zip_file_path, username, password):
         command = "cat %s" % sidewalk_app_directory + "/_sidewalk-webpage/RUNNING_PID"
         stdin, stdout, stderr = client.exec_command(command)
         running_process_id = stdout.read().strip()
+        print "RUNNING_PID: %s" % running_process_id
 
         # kill the running process
         command = "kill %s" % running_process_id
-        client.exec_command(command)
+        stdin, stdout, stderr = client.exec_command(command)
+        print stdout.read()
 
         # Remove the old directory
         print "Removing `_sidewalk-webpage` directory"
         command = "rm -r %s" % sidewalk_app_directory + "/_sidewalk-webpage"
-        client.exec_command(command)
+        stding, stdout, stderr = client.exec_command(command)
+        print stdout.read()
 
     # Run the app
     unzipped_dir_name = zip_file_name.replace(".zip", "")
     print "Changing the directory name from %s to %s" % (unzipped_dir_name, "sidewalk-webpage")
     command = "mv %s %s" % (sidewalk_app_directory + "/" + unzipped_dir_name, sidewalk_app_directory + "/sidewalk-webpage")
     print command
-    client.exec_command(command)
+    stdin, stdout, stderr = client.exec_command(command)
+    stdout.read()
 
     print "Starting the application"
     command = "%s/sidewalk_runner.sh" % sidewalk_app_directory
-    client.exec_command(command)
-
+    stdin, stdout, stderr = client.exec_command(command)
+    stdout.read()
     client.close()
-
-    pass
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        command = sys.argv[1]
-        zip_file_path = sys.argv[2]
+        zip_file_path = sys.argv[1]
         username = raw_input("Username:")
         password = getpass.getpass("Password:")
 

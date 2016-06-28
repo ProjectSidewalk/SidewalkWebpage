@@ -9,10 +9,11 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
 import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+
 
 case class RegionalMission(missionId: Int, regionId: Option[Int], regionName: Option[String], label: String, level: Int, distance: Option[Double], distance_ft: Option[Double], distance_mi: Option[Double], coverage: Option[Double])
-case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double],
-                   distance_ft: Option[Double], distance_mi: Option[Double], coverage: Option[Double], deleted: Boolean) {
+case class Mission(missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double], distance_ft: Option[Double], distance_mi: Option[Double], coverage: Option[Double], deleted: Boolean) {
   def completed(status: MissionStatus): Boolean = label match {
     case "initial-mission" =>
       if (this.distance.getOrElse(Double.PositiveInfinity) < status.currentRegionDistance) true else false
@@ -58,6 +59,23 @@ object MissionTable {
 
   val missionsWithoutDeleted = missions.filter(_.deleted === false)
 
+  implicit val missionConverter = GetResult[Mission](r => {
+    // missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double], distance_ft: Option[Double], distance_mi: Option[Double], coverage: Option[Double], deleted: Boolean
+    // Int, Option[Int], String, Int, Option[Double], Option[Double], Option[Double], Option[Double], Boolean
+    val missionId: Int = r.nextInt
+    val regionId: Option[Int] = r.nextIntOption
+    val label: String = r.nextString
+    val level: Int = r.nextInt
+    val distance: Option[Double] = r.nextDoubleOption
+    val distance_ft: Option[Double] = r.nextDoubleOption
+    val distance_mi: Option[Double] = r.nextDoubleOption
+    val coverage: Option[Double] = r.nextDoubleOption
+    val deleted: Boolean = r.nextBoolean
+    Mission(missionId, regionId, label, level, distance, distance_ft, distance_mi, coverage, deleted)
+  })
+
+  case class MissionCompletedByAUser(username: String, label: String, level: Int, distance_m: Option[Double], distance_ft: Option[Double], distance_mi: Option[Double])
+
   /**
     * Returns all the missions
     *
@@ -69,6 +87,7 @@ object MissionTable {
 
   /**
     * All regional missions
+    *
     * @return
     */
   def allRegionalMissions: List[RegionalMission] = db.withSession { implicit session =>
@@ -85,116 +104,89 @@ object MissionTable {
 
   /**
     * Count the number of missions completed by a user
+    *
     * @param userId
     * @return
     */
   def countCompletedMissionsByUserId(userId: UUID): Int = db.withTransaction { implicit session =>
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId) if _missionUsers.userId === userId.toString
-    } yield _missions
-
-    val missionsWithoutOnboarding = _missions.list.filter(_.label != "onboarding")
+    val completedMissions = selectCompletedMissionsByAUser(userId)
+    val missionsWithoutOnboarding = completedMissions.filter(_.label != "onboarding")
     missionsWithoutOnboarding.size
   }
 
   /**
+    * This method checks if there are missions remaining for the given user
+    *
+    * @param userId User id
+    * @param regionId Region id
+    * @return
+    */
+  def isMissionAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
+    val incompleteMissions = selectIncompleteMissionsByAUser(userId, regionId)
+    incompleteMissions.nonEmpty
+  }
+
+  /**
     * Get a list of all the completed tasks
+    *
     * @param userId User's UUID
     * @return
     */
   def selectCompletedMissionsByAUser(userId: UUID): List[Mission] = db.withSession { implicit session =>
     val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId) if _missionUsers.userId === userId.toString
+      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
+      if _missionUsers.userId === userId.toString
     } yield _missions
     _missions.list
   }
 
   /**
     * Get the list of the completed tasks in the given region for the given user
+    *
     * @param userId User's UUID
     * @param regionId region Id
     * @return
     */
   def selectCompletedMissionsByAUser(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
-    val missionUsersQuery = missionUsers.filter(_.userId === userId.toString)
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsersQuery).on(_.missionId === _.missionId)
-    } yield _missions
-    _missions.filter(_.regionId.getOrElse(-1) === regionId).list
+    val completedMissions: List[Mission] = selectCompletedMissionsByAUser(userId)
+    completedMissions.filter(_.regionId.getOrElse(-1) == regionId)
   }
 
   /**
     * Get a list of the incomplete missions for the given user
+    *
     * @param userId User's UUID
     * @return
     */
   def selectIncompleteMissionsByAUser(userId: UUID): List[Mission] = db.withSession { implicit session =>
-    val missionUsersQuery = missionUsers.filter(_.userId === userId.toString)
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.leftJoin(missionUsersQuery).on(_.missionId === _.missionId)
-      if _missionUsers.missionUserId.?.isEmpty
-    } yield _missions
-
-    _missions.list
+    val selectIncompleteMissionQuery = Q.query[String, Mission](
+      """SELECT mission.mission_id, mission.region_id, mission.label, mission.level, mission.distance, mission.distance_ft, mission.distance_mi, mission.coverage, mission.deleted
+        |  FROM sidewalk.mission
+        |LEFT JOIN (
+        |    SELECT mission.mission_id
+        |      FROM sidewalk.mission
+        |    LEFT JOIN sidewalk.mission_user
+        |      ON mission.mission_id = mission_user.mission_id
+        |    WHERE mission.deleted = false
+        |    AND mission_user.user_id = ?
+        |) AS completed_mission
+        |  ON mission.mission_id = completed_mission.mission_id
+        |WHERE deleted = false AND completed_mission.mission_id IS NULL""".stripMargin
+    )
+    val incompleteMissions: List[Mission] = selectIncompleteMissionQuery(userId.toString).list
+    incompleteMissions
   }
-
 
   /**
     * Get a list of incomplete missions in the give region for the given user
+    *
     * @param userId User's UUID
     * @param regionId Region Id
     * @return
     */
   def selectIncompleteMissionsByAUser(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
-    val missionUsersQuery = missionUsers.filter(_.userId === userId.toString)
-    val _missions = (for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.leftJoin(missionUsersQuery).on(_.missionId === _.missionId)
-      if _missionUsers.missionUserId.?.isEmpty
-    } yield _missions).filter(_.regionId.getOrElse(-1) === regionId)
-    _missions.list
-  }
-
-  /**
-    *
-    * @param userId UUID for the user
-    * @return
-    */
-  def incompleteRegionalMissions(userId: UUID): List[RegionalMission] = db.withSession { implicit session =>
-    val missionUsersQuery = missionUsers.filter(_.userId === userId.toString)
-    val filteredMissions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.leftJoin(missionUsersQuery).on(_.missionId === _.missionId)
-      if _missionUsers.missionUserId.?.isEmpty
-    } yield _missions
-
-    val _regionalMissions = for {
-      (_filteredMissions, _regionProperties) <- filteredMissions.leftJoin(regionProperties).on(_.regionId === _.regionId) if _regionProperties.key === "Neighborhood Name"
-    } yield (_filteredMissions.missionId, _filteredMissions.regionId, _regionProperties.value.?, _filteredMissions.label, _filteredMissions.level, _filteredMissions.distance, _filteredMissions.distance_ft, _filteredMissions.distance_mi, _filteredMissions.coverage)
-    val regionalMissionList: List[RegionalMission] = _regionalMissions.list.map(m => RegionalMission.tupled(m))
-
-    regionalMissionList
-  }
-
-  /**
-    *
-    * @param userId UUID for the user
-    * @param regionId Region Id
-    * @return
-    */
-  def incompleteRegionalMissions(userId: UUID, regionId: Int): List[RegionalMission] = db.withSession { implicit session =>
-    val missionUsersQuery = missionUsers.filter(_.userId === userId.toString)
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.leftJoin(missionUsersQuery).on(_.missionId === _.missionId)
-      if _missionUsers.missionUserId.?.isEmpty
-    } yield _missions
-
-    val filteredMissions = _missions.filter(_.regionId.getOrElse(-1) === regionId)
-
-    val _regionalMissions = for {
-      (_filteredMissions, _regionProperties) <- filteredMissions.leftJoin(regionProperties).on(_.regionId === _.regionId) if _regionProperties.key === "Neighborhood Name"
-    } yield (_filteredMissions.missionId, _filteredMissions.regionId, _regionProperties.value.?, _filteredMissions.label, _filteredMissions.level, _filteredMissions.distance, _filteredMissions.distance_ft, _filteredMissions.distance_mi, _filteredMissions.coverage)
-    val regionalMissionList: List[RegionalMission] = _regionalMissions.list.map(m => RegionalMission.tupled(m))
-
-    regionalMissionList
+    val incompleteMissions: List[Mission] = selectIncompleteMissionsByAUser(userId)
+    incompleteMissions.filter(_.regionId.getOrElse(-1) == regionId)
   }
 
   /**
@@ -203,17 +195,12 @@ object MissionTable {
     * @param userId UUID for the user
     * @return
     */
-  def incompleteRegions(userId: UUID): Set[Int] = db.withSession { implicit session =>
-    val missionUsersQuery = missionUsers.filter(_.userId === userId.toString)
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.leftJoin(missionUsersQuery).on(_.missionId === _.missionId)
-      if _missionUsers.userId === userId.toString && _missions.regionId.nonEmpty
-    } yield _missions
-
-    _missions.list.map(_.regionId.get).toSet
+  def selectIncompleteRegions(userId: UUID): Set[Int] = db.withSession { implicit session =>
+    val incompleteMissions: List[Mission] = selectIncompleteMissionsByAUser(userId)
+    val incompleteRegions: Set[Int] = incompleteMissions.map(_.regionId).flatten.toSet
+    incompleteRegions
   }
 
-  case class MissionCompletedByAUser(username: String, label: String, level: Int, distance_m: Option[Double], distance_ft: Option[Double], distance_mi: Option[Double])
   def missionsCompletedByUsers: List[MissionCompletedByAUser] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
@@ -224,16 +211,5 @@ object MissionTable {
     } yield (_users.username, _missions._1, _missions._2, _missions._4, _missions._5, _missions._6)
 
     _missionsCompleted.list.map(x => MissionCompletedByAUser.tupled(x))
-  }
-
-  /**
-    * Save a mission. Irankunai?
-    * @param mission
-    * @return
-    */
-  def save(mission: Mission): Int = db.withTransaction { implicit session =>
-    val missionId: Int =
-      (missions returning missions.map(_.missionId)) += mission
-    missionId
   }
 }

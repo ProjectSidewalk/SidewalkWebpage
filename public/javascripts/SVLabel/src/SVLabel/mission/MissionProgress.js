@@ -53,9 +53,27 @@ function MissionProgress () {
                 completionRate;
 
             var _callback = function (e) {
-                var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                var currentRegionId = currentRegion.getProperty("regionId");
+                var nextMission = svl.missionContainer.nextMission(currentRegionId);
+                var movedToANewRegion = false;
+
+                // Check if the next mission is null and, if so, get a mission from other neighborhood.
+                // Note. Highly unlikely, but this could potentially be an infinate loop
+                while (!nextMission) {
+                    // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
+                    var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                    var newRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+                    nextMission = svl.missionContainer.nextMission(currentRegionId);
+                    movedToANewRegion = true;
+                }
+
                 svl.missionContainer.setCurrentMission(nextMission);
                 showNextMission(nextMission);
+
+                if (movedToANewRegion) {
+                    svl.neighborhoodContainer.moveToANewRegion(newRegionId);
+                    svl.taskContainer.fetchTasksInARegion(newRegionId, null, false);  // Fetch tasks in the new region
+                }
             };
 
             // Update the mission completion rate in the progress bar

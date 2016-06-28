@@ -3534,9 +3534,10 @@ function Main ($, d3, google, turf, params) {
                             haveSwitchedToANewRegion = true;
 
                             var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                            var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
-                            if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
-                            regionId = availableRegionIds[indexOfNextRegion];
+                            regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
+                            // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
+                            // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            // regionId = availableRegionIds[indexOfNextRegion];
                         }
                         mission = missions[0];
                     }
@@ -8136,9 +8137,27 @@ function MissionProgress () {
                 completionRate;
 
             var _callback = function (e) {
-                var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                var currentRegionId = currentRegion.getProperty("regionId");
+                var nextMission = svl.missionContainer.nextMission(currentRegionId);
+                var movedToANewRegion = false;
+
+                // Check if the next mission is null and, if so, get a mission from other neighborhood.
+                // Note. Highly unlikely, but this could potentially be an infinate loop
+                while (!nextMission) {
+                    // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
+                    var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                    var newRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+                    nextMission = svl.missionContainer.nextMission(currentRegionId);
+                    movedToANewRegion = true;
+                }
+
                 svl.missionContainer.setCurrentMission(nextMission);
                 showNextMission(nextMission);
+
+                if (movedToANewRegion) {
+                    svl.neighborhoodContainer.moveToANewRegion(newRegionId);
+                    svl.taskContainer.fetchTasksInARegion(newRegionId, null, false);  // Fetch tasks in the new region
+                }
             };
 
             // Update the mission completion rate in the progress bar
@@ -10322,6 +10341,14 @@ function NeighborhoodContainer ($, parameters) {
     function getCurrentNeighborhood () {
         return getStatus("currentNeighborhood");
     }
+    
+    function getNextRegionId (currentRegionId, availableRegionIds) {
+        var indexOfNextRegion = availableRegionIds.indexOf(currentRegionId.toString()) + 1;
+        if (indexOfNextRegion < 0) { 
+            indexOfNextRegion = 0; 
+        }
+        return availableRegionIds[indexOfNextRegion];
+    }
 
     /** Return a list of neighborhood ids */
     function getRegionIds () {
@@ -10376,6 +10403,7 @@ function NeighborhoodContainer ($, parameters) {
     self.add = add;
     self.get = get;
     self.getCurrentNeighborhood = getCurrentNeighborhood;
+    self.getNextRegionId = getNextRegionId;
     self.getRegionIds = getRegionIds;
     self.getStatus = getStatus;
     self.moveToANewRegion = moveToANewRegion;

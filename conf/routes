@@ -10,7 +10,7 @@ GET     /home                                   @controllers.ApplicationControll
 GET     /about                                  @controllers.ApplicationController.about
 GET     /developer                              @controllers.ApplicationController.developer
 GET     /terms                                  @controllers.ApplicationController.terms
-GET     /map                                    @controllers.ApplicationController.map
+GET     /demo                                   @controllers.ApplicationController.demo
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
 
@@ -44,8 +44,6 @@ POST    /audit/nostreetview                     @controllers.AuditController.pos
 
 # Task API.
 GET     /task                                   @controllers.TaskController.getTask
-# GET     /task/next                              @controllers.TaskController.getNextTask(streetEdgeId: Int, lat: Float, lng: Float)
-# GET     /task/nextInRegion                      @controllers.TaskController.getATaskInARegion(regionId: Int)
 GET     /task/street/:id                        @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                  @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                   @controllers.TaskController.post
@@ -69,7 +67,6 @@ GET     /map/edit                               @controllers.MapController.edit
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                   @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all               @controllers.UserProfileController.getAllAuditedStreets
-#GET     /contribution/tasks                    @controllers.UserProfileController.getSubmittedTasks
 GET     /contribution/tasks                     @controllers.UserProfileController.getSubmittedTasksWithLabels
 GET     /contribution/labels                    @controllers.UserProfileController.getSubmittedLabels
 GET     /contribution/labels/all                @controllers.UserProfileController.getAllLabels
@@ -82,10 +79,8 @@ GET     /contribution/:username                 @controllers.UserProfileControll
 
 # Geometry API
 GET     /geometry/neighborhoods         @controllers.RegionController.listNeighborhoods
-#GET     /geometry/streets               controllers.StreetController.getStreets(minLat: Double ?= 38.761, minLng: Double ?= -77.262, maxLat: Double ?= 38.928567, maxLng: Double ?= -76.830)
-#GET     /geometry/join/:limit           controllers.StreetController.join(limit: Int)
-#GET     /geometry/select                controllers.StreetController.select
 
+# Access Feature and Access Score APIs
 GET     /v1/access/features             @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/score/neighborhoods  @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/score/streets        @controllers.ProjectSidewalkAPIController.getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double)

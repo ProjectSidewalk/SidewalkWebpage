@@ -64,6 +64,8 @@ class SignUpController @Inject() (
               email = data.email,
               roles = None
             )
+
+
             for {
               user <- userService.save(user)
               authInfo <- authInfoService.save(loginInfo, authInfo)
