@@ -1,5 +1,7 @@
 package controllers
 
+import java.sql.Timestamp
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -9,7 +11,7 @@ import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 
 import math._
-import models.user.{User, UserCurrentRegionTable}
+import models.user.{User, UserCurrentRegionTable, WebpageActivity, WebpageActivityTable}
 
 import scala.concurrent.Future
 import play.api.mvc._
@@ -18,8 +20,10 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json._
 import play.extras.geojson.{Feature => JsonFeature, LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
+import org.joda.time.{DateTime, DateTimeZone}
 import play.extras.geojson
 
 import collection.immutable
@@ -32,8 +36,23 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
 
 
+
+
   def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
-    val r = scala.util.Random
+    // Logging
+    if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val ipAddress: String = request.remoteAddress
+      request.identity match {
+        case Some(user) =>
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, request.request.toString, timestamp))
+        case None =>
+          val anonymousUser: DBUser = UserTable.find("anonymous").get
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, request.request.toString, timestamp))
+      }
+    }
+
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)
@@ -60,43 +79,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * AccessScore:Grid
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
-    * @param stepSize
-    * @return
-    */
-  def getAccessScoreGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double) = UserAwareAction.async { implicit request =>
-    val r = scala.util.Random
-
-    val latLngList: List[JsonLatLng] = makeALatLngGrid(lat1, lng1, lat2, lng2, stepSize)
-
-
-
-    val features: List[JsObject] = latLngList.map { latLng =>
-      val point = JsonPoint(latLng)
-      val properties = Json.obj(
-        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
-        "significance" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
-        ),
-        "feature" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
-        )
-      )
-      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-    }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
-  }
-
-  /**
     *
     * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
     * @param lat1
@@ -106,7 +88,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @return
     */
   def getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
-    val r = scala.util.Random
+    // Logging
+    if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val ipAddress: String = request.remoteAddress
+      request.identity match {
+        case Some(user) =>
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, request.request.toString, timestamp))
+        case None =>
+          val anonymousUser: DBUser = UserTable.find("anonymous").get
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, request.request.toString, timestamp))
+      }
+    }
+
     // Retrieve data and cluster them by location and label type.
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
@@ -174,33 +169,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * Get an access score of a given lat lng point
-    * @param lat
-    * @param lng
-    * @return
-    */
-  def getAccessScorePoint(lat: Double, lng: Double) = UserAwareAction.async { implicit request =>
-    val r = scala.util.Random
-    val feature = JsonFeature(JsonPoint(JsonLatLng(lat, lng)),
-      properties = Some(Json.obj(
-        "score" -> r.nextDouble * r.nextDouble,  // Todo. Actually calculate the access score,
-        "significance" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
-        ),
-        "feature" -> Json.obj(
-          "NoCurbRamp" -> 1.0,
-          "Obstacle" -> 1.0,
-          "SurfaceProblem" -> 1.0
-        )
-      ))
-    )
-    val json = Json.toJson(feature)
-    Future.successful(Ok(json))
-  }
-
-  /**
     * AccessScore:Street
     *
     * E.g., /v1/access/street?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
@@ -211,6 +179,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @return
     */
   def getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    // Logging
+    if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val ipAddress: String = request.remoteAddress
+      request.identity match {
+        case Some(user) =>
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, request.request.toString, timestamp))
+        case None =>
+          val anonymousUser: DBUser = UserTable.find("anonymous").get
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, request.request.toString, timestamp))
+      }
+    }
+
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)
