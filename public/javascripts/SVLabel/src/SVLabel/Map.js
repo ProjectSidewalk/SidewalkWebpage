@@ -509,7 +509,8 @@ function Map ($, google, turf, params) {
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
                     if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-                        svl.popUpMessage.notify("Jumped back to your neighborhood!",
+                        var neighborhoodMessage = "Jumped back to " + svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("name");
+                        svl.popUpMessage.notify(neighborhoodMessage,
                             "We sent you back into the neighborhood you have been walking around! Please continue to " +
                             "make this neighborhood more accessible for everyone!");
                     }
