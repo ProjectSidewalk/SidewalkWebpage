@@ -1275,7 +1275,7 @@ function Map ($, google, turf, params) {
     }
 
     /**
-     * Unlock render lables
+     * Unlock render labels
      * @returns {unlockRenderLabels}
      */
     function unlockRenderLabels () {
