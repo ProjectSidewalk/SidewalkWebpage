@@ -13,7 +13,10 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable
 import models.mission.MissionTable
 import models.region.RegionTable
+import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.User
+import org.geotools.geometry.jts.JTS
+import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
 
@@ -65,17 +68,32 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   // JSON APIs
+  /**
+    * Returns audit coverage of each neighborhood
+    * @return
+    */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val streetsPerRegion = RegionTable.selectStreetsInRegions.groupBy(_.regionId)
 
-      val completionRates = streetsPerRegion.map {
-        case (regionId, streets) =>
-          val completed = streets.filter(_.completionCount > 0).map(_.distance).sum
-          val total = streets.map(_.distance).sum
-          val regionName = streets.head.regionName
-          (regionId, total, completed, regionName)
-      }.map(x => Json.obj("region_id" -> x._1, "total_distance_m" -> x._2, "completed_distance_m" -> x._3, "name" -> x._4)).toSeq
+      // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
+      val CRSEpsg4326 = CRS.decode("epsg:4326")
+      val CRSEpsg26918 = CRS.decode("epsg:26918")
+      val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+
+
+      val neighborhoods = RegionTable.selectAllNamedNeighborhoods
+      val completionRates: List[JsObject] = for ( neighborhood <- neighborhoods ) yield {
+        val streets: List[StreetEdge] = StreetEdgeTable.selectStreetsByARegionId(neighborhood.regionId)
+        val auditedStreets: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsByARegionId(neighborhood.regionId)
+
+        val completedDistance = auditedStreets.map(s => JTS.transform(s.geom, transform).getLength).sum
+        val totalDistance = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+        Json.obj("region_id" -> neighborhood.regionId,
+          "total_distance_m" -> totalDistance,
+          "completed_distance_m" -> completedDistance,
+          "name" -> neighborhood.name
+        )
+      }
 
       Future.successful(Ok(JsArray(completionRates)))
     } else {

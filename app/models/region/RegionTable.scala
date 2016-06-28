@@ -82,10 +82,23 @@ object RegionTable {
   /**
    * Returns a list of all the neighborhood regions
     *
-    * @return A list of SidewalkEdge objects.
+    * @return A list of Region objects.
    */
   def selectAllNeighborhoods: List[Region] = db.withSession { implicit session =>
     regionsWithoutDeleted.filter(_.regionTypeId === 2).list
+  }
+
+  /**
+    * Returns a list of all neighborhoods with names
+    * @return
+    */
+  def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
+    val namedRegions = for {
+      (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      if _regionProperties.key === "Neighborhood Name"
+    } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
+
+    namedRegions.list.map(x => NamedRegion.tupled(x))
   }
 
   /**
@@ -200,25 +213,33 @@ object RegionTable {
   }
 
 
-  def selectStreetsInRegions: List[StreetCompletion] = db.withSession { implicit session =>
-    val query = Q.queryNA[StreetCompletion](
-      """SELECT region.region_id, region_property.value, street_edge.street_edge_id, street_edge_assignment_count.completion_count, ST_Length(ST_Transform(street_edge.geom, 26918))
-        |FROM sidewalk.region
-        |INNER JOIN sidewalk.street_edge
-        |ON ST_Intersects(region.geom, street_edge.geom)
-        |INNER JOIN sidewalk.street_edge_assignment_count
-        |ON street_edge.street_edge_id = street_edge_assignment_count.street_edge_id
-        |INNER JOIN region_property
-        |ON region.region_id = region_property.region_id
-        |WHERE region.region_type_id = 2
-        |AND region.deleted = false
-        |AND region_property.key = 'Neighborhood Name'""".stripMargin
-    )
+//  def selectStreetsInRegions: List[StreetCompletion] = db.withSession { implicit session =>
+//    val query = Q.queryNA[StreetCompletion](
+//      """SELECT region.region_id, region_property.value, street_edge.street_edge_id, street_edge_assignment_count.completion_count, ST_Length(ST_Transform(street_edge.geom, 26918))
+//        |FROM sidewalk.region
+//        |INNER JOIN sidewalk.street_edge
+//        |ON ST_Intersects(region.geom, street_edge.geom)
+//        |INNER JOIN sidewalk.street_edge_assignment_count
+//        |ON street_edge.street_edge_id = street_edge_assignment_count.street_edge_id
+//        |INNER JOIN region_property
+//        |ON region.region_id = region_property.region_id
+//        |WHERE region.region_type_id = 2
+//        |AND region.deleted = false
+//        |AND region_property.key = 'Neighborhood Name'""".stripMargin
+//    )
+//
+//    query.list
+//  }
 
-    query.list
-  }
-
-  def selectNamedNeighborhoodsIntersecting(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = db.withTransaction { implicit session =>
+  /**
+    * Returns a list of neighborhoods intersecting the given bounding box
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def selectNamedNeighborhoodsIntersecting(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[NamedRegion] = db.withTransaction { implicit session =>
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
@@ -237,7 +258,15 @@ object RegionTable {
     selectNamedNeighborhoodQuery((minLng, minLat, maxLng, maxLat)).list
   }
 
-  def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = db.withTransaction { implicit session =>
+  /**
+    * Returns a list of neighborhoods within the given bounding box
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[NamedRegion] = db.withTransaction { implicit session =>
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](

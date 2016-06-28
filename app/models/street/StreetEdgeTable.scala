@@ -6,12 +6,12 @@ import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
+import org.postgresql.util.PSQLException
 import play.api.Play.current
 
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,
-                      x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
+case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
 /**
  *
@@ -42,7 +42,18 @@ object StreetEdgeTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
-    StreetEdge(r.nextInt, r.nextGeometry[LineString], r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean, r.nextTimestampOption)
+    val streetEdgeId = r.nextInt
+    val geometry = r.nextGeometry[LineString]
+    val source = r.nextInt
+    val target = r.nextInt
+    val x1 = r.nextFloat
+    val y1 = r.nextFloat
+    val x2 = r.nextFloat
+    val y2 = r.nextFloat
+    val wayType = r.nextString
+    val deleted = r.nextBoolean
+    val timestamp = r.nextTimestampOption
+    StreetEdge(streetEdgeId, geometry, source, target, x1, y1, x2, y2, wayType, deleted, timestamp)
   })
 
   val db = play.api.db.slick.DB
@@ -70,7 +81,6 @@ object StreetEdgeTable {
     */
   def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
     val allEdges = streetEdgesWithoutDeleted.list
-
     countAuditedStreets(auditCount).toFloat / allEdges.length
   }
 
@@ -126,6 +136,52 @@ object StreetEdgeTable {
     }).toList.flatten
 
     uniqueStreetEdges
+  }
+
+  /**
+    * Returns all the streets in the given regionthat has been audited
+    * @param regionId
+    * @param auditCount
+    * @return
+    */
+  def selectAuditedStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
+    val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
+      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.region
+        |  ON ST_Intersects(street_edge.geom, region.geom)
+        |INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.completed = TRUE
+        |WHERE region.region_id=?
+        |  AND street_edge.deleted=FALSE
+      """.stripMargin
+    )
+    selectAuditedStreetsQuery(regionId).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /**
+    * Returns all the streets intersecting the neighborhood
+    * @param regionId
+    * @param auditCount
+    * @return
+    */
+  def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
+    val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
+      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.region
+        |  ON ST_Intersects(street_edge.geom, region.geom)
+        |WHERE region.region_id=?
+        |  AND street_edge.deleted=FALSE
+      """.stripMargin
+    )
+
+    try {
+      selectAuditedStreetsQuery(regionId).list
+    } catch {
+      case e: PSQLException => List()
+    }
   }
 
   def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
