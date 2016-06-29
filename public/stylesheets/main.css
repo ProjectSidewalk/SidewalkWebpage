@@ -138,3 +138,8 @@ p {
     text-align: center;
     margin: 20px 0;
 }
+
+.pdf-thumbnail {
+    border: solid 1px #eee;
+    width: 240px;
+}
