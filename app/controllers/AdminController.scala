@@ -67,7 +67,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // JSON APIs
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val streetsPerRegion = RegionTable.getStreetsPerRegion.groupBy(_.regionId)
+      val streetsPerRegion = RegionTable.selectStreetsInRegions.groupBy(_.regionId)
 
       val completionRates = streetsPerRegion.map {
         case (regionId, streets) =>
@@ -87,7 +87,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val labels = LabelTable.selectLocationsOfLabelsSubmittedByAUser(UUID.fromString(user.userId))
+          val labels = LabelTable.selectLocationsOfLabelsByUserId(UUID.fromString(user.userId))
           val features: List[JsObject] = labels.map { label =>
             val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
             val properties = Json.obj(
@@ -157,7 +157,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val tasksWithLabels = AuditTaskTable.tasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
+          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }

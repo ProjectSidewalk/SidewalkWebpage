@@ -1,0 +1,47 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h1>CMSC389N & CSIC216</h1>
+                <p>The following instruction is for CMSC389N and CMSC216 students.</p>
+                <ol>
+                    <li>
+                        <a href='@routes.UserController.signUp("/")'>Click here to sign up.</a>
+                        Use your UMD directory id as a username and your university email address for email
+                        (e.g., my id is khara and email address is khara@@umd.edu, so I will use them for the login info).
+                    </li>
+                    <li>
+                        Click <a href='@routes.AuditController.audit'>Start Auditing</a> and <span class="bold">complete 5 missions.</span>
+                            Keep logged in while you are auditing so I can keep track of your progress!
+                    </li>
+                    <li>
+                        @if(user.isDefined) {
+                            Check the number of the missions that you have completed on <a href='@routes.UserProfileController.userProfile(user.get.username)'>your dashboard.</a>
+                        } else {
+                            Check the number of the missions that you have completed on your dashboard. You can access the dashboard once you are logged in.
+                        }
+                    </li>
+                    <li>
+                        <a href="mailto:kotaro@@cs.umd.edu?Subject=Sidewalk%20missions%20completed">Email Kotaro (kotaro@@cs.umd.edu)</a>
+                        once you have finished 5 missions with a title: "Sidewalk missions completed". Let him know your username.
+                        He will check if you have completed the missions and will respond to you.
+                    </li>
+                </ol>
+                <p>Deadline: June 29th (Wed) 11:59PM</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <h2>Contact Us</h2>
+                <p class="text-justify">
+                    Questions? Bugs? Feature requests and suggestions? Or anything else? Email me (kotaro@@cs.umd.edu)!
+                </p>
+            </div>
+        </div>
+    </div>
+}

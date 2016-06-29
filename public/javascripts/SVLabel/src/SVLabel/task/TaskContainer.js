@@ -12,6 +12,8 @@ function TaskContainer (turf) {
         paths, previousPaths = [],
         taskStoreByRegionId = {};
 
+    svl.taskStoreByRegionId = taskStoreByRegionId;  // debug
+
     /**
      * I had to make this method to wrap the street view service.
      * @param task The current task
@@ -48,7 +50,19 @@ function TaskContainer (turf) {
     function endTask (task) {
         if ('tracker' in svl) svl.tracker.push("TaskEnd");
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+
         task.complete();
+        // Todo. I'm not sure why, but chainging the state of the `task` has no effect on the task in the `taskStoreByRegionId`. Apparently task is not a reference.
+        // Go through the tasks and mark the completed task as isCompleted=true
+        var neighborhoodTasks = taskStoreByRegionId[neighborhood.getProperty("regionId")];
+        var i = 0,
+            len = neighborhoodTasks.length;
+        for (; i < len; i++) {
+            if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
+                neighborhoodTasks[i].complete();
+            }
+        }
+
 
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
@@ -69,7 +83,7 @@ function TaskContainer (turf) {
             }
         }
 
-        push(task); // Push the data into previousTasks
+        pushATask(task); // Push the data into previousTasks
 
         // Clear the current paths
         var _geojson = task.getGeoJSON(),
@@ -169,7 +183,7 @@ function TaskContainer (turf) {
             }
             return connectedTasks;
         } else {
-            return tasks;
+            return svl.util.shuffle(tasks);
         }
 
     }
@@ -199,7 +213,8 @@ function TaskContainer (turf) {
         }
         
         if (currentTask) {
-            distance += currentTask.getDistanceWalked(unit);
+            var currentTaskDistance = currentTask.getDistanceWalked(unit);
+            distance += currentTaskDistance;
         }
         return distance;
     }
@@ -304,9 +319,18 @@ function TaskContainer (turf) {
      * Push a task to previousTasks
      * @param task
      */
-    function push (task) {
-        // Todo. Check for the duplicates.
-        previousTasks.push(task);
+    function pushATask (task) {
+        if (previousTasks.indexOf(task) < 0) {
+            previousTasks.push(task);
+        }
+    }
+
+    /**
+     * Pop a task at the end of previousTasks
+     * @returns {*}
+     */
+    function pop () {
+        return previousTasks.pop();
     }
 
     /**
@@ -336,7 +360,7 @@ function TaskContainer (turf) {
         var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
             return task.getProperty("streetEdgeId");
         });
-        if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
     /**
@@ -362,14 +386,16 @@ function TaskContainer (turf) {
      */
     function update () {
         var i, len = previousTasks.length;
-        for (i = 0; i < len; i++) previousTasks[i].render();
+        for (i = 0; i < len; i++) {
+            previousTasks[i].render();
+        }
         currentTask.render();
     }
 
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
-     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood. Also get rid of the async call.
+     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {
@@ -400,7 +426,7 @@ function TaskContainer (turf) {
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.nextTask = nextTask;
-    self.push = push;
+    self.push = pushATask;
 
     self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;

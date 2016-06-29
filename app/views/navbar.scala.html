@@ -11,15 +11,30 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-right">
-                @*<li>*@
-                    @*<a href='@routes.ApplicationController.about'>About</a>*@
-                @*</li>*@
-                @*<li>*@
-                    @*<a href='@routes.ApplicationController.map'>Access Score</a>*@
-                @*</li>*@
                 @if(url.isDefined && url.get != "/audit") {
                     <li>
-                        <a href='@routes.AuditController.audit'>Start Auditing</a>
+                        <a href='@routes.ApplicationController.about'>About</a>
+                    </li>
+                    <li>
+                        <a href='@routes.ApplicationController.demo'>Demo</a>
+                    </li>
+                    <li>
+                        <a href='@routes.ApplicationController.developer'>Developer</a>
+                    </li>
+                } else {
+                    <li>
+                        <a href='@routes.ApplicationController.about' target="_blank">About</a>
+                    </li>
+                    <li>
+                        <a href='@routes.ApplicationController.demo' target="_blank">Demo</a>
+                    </li>
+                    <li>
+                        <a href='@routes.ApplicationController.developer' target="_blank">Developer</a>
+                    </li>
+                }
+                @if(url.isDefined && url.get != "/audit") {
+                    <li>
+                        <a href='@routes.AuditController.audit' class="bold">Start Auditing</a>
                     </li>
                 } else {
                     <li>

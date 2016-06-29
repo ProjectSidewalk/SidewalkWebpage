@@ -1,11 +1,14 @@
 package models.street
 
 import java.sql.Timestamp
+
 import com.vividsolutions.jts.geom.LineString
+import models.audit.AuditTaskTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float,
                       x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
@@ -43,9 +46,11 @@ object StreetEdgeTable {
   })
 
   val db = play.api.db.slick.DB
+  val auditTasks = TableQuery[AuditTaskTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
+  val completedAuditTasks = auditTasks.filter(_.completed === true)
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
   /**
@@ -59,32 +64,46 @@ object StreetEdgeTable {
 
   /**
     * This method returns the audit completion rate
+    *
     * @param auditCount
     * @return
     */
   def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
     val allEdges = streetEdgesWithoutDeleted.list
 
-    val completedEdges = (for {
-      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _assignmentCounts.completionCount >= auditCount
-    } yield _streetEdges).list
-
-    completedEdges.length.toFloat / allEdges.length
+    countAuditedStreets(auditCount).toFloat / allEdges.length
   }
 
   /**
     * Get the audited distance in miles
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    *
     * @param auditCount
     * @return
     */
   def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
-    val distances = for {
-      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _assignmentCounts.completionCount >= auditCount
-    } yield _streetEdges.geom.transform(26918).length
-    (distances.list.sum * 0.000621371).toFloat
+    //    val distances = for {
+    //      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
+    //      if _assignmentCounts.completionCount >= auditCount
+    //    } yield _streetEdges.geom.transform(26918).length
+    //    (distances.list.sum * 0.000621371).toFloat
+
+    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+    val edges = for {
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _streetEdges
+    val distances: List[Float] = edges.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+    (distances.sum * 0.000621371).toFloat
+  }
+
+  /**
+    * Count the number of streets that have been audited at least a given number of times
+    *
+    * @param auditCount
+    * @return
+    */
+  def countAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount).size
   }
 
   /**
@@ -92,21 +111,74 @@ object StreetEdgeTable {
     *
     * @return
     */
-  def auditedStreets(auditCount: Int): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreets(auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
     val edges = for {
-      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-      if _assignmentCounts.completionCount >= auditCount
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
-    edges.list
+
+    val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
+      // Filter out group of edges with the size less than the passed `auditCount`
+      if (auditCount > 0 && groupedEdges.size >= auditCount) {
+        Some(groupedEdges.head)
+      } else {
+        None
+      }
+    }).toList.flatten
+
+    uniqueStreetEdges
   }
 
-  def getWithIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
-
+  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM sidewalk.street_edge AS st_e
-       | WHERE st_e.deleted = FALSE AND st_e.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)""".stripMargin
+      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+       |FROM sidewalk.street_edge AS st_e
+       |WHERE st_e.deleted = FALSE AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
+  }
+
+  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
+    // http://postgis.net/docs/ST_MakeEnvelope.html
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT DISTINCT(street_edge.street_edge_id), street_edge.geom, street_edge.source, street_edge.target, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2, street_edge.way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |  INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  WHERE street_edge.deleted = FALSE
+        |  AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |  AND audit_task.completed = TRUE""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
+  }
+
+  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT DISTINCT(st_e.street_edge_id), st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+        |FROM sidewalk.street_edge AS st_e
+        |WHERE st_e.deleted = FALSE
+        |AND ST_Within(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+    )
+
+    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    edges
+  }
+
+  def selectAuditedStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+      """SELECT DISTINCT(street_edge.street_edge_id), street_edge.geom, street_edge.source, street_edge.target, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2, street_edge.way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |  INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  WHERE street_edge.deleted = FALSE
+        |  AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |  AND audit_task.completed = TRUE""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
@@ -129,33 +201,6 @@ object StreetEdgeTable {
   def save(edge: StreetEdge): Int = db.withTransaction { implicit session =>
     streetEdges += edge
     edge.streetEdgeId // return the edge id.
-  }
-
-  /**
-   * http://stackoverflow.com/questions/19891881/scala-slick-plain-sql-retrieve-result-as-a-map
-   * http://stackoverflow.com/questions/25578793/how-to-return-a-listuser-when-using-sql-with-slick
-   * https://websketchbook.wordpress.com/2015/03/23/make-plain-sql-queries-work-with-slick-play-framework/
-   *
-   * @param id
-   * @return
-   */
-  def randomQuery(id: Int) = db.withSession { implicit session =>
-    //    import scala.slick.jdbc.meta._
-    //    import scala.slick.jdbc.{StaticQuery => Q}
-    //    import Q.interpolation
-    //
-    //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
-    //    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
-    //    user
-  }
-
-
-  def numberOfStreetsInRegions() = db.withSession {implicit session =>
-    val query = """SELECT region.region_id, COUNT(st_e.*) AS number_of_streets FROM sidewalk.region
-                |INNER JOIN sidewalk.street_edge AS st_e
-                |ON ST_Intersects(st_e.geom, region.geom)
-                |GROUP BY region.region_id
-                |""".stripMargin
   }
 }
 

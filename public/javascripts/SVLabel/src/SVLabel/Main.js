@@ -312,16 +312,17 @@ function Main ($, d3, google, turf, params) {
                                 if (haveSwitchedToANewRegion) {
                                     // If moving to the new neighborhood, update the database
                                     svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                    svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                                 }
-                                svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                                 break;
                             }
                             haveSwitchedToANewRegion = true;
 
                             var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                            var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
-                            if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
-                            regionId = availableRegionIds[indexOfNextRegion];
+                            regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
+                            // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
+                            // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            // regionId = availableRegionIds[indexOfNextRegion];
                         }
                         mission = missions[0];
                     }

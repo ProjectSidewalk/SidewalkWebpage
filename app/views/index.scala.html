@@ -76,14 +76,14 @@
             <div class="col-md-2">
                 <figure>
                     <img src='@routes.Assets.at("images/icons/CloudStore.png")' alt="An icon of a cloud storage" class="img-responsive center-block" align="">
-                    <figcaption class="text-center">The collected data will be stored on our server</figcaption>
+                    <figcaption class="text-center">The collected data is stored on our server and used to train machine learning algorithms to automatically identify new accessibility problems</figcaption>
                 </figure>
                 <div class="spacer-20-pixel"></div>
             </div>
             <div class="col-md-2">
                 <figure>
                     <img src='@routes.Assets.at("images/icons/Map.png")' alt="An icon of a map" class="img-responsive center-block" align="">
-                    <figcaption class="text-center">Accessibility will be visualized with the collected data</figcaption>
+                    <figcaption class="text-center">The data will be used to enable new accessibility-aware maps and routing algorithms</figcaption>
                 </figure>
                 <div class="spacer-20-pixel"></div>
             </div>
@@ -93,11 +93,20 @@
         <div class="row">
             <div class="col-lg-12">
                 <p>
-                    We need your help to map the accessibility of the city. Problems such as lack of curb ramps make
-                    navigation more difficult for people with mobility impairments. Knowing where problems exist will
-                    help people plan their trip. Use our tool to walk through streets in Google Street View and report
-                    where the accessibility problems exist. We will use the data to visualize the city’s accessibility!
+					Despite comprehensive civil rights legislation for Americans with disabilities, many city streets, sidewalks, and businesses in the US remain inaccessible. The problem is not just that sidewalk accessibility fundamentally affects <i>where</i> and <i>how</i> people move about in cities but also that there are few, if any, ways to easily determine accessible areas of a city.
                 </p>
+				<p>
+					You can help change this! Use our interactive tool to virtually walk through city streets and mark accessibility attributes such as missing curb ramps, blocked or overly narrow sidewalks, and broken pavement. Our focus is currently on Washington DC--so, if you've never been there, enjoy walking through the U.S. Capitol--but we plan on launching in other cities soon (including outside the US). 
+					<!-- Would be good to have some animated gifs showing what the interface looks like and how it works -->	
+					
+					Your data will be used to create new types of map-based accessibility tools, such as <i>AccessScore</i>, an interactive map of a city's accessibility, and <i>RouteAssist</i>, personalized routing algorithms based on a user's reported mobility level.
+					<!-- would be good to have some example interfaces of this stuff here -->
+
+					We also have some secret sauce: to scale our approach, your labels are also being used to train machine learning algorithms to automatically find future accessibility problems. 
+				</p>
+				<p>
+					
+				</p>
             </div>
         </div>
         <div class="spacer-20-pixel"></div>
@@ -125,8 +134,8 @@
                     we could visualize whether one neighborhood has problems or not. The visualization allows a person
                     with mobility impairment (e.g., a wheelchair user) to decide if they can go to their destination
                     alone or they need someone to tag along to help them navigate inaccessible sidewalks.
-                    The collected accessibility data will also be used to train computers to automatically
-                    find and label accessibility attributes at scale and fast.
+                    The collected accessibility data will also be used to train computer vision algorithms to automatically
+                    find accessibility attributes at scale.
                 </p>
             </div>
         </div>

@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.mission.MissionTable
 @(title: String, user: Option[User] = None)
 
 @main(title) {
@@ -25,9 +26,11 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>Total Distance Audited</th>
+                    <th>Number of Missions Completed</th>
                 </tr>
                 <tr>
                     <td id="td-total-distance-audited"></td>
+                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId)</td>
                 </tr>
             </table>
             <table class="table table-striped table-condensed">
@@ -57,7 +60,7 @@
             <table class="table table-striped table-fixed">
                 <thead>
                     <tr>
-                        <th class="col-xs-12">Lables per Street</th>
+                        <th class="col-xs-12">Labels per Street</th>
                     </tr>
                     <tr>
                     <th class="col-xs-2">Date</th>

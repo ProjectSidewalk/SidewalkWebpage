@@ -70,9 +70,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param lng current longitude
    * @return Task definition
    */
-  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
-  }
+//  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
+//    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
+//  }
 
   /**
    * Get a next task, but make sure the task is in the specified region.
@@ -80,10 +80,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @param regionId Region id
    * @return
    */
-  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
-    Future.successful(Ok(task.toJSON))
-  }
+//  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
+//    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
+//    Future.successful(Ok(task.toJSON))
+//  }
 
   /**
     *
@@ -232,10 +232,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case Some(user) =>
               val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
               if (region.isDefined) {
-                val missions: List[Mission] = MissionTable.incomplete(user.userId, region.get.regionId)
+                val missions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId)
                 val status = MissionStatus(0.0, 0.0, 0)
                 missions.filter(m => m.completed(status))
-                MissionTable.incomplete(user.userId, region.get.regionId) // debug
               } else {
                 List()
               }

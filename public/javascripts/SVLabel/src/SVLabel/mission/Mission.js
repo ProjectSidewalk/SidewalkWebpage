@@ -222,14 +222,19 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+
+
             var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
             missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
 
-            // Get the last completed mission's target distance
-            var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-
-            return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
+            var lastMissionDistance;
+            if (missions.length > 0) {
+                lastMissionDistance = missions[missions.length - 1].getProperty("distance") / 1000;
+            } else {
+                lastMissionDistance = 0;
+            }
+            return Math.max(0, completedDistance - lastMissionDistance) / (targetDistance - lastMissionDistance);
         } else {
             return 0;
         }

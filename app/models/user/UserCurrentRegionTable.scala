@@ -24,6 +24,7 @@ object UserCurrentRegionTable {
   val regions = TableQuery[RegionTable]
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
+  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -38,16 +39,16 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return region id
     */
-  def assignRandomly(userId: UUID): Int = db.withTransaction { implicit session =>
+  def assignRandomly(userId: UUID): Int = db.withSession { implicit session =>
     // Check if there are any records
     val _currentRegions = for {
-      (_regions, _currentRegions) <- regionsWithoutDeleted.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      (_regions, _currentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
       if _currentRegions.userId === userId.toString
     } yield _currentRegions
     val currentRegionList = _currentRegions.list
 
     if (currentRegionList.isEmpty) {
-      val regionId: Int = scala.util.Random.shuffle(regions.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
+      val regionId: Int = scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
       save(userId, regionId)
       regionId
     } else {
@@ -60,8 +61,8 @@ object UserCurrentRegionTable {
     * @param userId
     * @return
     */
-  def assignNextRegion(userId: UUID): Int = db.withTransaction { implicit session =>
-    val regionIds = MissionTable.incompleteRegions(userId)
+  def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
+    val regionIds = MissionTable.selectIncompleteRegions(userId)
     val regionId = scala.util.Random.shuffle(regionIds).head
     update(userId, regionId)
   }
@@ -87,9 +88,9 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return
     */
-  def isAssigned(userId: UUID): Boolean = db.withTransaction { implicit session =>
+  def isAssigned(userId: UUID): Boolean = db.withSession { implicit session =>
     val _userCurrentRegions = for {
-      (_regions, _userCurrentRegions) <- regionsWithoutDeleted.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      (_regions, _userCurrentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
       if _userCurrentRegions.userId === userId.toString
     } yield _userCurrentRegions
 
@@ -105,7 +106,7 @@ object UserCurrentRegionTable {
     * @param userId user ID
     * @param regionId region id
     */
-  def update(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
+  def update(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
     val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
     q.update(regionId)
     regionId
