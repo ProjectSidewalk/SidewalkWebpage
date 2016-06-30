@@ -11,7 +11,7 @@
  * @constructor
  * @memberof svl
  */
-function Storage(JSON, params) {
+function TemporaryStorage(JSON, params) {
     var self = {'className': 'Storage'};
 
     if (params && 'storage' in params && params.storage == 'session') {

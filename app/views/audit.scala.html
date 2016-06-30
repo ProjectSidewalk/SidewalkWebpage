@@ -571,7 +571,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script type="text/javascript">
         var svl = svl || {};
-        svl.storage = new Storage(JSON);
+        svl.storage = new TemporaryStorage(JSON);
 
         @if(user) {
             var userParam = {

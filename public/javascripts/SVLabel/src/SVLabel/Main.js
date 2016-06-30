@@ -213,7 +213,7 @@ function Main ($, d3, google, turf, params) {
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
-        if (!("storage" in svl)) svl.storage = new Storage(JSON);
+        if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = LabelContainer();
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);

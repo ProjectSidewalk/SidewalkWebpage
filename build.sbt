@@ -16,6 +16,11 @@ resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: 
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
+resolvers ++= Seq(
+  "geosolutions" at "http://maven.geo-solutions.it/",
+  "osgeo" at "http://download.osgeo.org/webdav/geotools/"
+)
+
 libraryDependencies ++= Seq(
   jdbc,
   anorm,
@@ -35,7 +40,12 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg" % "0.8.2",
   "org.slf4j" % "slf4j-api"       % "1.7.7",
   "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
-  "joda-time" % "joda-time" % "2.9.4"
+  "joda-time" % "joda-time" % "2.9.4",
+  "org.geotools" % "gt-coverage" % "14.3",
+  "org.geotools" % "gt-epsg-hsql" % "14.3",
+  "org.geotools" % "gt-geotiff" % "14.3",
+  "org.geotools" % "gt-main" % "14.3",
+  "org.geotools" % "gt-referencing" % "14.3"
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }

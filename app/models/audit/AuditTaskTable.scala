@@ -381,15 +381,15 @@ object AuditTaskTable {
 
     val selectEdgeQuery = Q.query[(String, Int), StreetEdge](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
-       |FROM sidewalk.region
+       |  FROM sidewalk.region
        |INNER JOIN sidewalk.street_edge AS st_e
-       |ON ST_Intersects(st_e.geom, region.geom)
+       |  ON ST_Intersects(st_e.geom, region.geom)
        |LEFT JOIN sidewalk.audit_task
-       |ON st_e.street_edge_id = audit_task.street_edge_id
-       |AND audit_task.user_id = ?
+       |  ON st_e.street_edge_id = audit_task.street_edge_id
+       |  AND audit_task.user_id = ?
        |WHERE st_e.deleted = FALSE
-       |AND region.region_id = ?
-       |AND audit_task.audit_task_id ISNULL""".stripMargin
+       |  AND region.region_id = ?
+       |  AND audit_task.audit_task_id ISNULL""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((userId, regionId)).list
