@@ -36,25 +36,73 @@ $(document).ready(function () {
         .fitBounds(bounds)
         .setView([38.905, -76.990], 13);
 
+    // Creat 3 white overlay polygons. Add an overlay to each map.
+    var overlay = L.geoJson({ "type": "FeatureCollection",
+        "features": [ {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[ -76.989, 38.909], [ -76.989, 38.912], [-76.982, 38.912], [-76.982, 38.909], [ -76.989, 38.909]]]
+                // "coordinates": [ [ [-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36] ] ]
+            }
+        } ]
+    }, {
+        style: {
+            fillColor: "#fff",
+            fillOpacity: 0.75,
+            color: "#fff",
+            weight: 0
+        }
+    });
+    var overlays = [0, 1].map(function (i) { return L.geoJson({ "type": "FeatureCollection",
+        "features": [ {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[ -77.008, 38.899], [ -77.008, 38.92], [-76.971, 38.92], [-76.971, 38.899], [ -77.008, 38.899]]]
+                // "coordinates": [ [ [-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36] ] ]
+                // lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971
+            }
+        } ]
+    }, {
+        style: {
+            fillColor: "#fff",
+            fillOpacity: 0.6,
+            color: "#fff",
+            weight: 0
+        }
+    }); });
+    overlay.addTo(mapAccessFeatures);
+    overlays[0].addTo(mapAccesScoreNeighborhoods);
+    overlays[1].addTo(mapAccessScoreStreets);
+
+    var colorMapping = svl.misc.getLabelColors();
+
     // A map for Access Feature
     $.getJSON("/v1/access/features?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982", function (data) {
         function style(feature) {
             return {
-                weight: 2,
+                weight: 1,
                 opacity:0.7,
-                color: getColor(feature.properties.score),
-                dashArray: '3'
+                color: "#fff"
             }
         }
 
-        function getColor(d) {
-            return d > 0.75 ? '#4dac26' :
-                d > 0.5 ? '#b8e186' :
-                    d > 0.25 ? '#f1b6da' :
-                        '#d01c8b';
-        }
-
-        L.geoJson(data, { style: style }).addTo(mapAccessFeatures);
+        L.geoJson(data, {
+            style: style,
+            pointToLayer: function (feature, latlng) {
+                var labelType = feature.properties.label_type,
+                    fillColor = labelType in colorMapping ? colorMapping[labelType].fillStyle : "#ccc";
+                return L.circleMarker(latlng, {
+                    radius: 5,
+                    fillColor: fillColor,
+                    color: "#fff",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.75
+                });
+            }
+        }).addTo(mapAccessFeatures);
     });
 
     // A map for Access Score: Streets
@@ -68,12 +116,7 @@ $(document).ready(function () {
             }
         }
 
-        function getColor(d) {
-            return d > 0.75 ? '#4dac26' :
-                d > 0.5 ? '#b8e186' :
-                    d > 0.25 ? '#f1b6da' :
-                        '#d01c8b';
-        }
+
 
         L.geoJson(data, { style: style }).addTo(mapAccessScoreStreets);
     });
@@ -92,15 +135,15 @@ $(document).ready(function () {
             }
         }
 
-        function getColor(d) {
-            return d > 0.75 ? '#4dac26' :
-                d > 0.5 ? '#b8e186' :
-                d > 0.25 ? '#f1b6da' :
-                    '#d01c8b';
-        }
-
         L.geoJson(data, {
             style: style
         }).addTo(mapAccesScoreNeighborhoods);
     });
+
+    function getColor(d) {
+        return d > 0.75 ? '#4dac26' :
+            d > 0.5 ? '#b8e186' :
+                d > 0.25 ? '#f1b6da' :
+                    '#d01c8b';
+    }
 });
