@@ -223,6 +223,7 @@ function Main ($, d3, google, turf, params) {
         svl.missionStatus = MissionStatus();
         svl.neighborhoodStatus = NeighborhoodStatus();
 
+
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
@@ -264,8 +265,12 @@ function Main ($, d3, google, turf, params) {
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
-        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
+        if (!("taskFactory" in svl && svl.taskFactory)) {
+            svl.taskFactory = TaskFactory(turf);
+        }
+        if (!("taskContainer" in svl && svl.taskContainer)) {
+            svl.taskContainer = TaskContainer(turf);
+        }
 
         // Initialize things that needs data loading.
         var loadingAnOboardingTaskCompleted = false,
