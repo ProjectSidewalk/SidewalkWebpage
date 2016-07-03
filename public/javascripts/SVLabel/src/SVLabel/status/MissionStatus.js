@@ -49,7 +49,7 @@ function MissionStatus () {
             missionMessage = getMissionMessage(missionLabel);
 
         if (missionLabel == "distance-mission") {
-            if (mission.getProperty("level") <= 2) {
+            if (mission.getProperty("distanceMi") <= 1) {
                 missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
             } else {
                 missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");

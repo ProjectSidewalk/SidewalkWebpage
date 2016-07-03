@@ -223,17 +223,21 @@ function Mission(parameters) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
             var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-
+            if (completedDistance > targetDistance) {
+                return 1.0;
+            }
 
             var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-            missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
+            var completedMissions = missions.filter(function (m) { return m.isCompleted(); });  // Get the completed missions
 
+            completedMissions = completedMissions.filter(function (m) { return m.getProperty("distance") / 1000 < completedDistance; });
             var lastMissionDistance;
-            if (missions.length > 0) {
-                lastMissionDistance = missions[missions.length - 1].getProperty("distance") / 1000;
+            if (completedMissions.length > 0) {
+                lastMissionDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
             } else {
                 lastMissionDistance = 0;
             }
+
             return Math.max(0, completedDistance - lastMissionDistance) / (targetDistance - lastMissionDistance);
         } else {
             return 0;

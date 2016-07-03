@@ -82,7 +82,7 @@ function ModalMission ($, L) {
         if (label == "distance-mission") {
             // Set the title
             var distanceString;
-            if (mission.getProperty("level") <= 2) {
+            if (mission.getProperty("distanceMi") <= 1.0) {
                 missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
                 distanceString = mission.getProperty("distanceFt") + "ft";
             } else {

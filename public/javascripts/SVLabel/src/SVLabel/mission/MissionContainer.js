@@ -183,6 +183,14 @@ function MissionContainer ($, parameters) {
         return Object.keys(missionStoreByRegionId);
     }
 
+    /**
+     * Checks if this is the first mission or not.
+     * @returns {boolean}
+     */
+    function isTheFirstMission () {
+        return getCompletedMissions().length == 0;
+    }
+
     function nextMission (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
@@ -245,6 +253,7 @@ function MissionContainer ($, parameters) {
     self.getCurrentMission = getCurrentMission;
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
+    self.isTheFirstMission = isTheFirstMission;
     self.nextMission = nextMission;
     self.refresh = refresh;
     self.stage = stage;

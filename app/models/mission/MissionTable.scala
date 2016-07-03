@@ -139,7 +139,8 @@ object MissionTable {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
       if _missionUsers.userId === userId.toString
     } yield _missions
-    _missions.list
+
+    _missions.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**
