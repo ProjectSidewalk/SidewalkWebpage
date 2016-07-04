@@ -80,48 +80,34 @@ def deploy_application(zip_file_path, username, password):
     print "Unzipping the files."
     command = "unzip %s -d %s" % (sidewalk_app_directory + "/" + zip_file_name, sidewalk_app_directory)
 
-    print command
     stdin, stdout, stderr = client.exec_command(command)
     stdout.read()
-    # print "Removing the zip file"
-    # command = "rm %s" % sidewalk_app_directory + "/sidewalk-webpage.zip"
-    # client.exec_command(command)
+    print "Done unzipping the file"
 
-    # Kill the running process of the running app
-    command = "ls %s" % sidewalk_app_directory
-    stdin, stdout, stderr = client.exec_command(command)
-    ls_output = stdout.read().split("\n")
-    if "_sidewalk-webpage" in ls_output:
-        # Get the process id and change the directory name to _sidewalk-webpage
-        print "Killing the already running process"
-        command = "cat %s" % sidewalk_app_directory + "/_sidewalk-webpage/RUNNING_PID"
-        stdin, stdout, stderr = client.exec_command(command)
-        running_process_id = stdout.read().strip()
-        print "RUNNING_PID: %s" % running_process_id
-
-        # kill the running process
-        command = "kill %s" % running_process_id
-        stdin, stdout, stderr = client.exec_command(command)
-        print stdout.read()
-
-        # Remove the old directory
-        print "Removing `_sidewalk-webpage` directory"
-        command = "rm -r %s" % sidewalk_app_directory + "/_sidewalk-webpage"
-        stding, stdout, stderr = client.exec_command(command)
-        print stdout.read()
-
-    # Run the app
+    # Change the directory name to `sidewalk-webpage` and run the app
     unzipped_dir_name = zip_file_name.replace(".zip", "")
     print "Changing the directory name from %s to %s" % (unzipped_dir_name, "sidewalk-webpage")
     command = "mv %s %s" % (sidewalk_app_directory + "/" + unzipped_dir_name, sidewalk_app_directory + "/sidewalk-webpage")
-    print command
     stdin, stdout, stderr = client.exec_command(command)
     stdout.read()
 
     print "Starting the application"
     command = "%s/sidewalk_runner.sh" % sidewalk_app_directory
     stdin, stdout, stderr = client.exec_command(command)
-    stdout.read()
+    # stdout.read()
+    print "Started running the application."
+
+    # Remove the old application directory
+    command = "ls %s" % sidewalk_app_directory
+    stdin, stdout, stderr = client.exec_command(command)
+    ls_output = stdout.read().split("\n")
+    if "_sidewalk-webpage" in ls_output:
+        # Remove the old directory
+        print "Removing `_sidewalk-webpage` directory"
+        command = "rm -r %s" % sidewalk_app_directory + "/_sidewalk-webpage"
+        stding, stdout, stderr = client.exec_command(command)
+        print stdout.read()
+
     client.close()
 
 if __name__ == '__main__':

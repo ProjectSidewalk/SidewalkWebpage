@@ -1037,18 +1037,17 @@ function Map ($, google, turf, params) {
                 }
             });
         } else {
-            if (properties.browser === 'chrome') {
-                // Somehow chrome does not allow me to select path
-                // and fadeOut. Instead, I'm just manipulating path's style
-                // and making it hidden.
-                $('path').css('visibility', 'visible');
-            } else {
-                if (!delay) {
-                    delay = 0;
-                }
-                // $('path').show();
-                $('path').css('visibility', 'visible');
-            }
+            $(".gmnoprint path").css('visibility', 'visible');
+            // if (properties.browser === 'chrome') {
+            //     // Somehow chrome does not allow me to select path
+            //     // and fadeOut. Instead, I'm just manipulating path's style
+            //     // and making it hidden.
+            //     // $('path').css('visibility', 'visible');
+            //     $(".gmnoprint path").css('visibility', 'visible');
+            // } else {
+            //     // $('path').css('visibility', 'visible');
+            //     $(".gmnoprint path").css('visibility', 'visible');
+            // }
         }
     }
 
