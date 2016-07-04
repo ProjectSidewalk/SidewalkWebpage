@@ -355,7 +355,13 @@ function Main ($, d3, google, turf, params) {
 
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
                 if (mission.getProperty("label") != "onboarding") {
-                    svl.modalMission.setMission(mission);
+                    if (svl.missionContainer.isTheFirstMission()) {
+                        svl.modalMission.setMission(mission, {
+                            callback: initialMissionInstruction
+                        });
+                    } else {
+                        svl.modalMission.setMission(mission);
+                    }
                 }
 
                 if ("missionProgress" in svl) {
@@ -424,6 +430,31 @@ function Main ($, d3, google, turf, params) {
     function getStatus (key) { 
         return key in status ? status[key] : null; 
     }
+
+    function initialMissionInstruction () {
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        svl.popUpMessage.notify("Let's get started! Audit the intersection",
+            "We moved you to a street in " + neighborhood.getProperty("name") +
+            ", DC! First, we want you to look around and label all the curb ramps here. " +
+            "You should also label <a>all the problems</a> you find.");
+
+        var initialHeading = svl.map.getPov().heading;
+        var lookedAround = false;
+        var interval = setInterval(function () {
+            if (Math.abs(initialHeading - svl.map.getPov().heading) > 90) {
+                lookedAround = true;
+            }
+
+            if (lookedAround && Math.abs(initialHeading - svl.map.getPov().heading) < 60) {
+                clearInterval(interval);
+                svl.popUpMessage.notify("Follow the navigator and audit the street!",
+                    "Good! Once you finish labeling everything you find, let's <span class='bold'>follow the navigator at the bottom right corner to " +
+                    "audit the street. Please label all the accessibility features!</span>");
+                svl.compass.blink();
+            }
+        })
+    }
+
     function setStatus (key, value) { 
         status[key] = value; return this; 
     }

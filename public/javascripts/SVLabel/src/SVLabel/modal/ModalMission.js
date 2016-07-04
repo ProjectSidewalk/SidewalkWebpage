@@ -111,8 +111,13 @@ function ModalMission ($, L) {
         $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+            // $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+            $("#modal-mission-close-button").one("click", function () {
+                hideMission();
+                parameters.callback();
+            });
         } else {
+            $("#modal-mission-close-button").one("click", hideMission);
             $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
         }
 
