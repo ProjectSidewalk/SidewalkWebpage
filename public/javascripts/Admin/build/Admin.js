@@ -774,7 +774,7 @@ function Admin (_, $, c3, turf) {
         });
     });
 
-    $.getJSON("/contribution/labelCounts/all", function (data) {
+    $.getJSON("/userapi/labelCounts/all", function (data) {
         var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
             counts = ['Label Count'].concat(data[0].map(function (x) { return x.count; }));
         var chart = c3.generate({
@@ -936,7 +936,7 @@ function Admin (_, $, c3, turf) {
             }
         }
 
-        $.getJSON("/contribution/labels/all", function (data) {
+        $.getJSON("/adminapi/labels/all", function (data) {
             // Count a number of each label type
             var labelCounter = {
                 "CurbRamp": 0,

@@ -1,22 +1,39 @@
 /**
  * Label Container module. This is responsible of storing the label objects that were created in the current session.
+ * @param $ jQuery object
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function LabelContainer() {
+function LabelContainer($) {
     var self = {className: 'LabelContainer'};
     var currentCanvasLabels = [],
         prevCanvasLabels = [];
 
-    /** Returns canvas labels */
-    function getCanvasLabels () { return prevCanvasLabels.concat(currentCanvasLabels); }
+    var neighborhoodLabels = {};
+
+    function _init() {
+        $.getJSON("/userapi/labels", function (data) {
+           console.log(data);
+        });
+    }
+
+    /**
+     * Returns canvas labels. NOTE: I don't think this is used anywhere anymore.
+     */
+    function getCanvasLabels () {
+        return prevCanvasLabels.concat(currentCanvasLabels);
+    }
 
     /** Get current label */
-    function getCurrentLabels () { return currentCanvasLabels; }
+    function getCurrentLabels () {
+        return currentCanvasLabels;
+    }
 
     /** Load labels */
-    function load () { currentCanvasLabels = svl.storage.get("labels"); }
+    function load () {
+        currentCanvasLabels = svl.storage.get("labels");
+    }
 
     /**
      * Push a label into canvasLabels
@@ -31,6 +48,19 @@ function LabelContainer() {
         if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
             svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
         }
+    }
+
+    /**
+     * Push a label into neighborhoodLabels
+     * @param neighborhoodId
+     * @param label
+     */
+    function pushToNeighborhoodLabels(neighborhoodId, label) {
+        if (!(neighborhoodId in neighborhoodLabels)) {
+            neighborhoodLabels[neighborhoodId] = [];
+        }
+
+        neighborhoodLabels[neighborhoodId].push(label);
     }
 
     /** Refresh */
@@ -77,5 +107,7 @@ function LabelContainer() {
     self.removeAll = removeAll;
     self.removeLabel = removeLabel;
 //    self.save = save;
+
+    _init();
     return self;
 }

@@ -152,25 +152,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-  /**
-    * Get a list of all labels
-    * @return
-    */
-  def getAllLabels = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.selectLocationsOfLabels
-    val features: List[JsObject] = labels.map { label =>
-      val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-      val properties = Json.obj(
-        "audit_task_id" -> label.auditTaskId,
-        "label_id" -> label.labelId,
-        "gsv_panorama_id" -> label.gsvPanoramaId,
-        "label_type" -> label.labelType
-      )
-      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-    }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
-  }
 
   def getInteractions = UserAwareAction.async { implicit request =>
     request.identity match {

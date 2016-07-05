@@ -226,7 +226,7 @@ function Progress (_, $, c3, L) {
             }
         }
 
-        $.getJSON("/contribution/labels", function (data) {
+        $.getJSON("/userapi/labels", function (data) {
             _data.labels = data;
             // Count a number of each label type
             var labelCounter = {

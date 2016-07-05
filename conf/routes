@@ -34,6 +34,7 @@ GET     /adminapi/onboardingInteractions        @controllers.AdminController.get
 GET     /adminapi/auditpath/:id                 @controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreets/:username      @controllers.AdminController.getStreetsAuditedByAUser(username: String)
 GET     /adminapi/labelLocations/:username      @controllers.AdminController.getLabelsCollectedByAUser(username: String)
+GET     /adminapi/labels/all                    @controllers.AdminController.getAllLabels
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
@@ -68,9 +69,9 @@ GET     /map/edit                               @controllers.MapController.edit
 GET     /contribution/streets                   @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all               @controllers.UserProfileController.getAllAuditedStreets
 GET     /contribution/tasks                     @controllers.UserProfileController.getSubmittedTasksWithLabels
-GET     /contribution/labels                    @controllers.UserProfileController.getSubmittedLabels
-GET     /contribution/labels/all                @controllers.UserProfileController.getAllLabels
-GET     /contribution/labelCounts/all           @controllers.UserProfileController.getAllLabelCounts
+GET     /userapi/labels                         @controllers.UserProfileController.getSubmittedLabels
+
+GET     /userapi/labelCounts/all                @controllers.UserProfileController.getAllLabelCounts
 GET     /contribution/auditCounts               @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all           @controllers.UserProfileController.getAllAuditCounts
 GET     /contribution/auditInteractions         @controllers.UserProfileController.getInteractions

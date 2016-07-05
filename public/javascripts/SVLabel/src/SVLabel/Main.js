@@ -214,7 +214,7 @@ function Main ($, d3, google, turf, params) {
 
         // Instantiate objects
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
-        svl.labelContainer = LabelContainer();
+        svl.labelContainer = LabelContainer($);
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
@@ -441,11 +441,12 @@ function Main ($, d3, google, turf, params) {
         var initialHeading = svl.map.getPov().heading;
         var lookedAround = false;
         var interval = setInterval(function () {
-            if (Math.abs(initialHeading - svl.map.getPov().heading) > 90) {
+            var angleDelta = svl.util.math.toRadians(initialHeading - svl.map.getPov().heading);
+            if (Math.cos(angleDelta) < 0) {
                 lookedAround = true;
             }
 
-            if (lookedAround && Math.abs(initialHeading - svl.map.getPov().heading) < 60) {
+            if (lookedAround && Math.cos(angleDelta) > 0.5) {
                 clearInterval(interval);
                 svl.popUpMessage.notify("Follow the navigator and audit the street!",
                     "Good! Once you finish labeling everything you find, let's <span class='bold'>follow the navigator at the bottom right corner to " +

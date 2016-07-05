@@ -112,9 +112,11 @@ p {
     color: gray;
     text-align: center;
 }
+
 .modal-footer a {
     color: rgba(37, 154, 173, 1.0);
 }
+
 #sign-in-modal-container .modal-dialog {
     width: 400px;
 }
@@ -133,10 +135,10 @@ p {
 }
 
 .footer-text {
-    font-size: 10.5px;
+    font-size: 10px;
     color: rgb(160, 160, 160);
     text-align: center;
-    margin: 20px 0;
+    margin: 5px 0;
 }
 
 .pdf-thumbnail {
