@@ -53,6 +53,7 @@ function Main ($, d3, google, turf, params) {
 
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
+        svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
         // MissionDescription DOMs
@@ -367,6 +368,13 @@ function Main ($, d3, google, turf, params) {
                 if ("missionProgress" in svl) {
                     svl.missionProgress.update();
                 }
+
+                // Get the labels collected in the current neighborhood
+                var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.labelContainer.fetchLabelsInANeighborhood(currentNeighborhood.getProperty("regionId"), function () {
+                    var count = svl.labelContainer.countLabels(currentNeighborhood.getProperty("regionId"));
+                    svl.neighborhoodStatus.setLabelCount(count);
+                });
             }
         }
 

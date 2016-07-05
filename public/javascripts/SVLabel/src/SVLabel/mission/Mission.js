@@ -118,6 +118,15 @@ function Mission(parameters) {
             svl.audioEffect.play('yay');
             svl.audioEffect.play('applause');
         }
+        
+        // Update the neighborhood status
+        if ("labelContainer" in svl) {
+            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+            var count = svl.labelContainer.countLabels(regionId);
+            svl.neighborhoodStatus.setLabelCount(count);
+        }
+
+        
 
         // Reset the label counter
         if ('labelCounter' in svl) {

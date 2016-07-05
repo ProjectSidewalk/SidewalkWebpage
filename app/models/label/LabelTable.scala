@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskTable}
+import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -46,6 +47,11 @@ object LabelTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
+  val regions = TableQuery[RegionTable]
+
+  val labelsWithoutDeleted = labels.filter(_.deleted === false)
+  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+
 
   case class LabelCountPerDay(date: String, count: Int)
 
@@ -65,8 +71,6 @@ object LabelTable {
     */
   def countLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
-    val labelsWithoutDeleted = labels.filter(_.deleted === false)
-
     val _labels = for {
       (_tasks, _labels) <- tasks.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
@@ -91,8 +95,6 @@ object LabelTable {
     * @return
     */
   def selectLocationsOfLabels: List[LabelLocation] = db.withSession { implicit session =>
-    val labelsWithoutDeleted = labels.filter(_.deleted === false)
-
     val _labels = for {
       (_labels, _labelTypes) <- labelsWithoutDeleted.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
@@ -107,6 +109,7 @@ object LabelTable {
 
   /**
     * Retrieve Label Locations within a given bounding box
+    *
     * @param minLat
     * @param minLng
     * @param maxLat
@@ -114,17 +117,16 @@ object LabelTable {
     * @return
     */
   def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
-    val undeletedLabels = labels.filter(_.deleted === false)
-
     val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
-      """select label.label_id, label.audit_task_id, label.gsv_panorama_id, label_type.label_type, label_point.lat, label_point.lng from sidewalk.label
+      """SELECT label.label_id, label.audit_task_id, label.gsv_panorama_id, label_type.label_type, label_point.lat, label_point.lng
+        |  FROM sidewalk.label
         |INNER JOIN sidewalk.label_type
-        |ON label.label_type_id = label_type.label_type_id
+        |  ON label.label_type_id = label_type.label_type_id
         |INNER JOIN sidewalk.label_point
-        |ON label.label_id = label_point.label_id
+        |  ON label.label_id = label_point.label_id
         |WHERE label.deleted = false
-        |AND label_point.lat IS NOT NULL
-        |AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+        |  AND label_point.lat IS NOT NULL
+        |  AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
     selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
   }
@@ -136,8 +138,6 @@ object LabelTable {
    * @return
    */
   def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
-    val labelsWithoutDeleted = labels.filter(_.deleted === false)
-
     val _labels = for {
       ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
@@ -149,6 +149,47 @@ object LabelTable {
 
     val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
     labelLocationList
+  }
+
+  def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int) = db.withSession { implicit session =>
+    val selectQuery = Q.query[(String, Int), LabelLocation](
+      """SELECT label.label_id, label.audit_task_id, label.gsv_panorama_id, label_type.label_type, label_point.lat, label_point.lng, region.region_id
+        |  FROM sidewalk.label
+        |INNER JOIN sidewalk.label_type
+        |  ON label.label_type_id = label_type.label_type_id
+        |INNER JOIN sidewalk.label_point
+        |  ON label.label_id = label_point.label_id
+        |INNER JOIN sidewalk.audit_task
+        |  ON audit_task.audit_task_id = label.audit_task_id
+        |INNER JOIN sidewalk.region
+        |  ON ST_Intersects(region.geom, label_point.geom)
+        |WHERE label.deleted = FALSE
+        |  AND label_point.lat IS NOT NULL
+        |  AND region.deleted = FALSE
+        |  AND region.region_type_id = 2
+        |  AND audit_task.user_id = ?
+        |  AND region_id = ?""".stripMargin
+    )
+    selectQuery((userId.toString, regionId)).list
+
+//    val _labels = for {
+//      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
+//      if _auditTasks.userId === userId.toString
+//    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
+//
+//    val _points = for {
+//      (l, p) <- _labels.innerJoin(labelPoints).on(_._1 === _.labelId)
+//      if p.geom.isDefined
+//    } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat), p.geom.get)
+//
+//    // Take the labels that are in the target region
+//    val neighborhood = neighborhoods.filter(_.regionId === regionId)
+//    val _pointsInRegion = for {
+//      (p, n) <- _points.innerJoin(neighborhood).on((_p, _n) => _p._7.within(_n.geom))
+//    } yield (p._1, p._2, p._3, p._4, p._5, p._6)
+//
+//    val labelLocationList: List[LabelLocation] = _pointsInRegion.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
+//    labelLocationList
   }
 
   def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>

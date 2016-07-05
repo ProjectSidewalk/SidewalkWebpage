@@ -129,7 +129,35 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Get a list of labels submitted by the user
    * @return
    */
-  def getSubmittedLabels = UserAwareAction.async { implicit request =>
+  def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val labels = regionId match {
+          case Some(rid) => LabelTable.selectLocationsOfLabelsByUserIdAndRegionId(user.userId, rid)
+          case None => LabelTable.selectLocationsOfLabelsByUserId(user.userId)
+        }
+
+        // val labels = LabelTable.selectLocationsOfLabelsByUserId(user.userId)
+        val features: List[JsObject] = labels.map { label =>
+          val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+          val properties = Json.obj(
+            "audit_task_id" -> label.auditTaskId,
+            "label_id" -> label.labelId,
+            "gsv_panorama_id" -> label.gsvPanoramaId,
+            "label_type" -> label.labelType
+          )
+          Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+        }
+        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Future.successful(Ok(featureCollection))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
+  }
+
+  def getLabelsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val labels = LabelTable.selectLocationsOfLabelsByUserId(user.userId)

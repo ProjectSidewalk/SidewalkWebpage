@@ -38,6 +38,7 @@ function Label (pathIn, params) {
         tagX: -1,
         tagY: -1,
         severity: null,
+        temporary_label_id: null,
         temporaryProblem: null,
         description: null
     };
@@ -67,7 +68,7 @@ function Label (pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            if (typeof google != "undefined" && google && google.maps) {
+            if (param && param.labelType && typeof google != "undefined" && google && google.maps) {
                 googleMarker = createGoogleMapsMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
@@ -332,7 +333,9 @@ function Label (pathIn, params) {
      * @param key
      * @returns {*}
      */
-    function getStatus (key) { return status[key]; }
+    function getStatus (key) { 
+        return status[key]; 
+    }
 
     function getVisibility () { return status.visibility; }
 
