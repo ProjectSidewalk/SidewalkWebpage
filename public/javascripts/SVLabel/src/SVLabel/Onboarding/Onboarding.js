@@ -1170,13 +1170,13 @@ function Onboarding ($) {
             }
 
             // Set the next mission
-            var mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-            if (mission.isCompleted()) {
-                var neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
-                var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                missions.map(function (m) { if (!m.isCompleted()) return m;});
-                mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
-            }
+            // var mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
+            // if (mission.isCompleted()) {
+            var neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
+            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            missions.map(function (m) { if (!m.isCompleted()) return m;});
+            var mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+
             svl.missionContainer.setCurrentMission(mission);
             svl.modalMission.setMission(mission);
             

@@ -33,10 +33,16 @@ function MissionProgress () {
      */
     function showNextMission (mission) {
         var label = mission.getProperty("label");
+        var parameters = { badgeURL: mission.getProperty("badgeURL") };
+
         if (label == "distance-mission") {
-            svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            parameters.distance = mission.getProperty("distance");
+            svl.modalMission.setMissionMessage(mission, parameters);
+            // svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
         } else if (label == "area-coverage-mission") {
-            svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            parameters.coverage = mission.getProperty("coverage");
+            svl.modalMission.setMissionMessage(mission, parameters);
+            // svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
             console.warn("Debug: It shouldn't reach here.");
         }

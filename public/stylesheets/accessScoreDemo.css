@@ -2,6 +2,11 @@
     font-weight: bold;
 }
 
+u {
+    border-bottom: 1px dashed #888;
+    text-decoration: none;
+}
+
 svg {
     position: relative;
 }
@@ -12,6 +17,7 @@ svg {
 
 #map {
     height: calc(100% - 116px); /* 100% - (header + footer height) */
+    min-height: 640px;
 }
 
 .map-text-box {
@@ -33,7 +39,7 @@ svg {
     position: absolute;
     top: 10px;
     left: 50px;
-    width: 350px;
+    width: 450px;
     padding: 15px;
 }
 

@@ -1,6 +1,8 @@
 /**
  * ModalMission module
- * @param $
+ * @param $ jquery library
+ * @param d3 d3 library
+ * @param L Leaflet library
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -211,6 +213,7 @@ function ModalMissionComplete ($, d3, L) {
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
         $(".g-bar-chart").css('visibility', 'hidden');
+        $(".leaflet-zoom-animated path").css('visibility', 'hidden');
     }
 
     function setMissionTitle (missionTitle) {
@@ -228,6 +231,7 @@ function ModalMissionComplete ($, d3, L) {
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
         $(".g-bar-chart").css('visibility', 'visible');
+        $(".leaflet-zoom-animated path").css('visibility', 'visible');
 
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {

@@ -13,8 +13,8 @@ $(document).ready(function () {
                 maxBounds: bounds,
                 maxZoom: 19,
                 minZoom: 9
-        }).fitBounds(bounds).setView([38.892, -77.038], 12),
-        popup = L.popup().setContent('');
+        }).fitBounds(bounds).setView([38.892, -77.038], 12);
+        // popup = L.popup().setContent('');
 
     initializeNeighborhoodPolygons(map);
     initializeSubmittedLabels(map);
@@ -55,6 +55,9 @@ $(document).ready(function () {
             var name = $(d).attr("name");
             var value = $(d).val();
             significance[name] = parseFloat(value) / 100;
+
+            var valueId = $(this).attr("id") + "-value";
+            $("#" + valueId).html(value);
         });
         updateAccessScore(significance);
     });
@@ -66,6 +69,13 @@ function getColor(d) {
         d > 0.5 ? '#b8e186' :
             d > 0.25 ? '#f1b6da' :
                 '#d01c8b';
+}
+
+function getMessage(d) {
+    return d > 0.75 ? 'Very Accessible' :
+        d > 0.5 ? 'Accessible' :
+            d > 0.25 ? 'Inaccessible' :
+                'Very Inaccessible';
 }
 
 /**
@@ -91,9 +101,9 @@ function updateAccessScore (significance) {
                     innerProduct += k * featureVector[key] * significance[key];
                 }
                 var score = 1 / ( 1 + Math.exp( -innerProduct ) );
-                console.log(properties);
 
                 properties.significance = significance;
+                properties.score = score;
 
                 var neighborhoodPolygonStyle = {
                     color: getColor(score),
@@ -106,10 +116,10 @@ function updateAccessScore (significance) {
                 neighborhoodLayers[i].setStyle(neighborhoodPolygonStyle);
 
                 // Set popup content
-                var popupContent = properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
-                popupContent += properties.score ? ("Access Score: " + score.toFixed(1)) : "Access Score not available";
-                neighborhoodLayers[i]._popup.setContent(popupContent);
-                neighborhoodLayers[i]._popup.update()
+                // var popupContent = properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
+                // popupContent += properties.score ? ("Access Score: " + score.toFixed(1)) : "Access Score not available";
+                // neighborhoodLayers[i]._popup.setContent(popupContent);
+                // neighborhoodLayers[i]._popup.update()
             }
         }
     }
@@ -140,17 +150,38 @@ function initializeNeighborhoodPolygons(map) {
 
         layer.setStyle(neighborhoodPolygonStyle);
 
-        popupContent += properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
-        popupContent += properties.score ? ("Access Score: " + properties.score.toFixed(1)) : "Access Score not available";
+        // popupContent += properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
+        // popupContent += properties.score ? ("Access Score: " + properties.score.toFixed(1)) : "Access Score not available";
 
         // Add event listeners to each neighborhood polygon layer
-        layer.bindPopup(popupContent);
+        // layer.bindPopup(popupContent);
         layer.on('mouseover', function (e) {
             this.setStyle({ weight: 5 });
+
+            var score,
+                message;
+
+            if (typeof properties.score == "number") {
+                score = (100 * properties.score).toFixed(0);
+                message = "&nbsp;" + getMessage(properties.score);
+
+                $("#access-score-neighborhood").html(score);
+                $("#access-score-message").html(message);
+                $("#access-score-header").css("color", getColor(properties.score));
+            } else {
+                $("#access-score-message").html("Access Score not available");
+            }
+            $("#neighborhood-name").html(properties.region_name);
         });
+
         layer.on('mouseout', function (e) {
             this.setStyle({ weight: 1 });
+            $("#neighborhood-name").html("");
+            $("#access-score-neighborhood").html("");
+            $("#access-score-message").html("");
+            $("#access-score-header").css("color", "");
         });
+
         layer.on('click', function (e) {
             var center = turf.center(this.feature),
                 coordinates = center.geometry.coordinates,

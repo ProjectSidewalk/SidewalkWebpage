@@ -1,5 +1,7 @@
 package models.user
 
+import java.util.UUID
+
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -27,6 +29,36 @@ object WebpageActivityTable {
       val webpageActivityId: Int =
         (activities returning activities.map(_.webpageActivityId)) += activity
       webpageActivityId
+    }
+  }
+
+  /**
+    * Returns the last log in timestamp
+    * @param userId User id
+    * @return
+    */
+  def selectLastSignInTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
+    val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").sortBy(_.timestamp.desc).list
+
+    if (signInActivities.nonEmpty) {
+      Some(signInActivities.head.timestamp)
+    } else {
+      None
+    }
+  }
+
+  /**
+    * Returns the signup timestamp
+    * @param userId User id
+    * @return
+    */
+  def selectSignUpTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
+    val signUpActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignUp").sortBy(_.timestamp.desc).list
+
+    if (signUpActivities.nonEmpty) {
+      Some(signUpActivities.head.timestamp)
+    } else {
+      None
     }
   }
 }

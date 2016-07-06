@@ -486,6 +486,19 @@ function Map ($, google, turf, params) {
         if ('compass' in svl) { svl.compass.update(); }
     }
 
+    // missions greater than 3000 feet are measured in miles
+    function distanceLeftFeetOrMiles(){
+        var remainingRate = 1 - svl.missionContainer.getCurrentMission().getMissionCompletionRate();
+        var missionDistance = svl.missionContainer.getCurrentMission().getProperty("distanceFt");
+        if(missionDistance < 3000){
+            return parseInt(missionDistance * remainingRate) + " feet";
+        }
+        else{
+            missionDistance = svl.missionContainer.getCurrentMission().getProperty("distanceMi");
+            var miles = missionDistance * remainingRate;
+            return miles.toFixed(2) + " miles";
+        }
+    }
     /**
      * A callback for position_change.
      */
@@ -509,9 +522,12 @@ function Map ($, google, turf, params) {
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
                     if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-                        svl.popUpMessage.notify("Jumped back to your neighborhood!",
-                            "We sent you back into the neighborhood you have been walking around! Please continue to " +
-                            "make this neighborhood more accessible for everyone!");
+                        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("name");
+                        var neighborhoodMessage = "Jumped back to " + neighborhood;
+                        var distanceLeft = distanceLeftFeetOrMiles();
+                        svl.popUpMessage.notify(neighborhoodMessage,
+                            "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                            "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
                     }
 
                     _moveToTheTaskLocation(newTask);
@@ -1021,18 +1037,17 @@ function Map ($, google, turf, params) {
                 }
             });
         } else {
-            if (properties.browser === 'chrome') {
-                // Somehow chrome does not allow me to select path
-                // and fadeOut. Instead, I'm just manipulating path's style
-                // and making it hidden.
-                $('path').css('visibility', 'visible');
-            } else {
-                if (!delay) {
-                    delay = 0;
-                }
-                // $('path').show();
-                $('path').css('visibility', 'visible');
-            }
+            $(".gmnoprint path").css('visibility', 'visible');
+            // if (properties.browser === 'chrome') {
+            //     // Somehow chrome does not allow me to select path
+            //     // and fadeOut. Instead, I'm just manipulating path's style
+            //     // and making it hidden.
+            //     // $('path').css('visibility', 'visible');
+            //     $(".gmnoprint path").css('visibility', 'visible');
+            // } else {
+            //     // $('path').css('visibility', 'visible');
+            //     $(".gmnoprint path").css('visibility', 'visible');
+            // }
         }
     }
 

@@ -23,6 +23,7 @@ def anonymize(sql_filename):
     read_login_info_table = False
 
     output_file = open(sql_filename.replace(".sql", "") + ".anonymized.sql", "w")
+
     with open(sql_filename, 'r') as input_file:
         for line in input_file:
             if copy_user_start_line in line:
@@ -42,21 +43,41 @@ def anonymize(sql_filename):
             if read_user_table:
                 line_list = line.split("\t")
                 if line_list[1] != "anonymous":
-                    line_list[1] = "anonymized_user_name"
-                    line_list[2] = "anonymized@email.com\n"
+                    email_address = line_list[2].strip()
+                    current_user_index = get_user_index(email_address)
+
+                    line_list[1] = "anonymized_user_name." + str(current_user_index)
+                    line_list[2] = "anonymized." + str(current_user_index) + "@email.com\n"
                 new_line = "\t".join(line_list)
 
             # Substitute lines in the login_info table
             if read_login_info_table:
                 line_list = line.split("\t")
+                email_address = line_list[2].strip()
                 if "anonymous@cs.umd.edu" not in line_list[2]:
-                    line_list[2] = "anonymized@email.com\n"
+                    current_user_index = get_user_index(email_address)
+                    line_list[2] = "anonymized." + str(current_user_index) + "@email.com\n"
+
+
                 new_line = "\t".join(line_list)
 
             output_file.write(new_line)
 
     output_file.close()
     return
+
+
+def get_user_index(email_address):
+    if email_address in get_user_index.email_to_index:
+        return get_user_index.email_to_index[email_address]
+    else:
+        current_user_index = get_user_index.user_index
+        get_user_index.email_to_index[email_address] = current_user_index
+        get_user_index.user_index += 1
+        return current_user_index
+
+get_user_index.user_index = 1
+get_user_index.email_to_index = {}
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:

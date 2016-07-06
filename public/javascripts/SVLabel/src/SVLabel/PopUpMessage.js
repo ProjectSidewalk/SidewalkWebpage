@@ -111,10 +111,15 @@ function PopUpMessage ($, param) {
         status.haveAskedToSignIn = true;
     }
 
+    /**
+     * Notification
+     * @param title
+     * @param message
+     */
     function notify(title, message) {
         svl.ui.popUpMessage.buttonHolder.html("");
         setPosition(40, 260, 640);
-        show(true);
+        show();
         setTitle(title);
         setMessage(message);
         appendOKButton();

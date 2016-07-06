@@ -13,11 +13,29 @@ function MissionContainer ($, parameters) {
         staged = [],
         currentMission = null;
 
+    /**
+     * Todo. /mission/complete and /mission/incomplete are separate APIs due to a historical reason. We should have a single API for both completed and incomplete missions.
+     * @param parameters
+     * @private
+     */
     function _init (parameters) {
         parameters = parameters || {};
         // Query all the completed & incomplete missions.
         function _callback (result1, result2) {
-            var i, len, mission, completed = result1[0], incomplete = result2[0], nm;
+            var i,
+                len,
+                mission,
+                completed = result1[0],
+                incomplete = result2[0],
+                nm;
+
+            function cmp (a, b) {
+                var distanceA = a.distance ? a.distance : 0;
+                var distanceB = b.distance ? b.distance : 0;
+                return distanceA - distanceB;
+            }
+            completed = completed.sort(cmp);
+            incomplete = incomplete.sort(cmp);
 
             len = completed.length;
             for (i = 0; i < len; i++) {
@@ -55,15 +73,17 @@ function MissionContainer ($, parameters) {
      */
     function addAMission(regionId, mission) {
         if (regionId || regionId === 0) {
-            if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
+            if (!(regionId in missionStoreByRegionId)) {
+                missionStoreByRegionId[regionId] = [];
+            }
         } else {
             regionId = "noRegionId";
         }
 
-        var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
-        if (!m) {
+        // var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
+        // if (!m) {
             missionStoreByRegionId[regionId].push(mission);
-        }
+        // }
     }
 
     /** Push the completed mission */
@@ -116,7 +136,9 @@ function MissionContainer ($, parameters) {
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
         var missions = missionStoreByRegionId[regionId],
-            i, len = missions.length;
+            i,
+            len = missions.length;
+
         for (i = 0; i < len; i++) {
             if (missions[i].getProperty("label") == label) {
                 if (level) {
@@ -159,6 +181,14 @@ function MissionContainer ($, parameters) {
 
     function getAvailableRegionIds () {
         return Object.keys(missionStoreByRegionId);
+    }
+
+    /**
+     * Checks if this is the first mission or not.
+     * @returns {boolean}
+     */
+    function isTheFirstMission () {
+        return getCompletedMissions().length == 0;
     }
 
     function nextMission (regionId) {
@@ -223,6 +253,7 @@ function MissionContainer ($, parameters) {
     self.getCurrentMission = getCurrentMission;
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
+    self.isTheFirstMission = isTheFirstMission;
     self.nextMission = nextMission;
     self.refresh = refresh;
     self.stage = stage;

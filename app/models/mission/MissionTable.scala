@@ -56,6 +56,8 @@ object MissionTable {
   val missionUsers = TableQuery[MissionUserTable]
   val users = TableQuery[UserTable]
   val regionProperties = TableQuery[RegionPropertyTable]
+  val regions = TableQuery[RegionTable]
+  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   val missionsWithoutDeleted = missions.filter(_.deleted === false)
 
@@ -137,7 +139,8 @@ object MissionTable {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
       if _missionUsers.userId === userId.toString
     } yield _missions
-    _missions.list
+
+    _missions.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**

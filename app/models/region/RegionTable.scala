@@ -74,9 +74,15 @@ object RegionTable {
       if _regionProperties.key === "Neighborhood Name"
     } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
 
-    val l = namedRegions.list.map(x => NamedRegion.tupled(x))
+    val namedRegionsList: List[NamedRegion] = namedRegions.list.map(x => NamedRegion.tupled(x))
+    val namedRegionMap: Map[Int, NamedRegion] = namedRegionsList.map(nr => nr.regionId -> nr).toMap
 
-    Iterator.continually(l).flatten
+    // Sort the NamedRegions based on their completion rates
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
+    val sortedRegionIds = completionRates.map(_.regionId)
+    val sortedNamedRegionList: List[NamedRegion] = for (regionId <- sortedRegionIds) yield namedRegionMap(regionId)
+
+    Iterator.continually(sortedNamedRegionList).flatten
   }
 
   /**
@@ -211,25 +217,6 @@ object RegionTable {
     )
     selectRegionQuery(streetEdgeId).list
   }
-
-
-//  def selectStreetsInRegions: List[StreetCompletion] = db.withSession { implicit session =>
-//    val query = Q.queryNA[StreetCompletion](
-//      """SELECT region.region_id, region_property.value, street_edge.street_edge_id, street_edge_assignment_count.completion_count, ST_Length(ST_Transform(street_edge.geom, 26918))
-//        |FROM sidewalk.region
-//        |INNER JOIN sidewalk.street_edge
-//        |ON ST_Intersects(region.geom, street_edge.geom)
-//        |INNER JOIN sidewalk.street_edge_assignment_count
-//        |ON street_edge.street_edge_id = street_edge_assignment_count.street_edge_id
-//        |INNER JOIN region_property
-//        |ON region.region_id = region_property.region_id
-//        |WHERE region.region_type_id = 2
-//        |AND region.deleted = false
-//        |AND region_property.key = 'Neighborhood Name'""".stripMargin
-//    )
-//
-//    query.list
-//  }
 
   /**
     * Returns a list of neighborhoods intersecting the given bounding box

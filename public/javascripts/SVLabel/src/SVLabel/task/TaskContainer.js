@@ -409,7 +409,7 @@ function TaskContainer (turf) {
         }
 
         distance += sessionDistance;
-        svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        svl.neighborhoodStatus.setAuditedDistance(distance.toFixed(2));
         return this;
     }
 

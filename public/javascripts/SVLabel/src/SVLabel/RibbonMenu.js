@@ -117,7 +117,7 @@ function RibbonMenu ($, params) {
             if (svl.overlayMessageBox) { svl.overlayMessageBox.setMessage(labelType); }
 
             // Play an audio effect
-            if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
+            // if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
         }
     }
 

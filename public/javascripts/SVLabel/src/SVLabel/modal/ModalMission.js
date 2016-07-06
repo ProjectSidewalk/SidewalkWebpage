@@ -82,7 +82,7 @@ function ModalMission ($, L) {
         if (label == "distance-mission") {
             // Set the title
             var distanceString;
-            if (mission.getProperty("level") <= 2) {
+            if (mission.getProperty("distanceMi") <= 1.0) {
                 missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
                 distanceString = mission.getProperty("distanceFt") + "ft";
             } else {
@@ -111,8 +111,13 @@ function ModalMission ($, L) {
         $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+            // $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+            $("#modal-mission-close-button").one("click", function () {
+                hideMission();
+                parameters.callback();
+            });
         } else {
+            $("#modal-mission-close-button").one("click", hideMission);
             $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
         }
 

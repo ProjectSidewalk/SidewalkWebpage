@@ -53,6 +53,7 @@ function Main ($, d3, google, turf, params) {
 
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
+        svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
         // MissionDescription DOMs
@@ -214,7 +215,7 @@ function Main ($, d3, google, turf, params) {
 
         // Instantiate objects
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
-        svl.labelContainer = LabelContainer();
+        svl.labelContainer = LabelContainer($);
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
@@ -222,6 +223,7 @@ function Main ($, d3, google, turf, params) {
         svl.statusField = StatusField();
         svl.missionStatus = MissionStatus();
         svl.neighborhoodStatus = NeighborhoodStatus();
+
 
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
@@ -264,8 +266,12 @@ function Main ($, d3, google, turf, params) {
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
-        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
+        if (!("taskFactory" in svl && svl.taskFactory)) {
+            svl.taskFactory = TaskFactory(turf);
+        }
+        if (!("taskContainer" in svl && svl.taskContainer)) {
+            svl.taskContainer = TaskContainer(turf);
+        }
 
         // Initialize things that needs data loading.
         var loadingAnOboardingTaskCompleted = false,
@@ -350,12 +356,25 @@ function Main ($, d3, google, turf, params) {
 
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
                 if (mission.getProperty("label") != "onboarding") {
-                    svl.modalMission.setMission(mission);
+                    if (svl.missionContainer.isTheFirstMission()) {
+                        svl.modalMission.setMission(mission, {
+                            callback: initialMissionInstruction
+                        });
+                    } else {
+                        svl.modalMission.setMission(mission);
+                    }
                 }
 
                 if ("missionProgress" in svl) {
                     svl.missionProgress.update();
                 }
+
+                // Get the labels collected in the current neighborhood
+                var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.labelContainer.fetchLabelsInANeighborhood(currentNeighborhood.getProperty("regionId"), function () {
+                    var count = svl.labelContainer.countLabels(currentNeighborhood.getProperty("regionId"));
+                    svl.neighborhoodStatus.setLabelCount(count);
+                });
             }
         }
 
@@ -419,6 +438,32 @@ function Main ($, d3, google, turf, params) {
     function getStatus (key) { 
         return key in status ? status[key] : null; 
     }
+
+    function initialMissionInstruction () {
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        svl.popUpMessage.notify("Let's get started! Audit the intersection",
+            "We moved you to a street in " + neighborhood.getProperty("name") +
+            ", DC! First, we want you to look around and label all the curb ramps here. " +
+            "You should also label <a>all the problems</a> you find.");
+
+        var initialHeading = svl.map.getPov().heading;
+        var lookedAround = false;
+        var interval = setInterval(function () {
+            var angleDelta = svl.util.math.toRadians(initialHeading - svl.map.getPov().heading);
+            if (Math.cos(angleDelta) < 0) {
+                lookedAround = true;
+            }
+
+            if (lookedAround && Math.cos(angleDelta) > 0.5) {
+                clearInterval(interval);
+                svl.popUpMessage.notify("Follow the navigator and audit the street!",
+                    "Good! Once you finish labeling everything you find, let's <span class='bold'>follow the navigator at the bottom right corner to " +
+                    "audit the street. Please label all the accessibility features!</span>");
+                svl.compass.blink();
+            }
+        })
+    }
+
     function setStatus (key, value) { 
         status[key] = value; return this; 
     }

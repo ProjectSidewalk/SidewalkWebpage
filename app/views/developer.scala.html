@@ -12,9 +12,9 @@
             that support people with mobility impairments!
         </p>
         <p class="text-justify">
-            We serve the accessibility data in two formats: <span class="bold">Access Features and Access Scores.</span> Access Feature contains
-            point-level information on what accessibility features exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
-            Access Score is a numerical value that indicates how (in)accesible a given area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score: Street API for an example.</a>
+            We serve the accessibility data in two formats: <span class="bold">Access Feature and Access Score.</span> Access Feature contains
+            point-level information on what accessibility feature exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
+            Access Score is a numerical value that indicates how (in)accesible a given street/area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score APIs for examples.</a>
         </p>
         <p class="text-justify">
             You can get the data either through the <a data-scroll href="#access-api-header">REST APIs</a> or <a data-scroll href="#access-dataset">download the zip file.</a>
@@ -304,6 +304,8 @@
             width: 100%;
         }
     </style>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Util/UtilitiesColor.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/smooth-scroll.js")'></script>
     <script type="text/javascript">smoothScroll.init();</script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/developer.js")'></script>
