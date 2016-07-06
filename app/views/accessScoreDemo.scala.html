@@ -8,7 +8,7 @@
         <div id="map-legend" class="map-text-box">
             <span id="map-legend-curb-ramp" class="map-legend-svg-spans"></span>Curb Ramp&nbsp;
             <span id="map-legend-no-curb-ramp" class="map-legend-svg-spans"></span>Missing Curb Ramp&nbsp;
-            <span id="map-legend-obstacle" class="map-legend-svg-spans"></span>Obstacle in Path&nbsp;
+            <span id="map-legend-obstacle" class="map-legend-svg-spans"></span>Sidewalk Obstacle&nbsp;
             <span id="map-legend-surface-problem" class="map-legend-svg-spans"></span>Surface Problem&nbsp;
             <span>&emsp;&emsp;</span>
             <span>Inaccessible&nbsp;<span id="map-legend-access-score-scale"></span>&nbsp;Accessible</span>
@@ -23,28 +23,41 @@
                 If some accessibility features affect your mobiliy more than the others, use the slider below to adjust the significance
                 of each accessibility feature!
             </p>
+            <p>
+                Note, <u>we don't have enough data to reliably calculate Access Score for some neighborhoods (yet).</u> Wanna help us improve it?
+                    <a href='@routes.AuditController.audit'>Participate in accessibility audit!</a>
+            </p>
             <table class="table">
                 <tr>
-                    <th></th>
-                    <th class="text-center">Significance</th>
+                    <th class="col-md-5"></th>
+                    <th class="col-md-6 text-center">Significance</th>
+                    <th class="col-md-1"></th>
                 </tr>
                 <tr>
                     <th>Curb Ramp</th>
-                    <td><input type="range" class="access-score-range-slider" value="100" name="CurbRamp"></td>
+                    <td><input type="range" id="access-score-curb-ramp-slider" class="access-score-range-slider" value="100" name="CurbRamp"></td>
+                    <td><span id="access-score-curb-ramp-slider-value">100</span></td>
                 </tr>
                 <tr>
                     <th>No Curb Ramp</th>
-                    <td><input type="range" class="access-score-range-slider" value="100" name="NoCurbRamp"></td>
+                    <td><input type="range" id="access-score-no-curb-ramp-slider" class="access-score-range-slider" value="100" name="NoCurbRamp"></td>
+                    <td><span id="access-score-no-curb-ramp-slider-value">100</span></td>
                 </tr>
                 <tr>
-                    <th>Sidewalk Obstacle</th>
-                    <td><input type="range" class="access-score-range-slider" value="100" name="Obstacle"></td>
+                    <th>Obstacle</th>
+                    <td><input type="range" id="access-score-obstacle-slider" class="access-score-range-slider" value="100" name="Obstacle"></td>
+                    <td><span id="access-score-obstacle-slider-value">100</span></td>
                 </tr>
                 <tr>
                     <th>Surface Problem</th>
-                    <td><input type="range" class="access-score-range-slider" value="100" name="SurfaceProblem"></td>
+                    <td><input type="range" id="access-score-surface-problem-slider" class="access-score-range-slider" value="100" name="SurfaceProblem"></td>
+                    <td><span id="access-score-surface-problem-slider-value">100</span></td>
                 </tr>
             </table>
+            <div>
+                <h2 id="neighborhood-name"></h2>
+                <h3 id="access-score-header"><span id="access-score-neighborhood"></span><small id="access-score-message"></small></h3>
+            </div>
         </div>
     </div>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>

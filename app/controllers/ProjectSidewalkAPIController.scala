@@ -1,41 +1,40 @@
 package controllers
 
+
+import collection.immutable
+import collection.immutable.Seq
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.vividsolutions.jts.geom._
+import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
+import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import java.util.UUID
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom._
-import play.api.libs.json._
-import controllers.headers.ProvidesHeader
-
 import math._
-import models.user.{User, UserCurrentRegionTable, WebpageActivity, WebpageActivityTable}
-
-import scala.concurrent.Future
-import play.api.mvc._
 import models.region._
-import play.api.libs.json.Json
-import play.api.libs.json.Json._
-import play.extras.geojson.{Feature => JsonFeature, LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
-import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
+import models.user.{User, UserCurrentRegionTable, WebpageActivity, WebpageActivityTable}
 import org.joda.time.{DateTime, DateTimeZone}
-import play.extras.geojson
+import play.api.Application
+import play.api.cache.Cache
+import play.api.Play.current
+import play.api.libs.json._
+import play.api.libs.json.Json._
+import play.api.mvc._
+import play.extras.geojson.{Feature => JsonFeature, LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
 
-import collection.immutable
-import collection.immutable.Seq
+import scala.concurrent.Future
+import play.extras.geojson
 
 
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
-
-
 
 
   def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
@@ -58,23 +57,34 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng = min(lng1, lng2)
     val maxLng = max(lng1, lng2)
 
-    // Retrieve data and cluster them by location and label type.
-    val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
-    val clustered: List[LabelLocation] = clusterLabelLocations(labelLocations)
 
-    val features: List[JsObject] = clustered.map { label =>
-      val latlng = JsonLatLng(label.lat.toDouble, label.lng.toDouble)
-      val point = JsonPoint(latlng)
-      val labelType = label.labelType
-      val labelId = label.labelId
-      val panoramaId = label.gsvPanoramaId
-      val properties = Json.obj(
-        "label_type" -> labelType,  // Todo. Actually calculate the access score,
-        "panorama_id" -> panoramaId
-      )
-      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+    def prepareFeatureCollection = {
+      // Retrieve data and cluster them by location and label type.
+      val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
+      val clustered: List[LabelLocation] = clusterLabelLocations(labelLocations)
+
+      val features: List[JsObject] = clustered.map { label =>
+        val latlng = JsonLatLng(label.lat.toDouble, label.lng.toDouble)
+        val point = JsonPoint(latlng)
+        val labelType = label.labelType
+        val labelId = label.labelId
+        val panoramaId = label.gsvPanoramaId
+        val properties = Json.obj(
+          "label_type" -> labelType,  // Todo. Actually calculate the access score,
+          "panorama_id" -> panoramaId
+        )
+        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+      }
+      Json.obj("type" -> "FeatureCollection", "features" -> features)
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+
+    val featureCollection = if (request.toString == "GET /v1/access/features?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
+      Cache.getOrElse(request.toString, 1800){
+        prepareFeatureCollection
+      }
+    } else {
+      prepareFeatureCollection
+    }
     Future.successful(Ok(featureCollection))
   }
 
@@ -109,62 +119,72 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLng = max(lng1, lng2)
 
     // Retrieve data and cluster them by location and label type.
-    val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
-    val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
-    val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
-    val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(lat1, lng1, lat2, lng2)
+    def prepareFeatureCollection = {
+      val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
+      val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
+      val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
+      val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(lat1, lng1, lat2, lng2)
 
-    val neighborhoodJson = for (neighborhood <- neighborhoods) yield {
-      // prepare a geometry
-      val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
-      val latlngs: Seq[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
-      val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(Seq(latlngs))
+      val neighborhoodJson = for (neighborhood <- neighborhoods) yield {
+        // prepare a geometry
+        val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
+        val latlngs: Seq[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
+        val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(Seq(latlngs))
 
-      // Get access score
-      // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
-      val streetsIntersectingTheNeighborhood = streetEdges.filter(_.geom.intersects(neighborhood.geom))
-      if (streetsIntersectingTheNeighborhood.nonEmpty) {
-        val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
-        val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
-        val significance = Array(1.0, -1.0, -1.0, -1.0)
-        val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
+        // Get access score
+        // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
+        val streetsIntersectingTheNeighborhood = streetEdges.filter(_.geom.intersects(neighborhood.geom))
+        if (streetsIntersectingTheNeighborhood.nonEmpty) {
+          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
+          val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
+          val significance = Array(1.0, -1.0, -1.0, -1.0)
+          val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
 
-        val properties = Json.obj(
-          "region_id" -> neighborhood.regionId,
-          "region_name" -> neighborhood.name,
-          "score" -> accessScore,
-          "significance" -> Json.obj(
-            "CurbRamp" -> 1.0,
-            "NoCurbRamp" -> -1.0,
-            "Obstacle" -> -1.0,
-            "SurfaceProblem" -> -1.0
-          ),
-          "feature" -> Json.obj(
-            "CurbRamp" -> averagedStreetFeatures(0),
-            "NoCurbRamp" -> averagedStreetFeatures(1),
-            "Obstacle" -> averagedStreetFeatures(2),
-            "SurfaceProblem" -> averagedStreetFeatures(3)
+          val properties = Json.obj(
+            "region_id" -> neighborhood.regionId,
+            "region_name" -> neighborhood.name,
+            "score" -> accessScore,
+            "significance" -> Json.obj(
+              "CurbRamp" -> 1.0,
+              "NoCurbRamp" -> -1.0,
+              "Obstacle" -> -1.0,
+              "SurfaceProblem" -> -1.0
+            ),
+            "feature" -> Json.obj(
+              "CurbRamp" -> averagedStreetFeatures(0),
+              "NoCurbRamp" -> averagedStreetFeatures(1),
+              "Obstacle" -> averagedStreetFeatures(2),
+              "SurfaceProblem" -> averagedStreetFeatures(3)
+            )
           )
-        )
-        Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
-      } else {
-        val properties = Json.obj(
-          "region_id" -> neighborhood.regionId,
-          "region_name" -> neighborhood.name,
-          "score" -> None.asInstanceOf[Option[Double]],
-          "significance" -> Json.obj(
-            "CurbRamp" -> 1.0,
-            "NoCurbRamp" -> -1.0,
-            "Obstacle" -> -1.0,
-            "SurfaceProblem" -> -1.0
-          ),
-          "feature" -> None.asInstanceOf[Option[Array[Double]]]
-        )
-        Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+          Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+        } else {
+          val properties = Json.obj(
+            "region_id" -> neighborhood.regionId,
+            "region_name" -> neighborhood.name,
+            "score" -> None.asInstanceOf[Option[Double]],
+            "significance" -> Json.obj(
+              "CurbRamp" -> 1.0,
+              "NoCurbRamp" -> -1.0,
+              "Obstacle" -> -1.0,
+              "SurfaceProblem" -> -1.0
+            ),
+            "feature" -> None.asInstanceOf[Option[Array[Double]]]
+          )
+          Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+        }
       }
+      Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
     }
 
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
+    // Cache. https://www.playframework.com/documentation/2.3.x/ScalaCache
+    val featureCollection = if (request.toString == "GET /v1/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
+      Cache.getOrElse(request.toString, 1800){
+        prepareFeatureCollection
+      }
+    } else {
+      prepareFeatureCollection
+    }
     Future.successful(Ok(featureCollection))
   }
 
