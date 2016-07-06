@@ -2,7 +2,7 @@ package models.user
 
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
-import models.region.RegionTable
+import models.region.{NamedRegion, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
@@ -48,7 +48,15 @@ object UserCurrentRegionTable {
     val currentRegionList = _currentRegions.list
 
     if (currentRegionList.isEmpty) {
-      val regionId: Int = scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
+      // val regionId: Int = scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
+
+      val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
+
+      val regionId: Int = if (region.isDefined) {
+        region.get.regionId
+      } else {
+        scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head
+      }
       save(userId, regionId)
       regionId
     } else {

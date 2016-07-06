@@ -14,7 +14,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
 import models.region._
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -43,6 +43,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
+
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
 
     request.identity match {
       case Some(user) =>

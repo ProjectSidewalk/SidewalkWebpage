@@ -59,32 +59,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     Future.successful(Ok(task.toJSON))
   }
 
-
-  /**
-   * This method queries the task (i.e., a street edge to audit) that is connected to the current task (specified by
-   * street edge id) and returns it in the GeoJson format.
-   *
-   * Todo: Deprecated
-   * @param streetEdgeId street edge id
-   * @param lat current latitude
-   * @param lng current longitude
-   * @return Task definition
-   */
-//  def getNextTask(streetEdgeId: Int, lat: Float, lng: Float) = UserAwareAction.async { implicit request =>
-//    Future.successful(Ok(AuditTaskTable.getConnectedTask(streetEdgeId, lat, lng).toJSON))
-//  }
-
-  /**
-   * Get a next task, but make sure the task is in the specified region.
-   * Todo: Deprecated
-   * @param regionId Region id
-   * @return
-   */
-//  def getATaskInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
-//    val task = AuditTaskTable.selectANewTaskInARegion(regionId)
-//    Future.successful(Ok(task.toJSON))
-//  }
-
   /**
     *
     * @param regionId Region id
@@ -143,18 +117,18 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 val user: Option[DBUser] = UserTable.find("anonymous")
                 AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
             }
-
-            if (data.incomplete.isDefined) {
-              StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
-            }
             AuditTaskTable.save(auditTask)
           }
 
-          // Set the task to be completed
+          // Set the task to be completed and increment task completion count
           if (data.auditTask.completed.isDefined && data.auditTask.completed.get) {
             AuditTaskTable.updateCompleted(auditTaskId, completed=true)
+            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId)
+          } else if (data.incomplete.isDefined && data.incomplete.get.issueDescription == "GSVNotAvailable") {
+            // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion
+            AuditTaskTable.updateCompleted(auditTaskId, completed=true)
+            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
           }
-
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {

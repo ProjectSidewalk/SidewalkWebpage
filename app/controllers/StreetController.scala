@@ -45,23 +45,4 @@ object StreetController extends Controller {
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Ok(featureCollection)
   }
-
-
-  def join(limit: Int) = DBAction { implicit js =>
-    val joinQuery = for {
-      se <- streetEdges if se.streetEdgeId > 10
-      ac <- assignmentCounts if se.streetEdgeId === ac.streetEdgeId
-    } yield (se.streetEdgeId, ac.assignmentCount)
-
-    val tupleList = joinQuery.take(limit).list
-    val listList = tupleList.map { t=> List(t._1, t._2)}
-
-    Ok(toJson(listList))
-  }
-
-  implicit val assignmentFormat = Json.format[StreetEdgeAssignmentCount]
-  def select = Action {
-    val list = StreetEdgeAssignmentCountTable.selectAssignment
-    Ok(toJson(list))
-  }
 }

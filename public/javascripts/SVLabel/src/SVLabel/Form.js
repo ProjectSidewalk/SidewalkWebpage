@@ -352,7 +352,7 @@ function Form ($, params) {
     /**
      * Submit the data collected so far and move to another location.
      * 
-     * Todo. I hate the fact that this method sets the new task as a side effect.
+     * Todo. I hate the fact that this method sets the new task as a side effect. Need to fix.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
