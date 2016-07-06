@@ -92,7 +92,7 @@ def deploy_application(zip_file_path, username, password):
     stdout.read()
 
     print "Starting the application"
-    command = "%s/sidewalk_runner.sh" % sidewalk_app_directory
+    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_app_directory
     stdin, stdout, stderr = client.exec_command(command)
     # stdout.read()
     print "Started running the application."
@@ -110,12 +110,37 @@ def deploy_application(zip_file_path, username, password):
 
     client.close()
 
+def run_application(username, password):
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname, username=username, password=password)
+    print "Starting the application"
+    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_app_directory
+    stdin, stdout, stderr = client.exec_command(command)
+    # stdout.read()
+    print "Started running the application."
+
+    # Remove the old application directory
+    command = "ls %s" % sidewalk_app_directory
+    stdin, stdout, stderr = client.exec_command(command)
+    ls_output = stdout.read().split("\n")
+    if "_sidewalk-webpage" in ls_output:
+        # Remove the old directory
+        print "Removing `_sidewalk-webpage` directory"
+        command = "rm -r %s" % sidewalk_app_directory + "/_sidewalk-webpage"
+        stding, stdout, stderr = client.exec_command(command)
+        print stdout.read()
+
+    client.close()
+
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         zip_file_path = sys.argv[1]
         username = raw_input("Username:")
         password = getpass.getpass("Password:")
 
-        deploy_application(zip_file_path, username, password)
+        # deploy_application(zip_file_path, username, password)
+        run_application(username, password)
     else:
         print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"
