@@ -134,8 +134,9 @@ function LabelCounter (d3) {
       //  .attr("class", "visible");
     }
 
+
     function countLabel(labelType) {
-        return labelType in dotPlots ? dotPlots[key].count : null;
+        return labelType in dotPlots ? dotPlots[labelType].count : null;
     }
 
     /**
