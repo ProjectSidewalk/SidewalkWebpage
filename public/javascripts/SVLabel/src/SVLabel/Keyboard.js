@@ -69,31 +69,32 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyDown(e) {
-        // lock scrolling in response to key pressing
-        if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) { 
-            e.preventDefault();
-        }
-    
-        switch (e.keyCode) {
-            // "left"
-            // rotate pano
-            case 37:
-                rotatePov(-2);
-                break;
-             // "right"
-            // rotate pano
-            case 39:
-                rotatePov(2);
-                break;
-
-        }
         // The callback method that is triggered with a keyUp event.
-        if (!status.focusOnTextField) {
+        if (("contextMenu" in svl && svl.contextMenu.isOpen())) {
+            return;
+        } else if (!status.focusOnTextField) {
+            // lock scrolling in response to key pressing
             switch (e.keyCode) {
-                case 16:
-                    // "Shift"
+                case 16:  // "Shift"
                     status.shiftDown = true;
                     break;
+                case 37:  // "Left"
+                    rotatePov(-2);
+                    break;
+                case 39:  // "Right"
+                    rotatePov(2);
+                    break;
+                case 38:
+                    moveForward();
+                    break;
+                // "down"
+                case 40:
+                    moveBackward();
+                    break;
+            }
+        } else {
+            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                e.preventDefault();
             }
         }
     }
@@ -104,16 +105,6 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
-        switch (e.keyCode) {
-            // "up"
-            case 38:
-                moveForward();
-                break;
-            // "down"
-            case 40:
-                moveBackward();
-                break;
-        }
         if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
             // Don't allow users to use keyboard shortcut during the onboarding.
             return;
