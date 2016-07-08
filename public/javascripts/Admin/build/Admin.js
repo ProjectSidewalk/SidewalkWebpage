@@ -939,9 +939,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
             "August", "September", "October",
             "November", "December"
         ];
-
-
-
+        
         var grouped = _.groupBy(_data.tasks, function (o) { return o.audit_task_id});
         var auditTaskId;
         var auditTaskIds = Object.keys(grouped);

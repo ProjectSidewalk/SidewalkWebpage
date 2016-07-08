@@ -51,9 +51,7 @@ POST    /task                                   @controllers.TaskController.post
 
 
 # Missions
-GET     /mission/all                            @controllers.MissionController.getAllMissions
-GET     /mission/complete                       @controllers.MissionController.getCompletedMissions
-GET     /mission/incomplete                     @controllers.MissionController.getIncompleteMissions
+GET     /mission                                @controllers.MissionController.getMissions
 POST    /mission                                @controllers.MissionController.post
 
 # Neighborhoods

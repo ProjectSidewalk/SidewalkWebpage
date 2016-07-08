@@ -12,21 +12,15 @@ function MissionContainer ($, parameters) {
         completedMissions = [],
         staged = [],
         currentMission = null;
-
-    /**
-     * Todo. /mission/complete and /mission/incomplete are separate APIs due to a historical reason. We should have a single API for both completed and incomplete missions.
-     * @param parameters
-     * @private
-     */
+    
     function _init (parameters) {
         parameters = parameters || {};
         // Query all the completed & incomplete missions.
-        function _callback (result1, result2) {
+        function _callback (result1) {
             var i,
                 len,
                 mission,
-                completed = result1[0],
-                incomplete = result2[0],
+                missions = result1,
                 nm;
 
             function cmp (a, b) {
@@ -34,22 +28,23 @@ function MissionContainer ($, parameters) {
                 var distanceB = b.distance ? b.distance : 0;
                 return distanceA - distanceB;
             }
-            completed = completed.sort(cmp);
-            incomplete = incomplete.sort(cmp);
-
-            len = completed.length;
+            missions.sort(cmp);
+            len = missions.length;
             for (i = 0; i < len; i++) {
-                mission = svl.missionFactory.create(completed[i].regionId, completed[i].missionId, completed[i].label,
-                    completed[i].level, completed[i].distance, completed[i].distance_ft, completed[i].distance_mi, completed[i].coverage, true);
-                addAMission(completed[i].regionId, mission);
-                addToCompletedMissions(mission);
-            }
-
-            len = incomplete.length;
-            for (i = 0; i < len; i++) {
-                mission = svl.missionFactory.create(incomplete[i].regionId, incomplete[i].missionId, incomplete[i].label,
-                    incomplete[i].level, incomplete[i].distance, incomplete[i].distance_ft, incomplete[i].distance_mi, incomplete[i].coverage, false);
-                addAMission(incomplete[i].regionId, mission);
+                mission = svl.missionFactory.create(
+                    missions[i].region_id,
+                    missions[i].mission_id,
+                    missions[i].label,
+                    missions[i].level,
+                    missions[i].distance,
+                    missions[i].distance_ft,
+                    missions[i].distance_mi,
+                    missions[i].coverage,
+                    missions[i].is_completed);
+                addAMission(missions[i].region_id, mission);
+                if (missions[i].is_completed) {
+                    addToCompletedMissions(mission);
+                }
             }
 
             // Set the current mission.
@@ -58,11 +53,11 @@ function MissionContainer ($, parameters) {
                 setCurrentMission(nm);
             }
         }
-        
+
         if ("callback" in parameters) {
-            $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback).done(parameters.callback);
+            $.when($.ajax("/mission")).done(_callback).done(parameters.callback);
         } else {
-            $.when($.ajax("/mission/complete"), $.ajax("/mission/incomplete")).done(_callback)
+            $.when($.ajax("/mission")).done(_callback)
         }
     }
 

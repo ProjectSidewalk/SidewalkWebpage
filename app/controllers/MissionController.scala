@@ -8,7 +8,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.user.User
-import play.api.libs.json.{JsArray, JsError, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.BodyParsers
 
 import scala.concurrent.Future
@@ -18,41 +18,43 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * Return all the missions in a JSON array
-    * @return
-    */
-  def getAllMissions = UserAwareAction.async { implicit request =>
-    val missions: List[JsValue] = MissionTable.selectMissions.map(m => Json.toJson(m))
-    Future.successful(Ok(JsArray(missions)))
-  }
-
-  /**
     * Return the completed missions in a JSON array
     * @return
     */
-  def getCompletedMissions = UserAwareAction.async { implicit request =>
+  def getMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val missions = MissionTable.selectCompletedMissionsByAUser(user.userId).map(m => Json.toJson(m))
-        Future.successful(Ok(JsArray(missions)))
+        val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
+        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId)
+
+        val completedMissionJsonObjects: List[JsObject] = completedMissions.map( m =>
+          Json.obj("is_completed" -> true,
+            "mission_id" -> m.missionId,
+            "region_id" -> m.regionId,
+            "label" -> m.label,
+            "level" -> m.level,
+            "distance" -> m.distance,
+            "distance_ft" -> m.distance_ft,
+            "distance_mi" -> m.distance_mi,
+            "coverage" -> m.coverage)
+        )
+
+        val incompleteMissionJsonObjects: List[JsObject] = incompleteMissions.map( m =>
+          Json.obj("is_completed" -> false,
+            "mission_id" -> m.missionId,
+            "region_id" -> m.regionId,
+            "label" -> m.label,
+            "level" -> m.level,
+            "distance" -> m.distance,
+            "distance_ft" -> m.distance_ft,
+            "distance_mi" -> m.distance_mi,
+            "coverage" -> m.coverage)
+        )
+
+        val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
+        Future.successful(Ok(JsArray(concatenated)))
       case _ =>
         Future.successful(Ok(JsArray(Seq())))
-    }
-  }
-
-  /**
-    * Return incomplete missions
-    * @return
-    */
-  def getIncompleteMissions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val missions = MissionTable.selectIncompleteMissionsByAUser(user.userId).map(m => Json.toJson(m))
-
-        Future.successful(Ok(JsArray(missions)))
-      case _ =>
-        val missions = MissionTable.selectMissions.map(m => Json.toJson(m))
-        Future.successful(Ok(JsArray(missions)))
     }
   }
 
