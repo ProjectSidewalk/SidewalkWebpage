@@ -67,6 +67,8 @@ scalacOptions ++= Seq(
 
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
+javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
+
 //********************************************************
 // Scalariform settings
 //********************************************************

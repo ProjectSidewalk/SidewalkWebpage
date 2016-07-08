@@ -8,26 +8,26 @@ import org.specs2.mutable._
 import play.api.db.slick.DB
 import play.api.test._
 
-class AuditTaskCommentSpec extends Specification  {
-  "AuditTaskCommentTable" should {
-    "be able to insert" in new WithApplication {
-      val auditTaskComments = TableQuery[AuditTaskCommentTable]
-
-      DB.withTransaction { implicit s: Session =>
-        val originalLength = auditTaskComments.list.size
-        val calendar: Calendar = Calendar.getInstance
-        val now: Date = calendar.getTime
-        val currentTimestamp: Timestamp = new Timestamp(now.getTime)
-
-        val comment: AuditTaskComment = AuditTaskComment(0, 0, "test", "0.0.0.0", Some("test"), Some(0.0), Some(0.0), Some(1), Some(0.0), Some(0.0), currentTimestamp, "comment")
-        auditTaskComments.insert(comment)
-
-        val length = auditTaskComments.list.size
-
-        (length - originalLength) shouldEqual 1
-
-        s.rollback
-      }
-    }
-  }
-}
+//class AuditTaskCommentSpec extends Specification  {
+//  "AuditTaskCommentTable" should {
+//    "be able to insert" in new WithApplication {
+//      val auditTaskComments = TableQuery[AuditTaskCommentTable]
+//
+//      DB.withTransaction { implicit s: Session =>
+//        val originalLength = auditTaskComments.list.size
+//        val calendar: Calendar = Calendar.getInstance
+//        val now: Date = calendar.getTime
+//        val currentTimestamp: Timestamp = new Timestamp(now.getTime)
+//
+//        val comment: AuditTaskComment = AuditTaskComment(0, 0, "test", "0.0.0.0", Some("test"), Some(0.0), Some(0.0), Some(1), Some(0.0), Some(0.0), currentTimestamp, "comment")
+//        auditTaskComments.insert(comment)
+//
+//        val length = auditTaskComments.list.size
+//
+//        (length - originalLength) shouldEqual 1
+//
+//        s.rollback
+//      }
+//    }
+//  }
+//}
