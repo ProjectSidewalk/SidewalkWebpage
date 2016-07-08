@@ -65,11 +65,13 @@ function ContextMenu ($) {
     function handleDescriptionTextBoxBlur() {
         svl.tracker.push('ContextMenu_TextBoxBlur');
         svl.ribbon.enableModeSwitch();
+        svl.keyboard.setStatus('focusOnTextField', false);
     }
 
     function handleDescriptionTextBoxFocus() {
         svl.tracker.push('ContextMenu_TextBoxFocus');
         svl.ribbon.disableModeSwitch();
+        svl.keyboard.setStatus('focusOnTextField', true);
     }
 
     function handleCloseButtonClick () {

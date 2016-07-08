@@ -83,6 +83,7 @@ class SignUpController @Inject() (
               val now = new DateTime(DateTimeZone.UTC)
               val timestamp: Timestamp = new Timestamp(now.getMillis)
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
               env.eventBus.publish(SignUpEvent(user, request, request2lang))
               env.eventBus.publish(LoginEvent(user, request, request2lang))

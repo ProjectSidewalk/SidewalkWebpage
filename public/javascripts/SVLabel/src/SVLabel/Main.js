@@ -231,7 +231,7 @@ function Main ($, d3, google, turf, params) {
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
-        svl.pointCloud = PointCloud({ panoIds: [panoId] });
+        svl.pointCloud = PointCloud();
         svl.tracker = Tracker();
         svl.tracker.push('TaskStart');
         // svl.trackerViewer = TrackerViewer();
@@ -375,6 +375,10 @@ function Main ($, d3, google, turf, params) {
                     var count = svl.labelContainer.countLabels(currentNeighborhood.getProperty("regionId"));
                     svl.neighborhoodStatus.setLabelCount(count);
                 });
+
+                var unit = "miles";
+                var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+                svl.neighborhoodStatus.setAuditedDistance(distance.toFixed(1), unit);
             }
         }
 
