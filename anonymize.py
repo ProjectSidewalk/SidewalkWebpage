@@ -22,7 +22,7 @@ def anonymize(sql_filename):
     read_user_table = False
     read_login_info_table = False
 
-    output_file = open(sql_filename.replace(".sql", "") + ".anonymized.sql", "w")
+    output_file = open(sql_filename.replace(".sql", ".anonymized.sql"), "w")
 
     with open(sql_filename, 'r') as input_file:
         for line in input_file:
