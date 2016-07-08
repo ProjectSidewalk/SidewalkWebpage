@@ -8,6 +8,10 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
         onPointCloudLoad = null;
 
     this.load = function(panoId) {
+        if (!panoId) {
+            return;
+        }
+
         var self = this,
             url;
 
