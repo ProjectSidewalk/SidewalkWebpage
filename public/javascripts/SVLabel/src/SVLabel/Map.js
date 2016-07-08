@@ -1321,6 +1321,7 @@ function Map ($, google, turf, params) {
     self.lockRenderLabels = lockRenderLabels;
     self.modeSwitchLabelClick = modeSwitchLabelClick;
     self.modeSwitchWalkClick = modeSwitchWalkClick;
+    self.moveToTheTaskLocation = _moveToTheTaskLocation;
     self.plotMarkers = plotMarkers;
     self.save = save;
     self.setHeadingRange = setHeadingRange;

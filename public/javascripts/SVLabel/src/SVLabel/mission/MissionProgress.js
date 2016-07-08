@@ -69,7 +69,7 @@ function MissionProgress () {
                     // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
                     var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
                     var newRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
-                    nextMission = svl.missionContainer.nextMission(currentRegionId);
+                    nextMission = svl.missionContainer.nextMission(newRegionId);
                     movedToANewRegion = true;
                 }
 
@@ -78,7 +78,13 @@ function MissionProgress () {
 
                 if (movedToANewRegion) {
                     svl.neighborhoodContainer.moveToANewRegion(newRegionId);
-                    svl.taskContainer.fetchTasksInARegion(newRegionId, null, false);  // Fetch tasks in the new region
+                    svl.taskContainer.fetchTasksInARegion(newRegionId, function () {
+                        // Jump to the new location.
+                        var newTask = svl.taskContainer.nextTask(task);
+                        svl.taskContainer.setCurrentTask(newTask);
+                        svl.map.moveToTheTaskLocation(newTask);
+                        
+                    }, false);  // Fetch tasks in the new region
                 }
             };
 

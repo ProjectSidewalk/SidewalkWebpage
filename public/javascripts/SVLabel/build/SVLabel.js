@@ -158,6 +158,10 @@ GSVPANO.PanoPointCloudLoader = function (parameters) {
         onPointCloudLoad = null;
 
     this.load = function(panoId) {
+        if (!panoId) {
+            return;
+        }
+
         var self = this,
             url;
 
@@ -2398,11 +2402,13 @@ function ContextMenu ($) {
     function handleDescriptionTextBoxBlur() {
         svl.tracker.push('ContextMenu_TextBoxBlur');
         svl.ribbon.enableModeSwitch();
+        svl.keyboard.setStatus('focusOnTextField', false);
     }
 
     function handleDescriptionTextBoxFocus() {
         svl.tracker.push('ContextMenu_TextBoxFocus');
         svl.ribbon.disableModeSwitch();
+        svl.keyboard.setStatus('focusOnTextField', true);
     }
 
     function handleCloseButtonClick () {
@@ -2638,9 +2644,16 @@ function Form ($, params) {
             lockDisableSubmit();
         }
 
-        //svl.ui.form.skipButton.on('click', handleSkipClick);
-        //svl.ui.leftColumn.jump.on('click', handleSkipClick);
-        //svl.ui.leftColumn.feedback.on('click', handleFeedbackClick);
+        $(window).unload(function () {
+            if ("tracker" in svl) {
+                svl.tracker.push("Unload");
+            }
+            if ("taskContainer" in svl) {
+                var task = svl.taskContainer.getCurrentTask();
+                var data = compileSubmissionData(task);
+                submit(data, task, false);
+            }
+        })
     }
 
     /**
@@ -2653,7 +2666,8 @@ function Form ($, params) {
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
-            audit_task_id: task.getAuditTaskId()
+            audit_task_id: task.getAuditTaskId(),
+            completed: task.isCompleted()
         };
 
         data.environment = {
@@ -2711,9 +2725,14 @@ function Form ($, params) {
                         canvas_width : prop.canvasWidth,
                         alpha_x : prop.canvasDistortionAlphaX,
                         alpha_y : prop.canvasDistortionAlphaY,
-                        lat : labelLatLng.lat,
-                        lng : labelLatLng.lng
+                        lat : null,
+                        lng : null
                     };
+
+                if (labelLatLng) {
+                    pointParam.lat = labelLatLng.lat;
+                    pointParam.lng = labelLatLng.lng;
+                }
                 temp.label_points.push(pointParam);
             }
 
@@ -2881,19 +2900,21 @@ function Form ($, params) {
 
     /**
      * Submit the data collected so far and move to another location.
+     * 
+     * Todo. I hate the fact that this method sets the new task as a side effect. Need to fix.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
-    function skipSubmit (dataIn) {
-        var task = svl.taskContainer.getCurrentTask();
+    function skipSubmit (dataIn, task) {
+        svl.tracker.push('TaskSkip');
+        // var task = svl.taskContainer.getCurrentTask();
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
-        svl.tracker.push('TaskSkip');
         submit(data, task);
 
-        if ("taskContainer" in svl) {
-            svl.taskContainer.initNextTask();
-        }
+        // if ("taskContainer" in svl) {
+        //     svl.taskContainer.initNextTask(task);
+        // }
 
         return false;
     }
@@ -2903,13 +2924,21 @@ function Form ($, params) {
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data, task) {
-        svl.tracker.push('TaskSubmit');
-        svl.labelContainer.refresh();
+    function submit(data, task, async) {
+        if (typeof async == "undefined") { async = true; }
+        // svl.tracker.push('TaskSubmit');
+
+
+
         if (data.constructor !== Array) { data = [data]; }
 
+        if ('interactions' in data[0] && data[0].constructor === Array) {
+            data[0].interactions.push(svl.tracker.create("TaskSubmit"));
+        }
+
+        svl.labelContainer.refresh();
         $.ajax({
-            // async: false,
+            async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
             type: 'post',
@@ -2986,9 +3015,41 @@ function Keyboard ($) {
           $textareaComment.bind('blur', textFieldBlur);
         }
 
-
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
+    }
+    function toRadians (angle) {
+        return angle * (Math.PI / 180);
+    }
+    // Move in the direction of a link closest to a given angle
+    function movePano(angle) {
+        // take the cosine of the difference for each link to the current heading in radians and stores them to an array
+        var cosines = svl.panorama.links.map(function(link) { return Math.cos(toRadians(svl.panorama.pov.heading + angle) - toRadians(link.heading))});
+        // finds index of greatest value in cosines array
+        var maxVal = Math.max.apply(null, cosines);
+        var maxIndex = cosines.indexOf(maxVal);
+        //in the case of one link, this prevents you from moving in that direction if you press the opposite
+        if(cosines[maxIndex] > 0.5){
+            // transitions panorama to the link of the greatest cosine (closest to direction)
+            svl.panorama.setPano(svl.panorama.links[maxIndex].pano);
+        }
+    }
+    // abstract movePano with more meaningful function name for the following two
+    function moveForward(){
+        movePano(0);
+    }
+
+    function moveBackward(){
+        movePano(180);
+    }
+    // change the heading of the current panorama point of view by a particular degree value
+    function rotatePov(degree){
+        var heading =  svl.panorama.pov.heading;
+        // pitch and zoom arent changed but are needed for the setPov call
+        var pitch = svl.panorama.pov.pitch;
+        var zoom = svl.panorama.pov.zoom;
+        heading = (heading + degree + 360) % 360;
+        svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
     }
 
     /**
@@ -2998,12 +3059,31 @@ function Keyboard ($) {
      */
     function documentKeyDown(e) {
         // The callback method that is triggered with a keyUp event.
-        if (!status.focusOnTextField) {
+        if (("contextMenu" in svl && svl.contextMenu.isOpen())) {
+            return;
+        } else if (!status.focusOnTextField) {
+            // lock scrolling in response to key pressing
             switch (e.keyCode) {
-                case 16:
-                    // "Shift"
+                case 16:  // "Shift"
                     status.shiftDown = true;
                     break;
+                case 37:  // "Left"
+                    rotatePov(-2);
+                    break;
+                case 39:  // "Right"
+                    rotatePov(2);
+                    break;
+                case 38:
+                    moveForward();
+                    break;
+                // "down"
+                case 40:
+                    moveBackward();
+                    break;
+            }
+        } else {
+            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                e.preventDefault();
             }
         }
     }
@@ -3014,7 +3094,10 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
-        // console.log(e.keyCode);
+        if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
+            // Don't allow users to use keyboard shortcut during the onboarding.
+            return;
+        }
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
@@ -3239,8 +3322,10 @@ function Main ($, d3, google, turf, params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
-        
+
+        svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
+        svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
 
         // MissionDescription DOMs
@@ -3364,6 +3449,9 @@ function Main ($, d3, google, turf, params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        
+        svl.ui.bottomToolbar = {};
+        svl.ui.bottomToolbar.onboardingLink = $("#toolbar-onboarding-link");
 
         // Navigation compass
         svl.ui.compass = {};
@@ -3398,8 +3486,8 @@ function Main ($, d3, google, turf, params) {
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Instantiate objects
-        if (!("storage" in svl)) svl.storage = new Storage(JSON);
-        svl.labelContainer = LabelContainer();
+        if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
+        svl.labelContainer = LabelContainer($);
         svl.keyboard = Keyboard($);
         svl.canvas = Canvas($);
         svl.form = Form($, params.form);
@@ -3408,13 +3496,14 @@ function Main ($, d3, google, turf, params) {
         svl.missionStatus = MissionStatus();
         svl.neighborhoodStatus = NeighborhoodStatus();
 
+
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
         svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = PopUpMessage($);
         svl.zoomControl = ZoomControl($);
         svl.missionProgress = MissionProgress($);
-        svl.pointCloud = PointCloud({ panoIds: [panoId] });
+        svl.pointCloud = PointCloud();
         svl.tracker = Tracker();
         svl.tracker.push('TaskStart');
         // svl.trackerViewer = TrackerViewer();
@@ -3422,7 +3511,7 @@ function Main ($, d3, google, turf, params) {
         svl.compass = Compass(d3, turf);
         svl.contextMenu = ContextMenu($);
         svl.audioEffect = AudioEffect();
-
+        
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
         svl.modalMission = ModalMission($, L);
@@ -3430,24 +3519,31 @@ function Main ($, d3, google, turf, params) {
         svl.modalExample = ModalExample();
         svl.modalMissionComplete.hide();
 
+        svl.toolbar = Toolbar($);
+
         svl.panoramaContainer = PanoramaContainer(google);
 
         var neighborhood;
         svl.neighborhoodFactory = NeighborhoodFactory();
-        svl.neighborhoodContainer = NeighborhoodContainer();
+        svl.neighborhoodContainer = NeighborhoodContainer($);
         if ('regionId' in params) {
-            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer);
+            neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+            svl.neighborhoodStatus.setNeighborhoodName(params.regionName);
         } else {
             var regionId = 0;
-            neighborhood = svl.neighborhoodFactory.create(regionId);
+            neighborhood = svl.neighborhoodFactory.create(regionId, null, null);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         }
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = TaskFactory(turf);
-        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = TaskContainer(turf);
+        if (!("taskFactory" in svl && svl.taskFactory)) {
+            svl.taskFactory = TaskFactory(turf);
+        }
+        if (!("taskContainer" in svl && svl.taskContainer)) {
+            svl.taskContainer = TaskContainer(turf);
+        }
 
         // Initialize things that needs data loading.
         var loadingAnOboardingTaskCompleted = false,
@@ -3476,16 +3572,45 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 } else {
-                    // Set the current mission to either the initial-mission or something else.
+                    // Set the current mission.
+                    var haveSwitchedToANewRegion = false;
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-                    if (mission.isCompleted()) {
-                        var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                        missions = missions.filter(function (m) { return !m.isCompleted(); });
-                        mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+                    if (!mission || mission.isCompleted()) {
+                        // If the initial-mission has already been completed, set the current mission to another mission
+                        // that has not been completed yet.
+                        var missionsArrayLength = 0;
+                        var missions = [];
+                        var regionId = neighborhood.getProperty("regionId");
+
+                        while (true) {
+                            // Check if there are incomplete missions in the current neighborhood (i.e., missions.length > 0?)
+                            missions = svl.missionContainer.getMissionsByRegionId(regionId);
+                            missions = missions.filter(function (m) { return !m.isCompleted(); });
+                            if (missions.length > 0) {
+                                if (haveSwitchedToANewRegion) {
+                                    // If moving to the new neighborhood, update the database
+                                    svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                    svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
+                                }
+                                break;
+                            }
+                            haveSwitchedToANewRegion = true;
+
+                            var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                            regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
+                            // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
+                            // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                            // regionId = availableRegionIds[indexOfNextRegion];
+                        }
+                        mission = missions[0];
                     }
                     svl.missionContainer.setCurrentMission(mission);
 
                     // Compute the route for the current mission
+                    if (haveSwitchedToANewRegion) {
+                        var newTask = svl.taskContainer.nextTask();
+                        svl.taskContainer.setCurrentTask(newTask);
+                    }
                     var currentTask = svl.taskContainer.getCurrentTask();
                     var route = mission.computeRoute(currentTask);
                     mission.setRoute(route);
@@ -3503,12 +3628,29 @@ function Main ($, d3, google, turf, params) {
 
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
                 if (mission.getProperty("label") != "onboarding") {
-                    svl.modalMission.setMission(mission);
+                    if (svl.missionContainer.isTheFirstMission()) {
+                        svl.modalMission.setMission(mission, {
+                            callback: initialMissionInstruction
+                        });
+                    } else {
+                        svl.modalMission.setMission(mission);
+                    }
                 }
 
                 if ("missionProgress" in svl) {
                     svl.missionProgress.update();
                 }
+
+                // Get the labels collected in the current neighborhood
+                var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.labelContainer.fetchLabelsInANeighborhood(currentNeighborhood.getProperty("regionId"), function () {
+                    var count = svl.labelContainer.countLabels(currentNeighborhood.getProperty("regionId"));
+                    svl.neighborhoodStatus.setLabelCount(count);
+                });
+
+                var unit = "miles";
+                var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+                svl.neighborhoodStatus.setAuditedDistance(distance.toFixed(1), unit);
             }
         }
 
@@ -3572,6 +3714,32 @@ function Main ($, d3, google, turf, params) {
     function getStatus (key) { 
         return key in status ? status[key] : null; 
     }
+
+    function initialMissionInstruction () {
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        svl.popUpMessage.notify("Let's get started! Audit the intersection",
+            "We moved you to a street in " + neighborhood.getProperty("name") +
+            ", DC! First, we want you to look around and label all the curb ramps here. " +
+            "You should also label <a>all the problems</a> you find.");
+
+        var initialHeading = svl.map.getPov().heading;
+        var lookedAround = false;
+        var interval = setInterval(function () {
+            var angleDelta = svl.util.math.toRadians(initialHeading - svl.map.getPov().heading);
+            if (Math.cos(angleDelta) < 0) {
+                lookedAround = true;
+            }
+
+            if (lookedAround && Math.cos(angleDelta) > 0.5) {
+                clearInterval(interval);
+                svl.popUpMessage.notify("Follow the navigator and audit the street!",
+                    "Good! Once you finish labeling everything you find, let's <span class='bold'>follow the navigator at the bottom right corner to " +
+                    "audit the street. Please label all the accessibility features!</span>");
+                svl.compass.blink();
+            }
+        })
+    }
+
     function setStatus (key, value) { 
         status[key] = value; return this; 
     }
@@ -3815,7 +3983,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
-     * Remove icons on Google Maps
+     * A helper function to move a user to the task location
+     * @param task
+     * @private
+     */
+    function _moveToTheTaskLocation(task) {
+        var geometry = task.getGeometry();
+        var callback = function (data, status) {
+            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                svl.misc.reportNoStreetView(task.getStreetEdgeId());
+                svl.taskContainer.endTask(task);
+
+                // Get a new task and repeat
+                task = svl.taskContainer.nextTask(task);
+                svl.taskContainer.setCurrentTask(task);
+                _moveToTheTaskLocation(task);
+            }
+        };
+        // Jump to the new location if it's really far away.
+        var lat = geometry.coordinates[0][1],
+            lng = geometry.coordinates[0][0],
+            currentLatLng = getPosition(),
+            newTaskPosition = turf.point([lng, lat]),
+            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+        if (distance > 0.1) setPosition(lat, lng, callback);
+    }
+
+    /**
+     * A helper method to remove icons on Google Maps
      */
     function _removeIcon() {
         var doms = $('.gmnoprint'), $images;
@@ -4044,6 +4240,19 @@ function Map ($, google, turf, params) {
         if ('compass' in svl) { svl.compass.update(); }
     }
 
+    // missions greater than 3000 feet are measured in miles
+    function distanceLeftFeetOrMiles(){
+        var remainingRate = 1 - svl.missionContainer.getCurrentMission().getMissionCompletionRate();
+        var missionDistance = svl.missionContainer.getCurrentMission().getProperty("distanceFt");
+        if(missionDistance < 3000){
+            return parseInt(missionDistance * remainingRate) + " feet";
+        }
+        else{
+            missionDistance = svl.missionContainer.getCurrentMission().getProperty("distanceMi");
+            var miles = missionDistance * remainingRate;
+            return miles.toFixed(2) + " miles";
+        }
+    }
     /**
      * A callback for position_change.
      */
@@ -4067,23 +4276,15 @@ function Map ($, google, turf, params) {
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
                     if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-                        svl.popUpMessage.notify("Jumped back to your neighborhood!",
-                            "We sent you back into the neighborhood you have been walking around! Please continue to " +
-                            "make this neighborhood more accessible for everyone!");
+                        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("name");
+                        var neighborhoodMessage = "Jumped back to " + neighborhood;
+                        var distanceLeft = distanceLeftFeetOrMiles();
+                        svl.popUpMessage.notify(neighborhoodMessage,
+                            "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                            "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
                     }
 
-                    var geometry = newTask.getGeometry();
-                    if (geometry) {
-                        var lat = geometry.coordinates[0][1],
-                            lng = geometry.coordinates[0][0],
-                            currentLatLng = getPosition(),
-                            newTaskPosition = turf.point([lng, lat]),
-                            currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-                            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
-
-                        // Jump to the new location if it's really far away.
-                        if (distance > 0.1) setPosition(lat, lng);
-                    }
+                    _moveToTheTaskLocation(newTask);
                 }
             }
         }
@@ -4247,16 +4448,16 @@ function Map ($, google, turf, params) {
             hideLinks();
         }
 
-        if (mouseStatus.isLeftDown) {
-            setViewControlLayerCursor('ClosedHand');
-        } else {
-            if (!svl.keyboard.isShiftDown()) {
-                setViewControlLayerCursor('OpenHand');
-                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-            } else {
-                setViewControlLayerCursor('ZoomOut');
-            }
-        }
+        // if (mouseStatus.isLeftDown) {
+        //     setViewControlLayerCursor('ClosedHand');
+        // } else {
+        //     if (!svl.keyboard.isShiftDown()) {
+        //         setViewControlLayerCursor('OpenHand');
+        //         // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+        //     } else {
+        //         setViewControlLayerCursor('ZoomOut');
+        //     }
+        // }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
@@ -4347,8 +4548,7 @@ function Map ($, google, turf, params) {
         }
     }
 
-
-
+    
     /**
      * Initailize Street View
      */
@@ -4477,14 +4677,35 @@ function Map ($, google, turf, params) {
     }
 
     /**
+     * 
+     * @param panoramaId
+     * @returns {setPano}
+     */
+    function setPano (panoramaId) {
+        svl.panorama.setPano(panoramaId);
+        return this;
+    }
+
+    /**
      * Set map position
      * @param lat
      * @param lng
      */
-    function setPosition (lat, lng) {
-        var latlng = new google.maps.LatLng(lat, lng);
-        svl.panorama.setPosition(latlng);
-        map.setCenter(latlng);
+    function setPosition (lat, lng, callback) {
+        // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+        var gLatLng = new google.maps.LatLng(lat, lng);
+
+        svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            if (status === google.maps.StreetViewStatus.OK) {
+                svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                // svl.panorama.setPosition(gLatLng);
+                map.setCenter(gLatLng);
+            } else {
+                console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
+            }
+            if (callback) callback(streetViewPanoramaData, status);
+        });
+        
         return this;
     }
 
@@ -4570,18 +4791,17 @@ function Map ($, google, turf, params) {
                 }
             });
         } else {
-            if (properties.browser === 'chrome') {
-                // Somehow chrome does not allow me to select path
-                // and fadeOut. Instead, I'm just manipulating path's style
-                // and making it hidden.
-                $('path').css('visibility', 'visible');
-            } else {
-                if (!delay) {
-                    delay = 0;
-                }
-                // $('path').show();
-                $('path').css('visibility', 'visible');
-            }
+            $(".gmnoprint path").css('visibility', 'visible');
+            // if (properties.browser === 'chrome') {
+            //     // Somehow chrome does not allow me to select path
+            //     // and fadeOut. Instead, I'm just manipulating path's style
+            //     // and making it hidden.
+            //     // $('path').css('visibility', 'visible');
+            //     $(".gmnoprint path").css('visibility', 'visible');
+            // } else {
+            //     // $('path').css('visibility', 'visible');
+            //     $(".gmnoprint path").css('visibility', 'visible');
+            // }
         }
     }
 
@@ -4824,7 +5044,7 @@ function Map ($, google, turf, params) {
     }
 
     /**
-     * Unlock render lables
+     * Unlock render labels
      * @returns {unlockRenderLabels}
      */
     function unlockRenderLabels () {
@@ -4855,6 +5075,7 @@ function Map ($, google, turf, params) {
     self.lockRenderLabels = lockRenderLabels;
     self.modeSwitchLabelClick = modeSwitchLabelClick;
     self.modeSwitchWalkClick = modeSwitchWalkClick;
+    self.moveToTheTaskLocation = _moveToTheTaskLocation;
     self.plotMarkers = plotMarkers;
     self.save = save;
     self.setHeadingRange = setHeadingRange;
@@ -5002,7 +5223,7 @@ function PointCloud (params) {
             createPointCloud(panoId);
             return null;
         } else {
-            return _pointClouds[panoId];
+            return (panoId in _pointClouds) ? _pointClouds[panoId] : null;
         }
     }
 
@@ -5168,10 +5389,15 @@ function PopUpMessage ($, param) {
         status.haveAskedToSignIn = true;
     }
 
+    /**
+     * Notification
+     * @param title
+     * @param message
+     */
     function notify(title, message) {
         svl.ui.popUpMessage.buttonHolder.html("");
         setPosition(40, 260, 640);
-        show(true);
+        show();
         setTitle(title);
         setMessage(message);
         appendOKButton();
@@ -5382,7 +5608,7 @@ function RibbonMenu ($, params) {
             if (svl.overlayMessageBox) { svl.overlayMessageBox.setMessage(labelType); }
 
             // Play an audio effect
-            if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
+            // if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
         }
     }
 
@@ -5720,7 +5946,7 @@ function RibbonMenu ($, params) {
  * @constructor
  * @memberof svl
  */
-function Storage(JSON, params) {
+function TemporaryStorage(JSON, params) {
     var self = {'className': 'Storage'};
 
     if (params && 'storage' in params && params.storage == 'session') {
@@ -5783,6 +6009,20 @@ function Storage(JSON, params) {
     _init();
     return self;
 }
+function Toolbar ($) {
+    var self = {};
+
+    function _init() {
+        svl.ui.bottomToolbar.onboardingLink.on("click", _handleOnboardingLinkClick);    
+    }
+    
+    function _handleOnboardingLinkClick (e) {
+        svl.onboarding = Onboarding($);
+    }
+
+    _init();
+    return self;
+}
 /**
  *
  * @returns {{className: string}}
@@ -5801,7 +6041,8 @@ function Tracker () {
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
-    function push (action, param) {
+
+    function create(action, param) {
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
@@ -5875,7 +6116,8 @@ function Tracker () {
         }
 
         var now = new Date(),
-            timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+            timestamp = new Date().getTime();
+        // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
 
         var item = {
             action : action,
@@ -5889,6 +6131,11 @@ function Tracker () {
             temporary_label_id: temporaryLabelId,
             timestamp: timestamp
         };
+        return item;
+    }
+
+    function push (action, param) {
+        var item = create(action, param);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
@@ -5913,7 +6160,8 @@ function Tracker () {
         actions = [];
         push("RefreshTracker");
     }
-    
+
+    self.create = create;
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;
@@ -6424,6 +6672,10 @@ function Task (turf, geojson, currentLat, currentLng) {
 
         setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
 
+        if (_geojson.features[0].properties.completed) {
+            complete();
+        }
+
         if (currentLat && currentLng) {
             // Continuing from the previous task (i.e., currentLat and currentLng exist).
             var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
@@ -6458,7 +6710,7 @@ function Task (turf, geojson, currentLat, currentLng) {
 
 
     /**
-     * Set the isCompleted status to true
+     * Set the isCompleted status to true and change the color of the street into green.
      * @returns {complete}
      */
     function complete () {
@@ -6625,8 +6877,8 @@ function Task (turf, geojson, currentLat, currentLng) {
      * @params {units} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in meters
      */
-    function getDistanceWalked (units) {
-        if (!units) units = "kilometers";
+    function getDistanceWalked (unit) {
+        if (!unit) unit = "kilometers";
 
         var i,
             point,
@@ -6638,16 +6890,21 @@ function Task (turf, geojson, currentLat, currentLng) {
             coords = line.geometry.coordinates,
             segment,
             distance = 0;
+        var coordinates = [];
         for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
-            distance += turf.lineDistance(segment);
+            // segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
+            // distance += turf.lineDistance(segment, unit);
+            coordinates.push([coords[i][0], coords[i][1]])
         }
+        coordinates.push([coords[i][0], coords[i][1]]);
+        segment = turf.linestring(coordinates);
+        distance += turf.lineDistance(segment, unit);
 
         // Check if the snapped point is not too far away from the current point. Then add the distance between the
         // snapped point and the last segment point to cumSum.
-        if (turf.distance(snapped, currentPoint, units) < 100) {
+        if (turf.distance(snapped, currentPoint, unit) < 100) {
             point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-            distance += turf.distance(snapped, point);
+            distance += turf.distance(snapped, point, unit);
         }
 
         return distance;
@@ -6747,20 +7004,43 @@ function Task (turf, geojson, currentLat, currentLng) {
         }
     }
 
+    function eraseFromGoogleMaps () {
+        if ('map' in svl && google && paths) {
+            for (var i = 0; i < paths.length; i++) {
+                paths[i].setMap(null);
+            }
+        }
+    }
+
     /**
      * Render the task path on the Google Maps pane.
-     * Todo. This should be Map.js's responsibility.
      * Reference:
      * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
      */
     function render () {
         if ('map' in svl && google) {
-            if (paths) {
-                // Remove the existing paths and switch with the new ones
-                for (var i = 0; i < paths.length; i++) {
-                    paths[i].setMap(null);
-                }
+            eraseFromGoogleMaps();
+            if (isCompleted()) {
+                // If the task has been completed already, set the paths to a green polyline
+                var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
+                    return new google.maps.LatLng(coord[1], coord[0]);
+                });
+                paths = [
+                    new google.maps.Polyline({
+                        path: gCoordinates,
+                        geodesic: true,
+                        strokeColor: '#00ff00',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2
+                    })
+                ];
+            } else if (paths) {
+                // check if paths--a list of Google Maps Polylines to render on the Google Maps pane for this task's street edge--already exists.
+                // If `paths` exist, remove it
+                // for (var i = 0; i < paths.length; i++) {
+                //     paths[i].setMap(null);
+                // }
 
                 var newTaskCompletionRate = getTaskCompletionRate();
 
@@ -6769,6 +7049,7 @@ function Task (turf, geojson, currentLat, currentLng) {
                     paths = completedTaskPaths();
                 }
             } else {
+                // If this is a new task and the this Task instance's `paths` is not set yet, create a red GMaps Polyline.
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);
                 });
@@ -6783,9 +7064,9 @@ function Task (turf, geojson, currentLat, currentLng) {
                 ];
             }
 
-            for (i = 0; i < previousPaths.length; i++) {
-                previousPaths[i].setMap(svl.map.getMap());
-            }
+            // for (i = 0; i < previousPaths.length; i++) {
+            //     previousPaths[i].setMap(svl.map.getMap());
+            // }
             for (i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
@@ -6826,6 +7107,7 @@ function Task (turf, geojson, currentLat, currentLng) {
     self.isConnectedToAPoint = isConnectedToAPoint;
     self.lineDistance = lineDistance;
     self.render = render;
+    self.eraseFromGoogleMaps = eraseFromGoogleMaps;
     self.reverseCoordinates = reverseCoordinates;
     self.setProperty = setProperty;
 
@@ -6845,9 +7127,11 @@ function TaskContainer (turf) {
         paths, previousPaths = [],
         taskStoreByRegionId = {};
 
+    svl.taskStoreByRegionId = taskStoreByRegionId;  // debug
+
     /**
      * I had to make this method to wrap the street view service.
-     * @param task
+     * @param task The current task
      */
     function initNextTask (task) {
         var nextTask = svl.taskContainer.nextTask(task),
@@ -6881,7 +7165,19 @@ function TaskContainer (turf) {
     function endTask (task) {
         if ('tracker' in svl) svl.tracker.push("TaskEnd");
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+
         task.complete();
+        // Todo. I'm not sure why, but chainging the state of the `task` has no effect on the task in the `taskStoreByRegionId`. Apparently task is not a reference.
+        // Go through the tasks and mark the completed task as isCompleted=true
+        var neighborhoodTasks = taskStoreByRegionId[neighborhood.getProperty("regionId")];
+        var i = 0,
+            len = neighborhoodTasks.length;
+        for (; i < len; i++) {
+            if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
+                neighborhoodTasks[i].complete();
+            }
+        }
+
 
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
@@ -6902,7 +7198,7 @@ function TaskContainer (turf) {
             }
         }
 
-        push(task); // Push the data into previousTasks
+        pushATask(task); // Push the data into previousTasks
 
         // Clear the current paths
         var _geojson = task.getGeoJSON(),
@@ -7002,7 +7298,7 @@ function TaskContainer (turf) {
             }
             return connectedTasks;
         } else {
-            return tasks;
+            return svl.util.shuffle(tasks);
         }
 
     }
@@ -7029,13 +7325,13 @@ function TaskContainer (turf) {
                 feature = geojson.features[0];
                 distance += turf.lineDistance(feature, unit);
             }
-
-            if (currentTask) distance += currentTask.getDistanceWalked(unit);
-
-            return distance;
-        } else {
-            return 0;
         }
+        
+        if (currentTask) {
+            var currentTaskDistance = currentTask.getDistanceWalked(unit);
+            distance += currentTaskDistance;
+        }
+        return distance;
     }
 
     /**
@@ -7138,9 +7434,18 @@ function TaskContainer (turf) {
      * Push a task to previousTasks
      * @param task
      */
-    function push (task) {
-        // Todo. Check for the duplicates.
-        previousTasks.push(task);
+    function pushATask (task) {
+        if (previousTasks.indexOf(task) < 0) {
+            previousTasks.push(task);
+        }
+    }
+
+    /**
+     * Pop a task at the end of previousTasks
+     * @returns {*}
+     */
+    function pop () {
+        return previousTasks.pop();
     }
 
     /**
@@ -7170,7 +7475,7 @@ function TaskContainer (turf) {
         var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
             return task.getProperty("streetEdgeId");
         });
-        if (streetEdgeIds.indexOf(task.street_edge_id) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
     /**
@@ -7196,14 +7501,16 @@ function TaskContainer (turf) {
      */
     function update () {
         var i, len = previousTasks.length;
-        for (i = 0; i < len; i++) previousTasks[i].render();
+        for (i = 0; i < len; i++) {
+            previousTasks[i].render();
+        }
         currentTask.render();
     }
 
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
-     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood. Also get rid of the async call.
+     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {
@@ -7217,7 +7524,7 @@ function TaskContainer (turf) {
         }
 
         distance += sessionDistance;
-        svl.ui.progress.auditedDistance.html(distance.toFixed(2));
+        svl.neighborhoodStatus.setAuditedDistance(distance.toFixed(1));
         return this;
     }
 
@@ -7234,7 +7541,7 @@ function TaskContainer (turf) {
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.nextTask = nextTask;
-    self.push = push;
+    self.push = pushATask;
 
     self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
@@ -7389,6 +7696,15 @@ function Mission(parameters) {
             svl.audioEffect.play('yay');
             svl.audioEffect.play('applause');
         }
+        
+        // Update the neighborhood status
+        if ("labelContainer" in svl) {
+            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+            var count = svl.labelContainer.countLabels(regionId);
+            svl.neighborhoodStatus.setLabelCount(count);
+        }
+
+        
 
         // Reset the label counter
         if ('labelCounter' in svl) {
@@ -7493,19 +7809,23 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
-            var initialMission = svl.missionContainer.getMission(null, "initial-mission", 1);
-            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-            missions = missions.filter(function (m) { return m.isCompleted() && m != this; });  // Get the completed missions
-
-            // Get the last completed mission's target distance
-            var distanceAuditedSoFar = missions.length > 0 ? missions[missions.length - 1].getProperty("distance") / 1000 : 0;
-            if (distanceAuditedSoFar === 0 && initialMission.isCompleted()) {
-                distanceAuditedSoFar = initialMission.getProperty("distance") / 1000;
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+            if (completedDistance > targetDistance) {
+                return 1.0;
             }
 
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            var completedMissions = missions.filter(function (m) { return m.isCompleted(); });  // Get the completed missions
 
-            return Math.max(0, completedDistance - distanceAuditedSoFar) / (targetDistance - distanceAuditedSoFar);
+            completedMissions = completedMissions.filter(function (m) { return m.getProperty("distance") / 1000 < completedDistance; });
+            var lastMissionDistance;
+            if (completedMissions.length > 0) {
+                lastMissionDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
+            } else {
+                lastMissionDistance = 0;
+            }
+
+            return Math.max(0, completedDistance - lastMissionDistance) / (targetDistance - lastMissionDistance);
         } else {
             return 0;
         }
@@ -7644,11 +7964,29 @@ function MissionContainer ($, parameters) {
         staged = [],
         currentMission = null;
 
+    /**
+     * Todo. /mission/complete and /mission/incomplete are separate APIs due to a historical reason. We should have a single API for both completed and incomplete missions.
+     * @param parameters
+     * @private
+     */
     function _init (parameters) {
         parameters = parameters || {};
         // Query all the completed & incomplete missions.
         function _callback (result1, result2) {
-            var i, len, mission, completed = result1[0], incomplete = result2[0], nm;
+            var i,
+                len,
+                mission,
+                completed = result1[0],
+                incomplete = result2[0],
+                nm;
+
+            function cmp (a, b) {
+                var distanceA = a.distance ? a.distance : 0;
+                var distanceB = b.distance ? b.distance : 0;
+                return distanceA - distanceB;
+            }
+            completed = completed.sort(cmp);
+            incomplete = incomplete.sort(cmp);
 
             len = completed.length;
             for (i = 0; i < len; i++) {
@@ -7686,15 +8024,17 @@ function MissionContainer ($, parameters) {
      */
     function addAMission(regionId, mission) {
         if (regionId || regionId === 0) {
-            if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
+            if (!(regionId in missionStoreByRegionId)) {
+                missionStoreByRegionId[regionId] = [];
+            }
         } else {
             regionId = "noRegionId";
         }
 
-        var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
-        if (!m) {
+        // var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
+        // if (!m) {
             missionStoreByRegionId[regionId].push(mission);
-        }
+        // }
     }
 
     /** Push the completed mission */
@@ -7747,7 +8087,9 @@ function MissionContainer ($, parameters) {
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
         var missions = missionStoreByRegionId[regionId],
-            i, len = missions.length;
+            i,
+            len = missions.length;
+
         for (i = 0; i < len; i++) {
             if (missions[i].getProperty("label") == label) {
                 if (level) {
@@ -7786,6 +8128,18 @@ function MissionContainer ($, parameters) {
             return d1 - d2;
         });
         return missions;
+    }
+
+    function getAvailableRegionIds () {
+        return Object.keys(missionStoreByRegionId);
+    }
+
+    /**
+     * Checks if this is the first mission or not.
+     * @returns {boolean}
+     */
+    function isTheFirstMission () {
+        return getCompletedMissions().length == 0;
     }
 
     function nextMission (regionId) {
@@ -7845,10 +8199,12 @@ function MissionContainer ($, parameters) {
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
     self.commit = commit;
+    self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
+    self.isTheFirstMission = isTheFirstMission;
     self.nextMission = nextMission;
     self.refresh = refresh;
     self.stage = stage;
@@ -7932,10 +8288,16 @@ function MissionProgress () {
      */
     function showNextMission (mission) {
         var label = mission.getProperty("label");
+        var parameters = { badgeURL: mission.getProperty("badgeURL") };
+
         if (label == "distance-mission") {
-            svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            parameters.distance = mission.getProperty("distance");
+            svl.modalMission.setMissionMessage(mission, parameters);
+            // svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
         } else if (label == "area-coverage-mission") {
-            svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            parameters.coverage = mission.getProperty("coverage");
+            svl.modalMission.setMissionMessage(mission, parameters);
+            // svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
         } else {
             console.warn("Debug: It shouldn't reach here.");
         }
@@ -7952,9 +8314,33 @@ function MissionProgress () {
                 completionRate;
 
             var _callback = function (e) {
-                var nextMission = svl.missionContainer.nextMission(currentRegion.getProperty("regionId"));
+                var currentRegionId = currentRegion.getProperty("regionId");
+                var nextMission = svl.missionContainer.nextMission(currentRegionId);
+                var movedToANewRegion = false;
+
+                // Check if the next mission is null and, if so, get a mission from other neighborhood.
+                // Note. Highly unlikely, but this could potentially be an infinate loop
+                while (!nextMission) {
+                    // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
+                    var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                    var newRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+                    nextMission = svl.missionContainer.nextMission(newRegionId);
+                    movedToANewRegion = true;
+                }
+
                 svl.missionContainer.setCurrentMission(nextMission);
                 showNextMission(nextMission);
+
+                if (movedToANewRegion) {
+                    svl.neighborhoodContainer.moveToANewRegion(newRegionId);
+                    svl.taskContainer.fetchTasksInARegion(newRegionId, function () {
+                        // Jump to the new location.
+                        var newTask = svl.taskContainer.nextTask(task);
+                        svl.taskContainer.setCurrentTask(newTask);
+                        svl.map.moveToTheTaskLocation(newTask);
+                        
+                    }, false);  // Fetch tasks in the new region
+                }
             };
 
             // Update the mission completion rate in the progress bar
@@ -8024,6 +8410,7 @@ function Label (pathIn, params) {
         tagX: -1,
         tagY: -1,
         severity: null,
+        temporary_label_id: null,
         temporaryProblem: null,
         description: null
     };
@@ -8040,7 +8427,6 @@ function Label (pathIn, params) {
     };
 
     function _init (param, pathIn) {
-        try {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
             } else {
@@ -8054,16 +8440,10 @@ function Label (pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            if (typeof google != "undefined" && google && google.maps) {
+            if (param && param.labelType && typeof google != "undefined" && google && google.maps) {
                 googleMarker = createGoogleMapsMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
-
-            return true;
-        } catch (e) {
-            console.error(self.className, ':', 'Error initializing the Label object.', e);
-            return false;
-        }
     }
 
     /**
@@ -8133,10 +8513,23 @@ function Label (pathIn, params) {
      */
     function createGoogleMapsMarker (labelType) {
         if (typeof google != "undefined") {
-            var latlng = toLatLng(),
-                googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng),
-                imagePaths = svl.misc.getIconImagePaths(),
-                url = imagePaths[labelType].googleMapsIconImagePath
+            var latlng = toLatLng();
+
+            if (latlng) {
+                var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
+            } else {
+                // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
+                var cameraLat = getProperty("panoramaLat");
+                var cameraLng = getProperty("panoramaLng");
+                var cameraHeading = svl.util.math.toRadians(getProperty("panoramaHeading"));
+                var dx = 10 * Math.sin(cameraHeading);
+                var dy = 10 * Math.cos(cameraHeading);
+                var dLatLng = svl.util.math.latlngOffset(cameraLat, dx, dy);
+                var googleLatLng = new google.maps.LatLng(cameraLat + dLatLng.dlat, cameraLng + dLatLng.dlng);  // Todo
+            }
+
+            var imagePaths = svl.misc.getIconImagePaths(),
+                url = imagePaths[labelType].googleMapsIconImagePath;
 
             return new google.maps.Marker({
                 position: googleLatLng,
@@ -8312,7 +8705,9 @@ function Label (pathIn, params) {
      * @param key
      * @returns {*}
      */
-    function getStatus (key) { return status[key]; }
+    function getStatus (key) { 
+        return status[key]; 
+    }
 
     function getVisibility () { return status.visibility; }
 
@@ -8886,31 +9281,76 @@ function Label (pathIn, params) {
     self.unlockVisibility = unlockVisibility;
     self.toLatLng = toLatLng;
 
-    if (!_init(params, pathIn)) {
-        return false;
-    }
+    _init(params, pathIn);
     return self;
 }
 
 /**
  * Label Container module. This is responsible of storing the label objects that were created in the current session.
+ * @param $ jQuery object
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function LabelContainer() {
+function LabelContainer($) {
     var self = {className: 'LabelContainer'};
     var currentCanvasLabels = [],
         prevCanvasLabels = [];
 
-    /** Returns canvas labels */
-    function getCanvasLabels () { return prevCanvasLabels.concat(currentCanvasLabels); }
+    var neighborhoodLabels = {};
+
+    function _init() {
+    }
+
+    function countLabels(regionId) {
+        if (regionId) {
+            if (regionId in neighborhoodLabels) {
+                // return neighborhoodLabels[regionId].filter(function (l) { return l.getStatus("deleted"); }).length;
+                return neighborhoodLabels[regionId].length;  // Todo. Filter out the deleted ones.
+            } else {
+                return 0;
+            }
+        }
+    }
+
+    function fetchLabelsInANeighborhood(regionId, callback) {
+        $.getJSON("/userapi/labels?regionId=" + regionId, function (data) {
+            if ("features" in data) {
+                var features = data.features,
+                    label,
+                    i = 0,
+                    len = features.length;
+                for (; i < len; i++) {
+                    label = svl.labelFactory.create(null, {
+                        labelId: features[i].properties.label_id
+                    });
+                    pushToNeighborhoodLabels(regionId, label);  // NOTE: I should actually convert each JSON object into a Label.
+                }
+                if (callback) callback();
+            }
+        });
+    }
+
+    /**
+     * Returns canvas labels. NOTE: I don't think this is used anywhere anymore.
+     */
+    function getCanvasLabels () {
+        return prevCanvasLabels.concat(currentCanvasLabels);
+    }
 
     /** Get current label */
-    function getCurrentLabels () { return currentCanvasLabels; }
+    function getCurrentLabels () {
+        return currentCanvasLabels;
+    }
+
+    function getPreviousLabels () {
+        return prevCanvasLabels;
+    }
 
     /** Load labels */
-    function load () { currentCanvasLabels = svl.storage.get("labels"); }
+    function load () {
+        currentCanvasLabels = svl.storage.get("labels");
+    }
 
     /**
      * Push a label into canvasLabels
@@ -8925,6 +9365,42 @@ function LabelContainer() {
         if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
             svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
         }
+
+        if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
+            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+            svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
+        }
+            
+    }
+
+    /**
+     * Push a label into neighborhoodLabels
+     * @param neighborhoodId
+     * @param label
+     */
+    function pushToNeighborhoodLabels(neighborhoodId, label) {
+        if (!(neighborhoodId in neighborhoodLabels)) {
+            neighborhoodLabels[neighborhoodId] = [];
+        }
+
+        // Do not add if there are duplicates
+        var i = 0,
+            len = neighborhoodLabels[neighborhoodId].length,
+            storedLabel;
+        for (; i < len; i++) {
+            storedLabel = neighborhoodLabels[neighborhoodId][i];
+
+            if (storedLabel.getProperty("labelId") != "DefaultValue" &&
+                storedLabel.getProperty("labelId") == label.getProperty("labelId")) {
+                return;
+            }
+
+            if (storedLabel.getProperty("temporary_label_id") &&
+                storedLabel.getProperty("temporary_label_id") == label.getProperty("temporary_label_id")) {
+                return
+            }
+        }
+        neighborhoodLabels[neighborhoodId].push(label);
     }
 
     /** Refresh */
@@ -8934,7 +9410,9 @@ function LabelContainer() {
     }
 
     /**  Flush the canvasLabels */
-    function removeAll() { currentCanvasLabels = []; }
+    function removeAll() {
+        currentCanvasLabels = [];
+    }
 
     /**
      * This function removes a passed label and its child path and points
@@ -8962,15 +9440,20 @@ function LabelContainer() {
         svl.storage.set("labels", currentCanvasLabels);
     }
 
-
+    self.countLabels = countLabels;
+    self.fetchLabelsInANeighborhood = fetchLabelsInANeighborhood;
     self.getCanvasLabels = getCanvasLabels;
     self.getCurrentLabels = getCurrentLabels;
+    self.getPreviousLabels = getPreviousLabels;
 //    self.load = load;
     self.push = push;
+    self.pushToNeighborhoodLabels = pushToNeighborhoodLabels;
     self.refresh = refresh;
     self.removeAll = removeAll;
     self.removeLabel = removeLabel;
 //    self.save = save;
+
+    _init();
     return self;
 }
 /**
@@ -8984,13 +9467,19 @@ function LabelFactory () {
         temporaryLabelId = 1;
 
     function create (path, param) {
-        var label = new Label(path, param);
-        if (label) {
-            if (!('labelId' in param)) {
-                label.setProperty("temporary_label_id", temporaryLabelId);
-                temporaryLabelId++;
+        if (path) {
+            var label = new Label(path, param);
+            if (label) {
+                if (!('labelId' in param)) {
+                    label.setProperty("temporary_label_id", temporaryLabelId);
+                    temporaryLabelId++;
+                }
+                return label;
             }
-            return label;
+        } else {
+            // Todo. Definitely need rewrite.
+            path = new Path([new Point(0, 0, {}, {})]);
+            return new Label(path, param);
         }
     }
 
@@ -10016,6 +10505,7 @@ function Neighborhood (parameters) {
     var self = { className: "Neighborhood"},
         properties = {
             layer: null,
+            name: null,
             regionId: null
         },
         status = {
@@ -10031,6 +10521,9 @@ function Neighborhood (parameters) {
             self.regionId = parameters.regionId;  // for debugging
         }
         if ("layer" in parameters) setProperty("layer", parameters.layer);
+        if ("name" in parameters) {
+            setProperty("name", parameters.name);
+        }
     }
 
     /**
@@ -10101,7 +10594,7 @@ function Neighborhood (parameters) {
  * @constructor
  * @memberof svl
  */
-function NeighborhoodContainer (parameters) {
+function NeighborhoodContainer ($, parameters) {
     var self = { className: "NeighborhoodContainer" },
         neighborhoods = {},
         status = {
@@ -10130,6 +10623,14 @@ function NeighborhoodContainer (parameters) {
     function getCurrentNeighborhood () {
         return getStatus("currentNeighborhood");
     }
+    
+    function getNextRegionId (currentRegionId, availableRegionIds) {
+        var indexOfNextRegion = availableRegionIds.indexOf(currentRegionId.toString()) + 1;
+        if (indexOfNextRegion < 0) { 
+            indexOfNextRegion = 0; 
+        }
+        return availableRegionIds[indexOfNextRegion];
+    }
 
     /** Return a list of neighborhood ids */
     function getRegionIds () {
@@ -10138,6 +10639,25 @@ function NeighborhoodContainer (parameters) {
 
     function getStatus (key) {
         return status[key];
+    }
+
+    function moveToANewRegion (regionId) {
+        regionId = parseInt(regionId, 10);
+        var url = "/neighborhood/new";
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify({"region_id": regionId}),
+            dataType: 'json',
+            success: function (result) {
+
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
     }
 
     function setCurrentNeighborhood (neighborhood) {
@@ -10165,8 +10685,10 @@ function NeighborhoodContainer (parameters) {
     self.add = add;
     self.get = get;
     self.getCurrentNeighborhood = getCurrentNeighborhood;
+    self.getNextRegionId = getNextRegionId;
     self.getRegionIds = getRegionIds;
     self.getStatus = getStatus;
+    self.moveToANewRegion = moveToANewRegion;
     self.setCurrentNeighborhood = setCurrentNeighborhood;
     self.setStatus = setStatus;
 
@@ -10187,8 +10709,8 @@ function NeighborhoodFactory () {
      * @param layer Leaflet layer
      * @returns {Neighborhood}
      */
-    function create (regionId, layer) {
-        return new Neighborhood({regionId: regionId, layer: layer});
+    function create (regionId, layer, name) {
+        return new Neighborhood({regionId: regionId, layer: layer, name: name });
     }
 
     self.create = create;
@@ -10424,6 +10946,11 @@ function LabelCounter (d3) {
       //  .attr("class", "visible");
     }
 
+
+    function countLabel(labelType) {
+        return labelType in dotPlots ? dotPlots[labelType].count : null;
+    }
+
     /**
      * Set label counts to 0
      */
@@ -10456,20 +10983,6 @@ function LabelCounter (d3) {
               tenCircles = parseInt((dotPlots[key].count % 50) / 10),
               oneCircles = dotPlots[key].count % 10,
               count = fiftyCircles + tenCircles + oneCircles;
-          
-            // Update the label
-            //dotPlots[key].countLabel
-            //  .transition().duration(1000)
-            //  .attr("x", function () {
-            //    return x(higherDigits * 2 * (radius + dR) + firstDigit * 2 * radius)
-            //  })
-            //  .attr("y", function () {
-            //    return x(radius + dR - 0.05);
-            //  })
-            //  // .transition().duration(1000)
-            //  .text(function (d) {
-            //    return dotPlots[key].count;
-            //  });
 
             /* 
             the code of these three functions was being used so much I decided to seperately declare them
@@ -10596,7 +11109,7 @@ function LabelCounter (d3) {
 
     // Initialize
     update();
-
+    self.countLabel = countLabel;
     self.increment = increment;
     self.decrement = decrement;
     self.set = set;
@@ -10611,7 +11124,7 @@ function MissionStatus () {
     var missionMessages = {
         "onboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
-        "distance-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes in this neighborhood",
+        "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood.",
         "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood more accessible"
     };
     
@@ -10654,7 +11167,7 @@ function MissionStatus () {
             missionMessage = getMissionMessage(missionLabel);
 
         if (missionLabel == "distance-mission") {
-            if (mission.getProperty("level") <= 2) {
+            if (mission.getProperty("distanceMi") <= 1) {
                 missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
             } else {
                 missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
@@ -10674,6 +11187,11 @@ function MissionStatus () {
      */
     function updateMissionCompletionBar (completionRate) {
         var r, g, b, color, colorIntensity = 200;
+
+        // Update the %
+        printCompletionRate(completionRate);
+
+        // Update the bar
         if (completionRate < 0.6) {
             r = colorIntensity * 1.3;
             g = parseInt(colorIntensity * completionRate * 2);
@@ -10709,6 +11227,18 @@ function MissionStatus () {
 function NeighborhoodStatus () {
     var self = {className: "NeighborhoodStatus"};
 
+    function setAuditedDistance(distance) {
+        svl.ui.progress.auditedDistance.html(distance);
+    }
+
+    function setLabelCount(count) {
+        svl.ui.status.neighborhoodLabelCount.html(count);
+    }
+
+    function setNeighborhoodName(name) {
+        svl.ui.status.neighborhoodName.html(name + ", ");
+    }
+
     /**
      * Set the href attribute of the link
      * @param hrefString
@@ -10719,7 +11249,10 @@ function NeighborhoodStatus () {
         }
     }
 
+    self.setAuditedDistance = setAuditedDistance;
+    self.setLabelCount = setLabelCount;
     self.setHref = setHref;
+    self.setNeighborhoodName = setNeighborhoodName;
     return self;
 }
 /**
@@ -10751,64 +11284,6 @@ function StatusField () {
 
     return self;
 }
-//
-// /**
-//  * A MissionDescription module
-//  * @param $
-//  * @param params
-//  * @returns {{className: string}}
-//  * @constructor
-//  * @memberof svl
-//  */
-// function StatusMessage ($, params) {
-//     var self = { className : 'StatusMessage' };
-//
-//     function _init (params) {    }
-//
-//     function animate() {
-//         svl.ui.statusMessage.holder.removeClass('bounce animated').addClass('bounce animated').one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
-//             $(this).removeClass('bounce animated');
-//         });
-// //        $('#animationSandbox').removeClass().addClass('bounce animated').one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
-// //              $(this).removeClass();
-// //            });
-//     }
-//
-//     function restoreDefault () {
-//         setBackgroundColor('rgb(255, 255, 255)');
-//         setCurrentStatusDescription('Your mission is to find and label all the accessibility attributes in the sidewalks and streets.');
-//         setCurrentStatusTitle('Mission:');
-//     }
-//     /**
-//      *
-//      */
-//     function setBackgroundColor (rgb) {
-//         svl.ui.statusMessage.holder.css('background', rgb);
-//     }
-//
-//     /**
-//      * The method sets what's shown in the current status pane in the interface
-//      * @param description {string} A string (or html) to put.
-//      * @returns {self}
-//      */
-//     function setCurrentStatusDescription (description) {
-//       svl.ui.statusMessage.description.html(description);
-//       return this;
-//     }
-//
-//     function setCurrentStatusTitle (title) {
-//         svl.ui.statusMessage.title.html(title);
-//         return this;
-//     }
-//
-//     self.animate = animate;
-//     self.restoreDefault = restoreDefault;
-//     self.setBackgroundColor = setBackgroundColor;
-//     self.setCurrentStatusDescription = setCurrentStatusDescription;
-//     self.setCurrentStatusTitle = setCurrentStatusTitle;
-//     _init(params);
-//     return self;
-// }
 
 /**
  * ModalComment module.
@@ -11093,7 +11568,7 @@ function ModalMission ($, L) {
         if (label == "distance-mission") {
             // Set the title
             var distanceString;
-            if (mission.getProperty("level") <= 2) {
+            if (mission.getProperty("distanceMi") <= 1.0) {
                 missionTitle = missionTitle.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
                 distanceString = mission.getProperty("distanceFt") + "ft";
             } else {
@@ -11122,8 +11597,13 @@ function ModalMission ($, L) {
         $("#mission-badge-holder").html(badge);
 
         if (parameters && "callback" in parameters) {
-            $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+            // $("#modal-mission-holder").find(".ok-button").on("click", parameters.callback);
+            $("#modal-mission-close-button").one("click", function () {
+                hideMission();
+                parameters.callback();
+            });
         } else {
+            $("#modal-mission-close-button").one("click", hideMission);
             $("#modal-mission-holder").find(".ok-button").on("click", hideMission);
         }
 
@@ -11143,7 +11623,9 @@ function ModalMission ($, L) {
 
 /**
  * ModalMission module
- * @param $
+ * @param $ jquery library
+ * @param d3 d3 library
+ * @param L Leaflet library
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -11215,7 +11697,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
     var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
@@ -11237,7 +11719,7 @@ function ModalMissionComplete ($, d3, L) {
         .text(function (d) {
             return d;
         })
-        .style("visibility", "visible");
+        .style("visibility", "hidden");
 
 
     function _init () {
@@ -11353,6 +11835,8 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('left', -500);
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
+        $(".g-bar-chart").css('visibility', 'hidden');
+        $(".leaflet-zoom-animated path").css('visibility', 'hidden');
     }
 
     function setMissionTitle (missionTitle) {
@@ -11366,9 +11850,11 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
         svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-        svl.ui.modalMissionComplete.map.css('left', 0);
+        svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
         $(".leaflet-clickable").css('visibility', 'visible');
+        $(".g-bar-chart").css('visibility', 'visible');
+        $(".leaflet-zoom-animated path").css('visibility', 'visible');
 
 
         if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
@@ -11417,7 +11903,14 @@ function ModalMissionComplete ($, d3, L) {
                 }
 
 
-                setMissionTitle(mission.getProperty("label"));
+                var missionLabel = mission.getProperty("label");
+                if (missionLabel == "initial-mission") {
+                    setMissionTitle("Initial Mission");
+                } else {
+                    var neighborhoodName = neighborhood.getProperty("name");
+                    setMissionTitle(neighborhoodName);
+                }
+
                 _updateTheMissionCompleteMessage();
                 _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
                 _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
@@ -11434,27 +11927,28 @@ function ModalMissionComplete ($, d3, L) {
     function _updateTheMissionCompleteMessage() {
         var messages = [
                 'Couldn’t have done it better myself.',
-                'Aren’t you proud of yourself? We are.',
-                'WOWZA. Even the sidewalks are impressed. Keep labeling!',
+                'Aren’t you proud of yourself?</br>We are.',
+                'WOWZA. Even the sidewalks are impressed.</br> Keep labeling!',
                 'Your auditing is out of this world.',
-                'Incredible. You\'re a machine! ...no wait, I am.',
-                'Gold star. You can wear it proudly on your forehead all day if you\'d like, we won\'t judge.',
+                'Incredible. You\'re a machine!</br> ...no wait, I am.',
+                'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
                 'Ooh la la! Those accessibility labels are to die for.',
-                'We knew you had it in you all along. Great work!',
-                'Wow you did really well. You also did good! Kind of like superman.',
+                'We knew you had it in you all along. </br>Great work!',
+                'Wow you did really well. You also did good! </br>Kind of like superman.',
                 'You\'re one lightning bolt away from being a greek diety. Keep on going!',
-                '"Great job. Every accomplishment starts with the decision to try." - That inspirational poster in your office',
+                '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
                 'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
                 'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
                 'You. Are. Unstoppable. Keep it up!',
-                'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
-                'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
-                '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. - Chewbacca',
+                'Today you are Harry Potter\'s golden snitch. </br>Your wings are made of awesome.',
+                'They say unicorns don\'t exist, but hey!</br>We found you. Keep on keepin\' on.',
+                '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. </br>- Chewbacca',
                 'You\'re seriously talented. You could go pro at this.',
-                'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
-                'You might actually be a wizard. These sidewalks are better because of you.'
+                'Forget Frodo, I would have picked you to take the one ring to Mordor. </br>Great work!',
+                'You might actually be a wizard. </br>These sidewalks are better because of you.'
             ],
-            message = messages[Math.floor(Math.random() * messages.length)];
+            emojis = [' :D', ' :)', ' ;-)'],
+            message = messages[Math.floor(Math.random() * messages.length)] + emojis[Math.floor(Math.random() * emojis.length)];
         svl.ui.modalMissionComplete.message.html(message);
     }
 
@@ -11481,7 +11975,6 @@ function ModalSkip ($) {
 
     function _init () {
         disableClickOK();
-
         svl.ui.modalSkip.ok.bind("click", handlerClickOK);
         svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
         svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
@@ -11522,9 +12015,26 @@ function ModalSkip ($) {
                 lat: position.lat(),
                 lng: position.lng()
             };
+        var task = svl.taskContainer.getCurrentTask();
+        
+        // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
+        task.eraseFromGoogleMaps();
 
-        if ('form' in svl) svl.form.skipSubmit(incomplete);
-        if ('ribbon' in svl) svl.ribbon.backToWalk();
+        if (radioValue == "GSVNotAvailable") {
+            task.complete();
+            svl.taskContainer.push(task);  // Pushed to completed tasks.
+            svl.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+
+        if ('form' in svl && "taskContainer" in svl) {
+            svl.form.skipSubmit(incomplete, task);
+            svl.taskContainer.initNextTask();
+        }
+        
+        if ('ribbon' in svl) { 
+            svl.ribbon.backToWalk(); 
+        }
+
         hideSkipMenu();
     }
 
@@ -11843,6 +12353,12 @@ function UtilitiesColor () {
         return newRGBA;
     }
 
+    function RGBAToRGB (rgba) {
+        var rgbaValueArray = rgba.substring(5, rgba.length - 1).split(",");
+        var rgb = "rgb(" + rgbaValueArray[0] + "," + rgbaValueArray[1] + "," + rgbaValueArray[2] + ")";
+        return rgb;
+    }
+
     function changeAlphaRGBA(rgba, alpha) {
         // This function updates alpha value of the given rgba value.
         // Ex. if the input is rgba(200,200,200,0.5) and alpha 0.8,
@@ -12035,6 +12551,7 @@ function UtilitiesColor () {
     }
 
     self.RGBToRGBA = RGBToRGBA;
+    self.RGBAToRGB = RGBAToRGB;
     self.changeAlphaRGBA = changeAlphaRGBA;
     self.changeDarknessRGBA = changeDarknessRGBA;
     self.rgbToHsl = rgbToHsl;
@@ -12065,15 +12582,17 @@ svl.util.math.toDegrees = toDegrees;
  * @param angleInDegree
  * @returns {number}
  */
-function toRadians (angleInDegree) { return angleInDegree * (Math.PI / 180); }
+function toRadians (angleInDegree) {
+    return angleInDegree * (Math.PI / 180);
+}
 svl.util.math.toRadians = toRadians;
 
 /**
  * Given a latlng point and a dx and dy (in meters), return a latlng offset (dlng, dlat) .
  * I.e., the new point would be (lng + dlng, lat + dlat)
  * @param lat Current latitude.
- * @param dx Distance along the x-axis
- * @param dy Distance along the y-axis
+ * @param dx Distance along the x-axis in meters
+ * @param dy Distance along the y-axis in meters
  */
 function latlngOffset(lat, dx, dy) {
     var dlat = dy / 111111;
@@ -12862,6 +13381,7 @@ function Onboarding ($) {
             state: 0,
             isOnboarding: true
         },
+        numStates = 32,  // I'm hard coding the number of the states.
         states = {
             "initialize": {
                 "properties": {
@@ -12887,6 +13407,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(1/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                     return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
                 }
@@ -12913,6 +13434,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(2/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
                     return "label-attribute-1";
                 }
@@ -12943,6 +13465,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(3/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
                     return "rate-attribute-1";
                 }
@@ -12954,8 +13477,7 @@ function Onboarding ($) {
                     "severity": 1
                 },
                 "message": {
-                    "message": 'On this context menu, you can rate the quality of the curb ramp, ' +
-                    'where 1 is passable and 5 is not passable for a wheelchair user.</span> ' +
+                    "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not passable for a wheelchair user. ' +
                     '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                     "position": "top-right",
@@ -12964,6 +13486,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(4/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
@@ -13005,6 +13528,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(5/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
                     return "select-label-type-2";
                 }
@@ -13032,6 +13556,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(6/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
                     return "label-attribute-2";
                 }
@@ -13062,6 +13587,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(7/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
                     return "rate-severity-2";
                 }
@@ -13081,6 +13607,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(8/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
@@ -13113,7 +13640,7 @@ function Onboarding ($) {
                     "labelType": "NoCurbRamp"
                 },
                 "message": {
-                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Cub Ramp" button</span> to label it.',
+                    "message": 'Notice that there is no curb ramp at the end of this crosswalk. <span class="bold">Click the "Missing Curb Ramp" button</span> to label it.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13130,6 +13657,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(9/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
                     return "label-attribute-3";
                 }
@@ -13160,6 +13688,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(10/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
                     return "rate-severity-3";
                 }
@@ -13171,7 +13700,8 @@ function Onboarding ($) {
                     "severity": 3
                 },
                 "message": {
-                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> Just use your best judgment! <br>' +
+                    "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So, let’s <span class="bold">rate it as a 3.</span> ' +
+                    'When you rate accessibility, we just ask that you use <span class="bold">your best judgment!</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, a slightly severe problem">',
                     "position": "top-right",
                     "parameters": null
@@ -13179,6 +13709,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(11/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
@@ -13219,6 +13750,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(12/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
                     return "select-label-type-4";
                 }
@@ -13255,6 +13787,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(13/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
                     return "label-attribute-4";
                 }
@@ -13285,6 +13818,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(14/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
                     return "rate-severity-4";
                 }
@@ -13304,6 +13838,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(15/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
@@ -13353,6 +13888,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(16/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
                     return "label-attribute-5";
                 }
@@ -13383,6 +13919,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(17/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
                     return "rate-severity-5";
                 }
@@ -13402,6 +13939,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(18/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
@@ -13452,6 +13990,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(19/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
                     return "label-attribute-6";
                 }
@@ -13483,6 +14022,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(20/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
                     return "adjust-heading-angle-3";
                 }
@@ -13501,6 +14041,7 @@ function Onboarding ($) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(21/numStates);
                     svl.tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
                     return "walk-1";
                 }
@@ -13508,10 +14049,10 @@ function Onboarding ($) {
             "walk-1": {
                 "properties": {
                     "action": "WalkTowards",
-                    "panoId": "9xq0EwrjxGwQqNmzNaQTNA"
+                    "panoId": "bdmGHJkiSgmO7_80SnbzXw"
                 },
                 "message": {
-                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. Let’s take a step to see if we can get a better look.',
+                    "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. <span class="bold">Let’s take a step</span> to see if we can get a better look. To taske a step, double click on the circle below.',
                     "position": "top-right",
                     "parameters": null
                 },
@@ -13534,6 +14075,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(22/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
                     svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                     return "select-label-type-7";
@@ -13545,11 +14087,11 @@ function Onboarding ($) {
                     "labelType": "CurbRamp"
                 },
                 "message": {
-                    "message": 'Good! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
+                    "message": 'Good, you just took a step! There is a curb ramp. <span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": [
                     {
                         "type": "arrow",
@@ -13562,6 +14104,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(23/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
                     return "label-attribute-7";
                 }
@@ -13575,11 +14118,11 @@ function Onboarding ($) {
                     "tolerance": 300
                 },
                 "message": {
-                    "message": '<span class="bold">Click on the curb ramp to label it.</span>',
+                    "message": '<span class="bold">Click on the curb ramp (below the yellow arrow) to label it.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": [
                     {
                         "type": "arrow",
@@ -13592,6 +14135,7 @@ function Onboarding ($) {
                     }
                 ],
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(24/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
                     return "rate-severity-7";
                 }
@@ -13608,9 +14152,10 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(25/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
@@ -13629,7 +14174,7 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
@@ -13644,13 +14189,15 @@ function Onboarding ($) {
                     "tolerance": 20
                 },
                 "message": {
-                    "message": 'Great! Let’s adjust the view to look at another corner on the left. <span class="bold">Grab and drag the Street View image.</span>',
+                    "message": '<span class="bold">Ok, it\'s almost done!</span> Let’s adjust the view to look at the final corner in this intersection. ' +
+                    '<span class="bold">Grab and drag the Street View image.</span>',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(26/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
                     return "instruction-1";
                 }
@@ -13666,9 +14213,10 @@ function Onboarding ($) {
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(27/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
                     svl.compass.showMessage();
                     return "instruction-2";
@@ -13680,16 +14228,18 @@ function Onboarding ($) {
                     "blinks": ["google-maps", "compass"]
                 },
                 "message": {
-                    "message": 'From here on, we\'ll guide you which way to walk and with the navigation message ' +
+                    "message": 'From here on, we\'ll guide you through your missions with the navigation message ' +
                     '(<img src="' + svl.rootDirectory + "img/onboarding/Compass.png" + '" width="80px" alt="Navigation message: walk straight">) ' +
                     'and the red line on the map.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps">',
+                    '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" + '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying follow the red line on the Google Maps"> ' +
+                    'See flashing yellow highlights.',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(28/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
                     return "instruction-3";
                 }
@@ -13700,13 +14250,15 @@ function Onboarding ($) {
                     "blinks": ["status-field"]
                 },
                 "message": {
-                    "message": 'Your progress will be tracked and shown on the right side of the interface.',
+                    "message": 'Your <span class="bold">progress will be tracked and shown</span> on the right side of the interface. ' +
+                    'Your overall goal is to label as many accessibility problems as you find—such as missing curb ramps.',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(29/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                     return "instruction-4";
                 }
@@ -13718,14 +14270,15 @@ function Onboarding ($) {
                 },
                 "message": {
                     "message": 'Other interface features include: <br>' +
-                    '<span class="bold">Zoom In/Out:</span> Zoom in or out the Street View image<br> ' +
+                    '<span class="bold">Zooming:</span> Zoom in or out of the Street View image<br> ' +
                     '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(30/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
                     return "instruction-5";
                 }
@@ -13736,16 +14289,17 @@ function Onboarding ($) {
                     "blinks": ["sound", "jump", "feedback"]
                 },
                 "message": {
-                    "message": 'Other interface features include: <br>' +
-                    '<span class="bold">Sound:</span> Turn on/off the sound effects <br> ' +
-                    '<span class="bold">Jump:</span> Click if you want to audit a different street <br>' +
-                    '<span class="bold">Feedback:</span> Provide comments',
+                    "message": 'Finally, you can also control: <br>' +
+                    '<span class="bold">Sound:</span> turn on/off the sound effects <br> ' +
+                    '<span class="bold">Jump:</span> jump to a different street <br>' +
+                    '<span class="bold">Feedback:</span> provide comments about your mission or report bugs',
                     "position": "top-right",
                     "parameters": null
                 },
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(31/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
                     return "outro";
                 }
@@ -13769,17 +14323,21 @@ function Onboarding ($) {
                     "background": true
                 },
                 "okButton": false,
-                "panoId": "9xq0EwrjxGwQqNmzNaQTNA",
+                "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
+                    svl.missionStatus.updateMissionCompletionBar(32/numStates);
                     svl.tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
                     return null;
                 }
             }
+            
         };
 
     function _init () {
         status.isOnboarding = true;
+
+        svl.tracker.push('Onboarding_Start');
 
         if ("ui" in svl) {
             var canvas = svl.ui.onboarding.canvas.get(0);
@@ -13971,6 +14529,7 @@ function Onboarding ($) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
+            svl.tracker.push('Onboarding_End');
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);
@@ -13986,13 +14545,13 @@ function Onboarding ($) {
             }
 
             // Set the next mission
-            var mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-            if (mission.isCompleted()) {
-                var neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
-                var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-                missions.map(function (m) { if (!m.isCompleted()) return m;});
-                mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
-            }
+            // var mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
+            // if (mission.isCompleted()) {
+            var neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
+            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            missions.map(function (m) { if (!m.isCompleted()) return m;});
+            var mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
+
             svl.missionContainer.setCurrentMission(mission);
             svl.modalMission.setMission(mission);
             
@@ -14071,9 +14630,8 @@ function Onboarding ($) {
                 };
                 googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
 
-                $target = $("#onboarding-message-holder").find("button");
+                $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
                 callback = function () {
-                    $target.off("click", callback);
                     removeAnnotationListener();
                     next.call(this, state.transition);
                     svl.panorama.setPano(state.panoId);
@@ -14082,7 +14640,7 @@ function Onboarding ($) {
 
                     if ("compass" in svl) svl.compass.hideMessage();
                 };
-                $target.on("click", callback);
+                $target.one("click", callback);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
