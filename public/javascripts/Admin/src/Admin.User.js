@@ -47,7 +47,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
             },
             onEachFeature: function (feature, layer) {
                 layer.on({
-                    click: function (e) { console.log(feature); }
+                    click: function (e) {  }
                 })
             }
         })
@@ -139,8 +139,6 @@ function AdminUser(_, $, c3, d3, svl, params) {
             var taskInteractionArray = grouped[keys[keyIndex]];
             var taskInteractionArrayLength = taskInteractionArray.length;
             var svgWidth = $("#user-activity-chart").width();
-
-            console.log(taskInteractionArray)
 
             // Sort tasks by timestamp
             taskInteractionArray.sort(function (a, b) {

@@ -22,7 +22,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     * @return
     */
   def getAllMissions = UserAwareAction.async { implicit request =>
-    val missions: List[JsValue] = MissionTable.all.map(m => Json.toJson(m))
+    val missions: List[JsValue] = MissionTable.selectMissions.map(m => Json.toJson(m))
     Future.successful(Ok(JsArray(missions)))
   }
 
@@ -66,7 +66,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
         Future.successful(Ok(JsArray(missions)))
       case _ =>
-        val missions = MissionTable.all.map(m => Json.toJson(m))
+        val missions = MissionTable.selectMissions.map(m => Json.toJson(m))
         Future.successful(Ok(JsArray(missions)))
     }
   }

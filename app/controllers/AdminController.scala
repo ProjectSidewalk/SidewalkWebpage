@@ -211,7 +211,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def getMissionsCompletedByUsers = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)) {
-      val missionsCompleted = MissionTable.missionsCompletedByUsers.map(x =>
+      val missionsCompleted = MissionTable.selectMissionsCompletedByUsers.map(x =>
         Json.obj("usrename" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m, "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
       )
       Future.successful(Ok(JsArray(missionsCompleted)))
