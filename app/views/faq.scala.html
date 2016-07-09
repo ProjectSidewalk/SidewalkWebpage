@@ -5,8 +5,35 @@
     @navbar(user)
     <div class="container">
         <h1>FAQ - Image Labeling</h1>
+
+        <h2>Can I select the neighborhood to audit?</h2>
         <div class="row">
-            <div class="col-sm-12"><h2>Are there keyboard shortcuts to for the image labeling interface?</h2></div>
+            <div class="col-sm-12">
+                <p>
+                    Yes! Please follow the following steps:
+                </p>
+                <ol>
+                    <li>
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in with your account</a> (if you don't have an account, please sign up!)
+                    </li>
+                    <li>
+                        Go to your dashboard
+                    </li>
+                    <li>
+                        Select the neighborhood that you want to audit on the map
+                    </li>
+                </ol>
+
+                <div class="col-sm-6">
+                    <video muted controls alt="Instructional video on how to select a neighborhood to audit" style="width: 100%">
+                        <source src="@routes.Assets.at("videos/faq/SelectANeighborhood.mp4")" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+        </div>
+
+        <h2>Are there keyboard shortcuts to for the image labeling interface?</h2>
+        <div class="row">
             <div class="col-sm-12">
                 <div class="spacer10"></div>
                 <p class="text-justify">
@@ -67,8 +94,9 @@
             </div>
         </div>
         <div class="spacer30"></div>
+
+        <h2>What should I do when I find conflicting Street View images?</h2>
         <div class="row">
-            <div class="col-sm-12"><h2>What should I do when I find conflicting Street View images?</h2></div>
             <div class="col-sm-6">
                 <figure class="text-center">
                     <img src='@routes.Assets.at("images/faq/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
