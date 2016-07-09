@@ -83,7 +83,12 @@ object UserCurrentRegionTable {
     */
   def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
     try {
-      Some(userCurrentRegions.filter(_.userId === userId.toString).list.map(_.regionId).head)
+      // Get rid of deleted regions
+      val ucr = for {
+        (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
+      } yield ucr
+
+      Some(ucr.filter(_.userId === userId.toString).list.map(_.regionId).head)
     } catch {
       case e: NoSuchElementException => None
       case _: Throwable => None  // This shouldn't happen.

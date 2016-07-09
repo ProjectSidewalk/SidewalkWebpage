@@ -1,9 +1,11 @@
 package models.street
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
+import models.region.RegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.postgresql.util.PSQLException
@@ -58,11 +60,17 @@ object StreetEdgeTable {
 
   val db = play.api.db.slick.DB
   val auditTasks = TableQuery[AuditTaskTable]
+  val regions = TableQuery[RegionTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
+  val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
+
+  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   val completedAuditTasks = auditTasks.filter(_.completed === true)
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
+  val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
+
 
   /**
    * Returns a list of all the street edges
@@ -92,12 +100,6 @@ object StreetEdgeTable {
     * @return
     */
   def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
-    //    val distances = for {
-    //      (_streetEdges, _assignmentCounts) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeAssignmentCounts).on(_.streetEdgeId === _.streetEdgeId)
-    //      if _assignmentCounts.completionCount >= auditCount
-    //    } yield _streetEdges.geom.transform(26918).length
-    //    (distances.list.sum * 0.000621371).toFloat
-
     // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
     val edges = for {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
@@ -158,6 +160,23 @@ object StreetEdgeTable {
       """.stripMargin
     )
     selectAuditedStreetsQuery(regionId).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  def selectStreetsAuditedByAUser(userId: UUID, regionId: Int): List[StreetEdge] = db.withSession { implicit session =>
+    val selectAuditedStreetsQuery = Q.query[(String, Int), StreetEdge](
+      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.street_edge_region
+        |  ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        |INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.completed = TRUE
+        |  AND audit_task.user_id = ?
+        |WHERE street_edge_region.region_id=?
+        |  AND street_edge.deleted=FALSE
+      """.stripMargin
+    )
+    selectAuditedStreetsQuery((userId.toString, regionId)).list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
   /**
