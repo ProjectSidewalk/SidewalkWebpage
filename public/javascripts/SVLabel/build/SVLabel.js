@@ -505,8 +505,7 @@ function ActionStack () {
             svl.ui.actionStack.undo.toggleClass("highlight-50");
         }, 500);
     }
-
-
+    
     /**
      * Disable redo
      */
