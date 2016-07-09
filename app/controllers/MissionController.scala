@@ -96,7 +96,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   }
 
   /**
-    * 
+    *
     * @param userId
     * @param regionId
     */
