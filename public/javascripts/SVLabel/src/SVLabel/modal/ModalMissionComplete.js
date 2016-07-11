@@ -23,7 +23,7 @@ function ModalMissionComplete ($, d3, L) {
         map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
                 maxBounds: bounds,
                 maxZoom: 19,
-                minZoom: 9
+                minZoom: 10
             })
             .fitBounds(bounds);
     var overlayPolygon = {
@@ -37,7 +37,7 @@ function ModalMissionComplete ($, d3, L) {
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
-    var svgCoverageBarWidth = 335,
+    var svgCoverageBarWidth = 275,
         svgCoverageBarHeight = 20;
     var svgCoverageBar = d3.select("#modal-mission-complete-complete-bar")
         .append("svg")
@@ -60,7 +60,7 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(23, 55, 94, 1)")
+        .attr("fill", "rgba(49,130,189,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
@@ -82,7 +82,7 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(0,112,192,1)")
+        .attr("fill", "rgba(49,189,100,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
@@ -115,20 +115,21 @@ function ModalMissionComplete ($, d3, L) {
     }
 
     function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = "kilometers"; //why?
         svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
         svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
         svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
     }
 
+    
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
         // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
         // var missionTasks = mission.getRoute();
 
         if (completedTasks && missionTasks) {
             // Add layers http://leafletjs.com/reference.html#map-addlayer
-            var i, len, geojsonFeature, layer,
-                completedTaskLayerStyle = { color: "rgb(128, 128, 128)", opacity: 1, weight: 3 },
+            var i, len, geojsonFeature, featureCollection, layer,
+                completedTaskLayerStyle = { color: "rgb(49,189,100)", opacity: 1, weight: 3 },
                 missionTaskLayerStyle = { color: "rgb(49,130,189)", opacity: 1, weight: 3 };
 
             // Add the completed task layer
@@ -248,9 +249,10 @@ function ModalMissionComplete ($, d3, L) {
                 // Update the horizontal bar chart to show how much distance the user has audited
                 var unit = "miles";
                 var regionId = neighborhood.getProperty("regionId");
+                var missionDistance = mission.getProperty("distanceMi");
                 var auditedDistance = neighborhood.completedLineDistance(unit);
                 var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
-                var missionDistance = mission.getProperty("distanceMi");
+                
 
                 var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
                 var missionTasks = mission.getRoute();
