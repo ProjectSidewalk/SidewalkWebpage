@@ -1,5 +1,6 @@
 package controllers
 
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -7,7 +8,10 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
 import models.mission.{Mission, MissionTable, MissionUserTable}
-import models.user.User
+import models.street.StreetEdgeTable
+import models.user.{User, UserCurrentRegionTable}
+import org.geotools.geometry.jts.JTS
+import org.geotools.referencing.CRS
 import play.api.libs.json._
 import play.api.mvc.BodyParsers
 
@@ -24,6 +28,14 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   def getMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
+        // Get the missions for the currently assigned neighborhood.
+        // Compute the distance traveled thus far.
+        // Mark the missions that should be completed.
+        val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
+        if (regionId.isDefined) {
+          updatedUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
+        }
+
         val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
         val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId)
 
@@ -54,7 +66,20 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
         Future.successful(Ok(JsArray(concatenated)))
       case _ =>
-        Future.successful(Ok(JsArray(Seq())))
+        val missions = MissionTable.selectMissions
+        val missionJsonObjects: List[JsObject] = missions.map( m =>
+          Json.obj("is_completed" -> false,
+            "mission_id" -> m.missionId,
+            "region_id" -> m.regionId,
+            "label" -> m.label,
+            "level" -> m.level,
+            "distance" -> m.distance,
+            "distance_ft" -> m.distance_ft,
+            "distance_mi" -> m.distance_mi,
+            "coverage" -> m.coverage)
+        )
+
+        Future.successful(Ok(JsArray(missionJsonObjects)))
     }
   }
 
@@ -81,6 +106,25 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         Future.successful(Ok(Json.obj()))
       }
     )
+  }
+
+  /**
+    *
+    * @param userId
+    * @param regionId
+    */
+  def updatedUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
+    val missions = MissionTable.selectIncompleteMissionsByAUser(userId, regionId)
+    val streets = StreetEdgeTable.selectStreetsAuditedByAUser(userId, regionId)
+    val CRSEpsg4326 = CRS.decode("epsg:4326")
+    val CRSEpsg26918 = CRS.decode("epsg:26918")
+    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+    val completedDistance_m = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+
+    val missionsToComplete = missions.filter(_.distance.getOrElse(Double.PositiveInfinity) < completedDistance_m)
+    missionsToComplete.foreach { m =>
+      MissionUserTable.save(m.missionId, userId.toString)
+    }
   }
 }
 

@@ -505,8 +505,7 @@ function ActionStack () {
             svl.ui.actionStack.undo.toggleClass("highlight-50");
         }, 500);
     }
-
-
+    
     /**
      * Disable redo
      */
@@ -3081,10 +3080,12 @@ function Keyboard ($) {
                     moveBackward();
                     break;
             }
-        } else {
+
             if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                 e.preventDefault();
             }
+        } else {
+
         }
     }
 

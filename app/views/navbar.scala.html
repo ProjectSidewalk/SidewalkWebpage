@@ -23,14 +23,17 @@
 
                 @if(url.isDefined && url.get != "/audit") {
                     <li>
+                        <a href="@routes.ApplicationController.faq()" target="_blank">FAQ</a>
+                    </li>
+                    <li>
                         <a href='@routes.AuditController.audit' class="bold">Start Auditing</a>
                     </li>
                 } else {
                     <li>
-                        <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
+                        <a href="@routes.ApplicationController.faq()" target="_blank">FAQ</a>
                     </li>
                     <li>
-                        <a href="@routes.ApplicationController.faq()" target="_blank">FAQ</a>
+                        <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
                 }
 
