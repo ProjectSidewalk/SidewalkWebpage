@@ -11655,7 +11655,7 @@ function ModalMissionComplete ($, d3, L) {
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
-    var svgCoverageBarWidth = 335,
+    var svgCoverageBarWidth = 275,
         svgCoverageBarHeight = 20;
     var svgCoverageBar = d3.select("#modal-mission-complete-complete-bar")
         .append("svg")
