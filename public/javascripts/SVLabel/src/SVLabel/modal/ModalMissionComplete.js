@@ -121,7 +121,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
     }
 
-    
+
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
         // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
         // var missionTasks = mission.getRoute();
@@ -249,7 +249,23 @@ function ModalMissionComplete ($, d3, L) {
                 // Update the horizontal bar chart to show how much distance the user has audited
                 var unit = "miles";
                 var regionId = neighborhood.getProperty("regionId");
-                var missionDistance = mission.getProperty("distanceMi");
+
+                // doing this the basic long way
+                var secondMax = 0;
+                var maxDist = 0;
+                var completedMissions = svl.missionContainer.getCompletedMissions();
+                for(var i = 0;  i <  completedMissions.length; i++){
+                    if(completedMissions[i].getProperty("regionId") == regionId){
+                        var missionDist = completedMissions[i].getProperty("distanceMi");
+                        if(missionDist > maxDist){
+                            secondMax = maxDist;
+                            maxDist = missionDist;
+                        }
+                    }
+                }
+    
+
+                var missionDistance = mission.getProperty("distanceMi") - secondMax;
                 var auditedDistance = neighborhood.completedLineDistance(unit);
                 var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
                 
