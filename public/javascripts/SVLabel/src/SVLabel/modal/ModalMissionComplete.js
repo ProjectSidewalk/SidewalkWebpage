@@ -144,6 +144,9 @@ function ModalMissionComplete ($, d3, L) {
             len = missionTasks.length;
             for (i = 0; i < len; i++) {
                 geojsonFeature = missionTasks[i].getFeature();
+
+                
+
                 layer = L.geoJson(geojsonFeature).addTo(map);
                 layer.setStyle(missionTaskLayerStyle);
             }
@@ -249,11 +252,25 @@ function ModalMissionComplete ($, d3, L) {
                 // Update the horizontal bar chart to show how much distance the user has audited
                 var unit = "miles";
                 var regionId = neighborhood.getProperty("regionId");
-                var missionDistance = mission.getProperty("distanceMi");
+
+                // doing this the basic long way
+                var secondMax = 0;
+                var maxDist = 0;
+                var completedMissions = svl.missionContainer.getCompletedMissions();
+                for(var i = 0;  i <  completedMissions.length; i++){
+                    if(completedMissions[i].getProperty("regionId") == regionId){
+                        var missionDist = completedMissions[i].getProperty("distanceMi");
+                        if(missionDist > maxDist){
+                            secondMax = maxDist;
+                            maxDist = missionDist;
+                        }
+                    }
+                }
+ 
+                var missionDistance = mission.getProperty("distanceMi") - secondMax;
                 var auditedDistance = neighborhood.completedLineDistance(unit);
                 var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
                 
-
                 var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
                 var missionTasks = mission.getRoute();
                 var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
@@ -304,27 +321,29 @@ function ModalMissionComplete ($, d3, L) {
      * @private
      */
     function _updateTheMissionCompleteMessage() {
+        var weirdLineBreakMessages = [
+            'You\'re one lightning bolt away from being a greek diety. Keep on going!',
+            'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
+            '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
+            'Wow you did really well. You also did good! Kind of like superman.'
+        ];
         var messages = [
                 'Couldn’t have done it better myself.',
-                'Aren’t you proud of yourself?</br>We are.',
-                'WOWZA. Even the sidewalks are impressed.</br> Keep labeling!',
+                'Aren’t you proud of yourself?We are.',
+                'WOWZA. Even the sidewalks are impressed. Keep labeling!',
                 'Your auditing is out of this world.',
-                'Incredible. You\'re a machine!</br> ...no wait, I am.',
-                'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
+                'Incredible. You\'re a machine! ...no wait, I am.',
                 'Ooh la la! Those accessibility labels are to die for.',
-                'We knew you had it in you all along. </br>Great work!',
-                'Wow you did really well. You also did good! </br>Kind of like superman.',
-                'You\'re one lightning bolt away from being a greek diety. Keep on going!',
-                '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
-                'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
+                'We knew you had it in you all along. Great work!',
+                'The [mass x acceleration] is strong with this one. </br>(Physics + Star Wars, get it?)',
                 'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
                 'You. Are. Unstoppable. Keep it up!',
-                'Today you are Harry Potter\'s golden snitch. </br>Your wings are made of awesome.',
-                'They say unicorns don\'t exist, but hey!</br>We found you. Keep on keepin\' on.',
+                'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
+                'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
                 '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. </br>- Chewbacca',
                 'You\'re seriously talented. You could go pro at this.',
-                'Forget Frodo, I would have picked you to take the one ring to Mordor. </br>Great work!',
-                'You might actually be a wizard. </br>These sidewalks are better because of you.'
+                'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
+                'You might actually be a wizard. These sidewalks are better because of you.'
             ],
             emojis = [' :D', ' :)', ' ;-)'],
             message = messages[Math.floor(Math.random() * messages.length)] + emojis[Math.floor(Math.random() * emojis.length)];

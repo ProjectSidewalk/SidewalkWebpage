@@ -74,7 +74,7 @@
 }
 
 .modal-foreground p {
-    font-size: 10.5pt;
+    font-size: 12pt;
 }
 
 .modal-foreground .table {
@@ -91,7 +91,11 @@
     text-align: center;
 }
 
-.modal-foreground .btn {
+.modal-foreground #modal-mission-complete-message {
+    font-size: 10.5pt;
+}
+
+.modal-foreground .blue-btn {
     background: rgba(49,130,189,1);
     color: white;
     font-size: 14pt;
