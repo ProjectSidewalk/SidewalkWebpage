@@ -116,12 +116,21 @@ function ModalMissionComplete ($, d3, L) {
 
     function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
         if (!unit) unit = "kilometers"; //why?
-        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
+        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(1) + " " + unit);
+        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
+        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
     }
 
-    
+    /**
+     * This method takes tasks that has been completed in the current mission and *all* the tasks completed in the
+     * current neighborhood so far.
+     * WARNING: `completedTasks` include tasks completed in the current mission too.
+     * WARNING2: The current tasks are not included in neither of `missionTasks` and `completedTasks`
+     *
+     * @param missionTasks
+     * @param completedTasks
+     * @private
+     */
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
         // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
         // var missionTasks = mission.getRoute();
@@ -144,15 +153,11 @@ function ModalMissionComplete ($, d3, L) {
             len = missionTasks.length;
             for (i = 0; i < len; i++) {
                 geojsonFeature = missionTasks[i].getFeature();
-
-                
-
                 layer = L.geoJson(geojsonFeature).addTo(map);
                 layer.setStyle(missionTaskLayerStyle);
             }
         }
     }
-
 
     /**
      * Update the bar graph visualization
