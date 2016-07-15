@@ -11839,11 +11839,6 @@ function ModalMissionComplete ($, d3, L) {
                         _animateMissionTasks(coll, index+1, max);
                     }
                     else{
-                        // unlock zooming
-                        map.touchZoom.enable();
-                        map.doubleClickZoom.enable();
-                        map.scrollWheelZoom.enable();
-                        map.boxZoom.enable();
                         //render the complete path as plain svg to avoid scaling issues
                         renderPath(coll);
 
@@ -11879,15 +11874,6 @@ function ModalMissionComplete ($, d3, L) {
         }
     }
 
-    // create array of street edge ids from mission tasks
-    function streetEdgeIds(missionTasks){
-        var ids = [];
-        var len = missionTasks.length;
-        for(var i = 0; i < len; i++){
-            ids.push(missionTasks[i].getStreetEdgeId());
-        }
-        return ids;
-    }
     // render svg segments
     function renderPath(missionTasks){
         var missionTaskLayerStyle = { color: "rgb(100,240,110)", opacity: 1, weight: 3 };
@@ -11923,7 +11909,7 @@ function ModalMissionComplete ($, d3, L) {
                 .selectAll(".lineConnect")
                 .remove();
 
-            var newStreets = streetEdgeIds(missionTasks);
+            var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
             len = completedTasks.length;
             // Add the completed task layer
             for (i = 0; i < len; i++) {
@@ -11936,14 +11922,8 @@ function ModalMissionComplete ($, d3, L) {
                 }
             }
             
-            // Add the current mission layer
-            
+            // Add the current mission animation layer
             len = missionTasks.length;
-            // disable zooming while animating, gets re-enabled in animation function
-            map.touchZoom.disable();
-            map.doubleClickZoom.disable();
-            map.scrollWheelZoom.disable();
-            map.boxZoom.disable();
             _animateMissionTasks(missionTasks, 0, len-1);           
         }
 
@@ -12049,19 +12029,17 @@ function ModalMissionComplete ($, d3, L) {
                 var regionId = neighborhood.getProperty("regionId");
 
                 // doing this the basic long way
-                var secondMax = 0;
                 var maxDist = 0;
                 var completedMissions = svl.missionContainer.getCompletedMissions();
-                for(var i = 0;  i <  completedMissions.length; i++){
-                    if(completedMissions[i].getProperty("regionId") == regionId){
-                        var missionDist = completedMissions[i].getProperty("distanceMi");
-                        if(missionDist > maxDist){
-                            secondMax = maxDist;
-                            maxDist = missionDist;
-                        }
-                    }
+                // filter out missions not in this neighborhood
+                var regionMissions = completedMissions.filter( function (m) { return m.getProperty("regionId") == regionId; });
+                if(regionMissions.length > 1){
+                    // map mission distances and sort them descending
+                    var missionDistances =  regionMissions.map( function (d) { return d.getProperty("distanceMi"); }).sort().reverse();
+                    // take second highest (highest is this mission)
+                    maxDist = missionDistances[1];
                 }
-                var missionDistance = mission.getProperty("distanceMi") - secondMax;
+                var missionDistance = mission.getProperty("distanceMi") - maxDist;
                 var auditedDistance = neighborhood.completedLineDistance(unit);
                 var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
                 
@@ -12115,7 +12093,8 @@ function ModalMissionComplete ($, d3, L) {
      * @private
      */
     function _updateTheMissionCompleteMessage() {
-        var weirdLineBreakMessages = [
+        // unused because they caused formatting, linebreak, or text overflow issues
+        var unusedMessages = [
             'You\'re one lightning bolt away from being a greek diety. Keep on going!',
             'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
             '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
