@@ -125,7 +125,7 @@
 }
 
 .modal-foreground .mapbox #map-legend #green-square {
-    fill: rgba(49,189,100,1);
+    fill: rgba(100,240,110,1);
 }
 
 .modal-foreground .mapbox #map-legend #blue-square {
@@ -136,23 +136,12 @@
         position: relative;
 }
 
-.modal-foreground .leaflet-zoom-hide .travelMarker {
-        fill: yellow;
-        opacity: 0.75;
-    }
-.modal-foreground .leaflet-zoom-hide .waypoints {
-        fill: black;
-        opacity: 0;
-    }
-.modal-foreground .leaflet-zoom-hide .drinks {
-        stroke: black;
-        fill: red;
-    }
 .modal-foreground .leaflet-zoom-hide .lineConnect {
-        fill: none;
-        stroke: black;
-        opacity: 1;
-    }
+    fill: none;
+    stroke: rgb(100,240,110);
+    stroke-width: 3;
+    opacity: 0;
+}
 .leaflet-control-attribution {
     visibility: hidden;
 }
