@@ -340,8 +340,6 @@ function Main ($, d3, google, turf, params) {
                         svl.taskContainer.setCurrentTask(newTask);
                     }
                     var currentTask = svl.taskContainer.getCurrentTask();
-                    //var route = mission.computeRoute(currentTask);
-                    //mission.setRoute(route);
                 }
 
                 // Check if this an anonymous user or not.

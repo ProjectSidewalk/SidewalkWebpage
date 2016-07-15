@@ -126,8 +126,6 @@ function Mission(parameters) {
             svl.neighborhoodStatus.setLabelCount(count);
         }
 
-        
-
         // Reset the label counter
         if ('labelCounter' in svl) {
             labelCountsAtCompletion = {
@@ -155,7 +153,7 @@ function Mission(parameters) {
     }
 
     /**
-     *
+     * Warning. This method is not completed yet. Do not use.
      * @param currentTask
      * @param unit
      * @returns {*}
@@ -276,14 +274,22 @@ function Mission(parameters) {
         return getProperty("isCompleted");
     }
 
+    /**
+     * Push a completed task into `_tasksForTheMission`
+     * @param task
+     */
     function pushATaskToTheRoute(task) {
         _tasksForTheMission.push(task);
     }
 
+    /**
+     * Sets a property
+     */
     function setProperty (key, value) {
         properties[key] = value;
         return this;
     }
+
 
     /** Compute the remaining audit distance till complete (in meters) */
     function remainingAuditDistanceTillComplete () {
@@ -340,8 +346,6 @@ function Mission(parameters) {
      * @param unit
      */
     function totalLineDistance (unit) {
-        //var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
-        //return distances.sum();
         if (unit == "miles") {
             return getProperty("distanceMi");
         } else if (unit == "feet") {
@@ -360,12 +364,10 @@ function Mission(parameters) {
     self.getProperty = getProperty;
     self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
-    //self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
     self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
-    //self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
     self.totalLineDistance = totalLineDistance;

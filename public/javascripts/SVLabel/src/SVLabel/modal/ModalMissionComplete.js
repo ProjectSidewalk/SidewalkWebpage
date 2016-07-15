@@ -121,197 +121,16 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
     }
 
-    var coll = {"type":"FeatureCollection",
-                        "features":[
-                        {"type":"Feature","geometry":{"type":"LineString",
-                        "coordinates":[
-                        [-77.041402,38.8764389],
-                        [-77.059005,38.8864323],
-                        [-77.063005,38.8864250],
-                        [-77.063005,38.8964180],
-                        [-77.069005,38.8964180]
-                        ]},"properties":{"name":"line0"}},
-                        {"type":"Feature","geometry":{"type":"LineString",
-                        "coordinates":[
-                        [-77.069005,38.9164120],
-                        [-77.075005,38.9164120],
-                        [-77.075005,38.9364080],
-                        [-77.092005,38.9564080]
-                        ]}}]
-                        
-                    };
-
-    function lsToPoint(coll){
-        var coorList = coll.features[0].geometry.coordinates;
-        var featureList = [];
-        var len = coorList.length;
-
-        for(i = 0; i < len; i ++){
-            var feature = turf.point(coorList[i]);
-            featureList.push(feature);
-        }
-
-        var geoJSON = {
-            "type": "FeatureCollection",
-            "features": featureList
-        };
-
-        return geoJSON;
-
-
-    }
-
-    function _animateMissionTasks(){
-        // http://zevross.com/blog/2014/09/30/use-the-amazing-d3-library-to-animate-a-path-on-a-leaflet-map/
-        // using d3 on leaflet
-
-        var collection = lsToPoint(coll);
-        var featuresdata = collection.features;
-        svg = d3.select(map.getPanes().overlayPane).append("svg"),
-
-        g = svg.append("g").attr("class", "leaflet-zoom-hide");
-
-        var transform = d3.geo.transform({
-            point: projectPoint
-        });
-
-        var d3path = d3.geo.path().projection(transform);
-
-        var toLine = d3.svg.line()
-            .interpolate("linear")
-            .x(function(d) {
-                return applyLatLngToLayer(d).x;
-            })
-            .y(function(d) {
-                return applyLatLngToLayer(d).y;
-            });
-
-        var ptFeatures = g.selectAll("circle")
-            .data(featuresdata)
-            .enter()
-            .append("circle")
-            .attr("r", 3)
-            .attr("class", "waypoints");
-
-        var linePath = g.selectAll(".lineConnect")
-            .data([featuresdata])
-            .enter()
-            .append("path")
-            .attr("class", "lineConnect");
-
-        var marker = g.append("circle")
-            .attr("r", 10)
-            .attr("id", "marker")
-            .attr("class", "travelMarker");
-
-        var originANDdestination = [featuresdata[0], featuresdata[featuresdata.length-1]];
-
-        var begend = g.selectAll(".drinks")
-            .data(originANDdestination)
-            .enter()
-            .append("circle", ".drinks")
-            .attr("r", 5)
-            .style("fill", "red")
-            .style("opacity", "1");
-
-        map.on("viewreset", reset);
-
-        reset();
-        transition();
-
-        // Reposition the SVG to cover the features.
-        function reset() {
-            var bounds = d3path.bounds(collection),
-                topLeft = bounds[0],
-                bottomRight = bounds[1];
-
-            // for the points we need to convert from latlong
-            // to map units
-            begend.attr("transform",
-                function(d) {
-                    return "translate(" +
-                        applyLatLngToLayer(d).x + "," +
-                        applyLatLngToLayer(d).y + ")";
-                });
-
-            ptFeatures.attr("transform",
-                function(d) {
-                    return "translate(" +
-                        applyLatLngToLayer(d).x + "," +
-                        applyLatLngToLayer(d).y + ")";
-                });
-
-            // again, not best practice, but I'm harding coding
-            // the starting point
-
-            marker.attr("transform",
-                function() {
-                    var y = featuresdata[0].geometry.coordinates[1];
-                    var x = featuresdata[0].geometry.coordinates[0];
-                    return "translate(" +
-                        map.latLngToLayerPoint(new L.LatLng(y, x)).x + "," +
-                        map.latLngToLayerPoint(new L.LatLng(y, x)).y + ")";
-                });
-
-
-            // Setting the size and location of the overall SVG container
-            svg.attr("width", bottomRight[0] - topLeft[0] + 120)
-                .attr("height", bottomRight[1] - topLeft[1] + 120)
-                .style("left", topLeft[0] - 50 + "px")
-                .style("top", topLeft[1] - 50 + "px");
-
-
-            // linePath.attr("d", d3path);
-            linePath.attr("d", toLine);
-            // ptPath.attr("d", d3path);
-            g.attr("transform", "translate(" + (-topLeft[0] + 50) + "," + (-topLeft[1] + 50) + ")");
-
-        } // end reset
-
-        function transition() {
-            linePath.transition()
-                .duration(7500)
-                .attrTween("stroke-dasharray", tweenDash)
-                .style("opacity", "1")
-                .each("end", function() {
-                    //d3.select(this).call(transition);// infinite loop
-                }); 
-        } //end transition
-
-        // this function feeds the attrTween operator above with the 
-        // stroke and dash lengths
-        function tweenDash() {
-            return function(t) {
-                //total length of path (single value)
-                var l = linePath.node().getTotalLength(); 
-            
-                interpolate = d3.interpolateString("0," + l, l + "," + l);
-                //t is fraction of time 0-1 since transition began
-                var marker = d3.select("#marker");
-                
-              
-                var p = linePath.node().getPointAtLength(t * l);
-
-                //Move the marker to that point
-                marker.attr("transform", "translate(" + p.x + "," + p.y + ")"); //move marker
-                return interpolate(t);
-            }
-        } //end tweenDash
-
-      
-        function projectPoint(x, y) {
-            var point = map.latLngToLayerPoint(new L.LatLng(y, x));
-            this.stream.point(point.x, point.y);
-
-        }
-
-        function applyLatLngToLayer(d) {
-            var y = d.geometry.coordinates[1];
-            var x = d.geometry.coordinates[0];
-            return map.latLngToLayerPoint(new L.LatLng(y, x));
-        }  
-    }
-
+    /**
+     * This method takes tasks that has been completed in the current mission and *all* the tasks completed in the
+     * current neighborhood so far.
+     * WARNING: `completedTasks` include tasks completed in the current mission too.
+     * WARNING2: The current tasks are not included in neither of `missionTasks` and `completedTasks`
+     *
+     * @param missionTasks
+     * @param completedTasks
+     * @private
+     */
 
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
         // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
@@ -336,7 +155,6 @@ function ModalMissionComplete ($, d3, L) {
             len = missionTasks.length;
             for (i = 0; i < len; i++) {
                 geojsonFeature = missionTasks[i].getFeature();
-
                 layer = L.geoJson(geojsonFeature).addTo(map);
                 layer.setStyle(missionTaskLayerStyle);
             } 
@@ -346,7 +164,6 @@ function ModalMissionComplete ($, d3, L) {
 
         _animateMissionTasks();
     }
-
 
     /**
      * Update the bar graph visualization
