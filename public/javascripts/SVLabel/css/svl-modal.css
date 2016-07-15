@@ -132,6 +132,27 @@
     fill: rgba(49,130,189,1);
 }
 
+.modal-foreground .leaflet-zoom-hide svg {
+        position: relative;
+}
+
+.modal-foreground .leaflet-zoom-hide .travelMarker {
+        fill: yellow;
+        opacity: 0.75;
+    }
+.modal-foreground .leaflet-zoom-hide .waypoints {
+        fill: black;
+        opacity: 0;
+    }
+.modal-foreground .leaflet-zoom-hide .drinks {
+        stroke: black;
+        fill: red;
+    }
+.modal-foreground .leaflet-zoom-hide .lineConnect {
+        fill: none;
+        stroke: black;
+        opacity: 1;
+    }
 .leaflet-control-attribution {
     visibility: hidden;
 }

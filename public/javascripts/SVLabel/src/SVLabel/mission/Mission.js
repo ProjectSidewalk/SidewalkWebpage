@@ -276,20 +276,13 @@ function Mission(parameters) {
         return getProperty("isCompleted");
     }
 
-    /**
-     * Sets a property
-     */
+    function pushATaskToTheRoute(task) {
+        _tasksForTheMission.push(task);
+    }
+
     function setProperty (key, value) {
         properties[key] = value;
         return this;
-    }
-
-    /**
-     * Set a route
-     * @param tasksInARoute An array of tasks
-     */
-    function setRoute (tasksInARoute) {
-        _tasksForTheMission = tasksInARoute;
     }
 
     /** Compute the remaining audit distance till complete (in meters) */
@@ -347,8 +340,15 @@ function Mission(parameters) {
      * @param unit
      */
     function totalLineDistance (unit) {
-        var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
-        return distances.sum();
+        //var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
+        //return distances.sum();
+        if (unit == "miles") {
+            return getProperty("distanceMi");
+        } else if (unit == "feet") {
+            return getProperty("distanceFt");
+        } else {
+            return getProperty("distance");
+        }
     }
 
     _init(parameters);
@@ -360,11 +360,12 @@ function Mission(parameters) {
     self.getProperty = getProperty;
     self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
-    self.imperialDistance = imperialDistance;
+    //self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
+    self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
-    self.setRoute = setRoute;
+    //self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
     self.totalLineDistance = totalLineDistance;

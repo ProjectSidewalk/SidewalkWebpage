@@ -3613,8 +3613,8 @@ function Main ($, d3, google, turf, params) {
                         svl.taskContainer.setCurrentTask(newTask);
                     }
                     var currentTask = svl.taskContainer.getCurrentTask();
-                    var route = mission.computeRoute(currentTask);
-                    mission.setRoute(route);
+                    //var route = mission.computeRoute(currentTask);
+                    //mission.setRoute(route);
                 }
 
                 // Check if this an anonymous user or not.
@@ -4260,9 +4260,18 @@ function Map ($, google, turf, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
 
-        if ("canvas" in svl && svl.canvas) updateCanvas();
+        /*if ("canvas" in svl && svl.canvas) updateCanvas();
         if ("compass" in svl) svl.compass.update();
-        if ("missionProgress" in svl) svl.missionProgress.update();
+        if ("missionProgress" in svl) svl.missionProgress.update(); */
+        if ("canvas" in svl && svl.canvas) {
+            updateCanvas();
+        }
+        if ("compass" in svl) {
+            svl.compass.update();
+        }
+        if ("missionProgress" in svl) {
+            svl.missionProgress.update();
+        }
         if ("taskContainer" in svl) {
             svl.taskContainer.update();
 
@@ -4270,7 +4279,12 @@ function Map ($, google, turf, params) {
             var task = svl.taskContainer.getCurrentTask();
             if (task) {
                 if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+
                     svl.taskContainer.endTask(task);
+                    if ("missionContainer" in svl && svl.missionContainer) {
+                        var currentMission = svl.missionContainer.getCurrentMission();
+                        currentMission.pushATaskToTheRoute(task);
+                    }
                     var newTask = svl.taskContainer.nextTask(task);
                     svl.taskContainer.setCurrentTask(newTask);
                     
@@ -7855,20 +7869,13 @@ function Mission(parameters) {
         return getProperty("isCompleted");
     }
 
-    /**
-     * Sets a property
-     */
+    function pushATaskToTheRoute(task) {
+        _tasksForTheMission.push(task);
+    }
+
     function setProperty (key, value) {
         properties[key] = value;
         return this;
-    }
-
-    /**
-     * Set a route
-     * @param tasksInARoute An array of tasks
-     */
-    function setRoute (tasksInARoute) {
-        _tasksForTheMission = tasksInARoute;
     }
 
     /** Compute the remaining audit distance till complete (in meters) */
@@ -7926,8 +7933,15 @@ function Mission(parameters) {
      * @param unit
      */
     function totalLineDistance (unit) {
-        var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
-        return distances.sum();
+        //var distances = _tasksForTheMission.map(function (task) { return task.lineDistance(unit); });
+        //return distances.sum();
+        if (unit == "miles") {
+            return getProperty("distanceMi");
+        } else if (unit == "feet") {
+            return getProperty("distanceFt");
+        } else {
+            return getProperty("distance");
+        }
     }
 
     _init(parameters);
@@ -7939,11 +7953,12 @@ function Mission(parameters) {
     self.getProperty = getProperty;
     self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
-    self.imperialDistance = imperialDistance;
+    //self.imperialDistance = imperialDistance;
     self.isCompleted = isCompleted;
+    self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
-    self.setRoute = setRoute;
+    //self.setRoute = setRoute;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
     self.totalLineDistance = totalLineDistance;
@@ -11642,7 +11657,7 @@ function ModalMissionComplete ($, d3, L) {
         map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
                 maxBounds: bounds,
                 maxZoom: 19,
-                minZoom: 9
+                minZoom: 10
             })
             .fitBounds(bounds);
     var overlayPolygon = {
@@ -11679,7 +11694,7 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(23, 55, 94, 1)")
+        .attr("fill", "rgba(49,130,189,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
@@ -11701,7 +11716,7 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(0,112,192,1)")
+        .attr("fill", "rgba(49,189,100,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
@@ -11734,11 +11749,203 @@ function ModalMissionComplete ($, d3, L) {
     }
 
     function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
-        if (!unit) unit = "kilometers";
-        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(2) + " " + unit);
-        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(2) + " " + unit);
+        if (!unit) unit = "kilometers"; //why?
+        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(1) + " " + unit);
+        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
+        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
     }
+
+    var coll = {"type":"FeatureCollection",
+                        "features":[
+                        {"type":"Feature","geometry":{"type":"LineString",
+                        "coordinates":[
+                        [-77.041402,38.8764389],
+                        [-77.059005,38.8864323],
+                        [-77.063005,38.8864250],
+                        [-77.063005,38.8964180],
+                        [-77.069005,38.8964180]
+                        ]},"properties":{"name":"line0"}},
+                        {"type":"Feature","geometry":{"type":"LineString",
+                        "coordinates":[
+                        [-77.069005,38.9164120],
+                        [-77.075005,38.9164120],
+                        [-77.075005,38.9364080],
+                        [-77.092005,38.9564080]
+                        ]}}]
+                        
+                    };
+
+    function lsToPoint(coll){
+        var coorList = coll.features[0].geometry.coordinates;
+        var featureList = [];
+        var len = coorList.length;
+
+        for(i = 0; i < len; i ++){
+            var feature = turf.point(coorList[i]);
+            featureList.push(feature);
+        }
+
+        var geoJSON = {
+            "type": "FeatureCollection",
+            "features": featureList
+        };
+
+        return geoJSON;
+
+
+    }
+
+    function _animateMissionTasks(){
+        // http://zevross.com/blog/2014/09/30/use-the-amazing-d3-library-to-animate-a-path-on-a-leaflet-map/
+        // using d3 on leaflet
+
+        var collection = lsToPoint(coll);
+        var featuresdata = collection.features;
+        svg = d3.select(map.getPanes().overlayPane).append("svg"),
+
+        g = svg.append("g").attr("class", "leaflet-zoom-hide");
+
+        var transform = d3.geo.transform({
+            point: projectPoint
+        });
+
+        var d3path = d3.geo.path().projection(transform);
+
+        var toLine = d3.svg.line()
+            .interpolate("linear")
+            .x(function(d) {
+                return applyLatLngToLayer(d).x;
+            })
+            .y(function(d) {
+                return applyLatLngToLayer(d).y;
+            });
+
+        var ptFeatures = g.selectAll("circle")
+            .data(featuresdata)
+            .enter()
+            .append("circle")
+            .attr("r", 3)
+            .attr("class", "waypoints");
+
+        var linePath = g.selectAll(".lineConnect")
+            .data([featuresdata])
+            .enter()
+            .append("path")
+            .attr("class", "lineConnect");
+
+        var marker = g.append("circle")
+            .attr("r", 10)
+            .attr("id", "marker")
+            .attr("class", "travelMarker");
+
+        var originANDdestination = [featuresdata[0], featuresdata[featuresdata.length-1]];
+
+        var begend = g.selectAll(".drinks")
+            .data(originANDdestination)
+            .enter()
+            .append("circle", ".drinks")
+            .attr("r", 5)
+            .style("fill", "red")
+            .style("opacity", "1");
+
+        map.on("viewreset", reset);
+
+        reset();
+        transition();
+
+        // Reposition the SVG to cover the features.
+        function reset() {
+            var bounds = d3path.bounds(collection),
+                topLeft = bounds[0],
+                bottomRight = bounds[1];
+
+            // for the points we need to convert from latlong
+            // to map units
+            begend.attr("transform",
+                function(d) {
+                    return "translate(" +
+                        applyLatLngToLayer(d).x + "," +
+                        applyLatLngToLayer(d).y + ")";
+                });
+
+            ptFeatures.attr("transform",
+                function(d) {
+                    return "translate(" +
+                        applyLatLngToLayer(d).x + "," +
+                        applyLatLngToLayer(d).y + ")";
+                });
+
+            // again, not best practice, but I'm harding coding
+            // the starting point
+
+            marker.attr("transform",
+                function() {
+                    var y = featuresdata[0].geometry.coordinates[1];
+                    var x = featuresdata[0].geometry.coordinates[0];
+                    return "translate(" +
+                        map.latLngToLayerPoint(new L.LatLng(y, x)).x + "," +
+                        map.latLngToLayerPoint(new L.LatLng(y, x)).y + ")";
+                });
+
+
+            // Setting the size and location of the overall SVG container
+            svg.attr("width", bottomRight[0] - topLeft[0] + 120)
+                .attr("height", bottomRight[1] - topLeft[1] + 120)
+                .style("left", topLeft[0] - 50 + "px")
+                .style("top", topLeft[1] - 50 + "px");
+
+
+            // linePath.attr("d", d3path);
+            linePath.attr("d", toLine);
+            // ptPath.attr("d", d3path);
+            g.attr("transform", "translate(" + (-topLeft[0] + 50) + "," + (-topLeft[1] + 50) + ")");
+
+        } // end reset
+
+        function transition() {
+            linePath.transition()
+                .duration(7500)
+                .attrTween("stroke-dasharray", tweenDash)
+                .style("opacity", "1")
+                .each("end", function() {
+                    //d3.select(this).call(transition);// infinite loop
+                }); 
+        } //end transition
+
+        // this function feeds the attrTween operator above with the 
+        // stroke and dash lengths
+        function tweenDash() {
+            return function(t) {
+                //total length of path (single value)
+                var l = linePath.node().getTotalLength(); 
+            
+                interpolate = d3.interpolateString("0," + l, l + "," + l);
+                //t is fraction of time 0-1 since transition began
+                var marker = d3.select("#marker");
+                
+              
+                var p = linePath.node().getPointAtLength(t * l);
+
+                //Move the marker to that point
+                marker.attr("transform", "translate(" + p.x + "," + p.y + ")"); //move marker
+                return interpolate(t);
+            }
+        } //end tweenDash
+
+      
+        function projectPoint(x, y) {
+            var point = map.latLngToLayerPoint(new L.LatLng(y, x));
+            this.stream.point(point.x, point.y);
+
+        }
+
+        function applyLatLngToLayer(d) {
+            var y = d.geometry.coordinates[1];
+            var x = d.geometry.coordinates[0];
+            return map.latLngToLayerPoint(new L.LatLng(y, x));
+        }  
+    }
+
 
     function _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks) {
         // var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
@@ -11746,26 +11953,32 @@ function ModalMissionComplete ($, d3, L) {
 
         if (completedTasks && missionTasks) {
             // Add layers http://leafletjs.com/reference.html#map-addlayer
-            var i, len, geojsonFeature, layer,
-                completedTaskLayerStyle = { color: "rgb(128, 128, 128)", opacity: 1, weight: 3 },
-                missionTaskLayerStyle = { color: "rgb(49,130,189)", opacity: 1, weight: 3 };
+            var i, len, geojsonFeature, featureCollection, layer,
+                completedTaskLayerStyle = { color: "rgb(49,130,189)", opacity: 1, weight: 3 },
+                missionTaskLayerStyle = { color: "rgb(49,189,100)", opacity: 1, weight: 3 };
 
             // Add the completed task layer
+            
             len = completedTasks.length;
             for (i = 0; i < len; i++) {
                 geojsonFeature = completedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(map);
                 layer.setStyle(completedTaskLayerStyle);
             }
-
+            
             // Add the current mission layer
             len = missionTasks.length;
             for (i = 0; i < len; i++) {
                 geojsonFeature = missionTasks[i].getFeature();
+
                 layer = L.geoJson(geojsonFeature).addTo(map);
                 layer.setStyle(missionTaskLayerStyle);
-            }
+            } 
+            
+        
         }
+
+        _animateMissionTasks();
     }
 
 
@@ -11867,10 +12080,24 @@ function ModalMissionComplete ($, d3, L) {
                 // Update the horizontal bar chart to show how much distance the user has audited
                 var unit = "miles";
                 var regionId = neighborhood.getProperty("regionId");
+
+                // doing this the basic long way
+                var secondMax = 0;
+                var maxDist = 0;
+                var completedMissions = svl.missionContainer.getCompletedMissions();
+                for(var i = 0;  i <  completedMissions.length; i++){
+                    if(completedMissions[i].getProperty("regionId") == regionId){
+                        var missionDist = completedMissions[i].getProperty("distanceMi");
+                        if(missionDist > maxDist){
+                            secondMax = maxDist;
+                            maxDist = missionDist;
+                        }
+                    }
+                }
+                var missionDistance = mission.getProperty("distanceMi") - secondMax;
                 var auditedDistance = neighborhood.completedLineDistance(unit);
                 var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
-                var missionDistance = mission.getProperty("distanceMi");
-
+                
                 var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
                 var missionTasks = mission.getRoute();
                 var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
@@ -11921,27 +12148,29 @@ function ModalMissionComplete ($, d3, L) {
      * @private
      */
     function _updateTheMissionCompleteMessage() {
+        var weirdLineBreakMessages = [
+            'You\'re one lightning bolt away from being a greek diety. Keep on going!',
+            'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
+            '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
+            'Wow you did really well. You also did good! Kind of like superman.'
+        ];
         var messages = [
                 'Couldn’t have done it better myself.',
-                'Aren’t you proud of yourself?</br>We are.',
-                'WOWZA. Even the sidewalks are impressed.</br> Keep labeling!',
+                'Aren’t you proud of yourself?We are.',
+                'WOWZA. Even the sidewalks are impressed. Keep labeling!',
                 'Your auditing is out of this world.',
-                'Incredible. You\'re a machine!</br> ...no wait, I am.',
-                'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
+                'Incredible. You\'re a machine! ...no wait, I am.',
                 'Ooh la la! Those accessibility labels are to die for.',
-                'We knew you had it in you all along. </br>Great work!',
-                'Wow you did really well. You also did good! </br>Kind of like superman.',
-                'You\'re one lightning bolt away from being a greek diety. Keep on going!',
-                '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
-                'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
+                'We knew you had it in you all along. Great work!',
+                'The [mass x acceleration] is strong with this one. </br>(Physics + Star Wars, get it?)',
                 'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
                 'You. Are. Unstoppable. Keep it up!',
-                'Today you are Harry Potter\'s golden snitch. </br>Your wings are made of awesome.',
-                'They say unicorns don\'t exist, but hey!</br>We found you. Keep on keepin\' on.',
+                'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
+                'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
                 '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. </br>- Chewbacca',
                 'You\'re seriously talented. You could go pro at this.',
-                'Forget Frodo, I would have picked you to take the one ring to Mordor. </br>Great work!',
-                'You might actually be a wizard. </br>These sidewalks are better because of you.'
+                'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
+                'You might actually be a wizard. These sidewalks are better because of you.'
             ],
             emojis = [' :D', ' :)', ' ;-)'],
             message = messages[Math.floor(Math.random() * messages.length)] + emojis[Math.floor(Math.random() * emojis.length)];

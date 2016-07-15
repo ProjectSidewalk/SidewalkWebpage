@@ -505,9 +505,18 @@ function Map ($, google, turf, params) {
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
 
-        if ("canvas" in svl && svl.canvas) updateCanvas();
+        /*if ("canvas" in svl && svl.canvas) updateCanvas();
         if ("compass" in svl) svl.compass.update();
-        if ("missionProgress" in svl) svl.missionProgress.update();
+        if ("missionProgress" in svl) svl.missionProgress.update(); */
+        if ("canvas" in svl && svl.canvas) {
+            updateCanvas();
+        }
+        if ("compass" in svl) {
+            svl.compass.update();
+        }
+        if ("missionProgress" in svl) {
+            svl.missionProgress.update();
+        }
         if ("taskContainer" in svl) {
             svl.taskContainer.update();
 
@@ -515,7 +524,12 @@ function Map ($, google, turf, params) {
             var task = svl.taskContainer.getCurrentTask();
             if (task) {
                 if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+
                     svl.taskContainer.endTask(task);
+                    if ("missionContainer" in svl && svl.missionContainer) {
+                        var currentMission = svl.missionContainer.getCurrentMission();
+                        currentMission.pushATaskToTheRoute(task);
+                    }
                     var newTask = svl.taskContainer.nextTask(task);
                     svl.taskContainer.setCurrentTask(newTask);
                     
