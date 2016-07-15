@@ -513,8 +513,6 @@ function Map ($, google, turf, params) {
         if ("missionProgress" in svl) {
             svl.missionProgress.update();
         }
-
->>>>>>> c8e4c22be2fc482447b4627fd1c695f9572cbf0f
         if ("taskContainer" in svl) {
             svl.taskContainer.update();
 
