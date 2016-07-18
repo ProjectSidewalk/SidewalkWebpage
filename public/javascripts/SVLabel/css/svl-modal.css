@@ -87,10 +87,61 @@
     font-weight: normal;
 }
 
-.modal-foreground .button {
+.modal-foreground .col-right {
+    text-align: center;
+}
+
+.modal-foreground #modal-mission-complete-message {
+    font-size: 10.5pt;
+}
+
+.modal-foreground .blue-btn {
+    background: rgba(49,130,189,1);
+    color: white;
+    font-size: 14pt;
     width: 100%;
 }
 
+.modal-foreground .button {
+    width: 100%;
+}
+.modal-foreground .mapbox{
+    position: relative;
+}
+.modal-foreground .mapbox #map-legend {
+    font-size: 8pt;
+    position: absolute;
+    top: 375px;
+    right: 0px;
+    width: 120px; 
+    height: 40px; 
+    border-radius: 3px;
+    background-color: rgba(240,240,240,1);
+}
+
+.modal-foreground .mapbox #map-legend .legend-label {
+    margin-left: 5px;
+    margin-top: 5px;
+}
+
+.modal-foreground .mapbox #map-legend #green-square {
+    fill: rgba(100,240,110,1);
+}
+
+.modal-foreground .mapbox #map-legend #blue-square {
+    fill: rgba(49,130,189,1);
+}
+
+.modal-foreground .leaflet-zoom-hide svg {
+        position: relative;
+}
+
+.modal-foreground .leaflet-zoom-hide .lineConnect {
+    fill: none;
+    stroke: rgb(100,240,110);
+    stroke-width: 3;
+    opacity: 0;
+}
 .leaflet-control-attribution {
     visibility: hidden;
 }
@@ -106,7 +157,7 @@
 
 #modal-mission-complete-map {
     position: absolute;
-    width: 350px;
+    width: 415px;
     height: 420px;
 }
 
