@@ -68,24 +68,17 @@ function MissionStatus () {
      * This method updates the filler of the completion bar
      */
     function updateMissionCompletionBar (completionRate) {
-        var r, g, b, color, colorIntensity = 200;
-
+        var color;
         // Update the %
         printCompletionRate(completionRate);
 
         // Update the bar
-        if (completionRate < 0.6) {
-            r = colorIntensity * 1.3;
-            g = parseInt(colorIntensity * completionRate * 2);
-            b = 20;
+        if (completionRate < 1) {
+            color = 'rgba(0, 161, 203, 1)'; // obstacle blue
         }
-        // TODO change green threshold to ~90%
         else {
-            r = parseInt(colorIntensity * (1 - completionRate) * 1.7);
-            g = colorIntensity;
-            b = 100;
-        }
-        color = 'rgba(' + r + ',' + g + ',' + b + ',1)';
+            color = 'rgba(0, 222, 38, 1)'; // curb ramp green
+        }   
         completionRate *=  100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);

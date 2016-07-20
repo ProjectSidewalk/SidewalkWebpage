@@ -36,7 +36,7 @@ function Neighborhood (parameters) {
      */
     function addTo(map, layerStyle) {
         if (map && properties.layer && !status.layerAdded) {
-            layerStyle = { color: "rgb(161,217,155)", opacity: 0.5, fillColor: "rgb(255,255,255)", fillOpacity: 0.5, weight: 0 } || layerStyle;
+            layerStyle = {"color":"rgb(200,200,200)", "fill": false, "weight": 2 } || layerStyle;
             status.layerAdded = true;
             properties.layer.addTo(map);
             properties.layer.setStyle(layerStyle);
