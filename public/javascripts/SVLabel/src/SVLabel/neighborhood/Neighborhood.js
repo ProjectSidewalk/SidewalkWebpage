@@ -81,6 +81,14 @@ function Neighborhood (parameters) {
         }
     }
 
+    function getGeoJSON(){
+        var layer = properties.layer;
+        if (layer){
+            return layer.getLayers()[0].feature;
+        } else {
+            return null;
+        }
+    }
     _init(parameters);
 
     self.addTo = addTo;
@@ -89,5 +97,6 @@ function Neighborhood (parameters) {
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.totalLineDistance = totalLineDistanceInARegion;
+    self.getGeoJSON = getGeoJSON;
     return self;
 }
