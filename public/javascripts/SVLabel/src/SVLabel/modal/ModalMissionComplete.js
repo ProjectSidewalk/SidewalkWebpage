@@ -26,14 +26,9 @@ function ModalMissionComplete ($, d3, L) {
                 minZoom: 10
             })
             .fitBounds(bounds);
-    var overlayPolygon = {
-        "type": "FeatureCollection",
-        "features": [{"type": "Feature", "geometry": {
-            "type": "Polygon", "coordinates": [
-                [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
-            ]}}]};
-    var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-    overlayPolygonLayer.setStyle({ "fillColor": "rgb(255, 255, 255)", "weight": 0 });
+    // these two are defined globaly so that they can be added in show and removed in hide
+    var overlayPolygon;
+    var overlayPolygonLayer;
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
@@ -50,7 +45,7 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(240, 240, 240, 1)")
+        .attr("fill", "rgba(220, 220, 220, 1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", svgCoverageBarWidth);
 
@@ -63,19 +58,7 @@ function ModalMissionComplete ($, d3, L) {
         .attr("fill", "rgba(49,130,189,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
-    var horizontalBarPreviousContributionLabel = gBarChart.selectAll("text")
-        .data([""])
-        .enter().append("text")
-        .attr("x", 3)
-        .attr("y", 15)
-        .attr("dx", 3)
-        .attr("fill", "white")
-        .attr("font-size", "10pt")
-        .text(function (d) {
-            return d;
-        })
-        .style("visibility", "hidden");
-
+ 
     var gBarChart2 = svgCoverageBar.append("g").attr("class", "g-bar-chart");
     var horizontalBarMission = gBarChart2.selectAll("rect")
         .data([0])
@@ -90,7 +73,7 @@ function ModalMissionComplete ($, d3, L) {
         .enter().append("text")
         .attr("x", 3)
         .attr("y", 15)
-        .attr("dx", 3)
+        .attr("dx", 0)
         .attr("fill", "white")
         .attr("font-size", "10pt")
         .text(function (d) {
@@ -210,9 +193,7 @@ function ModalMissionComplete ($, d3, L) {
                     else{
                         //render the complete path as plain svg to avoid scaling issues
                         renderPath(coll);
-
-                    }
-                    
+                    }  
                 }); 
         } //end transition
 
@@ -293,7 +274,9 @@ function ModalMissionComplete ($, d3, L) {
             
             // Add the current mission animation layer
             len = missionTasks.length;
-            _animateMissionTasks(missionTasks, 0, len-1);           
+            if(len > 0){
+                _animateMissionTasks(missionTasks, 0, len-1);    
+            }       
         }
 
     }
@@ -310,19 +293,14 @@ function ModalMissionComplete ($, d3, L) {
            .delay(200)
            .duration(800)
            .attr("width", auditedDistanceRate * svgCoverageBarWidth);
-       horizontalBarPreviousContributionLabel.transition()
-           .delay(200)
-           .text(parseInt(auditedDistanceRate * 100, 10) + "%");
-
+       
        horizontalBarMission.attr("width", 0)
            .attr("x", auditedDistanceRate * svgCoverageBarWidth)
            .transition()
            .delay(1000)
            .duration(500)
            .attr("width", missionDistanceRate * svgCoverageBarWidth);
-       horizontalBarMissionLabel.attr("x", auditedDistanceRate * svgCoverageBarWidth + 3)
-           .transition().delay(1000)
-           .text(parseInt(missionDistanceRate * 100, 10) + "%");
+       horizontalBarMissionLabel.text(parseInt(auditedDistanceRate * 100, 10) + "%");
     }
 
     /**
@@ -354,10 +332,15 @@ function ModalMissionComplete ($, d3, L) {
      * Hide a mission
      */
     function hideMissionComplete () {
+        if (overlayPolygonLayer) {
+            map.removeLayer(overlayPolygonLayer);            
+        }
+
         svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
         svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
         svl.ui.modalMissionComplete.map.css('top', 500);
         svl.ui.modalMissionComplete.map.css('left', -500);
+        horizontalBarMissionLabel.style("visibility", "hidden");
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
         $(".g-bar-chart").css('visibility', 'hidden');
@@ -377,6 +360,7 @@ function ModalMissionComplete ($, d3, L) {
         svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
         svl.ui.modalMissionComplete.map.css('left', 15);
         // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
+        horizontalBarMissionLabel.style("visibility", "visible");
         $(".leaflet-clickable").css('visibility', 'visible');
         $(".g-bar-chart").css('visibility', 'visible');
         $(".leaflet-zoom-animated path").css('visibility', 'visible');
@@ -388,7 +372,23 @@ function ModalMissionComplete ($, d3, L) {
             if (neighborhood && mission) {
                 // Focus on the current region on the Leaflet map
                 var center = neighborhood.center();
-                neighborhood.addTo(map);
+                var neighborhoodGeom = neighborhood.getGeoJSON();
+                // overlay of entire map bounds
+                overlayPolygon = {
+                    "type": "FeatureCollection",
+                    "features": [{"type": "Feature", "geometry": {
+                    "type": "Polygon", "coordinates": [
+                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+                ]}}]};
+                // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
+                var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, "miles");
+                var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
+                // cut out neighborhood from overlay
+                overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
+                overlayPolygonLayer = L.geoJson(overlayPolygon);
+                // everything but current neighborhood grayed out
+                overlayPolygonLayer.setStyle({ "opacity": 0, "fillColor": "rgb(110, 110, 110)", "fillOpacity": 0.25});
+                overlayPolygonLayer.addTo(map);
                 if (center) {
                     map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
                 }
@@ -471,18 +471,18 @@ function ModalMissionComplete ($, d3, L) {
         ];
         var messages = [
                 'Couldn’t have done it better myself.',
-                'Aren’t you proud of yourself?We are.',
+                'Aren’t you proud of yourself? We are!',
                 'WOWZA. Even the sidewalks are impressed. Keep labeling!',
                 'Your auditing is out of this world.',
                 'Incredible. You\'re a machine! ...no wait, I am.',
                 'Ooh la la! Those accessibility labels are to die for.',
                 'We knew you had it in you all along. Great work!',
-                'The [mass x acceleration] is strong with this one. </br>(Physics + Star Wars, get it?)',
+                'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
                 'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
                 'You. Are. Unstoppable. Keep it up!',
                 'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
                 'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
-                '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. </br>- Chewbacca',
+                '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. - Chewbacca',
                 'You\'re seriously talented. You could go pro at this.',
                 'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
                 'You might actually be a wizard. These sidewalks are better because of you.'
