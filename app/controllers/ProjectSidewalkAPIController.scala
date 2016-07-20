@@ -122,7 +122,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     def prepareFeatureCollection = {
       val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
       val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
-      val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
+      val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(minLat, minLng, maxLat, maxLng)
+      val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(minLat, minLng, maxLat, maxLng)
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(lat1, lng1, lat2, lng2)
 
       val neighborhoodJson = for (neighborhood <- neighborhoods) yield {
@@ -133,14 +134,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
         // Get access score
         // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
-        val streetsIntersectingTheNeighborhood = streetEdges.filter(_.geom.intersects(neighborhood.geom))
-        if (streetsIntersectingTheNeighborhood.nonEmpty) {
-          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
+        val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+        if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
+          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
           val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
           val significance = Array(1.0, -1.0, -1.0, -1.0)
           val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
 
+          val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+          val coverage: Double = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
+
+          assert(coverage <= 1.0)
+
           val properties = Json.obj(
+            "coverage" -> coverage,
             "region_id" -> neighborhood.regionId,
             "region_name" -> neighborhood.name,
             "score" -> accessScore,
@@ -303,7 +310,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
     */
   def computeAccessScoresForStreets(streets: List[StreetEdge], labelLocations: List[LabelLocation]): List[AccessScoreStreet] = {
-    val radius = 1.5E-4  // Approximately 5 meters
+    val radius = 3.0E-4  // Approximately 10 meters
     val pm = new PrecisionModel()
     val srid = 4326
     val factory: GeometryFactory = new GeometryFactory(pm, srid)

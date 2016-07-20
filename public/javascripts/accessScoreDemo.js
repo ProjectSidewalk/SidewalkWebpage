@@ -133,8 +133,7 @@ function initializeNeighborhoodPolygons(map) {
         currentLayer;
 
     function onEachNeighborhoodFeature(feature, layer) {
-        var properties = feature.properties,
-            popupContent = "";
+        var properties = feature.properties;
         var neighborhoodPolygonStyle = {
             color: '#888',
             weight: 1,
@@ -143,7 +142,7 @@ function initializeNeighborhoodPolygons(map) {
             fillOpacity: 0.5
         };
 
-        if (properties.score && typeof properties.score == 'number') {
+        if (properties.score && typeof properties.score == 'number' && properties.coverage >= 0.5) {
             neighborhoodPolygonStyle.color = getColor(properties.score);
             neighborhoodPolygonStyle.fillColor = getColor(properties.score);
         }
@@ -159,11 +158,13 @@ function initializeNeighborhoodPolygons(map) {
             this.setStyle({ weight: 5 });
 
             var score,
-                message;
+                message,
+                coverage;
 
             if (typeof properties.score == "number") {
                 score = (100 * properties.score).toFixed(0);
-                message = "&nbsp;" + getMessage(properties.score);
+                coverage = (100 * properties.coverage).toFixed(0);
+                message = "&nbsp;" + getMessage(properties.score) + "&nbsp; (Coverage: " + coverage + "%)";
 
                 $("#access-score-neighborhood").html(score);
                 $("#access-score-message").html(message);
@@ -235,6 +236,9 @@ function initializeSubmittedLabels(map) {
 
     $.getJSON("/v1/access/features?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830", function (data) {
         // Render submitted labels
+        var acceptedLabelTypes = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
+        data = data.features.filter(function (d) { return acceptedLabelTypes.indexOf(d.properties.label_type) >= 0; })
+
         var featureLayer = L.geoJson(data, {
             pointToLayer: function (feature, latlng) {
                 var style = $.extend(true, {}, geojsonMarkerOptions);
