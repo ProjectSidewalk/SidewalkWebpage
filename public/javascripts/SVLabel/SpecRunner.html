@@ -15,6 +15,10 @@
     <script type="text/javascript" src="lib/jasmine-2.0.2/jasmine.js"></script>
     <script type="text/javascript" src="lib/jasmine-2.0.2/jasmine-html.js"></script>
     <script type="text/javascript" src="lib/jasmine-2.0.2/boot.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js" type="text/javascript"></script>
+    <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+    <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
+    <script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.4/mapbox.js'></script>
 
     <!-- include source files here... -->
     <!-- <script type="text/javascript" src="src/Player.js"></script> -->
@@ -40,6 +44,7 @@
     <script type="text/javascript" src="src/SVLabel/Tracker.js"></script>
     <script type="text/javascript" src="src/SVLabel/mission/MissionProgress.js"></script>
     <script type="text/javascript" src="src/SVLabel/mission/Mission.js"></script>
+    <script type="text/javascript" src="src/SVLabel/mission/MissionContainer.js"></script>
     <script type="text/javascript" src="src/SVLabel/PointCloud.js"></script>
     <script type="text/javascript" src="src/SVLabel/Keyboard.js"></script>
     <script type="text/javascript" src="src/SVLabel/Form.js"></script>
@@ -49,16 +54,20 @@
     <script type="text/javascript" src="src/SVLabel/modal/ModalComment.js"></script>
     <script type="text/javascript" src="src/SVLabel/modal/ModalSkip.js"></script>
     <script type="text/javascript" src="src/SVLabel/modal/ModalMission.js"></script>
-    <script type="text/javascript" src="src/SVLabel/neighborhood/Neighborhood.js"></script>
     <script type="text/javascript" src="src/SVLabel/Map.js"></script>
     <script type="text/javascript" src="src/SVLabel/task/Task.js"></script>
     <script type="text/javascript" src="src/SVLabel/task/TaskContainer.js"></script>
     <script type="text/javascript" src="src/SVLabel/Onboarding/Onboarding.js"></script>
+    <script type="text/javascript" src="src/SVLabel/neighborhood/Neighborhood.js"></script>
+    <script type="text/javascript" src="src/SVLabel/neighborhood/NeighborhoodContainer.js"></script>
+    <script type="text/javascript" src="src/SVLabel/neighborhood/NeighborhoodFactory.js"></script>
+    <script type="text/javascript" src="src/SVLabel/modal/ModalMissionComplete.js"></script>
 
     <!-- include spec files here... -->
-    <script type="text/javascript" src="spec/SVLabel/Canvas-spec.js"></script>
+    
     <!-- <script type="text/javascript" src="spec/SpecHelper.js"></script> -->
-    <!-- <script type="text/javascript" src="spec/PlayerSpec.js"></script> -->
+    <!-- <script type="text/javascript" src="spec/PlayerSpec.js"></script> 
+
     <script type="text/javascript" src="spec/SVLabel/Point-spec.js"></script>
     <script type="text/javascript" src="spec/SVLabel/Path-spec.js"></script>
     <script type="text/javascript" src="spec/SVLabel/Label-spec.js"></script>
@@ -72,10 +81,13 @@
     <script type="text/javascript" src="spec/SVLabel/Task-spec.js"></script>
     <script type="text/javascript" src="spec/SVLabel/LabelContainer-spec.js"></script>
     <script type="text/javascript" src="spec/SVLabel/onboarding/Onboarding-spec.js"></script>
-
+    -->
 
 </head>
 
 <body>
+     <div id="map" style="visibility: hidden; height: 1px; width: 1px;"></div>
+     <!-- <script type="text/javascript" src="spec/SVLabel/Neighborhood-spec.js"></script> -->
+     <script type="text/javascript" src="spec/SVLabel/ModalMissionComplete-spec.js"></script>
 </body>
 </html>

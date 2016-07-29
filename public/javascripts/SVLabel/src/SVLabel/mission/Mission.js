@@ -355,8 +355,12 @@ function Mission(parameters) {
         }
     }
 
+    function setLabelCounts(labelCounts){
+        labelCountsAtCompletion = labelCounts;
+    }
     _init(parameters);
 
+    self.setLabelCounts = setLabelCounts;
     self.complete = complete;
     self.completedLineDistance = completedLineDistance;
     self.computeRoute = computeRoute;

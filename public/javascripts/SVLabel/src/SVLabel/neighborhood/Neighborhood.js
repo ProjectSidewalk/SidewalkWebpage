@@ -89,7 +89,6 @@ function Neighborhood (parameters) {
             return null;
         }
     }
-
     _init(parameters);
 
     self.addTo = addTo;

@@ -71,6 +71,7 @@ function ModalMissionComplete ($, d3, L) {
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
         .data([""])
         .enter().append("text")
+        .attr('id', 'barText')
         .attr("x", 3)
         .attr("y", 15)
         .attr("dx", 0)
@@ -288,19 +289,21 @@ function ModalMissionComplete ($, d3, L) {
      * @private
      */
     function _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate) {
-       horizontalBarPreviousContribution.attr("width", 0)
+       horizontalBarPreviousContribution.attr('id','missionDist')
+            .attr("width", 0)
            .transition()
            .delay(200)
            .duration(800)
            .attr("width", auditedDistanceRate * svgCoverageBarWidth);
        
-       horizontalBarMission.attr("width", 0)
+       horizontalBarMission.attr('id','auditedDist')
+            .attr("width", 0)
            .attr("x", auditedDistanceRate * svgCoverageBarWidth)
            .transition()
            .delay(1000)
            .duration(500)
            .attr("width", missionDistanceRate * svgCoverageBarWidth);
-       horizontalBarMissionLabel.text(parseInt(auditedDistanceRate * 100, 10) + "%");
+       horizontalBarMissionLabel.text(parseInt((auditedDistanceRate + missionDistanceRate) * 100, 10) + "%");
     }
 
     /**
@@ -493,7 +496,13 @@ function ModalMissionComplete ($, d3, L) {
     }
 
     _init();
-
+    self.linestringToPoint = linestringToPoint;
+    self.updateMissionLabelStatistics = _updateMissionLabelStatistics;
+    self.updateMissionProgressStatistics = _updateMissionProgressStatistics;
+    self.updateNeighborhoodDistanceBarGraph = _updateNeighborhoodDistanceBarGraph;
+    self.updateTheMissionCompleteMessage = _updateTheMissionCompleteMessage;
+    self.getProperty = getProperty;
+    self.setMissionTitle = setMissionTitle;
     self.hide = hideMissionComplete;
     self.show = show;
     return self;
