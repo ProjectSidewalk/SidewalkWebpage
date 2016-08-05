@@ -47,6 +47,28 @@ function ModalMission ($, uiModalMission) {
         uiModalMission.closeButton.on("click", handleCloseButtonClick);
     }
 
+    function _auidtDistanceToString (distance, unit) {
+        if (!unit) unit = "kilometers";
+
+        if (unit == "miles") {
+            if (distance <= 0.20) {
+                return "1000ft";
+            } else if (distance <= 0.25) {
+                return "&frac14;mi";
+            } else if (distance <= 0.5) {
+                return "&frac12;mi"
+            } else if (distance <= 0.75) {
+                return "&frac34;mi";
+            } else {
+                return distance.toFixed(0, 10) + "";
+            }
+        } else if (unit == "feet") {
+            return distance + "";
+        } else {
+            return distance + "";
+        }
+    }
+
     /**
      * Get a property
      * @param key
@@ -86,26 +108,6 @@ function ModalMission ($, uiModalMission) {
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.background.css('visibility', 'visible');
-    }
-
-    function _auidtDistanceToString (distance, unit) {
-        if (!unit) unit = "kilometers";
-
-        if (unit == "miles") {
-            if (distance <= 0.25) {
-                return "&frac14;mi";
-            } else if (distance <= 0.5) {
-                return "&frac12;mi"
-            } else if (distance <= 0.75) {
-                return "&frac34;mi";
-            } else {
-                return distance.toFixed(0, 10) + "";
-            }
-        } else if (unit == "feet") {
-            return distance + "";
-        } else {
-            return distance + "";
-        }
     }
 
     /**

@@ -23,7 +23,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
      * @param task The current task
      */
     function initNextTask (task) {
-        var nextTask = nextTask(task),
+        var nextTask = getNextTask(task),
             geometry,
             lat,
             lng;
@@ -294,7 +294,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
      * @param task Current task
      * @returns {*} Next task
      */
-    function nextTask (task) {
+    function getNextTask (task) {
         var newTask = null,
             neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
             candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
@@ -429,7 +429,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
     self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
-    self.nextTask = nextTask;
+    self.nextTask = getNextTask;
     self.push = pushATask;
 
     self.setCurrentTask = setCurrentTask;
