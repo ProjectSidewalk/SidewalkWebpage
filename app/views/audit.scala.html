@@ -578,6 +578,9 @@
     <script type="text/javascript">
         var svl = svl || {};
         svl.storage = new TemporaryStorage(JSON);
+        if (!("tracker" in svl)) {
+            svl.tracker = new Tracker();
+        }
 
         @if(user) {
             var userParam = {
@@ -591,19 +594,20 @@
         }
 
         @if(task) {
-            svl.taskFactory = TaskFactory(turf);
-            svl.taskContainer = TaskContainer(turf);
+        svl.streetViewService = new google.maps.StreetViewService();
+        var STREETVIEW_MAX_DISTANCE = 25;
+        var latLng = new google.maps.LatLng(lat1, lng1);
+
+        svl.taskFactory = TaskFactory(turf);
+            svl.taskContainer = TaskContainer(svl.streetViewService, svl, svl.tracker, turf);
 
             var geojson = @Html(task.get.toJSON.toString);
             var lat1 = geojson.features[0].geometry.coordinates[0][1],
                 lng1 = geojson.features[0].geometry.coordinates[0][0];
 
-            var streetViewService = new google.maps.StreetViewService();
-            var STREETVIEW_MAX_DISTANCE = 25;
-            var latLng = new google.maps.LatLng(lat1, lng1);
 
             // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
-            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            svl.streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
@@ -617,14 +621,6 @@
                 }
             });
         }
-
-//        $(document).ready(function () {
-//            var _pointCloudLoader = new GSVPANO.PanoPointCloudLoader();
-//            _pointCloudLoader.onPointCloudLoad = function () {
-//                svl.pointCloud = this.pointCloud;
-//            };
-//            _pointCloudLoader.load(this.panoId);
-//        });
 
         $(document).ready(function(){
             // Solutions to annoying text selection cursor.

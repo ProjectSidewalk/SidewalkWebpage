@@ -77,7 +77,11 @@ function MissionContainer ($, parameters) {
 
         // var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
         // if (!m) {
+        var existingMissionIds = missionStoreByRegionId[regionId].map(function (m) { return m.getProperty("missionId"); });
+        if (existingMissionIds.indexOf(mission.getProperty("missionId")) < 0) {
             missionStoreByRegionId[regionId].push(mission);
+        }
+
         // }
     }
 
