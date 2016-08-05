@@ -1,12 +1,12 @@
 /**
- *
- * @param $ jQuery object
- * @param param Other parameters
+ * Todo. Separate the UI component and the logic component
+ * @param tracker
+ * @param uiZoomControl
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function ZoomControl ($, param) {
+function ZoomControl (tracker, uiZoomControl) {
     var self = { 'className' : 'ZoomControl' },
         properties = {
             maxZoomLevel: 3,
@@ -22,13 +22,13 @@ function ZoomControl ($, param) {
         },
         blinkInterval;
 
-    function _init (param) {
+    function _init () {
         // Initialization function
 
         //if ('domIds' in param) {
-        if (svl.ui && svl.ui.zoomControl) {
-          svl.ui.zoomControl.zoomIn.bind('click', handleZoomInButtonClick);
-          svl.ui.zoomControl.zoomOut.bind('click', handleZoomOutButtonClick);
+        if (uiZoomControl) {
+          uiZoomControl.zoomIn.bind('click', handleZoomInButtonClick);
+          uiZoomControl.zoomOut.bind('click', handleZoomOutButtonClick);
         }
     }
 
@@ -38,8 +38,8 @@ function ZoomControl ($, param) {
     function blink () {
         stopBlinking();
         blinkInterval = window.setInterval(function () {
-            svl.ui.zoomControl.zoomIn.toggleClass("highlight-50");
-            svl.ui.zoomControl.zoomOut.toggleClass("highlight-50");
+            uiZoomControl.zoomIn.toggleClass("highlight-50");
+            uiZoomControl.zoomOut.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -51,8 +51,8 @@ function ZoomControl ($, param) {
     function disableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = true;
-            if (svl.ui.zoomControl.zoomIn) {
-                svl.ui.zoomControl.zoomIn.css('opacity', 0.5);
+            if (uiZoomControl) {
+                uiZoomControl.zoomIn.css('opacity', 0.5);
             }
         }
         return this;
@@ -64,8 +64,8 @@ function ZoomControl ($, param) {
     function disableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = true;
-            if (svl.ui.zoomControl.zoomOut) {
-                svl.ui.zoomControl.zoomOut.css('opacity', 0.5);
+            if (uiZoomControl) {
+                uiZoomControl.zoomOut.css('opacity', 0.5);
             }
         }
         return this;
@@ -77,8 +77,8 @@ function ZoomControl ($, param) {
     function enableZoomIn () {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = false;
-            if (svl.ui.zoomControl.zoomIn) {
-                svl.ui.zoomControl.zoomIn.css('opacity', 1);
+            if (uiZoomControl) {
+                uiZoomControl.zoomIn.css('opacity', 1);
             }
         }
         return this;
@@ -90,8 +90,8 @@ function ZoomControl ($, param) {
     function enableZoomOut () {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = false;
-            if (svl.ui.zoomControl.zoomOut) {
-                svl.ui.zoomControl.zoomOut.css('opacity', 1);
+            if (uiZoomControl) {
+                uiZoomControl.zoomOut.css('opacity', 1);
             }
         }
         return this;
@@ -148,7 +148,7 @@ function ZoomControl ($, param) {
      * This is a callback function for zoom-in button. This function increments a sv zoom level.
      */
     function handleZoomInButtonClick () {
-        if ('tracker' in svl)  svl.tracker.push('Click_ZoomIn');
+        if (tracker)  tracker.push('Click_ZoomIn');
 
         if (!status.disableZoomIn) {
             var pov = svl.panorama.getPov();
@@ -161,7 +161,7 @@ function ZoomControl ($, param) {
      * This is a callback function for zoom-out button. This function decrements a sv zoom level.
      */
     function handleZoomOutButtonClick () {
-        if ('traker' in svl)  svl.tracker.push('Click_ZoomOut');
+        if (tracker) tracker.push('Click_ZoomOut');
 
         if (!status.disableZoomOut) {
             var pov = svl.panorama.getPov();
@@ -246,8 +246,10 @@ function ZoomControl ($, param) {
      */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
-        svl.ui.zoomControl.zoomIn.removeClass("highlight-50");
-        svl.ui.zoomControl.zoomOut.removeClass("highlight-50");
+        if (uiZoomControl) {
+            uiZoomControl.zoomIn.removeClass("highlight-50");
+            uiZoomControl.zoomOut.removeClass("highlight-50");
+        }
     }
 
 
@@ -285,24 +287,24 @@ function ZoomControl ($, param) {
     function updateOpacity () {
         var pov = svl.map.getPov();
 
-        if (pov) {
+        if (pov && uiZoomControl) {
             var zoom = pov.zoom;
             // Change opacity
             if (zoom >= properties.maxZoomLevel) {
-                svl.ui.zoomControl.zoomIn.css('opacity', 0.5);
-                svl.ui.zoomControl.zoomOut.css('opacity', 1);
+                uiZoomControl.zoomIn.css('opacity', 0.5);
+                uiZoomControl.zoomOut.css('opacity', 1);
             } else if (zoom <= properties.minZoomLevel) {
-                svl.ui.zoomControl.zoomIn.css('opacity', 1);
-                svl.ui.zoomControl.zoomOut.css('opacity', 0.5);
+                uiZoomControl.zoomIn.css('opacity', 1);
+                uiZoomControl.zoomOut.css('opacity', 0.5);
             } else {
-                svl.ui.zoomControl.zoomIn.css('opacity', 1);
-                svl.ui.zoomControl.zoomOut.css('opacity', 1);
+                uiZoomControl.zoomIn.css('opacity', 1);
+                uiZoomControl.zoomOut.css('opacity', 1);
             }
         }
 
         // If zoom in and out are disabled, fade them out anyway.
-        if (status.disableZoomIn) { svl.ui.zoomControl.zoomIn.css('opacity', 0.5); }
-        if (status.disableZoomOut) { svl.ui.zoomControl.zoomOut.css('opacity', 0.5); }
+        if (status.disableZoomIn) { uiZoomControl.zoomIn.css('opacity', 0.5); }
+        if (status.disableZoomOut) { uiZoomControl.zoomOut.css('opacity', 0.5); }
         return this;
     }
 
@@ -352,7 +354,7 @@ function ZoomControl ($, param) {
     self.zoomIn = zoomIn;
     self.zoomOut = zoomOut;
 
-    _init(param);
+    _init();
 
     return self;
 }

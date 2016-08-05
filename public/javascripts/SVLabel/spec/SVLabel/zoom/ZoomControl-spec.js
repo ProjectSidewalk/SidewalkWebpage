@@ -1,7 +1,7 @@
 describe("Tests for the ZoomControl.", function () {
-    Main($, d3, {});
+	var tracker = { push: function (item) { }};
+	var zoom = new ZoomControl(tracker, null);
 
-	var zoom = new ZoomControl(jQuery);
 	describe("The method getStatus", function () {
 		it("should warn when an illegal key is passed.", function () {
 			expect(function() {zoom.getStatus('invalid');} ).toThrow();

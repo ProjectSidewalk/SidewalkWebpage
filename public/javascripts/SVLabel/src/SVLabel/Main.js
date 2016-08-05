@@ -212,6 +212,8 @@ function Main ($, d3, google, turf, params) {
         params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
+        svl.tracker = Tracker();
+        svl.tracker.push('TaskStart');
 
         // Instantiate objects
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
@@ -227,13 +229,12 @@ function Main ($, d3, google, turf, params) {
 
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
-        svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
+        svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = PopUpMessage($);
-        svl.zoomControl = ZoomControl($);
+        svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = PointCloud();
-        svl.tracker = Tracker();
-        svl.tracker.push('TaskStart');
+
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3, turf);

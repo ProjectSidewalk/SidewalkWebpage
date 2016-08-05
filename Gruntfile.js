@@ -19,6 +19,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/modal/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/Onboarding/Onboarding.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
@@ -63,6 +64,7 @@ module.exports = function(grunt) {
                 'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/modal/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/onboarding/onboarding.js'
             ],
             options: {
