@@ -5,21 +5,21 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (turf) {
+function TaskContainer (streetViewService, svl, tracker, turf) {
     var self = { className: "TaskContainer" },
         previousTasks = [],
         currentTask = null,
         paths, previousPaths = [],
         taskStoreByRegionId = {};
 
-    svl.taskStoreByRegionId = taskStoreByRegionId;  // debug
+    self._taskStoreByRegionId = taskStoreByRegionId;
 
     /**
      * I had to make this method to wrap the street view service.
      * @param task The current task
      */
     function initNextTask (task) {
-        var nextTask = svl.taskContainer.nextTask(task),
+        var nextTask = nextTask(task),
             geometry,
             lat,
             lng;
@@ -31,24 +31,26 @@ function TaskContainer (turf) {
         var STREETVIEW_MAX_DISTANCE = 25;
         var latLng = new google.maps.LatLng(lat, lng);
 
-        svl.streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-            if (status === google.maps.StreetViewStatus.OK) {
-                svl.taskContainer.setCurrentTask(nextTask);
-                svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
-            } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                // no street view available in this range.
-                svl.taskContainer.initNextTask();
-            } else {
-                throw "Error loading Street View imagey.";
-            }
-        });
+        if (streetViewService) {
+            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    setCurrentTask(nextTask);
+                    svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
+                } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    // no street view available in this range.
+                    initNextTask();
+                } else {
+                    throw "Error loading Street View imagey.";
+                }
+            });
+        }
     }
 
     /**
      * End the current task.
      */
     function endTask (task) {
-        if ('tracker' in svl) svl.tracker.push("TaskEnd");
+        if (tracker) tracker.push("TaskEnd");
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
         task.complete();
@@ -339,9 +341,7 @@ function TaskContainer (turf) {
      */
     function setCurrentTask (task) {
         currentTask = task;
-        if ("tracker" in svl) {
-            svl.tracker.push('TaskStart');
-        }
+        if (tracker) tracker.push('TaskStart');
 
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
@@ -358,7 +358,7 @@ function TaskContainer (turf) {
     function storeTask(regionId, task) {
         if (!(regionId in taskStoreByRegionId)) taskStoreByRegionId[regionId] = [];
         var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
-            return task.getProperty("streetEdgeId");
+            return task.getStreetEdgeId();
         });
         if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }

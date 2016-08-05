@@ -55,7 +55,6 @@ function Map ($, google, turf, params) {
         panoramaOptions,
         STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
-    svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {

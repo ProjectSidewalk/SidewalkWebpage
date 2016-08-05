@@ -212,7 +212,12 @@ function Main ($, d3, google, turf, params) {
         params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
-        svl.tracker = Tracker();
+        // svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
+
+        if (!("tracker" in svl)) {
+            svl.tracker = new Tracker();
+        }
+
         svl.tracker.push('TaskStart');
 
         // Instantiate objects
@@ -271,7 +276,7 @@ function Main ($, d3, google, turf, params) {
             svl.taskFactory = TaskFactory(turf);
         }
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = TaskContainer(turf);
+            svl.taskContainer = TaskContainer(svl.streetViewService, svl, svl.tracker, turf);
         }
 
         // Initialize things that needs data loading.
