@@ -248,7 +248,7 @@ function Main ($, d3, google, turf, params) {
         
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($, L);
+        svl.modalMission = ModalMission($, svl.ui.modalMission);
         svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
         svl.modalMissionComplete.hide();
@@ -361,11 +361,9 @@ function Main ($, d3, google, turf, params) {
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
                 if (mission.getProperty("label") != "onboarding") {
                     if (svl.missionContainer.isTheFirstMission()) {
-                        svl.modalMission.setMission(mission, {
-                            callback: initialMissionInstruction
-                        });
+                        svl.modalMission.setMission(mission, neighborhood, null, initialMissionInstruction);
                     } else {
-                        svl.modalMission.setMission(mission);
+                        svl.modalMission.setMission(mission, neighborhood);
                     }
                 }
 

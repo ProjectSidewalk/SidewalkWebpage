@@ -31,18 +31,16 @@ function MissionProgress () {
     /**
      * @param mission Next mission
      */
-    function showNextMission (mission) {
+    function _showNextMission (mission, neighborhood) {
         var label = mission.getProperty("label");
         var parameters = { badgeURL: mission.getProperty("badgeURL") };
 
         if (label == "distance-mission") {
             parameters.distance = mission.getProperty("distance");
-            svl.modalMission.setMissionMessage(mission, parameters);
-            // svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMission(mission, neighborhood, parameters);
         } else if (label == "area-coverage-mission") {
             parameters.coverage = mission.getProperty("coverage");
-            svl.modalMission.setMissionMessage(mission, parameters);
-            // svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            svl.modalMission.setMissionM(mission, neighborhood, parameters);
         } else {
             console.warn("Debug: It shouldn't reach here.");
         }
@@ -74,7 +72,7 @@ function MissionProgress () {
                 }
 
                 svl.missionContainer.setCurrentMission(nextMission);
-                showNextMission(nextMission);
+                _showNextMission(nextMission, currentRegion);
 
                 if (movedToANewRegion) {
                     svl.neighborhoodContainer.moveToANewRegion(newRegionId);

@@ -314,7 +314,7 @@
             <div id="modal-mission-holder">
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-header">Mission</h1>
+                    <h1 id="modal-mission-header" class="text-center">Mission</h1>
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -495,28 +495,6 @@
         </div>
     </div>
 
-    <template class="missions" val="initial-mission">
-        <figure>
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-        </figure>
-        <p>The sidewalk accessibility affects how people with mobility impairments move about the city.
-            Your first mission is to <span class="bold">find all the accessibility attributes that affect mobility
-            impaired travelers.</span></p>
-    </template>
-    <template class="missions" val="distance-mission">
-        <figure>
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-        </figure>
-        <p>Your goal is to <span class="bold">audit <var id="mission-target-distance">[x]</var> of the entire streets
-            in this neighborhood</span> and find the accessibility attributes!</p>
-    </template>
-    <template class="missions" val="area-coverage-mission">
-        <figure>
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-        </figure>
-        <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets
-            in this neighborhood</span> and find the accessibility attributes!</p>
-    </template>
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
