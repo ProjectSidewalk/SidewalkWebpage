@@ -1,5 +1,9 @@
 /**
  * TaskContainer module.
+ *
+ * Todo. This container needs a bit of work...
+ * The fact that I have to instantiate the TaskContainer earlier than other objects requires me to inject, svl module (which is the top level module that contains everything else).
+ * It definitely sucks, needs rewrite. Also this module is too tightly coupled with other modules.
  * @param turf
  * @returns {{className: string}}
  * @constructor
