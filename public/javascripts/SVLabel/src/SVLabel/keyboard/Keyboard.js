@@ -1,47 +1,40 @@
 /**
- * A Keyboard module
+ * A Keyboard module.
+ *
+ * Todo. Get rid of the dependency to svl.
  * @param $ jQuery
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Keyboard ($) {
+function Keyboard ($, canvas, contextMenu, ribbon, uiContextMenu, zoomControl, onboarding) {
     var self = {
             className : 'Keyboard'
         };
     var status = {
         focusOnTextField: false,
+        isOnboarding: false,
         shiftDown: false
     };
 
-    var $textareaComment;
-
     function init () {
-        if ('ui' in svl && 'form' in svl.ui) {
-            $textareaComment = (svl.ui.form.commentField.length) > 0 ? svl.ui.form.commentField : null;
-        }
-
-        if ($textareaComment) {
-          $textareaComment.bind('focus', textFieldFocus);
-          $textareaComment.bind('blur', textFieldBlur);
-        }
-
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
     }
-    function toRadians (angle) {
+    function _toRadians (angle) {
         return angle * (Math.PI / 180);
     }
-    // Move in the direction of a link closest to a given angle
+
+    // Move in the direction of a link closest to a given angle.
+    // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
     function movePano(angle) {
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
-        var cosines = svl.panorama.links.map(function(link) { return Math.cos(toRadians(svl.panorama.pov.heading + angle) - toRadians(link.heading))});
-        // finds index of greatest value in cosines array
+        var cosines = svl.panorama.links.map(function(link) {
+            return Math.cos(_toRadians(svl.panorama.pov.heading + angle) - _toRadians(link.heading))
+        });
         var maxVal = Math.max.apply(null, cosines);
         var maxIndex = cosines.indexOf(maxVal);
-        //in the case of one link, this prevents you from moving in that direction if you press the opposite
         if(cosines[maxIndex] > 0.5){
-            // transitions panorama to the link of the greatest cosine (closest to direction)
             svl.panorama.setPano(svl.panorama.links[maxIndex].pano);
         }
     }
@@ -70,7 +63,7 @@ function Keyboard ($) {
      */
     function documentKeyDown(e) {
         // The callback method that is triggered with a keyUp event.
-        if (("contextMenu" in svl && svl.contextMenu.isOpen())) {
+        if (contextMenu.isOpen()) {
             return;
         } else if (!status.focusOnTextField) {
             // lock scrolling in response to key pressing
@@ -107,22 +100,19 @@ function Keyboard ($) {
      * @private
      */
     function documentKeyUp (e) {
-        if ("onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
+        if (onboarding && onboarding.isOnboarding()) {
             // Don't allow users to use keyboard shortcut during the onboarding.
             return;
         }
 
         // This is a callback method that is triggered when a keyDown event occurs.
         if (!status.focusOnTextField) {
-            // if ("contextMenu" in svl && svl.contextMenu) {
-            //     svl.contextMenu.hide();
-            // }
-
+            var label;
             switch (e.keyCode) {
                 // "Enter"
                 case 13:
-                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-                        svl.contextMenu.hide();
+                    if (contextMenu.isOpen()) {
+                        contextMenu.hide();
                     }
                     break;
                 case 16:
@@ -131,95 +121,104 @@ function Keyboard ($) {
                     break;
                 case 27:
                     // "Escape"
-                    if (svl.canvas.getStatus('drawing')) {
-                        svl.canvas.cancelDrawing();
+                    if (canvas.getStatus('drawing')) {
+                        canvas.cancelDrawing();
                     } else {
-                        svl.ribbon.backToWalk();
+                        ribbon.backToWalk();
                     }
                     break;
-                    case 49:
-                    // "1"
-                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='1'}).prop("checked", true).trigger("click");
+                    case 49:  // "1"
+                    if (contextMenu.isOpen()) {
+                        contextMenu.checkRadioButton(1);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 1);
+                        }
                     }
                     else{
-                        svl.ribbon.modeSwitchClick("CurbRamp");
+                        ribbon.modeSwitchClick("CurbRamp");
                         break;
                     }
                     break;
-                case 50:
-                    // "2"
-                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='2'}).prop("checked", true).trigger("click");
-                    }
-                    else{
-                        svl.ribbon.modeSwitchClick("NoCurbRamp");
-                    }
-                    break;
-                case 51:
-                    // "3"
-                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='3'}).prop("checked", true).trigger("click");
-                    }
-                    else{
-                        svl.ribbon.modeSwitchClick("Obstacle");
+                case 50:  // "2"
+                    if (contextMenu.isOpen()) {
+                        contextMenu.checkRadioButton(2);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 2);
+                        }
+                    } else {
+                        ribbon.modeSwitchClick("NoCurbRamp");
                     }
                     break;
-                case 52:
-                    // "4"
-                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='4'}).prop("checked", true).trigger("click");
-                    }
-                    else{
-                        svl.ribbon.modeSwitchClick("SurfaceProblem");
+                case 51:  // "3"
+                    if (contextMenu.isOpen()) {
+                        contextMenu.checkRadioButton(3);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 3);
+                        }
+                    } else {
+                        ribbon.modeSwitchClick("Obstacle");
                     }
                     break;
-                case 53:
-                    // "5"
-                    if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-                        svl.ui.contextMenu.radioButtons.filter(function(){return this.value=='5'}).prop("checked", true).trigger("click");
+                case 52:  // "4"
+                    if (contextMenu.isOpen()) {
+                        contextMenu.checkRadioButton(4);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 4);
+                        }
+                    } else {
+                        ribbon.modeSwitchClick("SurfaceProblem");
                     }
-                    else{
-
+                    break;
+                case 53:  // "5"
+                    if (contextMenu.isOpen()) {
+                        contextMenu.checkRadioButton(5);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 5);
+                        }
                     }
                     break;
                 case 66:
                     // "b" for a blocked view
-                    svl.ribbon.modeSwitch("Occlusion");
+                    ribbon.modeSwitch("Occlusion");
                     break;
                 case 67:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
-                    svl.ribbon.modeSwitch("CurbRamp");
+                    ribbon.modeSwitch("CurbRamp");
                     break;
                 case 69:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
-                    svl.ribbon.modeSwitch("Walk");
+                    ribbon.modeSwitch("Walk");
                     break;
                 case 77:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
-                    svl.ribbon.modeSwitch("NoCurbRamp");
+                    ribbon.modeSwitch("NoCurbRamp");
                     break;
                 case 78:
-                    svl.ribbon.modeSwitch("NoSidewalk");
+                    ribbon.modeSwitch("NoSidewalk");
                     break;
                 case 79:
                     // "o" for Obstacle
-                    svl.ribbon.modeSwitch("Obstacle");
+                    ribbon.modeSwitch("Obstacle");
                     break;
                 case 83:
-                    svl.ribbon.modeSwitch("SurfaceProblem");
+                    ribbon.modeSwitch("SurfaceProblem");
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
                     if (status.shiftDown) {
                         // Zoom out
                         if ("zoomControl" in svl) {
-                            svl.zoomControl.zoomOut();
+                            zoomControl.zoomOut();
                         }
                     } else {
                         // Zoom in
                         if ("zoomControl" in svl)
-                            svl.zoomControl.zoomIn();
+                            zoomControl.zoomIn();
                     }
             }
         }

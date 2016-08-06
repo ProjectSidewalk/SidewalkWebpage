@@ -27,6 +27,9 @@ function ContextMenu ($) {
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
     svl.ui.contextMenu.closeButton.on('click', handleCloseButtonClick);
 
+    function checkRadioButton (value) {
+        svl.ui.contextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
+    }
 
     /**
      * Returns a status
@@ -91,6 +94,7 @@ function ContextMenu ($) {
             label.setProperty('severity', severity);
         }
     }
+
 
     /**
      *
@@ -205,6 +209,8 @@ function ContextMenu ($) {
         }
     }
 
+    self.checkRadioButton = checkRadioButton;
+    self.getTargetLabel = getTargetLabel;
     self.hide = hide;
     self.isOpen = isOpen;
     self.show = show;
