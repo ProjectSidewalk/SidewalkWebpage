@@ -199,9 +199,9 @@ function Progress (_, $, c3, L) {
 
             // Calculate total distance audited in (km)
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.lineDistance(data.features[i]);
+                distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
-            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
+            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);
