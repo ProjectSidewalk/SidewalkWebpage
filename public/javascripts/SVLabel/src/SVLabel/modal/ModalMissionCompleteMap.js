@@ -187,17 +187,7 @@ ModalMissionCompleteMap.prototype.hide = function () {
     $(".leaflet-zoom-animated path").css('visibility', 'hidden');
 };
 
-/**
- * Show the leaflet map
- */
-ModalMissionCompleteMap.prototype.show = function (mission, neighborhood) {
-    this._ui.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-    this._ui.map.css('left', 15);
-
-    $(".leaflet-clickable").css('visibility', 'visible');
-    $(".g-bar-chart").css('visibility', 'visible');
-    $(".leaflet-zoom-animated path").css('visibility', 'visible');
-
+ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
     // Focus on the current region on the Leaflet map
     var center = neighborhood.center();
     var neighborhoodGeom = neighborhood.getGeoJSON();
@@ -218,6 +208,18 @@ ModalMissionCompleteMap.prototype.show = function (mission, neighborhood) {
     if (center) {
         this._map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
     }
+};
+
+/**
+ * Show the leaflet map
+ */
+ModalMissionCompleteMap.prototype.show = function () {
+    this._ui.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+    this._ui.map.css('left', 15);
+
+    $(".leaflet-clickable").css('visibility', 'visible');
+    $(".g-bar-chart").css('visibility', 'visible');
+    $(".leaflet-zoom-animated path").css('visibility', 'visible');
 };
 
 /**

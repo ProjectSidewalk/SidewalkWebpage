@@ -2,6 +2,10 @@ describe("ModalMissionComplete", function () {
     var modal;
     var uiModalMissionComplete;
     var $uiModalMissionCompleteFixture;
+    var missionContainerMock;
+    var modalMissionCompleteMapMock;
+    var neighborhood;
+    var mission;
 
     // Mocks
     function MissionMock () {
@@ -105,87 +109,56 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.surfaceProblemCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-surface-problem-count");
         uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
 
-        modal = new ModalMissionComplete($, d3, L, uiModalMissionComplete);
+        modalMissionCompleteMapMock = {
+            hide: function () {},
+            show: function () {}
+        };
+        modal = new ModalMissionComplete($, d3, L, missionContainerMock, modalMissionCompleteMapMock, uiModalMissionComplete);
+
+        mission = new MissionMock();
+        mission.properties.distanceMi = 0.7575;
+        mission.properties.distance = 1219.2;
+        mission.properties.distanceFt = 4000;
+        mission.properties.coverage = 0.07575;
+        mission.properties.auditDistanceFt = 2000;
+        mission.properties.auditDistanceMi = 0.3788;
+        mission.properties.auditDistance = 609;
+        mission.properties.label = "distance-mission";
+        neighborhood = new NeighborhoodMock();
+        neighborhood.properties.name = "Test Neighborhood";
     });
 
     describe("`show` method", function () {
         it("should open a modal window", function () {
             modal.hide();
-            expect(uiModalMission.holder.css('visibility')).toBe('hidden');
-            expect(uiModalMission.foreground.css('visibility')).toBe('hidden');
-            expect(uiModalMission.background.css('visibility')).toBe('hidden');
+            expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
+            expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
+            expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
 
-            modal.show();
-            expect(uiModalMission.holder.css('visibility')).toBe('visible');
-            expect(uiModalMission.foreground.css('visibility')).toBe('visible');
-            expect(uiModalMission.background.css('visibility')).toBe('visible');
+            modal.show(mission, neighborhood);
+            expect(uiModalMissionComplete.holder.css('visibility')).toBe('visible');
+            expect(uiModalMissionComplete.foreground.css('visibility')).toBe('visible');
+            expect(uiModalMissionComplete.background.css('visibility')).toBe('visible');
         });
     });
 
-    describe("`setMission` method", function () {
-        var mission_4000ft,
-            mission_1mi,
-            mission_2mi,
-            neighborhood;
-
-        beforeEach(function () {
-            neighborhood = new NeighborhoodMock();
-            neighborhood.properties.name = "Test Neighborhood";
-
-
-            mission_4000ft = new MissionMock();
-            mission_4000ft.properties.distanceMi = 0.7575;
-            mission_4000ft.properties.distance = 1219.2;
-            mission_4000ft.properties.distanceFt = 4000;
-            mission_4000ft.properties.coverage = 0.07575;
-            mission_4000ft.properties.auditDistanceFt = 2000;
-            mission_4000ft.properties.auditDistanceMi = 0.3788;
-            mission_4000ft.properties.auditDistance = 609;
-            mission_4000ft.properties.label = "distance-mission";
-
-            mission_1mi = new MissionMock();
-            mission_1mi.properties.distanceMi = 1;
-            mission_1mi.properties.distance = 1600;
-            mission_1mi.properties.distanceFt = 5280;
-            mission_1mi.properties.coverage = 0.1;
-            mission_1mi.properties.auditDistanceFt = 1280;
-            mission_1mi.properties.auditDistanceMi = 0.2424;
-            mission_1mi.properties.auditDistance = 390;
-            mission_1mi.properties.label = "distance-mission";
-
-            mission_2mi = new MissionMock();
-            mission_2mi.properties.distanceMi = 2;
-            mission_2mi.properties.distance = 3200;
-            mission_2mi.properties.distanceFt = 105600;
-            mission_2mi.properties.coverage = 0.2;
-            mission_2mi.properties.auditDistanceFt = 2640;
-            mission_2mi.properties.auditDistanceMi = 0.5;
-            mission_2mi.properties.auditDistance = 804.7;
-            mission_2mi.properties.label = "distance-mission";
+    describe("`_updateMissionProgressStatistics` method", function () {
+        it("should set the distance traveled in the current mission", function () {
+            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            expect(uiModalMissionComplete.missionDistance.text()).toBe("0.4 miles");
         });
 
-        it("should set the title", function () {
-            modal.setMission(mission_4000ft, neighborhood, null, null);
-            expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
-
-            modal.setMission(mission_1mi, neighborhood, null, null);
-            expect(uiModalMission.missionTitle.text()).toBe("Audit ¼mi of Test Neighborhood");
-
-            modal.setMission(mission_2mi, neighborhood, null, null);
-            expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
+        it("should set the cumulative distance traveled in the current neighborhood", function () {
+            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            expect(uiModalMissionComplete.totalAuditedDistance.text()).toBe("0.8 miles");
         });
 
-        it("should set the body text", function () {
-            modal.setMission(mission_4000ft, neighborhood, null, null);
-            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
+        it("should set the remaining distance to audit in the current neighborhodo", function () {
+            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            expect(uiModalMissionComplete.remainingDistance.text()).toBe("9.2 miles");
 
-            modal.setMission(mission_1mi, neighborhood, null, null);
-            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ¼mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
-
-            modal.setMission(mission_2mi, neighborhood, null, null);
-            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
-
-        })
+            modal._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
+            expect(uiModalMissionComplete.remainingDistance.text()).toBe("0.0 miles");
+        });
     });
-
 });

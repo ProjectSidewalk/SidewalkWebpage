@@ -101,7 +101,8 @@ function MissionProgress () {
                         svl.audioEffect.play("applause");
                     }
 
-                    svl.modalMissionComplete.show(currentMission, currentRegion);
+                    svl.modalMissionComplete.update(currentMission, currentRegion);
+                    svl.modalMissionComplete.show();
                     svl.ui.modalMissionComplete.closeButton.one("click", _callback)
                 }
             }

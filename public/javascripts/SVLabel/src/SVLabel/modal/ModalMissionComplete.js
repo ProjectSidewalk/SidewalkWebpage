@@ -82,14 +82,14 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
         uiModalMissionComplete.otherCount.html(otherCount);
     }
 
-    function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
+    function _updateMissionProgressStatistics (missionDistance, cumulativeAuditedDistance, remainingDistance, unit) {
         if (!unit) unit = "kilometers";
-        uiModalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(1) + " " + unit);
+
+        remainingDistance = Math.max(remainingDistance, 0);
         uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
+        uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
         uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
     }
-
-
 
     /**
      * Update the bar graph visualization
@@ -144,6 +144,7 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
     function hideMissionComplete () {
         uiModalMissionComplete.holder.css('visibility', 'hidden');
         uiModalMissionComplete.foreground.css('visibility', "hidden");
+        uiModalMissionComplete.background.css('visibility', "hidden");
         horizontalBarMissionLabel.style("visibility", "hidden");
         modalMissionCompleteMap.hide();
     }
@@ -152,15 +153,7 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
         uiModalMissionComplete.missionTitle.html(missionTitle);
     }
 
-    /** 
-     * Show the modal window that presents stats about the completed mission
-     */
-    function show (mission, neighborhood) {
-        uiModalMissionComplete.holder.css('visibility', 'visible');
-        uiModalMissionComplete.foreground.css('visibility', "visible");
-        horizontalBarMissionLabel.style("visibility", "visible");
-        modalMissionCompleteMap.show(mission, neighborhood);
-
+    function update(mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
         var unit = "miles";
         var regionId = neighborhood.getProperty("regionId");
@@ -197,6 +190,7 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
         var neighborhoodName = neighborhood.getProperty("name");
         setMissionTitle(neighborhoodName);
 
+        modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
 
         _updateTheMissionCompleteMessage();
@@ -204,6 +198,17 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
 
         _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
         _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
+    }
+
+    /** 
+     * Show the modal window that presents stats about the completed mission
+     */
+    function show () {
+        uiModalMissionComplete.holder.css('visibility', 'visible');
+        uiModalMissionComplete.foreground.css('visibility', "visible");
+        uiModalMissionComplete.background.css('visibility', "visible");
+        horizontalBarMissionLabel.style("visibility", "visible");
+        modalMissionCompleteMap.show();
     }
 
     /**
