@@ -194,8 +194,12 @@
 }
 
 #modal-mission-foreground h1 {
-    font-size: 24pt;
-    text-align: left;
+    font-size: 28pt;
+    /*text-align: left;*/
+}
+
+#modal-mission-foreground p {
+    font-size: 16pt;
 }
 
 #modal-mission-close-button {

@@ -1,12 +1,11 @@
 /**
- *
+ * Todo. Split the UI code with the logic code.
  * @param $
- * @param params
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function RibbonMenu ($, params) {
+function RibbonMenu ($, tracker, uiRibbonMenu) {
     var self = { className: 'RibbonMenu'},
         properties = {
             borderWidth : "3px",
@@ -32,9 +31,9 @@ function RibbonMenu ($, params) {
         }
 
         // Initialize the jQuery DOM elements
-        if (svl.ui && svl.ui.ribbonMenu) {
+        if (uiRibbonMenu) {
             // Initialize the color of the lines at the bottom of ribbon menu icons
-            $.each(svl.ui.ribbonMenu.bottonBottomBorders, function (i, v) {
+            $.each(uiRibbonMenu.bottonBottomBorders, function (i, v) {
                 var labelType = $(v).attr("val"), color = labelColors[labelType].fillStyle;
                 if (labelType === 'Walk') { $(v).css('width', '56px'); }
 
@@ -45,14 +44,17 @@ function RibbonMenu ($, params) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
 
-            svl.ui.ribbonMenu.buttons.bind({
+            uiRibbonMenu.buttons.bind({
                 click: handleModeSwitchClickCallback,
                 mouseenter: handleModeSwitchMouseEnter,
                 mouseleave: handleModeSwitchMouseLeave
             });
-            svl.ui.ribbonMenu.subcategories.on({
+            uiRibbonMenu.subcategories.on({
                click: handleSubcategoryClick
             });
+
+            // Handle info button click
+            uiRibbonMenu.informationButtons.on("click", handleInfoButtonClick);
         }
 
         // Disable mode switch when sign in modal is open
@@ -65,9 +67,6 @@ function RibbonMenu ($, params) {
             $signInModalPassword.on('blur', enableModeSwitch);
         }
 
-
-        // Handle info button click
-        svl.ui.ribbonMenu.informationButtons.on("click", handleInfoButtonClick);
     }
 
     /**
@@ -76,7 +75,7 @@ function RibbonMenu ($, params) {
      */
     function modeSwitch (mode) {
         var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
-        svl.tracker.push('ModeSwitch_' + labelType);
+        tracker.push('ModeSwitch_' + labelType);
         if (status.disableModeSwitch === false) {
             var labelColors, ribbonConnectorPositions, borderColor;
 
@@ -89,28 +88,26 @@ function RibbonMenu ($, params) {
             ribbonConnectorPositions = svl.misc.getRibbonConnectionPositions();
             borderColor = labelColors[labelType].fillStyle;
 
-            if ('map' in svl && svl.map) {
-                if (labelType === 'Walk') {
-                    // Switch to walking mode.
-                    setStatus('mode', 'Walk');
-                    setStatus('selectedLabelType', undefined);
-                    if (svl.map) { svl.map.modeSwitchWalkClick(); }
-                } else {
-                    // Switch to labeling mode.
-                    setStatus('mode', labelType);
-                    setStatus('selectedLabelType', labelType);
-                    if (svl.map) { svl.map.modeSwitchLabelClick(); }
-                }
+            if (labelType === 'Walk') {
+                // Switch to walking mode.
+                setStatus('mode', 'Walk');
+                setStatus('selectedLabelType', undefined);
+                if (svl.map) { svl.map.modeSwitchWalkClick(); }
+            } else {
+                // Switch to labeling mode.
+                setStatus('mode', labelType);
+                setStatus('selectedLabelType', labelType);
+                if (svl.map) { svl.map.modeSwitchLabelClick(); }
             }
 
-            if (svl.ui && svl.ui.ribbonMenu) {
+            if (uiRibbonMenu) {
                 setModeSwitchBorderColors(labelType);
                 setModeSwitchBackgroundColors(labelType);
 
 
-                svl.ui.ribbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
-                svl.ui.ribbonMenu.connector.css("border-left-color", borderColor);
-                svl.ui.ribbonMenu.streetViewHolder.css("border-color", borderColor);
+                uiRibbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
+                uiRibbonMenu.connector.css("border-left-color", borderColor);
+                uiRibbonMenu.streetViewHolder.css("border-color", borderColor);
             }
 
             // Set the instructional message
@@ -132,7 +129,7 @@ function RibbonMenu ($, params) {
     function handleSubcategoryClick (e) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
-        svl.tracker.push('Click_Subcategory_' + subcategory);
+        tracker.push('Click_Subcategory_' + subcategory);
         modeSwitch(subcategory);
         hideSubcategories();
     }
@@ -147,7 +144,7 @@ function RibbonMenu ($, params) {
             if (labelType === "Other") { return false; }  // Disable clicking "Other"
 
             // Track the user action
-            svl.tracker.push('Click_ModeSwitch_' + labelType);
+            tracker.push('Click_ModeSwitch_' + labelType);
             modeSwitch(labelType);
         }
     }
@@ -176,13 +173,13 @@ function RibbonMenu ($, params) {
     }
 
     function hideSubcategories () {
-        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'hidden');
+        uiRibbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
 
     function setModeSwitchBackgroundColors (mode) {
         // background: -moz-linear-gradient(center top , #fff, #eee);
         // background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
-        if ("ui" in svl && svl.ui && svl.ui.ribbonMenu) {
+        if (uiRibbonMenu) {
           var labelType;
           var labelColors;
           var borderColor;
@@ -192,7 +189,7 @@ function RibbonMenu ($, params) {
           labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
-          $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
+          $.each(uiRibbonMenu.buttons, function (i, v) {
               labelType = $(v).attr("val");
               if (labelType === mode) {
                   if (labelType === 'Walk') {
@@ -219,12 +216,12 @@ function RibbonMenu ($, params) {
 
     function setModeSwitchBorderColors (mode) {
         // This method sets the border color of the ribbon menu buttons
-        if (svl.ui && svl.ui.ribbonMenu) {
+        if (uiRibbonMenu) {
           var labelType, labelColors, borderColor;
           labelColors = svl.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
-          $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
+          $.each(uiRibbonMenu.buttons, function (i, v) {
               labelType = $(v).attr("val");
               if (labelType=== mode) {
                   $(this).css({
@@ -249,7 +246,7 @@ function RibbonMenu ($, params) {
     }
 
     function showSubcategories () {
-        svl.ui.ribbonMenu.subcategoryHolder.css('visibility', 'visible');
+        uiRibbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
 
     /**
@@ -268,8 +265,8 @@ function RibbonMenu ($, params) {
     function disableModeSwitch () {
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = true;
-            if (svl.ui && svl.ui.ribbonMenu) {
-                svl.ui.ribbonMenu.buttons.css('opacity', 0.5);
+            if (uiRibbonMenu) {
+                uiRibbonMenu.buttons.css('opacity', 0.5);
             }
         }
         return this;
@@ -280,8 +277,8 @@ function RibbonMenu ($, params) {
      * @returns {disableLandmarkLabels}
      */
     function disableLandmarkLabels () {
-        if (svl.ui && svl.ui.ribbonMenu) {
-            $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
+        if (uiRibbonMenu) {
+            $.each(uiRibbonMenu.buttons, function (i, v) {
                 var labelType = $(v).attr("val");
                 if (!(labelType === 'Walk' ||
                     labelType === 'StopSign' ||
@@ -302,8 +299,8 @@ function RibbonMenu ($, params) {
     function enableModeSwitch () {
         if (!status.lockDisableModeSwitch) {
             status.disableModeSwitch = false;
-            if (svl.ui && svl.ui.ribbonMenu && svl.ui.ribbonMenu.buttons) {
-                svl.ui.ribbonMenu.buttons.css('opacity', 1);
+            if (uiRibbonMenu) {
+                uiRibbonMenu.buttons.css('opacity', 1);
             }
         }
         return this;
@@ -314,8 +311,8 @@ function RibbonMenu ($, params) {
      * @returns {enableLandmarkLabels}
      */
     function enableLandmarkLabels () {
-        if (svl.ui && svl.ui.ribbonMenu) {
-            $.each(svl.ui.ribbonMenu.buttons, function (i, v) {
+        if (uiRibbonMenu) {
+            $.each(uiRibbonMenu.buttons, function (i, v) {
                 $(v).css('opacity', 1);
             });
         }
@@ -378,11 +375,11 @@ function RibbonMenu ($, params) {
 
     function startBlinking (labelType, subLabelType) {
         var highlighted = false,
-            button = svl.ui.ribbonMenu.holder.find('[val="' + labelType + '"]').get(0),
+            button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
             dropdown;
 
         if (subLabelType) {
-            dropdown = svl.ui.ribbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
+            dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
         }
 
         stopBlinking();
@@ -412,8 +409,8 @@ function RibbonMenu ($, params) {
 
     function stopBlinking () {
         clearInterval(blinkInterval);
-        svl.ui.ribbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
-        svl.ui.ribbonMenu.subcategories.css("background", "white");
+        uiRibbonMenu.buttons.css("background",getProperty("originalBackgroundColor"));
+        uiRibbonMenu.subcategories.css("background", "white");
     }
 
     function unlockDisableModeSwitch () {
@@ -437,7 +434,7 @@ function RibbonMenu ($, params) {
     self.unlockDisableModeSwitch = unlockDisableModeSwitch;
 
 
-    _init(params);
+    _init();
 
     return self;
 }

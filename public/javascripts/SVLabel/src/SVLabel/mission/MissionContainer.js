@@ -55,9 +55,37 @@ function MissionContainer ($, parameters) {
         }
 
         if ("callback" in parameters) {
-            $.when($.ajax("/mission")).done(_callback).done(parameters.callback);
+            $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete).done(parameters.callback);
         } else {
-            $.when($.ajax("/mission")).done(_callback)
+            $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete)
+        }
+    }
+
+    /**
+     * This method is called once all the missions are loaded. It sets the auditDistance, auditDistanceFt, and
+     * auditDistanceMi of all the missions in the container.
+     * @private
+     */
+    function _onLoadComplete () {
+        var regionIds = Object.keys(missionStoreByRegionId);
+
+        for (var ri = 0, rlen = regionIds.length; ri < rlen; ri++) {
+            var regionId = regionIds[ri];
+            var distance, distanceFt, distanceMi;
+            for (var mi = 0, mlen = missionStoreByRegionId[regionId].length; mi < mlen; mi++) {
+                if (mi == 0) {
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistance", missionStoreByRegionId[regionId][mi].getProperty("distance"));
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", missionStoreByRegionId[regionId][mi].getProperty("distanceFt"));
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", missionStoreByRegionId[regionId][mi].getProperty("distanceMi"));
+                } else {
+                    distance = missionStoreByRegionId[regionId][mi].getProperty("distance") - missionStoreByRegionId[regionId][mi - 1].getProperty("distance");
+                    distanceFt = missionStoreByRegionId[regionId][mi].getProperty("distanceFt") - missionStoreByRegionId[regionId][mi - 1].getProperty("distanceFt");
+                    distanceMi = missionStoreByRegionId[regionId][mi].getProperty("distanceMi") - missionStoreByRegionId[regionId][mi - 1].getProperty("distanceMi");
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistance", distance);
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", distanceFt);
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", distanceMi);
+                }
+            }
         }
     }
 
@@ -75,10 +103,10 @@ function MissionContainer ($, parameters) {
             regionId = "noRegionId";
         }
 
-        // var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
-        // if (!m) {
+        var existingMissionIds = missionStoreByRegionId[regionId].map(function (m) { return m.getProperty("missionId"); });
+        if (existingMissionIds.indexOf(mission.getProperty("missionId")) < 0) {
             missionStoreByRegionId[regionId].push(mission);
-        // }
+        }
     }
 
     /** Push the completed mission */
@@ -240,6 +268,7 @@ function MissionContainer ($, parameters) {
 
     _init(parameters);
 
+    self._onLoadComplete = _onLoadComplete;
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
     self.commit = commit;

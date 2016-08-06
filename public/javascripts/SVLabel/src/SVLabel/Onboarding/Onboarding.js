@@ -1178,7 +1178,7 @@ function Onboarding ($) {
             var mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
 
             svl.missionContainer.setCurrentMission(mission);
-            svl.modalMission.setMission(mission);
+            svl.modalMission.setMission(mission, neighborhood);
             
             svl.taskContainer.initNextTask();
 

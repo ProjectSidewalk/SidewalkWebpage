@@ -212,6 +212,13 @@ function Main ($, d3, google, turf, params) {
         params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
+        // svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
+
+        if (!("tracker" in svl)) {
+            svl.tracker = new Tracker();
+        }
+
+        svl.tracker.push('TaskStart');
 
         // Instantiate objects
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
@@ -227,13 +234,12 @@ function Main ($, d3, google, turf, params) {
 
         svl.labelCounter = LabelCounter(d3);
         svl.actionStack = ActionStack();
-        svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
+        svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = PopUpMessage($);
-        svl.zoomControl = ZoomControl($);
+        svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
         svl.missionProgress = MissionProgress($);
         svl.pointCloud = PointCloud();
-        svl.tracker = Tracker();
-        svl.tracker.push('TaskStart');
+
         // svl.trackerViewer = TrackerViewer();
         svl.labelFactory = LabelFactory();
         svl.compass = Compass(d3, turf);
@@ -242,7 +248,7 @@ function Main ($, d3, google, turf, params) {
         
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($, L);
+        svl.modalMission = ModalMission($, svl.ui.modalMission);
         svl.modalMissionComplete = ModalMissionComplete($, d3, L);
         svl.modalExample = ModalExample();
         svl.modalMissionComplete.hide();
@@ -270,7 +276,7 @@ function Main ($, d3, google, turf, params) {
             svl.taskFactory = TaskFactory(turf);
         }
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = TaskContainer(turf);
+            svl.taskContainer = TaskContainer(svl.streetViewService, svl, svl.tracker, turf);
         }
 
         // Initialize things that needs data loading.
@@ -355,11 +361,9 @@ function Main ($, d3, google, turf, params) {
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
                 if (mission.getProperty("label") != "onboarding") {
                     if (svl.missionContainer.isTheFirstMission()) {
-                        svl.modalMission.setMission(mission, {
-                            callback: initialMissionInstruction
-                        });
+                        svl.modalMission.setMission(mission, neighborhood, null, initialMissionInstruction);
                     } else {
-                        svl.modalMission.setMission(mission);
+                        svl.modalMission.setMission(mission, neighborhood);
                     }
                 }
 
