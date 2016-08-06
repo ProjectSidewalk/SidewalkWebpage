@@ -9,18 +9,21 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/SVLabel/lib/gsv/GSVPano.js',
                     'public/javascripts/SVLabel/lib/gsv/GSVPanoPointCloud.js',
-                    'public/javascripts/SVLabel/src/SVLabel/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/task/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/mission/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/label/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/neighborhood/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/panorama/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/status/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/mission/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/modal/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/util/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/navigation/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/neighborhood/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/onboarding/Onboarding.js',
+                    'public/javascripts/SVLabel/src/SVLabel/panorama/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/status/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/task/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/onboarding/Onboarding.js'
+                    'public/javascripts/SVLabel/src/SVLabel/*.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -54,18 +57,21 @@ module.exports = function(grunt) {
         },
         jasmine: {
             src: [
-                'public/javascripts/SVLabel/src/SVLabel/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/task/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/mission/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/label/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/neighborhood/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/panorama/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/status/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/util/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/mission/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/modal/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/navigation/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/neighborhood/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/onboarding/Onboarding.js',
+                'public/javascripts/SVLabel/src/SVLabel/panorama/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/status/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/task/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/onboarding/onboarding.js'
+                'public/javascripts/SVLabel/src/SVLabel/*.js'
             ],
             options: {
                 specs: [
