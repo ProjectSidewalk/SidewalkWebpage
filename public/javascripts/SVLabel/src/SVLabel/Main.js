@@ -403,7 +403,8 @@ function Main ($, d3, google, turf, params) {
         svl.missionFactory = MissionFactory ();
 
         // Modals
-        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, svl.ui.modalMissionComplete);
+        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete);
         svl.modalMissionComplete.hide();
 
         svl.form.disableSubmit();
@@ -431,7 +432,7 @@ function Main ($, d3, google, turf, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = Map($, google, turf, mapParam);
+        svl.map = new Map($, google, turf, mapParam);
         svl.map.disableClickZoom();
 
         var task;
