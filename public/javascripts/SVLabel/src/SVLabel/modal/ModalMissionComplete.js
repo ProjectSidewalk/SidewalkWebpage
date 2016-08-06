@@ -7,7 +7,7 @@
  * @constructor
  * @memberof svl
  */
-function ModalMissionComplete ($, d3, L) {
+function ModalMissionComplete ($, d3, L, missionContainer, uiModalMissionComplete) {
     var self = { className : 'ModalMissionComplete'},
         properties = {
             boxTop: 180,
@@ -83,25 +83,25 @@ function ModalMissionComplete ($, d3, L) {
 
 
     function _init () {
-        svl.ui.modalMissionComplete.background.on("click", handleBackgroundClick);
-        svl.ui.modalMissionComplete.closeButton.on("click", handleCloseButtonClick);
+        uiModalMissionComplete.background.on("click", handleBackgroundClick);
+        uiModalMissionComplete.closeButton.on("click", handleCloseButtonClick);
 
         hideMissionComplete();
     }
 
     function _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
-        svl.ui.modalMissionComplete.curbRampCount.html(curbRampCount);
-        svl.ui.modalMissionComplete.noCurbRampCount.html(noCurbRampCount);
-        svl.ui.modalMissionComplete.obstacleCount.html(obstacleCount);
-        svl.ui.modalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
-        svl.ui.modalMissionComplete.otherCount.html(otherCount);
+        uiModalMissionComplete.curbRampCount.html(curbRampCount);
+        uiModalMissionComplete.noCurbRampCount.html(noCurbRampCount);
+        uiModalMissionComplete.obstacleCount.html(obstacleCount);
+        uiModalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
+        uiModalMissionComplete.otherCount.html(otherCount);
     }
 
     function _updateMissionProgressStatistics (auditedDistance, missionDistance, remainingDistance, unit) {
         if (!unit) unit = "kilometers";
-        svl.ui.modalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(1) + " " + unit);
-        svl.ui.modalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
-        svl.ui.modalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
+        uiModalMissionComplete.totalAuditedDistance.html(auditedDistance.toFixed(1) + " " + unit);
+        uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
+        uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
     }
     
     // converts GeoJSON from the LineString format that we use into a collection of Points for the d3 animation
@@ -336,10 +336,10 @@ function ModalMissionComplete ($, d3, L) {
             map.removeLayer(overlayPolygonLayer);            
         }
 
-        svl.ui.modalMissionComplete.holder.css('visibility', 'hidden');
-        svl.ui.modalMissionComplete.foreground.css('visibility', "hidden");
-        svl.ui.modalMissionComplete.map.css('top', 500);
-        svl.ui.modalMissionComplete.map.css('left', -500);
+        uiModalMissionComplete.holder.css('visibility', 'hidden');
+        uiModalMissionComplete.foreground.css('visibility', "hidden");
+        uiModalMissionComplete.map.css('top', 500);
+        uiModalMissionComplete.map.css('left', -500);
         horizontalBarMissionLabel.style("visibility", "hidden");
         $(".leaflet-clickable").css('visibility', 'hidden');
         $(".leaflet-control-attribution").remove();
@@ -348,113 +348,99 @@ function ModalMissionComplete ($, d3, L) {
     }
 
     function setMissionTitle (missionTitle) {
-        svl.ui.modalMissionComplete.missionTitle.html(missionTitle);
+        uiModalMissionComplete.missionTitle.html(missionTitle);
     }
 
     /** 
      * Show the modal window that presents stats about the completed mission
      */
-    function show () {
-        svl.ui.modalMissionComplete.holder.css('visibility', 'visible');
-        svl.ui.modalMissionComplete.foreground.css('visibility', "visible");
-        svl.ui.modalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-        svl.ui.modalMissionComplete.map.css('left', 15);
-        // svl.ui.modalMissionComplete.leafletClickable.css('visibility', 'visible');
+    function show (mission, neighborhood) {
+        uiModalMissionComplete.holder.css('visibility', 'visible');
+        uiModalMissionComplete.foreground.css('visibility', "visible");
+        uiModalMissionComplete.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
+        uiModalMissionComplete.map.css('left', 15);
+
         horizontalBarMissionLabel.style("visibility", "visible");
         $(".leaflet-clickable").css('visibility', 'visible');
         $(".g-bar-chart").css('visibility', 'visible');
         $(".leaflet-zoom-animated path").css('visibility', 'visible');
 
-
-        if ("neighborhoodContainer" in svl && svl.neighborhoodContainer && "missionContainer" in svl && svl.missionContainer) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
-                mission = svl.missionContainer.getCurrentMission();
-            if (neighborhood && mission) {
-                // Focus on the current region on the Leaflet map
-                var center = neighborhood.center();
-                var neighborhoodGeom = neighborhood.getGeoJSON();
-                // overlay of entire map bounds
-                overlayPolygon = {
-                    "type": "FeatureCollection",
-                    "features": [{"type": "Feature", "geometry": {
-                    "type": "Polygon", "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
-                ]}}]};
-                // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
-                var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, "miles");
-                var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
-                // cut out neighborhood from overlay
-                overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
-                overlayPolygonLayer = L.geoJson(overlayPolygon);
-                // everything but current neighborhood grayed out
-                overlayPolygonLayer.setStyle({ "opacity": 0, "fillColor": "rgb(110, 110, 110)", "fillOpacity": 0.25});
-                overlayPolygonLayer.addTo(map);
-                if (center) {
-                    map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
-                }
-
-                // Update the horizontal bar chart to show how much distance the user has audited
-                var unit = "miles";
-                var regionId = neighborhood.getProperty("regionId");
-
-                // doing this the basic long way
-                var maxDist = 0;
-                var completedMissions = svl.missionContainer.getCompletedMissions();
-                // filter out missions not in this neighborhood
-                var regionMissions = completedMissions.filter( function (m) { return m.getProperty("regionId") == regionId; });
-                if(regionMissions.length > 1){
-                    // map mission distances and sort them descending
-                    var missionDistances =  regionMissions.map( function (d) { return d.getProperty("distanceMi"); }).sort().reverse();
-                    // take second highest (highest is this mission)
-                    maxDist = missionDistances[1];
-                }
-                var missionDistance = mission.getProperty("distanceMi") - maxDist;
-                var auditedDistance = neighborhood.completedLineDistance(unit);
-                var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
-                
-                var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
-                var missionTasks = mission.getRoute();
-                var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
-
-                var missionDistanceRate = missionDistance / totalLineDistance;
-                var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
-
-                // var curbRampCount = svl.labelCounter.countLabel("CurbRamp");
-                // var noCurbRampCount = svl.labelCounter.countLabel("NoCurbRamp");
-                // var obstacleCount = svl.labelCounter.countLabel("Obstacle");
-                // var surfaceProblemCount = svl.labelCounter.countLabel("SurfaceProblem");
-                // var otherCount = svl.labelCounter.countLabel("Other");
-                var labelCount = mission.getLabelCount();
-                if (labelCount) {
-                    var curbRampCount = labelCount["CurbRamp"];
-                    var noCurbRampCount = labelCount["NoCurbRamp"];
-                    var obstacleCount = labelCount["Obstacle"];
-                    var surfaceProblemCount = labelCount["SurfaceProblem"];
-                    var otherCount = labelCount["Other"];
-                } else {
-                    var curbRampCount = 0;
-                    var noCurbRampCount = 0;
-                    var obstacleCount = 0;
-                    var surfaceProblemCount = 0;
-                    var otherCount = 0;
-                }
-
-
-                var missionLabel = mission.getProperty("label");
-                if (missionLabel == "initial-mission") {
-                    setMissionTitle("Initial Mission");
-                } else {
-                    var neighborhoodName = neighborhood.getProperty("name");
-                    setMissionTitle(neighborhoodName);
-                }
-
-                _updateTheMissionCompleteMessage();
-                _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
-                _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
-                _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
-                _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
-            }
+        // Focus on the current region on the Leaflet map
+        var center = neighborhood.center();
+        var neighborhoodGeom = neighborhood.getGeoJSON();
+        // overlay of entire map bounds
+        overlayPolygon = {
+            "type": "FeatureCollection",
+            "features": [{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [
+                [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]]}}]};
+        // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
+        var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, "miles");
+        var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
+        // cut out neighborhood from overlay
+        overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
+        overlayPolygonLayer = L.geoJson(overlayPolygon);
+        // everything but current neighborhood grayed out
+        overlayPolygonLayer.setStyle({ "opacity": 0, "fillColor": "rgb(110, 110, 110)", "fillOpacity": 0.25});
+        overlayPolygonLayer.addTo(map);
+        if (center) {
+            map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
         }
+
+        // Update the horizontal bar chart to show how much distance the user has audited
+        var unit = "miles";
+        var regionId = neighborhood.getProperty("regionId");
+
+        // doing this the basic long way
+        var maxDist = 0;
+        var completedMissions = missionContainer.getCompletedMissions();
+        // filter out missions not in this neighborhood
+        var regionMissions = completedMissions.filter( function (m) { return m.getProperty("regionId") == regionId; });
+        if(regionMissions.length > 1){
+            // map mission distances and sort them descending
+            var missionDistances =  regionMissions.map( function (d) { return d.getProperty("distanceMi"); }).sort().reverse();
+            // take second highest (highest is this mission)
+            maxDist = missionDistances[1];
+        }
+        var missionDistance = mission.getProperty("distanceMi") - maxDist;
+        var auditedDistance = neighborhood.completedLineDistance(unit);
+        var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
+
+        var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+        var missionTasks = mission.getRoute();
+        var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
+
+        var missionDistanceRate = missionDistance / totalLineDistance;
+        var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+
+        var labelCount = mission.getLabelCount();
+        if (labelCount) {
+            var curbRampCount = labelCount["CurbRamp"];
+            var noCurbRampCount = labelCount["NoCurbRamp"];
+            var obstacleCount = labelCount["Obstacle"];
+            var surfaceProblemCount = labelCount["SurfaceProblem"];
+            var otherCount = labelCount["Other"];
+        } else {
+            var curbRampCount = 0;
+            var noCurbRampCount = 0;
+            var obstacleCount = 0;
+            var surfaceProblemCount = 0;
+            var otherCount = 0;
+        }
+
+
+        var missionLabel = mission.getProperty("label");
+        if (missionLabel == "initial-mission") {
+            setMissionTitle("Initial Mission");
+        } else {
+            var neighborhoodName = neighborhood.getProperty("name");
+            setMissionTitle(neighborhoodName);
+        }
+
+        _updateTheMissionCompleteMessage();
+        _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate);
+        _updateNeighborhoodStreetSegmentVisualization(missionTasks, completedTasks);
+        _updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
+        _updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
     }
 
     /**
@@ -494,7 +480,13 @@ function ModalMissionComplete ($, d3, L) {
 
     _init();
 
-    self.hide = hideMissionComplete;
+
+    self._updateTheMissionCompleteMessage = _updateTheMissionCompleteMessage;
+    self._updateNeighborhoodDistanceBarGraph = _updateNeighborhoodDistanceBarGraph;
+    self._updateNeighborhoodStreetSegmentVisualization = _updateNeighborhoodStreetSegmentVisualization;
+    self._updateMissionProgressStatistics = _updateMissionProgressStatistics;
+    self._updateMissionLabelStatistics = _updateMissionLabelStatistics;
+    self.hide = hideMissionComplete ;
     self.show = show;
     return self;
 }

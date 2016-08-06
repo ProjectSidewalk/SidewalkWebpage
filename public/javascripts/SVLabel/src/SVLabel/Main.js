@@ -248,10 +248,8 @@ function Main ($, d3, google, turf, params) {
         
         svl.modalSkip = ModalSkip($);
         svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($, svl.ui.modalMission);
-        svl.modalMissionComplete = ModalMissionComplete($, d3, L);
+        svl.modalMission = new ModalMission($, svl.ui.modalMission);
         svl.modalExample = ModalExample();
-        svl.modalMissionComplete.hide();
 
         svl.toolbar = Toolbar($);
 
@@ -396,13 +394,17 @@ function Main ($, d3, google, turf, params) {
             handleDataLoadComplete();
         });
 
-        svl.missionContainer = MissionContainer ($, {
+        svl.missionContainer = new MissionContainer ($, {
             callback: function () {
                 loadingMissionsCompleted = true;
                 handleDataLoadComplete();
             }
         });
         svl.missionFactory = MissionFactory ();
+
+        // Modals
+        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, svl.ui.modalMissionComplete);
+        svl.modalMissionComplete.hide();
 
         svl.form.disableSubmit();
         svl.form.setTaskRemaining(1);

@@ -1,7 +1,7 @@
 describe("ModalMissionComplete", function () {
     var modal;
-    var uiModalMission;
-    var $uiModalMissionFixture;
+    var uiModalMissionComplete;
+    var $uiModalMissionCompleteFixture;
 
     // Mocks
     function MissionMock () {
@@ -28,23 +28,84 @@ describe("ModalMissionComplete", function () {
     };
 
     beforeEach(function () {
-        $uiModalMissionFixture = $(' <div id="modal-mission-holder"> \
-                                        <div id="modal-mission-background" class="modal-background"></div> \
-                                        <div id="modal-mission-foreground" class="modal-foreground"> \
-                                            <h1 id="modal-mission-header">Mission</h1> \
-                                            <div id="modal-mission-instruction"></div> \
-                                            <button class="button" id="modal-mission-close-button">OK</button> \
-                                        </div> \
-                                    </div>');
-        uiModalMission = {};
-        uiModalMission.holder = $uiModalMissionFixture;
-        uiModalMission.foreground = uiModalMission.holder.find("#modal-mission-foreground");
-        uiModalMission.background = uiModalMission.holder.find("#modal-mission-background");
-        uiModalMission.missionTitle = uiModalMission.holder.find("#modal-mission-header");
-        uiModalMission.instruction = uiModalMission.holder.find("#modal-mission-instruction");
-        uiModalMission.closeButton = uiModalMission.holder.find("#modal-mission-close-button");
+        $uiModalMissionCompleteFixture = $('    <div id="modal-mission-complete-holder"> \
+                                                    <div id="modal-mission-complete-background" class="modal-background"></div> \
+                                                    <div id="modal-mission-complete-foreground" class="modal-foreground"> \
+                                                        <h1>Mission Complete! <span class="normal" id="modal-mission-complete-title"></span></h1> \
+                                                        <div class="row"> \
+                                                            <div class="mapbox col-sm-7"> \
+                                                                <div id="modal-mission-complete-map"></div> \
+                                                                <div id="map-legend"> \
+                                                                    <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></svg> This Mission</span><br> \
+                                                                    <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></svg> Previous Missions</span> \
+                                                                </div> \
+                                                            </div> \
+                                                            <div class="col-sm-5"> \
+                                                                <p><span id="modal-mission-complete-message"></span></p> \
+                                                                <h3>Mission Labels</h3> \
+                                                                <table class="table"> \
+                                                                    <tr> \
+                                                                        <th class="width-50-percent">Curb Ramp</th> \
+                                                                        <td id="modal-mission-complete-curb-ramp-count" class="col-right"></td> \
+                                                                    </tr> \
+                                                                    <tr> \
+                                                                        <th>Missing Curb Ramp</th> \
+                                                                        <td id="modal-mission-complete-no-curb-ramp-count" class="col-right"></td> \
+                                                                    </tr> \
+                                                                    <tr> \
+                                                                        <th>Obstacle in Path</th> \
+                                                                        <td id="modal-mission-complete-obstacle-count" class="col-right"></td> \
+                                                                    </tr> \
+                                                                    <tr> \
+                                                                        <th>Surface Problem</th> \
+                                                                        <td id="modal-mission-complete-surface-problem-count" class="col-right"></td> \
+                                                                    </tr> \
+                                                                    <tr> \
+                                                                        <th>Other</th> \
+                                                                        <td id="modal-mission-complete-other-count" class="col-right"></td> \
+                                                                    </tr> \
+                                                                </table> \
+                                                                <h3>Neighborhood Progress</h3> \
+                                                                <div id="modal-mission-complete-complete-bar"></div> \
+                                                                <table class="table"> \
+                                                                <tr> \
+                                                                    <th>Audited in this mission</th> \
+                                                                    <td id="modal-mission-complete-mission-distance" class="col-right"></td> \
+                                                                </tr> \
+                                                                <tr> \
+                                                                    <th>Audited in this neighborhood</th> \
+                                                                    <td id="modal-mission-complete-total-audited-distance" class="col-right"></td> \
+                                                                </tr> \
+                                                                <tr> \
+                                                                    <th>Remaining in this neighborhood</th> \
+                                                                    <td id="modal-mission-complete-remaining-distance" class="col-right"></td> \
+                                                                </tr> \
+                                                            </table> \
+                                                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button> \
+                                                            </div> \
+                                                        </div> \
+                                                    </div> \
+                                                </div>');
 
-        modal = ModalMission($, uiModalMission);
+
+        uiModalMissionComplete = {};
+        uiModalMissionComplete.holder = $uiModalMissionCompleteFixture;
+        uiModalMissionComplete.foreground = $uiModalMissionCompleteFixture.find("#modal-mission-complete-foreground");
+        uiModalMissionComplete.background = $uiModalMissionCompleteFixture.find("#modal-mission-complete-background");
+        uiModalMissionComplete.missionTitle = $uiModalMissionCompleteFixture.find("#modal-mission-complete-title");
+        uiModalMissionComplete.message = $uiModalMissionCompleteFixture.find("#modal-mission-complete-message");
+        uiModalMissionComplete.map = $uiModalMissionCompleteFixture.find("#modal-mission-complete-map");
+        uiModalMissionComplete.closeButton = $uiModalMissionCompleteFixture.find("#modal-mission-complete-close-button");
+        uiModalMissionComplete.totalAuditedDistance = $uiModalMissionCompleteFixture.find("#modal-mission-complete-total-audited-distance");
+        uiModalMissionComplete.missionDistance = $uiModalMissionCompleteFixture.find("#modal-mission-complete-mission-distance");
+        uiModalMissionComplete.remainingDistance = $uiModalMissionCompleteFixture.find("#modal-mission-complete-remaining-distance");
+        uiModalMissionComplete.curbRampCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-curb-ramp-count");
+        uiModalMissionComplete.noCurbRampCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-no-curb-ramp-count");
+        uiModalMissionComplete.obstacleCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-obstacle-count");
+        uiModalMissionComplete.surfaceProblemCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-surface-problem-count");
+        uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
+
+        modal = new ModalMissionComplete($, d3, L, uiModalMissionComplete);
     });
 
     describe("`show` method", function () {
