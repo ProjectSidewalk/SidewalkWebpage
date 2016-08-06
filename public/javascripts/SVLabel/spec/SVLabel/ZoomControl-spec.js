@@ -1,7 +1,20 @@
 describe("Tests for the ZoomControl.", function () {
-    Main($, d3, {});
 
 	var zoom = new ZoomControl(jQuery);
+	var $fixture;
+
+	svl.ui = {};
+	svl.ui.zoomControl = {};
+
+	beforeEach(function () {
+		$fixture = $("<div id='zoom-control-holder'></div>");
+		svl.ui.zoomControl.holder = $fixture.find("#zoom-control-holder");
+		svl.ui.zoomControl.holder.append('<button id="zoom-in-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Zoom in"><br /><u>Z</u>oom In</button>');
+		svl.ui.zoomControl.holder.append('<button id="zoom-out-button" class="button zoom-control-button"><img src="' + svl.rootDirectory + 'img/icons/ZoomOut.svg" class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>');
+		svl.ui.zoomControl.zoomIn = $fixture.find("#zoom-in-button");
+		svl.ui.zoomControl.zoomOut = $fixture.find("#zoom-out-button");
+	});
+
 	describe("The method getStatus", function () {
 		it("should warn when an illegal key is passed.", function () {
 			expect(function() {zoom.getStatus('invalid');} ).toThrow();

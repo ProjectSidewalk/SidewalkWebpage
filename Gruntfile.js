@@ -66,7 +66,8 @@ module.exports = function(grunt) {
             options: {
                 specs: [
                     'public/javascripts/SVLabel/spec/SVLabel/*.js',
-                    'public/javascripts/SVLabel/spec/SVLabel/onboarding/*.js'
+                    'public/javascripts/SVLabel/spec/SVLabel/onboarding/*.js',
+                    'public/javascripts/SVLabel/spec/SVLabel/modal/*.js'
                 ],
                 helpers: 'public/javascripts/SVLabel/spec/SpecHelper.js',
                 vendor: [
