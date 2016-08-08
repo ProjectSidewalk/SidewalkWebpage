@@ -177,9 +177,6 @@ function Main ($, d3, google, turf, params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
-        
-        svl.ui.bottomToolbar = {};
-        svl.ui.bottomToolbar.onboardingLink = $("#toolbar-onboarding-link");
 
         // Navigation compass
         svl.ui.compass = {};
@@ -212,48 +209,58 @@ function Main ($, d3, google, turf, params) {
         params = params || {};
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
+        // svl.streetViewService = typeof google != "undefined" ? new google.maps.StreetViewService() : null;
+
+        if (!("tracker" in svl)) {
+            svl.tracker = new Tracker();
+        }
+
+        svl.tracker.push('TaskStart');
 
         // Instantiate objects
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
-        svl.labelContainer = LabelContainer($);
-        svl.keyboard = Keyboard($);
-        svl.canvas = Canvas($);
-        svl.form = Form($, params.form);
-        svl.overlayMessageBox = OverlayMessageBox();
-        svl.statusField = StatusField();
-        svl.missionStatus = MissionStatus();
-        svl.neighborhoodStatus = NeighborhoodStatus();
+        svl.labelContainer = new LabelContainer($);
+
+        svl.canvas = new Canvas($);
+        svl.form = new Form($, params.form);
+        svl.form.disableSubmit();
+        svl.form.setTaskRemaining(1);
+        svl.form.setTaskDescription('TestTask');
+        svl.form.setTaskPanoramaId(panoId);
+
+        svl.overlayMessageBox = new OverlayMessageBox();
+        svl.statusField = new StatusField();
+
+        svl.neighborhoodStatus = new NeighborhoodStatus();
 
 
-        svl.labelCounter = LabelCounter(d3);
-        svl.actionStack = ActionStack();
-        svl.ribbon = RibbonMenu($);  // svl.ribbon.stopBlinking()
-        svl.popUpMessage = PopUpMessage($);
-        svl.zoomControl = ZoomControl($);
-        svl.missionProgress = MissionProgress($);
-        svl.pointCloud = PointCloud();
-        svl.tracker = Tracker();
-        svl.tracker.push('TaskStart');
-        // svl.trackerViewer = TrackerViewer();
-        svl.labelFactory = LabelFactory();
-        svl.compass = Compass(d3, turf);
-        svl.contextMenu = ContextMenu($);
-        svl.audioEffect = AudioEffect();
-        
-        svl.modalSkip = ModalSkip($);
-        svl.modalComment = ModalComment($);
-        svl.modalMission = ModalMission($, L);
-        svl.modalMissionComplete = ModalMissionComplete($, d3, L);
-        svl.modalExample = ModalExample();
-        svl.modalMissionComplete.hide();
 
-        svl.toolbar = Toolbar($);
+        svl.labelCounter = new LabelCounter(d3);
+        svl.actionStack = new ActionStack();
+        svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);  // svl.ribbon.stopBlinking()
+        svl.popUpMessage = new PopUpMessage($);
+        svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
 
-        svl.panoramaContainer = PanoramaContainer(google);
+        svl.pointCloud = new PointCloud();
+
+        svl.labelFactory = new LabelFactory();
+        svl.compass = new Compass(d3, turf);
+        svl.contextMenu = new ContextMenu($);
+        svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl, svl.onboarding);
+
+        svl.gameEffect = new GameEffectModel();
+        svl.audioEffect = new AudioEffect(svl.gameEffect, svl.ui.leftColumn, svl.rootDirectory);
+        svl.completionMessage = new CompletionMessage(svl.gameEffect, svl.ui.task);
+
+        svl.modalSkip = new ModalSkip($);
+
+        svl.modalExample = new ModalExample();
+
+        svl.panoramaContainer = new PanoramaContainer(google);
 
         var neighborhood;
-        svl.neighborhoodFactory = NeighborhoodFactory();
-        svl.neighborhoodContainer = NeighborhoodContainer($);
+        svl.neighborhoodFactory = new NeighborhoodFactory();
+        svl.neighborhoodContainer = new NeighborhoodContainer($);
         if ('regionId' in params) {
             neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
@@ -267,10 +274,10 @@ function Main ($, d3, google, turf, params) {
         }
 
         if (!("taskFactory" in svl && svl.taskFactory)) {
-            svl.taskFactory = TaskFactory(turf);
+            svl.taskFactory = new TaskFactory(turf);
         }
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = TaskContainer(turf);
+            svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.tracker, turf);
         }
 
         // Initialize things that needs data loading.
@@ -300,6 +307,7 @@ function Main ($, d3, google, turf, params) {
                     }
                     svl.missionContainer.setCurrentMission(mission);
                 } else {
+                    svl.onboarding = null;
                     // Set the current mission.
                     var haveSwitchedToANewRegion = false;
                     mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
@@ -355,16 +363,14 @@ function Main ($, d3, google, turf, params) {
                 // Popup the message explaining the goal of the current mission if the current mission is not onboarding
                 if (mission.getProperty("label") != "onboarding") {
                     if (svl.missionContainer.isTheFirstMission()) {
-                        svl.modalMission.setMission(mission, {
-                            callback: initialMissionInstruction
-                        });
+                        svl.modalMission.setMission(mission, neighborhood, null, initialMissionInstruction);
                     } else {
-                        svl.modalMission.setMission(mission);
+                        svl.modalMission.setMission(mission, neighborhood);
                     }
                 }
 
                 if ("missionProgress" in svl) {
-                    svl.missionProgress.update();
+                    svl.missionProgress.update(mission, neighborhood);
                 }
 
                 // Get the labels collected in the current neighborhood
@@ -392,19 +398,29 @@ function Main ($, d3, google, turf, params) {
             handleDataLoadComplete();
         });
 
-        svl.missionContainer = MissionContainer ($, {
+        // Models
+        svl.modalModel = new ModalModel();
+        svl.missionModel = new MissionModel();
+
+        svl.modalMission = new ModalMission($, svl.ui.modalMission, svl.modalModel);
+
+        // Mission.
+        svl.missionStatus = new MissionStatus();
+        svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.modalModel, svl.neighborhoodContainer, svl.taskContainer);
+        svl.missionFactory = new MissionFactory ();
+        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.missionStatus, {
             callback: function () {
                 loadingMissionsCompleted = true;
                 handleDataLoadComplete();
             }
         });
-        svl.missionFactory = MissionFactory ();
 
-        svl.form.disableSubmit();
-        svl.form.setTaskRemaining(1);
-        svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);
-        
+        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);
+        svl.modalMissionComplete.hide();
+        svl.modalComment = new ModalComment(svl, svl.form, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
+
+
         // Set map parameters and instantiate it.
         var mapParam = {};
         mapParam.canvas = svl.canvas;
@@ -425,7 +441,7 @@ function Main ($, d3, google, turf, params) {
             svl.popUpMessage.hide();
         }
 
-        svl.map = Map($, google, turf, mapParam);
+        svl.map = new Map($, google, turf, mapParam);
         svl.map.disableClickZoom();
 
         var task;

@@ -5,13 +5,16 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress () {
+function MissionProgress (svl, gameEffect, modalModel, neighborhoodContainer, taskContainer) {
     var self = { className: 'MissionProgress' };
     var status = {
             currentCompletionRate: 0,
             currentMission: null,
             previousHeading: 0
         };
+
+    var _gameEffectModel = gameEffect;
+    var _modalModel = modalModel;
 
     function _init() {
     }
@@ -30,19 +33,21 @@ function MissionProgress () {
 
     /**
      * @param mission Next mission
+     * @param neighborhood Current neighborhood
      */
-    function showNextMission (mission) {
+    function _showNextMission (mission, neighborhood) {
         var label = mission.getProperty("label");
         var parameters = { badgeURL: mission.getProperty("badgeURL") };
 
         if (label == "distance-mission") {
             parameters.distance = mission.getProperty("distance");
-            svl.modalMission.setMissionMessage(mission, parameters);
-            // svl.modalMission.setMissionMessage(mission, { distance: mission.getProperty("distance"), badgeURL: mission.getProperty("badgeURL") });
+            // modalMission.setMission(mission, neighborhood, parameters);
+            _modalModel.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: null });
         } else if (label == "area-coverage-mission") {
             parameters.coverage = mission.getProperty("coverage");
-            svl.modalMission.setMissionMessage(mission, parameters);
-            // svl.modalMission.setMissionMessage(mission, { coverage: mission.getProperty("coverage"), badgeURL: mission.getProperty("badgeURL") });
+            // modalMission.setMission(mission, neighborhood, parameters);
+            _modalModel.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: null });
+
         } else {
             console.warn("Debug: It shouldn't reach here.");
         }
@@ -51,12 +56,10 @@ function MissionProgress () {
     /**
      * This method updates the mission completion rate and its visualization.
      */
-    function update () {
-        if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
-        if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
-            var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
-                currentMission = svl.missionContainer.getCurrentMission(),
-                completionRate;
+    function update (currentMission, currentRegion) {
+        if (svl && "onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
+        if ("missionContainer" in svl) {
+            var completionRate;
 
             var _callback = function (e) {
                 var currentRegionId = currentRegion.getProperty("regionId");
@@ -68,20 +71,20 @@ function MissionProgress () {
                 while (!nextMission) {
                     // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
                     var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                    var newRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+                    var newRegionId = neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
                     nextMission = svl.missionContainer.nextMission(newRegionId);
                     movedToANewRegion = true;
                 }
 
                 svl.missionContainer.setCurrentMission(nextMission);
-                showNextMission(nextMission);
+                _showNextMission(nextMission, currentRegion);
 
                 if (movedToANewRegion) {
-                    svl.neighborhoodContainer.moveToANewRegion(newRegionId);
-                    svl.taskContainer.fetchTasksInARegion(newRegionId, function () {
+                    neighborhoodContainer.moveToANewRegion(newRegionId);
+                    taskContainer.fetchTasksInARegion(newRegionId, function () {
                         // Jump to the new location.
-                        var newTask = svl.taskContainer.nextTask(task);
-                        svl.taskContainer.setCurrentTask(newTask);
+                        var newTask = taskContainer.nextTask(task);
+                        taskContainer.setCurrentTask(newTask);
                         svl.map.moveToTheTaskLocation(newTask);
                         
                     }, false);  // Fetch tasks in the new region
@@ -98,13 +101,13 @@ function MissionProgress () {
                     complete(currentMission);
                     svl.missionContainer.commit();
 
-                    if ("audioEffect" in svl) {
-                        svl.audioEffect.play("yay");
-                        svl.audioEffect.play("applause");
-                    }
+                    _gameEffectModel.playAudio({audioType: "yay"});
+                    _gameEffectModel.playAudio({audioType: "applause"});
 
-                    svl.modalMissionComplete.show();
-                    svl.ui.modalMissionComplete.closeButton.one("click", _callback)
+
+                    _modalModel.trigger("ModalMissionComplete:update", { mission: currentMission, neighborhood: currentRegion });
+                    _modalModel.trigger("ModalMissionComplete:show");
+                    _modalModel.trigger("ModalMissionComplete:one", { uiComponent: 'closeButton', eventType: 'click', callback: _callback });
                 }
             }
         }

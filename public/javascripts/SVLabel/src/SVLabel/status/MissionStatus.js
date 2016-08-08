@@ -7,12 +7,34 @@ function MissionStatus () {
         "onboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
         "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood.",
-        "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood more accessible"
+        "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood accessible"
     };
     
     function _init() {
         printCompletionRate(0);
         
+    }
+
+    function _auidtDistanceToString (distance, unit) {
+        if (!unit) unit = "kilometers";
+
+        if (unit == "miles") {
+            if (distance <= 0.20) {
+                return "1000ft";
+            } else if (distance <= 0.25) {
+                return "&frac14;mi";
+            } else if (distance <= 0.5) {
+                return "&frac12;mi"
+            } else if (distance <= 0.75) {
+                return "&frac34;mi";
+            } else {
+                return distance.toFixed(0, 10) + "";
+            }
+        } else if (unit == "feet") {
+            return distance + "";
+        } else {
+            return distance + "";
+        }
     }
 
     /**
@@ -49,11 +71,15 @@ function MissionStatus () {
             missionMessage = getMissionMessage(missionLabel);
 
         if (missionLabel == "distance-mission") {
-            if (mission.getProperty("distanceMi") <= 1) {
-                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
-            } else {
-                missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
-            }
+            // if (mission.getProperty("distanceMi") <= 1) {
+            //     missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
+            // } else {
+            //     missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
+            // }
+            //
+            var distanceString = _auidtDistanceToString(mission.getProperty("distanceMi"), "miles");
+            missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
+
         } else if (missionLabel == "area-coverage-mission") {
             var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
             missionMessage = missionMessage.replace("__PLACEHOLDER__", coverage);

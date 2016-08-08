@@ -13,10 +13,9 @@ function Task (turf, geojson, currentLat, currentLng) {
         _geojson,
         lat,
         lng,
-        lastLat,
-        lastLng,
         taskCompletionRate = 0,
-        paths, previousPaths = [],
+        paths,
+        previousPaths = [],
         status = {
             isCompleted: false
         },
@@ -89,49 +88,51 @@ function Task (turf, geojson, currentLat, currentLng) {
 
 
     function completedTaskPaths () {
-        var i,
-            newPaths,
-            latlng = svl.map.getPosition(),
-            lat = latlng.lat,
-            lng = latlng.lng,
-            line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = closestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
-            incompletePath = [];
-        for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
+        if (svl.map) {
+            var i,
+                newPaths,
+                latlng = svl.map.getPosition(),
+                lat = latlng.lat,
+                lng = latlng.lng,
+                line = _geojson.features[0],
+                currentPoint = turf.point([lng, lat]),
+                snapped = turf.pointOnLine(line, currentPoint),
+                closestSegmentIndex = closestSegment(currentPoint, line),
+                coords = line.geometry.coordinates,
+                segment,
+                completedPath = [new google.maps.LatLng(coords[0][1], coords[0][0])],
+                incompletePath = [];
+            for (i = 0; i < closestSegmentIndex; i++) {
+                segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+                completedPath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]));
+            }
+            completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+            incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+
+            for (i = closestSegmentIndex; i < coords.length - 1; i++) {
+                incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
+            }
+
+            // Create paths
+            newPaths = [
+                new google.maps.Polyline({
+                    path: completedPath,
+                    geodesic: true,
+                    strokeColor: '#00ff00',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2
+                }),
+                new google.maps.Polyline({
+                    path: incompletePath,
+                    geodesic: true,
+                    strokeColor: '#ff0000',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2
+                })
+            ];
+
+            return newPaths;
         }
-        completedPath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-
-        for (i = closestSegmentIndex; i < coords.length - 1; i++) {
-            incompletePath.push(new google.maps.LatLng(coords[i + 1][1], coords[i + 1][0]))
-        }
-
-        // Create paths
-        newPaths = [
-            new google.maps.Polyline({
-                path: completedPath,
-                geodesic: true,
-                strokeColor: '#00ff00',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            }),
-            new google.maps.Polyline({
-                path: incompletePath,
-                geodesic: true,
-                strokeColor: '#ff0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            })
-        ];
-
-        return newPaths;
     }
 
 
@@ -249,34 +250,37 @@ function Task (turf, geojson, currentLat, currentLng) {
     function getDistanceWalked (unit) {
         if (!unit) unit = "kilometers";
 
-        var i,
-            point,
-            latlng = svl.map.getPosition(),
-            line = _geojson.features[0],
-            currentPoint = turf.point([latlng.lng, latlng.lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = closestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            distance = 0;
-        var coordinates = [];
-        for (i = 0; i < closestSegmentIndex; i++) {
-            // segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
-            // distance += turf.lineDistance(segment, unit);
-            coordinates.push([coords[i][0], coords[i][1]])
-        }
-        coordinates.push([coords[i][0], coords[i][1]]);
-        segment = turf.linestring(coordinates);
-        distance += turf.lineDistance(segment, unit);
+        if (svl.map) {
+            var i,
+                point,
+                latlng = svl.map.getPosition(),
+                line = _geojson.features[0],
+                currentPoint = turf.point([latlng.lng, latlng.lat]),
+                snapped = turf.pointOnLine(line, currentPoint),
+                closestSegmentIndex = closestSegment(currentPoint, line),
+                coords = line.geometry.coordinates,
+                segment,
+                distance = 0;
+            var coordinates = [];
+            for (i = 0; i < closestSegmentIndex; i++) {
+                // segment = turf.linestring([[coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]]]);
+                // distance += turf.lineDistance(segment, unit);
+                coordinates.push([coords[i][0], coords[i][1]])
+            }
+            coordinates.push([coords[i][0], coords[i][1]]);
+            segment = turf.linestring(coordinates);
+            distance += turf.lineDistance(segment, unit);
 
-        // Check if the snapped point is not too far away from the current point. Then add the distance between the
-        // snapped point and the last segment point to cumSum.
-        if (turf.distance(snapped, currentPoint, unit) < 100) {
-            point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-            distance += turf.distance(snapped, point, unit);
+            // Check if the snapped point is not too far away from the current point. Then add the distance between the
+            // snapped point and the last segment point to cumSum.
+            if (turf.distance(snapped, currentPoint, unit) < 100) {
+                point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
+                distance += turf.distance(snapped, point, unit);
+            }
+
+            return distance;
         }
 
-        return distance;
     }
 
 

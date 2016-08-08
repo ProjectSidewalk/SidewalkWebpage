@@ -1,12 +1,17 @@
 /**
  * MissionContainer module
  * @param $ jQuery object
+ * @param factory MissionFactory. Todo. I shouldn't need the factory inside this module. Refactor.
+ * @param form. Todo. Again, I shouldn't need the form object here. Refactor.
+ * @param progress. MissionProgress object.
+ * @param missionStatus. Todo. MissionStatus object. Write a model that connects MissionContainer with MissionProgress and
+ * MissionStatus. Or rather I want a model that ties all the mission related modules. Read JSTR Section 4.2.4 Building and testing the model.
  * @param parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function MissionContainer ($, parameters) {
+function MissionContainer ($, factory, form, progress, missionStatus, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
@@ -31,7 +36,7 @@ function MissionContainer ($, parameters) {
             missions.sort(cmp);
             len = missions.length;
             for (i = 0; i < len; i++) {
-                mission = svl.missionFactory.create(
+                mission = factory.create(
                     missions[i].region_id,
                     missions[i].mission_id,
                     missions[i].label,
@@ -55,9 +60,37 @@ function MissionContainer ($, parameters) {
         }
 
         if ("callback" in parameters) {
-            $.when($.ajax("/mission")).done(_callback).done(parameters.callback);
+            $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete).done(parameters.callback);
         } else {
-            $.when($.ajax("/mission")).done(_callback)
+            $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete)
+        }
+    }
+
+    /**
+     * This method is called once all the missions are loaded. It sets the auditDistance, auditDistanceFt, and
+     * auditDistanceMi of all the missions in the container.
+     * @private
+     */
+    function _onLoadComplete () {
+        var regionIds = Object.keys(missionStoreByRegionId);
+
+        for (var ri = 0, rlen = regionIds.length; ri < rlen; ri++) {
+            var regionId = regionIds[ri];
+            var distance, distanceFt, distanceMi;
+            for (var mi = 0, mlen = missionStoreByRegionId[regionId].length; mi < mlen; mi++) {
+                if (mi == 0) {
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistance", missionStoreByRegionId[regionId][mi].getProperty("distance"));
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", missionStoreByRegionId[regionId][mi].getProperty("distanceFt"));
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", missionStoreByRegionId[regionId][mi].getProperty("distanceMi"));
+                } else {
+                    distance = missionStoreByRegionId[regionId][mi].getProperty("distance") - missionStoreByRegionId[regionId][mi - 1].getProperty("distance");
+                    distanceFt = missionStoreByRegionId[regionId][mi].getProperty("distanceFt") - missionStoreByRegionId[regionId][mi - 1].getProperty("distanceFt");
+                    distanceMi = missionStoreByRegionId[regionId][mi].getProperty("distanceMi") - missionStoreByRegionId[regionId][mi - 1].getProperty("distanceMi");
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistance", distance);
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", distanceFt);
+                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", distanceMi);
+                }
+            }
         }
     }
 
@@ -75,10 +108,10 @@ function MissionContainer ($, parameters) {
             regionId = "noRegionId";
         }
 
-        // var m = getMission(mission.getProperty("regionId"), mission.getProperty("label"), mission.getProperty("level"));
-        // if (!m) {
+        var existingMissionIds = missionStoreByRegionId[regionId].map(function (m) { return m.getProperty("missionId"); });
+        if (existingMissionIds.indexOf(mission.getProperty("missionId")) < 0) {
             missionStoreByRegionId[regionId].push(mission);
-        // }
+        }
     }
 
     /** Push the completed mission */
@@ -108,10 +141,7 @@ function MissionContainer ($, parameters) {
                 data.push(staged[i].toSubmissionFormat());
             }
             staged = [];
-
-            if ("form" in svl && svl.form) {
-                svl.form.postJSON("/mission", data);
-            }
+            form.postJSON("/mission", data);
         }
         return this;
     }
@@ -222,8 +252,8 @@ function MissionContainer ($, parameters) {
         currentMission = mission;
 
         if ("missionProgress" in svl && "missionStatus" in svl) {
-            svl.missionProgress.update();
-            svl.missionStatus.printMissionMessage(mission);
+            progress.update();
+            missionStatus.printMissionMessage(mission);
         }
         return this;
     }
@@ -240,6 +270,7 @@ function MissionContainer ($, parameters) {
 
     _init(parameters);
 
+    self._onLoadComplete = _onLoadComplete;
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
     self.commit = commit;

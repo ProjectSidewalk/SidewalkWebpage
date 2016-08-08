@@ -91,6 +91,8 @@ project/.sbtserver.lock
 # JavaScript and Node
 node_modules
 public/javascripts/SVLabel/build/*
+public/javascripts/Admin/build/*
+public/javascripts/Admin/Progress/*
 download
 
 public/javascripts/SVLabel/build/SVLabel.js

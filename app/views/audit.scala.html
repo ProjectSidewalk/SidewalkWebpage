@@ -314,7 +314,7 @@
             <div id="modal-mission-holder">
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-header">Mission</h1>
+                    <h1 id="modal-mission-header" class="text-center">Mission</h1>
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -481,11 +481,7 @@
             </div>
 
             <div id="annotation-holder"></div>
-            <div id="bottom-toolbar-holder" class="toolbar">
-                <p class="text-right">
-                    @*<a href="@routes.ApplicationController.faq()" target="_blank">FAQ</a>&nbsp;|&nbsp;<a href="#" id="toolbar-onboarding-link">Retake tutorial</a>*@
-                </p>
-            </div>
+
             <div id="task-completion-message-holder">
                 <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/GoodJob.png")' alt="Task completion message: Good Job!" />
             </div>
@@ -495,28 +491,6 @@
         </div>
     </div>
 
-    <template class="missions" val="initial-mission">
-        <figure>
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-        </figure>
-        <p>The sidewalk accessibility affects how people with mobility impairments move about the city.
-            Your first mission is to <span class="bold">find all the accessibility attributes that affect mobility
-            impaired travelers.</span></p>
-    </template>
-    <template class="missions" val="distance-mission">
-        <figure>
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-        </figure>
-        <p>Your goal is to <span class="bold">audit <var id="mission-target-distance">[x]</var> of the entire streets
-            in this neighborhood</span> and find the accessibility attributes!</p>
-    </template>
-    <template class="missions" val="area-coverage-mission">
-        <figure>
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/AccessibilityFeatures.png")' class="modal-mission-images center-block" alt="Street accessibility features" />
-        </figure>
-        <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets
-            in this neighborhood</span> and find the accessibility attributes!</p>
-    </template>
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
@@ -578,6 +552,9 @@
     <script type="text/javascript">
         var svl = svl || {};
         svl.storage = new TemporaryStorage(JSON);
+        if (!("tracker" in svl)) {
+            svl.tracker = new Tracker();
+        }
 
         @if(user) {
             var userParam = {
@@ -591,16 +568,20 @@
         }
 
         @if(task) {
-            svl.taskFactory = TaskFactory(turf);
-            svl.taskContainer = TaskContainer(turf);
+        var streetViewService = new google.maps.StreetViewService();
+        svl.streetViewService = streetViewService;
+        var STREETVIEW_MAX_DISTANCE = 25;
 
-            var geojson = @Html(task.get.toJSON.toString);
-            var lat1 = geojson.features[0].geometry.coordinates[0][1],
+        var geojson = @Html(task.get.toJSON.toString);
+        var lat1 = geojson.features[0].geometry.coordinates[0][1],
                 lng1 = geojson.features[0].geometry.coordinates[0][0];
+        var latLng = new google.maps.LatLng(lat1, lng1);
 
-            var streetViewService = new google.maps.StreetViewService();
-            var STREETVIEW_MAX_DISTANCE = 25;
-            var latLng = new google.maps.LatLng(lat1, lng1);
+        svl.taskFactory = TaskFactory(turf);
+            svl.taskContainer = TaskContainer(streetViewService, svl, svl.tracker, turf);
+
+
+
 
             // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
@@ -617,14 +598,6 @@
                 }
             });
         }
-
-//        $(document).ready(function () {
-//            var _pointCloudLoader = new GSVPANO.PanoPointCloudLoader();
-//            _pointCloudLoader.onPointCloudLoad = function () {
-//                svl.pointCloud = this.pointCloud;
-//            };
-//            _pointCloudLoader.load(this.panoId);
-//        });
 
         $(document).ready(function(){
             // Solutions to annoying text selection cursor.
