@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function ModalComment (svl, form, tracker, ribbon, uiLeftColumn, uiModalComment, modalModel) {
+function ModalComment (svl, form, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel) {
     var self = { className: 'ModalComment'},
         status = {
             disableClickOK: true
@@ -52,7 +52,15 @@ function ModalComment (svl, form, tracker, ribbon, uiLeftColumn, uiModalComment,
     function handleClickOK (e) {
         e.preventDefault();
         tracker.push("ModalComment_ClickOK");
-        submitComment();
+
+        var task = taskContainer.getCurrentTask(),
+            panoramaId = svl.map.getPanoId(),
+            latlng = svl.map.getPosition(),
+            pov = svl.map.getPov(),
+            data;
+
+        data = _prepareCommentData(panoramaId, latlng.lat, latlng.lng, pov, task);
+        _submitComment(data);
         hideCommentMenu();
     }
 
@@ -75,9 +83,7 @@ function ModalComment (svl, form, tracker, ribbon, uiLeftColumn, uiModalComment,
     }
 
     function handleTextareaBlur() {
-        if ('ribbon' in svl) {
-            ribbon.enableModeSwitch();
-        }
+        ribbon.enableModeSwitch();
     }
 
     function handleTextareaFocus() {
@@ -119,30 +125,32 @@ function ModalComment (svl, form, tracker, ribbon, uiLeftColumn, uiModalComment,
      * Submit the comment.
      * Todo.
      */
-    function submitComment () {
-        var task = svl.taskContainer.getCurrentTask(),
-            streetEdgeId = task.getStreetEdgeId(),
-            gsvPanoramaId = svl.map.getPanoId(),
-            pov = svl.map.getPov(),
-            comment = _uiModalComment.textarea.val();
-        var latlng = svl.map.getPosition(),
-            data = {
-                street_edge_id: streetEdgeId,
-                gsv_panorama_id: gsvPanoramaId,
-                heading: pov ? pov.heading : null,
-                pitch: pov ? pov.pitch : null,
-                zoom: pov ? pov.zoom : null,
-                comment: comment,
-                lat: latlng ? latlng.lat : null,
-                lng: latlng ? latlng.lng : null
-            };
+    function _submitComment (data) {
         form.postJSON("/audit/comment", data)
+    }
+
+    function _prepareCommentData (panoramaId, lat, lng, pov, task) {
+        var streetEdgeId = task.getStreetEdgeId(),
+            comment = _uiModalComment.textarea.val();
+
+        return {
+            comment: comment,
+            gsv_panorama_id: panoramaId,
+            heading: pov ? pov.heading : null,
+            lat: lat,
+            lng: lng,
+            pitch: pov ? pov.pitch : null,
+            street_edge_id: streetEdgeId,
+            zoom: pov ? pov.zoom : null
+        };
     }
 
     _init();
 
     self.blink = blink;
     self.stopBlinking = stopBlinking;
+    self._submitComment = _submitComment;
+    self._prepareCommentData = _prepareCommentData;
 
     return self;
 }

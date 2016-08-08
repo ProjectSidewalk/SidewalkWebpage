@@ -10,6 +10,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/lib/gsv/GSVPano.js',
                     'public/javascripts/SVLabel/lib/gsv/GSVPanoPointCloud.js',
                     'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/data/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/game/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/label/*.js',
@@ -59,6 +60,7 @@ module.exports = function(grunt) {
         jasmine: {
             src: [
                 'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/data/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/game/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/label/*.js',

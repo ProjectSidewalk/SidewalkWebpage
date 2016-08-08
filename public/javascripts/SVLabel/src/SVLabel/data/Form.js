@@ -104,7 +104,7 @@ function Form ($, params) {
                 var data = compileSubmissionData(task);
                 submit(data, task, false);
             }
-        })
+        });
     }
 
     /**
