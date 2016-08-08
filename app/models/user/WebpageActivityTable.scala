@@ -61,4 +61,14 @@ object WebpageActivityTable {
       None
     }
   }
+
+  /**
+    * Returns the signin count
+    * @param userId User id
+    * @return
+    */
+  def selectSignInCount(userId: UUID): Option[Integer] = db.withTransaction { implicit session =>
+    val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").list
+    Some(signInActivities.length)
+  }
 }
