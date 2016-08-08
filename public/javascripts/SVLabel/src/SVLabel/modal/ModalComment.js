@@ -1,13 +1,14 @@
 /**
  * ModalComment module.
  * @param form
+ * @param uiLeftColumn
  * @param uiModalComment
  * @param modalModel
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function ModalComment (form, uiLeftColumn, uiModalComment, modalModel) {
+function ModalComment (svl, form, tracker, ribbon, uiLeftColumn, uiModalComment, modalModel) {
     var self = { className: 'ModalComment'},
         status = {
             disableClickOK: true
@@ -44,19 +45,19 @@ function ModalComment (form, uiLeftColumn, uiModalComment, modalModel) {
      * @param e
      */
     function handleClickFeedback (e) {
-        svl.tracker.push("ModalComment_ClickFeedback");
+        tracker.push("ModalComment_ClickFeedback");
         showCommentMenu();
     }
 
     function handleClickOK (e) {
         e.preventDefault();
-        svl.tracker.push("ModalComment_ClickOK");
+        tracker.push("ModalComment_ClickOK");
         submitComment();
         hideCommentMenu();
     }
 
     function handleClickCancel (e) {
-        svl.tracker.push("ModalComment_ClickCancel");
+        tracker.push("ModalComment_ClickCancel");
         e.preventDefault();
         hideCommentMenu();
     }
@@ -75,12 +76,12 @@ function ModalComment (form, uiLeftColumn, uiModalComment, modalModel) {
 
     function handleTextareaBlur() {
         if ('ribbon' in svl) {
-            svl.ribbon.enableModeSwitch();
+            ribbon.enableModeSwitch();
         }
     }
 
     function handleTextareaFocus() {
-        if ('ribbon' in svl) { svl.ribbon.disableModeSwitch(); }
+        ribbon.disableModeSwitch();
     }
 
     function hideCommentMenu () {
@@ -115,7 +116,8 @@ function ModalComment (form, uiLeftColumn, uiModalComment, modalModel) {
     }
 
     /**
-     * Submit the comment
+     * Submit the comment.
+     * Todo.
      */
     function submitComment () {
         var task = svl.taskContainer.getCurrentTask(),
