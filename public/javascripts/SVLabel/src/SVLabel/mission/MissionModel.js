@@ -9,6 +9,19 @@ function MissionModel () {
 }
 _.extend(MissionModel.prototype, Backbone.Events);
 
-MissionModel.prototype.updateProgress = function () {
 
+
+MissionModel.prototype.fetchMissions = function () {
+    // Todo. Fetch data and trigger MissionFactory:create events.
+};
+
+MissionModel.prototype.completeMission = function (mission) {
+    this.trigger("MissionProgress:complete", mission);
+};
+
+/**
+ * Notify the mission modules with MissionProgress:update
+ */
+MissionModel.prototype.updateMissionProgress = function () {
+    this.trigger("MissionProgress:update");
 };

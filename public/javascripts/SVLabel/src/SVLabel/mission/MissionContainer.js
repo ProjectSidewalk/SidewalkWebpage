@@ -11,12 +11,19 @@
  * @constructor
  * @memberof svl
  */
-function MissionContainer ($, factory, form, progress, missionStatus, parameters) {
+function MissionContainer ($, factory, form, progress, missionStatus, missionModel, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
         staged = [],
         currentMission = null;
+
+    var _missionModel = missionModel;
+
+    _missionModel.on("MissionProgress:complete", function (mission) {
+        addToCompletedMissions(mission);
+        stage(mission);
+    });
     
     function _init (parameters) {
         parameters = parameters || {};

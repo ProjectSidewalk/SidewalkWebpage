@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffect, modalModel, neighborhoodContainer, taskContainer) {
+function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodContainer, taskContainer) {
     var self = { className: 'MissionProgress' };
     var status = {
             currentCompletionRate: 0,
@@ -13,7 +13,8 @@ function MissionProgress (svl, gameEffect, modalModel, neighborhoodContainer, ta
             previousHeading: 0
         };
 
-    var _gameEffectModel = gameEffect;
+    var _gameEffectModel = gameEffectModel;
+    var _missionModel = missionModel;
     var _modalModel = modalModel;
 
     function _init() {
@@ -26,8 +27,10 @@ function MissionProgress (svl, gameEffect, modalModel, neighborhoodContainer, ta
     function complete (mission) {
         if (mission) {
             mission.complete();
-            svl.missionContainer.addToCompletedMissions(mission);
-            svl.missionContainer.stage(mission);
+
+            // svl.missionContainer.addToCompletedMissions(mission);
+            // svl.missionContainer.stage(mission);
+            _missionModel.completeMission(mission);
         }
     }
 

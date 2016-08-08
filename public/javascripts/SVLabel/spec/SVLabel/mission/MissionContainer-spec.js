@@ -4,14 +4,17 @@ describe("MissionContainer module.", function () {
     var form;
     var progress;
     var missionStatus;
+    var missionModel;
 
     beforeEach(function () {
         form = {};
         progress = {};
         missionStatus = {};
+        missionModel = _.clone(Backbone.Events);
         missionFactory = new MissionFactory();
-        missionContainer = new MissionContainer($, missionFactory, form, progress, missionStatus);
+        missionContainer = new MissionContainer($, missionFactory, form, progress, missionStatus, missionModel);
         missionContainer.refresh();
+
     });
 
     describe("`add` method", function(){
