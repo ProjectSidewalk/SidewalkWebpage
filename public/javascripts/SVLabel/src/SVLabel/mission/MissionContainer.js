@@ -1,7 +1,5 @@
 /**
  * MissionContainer module
- * @param $ jQuery object
- * @param factory MissionFactory. Todo. I shouldn't need the factory inside this module. Refactor.
  * @param statusFieldMission.
  * @param missionModel. Mission model object.
  * @param parameters
@@ -9,7 +7,7 @@
  * @constructor
  * @memberof svl
  */
-function MissionContainer ($, factory, statusFieldMission, missionModel) {
+function MissionContainer (statusFieldMission, missionModel) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
@@ -265,6 +263,5 @@ function MissionContainer ($, factory, statusFieldMission, missionModel) {
     self.nextMission = nextMission;
     self.refresh = refresh;
     self.setCurrentMission = setCurrentMission;
-    self.setTheNextMissionInTheRegion = setTheNextMissionInTheRegion;
     return self;
 }

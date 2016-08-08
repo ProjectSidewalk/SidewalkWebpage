@@ -1,3 +1,9 @@
+/**
+ *
+ * @param gameEffectModel
+ * @param uiCompletionMessage
+ * @constructor
+ */
 function CompletionMessage (gameEffectModel, uiCompletionMessage) {
     this._model = gameEffectModel;
     this._uiCompletionMessage = {

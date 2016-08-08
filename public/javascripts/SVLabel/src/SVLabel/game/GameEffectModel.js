@@ -1,3 +1,7 @@
+/**
+ *
+ * @constructor
+ */
 function GameEffectModel () {
     var self = this;
 }

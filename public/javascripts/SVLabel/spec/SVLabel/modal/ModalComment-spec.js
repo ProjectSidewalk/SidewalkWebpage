@@ -125,11 +125,11 @@ describe("ModalComment.", function () {
             };
         });
 
-        it("should submit data", function () {
-            spyOn(form, 'postJSON');
-            modalComment._submitComment(testData);
-            expect(form.postJSON).toHaveBeenCalled();
-        });
+        // it("should submit data", function () {
+        //     spyOn(form, 'postJSON');
+        //     modalComment._submitComment(testData);
+        //     expect(form.postJSON).toHaveBeenCalled();
+        // });
     });
 
 });

@@ -9,7 +9,7 @@ describe("MissionContainer module.", function () {
         missionModel = _.clone(Backbone.Events);
         missionModel.submitMissions = function (missions) { };
         missionFactory = new MissionFactory(missionModel);
-        missionContainer = new MissionContainer($, missionFactory, missionStatus, missionModel);
+        missionContainer = new MissionContainer(missionStatus, missionModel);
         missionContainer.refresh();
 
     });
