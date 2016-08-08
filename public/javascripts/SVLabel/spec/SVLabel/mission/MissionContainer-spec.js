@@ -1,29 +1,37 @@
 describe("MissionContainer module.", function () {
-    var missionContainer = new MissionContainer($);
-    var missionFactory = new MissionFactory();
+    var missionContainer;
+    var missionFactory;
+    var form;
+    var progress;
+    var missionStatus;
 
     beforeEach(function () {
+        form = {};
+        progress = {};
+        missionStatus = {};
+        missionFactory = new MissionFactory();
+        missionContainer = new MissionContainer($, missionFactory, form, progress, missionStatus);
         missionContainer.refresh();
     });
 
     describe("`add` method", function(){
         it("should be able to add a new mission to the container", function() {
-            var m1 = missionFactory.create(1, 1, "distance-mission", 1, null, null, false);
-            var m2 = missionFactory.create(1, 2, "distance-mission", 2, null, null, false);
+            var m1 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
+            var m2 = missionFactory.create(1, 2, "distance-mission", 2, 2000, 2000, 2, 0.2, false);
             missionContainer.add(1, m1);
             missionContainer.add(1, m2);
             var missions = missionContainer.getMissionsByRegionId(1);
             expect(missions.length).toBe(2);
 
-            var m3 = missionFactory.create(0, 3, "test1", 1, null, null, false);
+            var m3 = missionFactory.create(0, 3, "test1", 1, 1000, 1000, 1, 0.1, false);
             missionContainer.add(0, m3);
             missions = missionContainer.getMissionsByRegionId(0);
             expect(missions.length).toBe(1);
         });
 
         it("should check duplicate", function () {
-            var m1 = missionFactory.create(1, 1, "distance-mission", 1, null, null, false);
-            var m2 = missionFactory.create(1, 1, "distance-mission", 1, null, null, false);
+            var m1 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
+            var m2 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
             missionContainer.add(1, m1);
             missionContainer.add(1, m2);
             var missions = missionContainer.getMissionsByRegionId(1);

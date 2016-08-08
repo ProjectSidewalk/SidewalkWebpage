@@ -223,6 +223,11 @@ function Main ($, d3, google, turf, params) {
 
         svl.canvas = new Canvas($);
         svl.form = new Form($, params.form);
+        svl.form.disableSubmit();
+        svl.form.setTaskRemaining(1);
+        svl.form.setTaskDescription('TestTask');
+        svl.form.setTaskPanoramaId(panoId);
+
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField();
         svl.missionStatus = new MissionStatus();
@@ -390,23 +395,21 @@ function Main ($, d3, google, turf, params) {
             handleDataLoadComplete();
         });
 
-        svl.missionContainer = new MissionContainer ($, {
+        svl.missionFactory = new MissionFactory ();
+        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.missionStatus, {
             callback: function () {
                 loadingMissionsCompleted = true;
                 handleDataLoadComplete();
             }
         });
-        svl.missionFactory = MissionFactory ();
+
 
         // Modals
         var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete);
         svl.modalMissionComplete.hide();
 
-        svl.form.disableSubmit();
-        svl.form.setTaskRemaining(1);
-        svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);
+
         
         // Set map parameters and instantiate it.
         var mapParam = {};

@@ -1,12 +1,17 @@
 /**
  * MissionContainer module
  * @param $ jQuery object
+ * @param factory MissionFactory. Todo. I shouldn't need the factory inside this module. Refactor.
+ * @param form. Todo. Again, I shouldn't need the form object here. Refactor.
+ * @param progress. MissionProgress object.
+ * @param missionStatus. Todo. MissionStatus object. Write a model that connects MissionContainer with MissionProgress and
+ * MissionStatus. Or rather I want a model that ties all the mission related modules. Read JSTR Section 4.2.4 Building and testing the model.
  * @param parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function MissionContainer ($, parameters) {
+function MissionContainer ($, factory, form, progress, missionStatus, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
@@ -31,7 +36,7 @@ function MissionContainer ($, parameters) {
             missions.sort(cmp);
             len = missions.length;
             for (i = 0; i < len; i++) {
-                mission = svl.missionFactory.create(
+                mission = factory.create(
                     missions[i].region_id,
                     missions[i].mission_id,
                     missions[i].label,
@@ -136,10 +141,7 @@ function MissionContainer ($, parameters) {
                 data.push(staged[i].toSubmissionFormat());
             }
             staged = [];
-
-            if ("form" in svl && svl.form) {
-                svl.form.postJSON("/mission", data);
-            }
+            form.postJSON("/mission", data);
         }
         return this;
     }
@@ -250,8 +252,8 @@ function MissionContainer ($, parameters) {
         currentMission = mission;
 
         if ("missionProgress" in svl && "missionStatus" in svl) {
-            svl.missionProgress.update();
-            svl.missionStatus.printMissionMessage(mission);
+            progress.update();
+            missionStatus.printMissionMessage(mission);
         }
         return this;
     }
