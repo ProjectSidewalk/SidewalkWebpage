@@ -1,26 +1,32 @@
 /**
  * ModalComment module.
- * @param $
+ * @param form
+ * @param uiModalComment
+ * @param modalModel
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function ModalComment ($) {
+function ModalComment (form, uiLeftColumn, uiModalComment, modalModel) {
     var self = { className: 'ModalComment'},
         status = {
             disableClickOK: true
         },
         blinkInterval;
 
+    var _form = form;
+    var _modalModel = modalModel;
+    var _uiModalComment = uiModalComment;
+    var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
+
     function _init() {
         disableClickOK();
-        svl.ui.modalComment.ok.on("click", handleClickOK);
-        svl.ui.modalComment.cancel.on("click", handleClickCancel);
-        //svl.ui.leftColumn.feedback.on("click", showCommentMenu);
-        svl.ui.leftColumn.feedback.on("click", handleClickFeedback);
-        svl.ui.modalComment.textarea.on("focus", handleTextareaFocus);
-        svl.ui.modalComment.textarea.on("blur", handleTextareaBlur);
-        svl.ui.modalComment.textarea.on("input", handleTextareaChange);
+        _uiModalComment.ok.on("click", handleClickOK);
+        _uiModalComment.cancel.on("click", handleClickCancel);
+        _uiLeftColumn.feedback.on("click", handleClickFeedback);
+        _uiModalComment.textarea.on("focus", handleTextareaFocus);
+        _uiModalComment.textarea.on("blur", handleTextareaBlur);
+        _uiModalComment.textarea.on("input", handleTextareaChange);
     }
 
     /**
@@ -29,7 +35,7 @@ function ModalComment ($) {
     function blink () {
         stopBlinking();
         blinkInterval = window.setInterval(function () {
-            svl.ui.leftColumn.feedback.toggleClass("highlight-50");
+            _uiLeftColumn.feedback.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -59,7 +65,7 @@ function ModalComment ($) {
      * Handles changes in the comment field
      */
     function handleTextareaChange () {
-        var comment = svl.ui.modalComment.textarea.val();
+        var comment = _uiModalComment.textarea.val();
         if (comment.length > 0) {
             enableClickOK();
         } else {
@@ -78,25 +84,25 @@ function ModalComment ($) {
     }
 
     function hideCommentMenu () {
-        svl.ui.modalComment.holder.addClass('hidden');
+        _uiModalComment.holder.addClass('hidden');
     }
 
     function showCommentMenu () {
-        svl.ui.modalComment.textarea.val("");
-        svl.ui.modalComment.holder.removeClass('hidden');
-        svl.ui.modalComment.ok.addClass("disabled");
+        _uiModalComment.textarea.val("");
+        _uiModalComment.holder.removeClass('hidden');
+        _uiModalComment.ok.addClass("disabled");
         disableClickOK();
     }
 
     function disableClickOK() {
-        svl.ui.modalComment.ok.attr("disabled", true);
-        svl.ui.modalComment.ok.addClass("disabled");
+        _uiModalComment.ok.attr("disabled", true);
+        _uiModalComment.ok.addClass("disabled");
         status.disableClickOK = true;
     }
 
     function enableClickOK () {
-        svl.ui.modalComment.ok.attr("disabled", false);
-        svl.ui.modalComment.ok.removeClass("disabled");
+        _uiModalComment.ok.attr("disabled", false);
+        _uiModalComment.ok.removeClass("disabled");
         status.disableClickOK = false;
     }
 
@@ -105,36 +111,30 @@ function ModalComment ($) {
      */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
-        svl.ui.leftColumn.feedback.removeClass("highlight-50");
+        _uiLeftColumn.feedback.removeClass("highlight-50");
     }
 
     /**
      * Submit the comment
      */
     function submitComment () {
-        if ('task' in svl) {
-            var task = svl.taskContainer.getCurrentTask(),
-                streetEdgeId = task.getStreetEdgeId(),
-                gsvPanoramaId = svl.panorama.getPano(),
-                pov = svl.map.getPov(),
-                comment = svl.ui.modalComment.textarea.val();
-
-            var latlng = svl.map.getPosition(),
-                data = {
-                    street_edge_id: streetEdgeId,
-                    gsv_panorama_id: gsvPanoramaId,
-                    heading: pov ? pov.heading : null,
-                    pitch: pov ? pov.pitch : null,
-                    zoom: pov ? pov.zoom : null,
-                    comment: comment,
-                    lat: latlng ? latlng.lat : null,
-                    lng: latlng ? latlng.lng : null
-                };
-
-            if ("form" in svl && svl.form) {
-                svl.form.postJSON("/audit/comment", data)
-            }
-        }
+        var task = svl.taskContainer.getCurrentTask(),
+            streetEdgeId = task.getStreetEdgeId(),
+            gsvPanoramaId = svl.map.getPanoId(),
+            pov = svl.map.getPov(),
+            comment = _uiModalComment.textarea.val();
+        var latlng = svl.map.getPosition(),
+            data = {
+                street_edge_id: streetEdgeId,
+                gsv_panorama_id: gsvPanoramaId,
+                heading: pov ? pov.heading : null,
+                pitch: pov ? pov.pitch : null,
+                zoom: pov ? pov.zoom : null,
+                comment: comment,
+                lat: latlng ? latlng.lat : null,
+                lng: latlng ? latlng.lng : null
+            };
+        form.postJSON("/audit/comment", data)
     }
 
     _init();

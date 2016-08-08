@@ -113,7 +113,7 @@ describe("ModalMissionComplete", function () {
             hide: function () {},
             show: function () {}
         };
-        modal = new ModalMissionComplete($, d3, L, missionContainerMock, modalMissionCompleteMapMock, uiModalMissionComplete);
+        modal = new ModalMissionComplete($, d3, L, missionContainerMock, modalMissionCompleteMapMock, uiModalMissionComplete, Backbone.Events);
 
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;

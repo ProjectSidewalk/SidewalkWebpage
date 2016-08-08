@@ -44,7 +44,7 @@ describe("ModalMission", function () {
         uiModalMission.instruction = uiModalMission.holder.find("#modal-mission-instruction");
         uiModalMission.closeButton = uiModalMission.holder.find("#modal-mission-close-button");
 
-        modal = ModalMission($, uiModalMission);
+        modal = ModalMission($, uiModalMission, Backbone.Events);
     });
 
     describe("`show` method", function () {

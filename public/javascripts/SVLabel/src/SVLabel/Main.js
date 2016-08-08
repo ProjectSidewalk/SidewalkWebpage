@@ -253,7 +253,6 @@ function Main ($, d3, google, turf, params) {
         svl.completionMessage = new CompletionMessage(svl.gameEffect, svl.ui.task);
 
         svl.modalSkip = new ModalSkip($);
-        svl.modalComment = new ModalComment($);
 
         svl.modalExample = new ModalExample();
 
@@ -419,6 +418,8 @@ function Main ($, d3, google, turf, params) {
         var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);
         svl.modalMissionComplete.hide();
+        svl.modalComment = new ModalComment(svl.form, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
+
 
         // Set map parameters and instantiate it.
         var mapParam = {};
