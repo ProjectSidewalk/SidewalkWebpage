@@ -49,12 +49,9 @@ function Main ($, d3, google, turf, params) {
 
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField();
-
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
-
-
-
         svl.labelCounter = new LabelCounter(d3);
+
         svl.actionStack = new ActionStack();
         svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = new PopUpMessage($);
@@ -66,13 +63,12 @@ function Main ($, d3, google, turf, params) {
         svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl, svl.onboarding);
 
 
-
+        // Game effects
         svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory);
         svl.completionMessage = new CompletionMessage(svl.gameEffectModel, svl.ui.task);
 
 
-
-        svl.panoramaContainer = new PanoramaContainer(google);
+        svl.panoramaContainer = new PanoramaContainer();
 
         var neighborhood;
         svl.neighborhoodFactory = new NeighborhoodFactory();
@@ -103,8 +99,6 @@ function Main ($, d3, google, turf, params) {
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        // mapParam.availablePanoIds = [mapParam.taskPanoId];
-
         svl.map = new Map(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
 
