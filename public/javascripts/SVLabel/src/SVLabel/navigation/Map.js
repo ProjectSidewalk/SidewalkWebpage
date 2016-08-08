@@ -503,6 +503,9 @@ function Map ($, google, turf, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("name");
+        var currentMission = svl.missionContainer.getCurrentMission();
+
         if ("canvas" in svl && svl.canvas) {
             updateCanvas();
         }
@@ -510,8 +513,9 @@ function Map ($, google, turf, params) {
             svl.compass.update();
         }
         if ("missionProgress" in svl) {
-            svl.missionProgress.update();
+            svl.missionProgress.update(currentMission, neighborhood);
         }
+
         if ("taskContainer" in svl) {
             svl.taskContainer.update();
 
@@ -521,10 +525,10 @@ function Map ($, google, turf, params) {
                 if (task.isAtEnd(position.lat(), position.lng(), 25)) {
                     // Finish a task and get a new task
                     svl.taskContainer.endTask(task);
-                    if ("missionContainer" in svl && svl.missionContainer) {
-                        var currentMission = svl.missionContainer.getCurrentMission();
-                        currentMission.pushATaskToTheRoute(task);
-                    }
+
+
+                    currentMission.pushATaskToTheRoute(task);
+
 
                     var newTask = svl.taskContainer.nextTask(task);
                     svl.taskContainer.setCurrentTask(newTask);
@@ -532,7 +536,7 @@ function Map ($, google, turf, params) {
                     // Check if the interface jumped the user to another discontinuous location. If the user jumped,
                     // tell them that we moved her to another location in the same neighborhood.
                     if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-                        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("name");
+
                         var neighborhoodMessage = "Jumped back to " + neighborhood;
                         var distanceLeft = distanceLeftFeetOrMiles();
                         svl.popUpMessage.notify(neighborhoodMessage,

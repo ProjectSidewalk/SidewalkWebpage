@@ -30,6 +30,10 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
         play(parameter.audioType);
     });
 
+    this._model.on("playAudio", function (parameter) {
+        play(parameter.audioType);
+    });
+
     /**
      * Blink
      */

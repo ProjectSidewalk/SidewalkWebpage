@@ -230,8 +230,9 @@ function Main ($, d3, google, turf, params) {
 
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField();
-        svl.missionStatus = new MissionStatus();
+
         svl.neighborhoodStatus = new NeighborhoodStatus();
+
 
 
         svl.labelCounter = new LabelCounter(d3);
@@ -239,7 +240,7 @@ function Main ($, d3, google, turf, params) {
         svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);  // svl.ribbon.stopBlinking()
         svl.popUpMessage = new PopUpMessage($);
         svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
-        svl.missionProgress = new MissionProgress($);
+
         svl.pointCloud = new PointCloud();
 
         svl.labelFactory = new LabelFactory();
@@ -253,7 +254,7 @@ function Main ($, d3, google, turf, params) {
 
         svl.modalSkip = new ModalSkip($);
         svl.modalComment = new ModalComment($);
-        svl.modalMission = new ModalMission($, svl.ui.modalMission);
+
         svl.modalExample = new ModalExample();
 
         svl.panoramaContainer = new PanoramaContainer(google);
@@ -370,7 +371,7 @@ function Main ($, d3, google, turf, params) {
                 }
 
                 if ("missionProgress" in svl) {
-                    svl.missionProgress.update();
+                    svl.missionProgress.update(mission, neighborhood);
                 }
 
                 // Get the labels collected in the current neighborhood
@@ -398,6 +399,15 @@ function Main ($, d3, google, turf, params) {
             handleDataLoadComplete();
         });
 
+        // Modals
+        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete);
+        svl.modalMissionComplete.hide();
+        svl.modalMission = new ModalMission($, svl.ui.modalMission);
+
+        // Mission.
+        svl.missionStatus = new MissionStatus();
+        svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.modalMission, svl.modalMissionComplete, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory ();
         svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.missionStatus, {
             callback: function () {
@@ -406,14 +416,6 @@ function Main ($, d3, google, turf, params) {
             }
         });
 
-
-        // Modals
-        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete);
-        svl.modalMissionComplete.hide();
-
-
-        
         // Set map parameters and instantiate it.
         var mapParam = {};
         mapParam.canvas = svl.canvas;

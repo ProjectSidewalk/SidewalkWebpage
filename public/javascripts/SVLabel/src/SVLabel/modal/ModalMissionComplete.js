@@ -246,6 +246,10 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
         uiModalMissionComplete.message.html(message);
     }
 
+    function one (uiComponent, eventType, callback) {
+        uiModalMissionComplete[uiComponent].one(eventType, callback);
+    }
+
     _init();
 
 
@@ -255,5 +259,6 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
     self._updateMissionLabelStatistics = _updateMissionLabelStatistics;
     self.hide = hideMissionComplete ;
     self.show = show;
+    self.one = one;
     return self;
 }

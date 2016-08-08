@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress () {
+function MissionProgress (svl, gameEffect, modalMission, modalMissionComplete, neighborhoodContainer, taskContainer) {
     var self = { className: 'MissionProgress' };
     var status = {
             currentCompletionRate: 0,
@@ -30,6 +30,7 @@ function MissionProgress () {
 
     /**
      * @param mission Next mission
+     * @param neighborhood Current neighborhood
      */
     function _showNextMission (mission, neighborhood) {
         var label = mission.getProperty("label");
@@ -37,10 +38,10 @@ function MissionProgress () {
 
         if (label == "distance-mission") {
             parameters.distance = mission.getProperty("distance");
-            svl.modalMission.setMission(mission, neighborhood, parameters);
+            modalMission.setMission(mission, neighborhood, parameters);
         } else if (label == "area-coverage-mission") {
             parameters.coverage = mission.getProperty("coverage");
-            svl.modalMission.setMissionM(mission, neighborhood, parameters);
+            modalMission.setMissionM(mission, neighborhood, parameters);
         } else {
             console.warn("Debug: It shouldn't reach here.");
         }
@@ -49,12 +50,10 @@ function MissionProgress () {
     /**
      * This method updates the mission completion rate and its visualization.
      */
-    function update () {
-        if ("onboarding" in svl && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
-        if ("missionContainer" in svl && "neighborhoodContainer" in svl) {
-            var currentRegion = svl.neighborhoodContainer.getCurrentNeighborhood(),
-                currentMission = svl.missionContainer.getCurrentMission(),
-                completionRate;
+    function update (currentMission, currentRegion) {
+        if (svl && "onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
+        if ("missionContainer" in svl) {
+            var completionRate;
 
             var _callback = function (e) {
                 var currentRegionId = currentRegion.getProperty("regionId");
@@ -66,7 +65,7 @@ function MissionProgress () {
                 while (!nextMission) {
                     // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
                     var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                    var newRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+                    var newRegionId = neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
                     nextMission = svl.missionContainer.nextMission(newRegionId);
                     movedToANewRegion = true;
                 }
@@ -75,11 +74,11 @@ function MissionProgress () {
                 _showNextMission(nextMission, currentRegion);
 
                 if (movedToANewRegion) {
-                    svl.neighborhoodContainer.moveToANewRegion(newRegionId);
-                    svl.taskContainer.fetchTasksInARegion(newRegionId, function () {
+                    neighborhoodContainer.moveToANewRegion(newRegionId);
+                    taskContainer.fetchTasksInARegion(newRegionId, function () {
                         // Jump to the new location.
-                        var newTask = svl.taskContainer.nextTask(task);
-                        svl.taskContainer.setCurrentTask(newTask);
+                        var newTask = taskContainer.nextTask(task);
+                        taskContainer.setCurrentTask(newTask);
                         svl.map.moveToTheTaskLocation(newTask);
                         
                     }, false);  // Fetch tasks in the new region
@@ -96,14 +95,12 @@ function MissionProgress () {
                     complete(currentMission);
                     svl.missionContainer.commit();
 
-                    if ("audioEffect" in svl) {
-                        svl.audioEffect.play("yay");
-                        svl.audioEffect.play("applause");
-                    }
+                    gameEffect.playAudio({audioType: "yay"});
+                    gameEffect.playAudio({audioType: "applause"});
 
-                    svl.modalMissionComplete.update(currentMission, currentRegion);
-                    svl.modalMissionComplete.show();
-                    svl.ui.modalMissionComplete.closeButton.one("click", _callback)
+                    modalMissionComplete.update(currentMission, currentRegion);
+                    modalMissionComplete.show();
+                    modalMissionComplete.one('closeButton', 'click', _callback);
                 }
             }
         }
