@@ -28,14 +28,14 @@ describe("ModalMission", function () {
     };
 
     beforeEach(function () {
-        $uiModalMissionFixture = $(' <div id="modal-mission-holder"> \
-                                        <div id="modal-mission-background" class="modal-background"></div> \
-                                        <div id="modal-mission-foreground" class="modal-foreground"> \
-                                            <h1 id="modal-mission-header">Mission</h1> \
-                                            <div id="modal-mission-instruction"></div> \
-                                            <button class="button" id="modal-mission-close-button">OK</button> \
-                                        </div> \
-                                    </div>');
+        $uiModalMissionFixture = $('<div id="modal-mission-holder"> \
+<div id="modal-mission-background" class="modal-background"></div> \
+<div id="modal-mission-foreground" class="modal-foreground"> \
+<h1 id="modal-mission-header">Mission</h1> \
+<div id="modal-mission-instruction"></div> \
+<button class="button" id="modal-mission-close-button">OK</button> \
+</div> \
+</div>');
         uiModalMission = {};
         uiModalMission.holder = $uiModalMissionFixture;
         uiModalMission.foreground = uiModalMission.holder.find("#modal-mission-foreground");
