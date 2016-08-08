@@ -9,7 +9,7 @@
  * @constructor
  * @memberof svl
  */
-function MissionContainer ($, factory, statusFieldMission, missionModel, parameters) {
+function MissionContainer ($, factory, statusFieldMission, missionModel) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
@@ -30,50 +30,55 @@ function MissionContainer ($, factory, statusFieldMission, missionModel, paramet
         }
     });
     
-    function _init (parameters) {
-        parameters = parameters || {};
-        // Query all the completed & incomplete missions.
-        function _callback (result1) {
-            var i,
-                len,
-                missionParameters,
-                missions = result1,
-                nm;
-
-            function cmp (a, b) {
-                var distanceA = a.distance ? a.distance : 0;
-                var distanceB = b.distance ? b.distance : 0;
-                return distanceA - distanceB;
-            }
-            missions.sort(cmp);
-            for (i = 0, len = missions.length; i < len; i++) {
-                missionParameters = {
-                    regionId: missions[i].region_id,
-                    missionId: missions[i].mission_id,
-                    label: missions[i].label,
-                    level: missions[i].level,
-                    distance: missions[i].distance,
-                    distanceFt: missions[i].distance_ft,
-                    distanceMi: missions[i].distance_mi,
-                    coverage: missions[i].coverage,
-                    isCompleted: missions[i].is_completed
-                };
-                _missionModel.trigger("MissionFactory:create", missionParameters);
-            }
-
-            // Set the current mission.
-            if (parameters.currentNeighborhood) {
-                nm = nextMission(parameters.currentNeighborhood.getProperty("regionId"));
-                setCurrentMission(nm);
-            }
-        }
-
-        if ("callback" in parameters) {
-            $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete).done(parameters.callback);
-        } else {
-            $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete)
-        }
-    }
+    // function _init (parameters) {
+    //     parameters = parameters || {};
+    //     // Query all the completed & incomplete missions.
+    //     function _callback (result1) {
+    //         var i,
+    //             len,
+    //             missionParameters,
+    //             missions = result1,
+    //             nm;
+    //
+    //         function cmp (a, b) {
+    //             var distanceA = a.distance ? a.distance : 0;
+    //             var distanceB = b.distance ? b.distance : 0;
+    //             return distanceA - distanceB;
+    //         }
+    //         missions.sort(cmp);
+    //         for (i = 0, len = missions.length; i < len; i++) {
+    //             missionParameters = {
+    //                 regionId: missions[i].region_id,
+    //                 missionId: missions[i].mission_id,
+    //                 label: missions[i].label,
+    //                 level: missions[i].level,
+    //                 distance: missions[i].distance,
+    //                 distanceFt: missions[i].distance_ft,
+    //                 distanceMi: missions[i].distance_mi,
+    //                 coverage: missions[i].coverage,
+    //                 isCompleted: missions[i].is_completed
+    //             };
+    //             _missionModel.trigger("MissionFactory:create", missionParameters);
+    //         }
+    //
+    //         // Set the current mission.
+    //         if (parameters.currentNeighborhood) {
+    //             nm = nextMission(parameters.currentNeighborhood.getProperty("regionId"));
+    //             setCurrentMission(nm);
+    //         }
+    //     }
+    //
+    //     if ("callback" in parameters) {
+    //         $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete).done(parameters.callback);
+    //     } else {
+    //         $.when($.ajax("/mission")).done(_callback).done(_onLoadComplete)
+    //     }
+    // }
+    //
+    // function setTheNextMissionInTheRegion (neighborhood) {
+    //     var nextMission = nextMission(neighborhood.getProperty("regionId"));
+    //     setCurrentMission(nextMission);
+    // }
 
     /**
      * This method is called once all the missions are loaded. It sets the auditDistance, auditDistanceFt, and
@@ -246,7 +251,7 @@ function MissionContainer ($, factory, statusFieldMission, missionModel, paramet
         return this;
     }
 
-    _init(parameters);
+    // _init(parameters);
 
     self._onLoadComplete = _onLoadComplete;
     self.addToCompletedMissions = addToCompletedMissions;
@@ -260,5 +265,6 @@ function MissionContainer ($, factory, statusFieldMission, missionModel, paramet
     self.nextMission = nextMission;
     self.refresh = refresh;
     self.setCurrentMission = setCurrentMission;
+    self.setTheNextMissionInTheRegion = setTheNextMissionInTheRegion;
     return self;
 }

@@ -310,36 +310,29 @@ function Main ($, d3, google, turf, params) {
                     svl.onboarding = null;
                     // Set the current mission.
                     var haveSwitchedToANewRegion = false;
-                    mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-                    if (!mission || mission.isCompleted()) {
-                        // If the initial-mission has already been completed, set the current mission to another mission
-                        // that has not been completed yet.
-                        var missionsArrayLength = 0;
-                        var missions = [];
-                        var regionId = neighborhood.getProperty("regionId");
-
-                        while (true) {
-                            // Check if there are incomplete missions in the current neighborhood (i.e., missions.length > 0?)
-                            missions = svl.missionContainer.getMissionsByRegionId(regionId);
-                            missions = missions.filter(function (m) { return !m.isCompleted(); });
-                            if (missions.length > 0) {
-                                if (haveSwitchedToANewRegion) {
-                                    // If moving to the new neighborhood, update the database
-                                    svl.neighborhoodContainer.moveToANewRegion(regionId);
-                                    svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
-                                }
-                                break;
+                    var missions = [];
+                    var regionId = neighborhood.getProperty("regionId");
+                    while (true) {
+                        // Check if there are incomplete missions in the current neighborhood (i.e., missions.length > 0?)
+                        missions = svl.missionContainer.getMissionsByRegionId(regionId);
+                        missions = missions.filter(function (m) { return !m.isCompleted(); });
+                        if (missions.length > 0) {
+                            if (haveSwitchedToANewRegion) {
+                                // If moving to the new neighborhood, update the database
+                                svl.neighborhoodContainer.moveToANewRegion(regionId);
+                                svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                             }
-                            haveSwitchedToANewRegion = true;
-
-                            var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                            regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
-                            // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
-                            // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
-                            // regionId = availableRegionIds[indexOfNextRegion];
+                            break;
                         }
-                        mission = missions[0];
+                        haveSwitchedToANewRegion = true;
+                        var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
+                        regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
+                        // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
+                        // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
+                        // regionId = availableRegionIds[indexOfNextRegion];
                     }
+                    mission = missions[0];
+
                     svl.missionContainer.setCurrentMission(mission);
 
                     // Compute the route for the current mission
@@ -410,12 +403,12 @@ function Main ($, d3, google, turf, params) {
         svl.statusFieldMission = new StatusFieldMission();
         svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.missionModel, svl.modalModel, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory (svl.missionModel);
-        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.statusFieldMission, svl.missionModel, {
-            callback: function () {
-                loadingMissionsCompleted = true;
-                handleDataLoadComplete();
-            }
+        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.statusFieldMission, svl.missionModel);
+        svl.missionModel.fetchMissions(function () {
+            loadingMissionsCompleted = true;
+            handleDataLoadComplete();
         });
+
 
         var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);

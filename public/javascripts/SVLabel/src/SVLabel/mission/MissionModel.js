@@ -28,7 +28,41 @@ function MissionModel () {
                 console.error(result);
             }
         });
-    }
+    };
+
+    this.fetchMissions = function (callback) {
+        function success (result1) {
+            var missionParameters, missions = result1;
+
+            function cmp (a, b) {
+                var distanceA = a.distance ? a.distance : 0;
+                var distanceB = b.distance ? b.distance : 0;
+                return distanceA - distanceB;
+            }
+
+            missions.sort(cmp);
+            for (var i = 0, len = missions.length; i < len; i++) {
+                missionParameters = {
+                    regionId: missions[i].region_id,
+                    missionId: missions[i].mission_id,
+                    label: missions[i].label,
+                    level: missions[i].level,
+                    distance: missions[i].distance,
+                    distanceFt: missions[i].distance_ft,
+                    distanceMi: missions[i].distance_mi,
+                    coverage: missions[i].coverage,
+                    isCompleted: missions[i].is_completed
+                };
+                self.trigger("MissionFactory:create", missionParameters);
+            }
+        }
+
+        if (callback) {
+            $.when($.ajax("/mission")).done(success).done(callback);
+        } else {
+            $.when($.ajax("/mission")).done(success);
+        }
+    };
 }
 _.extend(MissionModel.prototype, Backbone.Events);
 
@@ -74,8 +108,4 @@ MissionModel.prototype.submitMissions = function (missions) {
  */
 MissionModel.prototype.updateMissionProgress = function (mission, neighborhood) {
     this.trigger("MissionProgress:update", { mission: mission, neighborhood: neighborhood });
-};
-
-MissionModel.prototype.fetchMissions = function () {
-    
 };
