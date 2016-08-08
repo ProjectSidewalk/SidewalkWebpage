@@ -17,21 +17,20 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     var _missionModel = missionModel;
     var _modalModel = modalModel;
 
-    function _init() {
-    }
+
+    _missionModel.on("MissionProgress:update", function (parameters) {
+        var mission = parameters.mission,
+            neighborhood = parameters.neighborhood;
+        _update(mission, neighborhood);
+    });
 
     /**
      * Finish the mission.
      * @param mission
      */
     function complete (mission) {
-        if (mission) {
-            mission.complete();
-
-            // svl.missionContainer.addToCompletedMissions(mission);
-            // svl.missionContainer.stage(mission);
-            _missionModel.completeMission(mission);
-        }
+        mission.complete();
+        _missionModel.completeMission(mission);
     }
 
     /**
@@ -44,8 +43,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         if (label == "distance-mission") {
             parameters.distance = mission.getProperty("distance");
-            // modalMission.setMission(mission, neighborhood, parameters);
-            _modalModel.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: null });
+            _modalModel.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: null });  // Todo. I should not trigger it here. Call a function.
         } else if (label == "area-coverage-mission") {
             parameters.coverage = mission.getProperty("coverage");
             // modalMission.setMission(mission, neighborhood, parameters);
@@ -59,7 +57,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     /**
      * This method updates the mission completion rate and its visualization.
      */
-    function update (currentMission, currentRegion) {
+    function _update (currentMission, currentRegion) {
         if (svl && "onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
         if ("missionContainer" in svl) {
             var completionRate;
@@ -102,7 +100,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
                 if (currentMission.getMissionCompletionRate() > 0.999) {
                     complete(currentMission);
-                    svl.missionContainer.commit();
 
                     _gameEffectModel.playAudio({audioType: "yay"});
                     _gameEffectModel.playAudio({audioType: "applause"});
@@ -115,8 +112,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             }
         }
     }
-    
-    self.update = update;
-    _init();
+
+    self.update = _update;
     return self;
 }

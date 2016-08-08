@@ -1,22 +1,62 @@
 describe("MissionContainer module.", function () {
     var missionContainer;
     var missionFactory;
-    var form;
-    var progress;
     var missionStatus;
     var missionModel;
 
     beforeEach(function () {
-        form = {};
-        progress = {};
         missionStatus = {};
         missionModel = _.clone(Backbone.Events);
-        missionFactory = new MissionFactory();
-        missionContainer = new MissionContainer($, missionFactory, form, progress, missionStatus, missionModel);
+        missionModel.submitMissions = function (missions) { };
+        missionFactory = new MissionFactory(missionModel);
+        missionContainer = new MissionContainer($, missionFactory, missionStatus, missionModel);
         missionContainer.refresh();
 
     });
 
+    describe("in response to events", function () {
+        var missionMock;
+        beforeEach(function () {
+        });
+
+        it("should add the completed mission to `completedMissions`", function (done) {
+            missionMock = { test: "test" };
+            missionModel.trigger("MissionProgress:complete", missionMock);
+
+            var missions = missionContainer.getCompletedMissions();
+            expect(missions).toEqual([missionMock]);
+
+            expect(missions.length).toBe(1);
+            done();
+        });
+
+        it("should add completed missions to `completedMissions`", function () {
+            var missions;
+            missionMock = new MissionMock();
+            missionMock.setProperty('isCompleted', true);
+            missionModel.trigger("MissionContainer:addAMission", missionMock);
+
+            missions = missionContainer.getCompletedMissions();
+            expect(missions.length).toBe(1);
+
+            missionMock = new MissionMock();
+            missionMock.setProperty('isCompleted', true);
+            missionModel.trigger("MissionContainer:addAMission", missionMock);
+
+            missions = missionContainer.getCompletedMissions();
+            expect(missions.length).toBe(2);
+
+            missionMock = new MissionMock();
+            missionMock.setProperty('isCompleted', false);
+            missionModel.trigger("MissionContainer:addAMission", missionMock);
+
+            missions = missionContainer.getCompletedMissions();
+            expect(missions.length).toBe(2);
+
+        });
+
+    });
+/*
     describe("`add` method", function(){
         it("should be able to add a new mission to the container", function() {
             var m1 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
@@ -106,6 +146,7 @@ describe("MissionContainer module.", function () {
             expect(m3.properties.auditDistanceMi).toBeCloseTo(5, 0.1);
         });
     });
+    */
 
     function MissionMock () {
         this.properties = {
@@ -128,4 +169,8 @@ describe("MissionContainer module.", function () {
     MissionMock.prototype.setProperty = function (key, value) {
         this.properties[key] = value;
     };
+
+    MissionMock.prototype.isCompleted = function () {
+        return this.properties.isCompleted;
+    }
 });

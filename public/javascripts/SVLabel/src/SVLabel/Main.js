@@ -369,9 +369,11 @@ function Main ($, d3, google, turf, params) {
                     }
                 }
 
-                if ("missionProgress" in svl) {
-                    svl.missionProgress.update(mission, neighborhood);
-                }
+                // if ("missionProgress" in svl) {
+                //     svl.missionProgress.update(mission, neighborhood);
+                // }
+
+                svl.missionModel.updateMissionProgress(mission, neighborhood);
 
                 // Get the labels collected in the current neighborhood
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
@@ -407,8 +409,8 @@ function Main ($, d3, google, turf, params) {
         // Mission.
         svl.statusFieldMission = new StatusFieldMission();
         svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.missionModel, svl.modalModel, svl.neighborhoodContainer, svl.taskContainer);
-        svl.missionFactory = new MissionFactory ();
-        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.statusFieldMission, svl.missionModel, {
+        svl.missionFactory = new MissionFactory (svl.missionModel);
+        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.statusFieldMission, svl.missionModel, {
             callback: function () {
                 loadingMissionsCompleted = true;
                 handleDataLoadComplete();

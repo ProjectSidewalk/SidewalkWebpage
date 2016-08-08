@@ -512,9 +512,7 @@ function Map ($, google, turf, params) {
         if ("compass" in svl) {
             svl.compass.update();
         }
-        if ("missionProgress" in svl) {
-            svl.missionProgress.update(currentMission, neighborhood);
-        }
+        svl.missionModel.updateMissionProgress(currentMission, neighborhood);
 
         if ("taskContainer" in svl) {
             svl.taskContainer.update();

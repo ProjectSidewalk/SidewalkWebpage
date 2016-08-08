@@ -2,16 +2,14 @@
  * MissionContainer module
  * @param $ jQuery object
  * @param factory MissionFactory. Todo. I shouldn't need the factory inside this module. Refactor.
- * @param form. Todo. Again, I shouldn't need the form object here. Refactor.
- * @param progress. MissionProgress object.
- * @param missionStatus. Todo. MissionStatus object. Write a model that connects MissionContainer with MissionProgress and
- * MissionStatus. Or rather I want a model that ties all the mission related modules. Read JSTR Section 4.2.4 Building and testing the model.
+ * @param statusFieldMission.
+ * @param missionModel. Mission model object.
  * @param parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function MissionContainer ($, factory, form, progress, missionStatus, missionModel, parameters) {
+function MissionContainer ($, factory, statusFieldMission, missionModel, parameters) {
     var self = { className: "MissionContainer" },
         missionStoreByRegionId = { "noRegionId" : []},
         completedMissions = [],
@@ -22,7 +20,14 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
 
     _missionModel.on("MissionProgress:complete", function (mission) {
         addToCompletedMissions(mission);
-        stage(mission);
+        _missionModel.submitMissions([mission]);
+    });
+
+    _missionModel.on("MissionContainer:addAMission", function (mission) {
+        addAMission(mission.getProperty("regionId"), mission);
+        if (mission.isCompleted()) {
+            addToCompletedMissions(mission);
+        }
     });
     
     function _init (parameters) {
@@ -31,7 +36,7 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
         function _callback (result1) {
             var i,
                 len,
-                mission,
+                missionParameters,
                 missions = result1,
                 nm;
 
@@ -41,22 +46,19 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
                 return distanceA - distanceB;
             }
             missions.sort(cmp);
-            len = missions.length;
-            for (i = 0; i < len; i++) {
-                mission = factory.create(
-                    missions[i].region_id,
-                    missions[i].mission_id,
-                    missions[i].label,
-                    missions[i].level,
-                    missions[i].distance,
-                    missions[i].distance_ft,
-                    missions[i].distance_mi,
-                    missions[i].coverage,
-                    missions[i].is_completed);
-                addAMission(missions[i].region_id, mission);
-                if (missions[i].is_completed) {
-                    addToCompletedMissions(mission);
-                }
+            for (i = 0, len = missions.length; i < len; i++) {
+                missionParameters = {
+                    regionId: missions[i].region_id,
+                    missionId: missions[i].mission_id,
+                    label: missions[i].label,
+                    level: missions[i].level,
+                    distance: missions[i].distance,
+                    distanceFt: missions[i].distance_ft,
+                    distanceMi: missions[i].distance_mi,
+                    coverage: missions[i].coverage,
+                    isCompleted: missions[i].is_completed
+                };
+                _missionModel.trigger("MissionFactory:create", missionParameters);
             }
 
             // Set the current mission.
@@ -135,23 +137,6 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
         }
     }
 
-    /**
-     * Submit the currently staged missions to the server.
-     * Todo. I no longer have to stage-and-commit... So I can simplify this.
-     * @returns {commit}
-     */
-    function commit () {
-        if (staged.length > 0) {
-            var i, data = [];
-
-            for (i = 0; i < staged.length; i++) {
-                data.push(staged[i].toSubmissionFormat());
-            }
-            staged = [];
-            form.postJSON("/mission", data);
-        }
-        return this;
-    }
 
     /** Get current mission */
     function getCurrentMission () {
@@ -257,21 +242,7 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
      */
     function setCurrentMission (mission) {
         currentMission = mission;
-
-        if ("missionProgress" in svl && "missionStatus" in svl) {
-            progress.update();
-            missionStatus.printMissionMessage(mission);
-        }
-        return this;
-    }
-
-    /**
-     * Push the completed mission to the staged so it will be submitted to the server.
-     * Todo. I no longer have to stage-and-commit... So I can simplify this.
-     * @param mission
-     */
-    function stage (mission) {
-        staged.push(mission);
+        statusFieldMission.printMissionMessage(mission);
         return this;
     }
 
@@ -280,7 +251,6 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
     self._onLoadComplete = _onLoadComplete;
     self.addToCompletedMissions = addToCompletedMissions;
     self.add = addAMission;
-    self.commit = commit;
     self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
@@ -289,7 +259,6 @@ function MissionContainer ($, factory, form, progress, missionStatus, missionMod
     self.isTheFirstMission = isTheFirstMission;
     self.nextMission = nextMission;
     self.refresh = refresh;
-    self.stage = stage;
     self.setCurrentMission = setCurrentMission;
     return self;
 }
