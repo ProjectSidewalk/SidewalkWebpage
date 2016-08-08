@@ -246,8 +246,11 @@ function Main ($, d3, google, turf, params) {
         svl.compass = new Compass(d3, turf);
         svl.contextMenu = new ContextMenu($);
         svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl, svl.onboarding);
-        svl.audioEffect = new AudioEffect();
-        
+
+        svl.gameEffect = new GameEffectModel();
+        svl.audioEffect = new AudioEffect(svl.gameEffect, svl.ui.leftColumn, svl.rootDirectory);
+        svl.completionMessage = new CompletionMessage(svl.gameEffect, svl.ui.task);
+
         svl.modalSkip = new ModalSkip($);
         svl.modalComment = new ModalComment($);
         svl.modalMission = new ModalMission($, svl.ui.modalMission);

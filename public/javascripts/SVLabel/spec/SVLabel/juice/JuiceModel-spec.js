@@ -1,19 +1,18 @@
-describe("Keyboard module.", function () {
+describe("GameEffectModel module.", function () {
     var model;
 
     beforeEach(function () {
-        model = new JuiceModel();
+        model = new GameEffectModel();
     });
 
     describe("`play` method", function() {
         beforeEach(function () {
-            spyOn(model, 'play');
-            model.play();
+            spyOn(model, 'trigger');
+            model.play({audioType: "yay"});
         });
 
-        it("", function() {
-            spyOn(model, 'play');
-            model
+        it("to have been called", function() {
+            expect(model.trigger).toHaveBeenCalledWith("play", {audioType: "yay"})
         });
     });
 });

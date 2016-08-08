@@ -4,25 +4,31 @@
  * @constructor
  * @memberof svl
  */
-function AudioEffect () {
+function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
     var self = { className: 'AudioEffect' };
+
+    var _self = this;
+    this._model = gameEffectModel;
+
 
     if (typeof Audio == "undefined") Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
 
     var audios = {
-            applause: new Audio(svl.rootDirectory + 'audio/applause.mp3'),
-            drip: new Audio(svl.rootDirectory + 'audio/drip.wav'),
-            glug1: new Audio(svl.rootDirectory + 'audio/glug1.wav'),
-            yay: new Audio(svl.rootDirectory + 'audio/yay.mp3')
+            applause: new Audio(fileDirectory + 'audio/applause.mp3'),
+            drip: new Audio(fileDirectory + 'audio/drip.wav'),
+            glug1: new Audio(fileDirectory + 'audio/glug1.wav'),
+            yay: new Audio(fileDirectory + 'audio/yay.mp3')
         },
         status = {
             mute: false
         },
         blinkInterval;
 
-    if (svl && 'ui' in svl) {
-        svl.ui.leftColumn.sound.on('click', handleClickSound);
-    }
+    uiSoundButton.sound.on('click', handleClickSound);
+
+    this._model.on("play", function (parameter) {
+        play(parameter.audioType);
+    });
 
     /**
      * Blink
@@ -30,7 +36,7 @@ function AudioEffect () {
     function blink () {
         stopBlinking();
         blinkInterval = window.setInterval(function () {
-            svl.ui.leftColumn.sound.toggleClass("highlight-50");
+            uiSoundButton.sound.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -40,17 +46,13 @@ function AudioEffect () {
     function handleClickSound () {
         if (status.mute) {
             // Unmute
-            if (svl && 'ui' in svl) {
-                svl.ui.leftColumn.muteIcon.addClass('hidden');
-                svl.ui.leftColumn.soundIcon.removeClass('hidden');
-            }
+            uiSoundButton.muteIcon.addClass('hidden');
+            uiSoundButton.soundIcon.removeClass('hidden');
             unmute();
         } else {
             // Mute
-            if (svl && 'ui' in svl) {
-                svl.ui.leftColumn.soundIcon.addClass('hidden');
-                svl.ui.leftColumn.muteIcon.removeClass('hidden');
-            }
+            uiSoundButton.soundIcon.addClass('hidden');
+            uiSoundButton.muteIcon.removeClass('hidden');
             mute();
         }
     }
@@ -80,7 +82,7 @@ function AudioEffect () {
      */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
-        svl.ui.leftColumn.sound.removeClass("highlight-50");
+        uiSoundButton.sound.removeClass("highlight-50");
     }
 
     /**

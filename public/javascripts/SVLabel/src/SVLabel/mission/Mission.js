@@ -110,14 +110,7 @@ function Mission(parameters) {
      */
     function complete () {
         // Play the animation and audio effect after task completion.
-        svl.ui.task.taskCompletionMessage.css('visibility', 'visible').hide();
-        svl.ui.task.taskCompletionMessage.removeClass('animated bounce bounceOut').fadeIn(300).addClass('animated bounce');
-        setTimeout(function () { svl.ui.task.taskCompletionMessage.fadeOut(300).addClass('bounceOut'); }, 1000);
-
-        if ('audioEffect' in svl) {
-            svl.audioEffect.play('yay');
-            svl.audioEffect.play('applause');
-        }
+        svl.gameEffect.play({audioType: "yay"});
         
         // Update the neighborhood status
         if ("labelContainer" in svl) {
