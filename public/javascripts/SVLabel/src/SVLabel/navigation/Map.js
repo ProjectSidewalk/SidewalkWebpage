@@ -503,7 +503,7 @@ function Map ($, google, turf, params) {
      */
     function handlerPositionUpdate () {
         var position = svl.panorama.getPosition();
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("name");
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
 
         if ("canvas" in svl && svl.canvas) {
@@ -537,7 +537,7 @@ function Map ($, google, turf, params) {
                     // tell them that we moved her to another location in the same neighborhood.
                     if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
 
-                        var neighborhoodMessage = "Jumped back to " + neighborhood;
+                        var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
                         var distanceLeft = distanceLeftFeetOrMiles();
                         svl.popUpMessage.notify(neighborhoodMessage,
                             "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +

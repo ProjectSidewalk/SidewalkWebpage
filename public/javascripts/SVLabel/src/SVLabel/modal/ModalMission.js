@@ -5,13 +5,19 @@
  * @constructor
  * @memberof svl
  */
-function ModalMission ($, uiModalMission) {
+function ModalMission ($, uiModalMission, modalModel) {
     var self = { className : 'ModalMission'},
         properties = {
             boxTop: 180,
             boxLeft: 45,
             boxWidth: 640
         };
+
+    var _modalModel = modalModel;
+
+    _modalModel.on("ModalMision:setMission", function (parameters) {
+        setMissionMessage(parameters.mission, parameters.neighborhood, parameters.parameters, parameters.callback);
+    });
 
     // Mission titles. Keys are mission labels.
     var missionTitles = {

@@ -7,13 +7,27 @@
  * @constructor
  * @memberof svl
  */
-function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteMap, uiModalMissionComplete) {
+function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteMap, uiModalMissionComplete, modalModel) {
     var self = { className : 'ModalMissionComplete'},
         properties = {
             boxTop: 180,
             boxLeft: 45,
             boxWidth: 640
         };
+
+    var _modalModel = modalModel;
+
+    _modalModel.on("ModalMissionComplete:update", function (parameters) {
+        update(parameters.mission, parameters.neighborhood);
+    });
+
+    _modalModel.on("ModalMissionComplete:show", function () {
+        show();
+    });
+
+    _modalModel.on("ModalMissionComplete:one", function (parameters) {
+        one(parameters.uiComponent, parameters.eventType, parameters.callback);
+    });
 
     // Bar chart visualization
     // Todo. This can be cleaned up!!!
@@ -260,5 +274,6 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
     self.hide = hideMissionComplete ;
     self.show = show;
     self.one = one;
+    self.update = update;
     return self;
 }

@@ -5,13 +5,16 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffect, modalMission, modalMissionComplete, neighborhoodContainer, taskContainer) {
+function MissionProgress (svl, gameEffect, modalModel, neighborhoodContainer, taskContainer) {
     var self = { className: 'MissionProgress' };
     var status = {
             currentCompletionRate: 0,
             currentMission: null,
             previousHeading: 0
         };
+
+    var _gameEffectModel = gameEffect;
+    var _modalModel = modalModel;
 
     function _init() {
     }
@@ -38,10 +41,13 @@ function MissionProgress (svl, gameEffect, modalMission, modalMissionComplete, n
 
         if (label == "distance-mission") {
             parameters.distance = mission.getProperty("distance");
-            modalMission.setMission(mission, neighborhood, parameters);
+            // modalMission.setMission(mission, neighborhood, parameters);
+            _modalModel.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: null });
         } else if (label == "area-coverage-mission") {
             parameters.coverage = mission.getProperty("coverage");
-            modalMission.setMissionM(mission, neighborhood, parameters);
+            // modalMission.setMission(mission, neighborhood, parameters);
+            _modalModel.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: null });
+
         } else {
             console.warn("Debug: It shouldn't reach here.");
         }
@@ -95,12 +101,13 @@ function MissionProgress (svl, gameEffect, modalMission, modalMissionComplete, n
                     complete(currentMission);
                     svl.missionContainer.commit();
 
-                    gameEffect.playAudio({audioType: "yay"});
-                    gameEffect.playAudio({audioType: "applause"});
+                    _gameEffectModel.playAudio({audioType: "yay"});
+                    _gameEffectModel.playAudio({audioType: "applause"});
 
-                    modalMissionComplete.update(currentMission, currentRegion);
-                    modalMissionComplete.show();
-                    modalMissionComplete.one('closeButton', 'click', _callback);
+
+                    _modalModel.trigger("ModalMissionComplete:update", { mission: currentMission, neighborhood: currentRegion });
+                    _modalModel.trigger("ModalMissionComplete:show");
+                    _modalModel.trigger("ModalMissionComplete:one", { uiComponent: 'closeButton', eventType: 'click', callback: _callback });
                 }
             }
         }

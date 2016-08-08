@@ -399,15 +399,15 @@ function Main ($, d3, google, turf, params) {
             handleDataLoadComplete();
         });
 
-        // Modals
-        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete);
-        svl.modalMissionComplete.hide();
-        svl.modalMission = new ModalMission($, svl.ui.modalMission);
+        // Models
+        svl.modalModel = new ModalModel();
+        svl.missionModel = new MissionModel();
+
+        svl.modalMission = new ModalMission($, svl.ui.modalMission, svl.modalModel);
 
         // Mission.
         svl.missionStatus = new MissionStatus();
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.modalMission, svl.modalMissionComplete, svl.neighborhoodContainer, svl.taskContainer);
+        svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.modalModel, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory ();
         svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.missionStatus, {
             callback: function () {
@@ -415,6 +415,10 @@ function Main ($, d3, google, turf, params) {
                 handleDataLoadComplete();
             }
         });
+
+        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);
+        svl.modalMissionComplete.hide();
 
         // Set map parameters and instantiate it.
         var mapParam = {};
