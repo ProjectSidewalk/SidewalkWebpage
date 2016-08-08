@@ -1,4 +1,4 @@
-describe("Test for the MissionContainer module.", function () {
+describe("MissionContainer module.", function () {
     var missionContainer = new MissionContainer($);
     var missionFactory = new MissionFactory();
 
@@ -8,8 +8,8 @@ describe("Test for the MissionContainer module.", function () {
 
     describe("`add` method", function(){
         it("should be able to add a new mission to the container", function() {
-            var m1 = missionFactory.create(1, 1, "test1", 1, null, null, false);
-            var m2 = missionFactory.create(1, 2, "test1", 2, null, null, false);
+            var m1 = missionFactory.create(1, 1, "distance-mission", 1, null, null, false);
+            var m2 = missionFactory.create(1, 2, "distance-mission", 2, null, null, false);
             missionContainer.add(1, m1);
             missionContainer.add(1, m2);
             var missions = missionContainer.getMissionsByRegionId(1);
@@ -22,8 +22,8 @@ describe("Test for the MissionContainer module.", function () {
         });
 
         it("should check duplicate", function () {
-            var m1 = missionFactory.create(1, 1, "test1", 1, null, null, false);
-            var m2 = missionFactory.create(1, 1, "test1", 1, null, null, false);
+            var m1 = missionFactory.create(1, 1, "distance-mission", 1, null, null, false);
+            var m2 = missionFactory.create(1, 1, "distance-mission", 1, null, null, false);
             missionContainer.add(1, m1);
             missionContainer.add(1, m2);
             var missions = missionContainer.getMissionsByRegionId(1);
