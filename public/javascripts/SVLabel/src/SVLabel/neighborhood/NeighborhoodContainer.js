@@ -83,10 +83,10 @@ function NeighborhoodContainer ($, parameters) {
     function setStatus (key, value) {
         status[key] = value;
         
-        if (key == "currentNeighborhood" && "neighborhoodStatus" in svl && svl.neighborhoodStatus &&
+        if (key == "currentNeighborhood" && "statusFieldNeighborhood" in svl && svl.statusFieldNeighborhood &&
         typeof value == "object" && "className" in value && value.className == "Neighborhood") {
             var href = "/contribution/" + svl.user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
-            svl.neighborhoodStatus.setHref(href)
+            svl.statusFieldNeighborhood.setHref(href)
         }
     }
 

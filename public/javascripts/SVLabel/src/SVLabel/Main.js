@@ -231,7 +231,7 @@ function Main ($, d3, google, turf, params) {
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField();
 
-        svl.neighborhoodStatus = new NeighborhoodStatus();
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
 
 
 
@@ -265,7 +265,7 @@ function Main ($, d3, google, turf, params) {
             neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
             svl.neighborhoodContainer.add(neighborhood);
             svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-            svl.neighborhoodStatus.setNeighborhoodName(params.regionName);
+            svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
         } else {
             var regionId = 0;
             neighborhood = svl.neighborhoodFactory.create(regionId, null, null);
@@ -377,12 +377,12 @@ function Main ($, d3, google, turf, params) {
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
                 svl.labelContainer.fetchLabelsInANeighborhood(currentNeighborhood.getProperty("regionId"), function () {
                     var count = svl.labelContainer.countLabels(currentNeighborhood.getProperty("regionId"));
-                    svl.neighborhoodStatus.setLabelCount(count);
+                    svl.statusFieldNeighborhood.setLabelCount(count);
                 });
 
                 var unit = "miles";
                 var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-                svl.neighborhoodStatus.setAuditedDistance(distance.toFixed(1), unit);
+                svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
             }
         }
 
@@ -405,10 +405,10 @@ function Main ($, d3, google, turf, params) {
         svl.modalMission = new ModalMission($, svl.ui.modalMission, svl.modalModel);
 
         // Mission.
-        svl.missionStatus = new MissionStatus();
+        svl.statusFieldMission = new StatusFieldMission();
         svl.missionProgress = new MissionProgress(svl, svl.gameEffect, svl.modalModel, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory ();
-        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.missionStatus, {
+        svl.missionContainer = new MissionContainer ($, svl.missionFactory, svl.form, svl.missionProgress, svl.statusFieldMission, {
             callback: function () {
                 loadingMissionsCompleted = true;
                 handleDataLoadComplete();

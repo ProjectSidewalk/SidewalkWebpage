@@ -1,6 +1,6 @@
 /**
  * MissionProgress module.
- * Todo. Rename this... Probably some of these features should be moved to status/MissionStatus.js
+ * Todo. Rename this... Probably some of these features should be moved to status/StatusFieldMission.js
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -94,8 +94,8 @@ function MissionProgress (svl, gameEffect, modalModel, neighborhoodContainer, ta
             // Update the mission completion rate in the progress bar
             if (currentMission) {
                 completionRate = currentMission.getMissionCompletionRate();
-                svl.missionStatus.printCompletionRate(completionRate);
-                svl.missionStatus.updateMissionCompletionBar(completionRate);
+                svl.statusFieldMission.printCompletionRate(completionRate);
+                svl.statusFieldMission.updateMissionCompletionBar(completionRate);
 
                 if (currentMission.getMissionCompletionRate() > 0.999) {
                     complete(currentMission);

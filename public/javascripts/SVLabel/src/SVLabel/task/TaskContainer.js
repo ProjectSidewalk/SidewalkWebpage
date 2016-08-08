@@ -413,7 +413,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
         }
 
         distance += sessionDistance;
-        svl.neighborhoodStatus.setAuditedDistance(distance.toFixed(1));
+        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1));
         return this;
     }
 

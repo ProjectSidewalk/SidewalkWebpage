@@ -4,6 +4,11 @@
  * @constructor
  */
 function MissionModel () {
+    var self = this;
 
 }
 _.extend(MissionModel.prototype, Backbone.Events);
+
+MissionModel.prototype.updateProgress = function () {
+
+};

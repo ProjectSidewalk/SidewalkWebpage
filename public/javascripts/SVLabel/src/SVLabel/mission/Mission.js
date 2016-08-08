@@ -116,7 +116,7 @@ function Mission(parameters) {
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             var count = svl.labelContainer.countLabels(regionId);
-            svl.neighborhoodStatus.setLabelCount(count);
+            svl.statusFieldNeighborhood.setLabelCount(count);
         }
 
         // Reset the label counter
@@ -130,6 +130,8 @@ function Mission(parameters) {
             };
             svl.labelCounter.reset();
         }
+
+        // Todo. This should just emit Mission:complete. Everything above should be moved to somewhere else.
         
         setProperty("isCompleted", true);
     }
@@ -146,7 +148,7 @@ function Mission(parameters) {
     }
 
     /**
-     * Warning. This method is not completed yet. Do not use.
+     * Todo. WARNING. This method is not completed yet. DO NOT USE.
      * @param currentTask
      * @param unit
      * @returns {*}
