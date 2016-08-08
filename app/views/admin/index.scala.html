@@ -160,9 +160,10 @@
                         <th class="col-md-2">Email</th>
                         <th class="col-md-2">Date Registered</th>
                         <th class="col-md-2">Last Login</th>
-                        <th class="col-md-2">Mission Count</th>
-                        <th class="col-md-2">Audit Count</th>
-                        <th class="col-md-2">Label Count</th>
+                        <th class="col-md-1">Login Count</th>
+                        <th class="col-md-1">Mission Count</th>
+                        <th class="col-md-1">Audit Count</th>
+                        <th class="col-md-1">Label Count</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -173,6 +174,7 @@
                             <td>@u.email</td>
                             <td>@WebpageActivityTable.selectSignUpTimestamp(UUID.fromString(u.userId))</td>
                             <td>@WebpageActivityTable.selectLastSignInTimestamp(UUID.fromString(u.userId))</td>
+                            <td>@WebpageActivityTable.selectSignInCount(UUID.fromString(u.userId))</td>
                             <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(u.userId))</td>
                             <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(u.userId))</td>
                             <td>@LabelTable.countLabelsByUserId(UUID.fromString(u.userId))</td>
