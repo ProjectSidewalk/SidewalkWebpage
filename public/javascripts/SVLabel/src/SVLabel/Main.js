@@ -17,9 +17,10 @@ function Main ($, d3, google, turf, params) {
         isFirstTask: false
     };
     // Initialize things that needs data loading.
-    var loadingAnOboardingTaskCompleted = false,
-        loadingTasksCompleted = false,
-        loadingMissionsCompleted = false;
+    var loadingAnOboardingTaskCompleted = false;
+    var loadingTasksCompleted = false;
+    var loadingMissionsCompleted = false;
+    var loadNeighborhoodsCompleted = false;
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
@@ -44,9 +45,6 @@ function Main ($, d3, google, turf, params) {
         svl.canvas = new Canvas($);
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
-        // svl.form.setTaskRemaining(1);
-        // svl.form.setTaskDescription('TestTask');
-        // svl.form.setTaskPanoramaId(panoId);
 
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField();
@@ -103,7 +101,7 @@ function Main ($, d3, google, turf, params) {
         svl.map = new Map(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
 
-        loadData(neighborhood, svl.taskContainer, svl.missionModel);
+        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -121,8 +119,9 @@ function Main ($, d3, google, turf, params) {
         }
     }
 
-    function loadData (neighborhood, taskContainer, missionModel) {
+    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
         // Fetch an onboarding task.
+
         taskContainer.fetchATask("onboarding", 15250, function () {
             loadingAnOboardingTaskCompleted = true;
             handleDataLoadComplete();
@@ -140,7 +139,13 @@ function Main ($, d3, google, turf, params) {
             handleDataLoadComplete();
         });
 
+        neighborhoodModel.fetchNeighborhoods(function () {
+            loadNeighborhoodsCompleted = true;
+            handleDataLoadComplete();
+        });
+
         // Todo. Fetch all the neighborhoods.
+
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -212,7 +217,8 @@ function Main ($, d3, google, turf, params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingMissionsCompleted) {
+        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted &&
+            loadingMissionsCompleted && loadNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var missionLabels = completedMissions.map(function (m) { return m.label; });

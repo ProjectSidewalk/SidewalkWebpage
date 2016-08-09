@@ -138,7 +138,7 @@ function Progress (_, $, c3, L) {
             });
         }
 
-        $.getJSON("/geometry/neighborhoods", function (data) {
+        $.getJSON("/neighborhoods", function (data) {
             _data.neighborhoodPolygons = data;
 
             L.geoJson(data, {
