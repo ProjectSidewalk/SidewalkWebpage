@@ -52,7 +52,7 @@ NeighborhoodContainer.prototype.getCurrentNeighborhood = function () {
 
 NeighborhoodContainer.prototype.getNextRegionId = function (currentRegionId, availableRegionIds) {
     currentRegionId = currentRegionId.toString();
-    availableRegionIds = availableRegionIds.map(function (id) { return id.toString(); })
+    availableRegionIds = availableRegionIds.map(function (id) { return id.toString(); });
     var indexOfNextRegion = availableRegionIds.indexOf(currentRegionId) + 1;
     if (indexOfNextRegion < 0 || indexOfNextRegion == availableRegionIds.length) {
         indexOfNextRegion = 0;

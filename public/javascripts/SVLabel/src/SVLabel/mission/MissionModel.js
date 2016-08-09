@@ -1,7 +1,6 @@
 /**
  * MissionModel constructor.
- * Todo. Implement this model to connect other mission components. Read the JSTR book Section 4.2.4
- * @constructor
+  * @constructor
  */
 function MissionModel () {
     var self = this;
@@ -68,7 +67,7 @@ _.extend(MissionModel.prototype, Backbone.Events);
 
 
 MissionModel.prototype.addAMission = function (mission) {
-    this.trigger("MissionContaier:addAMission", mission);
+    this.trigger("MissionContainer:addAMission", mission);
 };
 
 MissionModel.prototype.completeMission = function (mission) {

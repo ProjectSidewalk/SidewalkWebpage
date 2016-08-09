@@ -73,7 +73,7 @@ function Main ($, d3, google, turf, params) {
 
         var neighborhood;
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
-        svl.neighborhoodFactory = new NeighborhoodFactory();
+        svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
@@ -143,99 +143,104 @@ function Main ($, d3, google, turf, params) {
         // Todo. Fetch all the neighborhoods.
     }
 
+    function hasCompletedOnboarding(completedMissions) {
+        var missionLabels = completedMissions.map(function (m) { return m.label; });
+        return missionLabels.indexOf("onboarding") >= 0 || svl.storage.get("completedOnboarding");
+    }
+
+    function startOnboarding () {
+        svl.onboarding = Onboarding($);
+        var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
+        if (!onboardingMission) {
+            // If the onboarding mission is not yet in the missionContainer, add it there.
+            onboardingMission = svl.missionFactory.createOnboardingMission(1, false);
+            svl.missionContainer.add(null, onboardingMission);
+        }
+        svl.missionContainer.setCurrentMission(onboardingMission);
+    }
+
+    function findTheNextRegionWithMissions (currentNeighborhood) {
+        var currentRegionId = currentNeighborhood.getPropety("regionId");
+        var allRegionIds = svl.neighborhoodContainer.getRegionIds();
+        var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
+        var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
+        availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
+        while(availableMissions.length == 0) {
+            nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, availableRegionIds);
+            availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
+            availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
+            if (nextRegionId == currentRegionId) {
+                console.error("No more available regions to audit");
+                return null;
+            }
+        }
+        return nextRegionId;
+    }
+
+    function isAnAnonymousUser() {
+        return 'user' in svl || svl.user.getProperty('username') == "anonymous";
+    }
+
+    function startTheMission(mission, neighborhood) {
+        // Check if this an anonymous user or not.
+        // If not, record that that this user has completed the onboarding.
+        if (!isAnAnonymousUser()) {
+            var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+            onboardingMission.setProperty("isCompleted", true);
+            svl.missionContainer.addToCompletedMissions(onboardingMission);
+            svl.missionModel.submitMissions([onboardingMission]);
+        }
+
+        // Popup the message explaining the goal of the current mission
+        if (svl.missionContainer.isTheFirstMission()) {
+            svl.modalMission.setMission(mission, neighborhood, null, initialMissionInstruction);
+        } else {
+            svl.modalMission.setMission(mission, neighborhood);
+        }
+        svl.missionModel.updateMissionProgress(mission, neighborhood);
+
+        // Get the labels collected in the current neighborhood
+        svl.labelContainer.fetchLabelsInANeighborhood(neighborhood.getProperty("regionId"), function () {
+            var count = svl.labelContainer.countLabels(neighborhood.getProperty("regionId"));
+            svl.statusFieldNeighborhood.setLabelCount(count);
+        });
+
+        var unit = "miles";
+        var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
+    }
+
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
         if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingMissionsCompleted) {
-            // Check if the user has completed the onboarding tutorial.
-            // If not, let them work on the the tutorial.
-            var completedMissions = svl.missionContainer.getCompletedMissions(),
-                missionLabels = completedMissions.map(function (m) { return m.label; }),
-                neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood"),
-                mission;
-
-            // Set the current mission
-            if (missionLabels.indexOf("onboarding") < 0 && !svl.storage.get("completedOnboarding")) {
-                // Set the current mission to onboarding
-                svl.onboarding = Onboarding($);
-                mission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
-                if (!mission) {
-                    // If the onboarding mission is not yet in the missionContainer, add it there.
-                    mission = svl.missionFactory.createOnboardingMission(1, false);
-                    svl.missionContainer.add(null, mission);
-                }
-                svl.missionContainer.setCurrentMission(mission);
+            // Check if the user has completed the onboarding tutorial..
+            var completedMissions = svl.missionContainer.getCompletedMissions();
+            var missionLabels = completedMissions.map(function (m) { return m.label; });
+            var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
+            var mission;
+            if (!hasCompletedOnboarding(completedMissions)) {
+                startOnboarding();
             } else {
+                var regionId = currentNeighborhood.getProperty("regionId");
+                var availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
+                availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
                 svl.onboarding = null;
-                // Set the current mission.
-                var haveSwitchedToANewRegion = false;
-                var missions = [];
-                var regionId = neighborhood.getProperty("regionId");
-                while (true) {
-                    // Check if there are incomplete missions in the current neighborhood (i.e., missions.length > 0?)
-                    missions = svl.missionContainer.getMissionsByRegionId(regionId);
-                    missions = missions.filter(function (m) { return !m.isCompleted(); });
-                    if (missions.length > 0) {
-                        if (haveSwitchedToANewRegion) {
-                            // If moving to the new neighborhood, update the database
-                            svl.neighborhoodModel.moveToANewRegion(regionId);
-                            svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
-                        }
-                        break;
-                    }
-                    haveSwitchedToANewRegion = true;
-                    var availableRegionIds = svl.missionContainer.getAvailableRegionIds();
-                    regionId = svl.neighborhoodContainer.getNextRegionId(regionId, availableRegionIds);
-                    // var indexOfNextRegion = availableRegionIds.indexOf(regionId.toString()) + 1;
-                    // if (indexOfNextRegion < 0) { indexOfNextRegion = 0; }
-                    // regionId = availableRegionIds[indexOfNextRegion];
-                }
-                mission = missions[0];
 
-                svl.missionContainer.setCurrentMission(mission);
+                if (availableMissions.length == 0) {
+                    regionId = findTheNextRegionWithMissions(currentNeighborhood);
+                    if (regionId == null) return;  // No missions available.
 
-                // Compute the route for the current mission
-                if (haveSwitchedToANewRegion) {
+                    currentNeighborhood = svl.neighborhoodContainer.get(regionId);
+                    svl.neighborhoodModel.moveToANewRegion(regionId);
+                    availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
+                    availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
                     var newTask = svl.taskContainer.nextTask();
                     svl.taskContainer.setCurrentTask(newTask);
                 }
-                var currentTask = svl.taskContainer.getCurrentTask();
+                mission = availableMissions[0];
+                svl.missionContainer.setCurrentMission(mission);
+                startTheMission(mission, currentNeighborhood);
             }
-
-            // Check if this an anonymous user or not.
-            // If not, record that that this user has completed the onboarding.
-            if ('user' in svl && svl.user.getProperty('username') != "anonymous" &&
-                missionLabels.indexOf("onboarding") < 0 && svl.storage.get("completedOnboarding")) {
-                var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
-                onboardingMission.setProperty("isCompleted", true);
-                svl.missionContainer.addToCompletedMissions(onboardingMission);
-                svl.missionContainer.stage(onboardingMission).commit();
-            }
-
-            // Popup the message explaining the goal of the current mission if the current mission is not onboarding
-            if (mission.getProperty("label") != "onboarding") {
-                if (svl.missionContainer.isTheFirstMission()) {
-                    svl.modalMission.setMission(mission, neighborhood, null, initialMissionInstruction);
-                } else {
-                    svl.modalMission.setMission(mission, neighborhood);
-                }
-            }
-
-            // if ("missionProgress" in svl) {
-            //     svl.missionProgress.update(mission, neighborhood);
-            // }
-
-            svl.missionModel.updateMissionProgress(mission, neighborhood);
-
-            // Get the labels collected in the current neighborhood
-            var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            svl.labelContainer.fetchLabelsInANeighborhood(currentNeighborhood.getProperty("regionId"), function () {
-                var count = svl.labelContainer.countLabels(currentNeighborhood.getProperty("regionId"));
-                svl.statusFieldNeighborhood.setLabelCount(count);
-            });
-
-            var unit = "miles";
-            var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
-            svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
         }
     }
 
