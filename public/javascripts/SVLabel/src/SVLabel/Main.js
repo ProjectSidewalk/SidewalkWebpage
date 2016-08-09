@@ -30,6 +30,7 @@ function Main ($, d3, google, turf, params) {
 
 
         // Models
+        svl.neighborhoodModel = new NeighborhoodModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -43,9 +44,9 @@ function Main ($, d3, google, turf, params) {
         svl.canvas = new Canvas($);
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
-        svl.form.setTaskRemaining(1);
-        svl.form.setTaskDescription('TestTask');
-        svl.form.setTaskPanoramaId(panoId);
+        // svl.form.setTaskRemaining(1);
+        // svl.form.setTaskDescription('TestTask');
+        // svl.form.setTaskPanoramaId(panoId);
 
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField();
@@ -71,8 +72,8 @@ function Main ($, d3, google, turf, params) {
         svl.panoramaContainer = new PanoramaContainer();
 
         var neighborhood;
+        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodFactory = new NeighborhoodFactory();
-        svl.neighborhoodContainer = new NeighborhoodContainer($);
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
@@ -176,7 +177,7 @@ function Main ($, d3, google, turf, params) {
                     if (missions.length > 0) {
                         if (haveSwitchedToANewRegion) {
                             // If moving to the new neighborhood, update the database
-                            svl.neighborhoodContainer.moveToANewRegion(regionId);
+                            svl.neighborhoodModel.moveToANewRegion(regionId);
                             svl.taskContainer.fetchTasksInARegion(regionId, null, false);  // Fetch tasks in the new region
                         }
                         break;
