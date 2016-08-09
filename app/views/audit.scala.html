@@ -577,8 +577,8 @@
                 lng1 = geojson.features[0].geometry.coordinates[0][0];
         var latLng = new google.maps.LatLng(lat1, lng1);
 
-        svl.taskFactory = TaskFactory(turf);
-            svl.taskContainer = TaskContainer(streetViewService, svl, svl.tracker, turf);
+        svl.taskFactory = new TaskFactory(turf);
+            svl.taskContainer = new TaskContainer(streetViewService, svl, svl.tracker, turf);
 
 
 
@@ -638,7 +638,7 @@
                 mainParam.regionLayer = null;
             }
 
-            svl.main = Main($, d3, google, turf, mainParam);
+            svl.main = new Main(mainParam);
         }
     </script>
 

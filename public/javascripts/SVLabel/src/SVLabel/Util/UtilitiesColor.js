@@ -1,5 +1,4 @@
-var svl = svl || {};
-svl.util = svl.util || {};
+var util = util || {};
 
 /**
  * Color utilities
@@ -31,8 +30,7 @@ function UtilitiesColor () {
 
     function RGBAToRGB (rgba) {
         var rgbaValueArray = rgba.substring(5, rgba.length - 1).split(",");
-        var rgb = "rgb(" + rgbaValueArray[0] + "," + rgbaValueArray[1] + "," + rgbaValueArray[2] + ")";
-        return rgb;
+        return "rgb(" + rgbaValueArray[0] + "," + rgbaValueArray[1] + "," + rgbaValueArray[2] + ")";
     }
 
     function changeAlphaRGBA(rgba, alpha) {
@@ -237,4 +235,4 @@ function UtilitiesColor () {
 
     return self;
 }
-svl.util.color = UtilitiesColor();
+util.color = UtilitiesColor();

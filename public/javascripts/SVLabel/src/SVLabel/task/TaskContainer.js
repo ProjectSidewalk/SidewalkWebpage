@@ -189,7 +189,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
             }
             return connectedTasks;
         } else {
-            return svl.util.shuffle(tasks);
+            return util.shuffle(tasks);
         }
 
     }

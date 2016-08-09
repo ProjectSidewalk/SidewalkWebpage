@@ -2,17 +2,16 @@
 // It seems like these constants do not depend on browsers... (tested on Chrome, Firefox, and Safari.)
 // Distortion coefficient for a window size 640x360: var alpha_x = 5.2, alpha_y = -5.25;
 // Distortion coefficient for a window size 720x480:
-var svl = svl || {};
-svl.canvasWidth = 720;
-svl.canvasHeight = 480;
-svl.svImageHeight = 6656;
-svl.svImageWidth = 13312;
-svl.alpha_x = 4.6;
-svl.alpha_y = -4.65;
-svl._labelCounter = 0;
-svl.getLabelCounter = function () {
-    return svl._labelCounter++;
-};
+// svl.canvasWidth = 720;
+// svl.canvasHeight = 480;
+// svl.svImageHeight = 6656;
+// svl.svImageWidth = 13312;
+// svl.alpha_x = 4.6;
+// svl.alpha_y = -4.65;
+// svl._labelCounter = 0;
+// svl.getLabelCounter = function () {
+//     return svl._labelCounter++;
+// };
 
 /**
  * A canvas module
@@ -94,7 +93,7 @@ function Canvas ($, param) {
 
 
     // Initialization
-    function _init (param) {
+    function _init () {
         var el = document.getElementById("label-canvas");
         if (!el) {
             return false;
@@ -102,10 +101,6 @@ function Canvas ($, param) {
         ctx = el.getContext('2d');
         canvasProperties.width = el.width;
         canvasProperties.height = el.height;
-
-        if (param && 'evaluationMode' in param) {
-            properties.evaluationMode = param.evaluationMode;
-        }
 
         // Attach listeners to dom elements
         if (svl.ui.canvas.drawingLayer) {
@@ -134,9 +129,9 @@ function Canvas ($, param) {
      */
     function closeLabelPath() {
 
-        var labelType = svl.ribbon.getStatus('selectedLabelType'),
+        var labelType = ribbon.getStatus('selectedLabelType'),
             labelColor = svl.misc.getLabelColors()[labelType],
-            labelDescription = svl.misc.getLabelDescriptions(svl.ribbon.getStatus('selectedLabelType')),
+            labelDescription = svl.misc.getLabelDescriptions(ribbon.getStatus('selectedLabelType')),
             iconImagePath = svl.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
@@ -149,7 +144,7 @@ function Canvas ($, param) {
             pov = svl.map.getPov();
 
         for (var i = 0; i < pathLen; i++) {
-            points.push(new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters));
+            points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
         var path = new Path(points, {});
         var latlng = svl.map.getPosition();
@@ -204,23 +199,14 @@ function Canvas ($, param) {
 
         // Initialize the tempPath
         tempPath = [];
-        svl.ribbon.backToWalk();
-
-        // Review label correctness if this is a ground truth insertion task.
-        if (("goldenInsertion" in svl) &&
-            svl.goldenInsertion &&
-            svl.goldenInsertion.isRevisingLabels()) {
-            svl.goldenInsertion.reviewLabels();
-        }
+        ribbon.backToWalk();
 
     }
 
     function handleDrawingLayerMouseOut () {
         svl.tracker.push('LabelingCanvas_MouseOut');
-        if (!("onboarding" in svl) || !svl.onboarding.isOnboarding()) {
-            if ("ribbon" in svl) {
-                svl.ribbon.backToWalk();
-            }
+        if (!svl.isOnboarding()) {
+            ribbon.backToWalk();
         }
     }
 
@@ -230,8 +216,8 @@ function Canvas ($, param) {
      */
     function handleDrawingLayerMouseDown (e) {
         mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = svl.util.mouseposition(e, this).x;
-        mouseStatus.leftDownY = svl.util.mouseposition(e, this).y;
+        mouseStatus.leftDownX = util.mouseposition(e, this).x;
+        mouseStatus.leftDownY = util.mouseposition(e, this).y;
 
         svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
 
@@ -245,8 +231,8 @@ function Canvas ($, param) {
         var currTime;
 
         mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = svl.util.mouseposition(e, this).x;
-        mouseStatus.leftUpY = svl.util.mouseposition(e, this).y;
+        mouseStatus.leftUpX = util.mouseposition(e, this).x;
+        mouseStatus.leftUpY = util.mouseposition(e, this).y;
 
         currTime = new Date().getTime();
 
@@ -257,34 +243,33 @@ function Canvas ($, param) {
             } else if (properties.drawingMode == "path") {
                 // Path labeling.
 
-                if ('ribbon' in svl && svl.ribbon) {
-                    // Define point parameters to draw
-                    if (!status.drawing) {
-                        // Start drawing a path if a user hasn't started to do so.
-                        status.drawing = true;
-                        if ('tracker' in svl && svl.tracker) {
-                            svl.tracker.push('LabelingCanvas_StartLabeling');
-                        }
-                        tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                    } else {
-                        // Close the current path if there are more than 2 points in the tempPath and
-                        // the user clicks on a point near the initial point.
-                        var closed = false;
-                        if (tempPath.length > 2) {
-                            var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
-                            if (r < properties.radiusThresh) {
-                                closed = true;
-                                status.drawing = false;
-                                closeLabelPath();
-                            }
-                        }
-
-                        // Otherwise add a new point
-                        if (!closed) {
-                            tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                // Define point parameters to draw
+                if (!status.drawing) {
+                    // Start drawing a path if a user hasn't started to do so.
+                    status.drawing = true;
+                    if ('tracker' in svl && svl.tracker) {
+                        svl.tracker.push('LabelingCanvas_StartLabeling');
+                    }
+                    tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                } else {
+                    // Close the current path if there are more than 2 points in the tempPath and
+                    // the user clicks on a point near the initial point.
+                    var closed = false;
+                    if (tempPath.length > 2) {
+                        var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
+                        if (r < properties.radiusThresh) {
+                            closed = true;
+                            status.drawing = false;
+                            closeLabelPath();
                         }
                     }
+
+                    // Otherwise add a new point
+                    if (!closed) {
+                        tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+                    }
                 }
+
             }
 
             clear();
@@ -321,23 +306,18 @@ function Canvas ($, param) {
         mouseStatus.currY = mousePosition.y;
 
         // Change a cursor according to the label type.
-        // $(this).css('cursor', )
-        if ('ribbon' in svl) {
-            var cursorImagePaths = svl.misc.getLabelCursorImagePath(),
-                labelType = svl.ribbon.getStatus('mode');
-            if (labelType) {
-                var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
-                var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
+        var cursorImagePaths = svl.misc.getLabelCursorImagePath(),
+            labelType = ribbon.getStatus('mode');
+        if (labelType) {
+            var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
+            var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
 
-                if (rightClickMenu && rightClickMenu.isAnyOpen()) {
-                    cursorUrl = 'default';
-                }
-
-                $(this).css('cursor', cursorUrl);
+            if (rightClickMenu && rightClickMenu.isAnyOpen()) {
+                cursorUrl = 'default';
             }
-        } else {
-            throw self.className + ': Import the RibbonMenu.js and instantiate it!';
+            $(this).css('cursor', cursorUrl);
         }
+
 
 
         if (!status.drawing) {
@@ -421,16 +401,11 @@ function Canvas ($, param) {
      * Render a temporary path while the user is drawing.
      */
     function renderTempPath() {
-        if (!svl.ribbon) {
-            // return if the ribbon menu is not correctly loaded.
-            return false;
-        }
-
         var pathLen = tempPath.length,
-            labelColor = svl.misc.getLabelColors()[svl.ribbon.getStatus('selectedLabelType')],
+            labelColor = svl.misc.getLabelColors()[ribbon.getStatus('selectedLabelType')],
             pointFill = labelColor.fillStyle,
             curr, prev, r;
-        pointFill = svl.util.color.changeAlphaRGBA(pointFill, 0.5);
+        pointFill = util.color.changeAlphaRGBA(pointFill, 0.5);
 
 
         // Draw the first line.
@@ -443,9 +418,9 @@ function Canvas ($, param) {
 
             // Change the circle radius of the first point depending on the distance between a mouse cursor and the point coordinate.
             if (r < properties.radiusThresh && pathLen > 2) {
-                svl.util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 2 * properties.tempPointRadius, curr.x, curr.y, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
+                util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 2 * properties.tempPointRadius, curr.x, curr.y, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
             } else {
-                svl.util.shape.lineWithRoundHead(ctx, prev.x, prev.y, properties.tempPointRadius, curr.x, curr.y, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
+                util.shape.lineWithRoundHead(ctx, prev.x, prev.y, properties.tempPointRadius, curr.x, curr.y, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
             }
         }
 
@@ -453,13 +428,13 @@ function Canvas ($, param) {
         for (var i = 2; i < pathLen; i++) {
             curr = tempPath[i];
             prev = tempPath[i-1];
-            svl.util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 5, curr.x, curr.y, 5, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
+            util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 5, curr.x, curr.y, 5, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
         }
 
         if (r < properties.radiusThresh && pathLen > 2) {
-            svl.util.shape.lineWithRoundHead(ctx, tempPath[pathLen-1].x, tempPath[pathLen-1].y, properties.tempPointRadius, tempPath[0].x, tempPath[0].y, 2 * properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
+            util.shape.lineWithRoundHead(ctx, tempPath[pathLen-1].x, tempPath[pathLen-1].y, properties.tempPointRadius, tempPath[0].x, tempPath[0].y, 2 * properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
         } else {
-            svl.util.shape.lineWithRoundHead(ctx, tempPath[pathLen-1].x, tempPath[pathLen-1].y, properties.tempPointRadius, mouseStatus.currX, mouseStatus.currY, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'stroke', 'rgba(255,255,255,1)', pointFill);
+            util.shape.lineWithRoundHead(ctx, tempPath[pathLen-1].x, tempPath[pathLen-1].y, properties.tempPointRadius, mouseStatus.currX, mouseStatus.currY, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'stroke', 'rgba(255,255,255,1)', pointFill);
         }
     }
 
@@ -1159,7 +1134,7 @@ function Canvas ($, param) {
     }
 
     // Initialization
-    _init(param);
+    _init();
 
     // Put public methods to self and return them.
     self.cancelDrawing = cancelDrawing;

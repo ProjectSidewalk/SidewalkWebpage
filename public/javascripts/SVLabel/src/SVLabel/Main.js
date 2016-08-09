@@ -11,7 +11,7 @@ var svl = svl || {};
  * @constructor
  * @memberof svl
  */
-function Main ($, d3, google, turf, params) {
+function Main (params) {
     var self = { className: 'Main' };
     var status = {
         isFirstTask: false
@@ -23,6 +23,65 @@ function Main ($, d3, google, turf, params) {
     var loadNeighborhoodsCompleted = false;
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
+    svl.onboarding = null;
+    svl.isOnboarding = function () {
+        return svl.onboarding != null && svl.onboarding.isOnboarding();
+    };
+    svl.canvasWidth = 720;
+    svl.canvasHeight = 480;
+    svl.svImageHeight = 6656;
+    svl.svImageWidth = 13312;
+    svl.alpha_x = 4.6;
+    svl.alpha_y = -4.65;
+    svl._labelCounter = 0;
+    svl.getLabelCounter = function () {
+        return svl._labelCounter++;
+    };
+    svl.zoomFactor = {
+        1: 1,
+        2: 2.1,
+        3: 4,
+        4: 8,
+        5: 16
+    };
+
+    svl.gsvImageCoordinate2CanvasCoordinate = function (xIn, yIn, pov) {
+        // This function takes the current pov of the Street View as a parameter
+        // and returns a canvas coordinate of a point (xIn, yIn).
+        var x, y, zoom = pov.zoom;
+        var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
+        var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
+
+        xIn = xIn * svl.zoomFactor[zoom];
+        yIn = yIn * svl.zoomFactor[zoom];
+
+        x = xIn - (svImageWidth * pov.heading) / 360;
+        x = x / svl.alpha_x + svl.canvasWidth / 2;
+
+        //
+        // When POV is near 0 or near 360, points near the two vertical edges of
+        // the SV image does not appear. Adjust accordingly.
+        var edgeOfSvImageThresh = 360 * svl.alpha_x * (svl.canvasWidth / 2) / (svImageWidth) + 10;
+
+        if (pov.heading < edgeOfSvImageThresh) {
+            // Update the canvas coordinate of the point if
+            // its svImageCoordinate.x is larger than svImageWidth - alpha_x * (svl.canvasWidth / 2).
+            if (svImageWidth - svl.alpha_x * (svl.canvasWidth / 2) < xIn) {
+                x = (xIn - svImageWidth) - (svImageWidth * pov.heading) / 360;
+                x = x / svl.alpha_x + svl.canvasWidth / 2;
+            }
+        } else if (pov.heading > 360 - edgeOfSvImageThresh) {
+            if (svl.alpha_x * (svl.canvasWidth / 2) > xIn) {
+                x = (xIn + svImageWidth) - (svImageWidth * pov.heading) / 360;
+                x = x / svl.alpha_x + svl.canvasWidth / 2;
+            }
+        }
+
+        y = yIn - (svImageHeight / 2) * (pov.pitch / 90);
+        y = y / svl.alpha_y + svl.canvasHeight / 2;
+
+        return {x : x, y : y};
+    };
 
     function _init (params) {
         params = params || {};
@@ -42,7 +101,8 @@ function Main ($, d3, google, turf, params) {
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
 
-        svl.canvas = new Canvas($);
+        svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);
+        svl.canvas = new Canvas($, svl.ribbon);
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
 
@@ -51,15 +111,14 @@ function Main ($, d3, google, turf, params) {
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
         svl.labelCounter = new LabelCounter(d3);
 
-        svl.actionStack = new ActionStack();
-        svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);  // svl.ribbon.stopBlinking()
+        svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage($);
         svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory();
         svl.compass = new Compass(d3, turf);
         svl.contextMenu = new ContextMenu($);
-        svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl, svl.onboarding);
+        svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);
 
 
         // Game effects
@@ -230,7 +289,6 @@ function Main ($, d3, google, turf, params) {
                 var regionId = currentNeighborhood.getProperty("regionId");
                 var availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
                 availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-                svl.onboarding = null;
 
                 if (availableMissions.length == 0) {
                     regionId = findTheNextRegionWithMissions(currentNeighborhood);
@@ -264,7 +322,7 @@ function Main ($, d3, google, turf, params) {
         var initialHeading = svl.map.getPov().heading;
         var lookedAround = false;
         var interval = setInterval(function () {
-            var angleDelta = svl.util.math.toRadians(initialHeading - svl.map.getPov().heading);
+            var angleDelta = util.math.toRadians(initialHeading - svl.map.getPov().heading);
             if (Math.cos(angleDelta) < 0) {
                 lookedAround = true;
             }

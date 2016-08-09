@@ -2,80 +2,54 @@
 // http://jasmine.github.io/2.0/introduction.html
 
 describe("Tests for the Path module.", function () {
-  var svl = svl || { util: {} };
-  svl.util.color = UtilitiesColor();
-  var pov = {
-    heading: 0,
-    pitch: 0,
-    zoom: 1
-  };
-  var param = {};
+    var svl;
+    var util;
+    var p1, p2, p3, points, path;
 
-  // Test X-coordinate
-  var p1 = new Point(0, 0, pov, param);
-  var p2 = new Point(9, 0, pov, param);
-  var p3 = new Point(5, 5, pov, param);
-  var points = [p1, p2, p3];
-
-  var path = new Path([p1, p2, p3], {});
-  describe("getPoints method", function(){
-
-    it("should return the point objects in this path", function() {
-      expect(path.getPoints(true)).toEqual(points);
+    beforeEach(function () {
+        svl = {};
+        util = {};
+        util.color = UtilitiesColor();
+        var pov = {
+            heading: 0,
+            pitch: 0,
+            zoom: 1
+        };
+        var param = {};
+        p1 = new Point(svl, 0, 0, pov, param);
+        p2 = new Point(svl, 9, 0, pov, param);
+        p3 = new Point(svl, 5, 5, pov, param);
+        points = [p1, p2, p3];
+        path = new Path([p1, p2, p3], {});
     });
-  });
+    // Test X-coordinate
 
-  describe("getImageCoordinates", function () {
-    it("should return image coordinates of the points", function () {
-      var imagecoordinates = [p1.getGSVImageCoordinate(), p2.getGSVImageCoordinate(), p3.getGSVImageCoordinate()];
-      expect(path.getImageCoordinates()).toEqual(imagecoordinates);
-    })
-  });
+    describe("getPoints method", function(){
 
-  describe("getFill", function () {
-    it("should return the fill style of the path", function () {
-      expect(path.getFill()).toEqual('rgba(255,255,255,0.5)' );
+        it("should return the point objects in this path", function() {
+            expect(path.getPoints(true)).toEqual(points);
+        });
     });
-  });
 
-  describe("getLineWidth", function () {
-    it("should return the lineWidth of the path", function () {
-      path.setLineWidth(3);
-      expect(path.getLineWidth()).toEqual("3");
+    describe("getImageCoordinates", function () {
+        it("should return image coordinates of the points", function () {
+            var imagecoordinates = [p1.getGSVImageCoordinate(), p2.getGSVImageCoordinate(), p3.getGSVImageCoordinate()];
+            expect(path.getImageCoordinates()).toEqual(imagecoordinates);
+        })
     });
-  });
 
+    describe("getFill", function () {
+        it("should return the fill style of the path", function () {
+            expect(path.getFill()).toEqual('rgba(255,255,255,0.5)' );
+        });
+    });
 
-  /*
-  describe("The method getBoundingBox", function () {
-    // Todo
-  });
-
-
-  describe("The method getSvImageBoundingBox", function () {
-    // Todo
-  });
-
-  describe("The method getImageCoordinates", function () {
-    // Todo
-  });
-
-  describe("The method getPoints", function () {
-    // Todo
-  });
-
-  describe("The method isOn", function () {
-    // Todo
-  });
-
-  describe("The method overlap", function () {
-    // Todo
-  })
-
-  describe("The method removePoints", function () {
-    // Todo
-  });
-  */
+    describe("getLineWidth", function () {
+        it("should return the lineWidth of the path", function () {
+            path.setLineWidth(3);
+            expect(path.getLineWidth()).toEqual("3");
+        });
+    });
 
     describe("The method setFill", function () {
         it("this Path should have three points", function () {
@@ -148,6 +122,46 @@ describe("Tests for the Path module.", function () {
             expect(path.getStatus("visibility")).toBe("visible");
         });
     });
+
+    /*
+     describe("The method getBoundingBox", function () {
+     // Todo
+     });
+
+
+     describe("The method getSvImageBoundingBox", function () {
+     // Todo
+     });
+
+     describe("The method getImageCoordinates", function () {
+     // Todo
+     });
+
+     describe("The method getPoints", function () {
+     // Todo
+     });
+
+     describe("The method isOn", function () {
+     // Todo
+     });
+
+     describe("The method overlap", function () {
+     // Todo
+     })
+
+     describe("The method removePoints", function () {
+     // Todo
+     });
+     */
+
+
+
+
+
+
+
+
+
 
 
 });

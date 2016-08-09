@@ -1,6 +1,5 @@
-var svl = svl || {};
-svl.util = svl.util || {};
-svl.util.math = {}
+var util = util || {};
+util.math = {}
 
 /**
  * This method takes an angle value in radian and returns a value in degree
@@ -9,7 +8,7 @@ svl.util.math = {}
  * @returns {number}
  */
 function toDegrees (angleInRadian) { return angleInRadian * (180 / Math.PI); }
-svl.util.math.toDegrees = toDegrees;
+util.math.toDegrees = toDegrees;
 
 /**
  * This function takes an angle in degree and returns a value in radian
@@ -20,7 +19,7 @@ svl.util.math.toDegrees = toDegrees;
 function toRadians (angleInDegree) {
     return angleInDegree * (Math.PI / 180);
 }
-svl.util.math.toRadians = toRadians;
+util.math.toRadians = toRadians;
 
 /**
  * Given a latlng point and a dx and dy (in meters), return a latlng offset (dlng, dlat) .
@@ -34,7 +33,7 @@ function latlngOffset(lat, dx, dy) {
     var dlng = dx / (111111 * Math.cos(toRadians(lat)));
     return {dlat: dlat, dlng: dlng};
 }
-svl.util.math.latlngOffset = latlngOffset;
+util.math.latlngOffset = latlngOffset;
 
 /**
  * given a latlng offset, return offset in distanx along x- and y-axis.
@@ -48,7 +47,7 @@ function latlngInverseOffset(lat, dLat, dLng) {
     var dx = 111111 * Math.cos(toRadians(lat)) * dLng;
     return {dx: dx, dy: dy};
 }
-svl.util.math.latlngInverseOffset = latlngInverseOffset;
+util.math.latlngInverseOffset = latlngInverseOffset;
 
 /**
  * This function takes two latlon coordinates and returns the angle that forms aroud the z-axis.
@@ -72,7 +71,7 @@ function latLngToAngle (lat1, lng1, lat2, lng2, relativeToNorth) {
     }
     return theta;
 }
-svl.util.math.latLngToAngle = latLngToAngle;
+util.math.latLngToAngle = latLngToAngle;
 
 
 /**
@@ -99,7 +98,7 @@ function haversine(lat1, lon1, lat2, lon2) {
     var c = 2 * Math.asin(Math.sqrt(a));
     return R * c;
 }
-svl.util.math.haversine = haversine;
+util.math.haversine = haversine;
 
 function distance3d(a, b) {
     var dx = a.x - b.x;
@@ -107,9 +106,7 @@ function distance3d(a, b) {
     var dz = a.z - b.z;
     return dx * dx + dy * dy + dz * dz;
 }
-svl.util.math.distance3d = distance3d;
-
-
+util.math.distance3d = distance3d;
 
 // http://clauswitt.com/simple-statistics-in-javascript.html
 function Stats(arr) {
@@ -196,4 +193,3 @@ function Stats(arr) {
 
     return self;
 }
-

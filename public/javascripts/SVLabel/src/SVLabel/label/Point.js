@@ -1,16 +1,14 @@
 /**
- * Point object
  *
- * @param x x-coordinate of the point on a canvas
- * @param y y-coordinate of the point on a canvas
- * @param pov Point of view that looks like
+ * @param x
+ * @param y
+ * @param pov
  * @param params
  * @returns {{className: string, svImageCoordinate: undefined, canvasCoordinate: undefined, originalCanvasCoordinate: undefined, pov: undefined, originalPov: undefined}}
  * @constructor
- * @memberof svl
  */
-function Point (x, y, pov, params) {
-  'use strict';
+function Point (svl, x, y, pov, params) {
+    'use strict';
 
     if(params.fillStyle==undefined){
         params.fillStyle = 'rgba(255,255,255,0.5)';
@@ -354,59 +352,7 @@ function Point (x, y, pov, params) {
     // Todo. Deprecated method. Get rid of this later.
     self.resetProperties = self.setProperties;
 
-  var argLen = arguments.length;
-    if (argLen === 4) {
-        _init(x, y, pov, params);
-    } else {
-        _init2();
-    }
+    _init(x, y, pov, params);
 
     return self;
 }
-
-
-svl.gsvImageCoordinate2CanvasCoordinate = function (xIn, yIn, pov) {
-    // This function takes the current pov of the Street View as a parameter
-    // and returns a canvas coordinate of a point (xIn, yIn).
-    var x, y, zoom = pov.zoom;
-    var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
-    var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
-
-    xIn = xIn * svl.zoomFactor[zoom];
-    yIn = yIn * svl.zoomFactor[zoom];
-
-    x = xIn - (svImageWidth * pov.heading) / 360;
-    x = x / svl.alpha_x + svl.canvasWidth / 2;
-
-    //
-    // When POV is near 0 or near 360, points near the two vertical edges of
-    // the SV image does not appear. Adjust accordingly.
-    var edgeOfSvImageThresh = 360 * svl.alpha_x * (svl.canvasWidth / 2) / (svImageWidth) + 10;
-
-    if (pov.heading < edgeOfSvImageThresh) {
-        // Update the canvas coordinate of the point if
-        // its svImageCoordinate.x is larger than svImageWidth - alpha_x * (svl.canvasWidth / 2).
-        if (svImageWidth - svl.alpha_x * (svl.canvasWidth / 2) < xIn) {
-            x = (xIn - svImageWidth) - (svImageWidth * pov.heading) / 360;
-            x = x / svl.alpha_x + svl.canvasWidth / 2;
-        }
-    } else if (pov.heading > 360 - edgeOfSvImageThresh) {
-        if (svl.alpha_x * (svl.canvasWidth / 2) > xIn) {
-            x = (xIn + svImageWidth) - (svImageWidth * pov.heading) / 360;
-            x = x / svl.alpha_x + svl.canvasWidth / 2;
-        }
-    }
-
-    y = yIn - (svImageHeight / 2) * (pov.pitch / 90);
-    y = y / svl.alpha_y + svl.canvasHeight / 2;
-
-    return {x : x, y : y};
-};
-
-svl.zoomFactor = {
-    1: 1,
-    2: 2.1,
-    3: 4,
-    4: 8,
-    5: 16
-};

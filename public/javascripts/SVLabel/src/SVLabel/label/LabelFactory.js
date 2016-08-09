@@ -20,7 +20,7 @@ function LabelFactory () {
             }
         } else {
             // Todo. Definitely need rewrite.
-            path = new Path([new Point(0, 0, {}, {})]);
+            path = new Path([new Point(svl, 0, 0, {}, {})]);
             return new Label(path, param);
         }
     }

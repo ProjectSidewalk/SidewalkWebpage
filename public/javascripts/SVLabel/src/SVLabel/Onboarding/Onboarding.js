@@ -1219,8 +1219,8 @@ function Onboarding ($) {
                         lineAngle = state.annotations[i].angle;
                         x2 = coordinate.x;
                         y2 = coordinate.y;
-                        x1 = x2 - lineLength * Math.sin(svl.util.math.toRadians(lineAngle));
-                        y1 = y2 - lineLength * Math.cos(svl.util.math.toRadians(lineAngle));
+                        x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
+                        y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
                         drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
                     } else if (state.annotations[i].type == "double-click") {
                         drawDoubleClickIcon(coordinate.x, coordinate.y);

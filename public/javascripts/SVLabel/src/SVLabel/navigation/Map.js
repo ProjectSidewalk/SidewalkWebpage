@@ -142,7 +142,7 @@ function Map (canvas, uiMap, params) {
         params = params || {};
 
         self.properties = properties; // Make properties public.
-        properties.browser = svl.util.getBrowser();
+        properties.browser = util.getBrowser();
 
         // Set GSV panorama options
         // To not show StreetView controls, take a look at the following gpage
@@ -658,7 +658,7 @@ function Map (canvas, uiMap, params) {
                         latlng = getPosition(),
                         newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                     if (newLatlng) {
-                        var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
+                        var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                         if (distance < STREETVIEW_MAX_DISTANCE) {
                             svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
@@ -773,11 +773,11 @@ function Map (canvas, uiMap, params) {
     function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
         var pc = svl.pointCloud.getPointCloud(getPanoId());
         if (pc) {
-            var p = svl.util.scaleImageCoordinate(imageX, imageY, 1 / 26),
+            var p = util.scaleImageCoordinate(imageX, imageY, 1 / 26),
                 idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
                 dx = pc.pointCloud[idx],
                 dy = pc.pointCloud[idx + 1],
-                delta = svl.util.math.latlngOffset(lat, dx, dy);
+                delta = util.math.latlngOffset(lat, dx, dy);
             return { lat: lat + delta.dlat, lng: lng + delta.dlng };
         } else {
             return null;

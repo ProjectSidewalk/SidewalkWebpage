@@ -27,8 +27,8 @@ function OverlayMessageBox () {
         if ((mode in instructions) && (mode in labelColors) && "ui" in svl) {
             // Set the box color.
             var modeColor = labelColors[mode];
-            var backgroundColor = svl.util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
-            backgroundColor = svl.util.color.changeDarknessRGBA(backgroundColor, 0.35);
+            var backgroundColor = util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
+            backgroundColor = util.color.changeDarknessRGBA(backgroundColor, 0.35);
 
 
             svl.ui.overlayMessage.box.css({

@@ -1,4 +1,4 @@
-describe("Tests for the Label module.", function () {
+describe("Label module", function () {
     var svl = svl || {};
     svl.labelFactory = LabelFactory();
     svl.misc = UtilitiesMisc(JSON);

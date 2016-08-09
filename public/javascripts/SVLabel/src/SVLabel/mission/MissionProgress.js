@@ -58,7 +58,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
      * This method updates the mission completion rate and its visualization.
      */
     function _update (currentMission, currentRegion) {
-        if (svl && "onboarding" in svl && svl.onboarding && svl.onboarding.isOnboarding()) return;  // Don't show the mission completion message
+        if (svl.isOnboarding()) return;  // Don't show the mission completion message
         if ("missionContainer" in svl) {
             var completionRate;
 

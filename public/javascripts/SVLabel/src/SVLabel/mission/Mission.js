@@ -189,10 +189,10 @@ function Mission(parameters) {
                 connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
 
                 if (connectedTasks.length > 0) {
-                    connectedTasks = svl.util.shuffle(connectedTasks);
+                    connectedTasks = util.shuffle(connectedTasks);
                     currentTask = connectedTasks[0];
                 } else {
-                    incompleteTasks = svl.util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
+                    incompleteTasks = util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
                     currentTask = incompleteTasks[0];  // get the first item in the array
                 }
                 currentTaskIndex = incompleteTasks.indexOf(currentTask);

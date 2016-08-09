@@ -122,15 +122,15 @@ function Form ($, params) {
         };
 
         data.environment = {
-            browser: svl.util.getBrowser(),
-            browser_version: svl.util.getBrowserVersion(),
+            browser: util.getBrowser(),
+            browser_version: util.getBrowserVersion(),
             browser_width: $(window).width(),
             browser_height: $(window).height(),
             screen_width: screen.width,
             screen_height: screen.height,
             avail_width: screen.availWidth,		// total width - interface (taskbar)
             avail_height: screen.availHeight,		// total height - interface };
-            operating_system: svl.util.getOperatingSystem()
+            operating_system: util.getOperatingSystem()
         };
 
         data.interactions = svl.tracker.getActions();
