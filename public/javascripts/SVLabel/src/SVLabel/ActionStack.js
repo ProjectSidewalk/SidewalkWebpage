@@ -233,7 +233,9 @@ function ActionStack (tracker, uiActionStack) {
 
     function unlockDisableUndo () { lock.disableUndo = false; return this; }
 
-    function getLock (key) { return (key in lock) ? lock[key] : null; }
+    function getLock (key) {
+        return (key in lock) ? lock[key] : null;
+    }
 
     /** Change opacity */
     function updateOpacity () {
