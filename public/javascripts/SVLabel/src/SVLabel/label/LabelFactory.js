@@ -2,15 +2,14 @@
  * LabelFactory module.
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function LabelFactory () {
+function LabelFactory (svl) {
     var self = { className: "LabelFactory" },
         temporaryLabelId = 1;
 
     function create (path, param) {
         if (path) {
-            var label = new Label(path, param);
+            var label = new Label(svl, path, param);
             if (label) {
                 if (!('labelId' in param)) {
                     label.setProperty("temporary_label_id", temporaryLabelId);
@@ -19,9 +18,9 @@ function LabelFactory () {
                 return label;
             }
         } else {
-            // Todo. Definitely need rewrite.
-            path = new Path([new Point(svl, 0, 0, {}, {})]);
-            return new Label(path, param);
+            // Todo. Need to be rewritten.
+            path = new Path(svl, [new Point(svl, 0, 0, {}, {})]);
+            return new Label(svl, path, param);
         }
     }
 

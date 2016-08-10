@@ -146,7 +146,7 @@ function Canvas ($, param) {
         for (var i = 0; i < pathLen; i++) {
             points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
-        var path = new Path(points, {});
+        var path = new Path(svl, points, {});
         var latlng = svl.map.getPosition();
         var param = {
             canvasWidth: svl.canvasWidth,
@@ -719,7 +719,7 @@ function Canvas ($, param) {
             points.push(point)
         }
 
-        path = new Path(points);
+        path = new Path(svl, points);
 
         param.canvasWidth = svl.canvasWidth;
         param.canvasHeight = svl.canvasHeight;

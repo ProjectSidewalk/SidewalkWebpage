@@ -6,7 +6,7 @@
  * @constructor
  * @memberof svl
  */
-function Label (pathIn, params) {
+function Label (svl, pathIn, params) {
     var self = { className: 'Label' };
 
     var path, googleMarker;
@@ -207,7 +207,8 @@ function Label (pathIn, params) {
      * @returns {*}
      */
     function getBoundingBox (pov) {
-        return getPath().getBoundingBox(pov);
+        var boundingBox = path.getBoundingBox(pov);
+        return boundingBox;
     }
 
     /**
@@ -476,9 +477,6 @@ function Label (pathIn, params) {
                     ctx.fillStyle = path.getProperty('fillStyle'); // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
                     ctx.fill();
                     ctx.restore();
-
-                    //new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters)
-                    //new Label(new Path(), params)
                 }
             }
         }

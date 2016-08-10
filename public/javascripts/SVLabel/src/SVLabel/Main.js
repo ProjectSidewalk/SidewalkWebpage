@@ -115,7 +115,7 @@ function Main (params) {
         svl.popUpMessage = new PopUpMessage($);
         svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
         svl.pointCloud = new PointCloud();
-        svl.labelFactory = new LabelFactory();
+        svl.labelFactory = new LabelFactory(svl);
         svl.compass = new Compass(d3, turf);
         svl.contextMenu = new ContextMenu($);
         svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);

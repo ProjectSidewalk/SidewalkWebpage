@@ -33,14 +33,14 @@ describe("The ActionStack module.", function () {
       svImageHeight: svl.svImageHeight,
       svMode: 'html4'
   };
-  var p1 = new Point(0, 0, pov, param);
-  var p2 = new Point(9, 0, pov, param);
-  var p3 = new Point(5, 5, pov, param);
-  var path = new Path([p1, p2, p3], {});
-  var label1 = new Label(path, param);
+  var p1 = new Point(svl, 0, 0, pov, param);
+  var p2 = new Point(svl, 9, 0, pov, param);
+  var p3 = new Point(svl, 5, 5, pov, param);
+  var path = new Path(svl, [p1, p2, p3], {});
+  var label1 = new Label(svl, path, param);
   param.panoramaLat = latlng2.lat;
   param.panoramaLng = latlng2.lng;
-  var label2 = new Label(path, param);
+  var label2 = new Label(svl, path, param);
 
   describe("Test size", function() {
     it("Stack size should be 0", function() {
