@@ -153,7 +153,7 @@ function Main (params) {
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
-        svl.modalMission = new ModalMission(missionContainer, neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
+        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
         svl.modalSkip = new ModalSkip();
         svl.modalExample = new ModalExample();
 
@@ -260,10 +260,11 @@ function Main (params) {
 
         // Popup the message explaining the goal of the current mission
         if (svl.missionContainer.isTheFirstMission()) {
-            svl.modalMission.setMission(mission, neighborhood, null, initialMissionInstruction);
+            svl.modalMission.setMissionMessage(mission, neighborhood, null, initialMissionInstruction);
         } else {
-            svl.modalMission.setMission(mission, neighborhood);
+            svl.modalMission.setMissionMessage(mission, neighborhood);
         }
+        svl.modalMission.show();
         svl.missionModel.updateMissionProgress(mission, neighborhood);
 
         // Get the labels collected in the current neighborhood

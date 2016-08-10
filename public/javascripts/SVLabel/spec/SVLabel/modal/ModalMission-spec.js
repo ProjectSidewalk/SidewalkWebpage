@@ -21,10 +21,32 @@ describe("ModalMission", function () {
         uiModalMission.instruction = uiModalMission.holder.find("#modal-mission-instruction");
         uiModalMission.closeButton = uiModalMission.holder.find("#modal-mission-close-button");
 
-        var missionContainer = {};
-        var neighborhoodContainer = {};
+        var missionContainer = new MissionContainerMock();
+        var neighborhoodContainer = new NeighborhoodContainerMock();
         modalModel = _.clone(Backbone.Events);
         modalMission = new ModalMission(missionContainer, neighborhoodContainer, uiModalMission, modalModel);
+    });
+
+    describe("`_handleBackgroundClick` method", function () {
+        beforeEach(function () {
+            spyOn(modalMission, 'hide');
+        });
+
+        it("should trigger the `hide` method", function () {
+            modalMission._handleBackgroundClick();
+            expect(modalMission.hide).toHaveBeenCalled();
+        });
+    });
+
+    describe("`_handleCloseButtonClick` method", function () {
+        beforeEach(function () {
+            spyOn(modalMission, 'hide');
+        });
+
+        it("should trigger the `hide` method", function () {
+            modalMission._handleCloseButtonClick();
+            expect(modalMission.hide).toHaveBeenCalled();
+        });
     });
 
     describe("`isOpen` method", function () {
@@ -40,6 +62,7 @@ describe("ModalMission", function () {
         beforeEach(function () {
             modalMission.show();
         });
+
         it("should set `isOpen` to false", function () {
             modalMission.hide();
             expect(modalMission._status.isOpen).toBe(false);
@@ -131,21 +154,33 @@ describe("ModalMission", function () {
     });
 
     describe("Event trigger", function () {
-        describe("`ModalMission:setMission`", function () {
+        describe("`ModalMission:setMissionMessage`", function () {
             beforeEach(function () {
                 var parameters = {};
                 parameters.mission = new MissionMock();
                 parameters.neighborhood = {};
                 parameters.parameters = {};
                 parameters.callback = function () {};
-                modalModel.trigger("ModalMission:setMission", parameters);
+                modalModel.trigger("ModalMission:setMissionMessage", parameters);
             });
 
             it("should open the modal window", function (done) {
                 expect(modalMission.isOpen()).toBe(true);
                 done();
             });
-        })
+        });
+
+        describe("`ModalMissionComplete:closed`", function () {
+            beforeEach(function () {
+                modalModel.trigger("ModalMissionComplete:closed");
+            });
+
+            it ("should open the modal window", function (done) {
+                expect(modalMission.isOpen()).toBe(true);
+                done();
+            });
+
+        });
     });
 
     // Mocks
@@ -162,14 +197,22 @@ describe("ModalMission", function () {
         return this.properties[key];
     };
 
+    function MissionContainerMock() {
+        this.getCurrentMission = function () { return new MissionMock(); }
+    }
+
     function NeighborhoodMock() {
         this.properties = {
             name: null,
             regionId: null
         };
     }
+
     NeighborhoodMock.prototype.getProperty = function (key) {
         return this.properties[key];
     };
 
+    function NeighborhoodContainerMock () {
+        this.getCurrentNeighborhood = function () { return new NeighborhoodMock(); };
+    }
 });

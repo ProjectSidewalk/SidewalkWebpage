@@ -95,14 +95,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         if (mission.getMissionCompletionRate() > 0.999) {
             this._completeTheCurrentMission(mission, neighborhood);
             this._updateTheCurrentMission(mission, neighborhood);
-            _showNextMission(nextMission, nextNeighborhood);
-
 
             _modalModel.updateModalMissionComplete(mission, neighborhood);
             _modalModel.showModalMissionComplete();
-
-            // Todo. Get rid of this.
-            // _modalModel.trigger("ModalMissionComplete:one", { uiComponent: 'closeButton', eventType: 'click', callback: _callback });
         }
     };
 

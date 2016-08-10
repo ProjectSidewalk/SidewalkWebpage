@@ -17,13 +17,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         isOpen: false
     };
 
-    _modalModel.on("ModalMission:setMission", function (parameters) {
+    _modalModel.on("ModalMission:setMissionMessage", function (parameters) {
         self.setMissionMessage(parameters.mission, parameters.neighborhood, parameters.parameters, parameters.callback);
         self.show();
     });
 
-    _modalModel.on("ModalMissionComplete:close", function () {
-        console.error("ModalMissionComplete:close in ModalMission");
+    _modalModel.on("ModalMissionComplete:closed", function () {
         var mission = _missionContainer.getCurrentMission();
         var neighborhood = _neighborhoodContainer.getCurrentNeighborhood();
         self.setMissionMessage (mission, neighborhood);
@@ -60,11 +59,11 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
 
     this._handleBackgroundClick = function () {
-        self.hideMission();
+        self.hide();
     };
 
     this._handleCloseButtonClick = function () {
-        self.hideMission();
+        self.hide();
     };
 
     /**

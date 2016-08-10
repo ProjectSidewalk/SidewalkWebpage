@@ -23,6 +23,10 @@ describe("MissionProgress module", function () {
             missionContainer, neighborhoodContainer, taskContainer);
     });
 
+    describe("`_checkMissionComplete` method", function () {
+       it("should ")
+    });
+
     describe("`_updateTheCurrentMission` method", function () {
         it("should fail gracefully when next mission is not avaialble");
 
