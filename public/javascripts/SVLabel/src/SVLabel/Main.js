@@ -141,9 +141,10 @@ function Main (params) {
 
         // Mission.
         svl.statusFieldMission = new StatusFieldMission();
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel, svl.neighborhoodContainer, svl.taskContainer);
-        svl.missionFactory = new MissionFactory (svl.missionModel);
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
+        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
+            svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
+        svl.missionFactory = new MissionFactory (svl.missionModel);
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
@@ -152,8 +153,8 @@ function Main (params) {
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
-        svl.modalMission = new ModalMission($, svl.ui.modalMission, svl.modalModel);
-        svl.modalSkip = new ModalSkip($);
+        svl.modalMission = new ModalMission(missionContainer, neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
+        svl.modalSkip = new ModalSkip();
         svl.modalExample = new ModalExample();
 
 

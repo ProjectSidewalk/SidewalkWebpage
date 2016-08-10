@@ -110,8 +110,6 @@ function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, m
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
     };
 
-
-
     uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
     uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
     this.hide();

@@ -161,19 +161,34 @@ function MissionContainer (statusFieldMission, missionModel) {
         return getCompletedMissions().length == 0;
     }
 
+    /**
+     *
+     * @param regionId
+     * @returns {*}
+     */
     function nextMission (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
 
+        /**
+         * Check if there are more missions remaining.
+         */
         if (missions.length > 0) {
             missions.sort(function (m1, m2) {
                 var d1 = m1.getProperty("distance"), d2 = m2.getProperty("distance");
-                if (d1 == d2) return 0;
-                else if (d1 < d2) return -1;
-                else return 1;
+                return d1 - d2;
             });
             return missions[0];
         } else {
+            // If no more missions are available in this neighborhood, get a mission from other neighborhood.
+            // Todo.
+            // while (!nextMission) {
+            //     // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
+            //     var availableRegionIds = missionContainer.getAvailableRegionIds();
+            //     var newRegionId = neighborhoodContainer.getNextRegionId(neighborhoodId, availableRegionIds);
+            //     nextMission = missionContainer.nextMission(newRegionId);
+            //     movedToANewRegion = true;
+            // }
             return null;
         }
     }

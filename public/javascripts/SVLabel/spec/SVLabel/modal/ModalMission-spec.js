@@ -4,30 +4,6 @@ describe("ModalMission", function () {
     var $uiModalMissionFixture;
     var modalModel;
 
-    // Mocks
-    function MissionMock () {
-        this.properties = {
-            coverage: null,
-            label: null,
-            distance: null,
-            distanceFt: null,
-            distanceMi: null
-        };
-    }
-    MissionMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
-
-    function NeighborhoodMock() {
-        this.properties = {
-            name: null,
-            regionId: null
-        };
-    }
-    NeighborhoodMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
-
     beforeEach(function () {
         $uiModalMissionFixture = $('<div id="modal-mission-holder"> \
 <div id="modal-mission-background" class="modal-background"></div> \
@@ -45,25 +21,22 @@ describe("ModalMission", function () {
         uiModalMission.instruction = uiModalMission.holder.find("#modal-mission-instruction");
         uiModalMission.closeButton = uiModalMission.holder.find("#modal-mission-close-button");
 
+        var missionContainer = {};
+        var neighborhoodContainer = {};
         modalModel = _.clone(Backbone.Events);
-        modal = new ModalMission($, uiModalMission, modalModel);
+        modal = new ModalMission(missionContainer, neighborhoodContainer, uiModalMission, modalModel);
     });
 
-    describe("`show` method", function () {
-        it("should open a modal window", function () {
-            modal.hide();
-            expect(uiModalMission.holder.css('visibility')).toBe('hidden');
-            expect(uiModalMission.foreground.css('visibility')).toBe('hidden');
-            expect(uiModalMission.background.css('visibility')).toBe('hidden');
-
-            modal.show();
-            expect(uiModalMission.holder.css('visibility')).toBe('visible');
-            expect(uiModalMission.foreground.css('visibility')).toBe('visible');
-            expect(uiModalMission.background.css('visibility')).toBe('visible');
-        });
+    describe("`isOpen` method", function () {
+        it("should check if the modal window is open");
     });
 
-    describe("`setMission` method", function () {
+    describe("`hide` method", function () {
+        it("should set `isOpen` to false");
+        it("should set visibility of DOM elements to hidden");
+    });
+
+    describe("`setMissionMessage` method", function () {
         var mission_4000ft,
             mission_1mi,
             mission_2mi,
@@ -106,26 +79,40 @@ describe("ModalMission", function () {
         });
 
         it("should set the title", function () {
-            modal.setMission(mission_4000ft, neighborhood, null, null);
+            modal.setMissionMessage(mission_4000ft, neighborhood, null, null);
             expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
 
-            modal.setMission(mission_1mi, neighborhood, null, null);
+            modal.setMissionMessage(mission_1mi, neighborhood, null, null);
             expect(uiModalMission.missionTitle.text()).toBe("Audit ¼mi of Test Neighborhood");
 
-            modal.setMission(mission_2mi, neighborhood, null, null);
+            modal.setMissionMessage(mission_2mi, neighborhood, null, null);
             expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
         });
 
         it("should set the body text", function () {
-            modal.setMission(mission_4000ft, neighborhood, null, null);
+            modal.setMissionMessage(mission_4000ft, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
 
-            modal.setMission(mission_1mi, neighborhood, null, null);
+            modal.setMissionMessage(mission_1mi, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ¼mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
 
-            modal.setMission(mission_2mi, neighborhood, null, null);
+            modal.setMissionMessage(mission_2mi, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
         })
+    });
+
+    describe("`show` method", function () {
+        it("should open a modal window", function () {
+            modal.hide();
+            expect(uiModalMission.holder.css('visibility')).toBe('hidden');
+            expect(uiModalMission.foreground.css('visibility')).toBe('hidden');
+            expect(uiModalMission.background.css('visibility')).toBe('hidden');
+
+            modal.show();
+            expect(uiModalMission.holder.css('visibility')).toBe('visible');
+            expect(uiModalMission.foreground.css('visibility')).toBe('visible');
+            expect(uiModalMission.background.css('visibility')).toBe('visible');
+        });
     });
 
     describe("Event trigger", function () {
@@ -145,5 +132,29 @@ describe("ModalMission", function () {
             });
         })
     });
+
+    // Mocks
+    function MissionMock () {
+        this.properties = {
+            coverage: null,
+            label: null,
+            distance: null,
+            distanceFt: null,
+            distanceMi: null
+        };
+    }
+    MissionMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+
+    function NeighborhoodMock() {
+        this.properties = {
+            name: null,
+            regionId: null
+        };
+    }
+    NeighborhoodMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
 
 });
