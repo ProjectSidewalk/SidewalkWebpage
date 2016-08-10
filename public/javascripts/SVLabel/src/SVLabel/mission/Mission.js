@@ -110,8 +110,9 @@ function Mission(parameters) {
      */
     function complete () {
         // Play the animation and audio effect after task completion.
-        svl.gameEffect.play({audioType: "yay"});
-        
+
+        setProperty("isCompleted", true);
+
         // Update the neighborhood status
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
@@ -130,10 +131,6 @@ function Mission(parameters) {
             };
             svl.labelCounter.reset();
         }
-
-        // Todo. This should just emit Mission:complete. Everything above should be moved to somewhere else.
-        
-        setProperty("isCompleted", true);
     }
 
     /**

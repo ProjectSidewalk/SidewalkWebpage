@@ -16,12 +16,12 @@
 /**
  * A canvas module
  * @param $ {object} jQuery object
- * @param param {object} Other parameters
+ * @param ribbon {object} Other parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Canvas ($, param) {
+function Canvas ($, ribbon) {
     var self = { className : 'Canvas' };
 
         // Mouse status and mouse event callback functions

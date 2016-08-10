@@ -499,42 +499,41 @@ function Map (canvas, uiMap, params) {
 
         updateCanvas();
 
-        if ("compass" in svl) {
-            svl.compass.update();
-        }
-        svl.missionModel.updateMissionProgress(currentMission, neighborhood);
-
-        if ("taskContainer" in svl) {
-            svl.taskContainer.update();
-
-            // End of the task if the user is close enough to the end point
-            var task = svl.taskContainer.getCurrentTask();
-            if (task) {
-                if (task.isAtEnd(position.lat(), position.lng(), 25)) {
-                    // Finish a task and get a new task
-                    svl.taskContainer.endTask(task);
-
-
-                    currentMission.pushATaskToTheRoute(task);
-
-
-                    var newTask = svl.taskContainer.nextTask(task);
-                    svl.taskContainer.setCurrentTask(newTask);
-                    
-                    // Check if the interface jumped the user to another discontinuous location. If the user jumped,
-                    // tell them that we moved her to another location in the same neighborhood.
-                    if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-
-                        var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-                        var distanceLeft = distanceLeftFeetOrMiles();
-                        svl.popUpMessage.notify(neighborhoodMessage,
-                            "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                            "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-                    }
-
-                    _moveToTheTaskLocation(newTask);
-                }
+        if (currentMission && neighborhood) {
+            if ("compass" in svl) {
+                svl.compass.update();
             }
+            svl.missionModel.updateMissionProgress(currentMission, neighborhood);
+
+            if ("taskContainer" in svl) {
+                svl.taskContainer.update();
+
+                // End of the task if the user is close enough to the end point
+                var task = svl.taskContainer.getCurrentTask();
+                if (task) {
+                    if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+                        // Finish a task and get a new task
+                        svl.taskContainer.endTask(task);
+                        currentMission.pushATaskToTheRoute(task);
+                        var newTask = svl.taskContainer.nextTask(task);
+                        svl.taskContainer.setCurrentTask(newTask);
+
+                        // Check if the interface jumped the user to another discontinuous location. If the user jumped,
+                        // tell them that we moved her to another location in the same neighborhood.
+                        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+
+                            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+                            var distanceLeft = distanceLeftFeetOrMiles();
+                            svl.popUpMessage.notify(neighborhoodMessage,
+                                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+                        }
+
+                        _moveToTheTaskLocation(newTask);
+                    }
+                }
+        }
+
         }
 
         // Set the heading angle when the user is dropped to the new position

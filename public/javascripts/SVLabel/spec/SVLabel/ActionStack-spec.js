@@ -14,10 +14,10 @@ describe("The ActionStack module.", function () {
         $uiActionStackFixture = {};
         $uiActionStackFixture.holder = $('<div id="action-stack-control-holder"></div>');
         $uiActionStackFixture.holder.append('<button id="undo-button" class="button action-stack-button" ' +
-            'value="Undo"><img src="/img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br />' +
+            'value="Undo"><img src="" class="action-stack-icons" alt="Undo" /><br />' +
             '<small>Undo</small></button>');
         $uiActionStackFixture.holder.append('<button id="redo-button" class="button action-stack-button" ' +
-            'value="Redo"><img src="/img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br />' +
+            'value="Redo"><img src="" class="action-stack-icons" alt="Redo" /><br />' +
             '<small>Redo</small></button>');
         $uiActionStackFixture.redo = $uiActionStackFixture.holder.find("#redo-button");
         $uiActionStackFixture.undo = $uiActionStackFixture.holder.find("#undo-button");

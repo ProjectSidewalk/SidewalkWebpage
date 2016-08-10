@@ -161,4 +161,10 @@ describe("ModalMissionComplete", function () {
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("0.0 miles");
         });
     });
+
+    describe("clicking the 'Continue' button", function () {
+        it("should open the modal window for the next mission", function (done) {
+            done();
+        });
+    });
 });

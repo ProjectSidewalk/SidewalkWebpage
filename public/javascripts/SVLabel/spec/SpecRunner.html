@@ -21,75 +21,82 @@
     <script type="text/javascript" src="../lib/jasmine-2.0.2/boot.js"></script>
 
     <!-- include source files here... -->
-
-    <script type="text/javascript" src="../src/SVLabel/Main.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/util/Utilities.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/util/UtilitiesColor.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/util/UtilitiesSidewalk.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/ActionStack.js"></script>
     <script type="text/javascript" src="../src/SVLabel/canvas/Canvas.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/navigation/Compass.js"></script>
     <script type="text/javascript" src="../src/SVLabel/canvas/ContextMenu.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/data/Form.js"></script>
     <script type="text/javascript" src="../src/SVLabel/game/AudioEffect.js"></script>
     <script type="text/javascript" src="../src/SVLabel/game/CompletionMessage.js"></script>
     <script type="text/javascript" src="../src/SVLabel/game/GameEffectModel.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/label/Point.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/label/Path.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/keyboard/Keyboard.js"></script>
     <script type="text/javascript" src="../src/SVLabel/label/Label.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/label/LabelFactory.js"></script>
     <script type="text/javascript" src="../src/SVLabel/label/LabelContainer.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/status/LabelCounter.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/ActionStack.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/ribbon/RibbonMenu.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/zoom/ZoomControl.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/Tracker.js"></script>
-
+    <script type="text/javascript" src="../src/SVLabel/label/LabelFactory.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/label/Path.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/label/Point.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/Main.js"></script>
     <script type="text/javascript" src="../src/SVLabel/mission/Mission.js"></script>
     <script type="text/javascript" src="../src/SVLabel/mission/MissionContainer.js"></script>
     <script type="text/javascript" src="../src/SVLabel/mission/MissionFactory.js"></script>
     <script type="text/javascript" src="../src/SVLabel/mission/MissionModel.js"></script>
     <script type="text/javascript" src="../src/SVLabel/mission/MissionProgress.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/PointCloud.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/keyboard/Keyboard.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/data/Form.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/OverlayMessageBox.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/status/StatusField.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/PopUpMessage.js"></script>
     <script type="text/javascript" src="../src/SVLabel/modal/ModalComment.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/modal/ModalSkip.js"></script>
     <script type="text/javascript" src="../src/SVLabel/modal/ModalMission.js"></script>
     <script type="text/javascript" src="../src/SVLabel/modal/ModalMissionComplete.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/neighborhood/Neighborhood.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/modal/ModalMissionCompleteMap.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/modal/ModalModel.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/modal/ModalSkip.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/navigation/Compass.js"></script>
     <script type="text/javascript" src="../src/SVLabel/navigation/Map.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/neighborhood/Neighborhood.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/onboarding/Onboarding.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/OverlayMessageBox.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/PointCloud.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/PopUpMessage.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/ribbon/RibbonMenu.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/status/LabelCounter.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/status/StatusField.js"></script>
     <script type="text/javascript" src="../src/SVLabel/task/Task.js"></script>
     <script type="text/javascript" src="../src/SVLabel/task/TaskContainer.js"></script>
-    <script type="text/javascript" src="../src/SVLabel/onboarding/Onboarding.js"></script>
-
+    <script type="text/javascript" src="../src/SVLabel/Tracker.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/util/Utilities.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/util/UtilitiesColor.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/util/UtilitiesSidewalk.js"></script>
+    <script type="text/javascript" src="../src/SVLabel/zoom/ZoomControl.js"></script>
 
     <!-- include spec files here... -->
+    <script type="text/javascript" src="SVLabel/ActionStack-spec.js"></script>
     <script type="text/javascript" src="SVLabel/canvas/Canvas-spec.js"></script>
     <script type="text/javascript" src="SVLabel/game/GameEffectModel-spec.js"></script>
-    <!-- <script type="text/javascript" src="spec/SpecHelper.js"></script> -->
-    <!-- <script type="text/javascript" src="spec/PlayerSpec.js"></script> -->
-    <script type="text/javascript" src="SVLabel/label/Point-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/label/Path-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/label/Label-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/util/UtilitiesColor-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/ribbon/RibbonMenu-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/zoom/ZoomControl-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/Tracker-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/ActionStack-spec.js"></script>
     <script type="text/javascript" src="SVLabel/keyboard/Keyboard-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/label/Label-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/label/LabelContainer-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/label/Path-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/label/Point-spec.js"></script>
     <script type="text/javascript" src="SVLabel/mission/Mission-spec.js"></script>
     <script type="text/javascript" src="SVLabel/mission/MissionContainer-spec.js"></script>
     <script type="text/javascript" src="SVLabel/mission/MissionFactory-spec.js"></script>
     <script type="text/javascript" src="SVLabel/mission/MissionModel-spec.js"></script>
     <script type="text/javascript" src="SVLabel/mission/MissionProgress-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/task/Task-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/task/TaskContainer-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/label/LabelContainer-spec.js"></script>
-    <script type="text/javascript" src="SVLabel/onboarding/Onboarding-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/modal/ModalComment-spec.js"></script>
     <script type="text/javascript" src="SVLabel/modal/ModalMission-spec.js"></script>
     <script type="text/javascript" src="SVLabel/modal/ModalMissionComplete-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/modal/ModalMissionCompleteMap-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/modal/ModalModel-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/modal/ModalSkip-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/onboarding/Onboarding-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/ribbon/RibbonMenu-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/task/Task-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/task/TaskContainer-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/Tracker-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/util/UtilitiesColor-spec.js"></script>
+    <script type="text/javascript" src="SVLabel/zoom/ZoomControl-spec.js"></script>
+
+
+
+
+
+
 
 
 </head>

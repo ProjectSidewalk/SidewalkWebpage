@@ -30,6 +30,16 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
      */
     function complete (mission) {
         mission.complete();
+        _gameEffectModel.playAudio({audioType: "yay"});
+        _gameEffectModel.playAudio({audioType: "applause"});
+
+        // Update the neighborhood status
+        if ("labelContainer" in svl) {
+            var regionId = neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+            var count = svl.labelContainer.countLabels(regionId);
+            svl.statusFieldNeighborhood.setLabelCount(count);
+        }
+
         _missionModel.completeMission(mission);
     }
 
@@ -100,10 +110,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
                 if (currentMission.getMissionCompletionRate() > 0.999) {
                     complete(currentMission);
-
-                    _gameEffectModel.playAudio({audioType: "yay"});
-                    _gameEffectModel.playAudio({audioType: "applause"});
-
 
                     _modalModel.trigger("ModalMissionComplete:update", { mission: currentMission, neighborhood: currentRegion });
                     _modalModel.trigger("ModalMissionComplete:show");

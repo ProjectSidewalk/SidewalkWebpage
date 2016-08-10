@@ -118,7 +118,7 @@ function Main (params) {
         svl.labelFactory = new LabelFactory(svl);
         svl.compass = new Compass(d3, turf);
         svl.contextMenu = new ContextMenu($);
-        svl.keyboard = new Keyboard($, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);
+        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);
 
 
         // Game effects
