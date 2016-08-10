@@ -76,7 +76,7 @@ describe("ModalComment.", function () {
 
         modalModel = {};
 
-        modalComment = new ModalComment(svl, form, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel)
+        modalComment = new ModalComment(svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel)
     });
 
     describe("`_prepareCommentData` method", function () {
