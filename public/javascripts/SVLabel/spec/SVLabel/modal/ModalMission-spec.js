@@ -1,18 +1,18 @@
 describe("ModalMission", function () {
-    var modal;
+    var modalMission;
     var uiModalMission;
     var $uiModalMissionFixture;
     var modalModel;
 
     beforeEach(function () {
         $uiModalMissionFixture = $('<div id="modal-mission-holder"> \
-<div id="modal-mission-background" class="modal-background"></div> \
-<div id="modal-mission-foreground" class="modal-foreground"> \
-<h1 id="modal-mission-header">Mission</h1> \
-<div id="modal-mission-instruction"></div> \
-<button class="button" id="modal-mission-close-button">OK</button> \
-</div> \
-</div>');
+                                        <div id="modal-mission-background" class="modal-background"></div> \
+                                        <div id="modal-mission-foreground" class="modal-foreground"> \
+                                        <h1 id="modal-mission-header">Mission</h1> \
+                                        <div id="modal-mission-instruction"></div> \
+                                        <button class="button" id="modal-mission-close-button">OK</button> \
+                                        </div> \
+                                    </div>');
         uiModalMission = {};
         uiModalMission.holder = $uiModalMissionFixture;
         uiModalMission.foreground = uiModalMission.holder.find("#modal-mission-foreground");
@@ -24,16 +24,32 @@ describe("ModalMission", function () {
         var missionContainer = {};
         var neighborhoodContainer = {};
         modalModel = _.clone(Backbone.Events);
-        modal = new ModalMission(missionContainer, neighborhoodContainer, uiModalMission, modalModel);
+        modalMission = new ModalMission(missionContainer, neighborhoodContainer, uiModalMission, modalModel);
     });
 
     describe("`isOpen` method", function () {
-        it("should check if the modal window is open");
+        it("should check if the modal window is open", function () {
+            modalMission._status.isOpen = false;
+            expect(modalMission.isOpen()).toBe(false);
+            modalMission._status.isOpen = true;
+            expect(modalMission.isOpen()).toBe(true);
+        });
     });
 
     describe("`hide` method", function () {
-        it("should set `isOpen` to false");
-        it("should set visibility of DOM elements to hidden");
+        beforeEach(function () {
+            modalMission.show();
+        });
+        it("should set `isOpen` to false", function () {
+            modalMission.hide();
+            expect(modalMission._status.isOpen).toBe(false);
+        });
+        it("should set visibility of DOM elements to hidden", function () {
+            modalMission.hide();
+            expect(uiModalMission.holder.css('visibility')).toBe('hidden');
+            expect(uiModalMission.foreground.css('visibility')).toBe('hidden');
+            expect(uiModalMission.background.css('visibility')).toBe('hidden');
+        });
     });
 
     describe("`setMissionMessage` method", function () {
@@ -45,7 +61,6 @@ describe("ModalMission", function () {
         beforeEach(function () {
             neighborhood = new NeighborhoodMock();
             neighborhood.properties.name = "Test Neighborhood";
-
 
             mission_4000ft = new MissionMock();
             mission_4000ft.properties.distanceMi = 0.7575;
@@ -79,36 +94,36 @@ describe("ModalMission", function () {
         });
 
         it("should set the title", function () {
-            modal.setMissionMessage(mission_4000ft, neighborhood, null, null);
+            modalMission.setMissionMessage(mission_4000ft, neighborhood, null, null);
             expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
 
-            modal.setMissionMessage(mission_1mi, neighborhood, null, null);
+            modalMission.setMissionMessage(mission_1mi, neighborhood, null, null);
             expect(uiModalMission.missionTitle.text()).toBe("Audit ¼mi of Test Neighborhood");
 
-            modal.setMissionMessage(mission_2mi, neighborhood, null, null);
+            modalMission.setMissionMessage(mission_2mi, neighborhood, null, null);
             expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
         });
 
         it("should set the body text", function () {
-            modal.setMissionMessage(mission_4000ft, neighborhood, null, null);
+            modalMission.setMissionMessage(mission_4000ft, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
 
-            modal.setMissionMessage(mission_1mi, neighborhood, null, null);
+            modalMission.setMissionMessage(mission_1mi, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ¼mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
 
-            modal.setMissionMessage(mission_2mi, neighborhood, null, null);
+            modalMission.setMissionMessage(mission_2mi, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
         })
     });
 
     describe("`show` method", function () {
         it("should open a modal window", function () {
-            modal.hide();
+            modalMission.hide();
             expect(uiModalMission.holder.css('visibility')).toBe('hidden');
             expect(uiModalMission.foreground.css('visibility')).toBe('hidden');
             expect(uiModalMission.background.css('visibility')).toBe('hidden');
 
-            modal.show();
+            modalMission.show();
             expect(uiModalMission.holder.css('visibility')).toBe('visible');
             expect(uiModalMission.foreground.css('visibility')).toBe('visible');
             expect(uiModalMission.background.css('visibility')).toBe('visible');
@@ -127,7 +142,7 @@ describe("ModalMission", function () {
             });
 
             it("should open the modal window", function (done) {
-                expect(modal.isOpen()).toBe(true);
+                expect(modalMission.isOpen()).toBe(true);
                 done();
             });
         })
