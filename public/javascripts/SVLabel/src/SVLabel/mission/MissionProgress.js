@@ -87,6 +87,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                     movedToANewRegion = true;
                 }
 
+
                 svl.missionContainer.setCurrentMission(nextMission);
                 _showNextMission(nextMission, currentRegion);
 

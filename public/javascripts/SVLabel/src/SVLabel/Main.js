@@ -146,9 +146,11 @@ function Main (params) {
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
 
         // Modals
-        var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);
+        var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
+        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel);
         svl.modalMissionComplete.hide();
+
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
         svl.modalMission = new ModalMission($, svl.ui.modalMission, svl.modalModel);
         svl.modalSkip = new ModalSkip($);

@@ -2,6 +2,7 @@ describe("ModalMission", function () {
     var modal;
     var uiModalMission;
     var $uiModalMissionFixture;
+    var modalModel;
 
     // Mocks
     function MissionMock () {
@@ -44,7 +45,8 @@ describe("ModalMission", function () {
         uiModalMission.instruction = uiModalMission.holder.find("#modal-mission-instruction");
         uiModalMission.closeButton = uiModalMission.holder.find("#modal-mission-close-button");
 
-        modal = ModalMission($, uiModalMission, Backbone.Events);
+        modalModel = _.clone(Backbone.Events);
+        modal = new ModalMission($, uiModalMission, modalModel);
     });
 
     describe("`show` method", function () {
@@ -123,7 +125,24 @@ describe("ModalMission", function () {
 
             modal.setMission(mission_2mi, neighborhood, null, null);
             expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
+        })
+    });
 
+    describe("Event trigger", function () {
+        describe("`ModalMission:setMission`", function () {
+            beforeEach(function () {
+                var parameters = {};
+                parameters.mission = new MissionMock();
+                parameters.neighborhood = {};
+                parameters.parameters = {};
+                parameters.callback = function () {};
+                modalModel.trigger("ModalMission:setMission", parameters);
+            });
+
+            it("should open the modal window", function (done) {
+                expect(modal.isOpen()).toBe(true);
+                done();
+            });
         })
     });
 

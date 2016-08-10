@@ -1,35 +1,12 @@
 describe("ModalMissionComplete", function () {
-    var modal;
+    var modalMissionComplete;
+    var modalMissionMock;
     var uiModalMissionComplete;
     var $uiModalMissionCompleteFixture;
     var missionContainerMock;
     var modalMissionCompleteMapMock;
     var neighborhood;
     var mission;
-
-    // Mocks
-    function MissionMock () {
-        this.properties = {
-            coverage: null,
-            label: null,
-            distance: null,
-            distanceFt: null,
-            distanceMi: null
-        };
-    }
-    MissionMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
-
-    function NeighborhoodMock() {
-        this.properties = {
-            name: null,
-            regionId: null
-        };
-    }
-    NeighborhoodMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
 
     beforeEach(function () {
         $uiModalMissionCompleteFixture = $('<div id="modal-mission-complete-holder"> \
@@ -109,11 +86,19 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.surfaceProblemCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-surface-problem-count");
         uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
 
+        var modalModel = _.clone(Backbone.Events);
+        modalModel.triggerMissionCompleteClosed = function () {
+            this.trigger("ModalMissionComplete:close");
+        };
+
         modalMissionCompleteMapMock = {
             hide: function () {},
             show: function () {}
         };
-        modal = new ModalMissionComplete($, d3, L, missionContainerMock, modalMissionCompleteMapMock, uiModalMissionComplete, Backbone.Events);
+        var modalMissionCompleteProgressBarMock = {};
+        var svl = {};
+        modalMissionComplete = new ModalMissionComplete(svl, missionContainerMock, modalMissionCompleteMapMock,
+            modalMissionCompleteProgressBarMock, uiModalMissionComplete, modalModel);
 
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;
@@ -126,16 +111,18 @@ describe("ModalMissionComplete", function () {
         mission.properties.label = "distance-mission";
         neighborhood = new NeighborhoodMock();
         neighborhood.properties.name = "Test Neighborhood";
+
+        modalMissionMock = new ModalMissionMock(modalModel)
     });
 
     describe("`show` method", function () {
         it("should open a modal window", function () {
-            modal.hide();
+            modalMissionComplete.hide();
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
 
-            modal.show(mission, neighborhood);
+            modalMissionComplete.show(mission, neighborhood);
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('visible');
@@ -144,27 +131,73 @@ describe("ModalMissionComplete", function () {
 
     describe("`_updateMissionProgressStatistics` method", function () {
         it("should set the distance traveled in the current mission", function () {
-            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.missionDistance.text()).toBe("0.4 miles");
         });
 
         it("should set the cumulative distance traveled in the current neighborhood", function () {
-            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.totalAuditedDistance.text()).toBe("0.8 miles");
         });
 
         it("should set the remaining distance to audit in the current neighborhodo", function () {
-            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("9.2 miles");
 
-            modal._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("0.0 miles");
         });
     });
 
-    describe("clicking the 'Continue' button", function () {
-        it("should open the modal window for the next mission", function (done) {
-            done();
+    // describe("clicking the 'Continue' button", function () {
+    //     beforeEach(function () {
+    //         spyOn(modalMissionComplete, 'hide');
+    //         modalMissionComplete.show();
+    //         uiModalMissionComplete.closeButton.trigger('click');
+    //     });
+    //
+    //     it("should trigger the 'hide' method", function (done) {
+    //         expect(modalMissionComplete.hide).toHaveBeenCalled();
+    //         done();
+    //     });
+    //
+    //     it("should open the modal window for the next mission", function (done) {
+    //         expect(modalMissionMock.isOpen()).toBe(true);
+    //         done();
+    //     });
+    // });
+
+    // Mocks
+    function MissionMock () {
+        this.properties = {
+            coverage: null,
+            label: null,
+            distance: null,
+            distanceFt: null,
+            distanceMi: null
+        };
+    }
+
+    MissionMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+
+    function ModalMissionMock (modalModel) {
+        var self = this;
+        this._status = { isOpen: false };
+        modalModel.on("ModalMissionComplete:close", function (parameters) {
+            self._status.isOpen = true;
         });
-    });
+    }
+    ModalMissionMock.prototype.isOpen = function () { return this._status.isOpen; }
+
+    function NeighborhoodMock() {
+        this.properties = {
+            name: null,
+            regionId: null
+        };
+    }
+    NeighborhoodMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
 });

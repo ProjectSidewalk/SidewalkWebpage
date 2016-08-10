@@ -12,11 +12,22 @@ function ModalMission ($, uiModalMission, modalModel) {
             boxLeft: 45,
             boxWidth: 640
         };
+    var _status = {
+        isOpen: false
+    };
+
+    function isOpen() {
+        return _status.isOpen;
+    }
 
     var _modalModel = modalModel;
 
-    _modalModel.on("ModalMision:setMission", function (parameters) {
+    _modalModel.on("ModalMission:setMission", function (parameters) {
         setMissionMessage(parameters.mission, parameters.neighborhood, parameters.parameters, parameters.callback);
+    });
+
+    _modalModel.on("ModalMissionComplete:close", function (parameters) {
+        console.log(parameters)
     });
 
     // Mission titles. Keys are mission labels.
@@ -104,6 +115,7 @@ function ModalMission ($, uiModalMission, modalModel) {
      * Hide a mission
      */
     function hideMission () {
+        _status.isOpen = false;
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
         uiModalMission.background.css('visibility', 'hidden');
@@ -111,6 +123,7 @@ function ModalMission ($, uiModalMission, modalModel) {
 
     /** Show a mission */
     function showMissionModal () {
+        _status.isOpen = true;
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.background.css('visibility', 'visible');
@@ -118,8 +131,10 @@ function ModalMission ($, uiModalMission, modalModel) {
 
     /**
      * Set the mission message in the modal window, then show the modal window.
-     * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
-     * @param parameters Object
+     * @param mission
+     * @param neighborhood
+     * @param parameters
+     * @param callback
      */
     function setMissionMessage (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
@@ -180,6 +195,7 @@ function ModalMission ($, uiModalMission, modalModel) {
 
     _init();
 
+    self.isOpen = isOpen;
     self.hide = hideMission;
     self.setMission = setMissionMessage;  // Todo. Deprecated
     self.setMissionMessage = setMissionMessage;
