@@ -8,23 +8,23 @@
  * @memberof svl
  */
 function MissionContainer (statusFieldMission, missionModel) {
-    var self = { className: "MissionContainer" },
-        missionStoreByRegionId = { "noRegionId" : []},
-        completedMissions = [],
-        staged = [],
-        currentMission = null;
+    var self = this;
+    this._missionStoreByRegionId = { "noRegionId" : []};
+    this._completedMissions = [];
+    this._currentMission = null;
 
     var _missionModel = missionModel;
 
     _missionModel.on("MissionProgress:complete", function (mission) {
-        addToCompletedMissions(mission);
+        self.addToCompletedMissions(mission);
         _missionModel.submitMissions([mission]);
     });
 
     _missionModel.on("MissionContainer:addAMission", function (mission) {
-        addAMission(mission.getProperty("regionId"), mission);
+        var regionId = mission.getProperty("regionId");
+        self.add(regionId, mission);
         if (mission.isCompleted()) {
-            addToCompletedMissions(mission);
+            self.addToCompletedMissions(mission);
         }
     });
 
@@ -34,23 +34,23 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @private
      */
     function _onLoadComplete () {
-        var regionIds = Object.keys(missionStoreByRegionId);
+        var regionIds = Object.keys(self._missionStoreByRegionId);
 
         for (var ri = 0, rlen = regionIds.length; ri < rlen; ri++) {
             var regionId = regionIds[ri];
             var distance, distanceFt, distanceMi;
-            for (var mi = 0, mlen = missionStoreByRegionId[regionId].length; mi < mlen; mi++) {
+            for (var mi = 0, mlen = self._missionStoreByRegionId[regionId].length; mi < mlen; mi++) {
                 if (mi == 0) {
-                    missionStoreByRegionId[regionId][mi].setProperty("auditDistance", missionStoreByRegionId[regionId][mi].getProperty("distance"));
-                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", missionStoreByRegionId[regionId][mi].getProperty("distanceFt"));
-                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", missionStoreByRegionId[regionId][mi].getProperty("distanceMi"));
+                    self._missionStoreByRegionId[regionId][mi].setProperty("auditDistance", self._missionStoreByRegionId[regionId][mi].getProperty("distance"));
+                    self._missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", self._missionStoreByRegionId[regionId][mi].getProperty("distanceFt"));
+                    self._missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", self._missionStoreByRegionId[regionId][mi].getProperty("distanceMi"));
                 } else {
-                    distance = missionStoreByRegionId[regionId][mi].getProperty("distance") - missionStoreByRegionId[regionId][mi - 1].getProperty("distance");
-                    distanceFt = missionStoreByRegionId[regionId][mi].getProperty("distanceFt") - missionStoreByRegionId[regionId][mi - 1].getProperty("distanceFt");
-                    distanceMi = missionStoreByRegionId[regionId][mi].getProperty("distanceMi") - missionStoreByRegionId[regionId][mi - 1].getProperty("distanceMi");
-                    missionStoreByRegionId[regionId][mi].setProperty("auditDistance", distance);
-                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", distanceFt);
-                    missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", distanceMi);
+                    distance = self._missionStoreByRegionId[regionId][mi].getProperty("distance") - self._missionStoreByRegionId[regionId][mi - 1].getProperty("distance");
+                    distanceFt = self._missionStoreByRegionId[regionId][mi].getProperty("distanceFt") - self._missionStoreByRegionId[regionId][mi - 1].getProperty("distanceFt");
+                    distanceMi = self._missionStoreByRegionId[regionId][mi].getProperty("distanceMi") - self._missionStoreByRegionId[regionId][mi - 1].getProperty("distanceMi");
+                    self._missionStoreByRegionId[regionId][mi].setProperty("auditDistance", distance);
+                    self._missionStoreByRegionId[regionId][mi].setProperty("auditDistanceFt", distanceFt);
+                    self._missionStoreByRegionId[regionId][mi].setProperty("auditDistanceMi", distanceMi);
                 }
             }
         }
@@ -61,43 +61,48 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @param regionId
      * @param mission
      */
-    function addAMission(regionId, mission) {
+    this.add = function (regionId, mission) {
         if (regionId || regionId === 0) {
-            if (!(regionId in missionStoreByRegionId)) {
-                missionStoreByRegionId[regionId] = [];
+            if (!(regionId in self._missionStoreByRegionId)) {
+                self._missionStoreByRegionId[regionId] = [];
             }
         } else {
             regionId = "noRegionId";
         }
 
-        var existingMissionIds = missionStoreByRegionId[regionId].map(function (m) { return m.getProperty("missionId"); });
-        if (existingMissionIds.indexOf(mission.getProperty("missionId")) < 0) {
-            missionStoreByRegionId[regionId].push(mission);
+        var currentMissionId = mission.getProperty("missionId");
+        var existingMissionIds = self._missionStoreByRegionId[regionId].map(function (m) { return m.getProperty("missionId"); });
+        if (existingMissionIds.indexOf(currentMissionId) < 0) {
+            self._missionStoreByRegionId[regionId].push(mission);
         }
-    }
+    };
 
     /** Push the completed mission */
-    function addToCompletedMissions (mission) {
-        completedMissions.push(mission);
+    this.addToCompletedMissions = function (mission) {
+        var existingMissionIds = self._completedMissions.map(function (m) { return m.getProperty("missionId")});
+        var currentMissionId = mission.getProperty("missionId");
+        if (existingMissionIds.indexOf(currentMissionId) < 0) {
+            self._completedMissions.push(mission);
+        }
 
         if ("regionId" in mission) {
-            // Add the region id to missionStoreByRegionId if it's not there already
-            if (!getMissionsByRegionId(mission.regionId)) missionStoreByRegionId[mission.regionId] = [];
+            // Add the region id to self._missionStoreByRegionId if it's not there already
+            if (!getMissionsByRegionId(mission.regionId)) self._missionStoreByRegionId[mission.regionId] = [];
 
-            // Add the mission into missionStoreByRegionId if it's not there already
-            var missionIds = missionStoreByRegionId[mission.regionId].map(function (x) { return x.missionId; });
-            if (missionIds.indexOf(mission.missionId) < 0) missionStoreByRegionId[regionId].push(mission);
+            // Add the mission into self._missionStoreByRegionId if it's not there already
+            var missionIds = self._missionStoreByRegionId[mission.regionId].map(function (x) { return x.missionId; });
+            if (missionIds.indexOf(mission.missionId) < 0) self._missionStoreByRegionId[regionId].push(mission);
         }
-    }
+    };
 
 
     /** Get current mission */
     function getCurrentMission () {
-        return currentMission;
+        return self._currentMission;
     }
 
     /**
-     * Get a mission stored in the missionStoreByRegionId.
+     * Get a mission stored in the self._missionStoreByRegionId.
      * @param regionId
      * @param label
      * @param level
@@ -105,7 +110,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      */
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
-        var missions = missionStoreByRegionId[regionId],
+        var missions = self._missionStoreByRegionId[regionId],
             i,
             len = missions.length;
 
@@ -127,7 +132,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      * Get all the completed missions
      */
     function getCompletedMissions () {
-        return completedMissions;
+        return self._completedMissions;
     }
 
     /**
@@ -137,8 +142,8 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @returns {*}
      */
     function getMissionsByRegionId (regionId) {
-        if (!(regionId in missionStoreByRegionId)) missionStoreByRegionId[regionId] = [];
-        var missions = missionStoreByRegionId[regionId];
+        if (!(regionId in self._missionStoreByRegionId)) self._missionStoreByRegionId[regionId] = [];
+        var missions = self._missionStoreByRegionId[regionId];
         missions.sort(function(m1, m2) {
             var d1 = m1.getProperty("distance"),
                 d2 = m2.getProperty("distance");
@@ -150,7 +155,7 @@ function MissionContainer (statusFieldMission, missionModel) {
     }
 
     function getAvailableRegionIds () {
-        return Object.keys(missionStoreByRegionId);
+        return Object.keys(self._missionStoreByRegionId);
     }
 
     /**
@@ -193,15 +198,12 @@ function MissionContainer (statusFieldMission, missionModel) {
         }
     }
 
-    /**
-     *
-     */
-    function refresh () {
-        missionStoreByRegionId = { "noRegionId" : [] };
-        completedMissions = [];
-        staged = [];
-        currentMission = null;
-    }
+
+    this.refresh = function () {
+        self._missionStoreByRegionId = { "noRegionId" : [] };
+        self._completedMissions = [];
+        self._currentMission = null;
+    };
 
     /**
      * This method sets the current mission
@@ -209,16 +211,13 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @returns {setCurrentMission}
      */
     function setCurrentMission (mission) {
-        currentMission = mission;
+        self._currentMission = mission;
         statusFieldMission.printMissionMessage(mission);
         return this;
     }
 
-    // _init(parameters);
 
     self._onLoadComplete = _onLoadComplete;
-    self.addToCompletedMissions = addToCompletedMissions;
-    self.add = addAMission;
     self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
     self.getCurrentMission = getCurrentMission;
@@ -226,7 +225,7 @@ function MissionContainer (statusFieldMission, missionModel) {
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.isTheFirstMission = isTheFirstMission;
     self.nextMission = nextMission;
-    self.refresh = refresh;
+    // self.refresh = refresh;
     self.setCurrentMission = setCurrentMission;
-    return self;
 }
+

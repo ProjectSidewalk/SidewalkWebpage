@@ -1,30 +1,40 @@
 describe("MissionContainer module.", function () {
     var missionContainer;
     var missionFactory;
-    var missionStatus;
+    var statusFieldMission;
     var missionModel;
+    var m1_n1, m2_n1, m1_n2, m2_n2;
 
     beforeEach(function () {
-        missionStatus = {};
+        statusFieldMission = {};
         missionModel = _.clone(Backbone.Events);
         missionModel.submitMissions = function (missions) { };
-        missionFactory = new MissionFactory(missionModel);
-        missionContainer = new MissionContainer(missionStatus, missionModel);
+        missionFactory = new MissionFactoryMock(missionModel);
+        missionContainer = new MissionContainer(statusFieldMission, missionModel);
         missionContainer.refresh();
 
+        m1_n1 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
+        m2_n1 = missionFactory.create(1, 2, "distance-mission", 2, 2000, 2000, 2, 0.2, false);
+        m1_n2 = missionFactory.create(2, 3, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
+        m2_n2 = missionFactory.create(2, 4, "distance-mission", 2, 2000, 2000, 2, 0.2, false);
+
+        // missionContainer.add(1, m1_n1);
+        // missionContainer.add(1, m2_n1);
+        // missionContainer.add(2, m1_n2);
+        // missionContainer.add(2, m2_n2);
     });
 
     describe("in response to events", function () {
         var missionMock;
         beforeEach(function () {
+            missionContainer.refresh();
         });
 
         it("should add the completed mission to `completedMissions`", function (done) {
-            missionMock = { test: "test" };
-            missionModel.trigger("MissionProgress:complete", missionMock);
+            missionModel.trigger("MissionProgress:complete", m1_n1);
 
             var missions = missionContainer.getCompletedMissions();
-            expect(missions).toEqual([missionMock]);
+            expect(missions).toEqual([m1_n1]);
 
             expect(missions.length).toBe(1);
             done();
@@ -32,23 +42,19 @@ describe("MissionContainer module.", function () {
 
         it("should add completed missions to `completedMissions`", function () {
             var missions;
-            missionMock = new MissionMock();
-            missionMock.setProperty('isCompleted', true);
-            missionModel.trigger("MissionContainer:addAMission", missionMock);
+            m1_n1.setProperty('isCompleted', true);
+            missionModel.trigger("MissionContainer:addAMission", m1_n1);
 
             missions = missionContainer.getCompletedMissions();
             expect(missions.length).toBe(1);
 
-            missionMock = new MissionMock();
-            missionMock.setProperty('isCompleted', true);
-            missionModel.trigger("MissionContainer:addAMission", missionMock);
+            m2_n1.setProperty('isCompleted', true);
+            missionModel.trigger("MissionContainer:addAMission", m2_n1);
 
             missions = missionContainer.getCompletedMissions();
             expect(missions.length).toBe(2);
 
-            missionMock = new MissionMock();
-            missionMock.setProperty('isCompleted', false);
-            missionModel.trigger("MissionContainer:addAMission", missionMock);
+            missionModel.trigger("MissionContainer:addAMission", m2_n1);
 
             missions = missionContainer.getCompletedMissions();
             expect(missions.length).toBe(2);
@@ -56,12 +62,11 @@ describe("MissionContainer module.", function () {
         });
     });
 
-    describe("`nextMission` method", function () {
-        it("should return the first mission of a neighborhood if no missions are completed");
-        it("should return the second mission of a neighborhood if the first mission has been completed");
-    });
-/*
     describe("`add` method", function(){
+        beforeEach(function () {
+            missionContainer.refresh();
+        });
+
         it("should be able to add a new mission to the container", function() {
             var m1 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
             var m2 = missionFactory.create(1, 2, "distance-mission", 2, 2000, 2000, 2, 0.2, false);
@@ -86,6 +91,42 @@ describe("MissionContainer module.", function () {
         });
     });
 
+    describe("`getCompletedMissions` method", function () {
+        beforeEach(function () {
+            missionContainer.refresh();
+
+            m1_n1.properties.isCompleted = true;
+            m1_n2.properties.isCompleted = true;
+            missionContainer.add(1, m1_n1);
+            missionContainer.add(1, m2_n1);
+            missionContainer.add(2, m1_n2);
+            missionContainer.add(2, m2_n2);
+            missionContainer.addToCompletedMissions(m1_n1);
+            missionContainer.addToCompletedMissions(m1_n2);
+        });
+
+        it("should return the completed missions", function () {
+            var completedMissions = missionContainer.getCompletedMissions();
+            expect(completedMissions).toEqual([m1_n1, m1_n2]);
+        });
+    });
+
+    describe("`nextMission` method", function () {
+        it("should return the first mission of a neighborhood if no missions are completed");
+        it("should return the second mission of a neighborhood if the first mission has been completed");
+        it("should return the first mission of the next neighborhood if no missions are available in the current neighborhood");
+    });
+
+    describe("`refresh` method", function () {
+        it("should reset `missionStoreByRegionId`", function () {
+            missionContainer.refresh();
+            expect(missionContainer._missionStoreByRegionId).toEqual({ "noRegionId" : [] })
+        });
+    });
+
+
+
+/*
     describe("`_onLoadComplete` method", function () {
         var m1, m2, m3;
         beforeEach(function () {
@@ -154,15 +195,16 @@ describe("MissionContainer module.", function () {
 
     function MissionMock () {
         this.properties = {
-            missionId: null,
+            auditDistance: null,
+            auditDistanceFt: null,
+            auditDistanceMi: null,
             coverrage: null,
             distance: null,
             distanceFt: null,
             distanceMi: null,
-            auditDistance: null,
-            auditDistanceFt: null,
-            auditDistanceMi: null,
-            label: null
+            isCompleted: false,
+            label: null,
+            missionId: null
         };
     }
 
@@ -177,4 +219,20 @@ describe("MissionContainer module.", function () {
     MissionMock.prototype.isCompleted = function () {
         return this.properties.isCompleted;
     };
+
+    function MissionFactoryMock () {
+        this.create = function (regionId, missionId, label, level, distance, distanceFt, distanceMi, coverage, isCompleted) {
+            var mission = new MissionMock();
+            mission.properties.regionId = regionId;
+            mission.properties.missionId = missionId;
+            mission.properties.label = label;
+            mission.properties.level = level;
+            mission.properties.distance = distance;
+            mission.properties.distanceFt = distanceFt;
+            mission.properties.distanceMi = distanceMi;
+            mission.properties.coverage = coverage;
+            mission.properties.isCompleted = isCompleted;
+            return mission;
+        };
+    }
 });
