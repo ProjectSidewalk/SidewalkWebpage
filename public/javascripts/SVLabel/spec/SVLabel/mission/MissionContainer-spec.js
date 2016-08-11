@@ -54,7 +54,11 @@ describe("MissionContainer module.", function () {
             expect(missions.length).toBe(2);
 
         });
+    });
 
+    describe("`nextMission` method", function () {
+        it("should return the first mission of a neighborhood if no missions are completed");
+        it("should return the second mission of a neighborhood if the first mission has been completed");
     });
 /*
     describe("`add` method", function(){
@@ -172,5 +176,5 @@ describe("MissionContainer module.", function () {
 
     MissionMock.prototype.isCompleted = function () {
         return this.properties.isCompleted;
-    }
+    };
 });
