@@ -171,7 +171,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @param regionId
      * @returns {*}
      */
-    function nextMission (regionId) {
+    this.nextMission = function (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
 
@@ -185,18 +185,37 @@ function MissionContainer (statusFieldMission, missionModel) {
             });
             return missions[0];
         } else {
-            // If no more missions are available in this neighborhood, get a mission from other neighborhood.
-            // Todo.
-            // while (!nextMission) {
-            //     // If not more mission is available in the current neighborhood, get missions from the next neighborhood.
-            //     var availableRegionIds = missionContainer.getAvailableRegionIds();
-            //     var newRegionId = neighborhoodContainer.getNextRegionId(neighborhoodId, availableRegionIds);
-            //     nextMission = missionContainer.nextMission(newRegionId);
-            //     movedToANewRegion = true;
-            // }
-            return null;
+            var nextRegionId = this._findARegionWithMission(regionId);
+            missions = missions = self._missionStoreByRegionId[nextRegionId];
+            missions = missions.filter(function (m) { return !m.isCompleted(); });
+            return missions[0];
         }
-    }
+    };
+
+    this._getANextRegionId = function (currentRegionId) {
+        var currentRegionId = currentRegionId.toString();
+        var regionIds = Object.keys(self._missionStoreByRegionId).map(function (key) { return key.toString(); });
+        regionIds = regionIds.filter(function (regionId) { return regionId != "noRegionId"; });
+        var currentRegionIdIndex = regionIds.indexOf(currentRegionId);
+        var nextRegionIdIndex = currentRegionIdIndex + 1;
+        if (nextRegionIdIndex < 0 || nextRegionIdIndex >= regionIds.length) {
+            nextRegionIdIndex = 0;
+        }
+        return regionIds[nextRegionIdIndex];
+    };
+
+    this._findARegionWithMission = function (currentRegionId) {
+        var nextRegionId = self._getANextRegionId(currentRegionId);
+        var missions = self._missionStoreByRegionId[nextRegionId];
+        missions = missions.filter(function (m) { return !m.isCompleted(); });
+        while (missions.length == 0) {
+            nextRegionId = self._getANextRegionId(nextRegionId);
+            if (nextRegionId == currentRegionId) throw Error("No missions available");
+            missions = self._missionStoreByRegionId[nextRegionId];
+            missions = missions.filter(function (m) { return !m.isCompleted(); });
+        }
+        return nextRegionId;
+    };
 
 
     this.refresh = function () {
@@ -224,7 +243,7 @@ function MissionContainer (statusFieldMission, missionModel) {
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.isTheFirstMission = isTheFirstMission;
-    self.nextMission = nextMission;
+    // self.nextMission = nextMission;
     // self.refresh = refresh;
     self.setCurrentMission = setCurrentMission;
 }
