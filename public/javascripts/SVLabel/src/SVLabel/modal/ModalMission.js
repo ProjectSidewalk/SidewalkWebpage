@@ -1,22 +1,32 @@
 /**
  * ModalMission module
- * @param $ jQuery object
+ * @param missionContainer
+ * @param neighborhoodContainer
+ * @param uiModalMission
+ * @param modalModel
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function ModalMission ($, uiModalMission, modalModel) {
-    var self = { className : 'ModalMission'},
-        properties = {
-            boxTop: 180,
-            boxLeft: 45,
-            boxWidth: 640
-        };
-
+function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, modalModel) {
+    var self = this;
+    var _missionContainer = missionContainer;
+    var _neighborhoodContainer = neighborhoodContainer;
     var _modalModel = modalModel;
 
-    _modalModel.on("ModalMision:setMission", function (parameters) {
-        setMissionMessage(parameters.mission, parameters.neighborhood, parameters.parameters, parameters.callback);
+    this._status = {
+        isOpen: false
+    };
+
+    _modalModel.on("ModalMission:setMissionMessage", function (parameters) {
+        self.setMissionMessage(parameters.mission, parameters.neighborhood, parameters.parameters, parameters.callback);
+        self.show();
+    });
+
+    _modalModel.on("ModalMissionComplete:closed", function () {
+        var mission = _missionContainer.getCurrentMission();
+        var neighborhood = _neighborhoodContainer.getCurrentNeighborhood();
+        self.setMissionMessage (mission, neighborhood);
+        self.show();
     });
 
     // Mission titles. Keys are mission labels.
@@ -47,81 +57,41 @@ function ModalMission ($, uiModalMission, modalModel) {
         <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets in this neighborhood</span> and find the accessibility attributes!</p>\
         <div class="spacer10"></div>';
 
-    
-    function _init () {
-        uiModalMission.background.on("click", handleBackgroundClick);
-        uiModalMission.closeButton.on("click", handleCloseButtonClick);
-    }
 
-    function _auidtDistanceToString (distance, unit) {
-        if (!unit) unit = "kilometers";
+    this._handleBackgroundClick = function () {
+        self.hide();
+    };
 
-        if (unit == "miles") {
-            if (distance <= 0.20) {
-                return "1000ft";
-            } else if (distance <= 0.25) {
-                return "&frac14;mi";
-            } else if (distance <= 0.5) {
-                return "&frac12;mi"
-            } else if (distance <= 0.75) {
-                return "&frac34;mi";
-            } else {
-                return distance.toFixed(0, 10) + "";
-            }
-        } else if (unit == "feet") {
-            return distance + "";
-        } else {
-            return distance + "";
-        }
-    }
-
-    /**
-     * Get a property
-     * @param key
-     * @returns {null}
-     */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
-    }
-
-    /**
-     * Callback function for background click
-     * @param e
-     */
-    function handleBackgroundClick(e) {
-        hideMission();
-    }
-
-    /**
-     * Callback function for button click
-     * @param e
-     */
-    function handleCloseButtonClick(e) {
-        hideMission();
-    }
+    this._handleCloseButtonClick = function () {
+        self.hide();
+    };
 
     /**
      * Hide a mission
      */
-    function hideMission () {
+    this.hide = function () {
+        self._status.isOpen = false;
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
         uiModalMission.background.css('visibility', 'hidden');
-    }
+    };
 
     /** Show a mission */
-    function showMissionModal () {
+    this.show = function () {
+        self._status.isOpen = true;
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.background.css('visibility', 'visible');
-    }
+    };
 
     /**
      * Set the mission message in the modal window, then show the modal window.
-     * @param mission String The type of the mission. It could be one of "initial-mission" and "area-coverage".
-     * @param parameters Object
+     * @param mission
+     * @param neighborhood
+     * @param parameters
+     * @param callback
      */
-    function setMissionMessage (mission, neighborhood, parameters, callback) {
+    this.setMissionMessage = function (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
         var label = mission.getProperty("label"),
             templateHTML,
@@ -133,7 +103,7 @@ function ModalMission ($, uiModalMission, modalModel) {
                 distanceString;
             templateHTML = distanceMissionHTML;
 
-            distanceString = _auidtDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
+            distanceString = this._auidtDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
@@ -166,25 +136,44 @@ function ModalMission ($, uiModalMission, modalModel) {
 
         if (callback) {
             $("#modal-mission-close-button").one("click", function () {
-                hideMission();
+                self.hide();
                 callback();
             });
         } else {
-            $("#modal-mission-close-button").one("click", hideMission);
-            $("#modal-mission-holder").find(".ok-button").one("click", hideMission);
+            $("#modal-mission-close-button").one("click", self.hide);
+            $("#modal-mission-holder").find(".ok-button").one("click", self.hide);
         }
+    };
 
-        showMissionModal();
-    }
-    
-
-    _init();
-
-    self.hide = hideMission;
-    self.setMission = setMissionMessage;  // Todo. Deprecated
-    self.setMissionMessage = setMissionMessage;
-    self.show = showMissionModal;
-    self.showMissionModal = showMissionModal;
-
-    return self;
+    uiModalMission.background.on("click", this._handleBackgroundClick);
+    uiModalMission.closeButton.on("click", this._handleCloseButtonClick);
 }
+
+ModalMission.prototype._auidtDistanceToString = function  (distance, unit) {
+    if (!unit) unit = "kilometers";
+
+    if (unit == "miles") {
+        if (distance <= 0.20) {
+            return "1000ft";
+        } else if (distance <= 0.25) {
+            return "&frac14;mi";
+        } else if (distance <= 0.5) {
+            return "&frac12;mi"
+        } else if (distance <= 0.75) {
+            return "&frac34;mi";
+        } else {
+            return distance.toFixed(0, 10) + "";
+        }
+    } else if (unit == "feet") {
+        // Todo.
+        return distance + "";
+    } else {
+        // Todo.
+        return distance + "";
+    }
+};
+
+
+ModalMission.prototype.isOpen = function () {
+    return this._status.isOpen;
+};

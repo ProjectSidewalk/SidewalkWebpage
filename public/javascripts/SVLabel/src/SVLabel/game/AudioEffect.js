@@ -2,7 +2,6 @@
  * Audio Effect module.
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
 function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
     var self = { className: 'AudioEffect' };

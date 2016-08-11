@@ -1,15 +1,24 @@
 /** @namespace */
-var svl = svl || {};
-svl.util = svl.util || {};
-svl.util.shape = {};
+var util = util || {};
+util.shape = {};
 
-
+/**
+ *
+ * @param ctx
+ * @param x1
+ * @param y1
+ * @param r1
+ * @param x2
+ * @param y2
+ * @param r2
+ * @param sourceFormIn
+ * @param sourceStrokeStyleIn
+ * @param sourceFillStyleIn
+ * @param targetFormIn
+ * @param targetStrokeStyleIn
+ * @param targetFillStyleIn
+ */
 function lineWithRoundHead (ctx, x1, y1, r1, x2, y2, r2, sourceFormIn, sourceStrokeStyleIn, sourceFillStyleIn, targetFormIn, targetStrokeStyleIn, targetFillStyleIn) {
-    // sourceStyle and targetStyle:
-    // - none: do not draw anything
-    // - fill: fill the circle
-    // - stroke: stroke the circle
-    // - both: stroke and fill
     var sourceForm = 'none';
     var targetForm = 'none';
     var sourceStrokeStyle = sourceStrokeStyleIn ? sourceStrokeStyleIn : 'rgba(255,255,255,1)';
@@ -97,4 +106,4 @@ function lineWithRoundHead (ctx, x1, y1, r1, x2, y2, r2, sourceFormIn, sourceStr
         ctx.restore();
     }
 }
-svl.util.shape.lineWithRoundHead = lineWithRoundHead;
+util.shape.lineWithRoundHead = lineWithRoundHead;

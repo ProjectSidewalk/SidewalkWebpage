@@ -110,13 +110,14 @@ function Mission(parameters) {
      */
     function complete () {
         // Play the animation and audio effect after task completion.
-        svl.gameEffect.play({audioType: "yay"});
-        
+
+        setProperty("isCompleted", true);
+
         // Update the neighborhood status
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             var count = svl.labelContainer.countLabels(regionId);
-            svl.neighborhoodStatus.setLabelCount(count);
+            svl.statusFieldNeighborhood.setLabelCount(count);
         }
 
         // Reset the label counter
@@ -130,8 +131,6 @@ function Mission(parameters) {
             };
             svl.labelCounter.reset();
         }
-        
-        setProperty("isCompleted", true);
     }
 
     /**
@@ -146,7 +145,7 @@ function Mission(parameters) {
     }
 
     /**
-     * Warning. This method is not completed yet. Do not use.
+     * Todo. WARNING. This method is not completed yet. DO NOT USE.
      * @param currentTask
      * @param unit
      * @returns {*}
@@ -187,10 +186,10 @@ function Mission(parameters) {
                 connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
 
                 if (connectedTasks.length > 0) {
-                    connectedTasks = svl.util.shuffle(connectedTasks);
+                    connectedTasks = util.shuffle(connectedTasks);
                     currentTask = connectedTasks[0];
                 } else {
-                    incompleteTasks = svl.util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
+                    incompleteTasks = util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
                     currentTask = incompleteTasks[0];  // get the first item in the array
                 }
                 currentTaskIndex = incompleteTasks.indexOf(currentTask);

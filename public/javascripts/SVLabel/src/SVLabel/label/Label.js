@@ -6,7 +6,7 @@
  * @constructor
  * @memberof svl
  */
-function Label (pathIn, params) {
+function Label (svl, pathIn, params) {
     var self = { className: 'Label' };
 
     var path, googleMarker;
@@ -149,10 +149,10 @@ function Label (pathIn, params) {
                 // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
                 var cameraLat = getProperty("panoramaLat");
                 var cameraLng = getProperty("panoramaLng");
-                var cameraHeading = svl.util.math.toRadians(getProperty("panoramaHeading"));
+                var cameraHeading = util.math.toRadians(getProperty("panoramaHeading"));
                 var dx = 10 * Math.sin(cameraHeading);
                 var dy = 10 * Math.cos(cameraHeading);
-                var dLatLng = svl.util.math.latlngOffset(cameraLat, dx, dy);
+                var dLatLng = util.math.latlngOffset(cameraLat, dx, dy);
                 var googleLatLng = new google.maps.LatLng(cameraLat + dLatLng.dlat, cameraLng + dLatLng.dlng);  // Todo
             }
 
@@ -207,7 +207,8 @@ function Label (pathIn, params) {
      * @returns {*}
      */
     function getBoundingBox (pov) {
-        return getPath().getBoundingBox(pov);
+        var boundingBox = path.getBoundingBox(pov);
+        return boundingBox;
     }
 
     /**
@@ -448,11 +449,11 @@ function Label (pathIn, params) {
                 // Get the label'svar latLng = toLatLng();
                 var currLat = svl.panorama.location.latLng.lat(),
                     currLng = svl.panorama.location.latLng.lng();
-                var d = svl.util.math.haversine(currLat, currLng, latLng.lat, latLng.lng);
+                var d = util.math.haversine(currLat, currLng, latLng.lat, latLng.lng);
                 var offset = toOffset();
 
                 if (d < properties.distanceThreshold) {
-                    var dPosition = svl.util.math.latlngInverseOffset(currLat, currLat - latLng.lat, currLng - latLng.lng);
+                    var dPosition = util.math.latlngInverseOffset(currLat, currLat - latLng.lat, currLng - latLng.lng);
 
                     var dx = offset.dx - dPosition.dx;
                     var dy = offset.dy - dPosition.dy;
@@ -476,9 +477,6 @@ function Label (pathIn, params) {
                     ctx.fillStyle = path.getProperty('fillStyle'); // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
                     ctx.fill();
                     ctx.restore();
-
-                    //new Point(tempPath[i].x, tempPath[i].y, pov, pointParameters)
-                    //new Label(new Path(), params)
                 }
             }
         }
@@ -526,7 +524,7 @@ function Label (pathIn, params) {
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = svl.util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.fillStyle = util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
         ctx.strokeStyle = 'rgba(255,255,255,1)';
 
         // Tag background
@@ -584,7 +582,7 @@ function Label (pathIn, params) {
             len = points.length,
             fillColor = path.getFill();
         alpha = alpha ? alpha : 0.3;
-        fillColor = svl.util.color.changeAlphaRGBA(fillColor, alpha);
+        fillColor = util.color.changeAlphaRGBA(fillColor, alpha);
         path.setFillStyle(fillColor);
         for (var i = 0; i < len; i++) {
             points[i].setFillStyle(fillColor);
@@ -792,7 +790,7 @@ function Label (pathIn, params) {
             var minDx = 1000, minDy = 1000, minDz = 1000,
                 i, p, idx, dx, dy, dz, r, minR;
             for (i = 0; i < imageCoordinates.length; i++) {
-                p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
+                p = util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1 / 26);
                 idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
                 dx = pc.pointCloud[idx];
                 dy = pc.pointCloud[idx + 1];
@@ -822,7 +820,7 @@ function Label (pathIn, params) {
                 var minDx = 1000, minDy = 1000, i, delta, latlng,
                     p, idx, dx, dy, r, minR;
                 for (i = 0; i < imageCoordinates.length; i ++) {
-                    p = svl.util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
+                    p = util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
                     idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
                     dx = pc.pointCloud[idx];
                     dy = pc.pointCloud[idx + 1];
@@ -834,7 +832,7 @@ function Label (pathIn, params) {
                         minDy = dy;
                     }
                 }
-                delta = svl.util.math.latlngOffset(properties.panoramaLat, dx, dy);
+                delta = util.math.latlngOffset(properties.panoramaLat, dx, dy);
                 latlng = {lat: properties.panoramaLat + delta.dlat, lng: properties.panoramaLng + delta.dlng};
                 setProperty('labelLat', latlng.lat);
                 setProperty('labelLng', latlng.lng);

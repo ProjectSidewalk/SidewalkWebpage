@@ -6,7 +6,7 @@
  * @constructor
  * @memberof svl
  */
-function Path (points, params) {
+function Path (svl, points, params) {
     var self = { className : 'Path', points : undefined };
     var parent;
     var properties = {
@@ -42,7 +42,7 @@ function Path (points, params) {
                 }
             }
         }
-        properties.fillStyle = svl.util.color.changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
+        properties.fillStyle = util.color.changeAlphaRGBA(points[0].getProperty('fillStyleInnerCircle'), 0.5);
         properties.originalFillStyle = properties.fillStyle;
         properties.originalStrokeStyle = properties.strokeStyle;
     }
@@ -98,13 +98,18 @@ function Path (points, params) {
     }
 
     /**
-     * Get canvas coordinate
+     * Get canvas coordinates of points that constitute the path.
      * @param pov
      * @returns {Array}
      */
     function getCanvasCoordinates (pov) {
-        // Get canvas coordinates of points that constitute the path.
-        var imCoords = getImageCoordinates(), i, len = imCoords.length, canvasCoord, canvasCoords = [], min = 10000000, max = -1;
+        var imCoords = getImageCoordinates();
+        var i;
+        var len = imCoords.length;
+        var canvasCoord;
+        var canvasCoords = [];
+        var min = 10000000;
+        var max = -1;
 
         for (i = 0; i < len; i += 1) {
             if (min > imCoords[i].x) {
@@ -410,7 +415,7 @@ function Path (points, params) {
             ctx.save();
             ctx.beginPath();
             if (!properties.fillStyle) {
-                properties.fillStyle = svl.util.color.changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
+                properties.fillStyle = util.color.changeAlphaRGBA(point.getProperty('fillStyleInnerCircle'), 0.5);
                 properties.originalFillStyle = properties.fillStyle;
                 ctx.fillStyle = properties.fillStyle;
             } else {
@@ -448,7 +453,7 @@ function Path (points, params) {
                     var r = point.getProperty('radiusInnerCircle');
                     ctx.save();
                     ctx.strokeStyle = properties.strokeStyle;
-                    svl.util.shape.lineWithRoundHead(ctx, prevCoord.x, prevCoord.y, r, currCoord.x, currCoord.y, r);
+                    util.shape.lineWithRoundHead(ctx, prevCoord.x, prevCoord.y, r, currCoord.x, currCoord.y, r);
                     ctx.restore();
                 }
             }

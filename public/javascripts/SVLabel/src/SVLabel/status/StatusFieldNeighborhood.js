@@ -1,5 +1,5 @@
-function NeighborhoodStatus () {
-    var self = {className: "NeighborhoodStatus"};
+function StatusFieldNeighborhood () {
+    var self = {className: "StatusFieldNeighborhood"};
 
     function setAuditedDistance(distance) {
         svl.ui.progress.auditedDistance.html(distance);

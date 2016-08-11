@@ -7,12 +7,10 @@
  * @param params {object} parameters
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function Map ($, google, turf, params) {
+function Map (canvas, uiMap, params) {
     var self = { className: 'Map' },
-        canvas,
-        overlayMessageBox,
+        _canvas = canvas,
         mapIconInterval,
         lock = {
             renderLabels : false
@@ -39,7 +37,6 @@ function Map ($, google, turf, params) {
             isInternetExplore: undefined
         },
         status = {
-            availablePanoIds : undefined,
             currentPanoId: undefined,
             disablePanning: false,
             disableWalking : false,
@@ -145,9 +142,7 @@ function Map ($, google, turf, params) {
         params = params || {};
 
         self.properties = properties; // Make properties public.
-        properties.browser = svl.util.getBrowser();
-
-        if ("overlayMessageBox" in params) { overlayMessageBox = params.overlayMessageBox; }
+        properties.browser = util.getBrowser();
 
         // Set GSV panorama options
         // To not show StreetView controls, take a look at the following gpage
@@ -189,16 +184,13 @@ function Map ($, google, turf, params) {
 
         properties.initialPanoId = params.taskPanoId;
 
-        // Set so the links to panoaramas that are not listed on availablePanoIds will be removed
-        status.availablePanoIds = params.availablePanoIds;
-
         // Attach listeners to dom elements
-        svl.ui.map.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
-        svl.ui.map.viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
-        svl.ui.map.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
-        svl.ui.map.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
+        uiMap.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
+        uiMap.viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
+        uiMap.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
+        uiMap.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
 
-        svl.ui.map.viewControlLayer[0].onselectstart = function () { return false; };
+        uiMap.viewControlLayer[0].onselectstart = function () { return false; };
 
 
         // Add listeners to the SV panorama
@@ -223,7 +215,7 @@ function Map ($, google, turf, params) {
         // For Internet Explore, append an extra canvas in viewControlLayer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            svl.ui.map.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
+            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
     }
 
@@ -321,7 +313,7 @@ function Map ($, google, turf, params) {
         if (!status.lockDisableWalking) {
             // Disable clicking links and changing POV
             hideLinks();
-            svl.ui.map.modeSwitchWalk.css('opacity', 0.5);
+            uiMap.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
         }
         return this;
@@ -353,7 +345,7 @@ function Map ($, google, turf, params) {
         if (!status.lockDisableWalking) {
             // Enable clicking links and changing POV
             showLinks();
-            svl.ui.map.modeSwitchWalk.css('opacity', 1);
+            uiMap.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
         }
         return this;
@@ -396,7 +388,7 @@ function Map ($, google, turf, params) {
      * @returns {*}
      */
     function getPanoramaLayer () {
-        return svl.ui.map.pano.children(':first').children(':first').children(':first').children(':eq(5)');
+        return uiMap.pano.children(':first').children(':first').children(':first').children(':eq(5)');
     }
 
     /**
@@ -449,7 +441,7 @@ function Map ($, google, turf, params) {
      * @returns {*}
      */
     function getLinkLayer () {
-        return svl.ui.map.pano.find('svg').parent();
+        return uiMap.pano.find('svg').parent();
     }
 
     /**
@@ -461,11 +453,10 @@ function Map ($, google, turf, params) {
             var panoramaPosition = svl.panorama.getPosition();
             map.setCenter(panoramaPosition);
 
-            if (svl.canvas) {
-                svl.canvas.clear();
-                svl.canvas.setVisibilityBasedOnLocation('visible', getPanoId());
-                svl.canvas.render2();
-            }
+            _canvas.clear();
+            _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
+            _canvas.render2();
+
 
             // Attach listeners to svl.pointCloud
             if ('pointCloud' in svl && svl.pointCloud) {
@@ -506,47 +497,43 @@ function Map ($, google, turf, params) {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
 
-        if ("canvas" in svl && svl.canvas) {
-            updateCanvas();
-        }
-        if ("compass" in svl) {
-            svl.compass.update();
-        }
-        if ("missionProgress" in svl) {
-            svl.missionProgress.update(currentMission, neighborhood);
-        }
+        updateCanvas();
 
-        if ("taskContainer" in svl) {
-            svl.taskContainer.update();
-
-            // End of the task if the user is close enough to the end point
-            var task = svl.taskContainer.getCurrentTask();
-            if (task) {
-                if (task.isAtEnd(position.lat(), position.lng(), 25)) {
-                    // Finish a task and get a new task
-                    svl.taskContainer.endTask(task);
-
-
-                    currentMission.pushATaskToTheRoute(task);
-
-
-                    var newTask = svl.taskContainer.nextTask(task);
-                    svl.taskContainer.setCurrentTask(newTask);
-                    
-                    // Check if the interface jumped the user to another discontinuous location. If the user jumped,
-                    // tell them that we moved her to another location in the same neighborhood.
-                    if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-
-                        var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-                        var distanceLeft = distanceLeftFeetOrMiles();
-                        svl.popUpMessage.notify(neighborhoodMessage,
-                            "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                            "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-                    }
-
-                    _moveToTheTaskLocation(newTask);
-                }
+        if (currentMission && neighborhood) {
+            if ("compass" in svl) {
+                svl.compass.update();
             }
+            svl.missionModel.updateMissionProgress(currentMission, neighborhood);
+
+            if ("taskContainer" in svl) {
+                svl.taskContainer.update();
+
+                // End of the task if the user is close enough to the end point
+                var task = svl.taskContainer.getCurrentTask();
+                if (task) {
+                    if (task.isAtEnd(position.lat(), position.lng(), 25)) {
+                        // Finish a task and get a new task
+                        svl.taskContainer.endTask(task);
+                        currentMission.pushATaskToTheRoute(task);
+                        var newTask = svl.taskContainer.nextTask(task);
+                        svl.taskContainer.setCurrentTask(newTask);
+
+                        // Check if the interface jumped the user to another discontinuous location. If the user jumped,
+                        // tell them that we moved her to another location in the same neighborhood.
+                        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+
+                            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+                            var distanceLeft = distanceLeftFeetOrMiles();
+                            svl.popUpMessage.notify(neighborhoodMessage,
+                                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+                        }
+
+                        _moveToTheTaskLocation(newTask);
+                    }
+                }
+        }
+
         }
 
         // Set the heading angle when the user is dropped to the new position
@@ -564,7 +551,7 @@ function Map ($, google, turf, params) {
      */
     function handlerPovChange () {
         // This is a callback function that is fired when pov is changed
-        if ("canvas" in svl && svl.canvas) { updateCanvas(); }
+        updateCanvas();
         if ("compass" in svl) { svl.compass.update(); }
     }
 
@@ -626,7 +613,7 @@ function Map ($, google, turf, params) {
             // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
             if (!svl.keyboard.isShiftDown()) {
                 setViewControlLayerCursor('OpenHand');
-                // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
+                // uiMap.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
             } else {
                 setViewControlLayerCursor('ZoomOut');
             }
@@ -634,54 +621,53 @@ function Map ($, google, turf, params) {
 
         currTime = new Date().getTime();
 
-        if ('canvas' in svl && svl.canvas) {
-            var point = svl.canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-            if (point && point.className === "Point") {
-                var path = point.belongsTo(),
-                    selectedLabel = path.belongsTo(),
-                    canvasCoordinate = point.getCanvasCoordinate(getPov());
+        var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        if (point && point.className === "Point") {
+            var path = point.belongsTo(),
+                selectedLabel = path.belongsTo(),
+                canvasCoordinate = point.getCanvasCoordinate(getPov());
 
-                svl.canvas.setCurrentLabel(selectedLabel);
-                if ('contextMenu' in svl) {
-                    svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
-                        targetLabel: selectedLabel,
-                        targetLabelColor: selectedLabel.getProperty("labelFillStyle")
-                    });
-                }
-            } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
-                // Double click
-                svl.tracker.push('ViewControl_DoubleClick');
-                if (!status.disableClickZoom) {
+            _canvas.setCurrentLabel(selectedLabel);
+            if ('contextMenu' in svl) {
+                svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
+                    targetLabel: selectedLabel,
+                    targetLabelColor: selectedLabel.getProperty("labelFillStyle")
+                });
+            }
+        } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
+            // Double click
+            svl.tracker.push('ViewControl_DoubleClick');
+            if (!status.disableClickZoom) {
 
-                    if (svl.keyboard.isShiftDown()) {
-                        // If Shift is down, then zoom out with double click.
-                        svl.zoomControl.zoomOut();
-                        svl.tracker.push('ViewControl_ZoomOut');
-                    } else {
-                        // If Shift is up, then zoom in wiht double click.
-                        svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
-                        svl.tracker.push('ViewControl_ZoomIn');
-                    }
+                if (svl.keyboard.isShiftDown()) {
+                    // If Shift is down, then zoom out with double click.
+                    svl.zoomControl.zoomOut();
+                    svl.tracker.push('ViewControl_ZoomOut');
                 } else {
-                    // Double click to walk. First check whether Street View is available at the point where user has
-                    // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
-                    // then jump to the scene
-                    if (!status.disableWalking) {
-                        var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
-                            latlng = getPosition(),
-                            newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
-                        if (newLatlng) {
-                            var distance = svl.util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                            if (distance < STREETVIEW_MAX_DISTANCE) {
-                                svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                    if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
-                                });
-                            }
+                    // If Shift is up, then zoom in wiht double click.
+                    svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
+                    svl.tracker.push('ViewControl_ZoomIn');
+                }
+            } else {
+                // Double click to walk. First check whether Street View is available at the point where user has
+                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
+                // then jump to the scene
+                if (!status.disableWalking) {
+                    var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
+                        latlng = getPosition(),
+                        newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
+                    if (newLatlng) {
+                        var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
+                        if (distance < STREETVIEW_MAX_DISTANCE) {
+                            svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                            });
                         }
                     }
                 }
             }
         }
+
         mouseStatus.prevMouseUpTime = currTime;
     }
 
@@ -708,16 +694,6 @@ function Map ($, google, turf, params) {
             hideLinks();
         }
 
-        // if (mouseStatus.isLeftDown) {
-        //     setViewControlLayerCursor('ClosedHand');
-        // } else {
-        //     if (!svl.keyboard.isShiftDown()) {
-        //         setViewControlLayerCursor('OpenHand');
-        //         // svl.ui.map.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-        //     } else {
-        //         setViewControlLayerCursor('ZoomOut');
-        //     }
-        // }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
@@ -735,32 +711,31 @@ function Map ($, google, turf, params) {
         }
 
         // Show label delete menu
-        if ('canvas' in svl && svl.canvas) {
-            var item = svl.canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
+            var item = _canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
             if (item && item.className === "Point") {
                 var path = item.belongsTo();
                 var selectedLabel = path.belongsTo();
 
-                svl.canvas.setCurrentLabel(selectedLabel);
-                svl.canvas.showLabelTag(selectedLabel);
-                svl.canvas.clear();
-                svl.canvas.render2();
+                _canvas.setCurrentLabel(selectedLabel);
+                _canvas.showLabelTag(selectedLabel);
+                _canvas.clear();
+                _canvas.render2();
             } else if (item && item.className === "Label") {
                 var selectedLabel = item;
-                svl.canvas.setCurrentLabel(selectedLabel);
-                svl.canvas.showLabelTag(selectedLabel);
+                _canvas.setCurrentLabel(selectedLabel);
+                _canvas.showLabelTag(selectedLabel);
             } else if (item && item.className === "Path") {
                 var label = item.belongsTo();
-                svl.canvas.clear();
-                svl.canvas.render2();
-                svl.canvas.showLabelTag(label);
+                _canvas.clear();
+                _canvas.render2();
+                _canvas.showLabelTag(label);
             }
             else {
                 // canvas.hideDeleteLabel();
-                svl.canvas.showLabelTag(undefined);
-                svl.canvas.setCurrentLabel(undefined);
+                _canvas.showLabelTag(undefined);
+                _canvas.setCurrentLabel(undefined);
             }
-        }
+
 
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
@@ -797,11 +772,11 @@ function Map ($, google, turf, params) {
     function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
         var pc = svl.pointCloud.getPointCloud(getPanoId());
         if (pc) {
-            var p = svl.util.scaleImageCoordinate(imageX, imageY, 1 / 26),
+            var p = util.scaleImageCoordinate(imageX, imageY, 1 / 26),
                 idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
                 dx = pc.pointCloud[idx],
                 dy = pc.pointCloud[idx + 1],
-                delta = svl.util.math.latlngOffset(lat, dx, dy);
+                delta = util.math.latlngOffset(lat, dx, dy);
             return { lat: lat + delta.dlat, lng: lng + delta.dlng };
         } else {
             return null;
@@ -814,7 +789,7 @@ function Map ($, google, turf, params) {
      */
     function initStreetView () {
         // Initialize the Street View interface
-        var numPath = svl.ui.map.viewControlLayer.find("path").length;
+        var numPath = uiMap.viewControlLayer.find("path").length;
         if (numPath !== 0) {
             status.svLinkArrowsLoaded = true;
             window.clearTimeout(_streetViewInit);
@@ -859,13 +834,13 @@ function Map ($, google, turf, params) {
     function makeLinksClickable () {
         // Bring the layer with arrows forward.
         var $links = getLinkLayer();
-        svl.ui.map.viewControlLayer.append($links);
+        uiMap.viewControlLayer.append($links);
 
         if (properties.browser === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
-            svl.ui.map.viewControlLayer.append(svl.ui.map.canvas);
+            uiMap.viewControlLayer.append(uiMap.canvas);
         } else if (properties.browser === 'msie') {
-            svl.ui.map.viewControlLayer.insertBefore(svl.ui.map.drawingLayer);
+            uiMap.viewControlLayer.insertBefore(uiMap.drawingLayer);
         }
     }
 
@@ -873,11 +848,12 @@ function Map ($, google, turf, params) {
      *
      */
     function modeSwitchLabelClick () {
-        svl.ui.map.drawingLayer.css('z-index','1');
-        svl.ui.map.viewControlLayer.css('z-index', '0');
-        // svl.ui.map.streetViewHolder.append(svl.ui.map.drawingLayer);
+        uiMap.drawingLayer.css('z-index','1');
+        uiMap.viewControlLayer.css('z-index', '0');
 
-        if (properties.browser === 'mozilla') { svl.ui.map.drawingLayer.append(svl.ui.map.canvas); }
+        if (properties.browser === 'mozilla') {
+            uiMap.drawingLayer.append(uiMap.canvas);
+        }
         hideLinks();
     }
 
@@ -885,8 +861,8 @@ function Map ($, google, turf, params) {
      * This function brings a div element for drawing labels in front of
      */
     function modeSwitchWalkClick () {
-        svl.ui.map.viewControlLayer.css('z-index', '1');
-        svl.ui.map.drawingLayer.css('z-index','0');
+        uiMap.viewControlLayer.css('z-index', '1');
+        uiMap.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
             // Show the link arrows on top of the panorama and make links clickable
             showLinks();
@@ -981,12 +957,12 @@ function Map ($, google, turf, params) {
      * Update the canvas
      */
     function updateCanvas () {
-        svl.canvas.clear();
+        _canvas.clear();
         if (status.currentPanoId !== getPanoId()) {
-            svl.canvas.setVisibilityBasedOnLocation('visible', getPanoId());
+            _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
         }
         status.currentPanoId = getPanoId();
-        svl.canvas.render2();
+        _canvas.render2();
     }
 
     /**
@@ -996,16 +972,16 @@ function Map ($, google, turf, params) {
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
-                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
+                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
                 break;
             case 'OpenHand':
-                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
+                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
                 break;
             case 'ClosedHand':
-                svl.ui.map.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
+                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
                 break;
             default:
-                svl.ui.map.viewControlLayer.css("cursor", "default");
+                uiMap.viewControlLayer.css("cursor", "default");
         }
     }
 
@@ -1014,55 +990,18 @@ function Map ($, google, turf, params) {
      * @param delay
      */
     function showLinks (delay) {
-        // Show links
-
         // This is kind of redundant, but as long as the link arrows have not been
         // moved to user control layer, keep calling the modeSwitchWalkClick()
         // to bring arrows to the top layer. Once loaded, move svLinkArrowsLoaded to true.
         if (!status.svLinkArrowsLoaded) {
-            var numPath = svl.ui.map.viewControlLayer.find("path").length;
+            var numPath = uiMap.viewControlLayer.find("path").length;
             if (numPath === 0) {
                 makeLinksClickable();
             } else {
                 status.svLinkArrowsLoaded = true;
             }
         }
-
-        if (status.hideNonavailablePanoLinks &&
-            status.availablePanoIds) {
-            $.each($('path'), function (i, v) {
-                if ($(v).attr('pano')) {
-                    var panoId = $(v).attr('pano');
-                    var idx = status.availablePanoIds.indexOf(panoId);
-
-                    if (idx === -1) {
-                        $(v).prev().prev().remove();
-                        $(v).prev().remove();
-                        $(v).remove();
-                    } else {
-                        //if (properties.browser === 'chrome') {
-                        // Somehow chrome does not allow me to select path
-                        // and fadeOut. Instead, I'm just manipulating path's style
-                        // and making it hidden.
-                        $(v).prev().prev().css('visibility', 'visible');
-                        $(v).prev().css('visibility', 'visible');
-                        $(v).css('visibility', 'visible');
-                    }
-                }
-            });
-        } else {
-            $(".gmnoprint path").css('visibility', 'visible');
-            // if (properties.browser === 'chrome') {
-            //     // Somehow chrome does not allow me to select path
-            //     // and fadeOut. Instead, I'm just manipulating path's style
-            //     // and making it hidden.
-            //     // $('path').css('visibility', 'visible');
-            //     $(".gmnoprint path").css('visibility', 'visible');
-            // } else {
-            //     // $('path').css('visibility', 'visible');
-            //     $(".gmnoprint path").css('visibility', 'visible');
-            // }
-        }
+        $(".gmnoprint path").css('visibility', 'visible');
     }
 
     /**

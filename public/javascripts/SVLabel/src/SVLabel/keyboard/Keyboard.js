@@ -1,13 +1,11 @@
 /**
  * A Keyboard module.
  *
- * Todo. Get rid of the dependency to svl.
- * @param $ jQuery
+
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function Keyboard ($, canvas, contextMenu, ribbon, uiContextMenu, zoomControl, onboarding) {
+function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl) {
     var self = {
             className : 'Keyboard'
         };
@@ -100,7 +98,7 @@ function Keyboard ($, canvas, contextMenu, ribbon, uiContextMenu, zoomControl, o
      * @private
      */
     function documentKeyUp (e) {
-        if (onboarding && onboarding.isOnboarding()) {
+        if (svl.isOnboarding()) {
             // Don't allow users to use keyboard shortcut during the onboarding.
             return;
         }
@@ -212,13 +210,10 @@ function Keyboard ($, canvas, contextMenu, ribbon, uiContextMenu, zoomControl, o
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
                     if (status.shiftDown) {
                         // Zoom out
-                        if ("zoomControl" in svl) {
-                            zoomControl.zoomOut();
-                        }
+                        zoomControl.zoomOut();
                     } else {
                         // Zoom in
-                        if ("zoomControl" in svl)
-                            zoomControl.zoomIn();
+                        zoomControl.zoomIn();
                     }
             }
         }

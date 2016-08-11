@@ -1,5 +1,5 @@
-function MissionStatus () {
-    var self = { className: "MissionStatus" };
+function StatusFieldMission () {
+    var self = { className: "StatusFieldMission" };
 
     // These are messages that are shown under the "Current Mission" in the status pane. The object's keys correspond to
     // the "label"s of missions (e.g., "initial-mission"). Substitute __PLACEHOLDER__ depending on each mission.

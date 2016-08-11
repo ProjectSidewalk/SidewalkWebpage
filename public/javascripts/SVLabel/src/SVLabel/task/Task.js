@@ -46,8 +46,8 @@ function Task (turf, geojson, currentLat, currentLng) {
 
         if (currentLat && currentLng) {
             // Continuing from the previous task (i.e., currentLat and currentLng exist).
-            var d1 = svl.util.math.haversine(lat1, lng1, currentLat, currentLng),
-                d2 = svl.util.math.haversine(lat2, lng2, currentLat, currentLng);
+            var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
+                d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
 
             if (d2 < d1) reverseCoordinates();
         }
@@ -300,7 +300,7 @@ function Task (turf, geojson, currentLat, currentLng) {
                 lngEnd = _geojson.features[0].geometry.coordinates[len][0];
 
             if (!threshold) threshold = 10; // 10 meters
-            d = svl.util.math.haversine(lat, lng, latEnd, lngEnd);
+            d = util.math.haversine(lat, lng, latEnd, lngEnd);
             return d < threshold;
         }
     }

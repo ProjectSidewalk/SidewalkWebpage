@@ -1,4 +1,4 @@
-function PanoramaContainer (google) {
+function PanoramaContainer () {
     var self = { className: "PanoramaContainer" },
         container = {};
 

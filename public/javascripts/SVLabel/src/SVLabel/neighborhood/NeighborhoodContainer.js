@@ -5,103 +5,74 @@
  * @constructor
  * @memberof svl
  */
-function NeighborhoodContainer ($, parameters) {
-    var self = { className: "NeighborhoodContainer" },
-        neighborhoods = {},
-        status = {
-            currentNeighborhood: null
-        };
+function NeighborhoodContainer (neighborhoodModel) {
+    var self = this;
+    this._neighborhoodModel = neighborhoodModel;
+    this._neighborhoods = {};
+    this._status = {
+        currentNeighborhood: null
+    };
 
-    function _init (parameters) {
-        parameters = parameters || {};
-        if ("currentNeighborhood" in parameters) {
-            setStatus("currentNeighborhood", parameters.currentNeighborhood);
-        }
-    }
+    this._neighborhoodModel.on("NeighborhoodContainer:add", function (neighborhood) {
+        self.add(neighborhood);
+    });
 
 
-    /** Add the given neighborhood to the container */
-    function add(neighborhood) {
-        var id = neighborhood.getProperty("regionId");
-        neighborhoods[id] = neighborhood;
-    }
 
-    /** Get a neighborhood instance of the given id */
-    function get (id) {
-        return id in neighborhoods ? neighborhoods[id] : null;
-    }
-
-    function getCurrentNeighborhood () {
-        return getStatus("currentNeighborhood");
-    }
-    
-    function getNextRegionId (currentRegionId, availableRegionIds) {
-        var indexOfNextRegion = availableRegionIds.indexOf(currentRegionId.toString()) + 1;
-        if (indexOfNextRegion < 0) { 
-            indexOfNextRegion = 0; 
-        }
-        return availableRegionIds[indexOfNextRegion];
-    }
-
-    /** Return a list of neighborhood ids */
-    function getRegionIds () {
-        return Object.keys(neighborhoods).map(function (x) { return parseInt(x, 10); });
-    }
-
-    function getStatus (key) {
-        return status[key];
-    }
-
-    function moveToANewRegion (regionId) {
-        regionId = parseInt(regionId, 10);
-        var url = "/neighborhood/new";
-        $.ajax({
-            async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'post',
-            data: JSON.stringify({"region_id": regionId}),
-            dataType: 'json',
-            success: function (result) {
-
-            },
-            error: function (result) {
-                console.error(result);
-            }
-        });
-    }
-
-    function setCurrentNeighborhood (neighborhood) {
-        setStatus("currentNeighborhood", neighborhood);
-    }
 
     /**
      * Set the status
      * @param key
      * @param value
      */
-    function setStatus (key, value) {
-        status[key] = value;
-        
-        if (key == "currentNeighborhood" && "neighborhoodStatus" in svl && svl.neighborhoodStatus &&
-        typeof value == "object" && "className" in value && value.className == "Neighborhood") {
-            var href = "/contribution/" + svl.user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
-            svl.neighborhoodStatus.setHref(href)
-        }
-    }
-
-
-    _init(parameters);
-
-    self.add = add;
-    self.get = get;
-    self.getCurrentNeighborhood = getCurrentNeighborhood;
-    self.getNextRegionId = getNextRegionId;
-    self.getRegionIds = getRegionIds;
-    self.getStatus = getStatus;
-    self.moveToANewRegion = moveToANewRegion;
-    self.setCurrentNeighborhood = setCurrentNeighborhood;
-    self.setStatus = setStatus;
-
-    return self;
+    // function setStatus (key, value) {
+    //     _status[key] = value;
+    //
+    //     if (key == "currentNeighborhood" && "statusFieldNeighborhood" in svl && svl.statusFieldNeighborhood &&
+    //     typeof value == "object" && "className" in value && value.className == "Neighborhood") {
+    //         var href = "/contribution/" + svl.user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
+    //         statusFieldNeighborhood.setHref(href)
+    //     }
+    // }
 }
+
+
+NeighborhoodContainer.prototype.add = function (neighborhood) {
+    var id = neighborhood.getProperty("regionId");
+    this._neighborhoods[id] = neighborhood;
+};
+
+NeighborhoodContainer.prototype.get = function (neighborhoodId) {
+    return neighborhoodId in this._neighborhoods ? this._neighborhoods[neighborhoodId] : null;
+};
+
+NeighborhoodContainer.prototype.getCurrentNeighborhood = function () {
+    return this.getStatus('currentNeighborhood');
+};
+
+NeighborhoodContainer.prototype.getNextRegionId = function (currentRegionId, availableRegionIds) {
+    currentRegionId = currentRegionId.toString();
+    availableRegionIds = availableRegionIds.map(function (id) { return id.toString(); });
+    var indexOfNextRegion = availableRegionIds.indexOf(currentRegionId) + 1;
+    if (indexOfNextRegion < 0 || indexOfNextRegion == availableRegionIds.length) {
+        indexOfNextRegion = 0;
+    }
+    return availableRegionIds[indexOfNextRegion];
+};
+
+/** Return a list of neighborhood ids */
+NeighborhoodContainer.prototype.getRegionIds = function () {
+    return Object.keys(this._neighborhoods).map(function (x) { return parseInt(x, 10); });
+};
+
+NeighborhoodContainer.prototype.getStatus = function (key) {
+    return this._status[key];
+};
+
+NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value) {
+    this.setStatus('currentNeighborhood', value);
+};
+
+NeighborhoodContainer.prototype.setStatus = function (key, value) {
+    this._status[key] = value;
+};

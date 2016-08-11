@@ -1,6 +1,5 @@
 /**
  * ModalComment module.
- * @param form
  * @param uiLeftColumn
  * @param uiModalComment
  * @param modalModel
@@ -8,14 +7,13 @@
  * @constructor
  * @memberof svl
  */
-function ModalComment (svl, form, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel) {
+function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel) {
     var self = { className: 'ModalComment'},
         status = {
             disableClickOK: true
         },
         blinkInterval;
 
-    var _form = form;
     var _modalModel = modalModel;
     var _uiModalComment = uiModalComment;
     var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
@@ -123,10 +121,23 @@ function ModalComment (svl, form, tracker, ribbon, taskContainer, uiLeftColumn, 
 
     /**
      * Submit the comment.
-     * Todo.
      */
     function _submitComment (data) {
-        form.postJSON("/audit/comment", data)
+        var url = "/audit/comment",
+            async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
     }
 
     function _prepareCommentData (panoramaId, lat, lng, pov, task) {

@@ -1,5 +1,4 @@
-var svl = svl || {};
-svl.util = svl.util || {};
+var util = util || {};
 
 // A cross-browser function to capture a mouse position
 function mouseposition (e, dom) {
@@ -15,7 +14,7 @@ function mouseposition (e, dom) {
     //}
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
-svl.util.mouseposition = mouseposition;
+util.mouseposition = mouseposition;
 
 
 // Object prototype
@@ -77,7 +76,7 @@ function getURLParameter(argName) {
     r = (r.length == 1 ? r[0] : '')
     return r;
 }
-svl.util.getURLParameter = getURLParameter;
+util.getURLParameter = getURLParameter;
 
 // Array Remove - By John Resig (MIT Licensed)
 // http://stackoverflow.com/questions/500606/javascript-array-delete-elements
@@ -153,13 +152,13 @@ function getBrowser() {
     }
     return undefined;
 }
-svl.util.getBrowser = getBrowser;
+util.getBrowser = getBrowser;
 
 function getBrowserVersion () {
     // Return a browser version
     return $.browser.version;
 }
-svl.util.getBrowserVersion = getBrowserVersion;
+util.getBrowserVersion = getBrowserVersion;
 
 function getOperatingSystem () {
     var OSName="Unknown OS";
@@ -169,7 +168,7 @@ function getOperatingSystem () {
     if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
     return OSName;
 }
-svl.util.getOperatingSystem = getOperatingSystem;
+util.getOperatingSystem = getOperatingSystem;
 
 /**
  * Given an image coordinate (x, y), return a scaled coordinate. For example, to
@@ -183,7 +182,7 @@ function scaleImageCoordinate(x, y, r) {
     var y_ = (3328 - y) * r;
     return {x: x_, y: y_};
 }
-svl.util.scaleImageCoordinate = scaleImageCoordinate;
+util.scaleImageCoordinate = scaleImageCoordinate;
 
 function sleep(miliseconds) {
     var end = false;
@@ -210,5 +209,5 @@ function shuffle(array) {
 
     return copy;
 }
-svl.util.shuffle = shuffle;
+util.shuffle = shuffle;
 

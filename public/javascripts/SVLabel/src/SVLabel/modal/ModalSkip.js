@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function ModalSkip ($) {
+function ModalSkip () {
     var self = { className : 'ModalSkip' },
         status = {
             disableClickOK: true

@@ -346,7 +346,7 @@ function Admin (_, $, c3, turf) {
             });
         }
 
-        $.getJSON("/geometry/neighborhoods", function (data) {
+        $.getJSON("/neighborhoods", function (data) {
             L.geoJson(data, {
                 style: function (feature) {
                     return $.extend(true, {}, neighborhoodPolygonStyle);

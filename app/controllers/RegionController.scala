@@ -24,6 +24,10 @@ import collection.immutable.Seq
 class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+    * Assign a new neighborhood to audit
+    * @return
+    */
   def setANewRegion = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     case class RegionId(regionId:Int)
     implicit val regionIdReads: Reads[RegionId] = (JsPath \ "region_id").read[Int].map(RegionId(_))
