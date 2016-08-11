@@ -416,7 +416,7 @@ function Main ($, d3, google, turf, params) {
         });
 
         var modalMissionCompelteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);
+        svl.modalMissionComplete = new ModalMissionComplete($, d3, L, svl.missionContainer, svl.taskContainer, modalMissionCompelteMap, svl.ui.modalMissionComplete, svl.modalModel);
         svl.modalMissionComplete.hide();
         svl.modalComment = new ModalComment(svl, svl.form, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
 

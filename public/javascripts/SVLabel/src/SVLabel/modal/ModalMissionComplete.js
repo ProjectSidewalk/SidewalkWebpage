@@ -7,7 +7,7 @@
  * @constructor
  * @memberof svl
  */
-function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteMap, uiModalMissionComplete, modalModel) {
+function ModalMissionComplete ($, d3, L, missionContainer, taskContainer, modalMissionCompleteMap, uiModalMissionComplete, modalModel) {
     var self = { className : 'ModalMissionComplete'},
         properties = {
             boxTop: 180,
@@ -70,6 +70,7 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
         .data([""])
         .enter().append("text")
+        .attr('id', 'barText')
         .attr("x", 3)
         .attr("y", 15)
         .attr("dx", 0)
@@ -112,19 +113,21 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
      * @private
      */
     function _updateNeighborhoodDistanceBarGraph(missionDistanceRate, auditedDistanceRate) {
-       horizontalBarPreviousContribution.attr("width", 0)
+       horizontalBarPreviousContribution.attr('id', 'missionDist')
+           .attr("width", 0)
            .transition()
            .delay(200)
            .duration(800)
            .attr("width", auditedDistanceRate * svgCoverageBarWidth);
        
-       horizontalBarMission.attr("width", 0)
+       horizontalBarMission.attr('id', 'auditedDist')
+           .attr("width", 0)
            .attr("x", auditedDistanceRate * svgCoverageBarWidth)
            .transition()
            .delay(1000)
            .duration(500)
            .attr("width", missionDistanceRate * svgCoverageBarWidth);
-       horizontalBarMissionLabel.text(parseInt(auditedDistanceRate * 100, 10) + "%");
+       horizontalBarMissionLabel.text(parseInt((auditedDistanceRate + missionDistanceRate) * 100, 10) + "%");
     }
 
     /**
@@ -188,9 +191,9 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
 
-        var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+        var completedTasks = taskContainer.getCompletedTasks(regionId);
         var missionTasks = mission.getRoute();
-        var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
+        var totalLineDistance = taskContainer.totalLineDistanceInARegion(regionId, unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
         var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
 
@@ -204,7 +207,7 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
         var neighborhoodName = neighborhood.getProperty("name");
         setMissionTitle(neighborhoodName);
 
-        modalMissionCompleteMap.update(mission, neighborhood);
+        modalMissionCompleteMap.update(neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
 
         _updateTheMissionCompleteMessage();
@@ -266,7 +269,8 @@ function ModalMissionComplete ($, d3, L, missionContainer, modalMissionCompleteM
 
     _init();
 
-
+    self.getProperty = getProperty;
+    self.setMissionTitle = setMissionTitle;
     self._updateTheMissionCompleteMessage = _updateTheMissionCompleteMessage;
     self._updateNeighborhoodDistanceBarGraph = _updateNeighborhoodDistanceBarGraph;
     self._updateMissionProgressStatistics = _updateMissionProgressStatistics;

@@ -22,7 +22,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
         var svg = d3.select(leafletMap.getPanes().overlayPane).append("svg"),
 
-            g = svg.append("g").attr("class", "leaflet-zoom-hide");
+        g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
         var transform = d3.geo.transform({
             point: projectPoint
@@ -187,7 +187,7 @@ ModalMissionCompleteMap.prototype.hide = function () {
     $(".leaflet-zoom-animated path").css('visibility', 'hidden');
 };
 
-ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
+ModalMissionCompleteMap.prototype.update = function (neighborhood) {
     // Focus on the current region on the Leaflet map
     var center = neighborhood.center();
     var neighborhoodGeom = neighborhood.getGeoJSON();

@@ -347,7 +347,9 @@ function Mission(parameters) {
             return getProperty("distance");
         }
     }
-
+    function setLabelCountsAtCompletion(labelCounts){
+        labelCountsAtCompletion = labelCounts;
+    }
     _init(parameters);
 
     self.complete = complete;
@@ -361,6 +363,7 @@ function Mission(parameters) {
     self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.remainingAuditDistanceTillComplete = remainingAuditDistanceTillComplete;
     self.setProperty = setProperty;
+    self.setLabelCountsAtCompletion = setLabelCountsAtCompletion;
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
     self.totalLineDistance = totalLineDistance;
