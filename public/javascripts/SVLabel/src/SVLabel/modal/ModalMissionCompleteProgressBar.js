@@ -20,6 +20,7 @@ function ModalMissionCompleteProgressBar () {
     var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
         .data([0])
         .enter().append("rect")
+        .attr('id', 'blueBar')
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(49,130,189,1)")
@@ -30,6 +31,7 @@ function ModalMissionCompleteProgressBar () {
     var horizontalBarMission = gBarChart2.selectAll("rect")
         .data([0])
         .enter().append("rect")
+        .attr('id', 'greenBar')
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(100,240,110,1)")
@@ -38,6 +40,7 @@ function ModalMissionCompleteProgressBar () {
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
         .data([""])
         .enter().append("text")
+        .attr('id', 'barText')
         .attr("x", 3)
         .attr("y", 15)
         .attr("dx", 0)
@@ -67,6 +70,6 @@ function ModalMissionCompleteProgressBar () {
             .delay(1000)
             .duration(500)
             .attr("width", missionDistanceRate * svgCoverageBarWidth);
-        horizontalBarMissionLabel.text(parseInt(auditedDistanceRate * 100, 10) + "%");
+        horizontalBarMissionLabel.text(parseInt((auditedDistanceRate + missionDistanceRate) * 100, 10) + "%");
     };
 }
