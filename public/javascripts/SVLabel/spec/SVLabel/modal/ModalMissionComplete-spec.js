@@ -1,5 +1,5 @@
 describe("ModalMissionComplete", function () {
-    var modal;
+    var modalMissionComplete;
     var uiModalMissionComplete;
     var $uiModalMissionCompleteFixture;
     var missionContainerMock;
@@ -149,6 +149,7 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
         this.uiModalMissionComplete = uiModalMissionComplete;
 
+        var modalModel = _.clone(Backbone.Events);
         modalMissionCompleteBarMock = {
             update: function () {}
         };
@@ -161,7 +162,7 @@ describe("ModalMissionComplete", function () {
         };
         taskContainerMock = new TaskContainerMock();
         missionContainerMock = new MissionContainerMock();
-        modal = new ModalMissionComplete( {}, missionContainerMock, taskContainerMock, modalMissionCompleteMapMock, modalMissionCompleteBarMock, uiModalMissionComplete, Backbone.Events);
+        modalMissionComplete = new ModalMissionComplete( {}, missionContainerMock, taskContainerMock, modalMissionCompleteMapMock, modalMissionCompleteBarMock, uiModalMissionComplete, modalModel);
 
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;
@@ -179,12 +180,12 @@ describe("ModalMissionComplete", function () {
 
     describe("`hide` method", function () {
         it("should hide a modal window", function () {
-            modal.hide();
+            modalMissionComplete.hide();
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
 
-            modal.show(mission, neighborhood);
+            modalMissionComplete.show(mission, neighborhood);
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('visible');
@@ -193,20 +194,20 @@ describe("ModalMissionComplete", function () {
 
     describe("`_updateMissionProgressStatistics` method", function () {
         it("should set the distance traveled in the current mission", function () {
-            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.missionDistance.text()).toBe("0.4 miles");
         });
 
         it("should set the cumulative distance traveled in the current neighborhood", function () {
-            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.totalAuditedDistance.text()).toBe("0.8 miles");
         });
 
         it("should set the remaining distance to audit in the current neighborhood", function () {
-            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("9.2 miles");
 
-            modal._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("0.0 miles");
         });
     });
@@ -214,7 +215,7 @@ describe("ModalMissionComplete", function () {
     describe("setMissionTitle method", function () {
         it("should change the text in the title html", function(){
             expect(uiModalMissionComplete.missionTitle.html()).toBe('');
-            modal.setMissionTitle("Test Title");
+            modalMissionComplete.setMissionTitle("Test Title");
             expect(uiModalMissionComplete.missionTitle.html()).toBe("Test Title");
             });
     });
@@ -222,7 +223,7 @@ describe("ModalMissionComplete", function () {
     describe("_updateTheMissionCompleteMessage", function (){
         it("should randomly display a message", function (){
             expect(uiModalMissionComplete.message.html()).toBe('');
-            modal._updateTheMissionCompleteMessage();
+            modalMissionComplete._updateTheMissionCompleteMessage();
             // cant predict which message since it is random
             expect(uiModalMissionComplete.message.html()).not.toBe("");
         });
@@ -230,13 +231,13 @@ describe("ModalMissionComplete", function () {
 
     describe("_updateMissionLabelStatisitcs method ", function(){
         it("label counts should be empty initially", function(){
-            modal.show();
+            modalMissionComplete.show();
             expect(uiModalMissionComplete.curbRampCount.html()).toBe('');
             expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('');
             expect(uiModalMissionComplete.obstacleCount.html()).toBe('');
             expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('');
             expect(uiModalMissionComplete.otherCount.html()).toBe('');
-            modal.hide();
+            modalMissionComplete.hide();
         });
         it("should populate label counts", function () {
             var labelCounts = {
@@ -246,39 +247,39 @@ describe("ModalMissionComplete", function () {
                 "SurfaceProblem": '4',
                 "Other": '2'
             };
-            modal.show();
+            modalMissionComplete.show();
             // label counts when set explicitly
-            modal._updateMissionLabelStatistics(labelCounts.CurbRamp, labelCounts.NoCurbRamp, labelCounts.Obstacle, labelCounts.SurfaceProblem, labelCounts.Other);
+            modalMissionComplete._updateMissionLabelStatistics(labelCounts.CurbRamp, labelCounts.NoCurbRamp, labelCounts.Obstacle, labelCounts.SurfaceProblem, labelCounts.Other);
             expect(uiModalMissionComplete.curbRampCount.html()).toBe('10');
             expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('3');
             expect(uiModalMissionComplete.obstacleCount.html()).toBe('1');
             expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('4');
             expect(uiModalMissionComplete.otherCount.html()).toBe('2');
-            modal.hide();
+            modalMissionComplete.hide();
         });   
     });
 
     describe("update method", function (){
         beforeEach( function () {
-            modal.show();
+            modalMissionComplete.show();
             mission.properties.distanceMi = 0;
             neighborhood.properties.completedLineDistance = 0;
             neighborhood.properties.totalLineDistance = 0;
         });
         afterEach( function () {
-            modal.hide();
+            modalMissionComplete.hide();
         });
         it("should update mission distance statistics", function () {
             mission.properties.distanceMi = 0.1;
             neighborhood.properties.completedLineDistance = 0.3;
             neighborhood.properties.totalLineDistance = 0.7;
-            modal.update(mission, neighborhood);
+            modalMissionComplete.update(mission, neighborhood);
             expect(uiModalMissionComplete.totalAuditedDistance.html()).toBe('0.1 miles');
             expect(uiModalMissionComplete.missionDistance.html()).toBe('0.3 miles');
             expect(uiModalMissionComplete.remainingDistance.html()).toBe('0.4 miles');
         });
         it("should update label counts", function () {
-            modal.update(mission, neighborhood);
+            modalMissionComplete.update(mission, neighborhood);
             expect(uiModalMissionComplete.curbRampCount.html()).toBe('0');
             expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('0');
             expect(uiModalMissionComplete.obstacleCount.html()).toBe('0');
@@ -292,7 +293,7 @@ describe("ModalMissionComplete", function () {
                 "SurfaceProblem": '4',
                 "Other": '2'
             };
-            modal.update(mission, neighborhood);
+            modalMissionComplete.update(mission, neighborhood);
             expect(uiModalMissionComplete.curbRampCount.html()).toBe('10');
             expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('3');
             expect(uiModalMissionComplete.obstacleCount.html()).toBe('1');
@@ -300,7 +301,7 @@ describe("ModalMissionComplete", function () {
             expect(uiModalMissionComplete.otherCount.html()).toBe('2');
         });
         it("should set the mission title", function () {
-            modal.update(mission, neighborhood);
+            modalMissionComplete.update(mission, neighborhood);
             expect(uiModalMissionComplete.missionTitle.html()).toBe('Test Neighborhood');
         });
     });
