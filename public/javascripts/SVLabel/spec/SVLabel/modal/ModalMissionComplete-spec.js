@@ -1,73 +1,134 @@
 describe("ModalMissionComplete", function () {
-    var modalMissionComplete;
-    var modalMissionMock;
+    var modal;
     var uiModalMissionComplete;
     var $uiModalMissionCompleteFixture;
     var missionContainerMock;
     var modalMissionCompleteMapMock;
+    var modalMissionCompleteBarMock;
+    var taskContainerMock;
     var neighborhood;
     var mission;
 
+    // Mocks
+    function MissionMock () {
+        this.properties = {
+            coverage: null,
+            label: null,
+            distance: null,
+            distanceFt: null,
+            distanceMi: null,
+            route: [],
+            labelCount: null
+        };
+    }
+    MissionMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+    MissionMock.prototype.getRoute = function () {
+        return this.properties.route;
+    }
+    MissionMock.prototype.getLabelCount = function () {
+        return this.properties.labelCount;
+    }
+    function NeighborhoodMock() {
+        this.properties = {
+            name: null,
+            regionId: null,
+            completedLineDistance: null,
+            totalLineDistance: null
+        };
+    }
+    NeighborhoodMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+    NeighborhoodMock.prototype.completedLineDistance = function (units) {
+        return this.properties.completedLineDistance;
+    };
+    NeighborhoodMock.prototype.totalLineDistance = function (units) {
+        return this.properties.totalLineDistance;
+    }
+
+    function TaskContainerMock(){
+        this.properties = {
+            completedTasks: [],
+            totalLineDistanceInARegion: null
+        };
+    }
+    TaskContainerMock.prototype.getCompletedTasks = function () {
+        return this.properties.completedTasks;
+    };
+    TaskContainerMock.prototype.totalLineDistanceInARegion = function (regionId, units) {
+        return this.properties.totalLineDistanceInARegion;
+    };
+    function MissionContainerMock(){
+        this.properties = {
+            completedMissions: []
+        };
+    }
+
+    MissionContainerMock.prototype.getCompletedMissions = function (){
+        return this.properties.completedMissions;
+    }
+
     beforeEach(function () {
         $uiModalMissionCompleteFixture = $('<div id="modal-mission-complete-holder"> \
-<div id="modal-mission-complete-background" class="modal-background"></div> \
-<div id="modal-mission-complete-foreground" class="modal-foreground"> \
-<h1>Mission Complete! <span class="normal" id="modal-mission-complete-title"></span></h1> \
-<div class="row"> \
-    <div class="mapbox col-sm-7"> \
-        <div id="modal-mission-complete-map"></div> \
-        <div id="map-legend"> \
-            <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></svg> This Mission</span><br> \
-            <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></svg> Previous Missions</span> \
+        <div id="modal-mission-complete-background" class="modal-background"></div> \
+        <div id="modal-mission-complete-foreground" class="modal-foreground"> \
+        <h1>Mission Complete! <span class="normal" id="modal-mission-complete-title"></span></h1> \
+        <div class="row"> \
+            <div class="mapbox col-sm-7"> \
+                <div id="modal-mission-complete-map"></div> \
+                <div id="map-legend"> \
+                    <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></svg> This Mission</span><br> \
+                    <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></svg> Previous Missions</span> \
+                </div> \
+            </div> \
+            <div class="col-sm-5"> \
+                <p><span id="modal-mission-complete-message"></span></p> \
+                <h3>Mission Labels</h3> \
+                <table class="table"> \
+                    <tr> \
+                        <th class="width-50-percent">Curb Ramp</th> \
+                        <td id="modal-mission-complete-curb-ramp-count" class="col-right"></td> \
+                    </tr> \
+                    <tr> \
+                        <th>Missing Curb Ramp</th> \
+                        <td id="modal-mission-complete-no-curb-ramp-count" class="col-right"></td> \
+                    </tr> \
+                    <tr> \
+                        <th>Obstacle in Path</th> \
+                        <td id="modal-mission-complete-obstacle-count" class="col-right"></td> \
+                    </tr> \
+                    <tr> \
+                        <th>Surface Problem</th> \
+                        <td id="modal-mission-complete-surface-problem-count" class="col-right"></td> \
+                    </tr> \
+                    <tr> \
+                        <th>Other</th> \
+                        <td id="modal-mission-complete-other-count" class="col-right"></td> \
+                    </tr> \
+                </table> \
+                <h3>Neighborhood Progress</h3> \
+                <div id="modal-mission-complete-complete-bar"></div> \
+                <table class="table"> \
+                <tr> \
+                    <th>Audited in this mission</th> \
+                    <td id="modal-mission-complete-mission-distance" class="col-right"></td> \
+                </tr> \
+                <tr> \
+                    <th>Audited in this neighborhood</th> \
+                    <td id="modal-mission-complete-total-audited-distance" class="col-right"></td> \
+                </tr> \
+                <tr> \
+                    <th>Remaining in this neighborhood</th> \
+                    <td id="modal-mission-complete-remaining-distance" class="col-right"></td> \
+                </tr> \
+            </table> \
+            <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button> \
+            </div> \
         </div> \
-    </div> \
-    <div class="col-sm-5"> \
-        <p><span id="modal-mission-complete-message"></span></p> \
-        <h3>Mission Labels</h3> \
-        <table class="table"> \
-            <tr> \
-                <th class="width-50-percent">Curb Ramp</th> \
-                <td id="modal-mission-complete-curb-ramp-count" class="col-right"></td> \
-            </tr> \
-            <tr> \
-                <th>Missing Curb Ramp</th> \
-                <td id="modal-mission-complete-no-curb-ramp-count" class="col-right"></td> \
-            </tr> \
-            <tr> \
-                <th>Obstacle in Path</th> \
-                <td id="modal-mission-complete-obstacle-count" class="col-right"></td> \
-            </tr> \
-            <tr> \
-                <th>Surface Problem</th> \
-                <td id="modal-mission-complete-surface-problem-count" class="col-right"></td> \
-            </tr> \
-            <tr> \
-                <th>Other</th> \
-                <td id="modal-mission-complete-other-count" class="col-right"></td> \
-            </tr> \
-        </table> \
-        <h3>Neighborhood Progress</h3> \
-        <div id="modal-mission-complete-complete-bar"></div> \
-        <table class="table"> \
-        <tr> \
-            <th>Audited in this mission</th> \
-            <td id="modal-mission-complete-mission-distance" class="col-right"></td> \
-        </tr> \
-        <tr> \
-            <th>Audited in this neighborhood</th> \
-            <td id="modal-mission-complete-total-audited-distance" class="col-right"></td> \
-        </tr> \
-        <tr> \
-            <th>Remaining in this neighborhood</th> \
-            <td id="modal-mission-complete-remaining-distance" class="col-right"></td> \
-        </tr> \
-    </table> \
-    <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button> \
-    </div> \
-</div> \
-</div> \
-</div>');
-
+        </div> \
+        </div>');
 
         uiModalMissionComplete = {};
         uiModalMissionComplete.holder = $uiModalMissionCompleteFixture;
@@ -76,6 +137,7 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.missionTitle = $uiModalMissionCompleteFixture.find("#modal-mission-complete-title");
         uiModalMissionComplete.message = $uiModalMissionCompleteFixture.find("#modal-mission-complete-message");
         uiModalMissionComplete.map = $uiModalMissionCompleteFixture.find("#modal-mission-complete-map");
+        uiModalMissionComplete.completeBar = $uiModalMissionCompleteFixture.find("#modal-mission-complete-complete-bar");
         uiModalMissionComplete.closeButton = $uiModalMissionCompleteFixture.find("#modal-mission-complete-close-button");
         uiModalMissionComplete.totalAuditedDistance = $uiModalMissionCompleteFixture.find("#modal-mission-complete-total-audited-distance");
         uiModalMissionComplete.missionDistance = $uiModalMissionCompleteFixture.find("#modal-mission-complete-mission-distance");
@@ -85,20 +147,21 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.obstacleCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-obstacle-count");
         uiModalMissionComplete.surfaceProblemCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-surface-problem-count");
         uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
+        this.uiModalMissionComplete = uiModalMissionComplete;
 
-        var modalModel = _.clone(Backbone.Events);
-        modalModel.triggerMissionCompleteClosed = function () {
-            this.trigger("ModalMissionComplete:close");
+        modalMissionCompleteBarMock = {
+            update: function () {}
         };
 
         modalMissionCompleteMapMock = {
             hide: function () {},
-            show: function () {}
+            show: function () {},
+            update: function () {},
+            updateStreetSegments: function (a, b) {}
         };
-        var modalMissionCompleteProgressBarMock = {};
-        var svl = {};
-        modalMissionComplete = new ModalMissionComplete(svl, missionContainerMock, modalMissionCompleteMapMock,
-            modalMissionCompleteProgressBarMock, uiModalMissionComplete, modalModel);
+        taskContainerMock = new TaskContainerMock();
+        missionContainerMock = new MissionContainerMock();
+        modal = new ModalMissionComplete( {}, missionContainerMock, taskContainerMock, modalMissionCompleteMapMock, modalMissionCompleteBarMock, uiModalMissionComplete, Backbone.Events);
 
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;
@@ -112,17 +175,16 @@ describe("ModalMissionComplete", function () {
         neighborhood = new NeighborhoodMock();
         neighborhood.properties.name = "Test Neighborhood";
 
-        modalMissionMock = new ModalMissionMock(modalModel)
     });
 
-    describe("`show` method", function () {
-        it("should open a modal window", function () {
-            modalMissionComplete.hide();
+    describe("`hide` method", function () {
+        it("should hide a modal window", function () {
+            modal.hide();
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
 
-            modalMissionComplete.show(mission, neighborhood);
+            modal.show(mission, neighborhood);
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('visible');
@@ -131,73 +193,116 @@ describe("ModalMissionComplete", function () {
 
     describe("`_updateMissionProgressStatistics` method", function () {
         it("should set the distance traveled in the current mission", function () {
-            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.missionDistance.text()).toBe("0.4 miles");
         });
 
         it("should set the cumulative distance traveled in the current neighborhood", function () {
-            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.totalAuditedDistance.text()).toBe("0.8 miles");
         });
 
-        it("should set the remaining distance to audit in the current neighborhodo", function () {
-            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+        it("should set the remaining distance to audit in the current neighborhood", function () {
+            modal._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("9.2 miles");
 
-            modalMissionComplete._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
+            modal._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("0.0 miles");
         });
     });
 
-    // describe("clicking the 'Continue' button", function () {
-    //     beforeEach(function () {
-    //         spyOn(modalMissionComplete, 'hide');
-    //         modalMissionComplete.show();
-    //         uiModalMissionComplete.closeButton.trigger('click');
-    //     });
-    //
-    //     it("should trigger the 'hide' method", function (done) {
-    //         expect(modalMissionComplete.hide).toHaveBeenCalled();
-    //         done();
-    //     });
-    //
-    //     it("should open the modal window for the next mission", function (done) {
-    //         expect(modalMissionMock.isOpen()).toBe(true);
-    //         done();
-    //     });
-    // });
+    describe("setMissionTitle method", function () {
+        it("should change the text in the title html", function(){
+            expect(uiModalMissionComplete.missionTitle.html()).toBe('');
+            modal.setMissionTitle("Test Title");
+            expect(uiModalMissionComplete.missionTitle.html()).toBe("Test Title");
+            });
+    });
 
-    // Mocks
-    function MissionMock () {
-        this.properties = {
-            coverage: null,
-            label: null,
-            distance: null,
-            distanceFt: null,
-            distanceMi: null
-        };
-    }
-
-    MissionMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
-
-    function ModalMissionMock (modalModel) {
-        var self = this;
-        this._status = { isOpen: false };
-        modalModel.on("ModalMissionComplete:close", function (parameters) {
-            self._status.isOpen = true;
+    describe("_updateTheMissionCompleteMessage", function (){
+        it("should randomly display a message", function (){
+            expect(uiModalMissionComplete.message.html()).toBe('');
+            modal._updateTheMissionCompleteMessage();
+            // cant predict which message since it is random
+            expect(uiModalMissionComplete.message.html()).not.toBe("");
         });
-    }
-    ModalMissionMock.prototype.isOpen = function () { return this._status.isOpen; }
+    });
 
-    function NeighborhoodMock() {
-        this.properties = {
-            name: null,
-            regionId: null
-        };
-    }
-    NeighborhoodMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
+    describe("_updateMissionLabelStatisitcs method ", function(){
+        it("label counts should be empty initially", function(){
+            modal.show();
+            expect(uiModalMissionComplete.curbRampCount.html()).toBe('');
+            expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('');
+            expect(uiModalMissionComplete.obstacleCount.html()).toBe('');
+            expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('');
+            expect(uiModalMissionComplete.otherCount.html()).toBe('');
+            modal.hide();
+        });
+        it("should populate label counts", function () {
+            var labelCounts = {
+                "CurbRamp": '10',
+                "NoCurbRamp": '3',
+                "Obstacle": '1',
+                "SurfaceProblem": '4',
+                "Other": '2'
+            };
+            modal.show();
+            // label counts when set explicitly
+            modal._updateMissionLabelStatistics(labelCounts.CurbRamp, labelCounts.NoCurbRamp, labelCounts.Obstacle, labelCounts.SurfaceProblem, labelCounts.Other);
+            expect(uiModalMissionComplete.curbRampCount.html()).toBe('10');
+            expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('3');
+            expect(uiModalMissionComplete.obstacleCount.html()).toBe('1');
+            expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('4');
+            expect(uiModalMissionComplete.otherCount.html()).toBe('2');
+            modal.hide();
+        });   
+    });
+
+    describe("update method", function (){
+        beforeEach( function () {
+            modal.show();
+            mission.properties.distanceMi = 0;
+            neighborhood.properties.completedLineDistance = 0;
+            neighborhood.properties.totalLineDistance = 0;
+        });
+        afterEach( function () {
+            modal.hide();
+        });
+        it("should update mission distance statistics", function () {
+            mission.properties.distanceMi = 0.1;
+            neighborhood.properties.completedLineDistance = 0.3;
+            neighborhood.properties.totalLineDistance = 0.7;
+            modal.update(mission, neighborhood);
+            expect(uiModalMissionComplete.totalAuditedDistance.html()).toBe('0.1 miles');
+            expect(uiModalMissionComplete.missionDistance.html()).toBe('0.3 miles');
+            expect(uiModalMissionComplete.remainingDistance.html()).toBe('0.4 miles');
+        });
+        it("should update label counts", function () {
+            modal.update(mission, neighborhood);
+            expect(uiModalMissionComplete.curbRampCount.html()).toBe('0');
+            expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('0');
+            expect(uiModalMissionComplete.obstacleCount.html()).toBe('0');
+            expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('0');
+            expect(uiModalMissionComplete.otherCount.html()).toBe('0');
+
+            mission.properties.labelCount = {
+                "CurbRamp": '10',
+                "NoCurbRamp": '3',
+                "Obstacle": '1',
+                "SurfaceProblem": '4',
+                "Other": '2'
+            };
+            modal.update(mission, neighborhood);
+            expect(uiModalMissionComplete.curbRampCount.html()).toBe('10');
+            expect(uiModalMissionComplete.noCurbRampCount.html()).toBe('3');
+            expect(uiModalMissionComplete.obstacleCount.html()).toBe('1');
+            expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('4');
+            expect(uiModalMissionComplete.otherCount.html()).toBe('2');
+        });
+        it("should set the mission title", function () {
+            modal.update(mission, neighborhood);
+            expect(uiModalMissionComplete.missionTitle.html()).toBe('Test Neighborhood');
+        });
+    });
 });
+
