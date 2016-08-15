@@ -22,7 +22,7 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			expect($('.g-bar-chart').length).toBe(2);
 		});
 		it("should initialize green bar styles", function () {
-			var blueBar = $('#blueBar');
+			var blueBar = $('#blue-bar');
 			expect(blueBar).not.toBe(null);
 			expect(blueBar.attr('x')).toBe('0');
 			expect(blueBar.attr('y')).toBe('0');
@@ -31,7 +31,7 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			expect(blueBar.attr('height')).toBe('20');
 		});
 		it("should initialize green bar styles", function() {
-			var greenBar = $('#greenBar');
+			var greenBar = $('#green-bar');
 			expect(greenBar).not.toBe(null);
 			expect(greenBar.attr('x')).toBe('0');
 			expect(greenBar.attr('y')).toBe('0');
@@ -40,7 +40,7 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			expect(greenBar.attr('height')).toBe('20');
 		});
 		it("should initialize text", function () {
-			var barText = $('#barText');
+			var barText = $('#bar-text');
 			expect(barText).not.toBe(null);
 			expect(barText.attr('style')).toBe('visibility: hidden;');
 			expect(barText.attr('x')).toBe('3');
@@ -57,13 +57,13 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			setTimeout(function () {done();}, 2000);
 		});
 		it("should change bar width and text", function () {
-			var greenBar = $('#greenBar');
+			var greenBar = $('#green-bar');
 			expect(greenBar.attr('width')).toBe('27.5');
 
-			var blueBar = $('#blueBar');
+			var blueBar = $('#blue-bar');
 			expect(blueBar.attr('width')).toBe('27.5');
 	
-			var barText = $('#barText');
+			var barText = $('#bar-text');
 			expect(barText.html()).toBe('20%');
 		});
 	});
@@ -75,13 +75,13 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			setTimeout(function () {done();}, 2000);
 		});
 		it("should change bar width and text", function () {
-			var greenBar = $('#greenBar');
+			var greenBar = $('#green-bar');
 			expect(greenBar.attr('width')).toBe('27.5');
 
-			var blueBar = $('#blueBar');
+			var blueBar = $('#blue-bar');
 			expect(blueBar.attr('width')).toBe('0');
 	
-			var barText = $('#barText');
+			var barText = $('#bar-text');
 			expect(barText.html()).toBe('10%');
 		});
 	});
@@ -93,14 +93,14 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			setTimeout(function () {done();}, 2000);
 		});
 		it("should change bar width and text", function () {
-			var greenBar = $('#greenBar');
+			var greenBar = $('#green-bar');
 			expect(greenBar.attr('width')).toBe('192.5');
 			expect(greenBar.attr('x')).toBe('82.5');
 
-			var blueBar = $('#blueBar');
+			var blueBar = $('#blue-bar');
 			expect(blueBar.attr('width')).toBe('82.5');
 	
-			var barText = $('#barText');
+			var barText = $('#bar-text');
 			expect(barText.html()).toBe('100%');
 		});
 	});
