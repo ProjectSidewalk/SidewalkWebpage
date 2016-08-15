@@ -73,10 +73,9 @@ describe("ModalMissionCompleteMap", function () {
         uiModalMissionComplete.map = $uiModalMissionCompleteFixture;
 
         this.uiModalMissionComplete = uiModalMissionComplete;
-       
-        if(!map){
-            map = new ModalMissionCompleteMap(uiModalMissionComplete);
-        }
+        
+        map = new ModalMissionCompleteMap(uiModalMissionComplete);
+        
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;
         mission.properties.distance = 1219.2;
@@ -115,6 +114,11 @@ describe("ModalMissionCompleteMap", function () {
             };
     });
 
+    //remove the html map container after each run
+    afterEach( function () {
+      $('#modal-mission-complete-map').remove();
+    });
+
     describe("ModalMissionCompleteMap object declaration", function () {
       it("should initialize attributes", function () {
         expect(map).not.toBe(null);
@@ -130,27 +134,28 @@ describe("ModalMissionCompleteMap", function () {
 
     describe("linestringToPoint method", function(){
         it("should convert LineString to Point GeoJSON", function() {
-            var c = {"type":"FeatureCollection",
-                        "features":[
-                        {"type":"Feature","geometry":{"type":"LineString",
-                        "coordinates":[
-                        [-77.041402,38.8764389],
-                        [-77.059005,38.8864323],
-                        [-77.063005,38.8864250],
-                        [-77.063005,38.8964180],
-                        [-77.069005,38.8964180]
-                        ]
-                        }},
-                        {"type":"Feature","geometry":{"type":"LineString",
-                        "coordinates":[
-                        [-77.069005,38.9164120],
-                        [-77.075005,38.9164120],
-                        [-77.075005,38.9364080],
-                        [-77.092005,38.9564080]
-                        ]
-                        }}
-                        ]
-                    };
+          // GeoJSON FeatureCollection of LineStrings
+          var c = {"type":"FeatureCollection",
+                      "features":[
+                      {"type":"Feature","geometry":{"type":"LineString",
+                      "coordinates":[
+                      [-77.041402,38.8764389],
+                      [-77.059005,38.8864323],
+                      [-77.063005,38.8864250],
+                      [-77.063005,38.8964180],
+                      [-77.069005,38.8964180]
+                      ]
+                      }},
+                      {"type":"Feature","geometry":{"type":"LineString",
+                      "coordinates":[
+                      [-77.069005,38.9164120],
+                      [-77.075005,38.9164120],
+                      [-77.075005,38.9364080],
+                      [-77.092005,38.9564080]
+                      ]
+                      }}
+                      ]
+                  };
             var p = map._linestringToPoint(c);
             expect(p.features[0].geometry.type).toBe('Point');
         });
@@ -172,11 +177,12 @@ describe("ModalMissionCompleteMap", function () {
             map.show();
             var leafletOverlayPane = $('.leaflet-overlay-pane');
             expect(leafletOverlayPane).not.toBe(null);
+            map.hide();
         });
     });
 
     describe("updateStreetSegments method", function () {
-        it("should visualize segments", function () {
+        beforeEach(function (done) {
             var len;
             var completedTaskGeoJSONList = [
                   {
@@ -294,24 +300,36 @@ describe("ModalMissionCompleteMap", function () {
             }
             map.show();
             map.updateStreetSegments(missionTasks, completedTasks);
-            expect($(".leaflet-zoom-hide").length).not.toBe(0);
-            map.hide();
+            // pause for segements to render
+            setTimeout(function () {done();}, 3000);
+          });
 
+        it("should visualize segments", function () {
+          expect($(".leaflet-zoom-hide").length).not.toBe(0);
+          map.hide();
         });
     });
+
     describe("update method", function (){
-        afterEach( function () {
-          $("#modal-mission-complete-map").remove();
+        beforeEach(function (done) {
+          map.show();
+          map.update(mission, neighborhood);
+          // pause for map animation to run
+          setTimeout(function () {done();}, 1000);
         });
         it("should render a neighborhood", function () {
-            map.update(mission, neighborhood);
             expect(map._overlayPolygonLayer).not.toBe(undefined);
             expect(map._overlayPolygonLayer._layers).not.toBe(undefined);
-            // leaflet assigns the layer the id 34
-            var layerStyles = map._overlayPolygonLayer._layers['34'].options;
-            expect(layerStyles.fillColor).toBe('rgb(110, 110, 110)');
-            expect(layerStyles.opacity).toBe(0);
-            expect(layerStyles.fillOpacity).toBe(0.25);
+            
+            var layer = map._overlayPolygonLayer._layers;
+            // leaflet assigns the layer an id which can be different
+            for(var key in layer){
+              var layerStyles = layer[key].options;
+              expect(layerStyles.fillColor).toBe('rgb(110, 110, 110)');
+              expect(layerStyles.opacity).toBe(0);
+              expect(layerStyles.fillOpacity).toBe(0.25);
+            }
+            map.hide();
         });
     });
 });
