@@ -178,19 +178,23 @@ describe("ModalMissionComplete", function () {
 
     });
 
-    describe("`hide` method", function () {
-        it("should hide a modal window", function () {
-            modalMissionComplete.hide();
-            expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
-            expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
-            expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
-
+    describe("`show` method", function () {
+        it("should show a modal window", function () {
             modalMissionComplete.show(mission, neighborhood);
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('visible');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('visible');
         });
     });
+
+    describe("hide method", function (){
+        it("should hide a modal window", function () {
+            modalMissionComplete.hide();
+            expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
+            expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
+            expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
+        });
+    }); 
 
     describe("`_updateMissionProgressStatistics` method", function () {
         it("should set the distance traveled in the current mission", function () {
