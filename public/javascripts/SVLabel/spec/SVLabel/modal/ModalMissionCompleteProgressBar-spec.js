@@ -3,26 +3,24 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 
 	beforeEach( function () {
 		$uiModalMissionCompleteFixture = $('<div id="modal-mission-complete-complete-bar"></div>');
-		$('body').append($uiModalMissionCompleteFixture);
+		uiModalMissionComplete = {};
+		uiModalMissionComplete.completeBar = $uiModalMissionCompleteFixture
 
-		bar = new ModalMissionCompleteProgressBar();
-
+		bar = new ModalMissionCompleteProgressBar(uiModalMissionComplete);
 	});
-	afterEach( function () {
-		$uiModalMissionCompleteFixture.remove();
-	});
+	
 
 	describe("creating new object", function () {
 		it("should initialize svg elements", function () {
 			expect(bar).not.toBe(null);
-			expect($('svg')).not.toBe(null);
-			expect($('svg').attr('width')).toBe('275');
-			expect($('svg').attr('height')).toBe('20');
-			expect($('.g-background')).not.toBe(null);
-			expect($('.g-bar-chart').length).toBe(2);
+			expect($uiModalMissionCompleteFixture.find('svg')).not.toBe(null);
+			expect($uiModalMissionCompleteFixture.find('svg').attr('width')).toBe('275');
+			expect($uiModalMissionCompleteFixture.find('svg').attr('height')).toBe('20');
+			expect($uiModalMissionCompleteFixture.find('.g-background')).not.toBe(null);
+			expect($uiModalMissionCompleteFixture.find('.g-bar-chart').length).toBe(2);
 		});
 		it("should initialize green bar styles", function () {
-			var blueBar = $('#blue-bar');
+			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
 			expect(blueBar).not.toBe(null);
 			expect(blueBar.attr('x')).toBe('0');
 			expect(blueBar.attr('y')).toBe('0');
@@ -31,7 +29,7 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			expect(blueBar.attr('height')).toBe('20');
 		});
 		it("should initialize green bar styles", function() {
-			var greenBar = $('#green-bar');
+			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
 			expect(greenBar).not.toBe(null);
 			expect(greenBar.attr('x')).toBe('0');
 			expect(greenBar.attr('y')).toBe('0');
@@ -40,7 +38,7 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			expect(greenBar.attr('height')).toBe('20');
 		});
 		it("should initialize text", function () {
-			var barText = $('#bar-text');
+			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
 			expect(barText).not.toBe(null);
 			expect(barText.attr('style')).toBe('visibility: hidden;');
 			expect(barText.attr('x')).toBe('3');
@@ -57,13 +55,13 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			setTimeout(function () {done();}, 2000);
 		});
 		it("should change bar width and text", function () {
-			var greenBar = $('#green-bar');
+			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
 			expect(greenBar.attr('width')).toBe('27.5');
 
-			var blueBar = $('#blue-bar');
+			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
 			expect(blueBar.attr('width')).toBe('27.5');
 	
-			var barText = $('#bar-text');
+			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
 			expect(barText.html()).toBe('20%');
 		});
 	});
@@ -75,13 +73,13 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			setTimeout(function () {done();}, 2000);
 		});
 		it("should change bar width and text", function () {
-			var greenBar = $('#green-bar');
+			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
 			expect(greenBar.attr('width')).toBe('27.5');
 
-			var blueBar = $('#blue-bar');
+			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
 			expect(blueBar.attr('width')).toBe('0');
 	
-			var barText = $('#bar-text');
+			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
 			expect(barText.html()).toBe('10%');
 		});
 	});
@@ -93,14 +91,14 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			setTimeout(function () {done();}, 2000);
 		});
 		it("should change bar width and text", function () {
-			var greenBar = $('#green-bar');
+			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
 			expect(greenBar.attr('width')).toBe('192.5');
 			expect(greenBar.attr('x')).toBe('82.5');
 
-			var blueBar = $('#blue-bar');
+			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
 			expect(blueBar.attr('width')).toBe('82.5');
 	
-			var barText = $('#bar-text');
+			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
 			expect(barText.html()).toBe('100%');
 		});
 	});
