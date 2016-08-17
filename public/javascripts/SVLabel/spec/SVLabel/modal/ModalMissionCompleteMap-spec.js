@@ -66,9 +66,6 @@ describe("ModalMissionCompleteMap", function () {
     beforeEach(function () {
         $uiModalMissionCompleteFixture = $('<div id="modal-mission-complete-map"></div>');
 
-        // leaflet relies on a map container in the html
-        $('body').append($uiModalMissionCompleteFixture);
-
         uiModalMissionComplete = {};
         uiModalMissionComplete.map = $uiModalMissionCompleteFixture;
 
@@ -305,7 +302,7 @@ describe("ModalMissionCompleteMap", function () {
           });
 
         it("should visualize segments", function () {
-          expect($(".leaflet-zoom-hide").length).not.toBe(0);
+          expect(uiModalMissionComplete.map.find(".leaflet-zoom-hide").length).not.toBe(0);
           map.hide();
         });
     });
