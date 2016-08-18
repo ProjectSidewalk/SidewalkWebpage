@@ -8,7 +8,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, modalMissionProgressBar, uiModalMissionComplete, modalModel) {
+function ModalMissionComplete (svl, missionContainer, taskContainer, modalMissionCompleteMap, modalMissionProgressBar, uiModalMissionComplete, modalModel) {
     var self = this;
     var _modalModel = modalModel;
     var nextMission;
@@ -89,9 +89,9 @@ function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, m
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
 
-        var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+        var completedTasks = taskContainer.getCompletedTasks(regionId);
         var missionTasks = mission.getRoute();
-        var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
+        var totalLineDistance = taskContainer.totalLineDistanceInARegion(regionId, unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
         var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
 
