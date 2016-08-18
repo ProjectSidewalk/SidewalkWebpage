@@ -95,6 +95,7 @@ function Main (params) {
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
+        svl.statusModel = new StatusModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
         svl.tracker.push('TaskStart');
@@ -110,7 +111,7 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
-        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.ui.status);
+        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);

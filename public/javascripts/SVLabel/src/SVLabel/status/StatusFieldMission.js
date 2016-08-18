@@ -1,4 +1,4 @@
-function StatusFieldMission (uiStatusField) {
+function StatusFieldMission (statusModel, uiStatusField) {
     var self = { className: "StatusFieldMission" };
 
     var $completionRate = uiStatusField.holder.find("#status-current-mission-completion-rate");
@@ -14,11 +14,7 @@ function StatusFieldMission (uiStatusField) {
         "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood.",
         "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood accessible"
     };
-    
-    function _init() {
-        printCompletionRate(0);
-        
-    }
+
 
     function _auidtDistanceToString (distance, unit) {
         if (!unit) unit = "kilometers";
@@ -120,6 +116,6 @@ function StatusFieldMission (uiStatusField) {
     self.printMissionMessage = printMissionMessage;
     self.updateMissionCompletionBar = updateMissionCompletionBar;
     
-    _init();
+    printCompletionRate(0);
     return self;
 }
