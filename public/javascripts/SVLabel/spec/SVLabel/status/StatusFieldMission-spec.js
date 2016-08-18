@@ -1,7 +1,8 @@
 describe("StatusFieldMission module", function () {
-    var statusModel;
+    var modalModel;
     var statusFieldMission;
     var $statusFieldFixture;
+    var $missionMessage;
     var uiStatusField;
 
     beforeEach(function () {
@@ -43,13 +44,71 @@ describe("StatusFieldMission module", function () {
         uiStatusField = {};
         uiStatusField.holder = $statusFieldFixture;
 
-        statusModel = _.clone(Backbone.Events);
-        statusFieldMission = new StatusFieldMission(statusModel, uiStatusField);
+        $missionMessage = $statusFieldFixture.find("#current-mission-description");
+
+        modalModel = _.clone(Backbone.Events);
+        modalModel.triggerMissionCompleteClosed = function (parameters) {
+            this.trigger("ModalMissionComplete:closed", parameters);
+        };
+
+        statusFieldMission = new StatusFieldMission(modalModel, uiStatusField);
     });
 
-    describe("`ModalMissionComplete:close` event", function () {
-        it("should update the text for the mission", function () {
+    describe("`setMessage` method", function () {
+        var mission;
 
+        beforeEach(function () {
+            mission = new MissionMock();
+            mission.properties.label = "distance-mission";
+        });
+
+        it("should set the description", function () {
+            statusFieldMission.setMessage(mission);
+
+            expect($missionMessage.text()).toBe("Audit 1000ft of this neighborhood.");
         });
     });
+
+    describe("`ModalMissionComplete:closed` event", function () {
+        var mission;
+        beforeEach(function () {
+            spyOn(statusFieldMission, 'setMessage');
+            mission = new MissionMock();
+            modalModel.triggerMissionCompleteClosed({ nextMission: mission });
+        });
+
+        it("should call the `setMessage` method", function () {
+            expect(statusFieldMission.setMessage).toHaveBeenCalled();
+
+            expect(statusFieldMission.setMessage).toHaveBeenCalledWith(mission);
+        });
+    });
+
+
+    function MissionMock () {
+        this.properties = {
+            auditDistance: null,
+            auditDistanceFt: null,
+            auditDistanceMi: null,
+            coverrage: null,
+            distance: null,
+            distanceFt: null,
+            distanceMi: null,
+            isCompleted: false,
+            label: null,
+            missionId: null
+        };
+    }
+
+    MissionMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+
+    MissionMock.prototype.setProperty = function (key, value) {
+        this.properties[key] = value;
+    };
+
+    MissionMock.prototype.isCompleted = function () {
+        return this.properties.isCompleted;
+    };
 });
