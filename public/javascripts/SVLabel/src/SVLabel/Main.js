@@ -16,6 +16,7 @@ function Main (params) {
     var status = {
         isFirstTask: false
     };
+
     // Initialize things that needs data loading.
     var loadingAnOboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
@@ -160,7 +161,7 @@ function Main (params) {
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        svl.map = new Map(svl.canvas, svl.ui.map, mapParam);
+        svl.map = new MapService(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
@@ -532,11 +533,11 @@ function Main (params) {
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
-
     _initUI();
     _init(params);
 
     self.getStatus = getStatus;
     self.setStatus = setStatus;
+
     return self;
 }
