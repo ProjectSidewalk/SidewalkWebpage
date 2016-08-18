@@ -1,0 +1,3 @@
+describe("ModalModel module", function () {
+
+});

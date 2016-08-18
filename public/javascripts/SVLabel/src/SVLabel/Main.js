@@ -16,6 +16,7 @@ function Main (params) {
     var status = {
         isFirstTask: false
     };
+
     // Initialize things that needs data loading.
     var loadingAnOboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
@@ -94,6 +95,7 @@ function Main (params) {
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
+        svl.statusModel = new StatusModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
         svl.tracker.push('TaskStart');
@@ -107,8 +109,11 @@ function Main (params) {
         svl.form.disableSubmit();
 
         svl.overlayMessageBox = new OverlayMessageBox();
-        svl.statusField = new StatusField();
+        svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
+        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
+        svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
+
         svl.labelCounter = new LabelCounter(d3);
 
         svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
@@ -140,16 +145,16 @@ function Main (params) {
         if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.tracker, turf);
 
         // Mission.
-        svl.statusFieldMission = new StatusFieldMission();
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
-            svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
+        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
+            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel);
+        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
+            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel, svl.statusModel);
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
@@ -160,7 +165,7 @@ function Main (params) {
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        svl.map = new Map(svl.canvas, svl.ui.map, mapParam);
+        svl.map = new MapService(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
@@ -205,9 +210,6 @@ function Main (params) {
             loadNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
-
-        // Todo. Fetch all the neighborhoods.
-
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -409,12 +411,11 @@ function Main (params) {
         svl.ui.progress = {};
         svl.ui.progress.auditedDistance = $("#status-audited-distance");
 
-        // ProgressPov
-        svl.ui.progressPov = {};
-        svl.ui.progressPov.holder = $("#progress-pov-holder");
-        svl.ui.progressPov.rate = $("#progress-pov-current-completion-rate");
-        svl.ui.progressPov.bar = $("#progress-pov-current-completion-bar");
-        svl.ui.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
+        // // ProgressPov
+        // svl.ui.progressPov = {};
+        // svl.ui.progressPov.rate = $("#status-completion-rate");
+        // svl.ui.progressPov.bar = $("#progress-pov-current-completion-bar");
+        // svl.ui.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
@@ -473,6 +474,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
+        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar')
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
@@ -532,11 +534,11 @@ function Main (params) {
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
-
     _initUI();
     _init(params);
 
     self.getStatus = getStatus;
     self.setStatus = setStatus;
+
     return self;
 }

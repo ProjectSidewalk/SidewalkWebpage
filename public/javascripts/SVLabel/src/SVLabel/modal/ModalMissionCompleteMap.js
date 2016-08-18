@@ -5,7 +5,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._southWest = L.latLng(38.761, -77.262);
     this._northEast = L.latLng(39.060, -76.830);
     this._bound = L.latLngBounds(this._southWest, this._northEast);
-    this._map = L.mapbox.map('modal-mission-complete-map', "kotarohara.8e0c6890", {
+    this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), "kotarohara.8e0c6890", {
         maxBounds: this._bound,
         maxZoom: 19,
         minZoom: 10

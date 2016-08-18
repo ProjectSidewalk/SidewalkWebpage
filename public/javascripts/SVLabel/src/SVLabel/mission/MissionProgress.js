@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, missionContainer, neighborhoodContainer, taskContainer) {
+function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel, missionContainer, neighborhoodContainer, taskContainer) {
     var self = this;
 
     var _gameEffectModel = gameEffectModel;
@@ -86,8 +86,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     this.update = function (currentMission, currentRegion) {
         if (svl.isOnboarding()) return;
         var completionRate = currentMission.getMissionCompletionRate();
-        svl.statusFieldMission.printCompletionRate(completionRate);
-        svl.statusFieldMission.updateMissionCompletionBar(completionRate);
+        statusModel.setMissionCompletionRate(completionRate);
+        statusModel.setProgressBar(completionRate);
+        // svl.statusFieldMission.printCompletionRate(completionRate);
+        // svl.statusFieldMission.updateMissionCompletionBar(completionRate);
         this._checkMissionComplete(currentMission, currentRegion);
     };
 }

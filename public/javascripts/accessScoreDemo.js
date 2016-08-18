@@ -91,7 +91,7 @@ function updateAccessScore (significance) {
         for (; i < len; i++) {
             var properties = neighborhoodLayers[i].feature.properties,
                 featureVector = properties.feature;
-            if (featureVector) {
+            if (featureVector && properties.coverage > 0.5) {
                 // Compute the Access Score by computing the sigmoid of the inner product of the feature vector and significance vector.
                 var keys = Object.keys(featureVector),
                     innerProduct = 0;

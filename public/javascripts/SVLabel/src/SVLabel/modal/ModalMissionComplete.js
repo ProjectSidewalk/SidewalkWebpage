@@ -8,9 +8,12 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, modalMissionProgressBar, uiModalMissionComplete, modalModel) {
+function ModalMissionComplete (svl, missionContainer, taskContainer,
+                               modalMissionCompleteMap, modalMissionProgressBar,
+                               uiModalMissionComplete, modalModel, statusModel) {
     var self = this;
     var _modalModel = modalModel;
+    var nextMission;
 
     this._properties = {
         boxTop: 180,
@@ -38,12 +41,14 @@ function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, m
     });
 
     this._handleBackgroundClick = function (e) {
-        _modalModel.triggerMissionCompleteClosed();
+        var nextMission = missionContainer.getCurrentMission();
+        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
         self.hide();
     };
 
     this._handleCloseButtonClick = function (e) {
-        _modalModel.triggerMissionCompleteClosed();
+        var nextMission = missionContainer.getCurrentMission();
+        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
         self.hide();
     };
 
@@ -54,6 +59,9 @@ function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, m
         this._uiModalMissionComplete.background.css('visibility', "hidden");
         // this._horizontalBarMissionLabel.style("visibility", "hidden");
         this._modalMissionCompleteMap.hide();
+
+        statusModel.setProgressBar(0);
+        statusModel.setMissionCompletionRate(0);
     };
 
     this.show = function () {
@@ -86,9 +94,9 @@ function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, m
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
 
-        var completedTasks = svl.taskContainer.getCompletedTasks(regionId);
+        var completedTasks = taskContainer.getCompletedTasks(regionId);
         var missionTasks = mission.getRoute();
-        var totalLineDistance = svl.taskContainer.totalLineDistanceInARegion(regionId, unit);
+        var totalLineDistance = taskContainer.totalLineDistanceInARegion(regionId, unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
         var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
 
