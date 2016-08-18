@@ -153,6 +153,11 @@ describe("ModalMissionComplete", function () {
         modalMissionCompleteBarMock = {
             update: function () {}
         };
+        
+        modalModel.triggerMissionCompleteClosed = function () {
+            this.trigger("ModalMissionComplete:closed");
+
+        };
 
         modalMissionCompleteMapMock = {
             hide: function () {},

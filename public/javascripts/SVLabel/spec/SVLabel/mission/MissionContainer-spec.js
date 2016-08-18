@@ -7,6 +7,7 @@ describe("MissionContainer module.", function () {
 
     beforeEach(function () {
         statusFieldMission = {};
+        statusFieldMission.setMessage = function (mission) {};
         missionModel = _.clone(Backbone.Events);
         missionModel.submitMissions = function (missions) { };
         missionFactory = new MissionFactoryMock(missionModel);
@@ -157,6 +158,16 @@ describe("MissionContainer module.", function () {
         it("should reset `missionStoreByRegionId`", function () {
             missionContainer.refresh();
             expect(missionContainer._missionStoreByRegionId).toEqual({ "noRegionId" : [] })
+        });
+    });
+
+    describe("`setCurrentMission` method", function () {
+        beforeEach(function () {
+            spyOn(statusFieldMission, 'setMessage');
+        });
+
+        it("should call StatusFieldMission.setMessage", function () {
+            missionContainer.setCurrentMission(m1_n1);
         });
     });
 

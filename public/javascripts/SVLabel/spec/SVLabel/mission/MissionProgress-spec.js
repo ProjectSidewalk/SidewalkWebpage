@@ -5,6 +5,7 @@ describe("MissionProgress module", function () {
     var missionModel;
     var modalModel;
     var neighborhoodModel;
+    var statusModel;
     var missionContainer;
     var neighborhoodContainer;
     var taskContainer;
@@ -12,11 +13,12 @@ describe("MissionProgress module", function () {
     var neighborhood;
 
     beforeEach(function () {
-        svl = {};
+        svl = { isOnboarding: function () { return false; }};
         gameEffectModel = _.clone(Backbone.Events);
         missionModel  = _.clone(Backbone.Events);
         modalModel = _.clone(Backbone.Events);
         neighborhoodModel = _.clone(Backbone.Events);
+        statusModel = _.clone(Backbone.Events);
         missionContainer = new MissionContainerMock();
         neighborhoodContainer = new NeighborhoodContainerMock();
         taskContainer = new TaskContainerMock();
@@ -29,8 +31,11 @@ describe("MissionProgress module", function () {
             this.trigger("ModalMissionComplete:show");
         };
 
+        statusModel.setMissionCompletionRate = function (completionRate) {};
+        statusModel.setProgressBar = function (completionRate) {};
+
         missionProgress = new MissionProgress(svl, gameEffectModel, missionModel, modalModel, neighborhoodModel,
-            missionContainer, neighborhoodContainer, taskContainer);
+            statusModel, missionContainer, neighborhoodContainer, taskContainer);
     });
 
     describe("`_checkMissionComplete` method", function () {
@@ -110,7 +115,7 @@ describe("MissionProgress module", function () {
 
 
             missionProgress = new MissionProgress(svl, gameEffectModel, missionModel, modalModel, neighborhoodModel,
-                missionContainer, neighborhoodContainer, taskContainer);
+                statusModel, missionContainer, neighborhoodContainer, taskContainer);
 
             spyOn(missionContainer, 'setCurrentMission');
             spyOn(missionProgress, '_updateTheCurrentNeighborhood');
@@ -147,7 +152,7 @@ describe("MissionProgress module", function () {
                 return null;
             };
             missionProgress = new MissionProgress(svl, gameEffectModel, missionModel, modalModel, neighborhoodModel,
-                missionContainer, neighborhoodContainer, taskContainer);
+                statusModel, missionContainer, neighborhoodContainer, taskContainer);
 
             expect(function () {
                 missionProgress._updateTheCurrentMission(mission, neighborhood);
@@ -176,6 +181,28 @@ describe("MissionProgress module", function () {
         it("should call `TaskContainer.fetchTasksInARegion`", function () {
             missionProgress._updateTheCurrentNeighborhood(mission, neighborhood);
             expect(taskContainer.fetchTasksInARegion).toHaveBeenCalled();
+        });
+    });
+
+    describe("`update` method", function () {
+        var mission;
+        var region;
+        beforeEach(function () {
+            mission = new MissionMock();
+            region = new NeighborhoodMock(1);
+
+            spyOn(statusModel, 'setMissionCompletionRate');
+            spyOn(statusModel, 'setProgressBar');
+        });
+
+        it("should call `StatusModel.setMissionCompletionRate", function () {
+            missionProgress.update(mission, region);
+            expect(statusModel.setMissionCompletionRate).toHaveBeenCalled();
+        });
+
+        it("should call `StatusModel.setProgressBar", function () {
+            missionProgress.update(mission, region);
+            expect(statusModel.setProgressBar).toHaveBeenCalled();
         });
     });
 
@@ -210,6 +237,10 @@ describe("MissionProgress module", function () {
 
     MissionMock.prototype.isCompleted = function () {
         return this.properties.isCompleted;
+    };
+
+    MissionMock.prototype.getMissionCompletionRate = function () {
+        return 0.5;
     };
 
     function MissionContainerMock () {
