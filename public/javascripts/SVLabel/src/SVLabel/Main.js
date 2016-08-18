@@ -111,7 +111,7 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
-        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.ui.status);
+        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);

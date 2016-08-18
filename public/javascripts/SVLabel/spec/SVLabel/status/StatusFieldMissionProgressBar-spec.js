@@ -1,6 +1,7 @@
 describe("StatusFieldMissionProgressBar module", function () {
     var statusFieldMissionProgressBar;
     var modalModel;
+    var statusModel;
     var uiStatusField;
     var $statusFieldFixture;
     var $filler;
@@ -8,7 +9,7 @@ describe("StatusFieldMissionProgressBar module", function () {
     var $completionRate;
 
     beforeEach(function () {
-        $statusFieldFixture = $('      <div id="status-holder">  \
+        $statusFieldFixture = $('<div id="status-holder">  \
                                     <div class="status-box"> \
                                         <h1 class="status-holder-header-1">Current Neighborhood</h1> \
                                         <h2><span id="status-holder-neighborhood-name" style="display: inline;"></span>D.C.</h2> \
@@ -52,7 +53,8 @@ describe("StatusFieldMissionProgressBar module", function () {
         $progressBar.css("width", "200px");
 
         modalModel = _.clone(Backbone.Events);
-        statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(modalModel, uiStatusField);
+        statusModel = _.clone(Backbone.Events);
+        statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(modalModel, statusModel, uiStatusField);
     });
 
     describe("`setCompletionRate` method", function () {
@@ -91,12 +93,37 @@ describe("StatusFieldMissionProgressBar module", function () {
     describe("`ModalMissionComplete:close` event", function () {
         beforeEach(function () {
             spyOn(statusFieldMissionProgressBar, 'setBar');
-            modalModel.trigger("ModalMissionComplete:close", {misisonCompletionRate: 0});
         });
 
         it("should call the `setBar` method", function (done) {
+            modalModel.trigger("ModalMissionComplete:close", {misisonCompletionRate: 0});
             expect(statusFieldMissionProgressBar.setBar).toHaveBeenCalledWith(0);
             done();
         }) ;
     });
+
+    describe("`StatusFieldMissionProgressBar:setCompletionRate` event", function () {
+        beforeEach(function () {
+            spyOn(statusFieldMissionProgressBar, 'setCompletionRate');
+        });
+
+        it("should call the `setCompletionRate` method", function (done) {
+            statusModel.trigger("StatusFieldMissionProgressBar:setCompletionRate");
+            expect(statusFieldMissionProgressBar.setCompletionRate).toHaveBeenCalled();
+            done()
+        });
+    });
+
+    describe("`StatusFieldMissionProgressBar:setBar` event", function () {
+        beforeEach(function () {
+            spyOn(statusFieldMissionProgressBar, 'setBar');
+        });
+
+        it("should call the `setBar` method", function (done) {
+            statusModel.trigger("StatusFieldMissionProgressBar:setBar");
+            expect(statusFieldMissionProgressBar.setBar).toHaveBeenCalled();
+            done();
+        });
+    });
+
 });

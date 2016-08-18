@@ -25,10 +25,8 @@ function StatusFieldMission (modalModel, uiStatusField) {
     };
 
     /**
-     * This method takes a mission object and sets the appropriate text for the mission status field in 
-     * the status pane.
+     * This method takes a Mission object and sets the appropriate text for the mission status field in
      * @param mission
-     * @returns {printMissionMessage}
      */
     this.setMessage = function (mission) {
         var missionLabel = mission.getProperty("label");
@@ -44,8 +42,6 @@ function StatusFieldMission (modalModel, uiStatusField) {
         }
 
         $missionDescription.html(missionMessage);
-
-        return this;
     };
 }
 
