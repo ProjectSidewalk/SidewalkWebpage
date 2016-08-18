@@ -254,8 +254,8 @@ describe("ModalMissionComplete", function () {
             neighborhood.properties.completedLineDistance = 0.3;
             neighborhood.properties.totalLineDistance = 0.7;
             modalMissionComplete.update(mission, neighborhood);
-            expect(uiModalMissionComplete.totalAuditedDistance.html()).toBe('0.1 miles');
-            expect(uiModalMissionComplete.missionDistance.html()).toBe('0.3 miles');
+            expect(uiModalMissionComplete.missionDistance.html()).toBe('0.1 miles');
+            expect(uiModalMissionComplete.totalAuditedDistance.html()).toBe('0.3 miles');
             expect(uiModalMissionComplete.remainingDistance.html()).toBe('0.4 miles');
         });
 
