@@ -208,9 +208,6 @@ function Main (params) {
             loadNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
-
-        // Todo. Fetch all the neighborhoods.
-
     }
 
     function hasCompletedOnboarding(completedMissions) {
