@@ -233,11 +233,11 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @param mission {object} A Mission object
      * @returns {setCurrentMission}
      */
-    function setCurrentMission (mission) {
+    this.setCurrentMission = function (mission) {
         self._currentMission = mission;
-        statusFieldMission.printMissionMessage(mission);
+        statusFieldMission.setMessage(mission);
         return this;
-    }
+    };
 
 
     self._onLoadComplete = _onLoadComplete;
@@ -249,6 +249,6 @@ function MissionContainer (statusFieldMission, missionModel) {
     self.isTheFirstMission = isTheFirstMission;
     // self.nextMission = nextMission;
     // self.refresh = refresh;
-    self.setCurrentMission = setCurrentMission;
+    // self.setCurrentMission = setCurrentMission;
 }
 

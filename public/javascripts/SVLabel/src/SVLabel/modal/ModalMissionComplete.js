@@ -11,6 +11,7 @@
 function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, modalMissionProgressBar, uiModalMissionComplete, modalModel) {
     var self = this;
     var _modalModel = modalModel;
+    var nextMission;
 
     this._properties = {
         boxTop: 180,
@@ -38,12 +39,14 @@ function ModalMissionComplete (svl, missionContainer, modalMissionCompleteMap, m
     });
 
     this._handleBackgroundClick = function (e) {
-        _modalModel.triggerMissionCompleteClosed();
+        var nextMission = missionContainer.getCurrentMission();
+        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
         self.hide();
     };
 
     this._handleCloseButtonClick = function (e) {
-        _modalModel.triggerMissionCompleteClosed();
+        var nextMission = missionContainer.getCurrentMission();
+        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
         self.hide();
     };
 

@@ -1,7 +1,10 @@
 describe("StatusFieldMissionProgressBar module", function () {
     var statusFieldMissionProgressBar;
+    var modalModel;
     var uiStatusField;
     var $statusFieldFixture;
+    var $filler;
+    var $progressBar;
     var $completionRate;
 
     beforeEach(function () {
@@ -44,8 +47,12 @@ describe("StatusFieldMissionProgressBar module", function () {
         uiStatusField.holder = $statusFieldFixture;
 
         $completionRate = $statusFieldFixture.find("#status-current-mission-completion-rate");
+        $filler = $statusFieldFixture.find("#status-current-mission-completion-bar-filler");
+        $progressBar = $statusFieldFixture.find("#status-current-mission-completion-bar");
+        $progressBar.css("width", "200px");
 
-        statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(uiStatusField);
+        modalModel = _.clone(Backbone.Events);
+        statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(modalModel, uiStatusField);
     });
 
     describe("`setCompletionRate` method", function () {
@@ -71,4 +78,25 @@ describe("StatusFieldMissionProgressBar module", function () {
         });
     });
 
+    describe("`setBar` method", function () {
+        it("should update the width of the filler", function () {
+            statusFieldMissionProgressBar.setBar(0.5);
+            expect($filler.css("width")).toBe("50%");
+
+            statusFieldMissionProgressBar.setBar(1.1);
+            expect($filler.css("width")).toBe("100%");
+        });
+    });
+
+    describe("`ModalMissionComplete:close` event", function () {
+        beforeEach(function () {
+            spyOn(statusFieldMissionProgressBar, 'setBar');
+            modalModel.trigger("ModalMissionComplete:close", {misisonCompletionRate: 0});
+        });
+
+        it("should call the `setBar` method", function (done) {
+            expect(statusFieldMissionProgressBar.setBar).toHaveBeenCalledWith(0);
+            done();
+        }) ;
+    });
 });

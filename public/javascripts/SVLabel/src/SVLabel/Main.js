@@ -111,8 +111,8 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
-        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.statusModel, svl.ui.status);
-        svl.statusFieldMission = new StatusFieldMission(svl.ui.status);
+        svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.ui.status);
+        svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);
 
@@ -146,8 +146,8 @@ function Main (params) {
 
         // Mission.
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
-        svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
+        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
+            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         // Modals

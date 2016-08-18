@@ -88,7 +88,7 @@ describe("ModalMissionComplete", function () {
 
         var modalModel = _.clone(Backbone.Events);
         modalModel.triggerMissionCompleteClosed = function () {
-            this.trigger("ModalMissionComplete:close");
+            this.trigger("ModalMissionComplete:closed");
         };
 
         modalMissionCompleteMapMock = {
