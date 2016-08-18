@@ -143,7 +143,7 @@ function Main (params) {
         svl.statusFieldMission = new StatusFieldMission();
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
-            svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
+        svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         // Modals
@@ -473,6 +473,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
+        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar')
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
