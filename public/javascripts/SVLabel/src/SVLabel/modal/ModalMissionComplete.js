@@ -8,7 +8,9 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, taskContainer, modalMissionCompleteMap, modalMissionProgressBar, uiModalMissionComplete, modalModel) {
+function ModalMissionComplete (svl, missionContainer, taskContainer,
+                               modalMissionCompleteMap, modalMissionProgressBar,
+                               uiModalMissionComplete, modalModel, statusModel) {
     var self = this;
     var _modalModel = modalModel;
     var nextMission;
@@ -57,6 +59,9 @@ function ModalMissionComplete (svl, missionContainer, taskContainer, modalMissio
         this._uiModalMissionComplete.background.css('visibility', "hidden");
         // this._horizontalBarMissionLabel.style("visibility", "hidden");
         this._modalMissionCompleteMap.hide();
+
+        statusModel.setProgressBar(0);
+        statusModel.setMissionCompletionRate(0);
     };
 
     this.show = function () {

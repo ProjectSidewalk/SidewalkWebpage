@@ -8,67 +8,8 @@ describe("ModalMissionComplete", function () {
     var taskContainerMock;
     var neighborhood;
     var mission;
-
-    // Mocks
-    function MissionMock () {
-        this.properties = {
-            coverage: null,
-            label: null,
-            distance: null,
-            distanceFt: null,
-            distanceMi: null,
-            route: [],
-            labelCount: null
-        };
-    }
-    MissionMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
-    MissionMock.prototype.getRoute = function () {
-        return this.properties.route;
-    }
-    MissionMock.prototype.getLabelCount = function () {
-        return this.properties.labelCount;
-    }
-    function NeighborhoodMock() {
-        this.properties = {
-            name: null,
-            regionId: null,
-            completedLineDistance: null,
-            totalLineDistance: null
-        };
-    }
-    NeighborhoodMock.prototype.getProperty = function (key) {
-        return this.properties[key];
-    };
-    NeighborhoodMock.prototype.completedLineDistance = function (units) {
-        return this.properties.completedLineDistance;
-    };
-    NeighborhoodMock.prototype.totalLineDistance = function (units) {
-        return this.properties.totalLineDistance;
-    }
-
-    function TaskContainerMock(){
-        this.properties = {
-            completedTasks: [],
-            totalLineDistanceInARegion: null
-        };
-    }
-    TaskContainerMock.prototype.getCompletedTasks = function () {
-        return this.properties.completedTasks;
-    };
-    TaskContainerMock.prototype.totalLineDistanceInARegion = function (regionId, units) {
-        return this.properties.totalLineDistanceInARegion;
-    };
-    function MissionContainerMock(){
-        this.properties = {
-            completedMissions: []
-        };
-    }
-
-    MissionContainerMock.prototype.getCompletedMissions = function (){
-        return this.properties.completedMissions;
-    }
+    var statusModel;
+    var modalModel;
 
     beforeEach(function () {
         $uiModalMissionCompleteFixture = $('<div id="modal-mission-complete-holder"> \
@@ -149,14 +90,23 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
         this.uiModalMissionComplete = uiModalMissionComplete;
 
-        var modalModel = _.clone(Backbone.Events);
-        modalMissionCompleteBarMock = {
-            update: function () {}
-        };
-        
+
+        modalModel = _.clone(Backbone.Events);
         modalModel.triggerMissionCompleteClosed = function () {
             this.trigger("ModalMissionComplete:closed");
+        };
 
+        statusModel = _.clone(Backbone.Events);
+        statusModel.setProgressBar = function (completionRate) {
+            this.trigger("StatusFieldMissionProgressBar:setBar", completionRate);
+        };
+        statusModel.setMissionCompletionRate = function (completionRate) {
+            this.trigger("StatusFieldMissionProgressBar:setCompletionRate", completionRate);
+        };
+
+
+        modalMissionCompleteBarMock = {
+            update: function () {}
         };
 
         modalMissionCompleteMapMock = {
@@ -167,7 +117,9 @@ describe("ModalMissionComplete", function () {
         };
         taskContainerMock = new TaskContainerMock();
         missionContainerMock = new MissionContainerMock();
-        modalMissionComplete = new ModalMissionComplete( {}, missionContainerMock, taskContainerMock, modalMissionCompleteMapMock, modalMissionCompleteBarMock, uiModalMissionComplete, modalModel);
+        modalMissionComplete = new ModalMissionComplete( {}, missionContainerMock, taskContainerMock,
+            modalMissionCompleteMapMock, modalMissionCompleteBarMock, uiModalMissionComplete,
+            modalModel, statusModel);
 
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;
@@ -192,14 +144,30 @@ describe("ModalMissionComplete", function () {
         });
     });
 
-    describe("hide method", function (){
+    describe("`hide` method", function (){
+        beforeEach(function () {
+            spyOn(statusModel, 'setProgressBar');
+            spyOn(statusModel, 'setMissionCompletionRate');
+        });
+
         it("should hide a modal window", function () {
             modalMissionComplete.hide();
             expect(uiModalMissionComplete.holder.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.foreground.css('visibility')).toBe('hidden');
             expect(uiModalMissionComplete.background.css('visibility')).toBe('hidden');
         });
-    }); 
+
+        it("should call `StatusModel.setProgressBar` to clear the progress bar in the status field", function () {
+            // KH: Should the hide responsible for clearing the progress bar?
+            modalMissionComplete.hide();
+            expect(statusModel.setProgressBar).toHaveBeenCalledWith(0);
+        });
+
+        it("should call `StatusModel.setMissionCompletionRate` to set the completion rate to 0%", function () {
+            modalMissionComplete.hide();
+            expect(statusModel.setMissionCompletionRate).toHaveBeenCalledWith(0);
+        });
+    });
 
     describe("`_updateMissionProgressStatistics` method", function () {
         it("should set the distance traveled in the current mission", function () {
@@ -248,6 +216,7 @@ describe("ModalMissionComplete", function () {
             expect(uiModalMissionComplete.otherCount.html()).toBe('');
             modalMissionComplete.hide();
         });
+
         it("should populate label counts", function () {
             var labelCounts = {
                 "CurbRamp": '10',
@@ -275,9 +244,11 @@ describe("ModalMissionComplete", function () {
             neighborhood.properties.completedLineDistance = 0;
             neighborhood.properties.totalLineDistance = 0;
         });
+
         afterEach( function () {
             modalMissionComplete.hide();
         });
+
         it("should update mission distance statistics", function () {
             mission.properties.distanceMi = 0.1;
             neighborhood.properties.completedLineDistance = 0.3;
@@ -287,6 +258,7 @@ describe("ModalMissionComplete", function () {
             expect(uiModalMissionComplete.missionDistance.html()).toBe('0.3 miles');
             expect(uiModalMissionComplete.remainingDistance.html()).toBe('0.4 miles');
         });
+
         it("should update label counts", function () {
             modalMissionComplete.update(mission, neighborhood);
             expect(uiModalMissionComplete.curbRampCount.html()).toBe('0');
@@ -309,10 +281,83 @@ describe("ModalMissionComplete", function () {
             expect(uiModalMissionComplete.surfaceProblemCount.html()).toBe('4');
             expect(uiModalMissionComplete.otherCount.html()).toBe('2');
         });
+
         it("should set the mission title", function () {
             modalMissionComplete.update(mission, neighborhood);
             expect(uiModalMissionComplete.missionTitle.html()).toBe('Test Neighborhood');
         });
     });
+
+
+    // Mocks
+    function MissionMock () {
+        this.properties = {
+            coverage: null,
+            label: null,
+            distance: null,
+            distanceFt: null,
+            distanceMi: null,
+            route: [],
+            labelCount: null
+        };
+    }
+
+    MissionMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+
+    MissionMock.prototype.getRoute = function () {
+        return this.properties.route;
+    };
+
+    MissionMock.prototype.getLabelCount = function () {
+        return this.properties.labelCount;
+    };
+
+    function NeighborhoodMock() {
+        this.properties = {
+            name: null,
+            regionId: null,
+            completedLineDistance: null,
+            totalLineDistance: null
+        };
+    }
+
+    NeighborhoodMock.prototype.getProperty = function (key) {
+        return this.properties[key];
+    };
+
+    NeighborhoodMock.prototype.completedLineDistance = function (units) {
+        return this.properties.completedLineDistance;
+    };
+
+    NeighborhoodMock.prototype.totalLineDistance = function (units) {
+        return this.properties.totalLineDistance;
+    };
+
+    function TaskContainerMock(){
+        this.properties = {
+            completedTasks: [],
+            totalLineDistanceInARegion: null
+        };
+    }
+
+    TaskContainerMock.prototype.getCompletedTasks = function () {
+        return this.properties.completedTasks;
+    };
+
+    TaskContainerMock.prototype.totalLineDistanceInARegion = function (regionId, units) {
+        return this.properties.totalLineDistanceInARegion;
+    };
+
+    function MissionContainerMock(){
+        this.properties = {
+            completedMissions: []
+        };
+    }
+
+    MissionContainerMock.prototype.getCompletedMissions = function (){
+        return this.properties.completedMissions;
+    };
 });
 
