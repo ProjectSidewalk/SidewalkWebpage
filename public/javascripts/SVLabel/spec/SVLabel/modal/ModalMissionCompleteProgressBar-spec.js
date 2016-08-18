@@ -49,57 +49,62 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 	});
 
 	describe("update method 20%", function() {
-		beforeEach(function (done){
-			bar.update(0.1, 0.1);
-			// let d3 transitions execute
-			setTimeout(function () {done();}, 2000);
-		});
-		it("should change bar width and text", function () {
-			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
-			expect(greenBar.attr('width')).toBe('27.5');
+		describe("with 20% mission completion rate", function() {
+			it("should change bar width and text", function (done) {
+				// missionDistanceRate = 10%
+				// auditedDistanceRate = 10%
+				bar.update(0.1, 0.1);
+				var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
+				var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
+				var barText = $uiModalMissionCompleteFixture.find('#bar-text');
 
-			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
-			expect(blueBar.attr('width')).toBe('27.5');
-	
-			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
-			expect(barText.html()).toBe('20%');
+				setTimeout(function () { 
+					expect(greenBar.attr('width')).toBe('27.5');
+					expect(blueBar.attr('width')).toBe('27.5');
+					expect(barText.html()).toBe('20%');
+					done(); 
+				}, 2000);
+			});
+		});
+
+		describe("with 10% mission completion rate", function() {
+			it("should change bar width and text", function (done) {
+				// missionDistanceRate = 10%
+				// auditedDistanceRate = 0%
+				bar.update(0.1, 0);
+				var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
+				var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
+				var barText = $uiModalMissionCompleteFixture.find('#bar-text');
+
+				setTimeout(function () { 
+					expect(greenBar.attr('width')).toBe('27.5');
+					expect(blueBar.attr('width')).toBe('0');
+					expect(barText.html()).toBe('10%');
+					done(); 
+				}, 2000);
+				
+			});
+		});
+
+		describe("with 100% mission completion rate", function() {
+			it("should change bar width and text", function (done) {
+				// missionDistanceRate = 70%
+				// auditedDistanceRate = 30%
+				bar.update(0.7, 0.3);
+				var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
+				var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
+				var barText = $uiModalMissionCompleteFixture.find('#bar-text');
+
+				setTimeout(function () { 
+					expect(greenBar.attr('width')).toBe('192.5');
+					expect(greenBar.attr('x')).toBe('82.5');
+					expect(blueBar.attr('width')).toBe('82.5');
+					expect(barText.html()).toBe('100%');
+					done(); 
+				}, 2000);
+			});
 		});
 	});
 
-	describe("update method 10%", function() {
-		beforeEach(function (done){
-			bar.update(0.1, 0);
-			// let d3 transitions execute
-			setTimeout(function () {done();}, 2000);
-		});
-		it("should change bar width and text", function () {
-			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
-			expect(greenBar.attr('width')).toBe('27.5');
-
-			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
-			expect(blueBar.attr('width')).toBe('0');
 	
-			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
-			expect(barText.html()).toBe('10%');
-		});
-	});
-
-	describe("update method 100%", function() {
-		beforeEach(function (done){
-			bar.update(0.7, 0.3);
-			// let d3 transitions execute
-			setTimeout(function () {done();}, 2000);
-		});
-		it("should change bar width and text", function () {
-			var greenBar = $uiModalMissionCompleteFixture.find('#green-bar');
-			expect(greenBar.attr('width')).toBe('192.5');
-			expect(greenBar.attr('x')).toBe('82.5');
-
-			var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
-			expect(blueBar.attr('width')).toBe('82.5');
-	
-			var barText = $uiModalMissionCompleteFixture.find('#bar-text');
-			expect(barText.html()).toBe('100%');
-		});
-	});
 });
