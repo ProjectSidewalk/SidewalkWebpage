@@ -114,7 +114,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
         modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
 
-        this._updateMissionProgressStatistics(auditedDistance, missionDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
     };
 

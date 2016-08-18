@@ -7,7 +7,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
     var missionMessages = {
         "onboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
-        "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood.",
+        "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood",
         "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood accessible"
     };
 
@@ -33,7 +33,8 @@ function StatusFieldMission (modalModel, uiStatusField) {
         var missionMessage = this._getMissionMessage(missionLabel);
 
         if (missionLabel == "distance-mission") {
-            var distanceString = this._auidtDistanceToString(mission.getProperty("distanceMi"), "miles");
+            var distance = mission.getProperty("auditDistanceMi");
+            var distanceString = this._auidtDistanceToString(distance, "miles");
             missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
 
         } else if (missionLabel == "area-coverage-mission") {
