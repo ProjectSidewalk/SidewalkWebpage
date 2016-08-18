@@ -111,11 +111,6 @@ describe("ModalMissionCompleteMap", function () {
             };
     });
 
-    //remove the html map container after each run
-    afterEach( function () {
-      $('#modal-mission-complete-map').remove();
-    });
-
     describe("ModalMissionCompleteMap object declaration", function () {
       it("should initialize attributes", function () {
         expect(map).not.toBe(null);
