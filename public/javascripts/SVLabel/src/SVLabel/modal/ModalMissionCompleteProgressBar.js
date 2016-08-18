@@ -1,7 +1,8 @@
-function ModalMissionCompleteProgressBar () {
+function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
+    var $completeBar = uiModalMissionComplete.holder.find("#modal-mission-complete-complete-bar");
     var svgCoverageBarWidth = 275,
         svgCoverageBarHeight = 20;
-    var svgCoverageBar = d3.select("#modal-mission-complete-complete-bar")
+    var svgCoverageBar = d3.select($completeBar.get(0))
         .append("svg")
         .attr("width", svgCoverageBarWidth)
         .attr("height", svgCoverageBarHeight);
@@ -20,6 +21,7 @@ function ModalMissionCompleteProgressBar () {
     var horizontalBarPreviousContribution = gBarChart.selectAll("rect")
         .data([0])
         .enter().append("rect")
+        .attr('id', 'blue-bar')
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(49,130,189,1)")
@@ -30,6 +32,7 @@ function ModalMissionCompleteProgressBar () {
     var horizontalBarMission = gBarChart2.selectAll("rect")
         .data([0])
         .enter().append("rect")
+        .attr('id', 'green-bar')
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "rgba(100,240,110,1)")
@@ -38,6 +41,7 @@ function ModalMissionCompleteProgressBar () {
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
         .data([""])
         .enter().append("text")
+        .attr('id', 'bar-text')
         .attr("x", 3)
         .attr("y", 15)
         .attr("dx", 0)
@@ -67,6 +71,6 @@ function ModalMissionCompleteProgressBar () {
             .delay(1000)
             .duration(500)
             .attr("width", missionDistanceRate * svgCoverageBarWidth);
-        horizontalBarMissionLabel.text(parseInt(auditedDistanceRate * 100, 10) + "%");
+        horizontalBarMissionLabel.text(parseInt((auditedDistanceRate + missionDistanceRate) * 100, 10) + "%");
     };
 }

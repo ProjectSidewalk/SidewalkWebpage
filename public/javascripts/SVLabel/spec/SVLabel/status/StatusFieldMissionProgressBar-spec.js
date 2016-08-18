@@ -1,7 +1,8 @@
-describe("StatusField module", function () {
-    var statusField;
+describe("StatusFieldMissionProgressBar module", function () {
+    var statusFieldMissionProgressBar;
     var uiStatusField;
     var $statusFieldFixture;
+    var $completionRate;
 
     beforeEach(function () {
         $statusFieldFixture = $('      <div id="status-holder">  \
@@ -42,17 +43,31 @@ describe("StatusField module", function () {
         uiStatusField = {};
         uiStatusField.holder = $statusFieldFixture;
 
-        statusField = new StatusField(uiStatusField);
+        $completionRate = $statusFieldFixture.find("#status-current-mission-completion-rate");
+
+        statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(uiStatusField);
     });
 
-    describe("`blink` method", function () {
-        beforeEach(function () {
-            spyOn(statusField, 'stopBlinking');
-        });
+    describe("`setCompletionRate` method", function () {
+        it("should set the value of the div element", function () {
+            statusFieldMissionProgressBar.setCompletionRate("0");
+            expect($completionRate.text()).toBe("0% complete");
 
-        it("should call `stopBlinking` method", function () {
-            statusField.blink();
-            expect(statusField.stopBlinking).toHaveBeenCalled();
+            statusFieldMissionProgressBar.setCompletionRate(0);
+            expect($completionRate.text()).toBe("0% complete");
+
+            statusFieldMissionProgressBar.setCompletionRate(1);
+            expect($completionRate.text()).toBe("100% complete");
+
+            statusFieldMissionProgressBar.setCompletionRate("1");
+            expect($completionRate.text()).toBe("100% complete");
+
+            statusFieldMissionProgressBar.setCompletionRate(0.51);
+            expect($completionRate.text()).toBe("51% complete");
+
+
+            statusFieldMissionProgressBar.setCompletionRate(0.51432423);
+            expect($completionRate.text()).toBe("51% complete");
         });
     });
 

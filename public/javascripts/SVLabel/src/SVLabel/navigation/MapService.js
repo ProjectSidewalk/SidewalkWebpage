@@ -1,14 +1,4 @@
-/**
- * The Map module. This module is responsible for the interaction with Street View and Google Maps.
- * Todo. Need to clean this module up...
- * @param $ {object} jQuery object
- * @param google {object} Google Maps object
- * @param turf {object} turf object
- * @param params {object} parameters
- * @returns {{className: string}}
- * @constructor
- */
-function Map (canvas, uiMap, params) {
+function MapService (canvas, uiMap, params) {
     var self = { className: 'Map' },
         _canvas = canvas,
         mapIconInterval,
@@ -783,7 +773,7 @@ function Map (canvas, uiMap, params) {
         }
     }
 
-    
+
     /**
      * Initailize Street View
      */
@@ -913,7 +903,7 @@ function Map (canvas, uiMap, params) {
     }
 
     /**
-     * 
+     *
      * @param panoramaId
      * @returns {setPano}
      */
@@ -941,7 +931,7 @@ function Map (canvas, uiMap, params) {
             }
             if (callback) callback(streetViewPanoramaData, status);
         });
-        
+
         return this;
     }
 

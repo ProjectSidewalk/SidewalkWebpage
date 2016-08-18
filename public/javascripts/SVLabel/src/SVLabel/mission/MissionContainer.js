@@ -28,6 +28,10 @@ function MissionContainer (statusFieldMission, missionModel) {
         }
     });
 
+    _missionModel.on("MissionModel:loadComplete", function () {
+        _onLoadComplete();
+    });
+
     /**
      * This method is called once all the missions are loaded. It sets the auditDistance, auditDistanceFt, and
      * auditDistanceMi of all the missions in the container.

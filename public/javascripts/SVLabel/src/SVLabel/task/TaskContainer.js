@@ -386,7 +386,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
     /**
      * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
      * segments on Google Maps.
-     * KH: It maybe more natural to let a method in Map.js do handle it...
+     * KH: It maybe more natural to let a method in MapService.js do handle it...
      */
     function update () {
         var i, len = previousTasks.length;

@@ -1,29 +1,24 @@
 /**
- *
- * @returns {{className: string}}
+ * StatusField constructor
+ * @param uiStatusField
  * @constructor
- * @memberof svl
  */
-function StatusField () {
-    var self = { className: "StatusField" },
-        blinkInterval;
+function StatusField (uiStatusField) {
+    var self = this;
+    var _blinkInterval;
 
     // Blink the status field
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            svl.ui.status.holder.toggleClass("highlight-50");
+    this.blink = function  () {
+        self.stopBlinking();
+        _blinkInterval = window.setInterval(function () {
+            uiStatusField.holder.toggleClass("highlight-50");
         }, 500);
-    }
+    };
 
     // Stop blinking
-    function stopBlinking () {
-        window.clearInterval(blinkInterval);
-        svl.ui.status.holder.removeClass("highlight-50");
-    }
-
-    self.blink = blink;
-    self.stopBlinking = stopBlinking;
-
-    return self;
+    this.stopBlinking = function () {
+        window.clearInterval(_blinkInterval);
+        uiStatusField.holder.removeClass("highlight-50");
+    };
 }
+

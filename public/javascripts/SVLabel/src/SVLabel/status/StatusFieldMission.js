@@ -1,5 +1,10 @@
-function StatusFieldMission () {
+function StatusFieldMission (statusModel, uiStatusField) {
     var self = { className: "StatusFieldMission" };
+
+    var $completionRate = uiStatusField.holder.find("#status-current-mission-completion-rate");
+    var $progressBar = uiStatusField.holder.find("#status-current-mission-completion-bar");
+    var $progressBarFiller = uiStatusField.holder.find("#status-current-mission-completion-bar-filler");
+    var $missionDescription = uiStatusField.holder.find("#current-mission-description");
 
     // These are messages that are shown under the "Current Mission" in the status pane. The object's keys correspond to
     // the "label"s of missions (e.g., "initial-mission"). Substitute __PLACEHOLDER__ depending on each mission.
@@ -9,11 +14,7 @@ function StatusFieldMission () {
         "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood.",
         "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood accessible"
     };
-    
-    function _init() {
-        printCompletionRate(0);
-        
-    }
+
 
     function _auidtDistanceToString (distance, unit) {
         if (!unit) unit = "kilometers";
@@ -56,7 +57,7 @@ function StatusFieldMission () {
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
-        svl.ui.progressPov.rate.html(completionRate);
+        $completionRate.html(completionRate);
         return this;
     }
 
@@ -71,12 +72,6 @@ function StatusFieldMission () {
             missionMessage = getMissionMessage(missionLabel);
 
         if (missionLabel == "distance-mission") {
-            // if (mission.getProperty("distanceMi") <= 1) {
-            //     missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceFt") + "ft");
-            // } else {
-            //     missionMessage = missionMessage.replace("__PLACEHOLDER__", mission.getProperty("distanceMi") + "mi");
-            // }
-            //
             var distanceString = _auidtDistanceToString(mission.getProperty("distanceMi"), "miles");
             missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
 
@@ -85,7 +80,7 @@ function StatusFieldMission () {
             missionMessage = missionMessage.replace("__PLACEHOLDER__", coverage);
         }
 
-        svl.ui.status.currentMissionDescription.html(missionMessage);
+        $missionDescription.html(missionMessage);
 
         return this;
     }
@@ -110,7 +105,7 @@ function StatusFieldMission () {
         completionRate = completionRate.toFixed(0, 10);
         // completionRate -= 0.8;
         completionRate = completionRate + "%";
-        svl.ui.progressPov.filler.css({
+        $progressBarFiller.css({
             background: color,
             width: completionRate
         });
@@ -121,6 +116,6 @@ function StatusFieldMission () {
     self.printMissionMessage = printMissionMessage;
     self.updateMissionCompletionBar = updateMissionCompletionBar;
     
-    _init();
+    printCompletionRate(0);
     return self;
 }

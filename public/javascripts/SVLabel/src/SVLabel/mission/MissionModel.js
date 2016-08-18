@@ -30,7 +30,7 @@ function MissionModel () {
     };
 
     this.fetchMissions = function (callback) {
-        function success (result1) {
+        function _onFetch (result1) {
             var missionParameters, missions = result1;
 
             function cmp (a, b) {
@@ -52,16 +52,22 @@ function MissionModel () {
                     coverage: missions[i].coverage,
                     isCompleted: missions[i].is_completed
                 };
-                self.trigger("MissionFactory:create", missionParameters);
+                self.createAMission(missionParameters);
             }
         }
 
+        function _onLoad () {
+            self.trigger("MissionModel:loadComplete");
+        }
+
         if (callback) {
-            $.when($.ajax("/mission")).done(success).done(callback);
+            $.when($.ajax("/mission")).done(_onFetch).done(_onLoad).done(callback);
         } else {
-            $.when($.ajax("/mission")).done(success);
+            $.when($.ajax("/mission")).done(_onFetch).done(_onLoad);
         }
     };
+
+
 }
 _.extend(MissionModel.prototype, Backbone.Events);
 
