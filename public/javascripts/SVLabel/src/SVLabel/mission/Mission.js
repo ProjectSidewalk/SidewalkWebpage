@@ -346,7 +346,6 @@ function Mission(parameters) {
             return getProperty("distance");
         }
     }
-
     _init(parameters);
 
     self.complete = complete;
