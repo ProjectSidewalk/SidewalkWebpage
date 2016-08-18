@@ -108,7 +108,7 @@ function Main (params) {
         svl.form.disableSubmit();
 
         svl.overlayMessageBox = new OverlayMessageBox();
-        svl.statusField = new StatusField();
+        svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
         svl.labelCounter = new LabelCounter(d3);
 
