@@ -3,6 +3,7 @@ describe("ModalMissionCompleteMap", function () {
     var neighborhood;
     var mission;
     var map;
+    var uiModalMissionComplete;
 
     // Mocks
     function MissionMock () {
