@@ -125,7 +125,7 @@ describe("ModalMissionCompleteMap", function () {
     });
 
     describe("linestringToPoint method", function(){
-        it("should convert LineString to Point GeoJSON", function() {
+        it("should convert FeatureCollection of LineString to FeatureCollection of Point", function() {
           // GeoJSON FeatureCollection of LineStrings
           var c = {"type":"FeatureCollection",
                       "features":[
@@ -149,6 +149,7 @@ describe("ModalMissionCompleteMap", function () {
                       ]
                   };
             var p = map._linestringToPoint(c);
+            expect(p.type).toBe('FeatureCollection');
             expect(p.features[0].geometry.type).toBe('Point');
         });
     });
