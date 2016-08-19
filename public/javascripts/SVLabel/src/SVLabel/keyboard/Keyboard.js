@@ -19,6 +19,8 @@ function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl)
         $(document).bind('keyup', documentKeyUp);
         $(document).bind('keydown', documentKeyDown);
     }
+
+    // degrees to radians
     function _toRadians (angle) {
         return angle * (Math.PI / 180);
     }
@@ -56,6 +58,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl)
 
     /**
      * This is a callback for a key down event
+     * Since arrow keys are used to move in pano, their default behavior of scrolling is disabled
      * @param {object} e An event object
      * @private
      */
@@ -78,17 +81,13 @@ function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl)
                 case 38:
                     moveForward();
                     break;
-                // "down"
-                case 40:
+                case 40: // "Down"
                     moveBackward();
                     break;
             }
-
             if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                 e.preventDefault();
             }
-        } else {
-
         }
     }
 

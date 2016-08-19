@@ -52,6 +52,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         self.hide();
     };
 
+    // hide the modalMissionComplete div and the map
     this.hide = function () {
         this._status.isOpen = false;
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
@@ -64,6 +65,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         statusModel.setMissionCompletionRate(0);
     };
 
+    // show the modalMissionComplete div and map
     this.show = function () {
         this._status.isOpen = true;
         uiModalMissionComplete.holder.css('visibility', 'visible');
@@ -73,6 +75,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         modalMissionCompleteMap.show();
     };
 
+    // populate the label counts, neighborhood completion bar, and neighborhood completion bar
+    // update the map neighborhood and audit path visualizations
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
         var unit = "miles";
@@ -141,6 +145,7 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
+// set the label texts of neighborhood progress texts to param values and units
 ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, cumulativeAuditedDistance, remainingDistance, unit) {
     if (!unit) unit = "kilometers";
     remainingDistance = Math.max(remainingDistance, 0);
@@ -149,6 +154,7 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
 };
 
+// give the user a random encouraging message uppon completion
 ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {
     var unusedMessages = [
         'You\'re one lightning bolt away from being a greek diety. Keep on going!',
@@ -179,6 +185,7 @@ ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {
     this._uiModalMissionComplete.message.html(message);
 };
 
+// set label counts to each corresponding param
 ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
     this._uiModalMissionComplete.curbRampCount.html(curbRampCount);
     this._uiModalMissionComplete.noCurbRampCount.html(noCurbRampCount);

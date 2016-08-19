@@ -15,14 +15,19 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
 
+
+    /** recursively animate each street segment as a green path
+     *  @param: coll - GeoJSON FeatureCollection of lists of points which will be rendered in order
+     *  @param: index - index in coll of current segment to render
+     *  @param: max - index denoting when to stop
+     */
     this._animateMissionTasks = function (coll, index, max){
         var collection = this._linestringToPoint(coll[index].getGeoJSON());
         var featuresdata = collection.features;
         var leafletMap = this._map;
 
         var svg = d3.select(leafletMap.getPanes().overlayPane).append("svg"),
-
-            g = svg.append("g").attr("class", "leaflet-zoom-hide");
+        g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
         var transform = d3.geo.transform({
             point: projectPoint
@@ -30,6 +35,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
         var d3path = d3.geo.path().projection(transform);
 
+        // create functions generate line from input points
         var toLine = d3.svg.line()
             .interpolate("linear")
             .x(function(d) {
@@ -50,29 +56,26 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         // reset projection on zoom
         leafletMap.on("viewreset", reset);
 
-        // this puts stuff on the map!
         reset();
         transition();
 
-        // Reposition the SVG to cover the features.
+        // Reposition the size and location SVG to cover the features
+        // set opacity to zero before it is rendered
         function reset() {
             var bounds = d3path.bounds(collection),
                 topLeft = bounds[0],
                 bottomRight = bounds[1];
 
-            // Setting the size and location of the overall SVG container
             svg.attr("width", bottomRight[0] - topLeft[0] + 120)
                 .attr("height", bottomRight[1] - topLeft[1] + 120)
                 .style("left", topLeft[0] - 50 + "px")
                 .style("top", topLeft[1] - 50 + "px");
 
-            // set opacity to zero before it is rendered
             linePath.style("opacity", "0").attr("d", toLine);
             g.attr("transform", "translate(" + (-topLeft[0] + 50) + "," + (-topLeft[1] + 50) + ")");
+        }
 
-        } // end reset
-
-
+        // the animation is triggered here
         function transition() {
             linePath.transition()
                 .duration(3000)
@@ -87,7 +90,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                         renderPath(coll);
                     }
                 });
-        } //end transition
+        }
 
         // this function feeds the attrTween operator above with the
         // stroke and dash lengths
@@ -102,7 +105,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
                 return interpolate(t);
             }
-        } //end tweenDash
+        } 
 
         function projectPoint(x, y) {
             var point = leafletMap.latLngToLayerPoint(new L.LatLng(y, x));
@@ -130,12 +133,12 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     /**
      * This method takes tasks that has been completed in the current mission and *all* the tasks completed in the
      * current neighborhood so far.
+     * Only called from ModalMissionComplete
      * WARNING: `completedTasks` include tasks completed in the current mission too.
      * WARNING2: The current tasks are not included in neither of `missionTasks` and `completedTasks`
      *
      * @param missionTasks
      * @param completedTasks
-     * @private
      */
     this.updateStreetSegments = function (missionTasks, completedTasks) {
         // Add layers http://leafletjs.com/reference.html#map-addlayer
@@ -187,6 +190,12 @@ ModalMissionCompleteMap.prototype.hide = function () {
     $(".leaflet-zoom-animated path").css('visibility', 'hidden');
 };
 
+/**
+ * reposition the map around the center of neighborhood
+ * render gray overlay with neighborhood area cut out
+ * @param: mission
+ * @param: neighborhood 
+ */
 ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
     // Focus on the current region on the Leaflet map
     var center = neighborhood.center();
@@ -196,13 +205,13 @@ ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
         "type": "FeatureCollection",
         "features": [{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [
             [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]]}}]};
+
     // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
     var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, "miles");
     var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
-    // cut out neighborhood from overlay
+
     this._overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
     this._overlayPolygonLayer = L.geoJson(this._overlayPolygon);
-    // everything but current neighborhood grayed out
     this._overlayPolygonLayer.setStyle({ "opacity": 0, "fillColor": "rgb(110, 110, 110)", "fillOpacity": 0.25});
     this._overlayPolygonLayer.addTo(this._map);
     if (center) {
