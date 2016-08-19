@@ -18,16 +18,20 @@ function ContextMenu ($) {
         $descriptionTextBox = svl.ui.contextMenu.textBox,
         windowWidth = $menuWindow.width();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
+    var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
+
 
     document.addEventListener("mousedown", hide);
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
-    $radioButtons.on('change', handleRadioChange);
+    $radioButtons.on('change', _handleRadioChange);
     $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
     $descriptionTextBox.on('change', handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
     svl.ui.contextMenu.closeButton.on('click', handleCloseButtonClick);
     $OKButton.on('click', _handleOKButtonClick);
+    $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
+    $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
 
     function checkRadioButton (value) {
         svl.ui.contextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
@@ -93,15 +97,54 @@ function ContextMenu ($) {
      *
      * @param e
      */
-    function handleRadioChange (e) {
-        var severity = parseInt($(this).val(), 10),
-            label = getTargetLabel();
+    function _handleRadioChange (e) {
+        var severity = parseInt($(this).val(), 10);
+        var label = getTargetLabel();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
+
+        self._updateRadioButtonImages();
 
         if (label) {
             label.setProperty('severity', severity);
         }
     }
+
+    function _handleRadioButtonLabelMouseEnter () {
+        var radioValue = parseInt($(this).find("input").attr("value"), 10);
+        self._updateRadioButtonImages(radioValue);
+    }
+
+    function _handleRadioButtonLabelMouseLeave () {
+        self._updateRadioButtonImages();
+    }
+
+    self._updateRadioButtonImages = function (hoveredRadioButtonValue) {
+        var $radioButtonImages = $radioButtonLabels.find("input + img");
+        var $selectedRadioButtonImage;
+        var $hoveredRadioButtonImage;
+        var imageURL;
+
+        $radioButtonImages.each(function (i, element) {
+            imageURL = $(element).attr("default-src");
+            $(element).attr("src", imageURL);
+        });
+
+        // Update the hovered radio button image
+        if (hoveredRadioButtonValue && hoveredRadioButtonValue > 0 && hoveredRadioButtonValue <= 5) {
+            $hoveredRadioButtonImage = $radioButtonLabels.find("input[value='" + hoveredRadioButtonValue + "'] + img");
+            imageURL = $hoveredRadioButtonImage.attr("default-src");
+            imageURL = imageURL.replace("_BW.png", ".png");
+            $hoveredRadioButtonImage.attr("src", imageURL);
+        }
+
+        // Update the selected radio button image
+        $selectedRadioButtonImage = $radioButtonLabels.find("input:checked + img");
+        if ($selectedRadioButtonImage.length > 0) {
+            imageURL = $selectedRadioButtonImage.attr("default-src");
+            imageURL = imageURL.replace("_BW.png", ".png");
+            $selectedRadioButtonImage.attr("src", imageURL);
+        }
+    };
 
 
     /**
