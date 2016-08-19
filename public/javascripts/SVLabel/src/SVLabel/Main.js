@@ -320,10 +320,10 @@ function Main (params) {
 
     function initialMissionInstruction () {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-        svl.popUpMessage.notify("Let's get started! Audit the intersection",
-            "We moved you to a street in " + neighborhood.getProperty("name") +
-            ", DC! First, we want you to look around and label all the curb ramps here. " +
-            "You should also label <a>all the problems</a> you find.");
+        svl.popUpMessage.notify("Let's get started!",
+            "We have moved you to a street in " + neighborhood.getProperty("name") +
+            ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
+            "accessibility problems at this intersection.");
 
         var initialHeading = svl.map.getPov().heading;
         var lookedAround = false;
@@ -336,8 +336,8 @@ function Main (params) {
             if (lookedAround && Math.cos(angleDelta) > 0.5) {
                 clearInterval(interval);
                 svl.popUpMessage.notify("Follow the navigator and audit the street!",
-                    "Good! Once you finish labeling everything you find, let's <span class='bold'>follow the navigator at the bottom right corner to " +
-                    "audit the street. Please label all the accessibility features!</span>");
+                    "Great! It looks like you finished auditing this intersection. Now, follow the red line in the map to " +
+                    "complete your mission. We provide turn-by-turn instructions to guide your path.</span>");
                 svl.compass.blink();
             }
         })
