@@ -17,6 +17,7 @@ function ContextMenu ($) {
         $temporaryProblemCheckbox = svl.ui.contextMenu.temporaryProblemCheckbox,
         $descriptionTextBox = svl.ui.contextMenu.textBox,
         windowWidth = $menuWindow.width();
+    var $OKButton = $menuWindow.find("#context-menu-ok-button");
 
     document.addEventListener("mousedown", hide);
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
@@ -26,6 +27,7 @@ function ContextMenu ($) {
     $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
     svl.ui.contextMenu.closeButton.on('click', handleCloseButtonClick);
+    $OKButton.on('click', _handleOKButtonClick);
 
     function checkRadioButton (value) {
         svl.ui.contextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
@@ -81,6 +83,12 @@ function ContextMenu ($) {
         svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
     }
+
+    function _handleOKButtonClick () {
+        svl.tracker.push('ContextMenu_OKButtonClick');
+        hide();
+    }
+
     /**
      *
      * @param e

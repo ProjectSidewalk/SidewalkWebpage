@@ -203,7 +203,8 @@
                         <div id="severity-menu">
                             <div id="severity-radio-holder">
                                 <div class="radio-inline" id="column-passable">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible.png")' alt="Wheelchair accessible icon">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
+                                        class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
                                     <div class="problem-severity-axis-label">Passable</div>
                                 </div>
                                 <div class="radio-inline">
@@ -222,7 +223,8 @@
                                     <label><input type="radio" name="problem-severity" value="5"><div>5</div></label>
                                 </div>
                                 <div class="radio-inline" id="column-not-passable">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")' alt="Wheelchair inaccessible icon">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
+                                        class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
                                     <div class="problem-severity-axis-label">Not Passable</div>
                                 </div>
                             </div>
@@ -230,14 +232,17 @@
                         <div class="spacer10"></div>
                         <div id="problem-property-menu">
                             <div>
-                                <div class="checkbox-inline">
-                                    <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary Problem</label>
-                                </div>
-                            </div>
-                            <div>
                                 <div>
                                     <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                                 </div>
+                            </div>
+                            <div>
+                                <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
+                                    <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
+                                </div>
+                            </div>
+                            <div>
+                                <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>
                         <div id="context-menu-vertical-connector"></div>

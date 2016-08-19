@@ -3,7 +3,7 @@
     top: 0;
     left: 0;
     width: 390px;
-    height: 142px;
+    height: 155px;
     padding: 5px;
     background-color: white;
     border: solid 5px black;
@@ -33,12 +33,13 @@
 }
 
 #severity-menu img {
-    width: 20px;
-    height: 20px;
+    width: 30px;
+    height: 30px;
 }
 
 #severity-menu .radio-inline {
     font-size: 10pt;
+    padding-bottom: 5px;
 }
 
 #severity-menu input[type="radio"] {
@@ -59,9 +60,10 @@
 }
 
 #severity-menu .radio-inline label div {
+    font-weight: 600;
+    left: -14px;
     position: relative;
-    top: 22px;
-    left: -15px;
+    top: 25px;
 }
 
 #severity-radio-holder span {
@@ -73,4 +75,32 @@
     position: absolute;
     top: 0;
     right: 5px;
+}
+
+#problem-property-menu {
+    position: relative;
+}
+
+#context-menu-problem-description-text-box {
+    height: 30px;
+    margin: 10px 5px 5px 5px;
+    width: 355px;
+}
+
+#context-menu-temporary-problem-checkbox-holder {
+    margin: 5px 5px 5px 5px;
+}
+
+#context-menu-temporary-problem-checkbox-holder label {
+    color: #888;
+    font-weight: normal;
+}
+
+#problem-property-menu button {
+    background: none;
+    border: none;
+    color: #888;
+    position: absolute;
+    top: 40px;
+    right: 8px;
 }
