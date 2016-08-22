@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function ContextMenu ($) {
+function ContextMenu () {
     var self = { className: "ContextMenu" },
         status = {
             targetLabel: null,
@@ -207,6 +207,7 @@ function ContextMenu ($) {
      * @param param a parameter object
      */
     function show (x, y, param) {
+
         setStatus('targetLabel', null);
         $radioButtons.prop('checked', false);
         $temporaryProblemCheckbox.prop('checked', false);
@@ -258,6 +259,7 @@ function ContextMenu ($) {
                 }
             }
         }
+        self._updateRadioButtonImages();
     }
 
     self.checkRadioButton = checkRadioButton;

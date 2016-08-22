@@ -121,7 +121,7 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
-        svl.contextMenu = new ContextMenu($);
+        svl.contextMenu = new ContextMenu();
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);
 
 
