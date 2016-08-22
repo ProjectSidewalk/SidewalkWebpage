@@ -1268,6 +1268,7 @@ function MapService (canvas, uiMap, params) {
     self.save = save;
     self.setHeadingRange = setHeadingRange;
     self.setMode = setMode;
+    self.setPano = setPano;
     self.setPitchRange = setPitchRange;
     self.setPosition = setPosition;
     self.setPov = setPov;

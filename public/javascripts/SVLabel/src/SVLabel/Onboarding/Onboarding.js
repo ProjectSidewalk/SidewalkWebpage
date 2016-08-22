@@ -1,6 +1,6 @@
 /**
  * Onboarding module.
- * So many dependencies!
+ * Todo. So many dependencies! If possible, break the module down into pieces.
  * @param svl
  * @param actionStack
  * @param audioEffect
@@ -28,18 +28,20 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, missionContainer, modalComment, modalMission,
+function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
                      modalSkip, neighborhoodContainer, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
-    var self = { className : 'Onboarding' },
-        ctx, canvasWidth = 720, canvasHeight = 480,
-        properties = {},
-        status = {
-            state: 0,
-            isOnboarding: true
-        },
-        numStates = 32,  // I'm hard coding the number of the states.
-        states = {
+    var self = this;
+    var ctx;
+    var canvasWidth = 720;
+    var canvasHeight = 480;
+    var properties = {};
+    var status = {
+        state: 0,
+        isOnboarding: true
+    };
+    var numStates = 32;
+    var states = {
             "initialize": {
                 "properties": {
                     "action": "Introduction",
@@ -1025,26 +1027,21 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
 
     function _init () {
         status.isOnboarding = true;
-
         tracker.push('Onboarding_Start');
 
-        if ("ui" in svl) {
-            var canvas = uiOnboarding.canvas.get(0);
-            if (canvas) ctx = canvas.getContext('2d');
-            uiOnboarding.holder.css("visibility", "visible");
-        }
+        var canvas = uiOnboarding.canvas.get(0);
+        if (canvas) ctx = canvas.getContext('2d');
+        uiOnboarding.holder.css("visibility", "visible");
 
-        if ("map" in svl) {
-            mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
-        }
+        mapService.unlockDisableWalking();
+        mapService.disableWalking();
+        mapService.lockDisableWalking();
 
-        if ("compass" in svl) {
-            compass.hideMessage();
-        }
+        compass.hideMessage();
 
         status.state = getState("initialize");
-        visit(status.state);
-        initializeHandAnimation();
+        _visit(status.state);
+        handAnimation.initializeHandAnimation();
     }
 
     /**
@@ -1145,12 +1142,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
     function next (nextState) {
         if (typeof nextState == "function") {
             status.state = getState(nextState.call(this));
-            visit(status.state);
+            _visit(status.state);
         } else if (nextState in states) {
             status.state = getState(nextState);
-            visit(status.state);
+            _visit(status.state);
         } else {
-            visit(null);
+            _visit(null);
         }
     }
 
@@ -1197,90 +1194,123 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
         uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
+    function _endTheOnboarding () {
+        tracker.push('Onboarding_End');
+        var task = taskContainer.getCurrentTask();
+        var data = form.compileSubmissionData(task);
+        form.submit(data, task);
+        uiOnboarding.background.css("visibility", "hidden");
+
+        mapService.unlockDisableWalking();
+        mapService.enableWalking();
+        mapService.lockDisableWalking();
+
+        setStatus("isOnboarding", false);
+        storage.set("completedOnboarding", true);
+
+        if (user.getProperty("username") !== "anonymous") {
+            var onboardingMission = missionContainer.getMission(null, "onboarding");
+            onboardingMission.setProperty("isCompleted", true);
+            missionContainer.stage(onboardingMission).commit();
+        }
+
+        // Set the next mission
+        var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
+        var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+        var mission = missions[0];
+
+        missionContainer.setCurrentMission(mission);
+        modalMission.setMissionMessage(mission, neighborhood);
+        modalMission.show();
+
+        taskContainer.initNextTask();
+    }
+
+    function _onboardingStateAnnotationExists (state) {
+        return "annotations" in state && state.annotations;
+    }
+
+    function _onboardingStateMessageExists (state) {
+        return "message" in state && state.message;
+    }
+
+    function _drawAnnotations (state) {
+        var coordinate,
+            imX,
+            imY,
+            lineLength,
+            lineAngle,
+            x1,
+            x2,
+            y1,
+            y2,
+            currentPOV = mapService.getPov(),
+            drawAnnotations;
+
+        clear();
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            imX = state.annotations[i].x;
+            imY = state.annotations[i].y;
+            currentPOV = mapService.getPov();
+
+            // Map an image coordinate to a canvas coordinate
+            if (currentPOV.heading < 180) {
+                if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                    imX -= svl.svImageWidth;
+                }
+            } else {
+                if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                    imX += svl.svImageWidth;
+                }
+            }
+            coordinate = util.misc.imageCoordinateToCanvasCoordinate(imX, imY, currentPOV);
+
+            if (state.annotations[i].type == "arrow") {
+                lineLength = state.annotations[i].length;
+                lineAngle = state.annotations[i].angle;
+                x2 = coordinate.x;
+                y2 = coordinate.y;
+                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
+                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
+                drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
+            } else if (state.annotations[i].type == "double-click") {
+                drawDoubleClickIcon(coordinate.x, coordinate.y);
+            }
+        }
+    }
+
     /**
      * Execute an instruction based on the current state.
      * @param state
      */
-    function visit(state) {
-        var i, len, message, callback, annotationListener;
+    function _visit(state) {
+        var i,
+            len,
+            callback,
+            annotationListener;
+
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         hideMessage();
+
+        // End the onboaridng if there is no transition state is specified. Move to the actual task
         if (!state) {
-            // End of onboarding. Transition to the actual task.
-            tracker.push('Onboarding_End');
-            var task = taskContainer.getCurrentTask();
-            var data = form.compileSubmissionData(task);
-            form.submit(data, task);
-            uiOnboarding.background.css("visibility", "hidden");
-            mapService.unlockDisableWalking().enableWalking().lockDisableWalking();
-            setStatus("isOnboarding", false);
-            storage.set("completedOnboarding", true);
-
-            if (user.getProperty("username") !== "anonymous") {
-                var onboardingMission = missionContainer.getMission(null, "onboarding");
-                onboardingMission.setProperty("isCompleted", true);
-                missionContainer.stage(onboardingMission).commit();
-            }
-
-            // Set the next mission
-            var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
-            var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-            missions.map(function (m) { if (!m.isCompleted()) return m;});
-            var mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
-
-            missionContainer.setCurrentMission(mission);
-            modalMission.setMission(mission, neighborhood);
-            
-            taskContainer.initNextTask();
-
+            _endTheOnboarding();
             return;
         }
 
         // Show user a message box.
-        if ("message" in state && state.message) {
+        if (_onboardingStateMessageExists(state)) {
             showMessage(state.message);
         }
 
         // Draw arrows to annotate target accessibility attributes
-        if ("annotations" in state && state.annotations) {
-            var coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = mapService.getPov(), drawAnnotations;
-            len = state.annotations.length;
-
-            drawAnnotations = function () {
-                clear();
-                for (i = 0; i < len; i++) {
-                    imX = state.annotations[i].x;
-                    imY = state.annotations[i].y;
-                    currentPOV = mapService.getPov();
-
-                    // Map an image coordinate to a canvas coordinate
-                    if (currentPOV.heading < 180) {
-                        if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                            imX -= svl.svImageWidth;
-                        }
-                    } else {
-                        if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                            imX += svl.svImageWidth;
-                        }
-                    }
-                    coordinate = util.misc.imageCoordinateToCanvasCoordinate(imX, imY, currentPOV);
-
-                    if (state.annotations[i].type == "arrow") {
-                        lineLength = state.annotations[i].length;
-                        lineAngle = state.annotations[i].angle;
-                        x2 = coordinate.x;
-                        y2 = coordinate.y;
-                        x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
-                        y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
-                        drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
-                    } else if (state.annotations[i].type == "double-click") {
-                        drawDoubleClickIcon(coordinate.x, coordinate.y);
-                    }
-
-                }
-            };
-            drawAnnotations();
-            if (typeof google != "undefined")  annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", drawAnnotations);
+        if (_onboardingStateAnnotationExists(state)) {
+            _drawAnnotations();
+            if (typeof google != "undefined")  {
+                annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
+                    _drawAnnotations(state);
+                });
+            }
         }
 
         // A nested function responsible for detaching events from google maps
@@ -1292,37 +1322,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
         if ("properties" in state) {
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
-                var pov = { heading: state.properties.heading, pitch: state.properties.pitch, zoom: state.properties.zoom },
-                    googleTarget, googleCallback;
-
-                // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
-                // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
-                // When they click OK, then the POV changes.
-                googleCallback = function () {
-                    mapService.setPano(state.panoId);
-                    google.maps.event.removeListener(googleTarget);
-                };
-                googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
-
-                $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
-                callback = function () {
-                    removeAnnotationListener();
-                    next.call(this, state.transition);
-                    mapService.setPano(state.panoId);
-                    mapService.setPov(pov);
-                    mapService.setPosition(state.properties.lat, state.properties.lng);
-
-                    if ("compass" in svl) compass.hideMessage();
-                };
-                $target.one("click", callback);
+                _visitIntroduction(state);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
                 labelType = state.properties.labelType;
                 subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
-                if ("ribbon" in svl) {
-                    ribbon.startBlinking(labelType, subcategory);
-                }
+
+                ribbon.startBlinking(labelType, subcategory);
 
                 if (subcategory) {
                     $target = $(uiRibbon.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
@@ -1373,13 +1380,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
                 $target.on("click", callback);  // This can be changed to "$target.one()"
             } else if (state.properties.action == "AdjustHeadingAngle") {
                 // Tell them to remove a label.
-                showGrabAndDragAnimation({direction: "left-to-right"});
+                handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
                 callback = function () {
                     var pov = mapService.getPov();
                     if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                         if (typeof google != "undefined") google.maps.event.removeListener($target);
                         removeAnnotationListener();
-                        hideGrabAndDragAnimation();
+                        handAnimation.hideGrabAndDragAnimation();
                         next(state.transition);
                     }
                 };
@@ -1399,7 +1406,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-                // $target = google.maps.event.addListener(svl.panorama, "pano_changed", callback);
+
                 if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
 
                 // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
@@ -1490,115 +1497,150 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
         }
     }
 
+    function _visitIntroduction (state) {
+        var pov = {
+                heading: state.properties.heading,
+                pitch: state.properties.pitch,
+                zoom: state.properties.zoom
+            },
+            googleTarget,
+            googleCallback,
+            $target;
 
-    // Code for hand animation.
-    // Todo. Clean up.
-    var layer, stage, OpenHand, ClosedHand, OpenHandReady = false, ClosedHandReady = false,
-        ImageObjOpenHand = new Image(), ImageObjClosedHand = new Image(), handAnimationInterval;
+        // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
+        // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
+        // When they click OK, then the POV changes.
 
-    function initializeHandAnimation () {
-        if (document.getElementById("hand-gesture-holder")) {
-            hideGrabAndDragAnimation();
-            stage = new Kinetic.Stage({
-                container: "hand-gesture-holder",
-                width: 720,
-                height: 200
-            });
-            layer = new Kinetic.Layer();
-            stage.add(layer);
-            ImageObjOpenHand.onload = function () {
-                OpenHand = new Kinetic.Image({
-                    x: 0,
-                    y: stage.getHeight() / 2 - 59,
-                    image: ImageObjOpenHand,
-                    width: 128,
-                    height: 128
-                });
-                OpenHand.hide();
-                layer.add(OpenHand);
-                OpenHandReady = true;
+        if (typeof google != "undefined") {
+            googleCallback = function () {
+                mapService.setPano(state.panoId);
+                google.maps.event.removeListener(googleTarget);
             };
-            ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
 
-            ImageObjClosedHand.onload = function () {
-                ClosedHand = new Kinetic.Image({
-                    x: 300,
-                    y: stage.getHeight() / 2 - 59,
-                    image: ImageObjClosedHand,
-                    width: 96,
-                    height: 96
-                });
-                ClosedHand.hide();
-                layer.add(ClosedHand);
-                ClosedHandReady = true;
-            };
-            ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
+            googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
+
+            $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
+            function callback () {
+                removeAnnotationListener();
+                next(state.transition);
+                mapService.setPano(state.panoId);
+                mapService.setPov(pov);
+                mapService.setPosition(state.properties.lat, state.properties.lng);
+
+                compass.hideMessage();
+            }
+            $target.one("click", callback);
         }
     }
 
-    /**
-     * References:
-     * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
-     * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
-     */
-    function animateHand(direction) {
-        if (direction === 'left-to-right') {
-            ClosedHand.hide();
-            OpenHand.setPosition(350,100);
-            OpenHand.show();
-            OpenHand.transitionTo({
-                x: 350,
-                y: 30,
-                duration : 0.5,
-                callback : function () {
-                    setTimeout(function () {
-                        OpenHand.hide();
-                        ClosedHand.setPosition(400, 60);
-                        ClosedHand.show();
-                        ClosedHand.transitionTo({
-                            x: 550,
-                            y: 60,
-                            duration: 1
-                        });
-                    }, 300);
-                }
-            });
-        } else {
-            ClosedHand.hide();
-            OpenHand.setPosition(200,100);
-            OpenHand.show();
-            OpenHand.transitionTo({
-                x: 200,
-                y: 0,
-                duration : 0.5,
-                callback : function () {
-                    setTimeout(function () {
-                        OpenHand.hide();
-                        ClosedHand.setPosition(200, 30);
-                        ClosedHand.show();
-                        ClosedHand.transitionTo({
-                            x: 0,
-                            y: 30,
-                            duration: 1
-                        });
-                    }, 300);
-                }
-            });
-        }
-    }
 
-    function showGrabAndDragAnimation (parameters) {
-        if (ClosedHandReady && OpenHandReady) {
-            uiOnboarding.handGestureHolder.css("visibility", "visible");
-            animateHand("left-to-right");
-            handAnimationInterval = setInterval(animateHand.bind(null, "left-to-right"), 2000);
-        }
-    }
-
-    function hideGrabAndDragAnimation () {
-        clearInterval(handAnimationInterval);
-        uiOnboarding.handGestureHolder.css("visibility", "hidden");
-    }
+    // // Code for hand animation.
+    // // Todo. Clean up.
+    // var layer, stage, OpenHand, ClosedHand, OpenHandReady = false, ClosedHandReady = false,
+    //     ImageObjOpenHand = new Image(), ImageObjClosedHand = new Image(), handAnimationInterval;
+    // function _initializeHandAnimation () {
+    //     if (document.getElementById("hand-gesture-holder")) {
+    //         _hideGrabAndDragAnimation();
+    //         stage = new Kinetic.Stage({
+    //             container: "hand-gesture-holder",
+    //             width: 720,
+    //             height: 200
+    //         });
+    //         layer = new Kinetic.Layer();
+    //         stage.add(layer);
+    //         ImageObjOpenHand.onload = function () {
+    //             OpenHand = new Kinetic.Image({
+    //                 x: 0,
+    //                 y: stage.getHeight() / 2 - 59,
+    //                 image: ImageObjOpenHand,
+    //                 width: 128,
+    //                 height: 128
+    //             });
+    //             OpenHand.hide();
+    //             layer.add(OpenHand);
+    //             OpenHandReady = true;
+    //         };
+    //         ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
+    //
+    //         ImageObjClosedHand.onload = function () {
+    //             ClosedHand = new Kinetic.Image({
+    //                 x: 300,
+    //                 y: stage.getHeight() / 2 - 59,
+    //                 image: ImageObjClosedHand,
+    //                 width: 96,
+    //                 height: 96
+    //             });
+    //             ClosedHand.hide();
+    //             layer.add(ClosedHand);
+    //             ClosedHandReady = true;
+    //         };
+    //         ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
+    //     }
+    // }
+    //
+    // /**
+    //  * References:
+    //  * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
+    //  * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
+    //  */
+    // function _animateHand(direction) {
+    //     if (direction === 'left-to-right') {
+    //         ClosedHand.hide();
+    //         OpenHand.setPosition(350,100);
+    //         OpenHand.show();
+    //         OpenHand.transitionTo({
+    //             x: 350,
+    //             y: 30,
+    //             duration : 0.5,
+    //             callback : function () {
+    //                 setTimeout(function () {
+    //                     OpenHand.hide();
+    //                     ClosedHand.setPosition(400, 60);
+    //                     ClosedHand.show();
+    //                     ClosedHand.transitionTo({
+    //                         x: 550,
+    //                         y: 60,
+    //                         duration: 1
+    //                     });
+    //                 }, 300);
+    //             }
+    //         });
+    //     } else {
+    //         ClosedHand.hide();
+    //         OpenHand.setPosition(200,100);
+    //         OpenHand.show();
+    //         OpenHand.transitionTo({
+    //             x: 200,
+    //             y: 0,
+    //             duration : 0.5,
+    //             callback : function () {
+    //                 setTimeout(function () {
+    //                     OpenHand.hide();
+    //                     ClosedHand.setPosition(200, 30);
+    //                     ClosedHand.show();
+    //                     ClosedHand.transitionTo({
+    //                         x: 0,
+    //                         y: 30,
+    //                         duration: 1
+    //                     });
+    //                 }, 300);
+    //             }
+    //         });
+    //     }
+    // }
+    //
+    // function _showGrabAndDragAnimation (parameters) {
+    //     if (ClosedHandReady && OpenHandReady) {
+    //         uiOnboarding.handGestureHolder.css("visibility", "visible");
+    //         _animateHand("left-to-right");
+    //         handAnimationInterval = setInterval(_animateHand.bind(null, "left-to-right"), 2000);
+    //     }
+    // }
+    //
+    // function _hideGrabAndDragAnimation () {
+    //     clearInterval(handAnimationInterval);
+    //     uiOnboarding.handGestureHolder.css("visibility", "hidden");
+    // }
 
     /**
      * Check if the user is working on the onboarding right now
@@ -1619,6 +1661,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, m
         return this;
     }
 
+    self._visit = _visit;
     self.clear = clear;
     self.drawArrow = drawArrow;
     self.next = next;
