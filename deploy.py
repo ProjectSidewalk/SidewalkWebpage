@@ -1,8 +1,12 @@
 import getpass
 import os
 import paramiko
+import subprocess
 import sys
 
+import datetime
+import re
+import time
 
 remote_home_directory = "/nfshomes/kotaro"
 sidewalk_app_directory = remote_home_directory + "/sidewalk-webpage"
@@ -84,26 +88,66 @@ def rename_new_application_directory(client, zip_file_name):
     stdout.read()
     print "Finished renaming"
 
+def add_timestamp_to_the_footer():
+
+    with file("./app/views/main.scala.html", "r+") as f:
+        file_contents = f.read()
+
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
+        new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
+                               """<span id="application-version">Last updated: """ + timestamp + """</span>""",
+                               file_contents)
+
+        f.seek(0)
+        f.write(new_file_contents)
+        f.truncate()
+
+def remove_timestamp_from_the_footer():
+    with file("./app/views/main.scala.html", "r+") as f:
+        file_contents = f.read()
+        new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
+                                   """<span id="application-version"></span>""",
+                                   file_contents)
+
+
+        f.seek(0)
+        f.write(new_file_contents)
+        f.truncate()
+
+
+def call_activator_dist():
+    command = 'activator dist'
+    subprocess.call(command.split())
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        zip_file_path = sys.argv[1]
-        zip_file_name = os.path.split(zip_file_path)[1]
-        username = raw_input("Username:")
-        password = getpass.getpass("Password:")
+        if sys.argv[1] == 'dist':
+            print "Adding timestamp to the footer"
+            add_timestamp_to_the_footer()
 
-        transfer_a_zipfile(zip_file_path, username, password)
+            print "Started zipping up files"
+            call_activator_dist()
+            remove_timestamp_from_the_footer()
 
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname, username=username, password=password)
+        elif sys.argv[1] == 'push':
+            if len(sys.argv) > 2:
+                zip_file_path = sys.argv[2]
+                zip_file_name = os.path.split(zip_file_path)[1]
+                username = raw_input("Username:")
+                password = getpass.getpass("Password:")
 
-        unzip_remote_file(client, zip_file_name)
-        move_existing_application(client)
-        rename_new_application_directory(client, zip_file_name)
-        run_application(client)
-        remove_previous_application(client)
+                transfer_a_zipfile(zip_file_path, username, password)
 
-        client.close()
-    else:
-        print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"
+                client = paramiko.SSHClient()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                client.connect(hostname, username=username, password=password)
+
+                unzip_remote_file(client, zip_file_name)
+                move_existing_application(client)
+                rename_new_application_directory(client, zip_file_name)
+                run_application(client)
+                remove_previous_application(client)
+
+                client.close()
+            else:
+                print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"

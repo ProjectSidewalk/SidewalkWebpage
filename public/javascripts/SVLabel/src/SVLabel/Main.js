@@ -184,6 +184,10 @@ function Main (params) {
         } else {
             svl.popUpMessage.hide();
         }
+
+        $("#toolbar-onboarding-link").on('click', function () {
+            startOnboarding();
+        });
     }
 
     function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
