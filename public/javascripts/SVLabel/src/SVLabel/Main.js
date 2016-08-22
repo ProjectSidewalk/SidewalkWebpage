@@ -218,7 +218,7 @@ function Main (params) {
     }
 
     function startOnboarding () {
-        svl.onboarding = Onboarding($);
+        svl.onboarding = Onboarding(svl.statusModel);
         var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
         if (!onboardingMission) {
             // If the onboarding mission is not yet in the missionContainer, add it there.
