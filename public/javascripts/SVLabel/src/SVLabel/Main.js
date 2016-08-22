@@ -121,7 +121,6 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
-        svl.compass = new Compass(d3, turf);
         svl.contextMenu = new ContextMenu($);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);
 
@@ -167,6 +166,7 @@ function Main (params) {
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
         svl.map = new MapService(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
+        svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
