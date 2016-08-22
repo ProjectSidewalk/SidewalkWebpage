@@ -2,14 +2,10 @@
 var svl = svl || {};
 
 /**
- * The main module of SVLabel
- * @param $: jQuery object
- * @param d3 D3 library
- * @param google Google Maps library
- * @param params: other parameters
- * @returns {{moduleName: string}}
+ * Main module of SVLabel
+ * @param params
+ * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
 function Main (params) {
     var self = { className: 'Main' };
@@ -122,7 +118,7 @@ function Main (params) {
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
         svl.contextMenu = new ContextMenu();
-        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.ui.contextMenu, svl.zoomControl);
+        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.zoomControl);
 
 
         // Game effects

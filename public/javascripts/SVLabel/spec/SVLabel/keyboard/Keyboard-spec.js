@@ -3,6 +3,8 @@ describe("Keyboard module", function () {
     var svl;
     var contextMenuMock;
     var labelMock;
+    var ribbonMock;
+    var zoomControlMock;
 
     beforeEach(function () {
         svl = {
@@ -10,7 +12,9 @@ describe("Keyboard module", function () {
         };
 
         contextMenuMock = new ContextMenuMock();
-        keyboard = new Keyboard(svl, null, contextMenuMock, null, null, null);
+        ribbonMock = null;
+        zoomControlMock = null;
+        keyboard = new Keyboard(svl, null, contextMenuMock, ribbonMock, zoomControlMock);
     });
 
     describe("`getStatus` method", function() {
@@ -78,6 +82,8 @@ describe("Keyboard module", function () {
 
 	    describe("when the context menu is open", function () {
             beforeEach(function () {
+                spyOn(contextMenuMock, 'updateRadioButtonImages');
+
                 labelMock = new LabelMock();
                 labelMock.setProperty('severity', 5);
                 contextMenuMock.isOpen = function () { return true; }
@@ -86,6 +92,11 @@ describe("Keyboard module", function () {
             it('should set the problem severity', function () {
                 triggerKeyUp($(document), 53);
                 expect(labelMock.getProperty('severity')).toBe(5);
+            });
+
+            it('should call `ContextMenu.updateRadioButtonImages` method', function () {
+                triggerKeyUp($(document), 53);
+                expect(contextMenuMock.updateRadioButtonImages).toHaveBeenCalled();
             });
         });
     });
@@ -111,6 +122,8 @@ describe("Keyboard module", function () {
     ContextMenuMock.prototype.isOpen = function () {
         return this._status.isOpen;
     };
+
+    ContextMenuMock.prototype.updateRadioButtonImages = function () {};
 
     ContextMenuMock.prototype.checkRadioButton = function () { };
 

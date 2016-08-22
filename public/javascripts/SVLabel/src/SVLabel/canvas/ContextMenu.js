@@ -102,7 +102,7 @@ function ContextMenu () {
         var label = getTargetLabel();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
-        self._updateRadioButtonImages();
+        self.updateRadioButtonImages();
 
         if (label) {
             label.setProperty('severity', severity);
@@ -111,14 +111,14 @@ function ContextMenu () {
 
     function _handleRadioButtonLabelMouseEnter () {
         var radioValue = parseInt($(this).find("input").attr("value"), 10);
-        self._updateRadioButtonImages(radioValue);
+        self.updateRadioButtonImages(radioValue);
     }
 
     function _handleRadioButtonLabelMouseLeave () {
-        self._updateRadioButtonImages();
+        self.updateRadioButtonImages();
     }
 
-    self._updateRadioButtonImages = function (hoveredRadioButtonValue) {
+    self.updateRadioButtonImages = function (hoveredRadioButtonValue) {
         var $radioButtonImages = $radioButtonLabels.find("input + img");
         var $selectedRadioButtonImage;
         var $hoveredRadioButtonImage;
@@ -259,7 +259,7 @@ function ContextMenu () {
                 }
             }
         }
-        self._updateRadioButtonImages();
+        self.updateRadioButtonImages();
     }
 
     self.checkRadioButton = checkRadioButton;

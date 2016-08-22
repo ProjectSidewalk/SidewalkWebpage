@@ -5,61 +5,57 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl) {
-    var self = {
-            className : 'Keyboard'
-        };
+function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
+    var self = this;
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
         shiftDown: false
     };
 
-    function init () {
-        $(document).bind('keyup', documentKeyUp);
-        $(document).bind('keydown', documentKeyDown);
-    }
-    function _toRadians (angle) {
-        return angle * (Math.PI / 180);
-    }
-
     // Move in the direction of a link closest to a given angle.
     // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
-    function movePano(angle) {
+    // Todo. Make the method name more descriptive.
+    this._movePano = function (angle) {
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panorama.links.map(function(link) {
-            return Math.cos(_toRadians(svl.panorama.pov.heading + angle) - _toRadians(link.heading))
+            var headingAngleOffset = util.math.toRadians(svl.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
+            return Math.cos(headingAngleOffset);
         });
         var maxVal = Math.max.apply(null, cosines);
         var maxIndex = cosines.indexOf(maxVal);
         if(cosines[maxIndex] > 0.5){
             svl.panorama.setPano(svl.panorama.links[maxIndex].pano);
         }
-    }
-    // abstract movePano with more meaningful function name for the following two
-    function moveForward(){
-        movePano(0);
-    }
+    };
 
-    function moveBackward(){
-        movePano(180);
-    }
-    // change the heading of the current panorama point of view by a particular degree value
-    function rotatePov(degree){
+    this._moveForward = function (){
+        this._movePano(0);
+    };
+
+    this._moveBackward = function (){
+        this._movePano(180);
+    };
+
+    /**
+     * Change the heading of the current panorama point of view by a particular degree value
+     * Todo. Change the method name so it is more descriptive.
+     * @param degree
+     */
+    this._rotatePov = function (degree){
         var heading =  svl.panorama.pov.heading;
-        // pitch and zoom arent changed but are needed for the setPov call
         var pitch = svl.panorama.pov.pitch;
         var zoom = svl.panorama.pov.zoom;
         heading = (heading + degree + 360) % 360;
         svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
-    }
+    };
 
     /**
      * This is a callback for a key down event
      * @param {object} e An event object
      * @private
      */
-    function documentKeyDown(e) {
+    this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
         if (contextMenu.isOpen()) {
             return;
@@ -70,34 +66,31 @@ function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl)
                     status.shiftDown = true;
                     break;
                 case 37:  // "Left"
-                    rotatePov(-2);
+                    self._rotatePov(-2);
                     break;
                 case 39:  // "Right"
-                    rotatePov(2);
+                    self._rotatePov(2);
                     break;
                 case 38:
-                    moveForward();
+                    self._moveForward();
                     break;
-                // "down"
-                case 40:
-                    moveBackward();
+                case 40:  // "down"
+                    self._moveBackward();
                     break;
             }
 
             if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                 e.preventDefault();
             }
-        } else {
-
         }
-    }
+    };
 
     /**
      * This is a callback for a key up event.
      * @param {object} e An event object
      * @private
      */
-    function documentKeyUp (e) {
+    this._documentKeyUp = function (e) {
         if (svl.isOnboarding()) {
             // Don't allow users to use keyboard shortcut during the onboarding.
             return;
@@ -217,43 +210,30 @@ function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl)
                     }
             }
         }
-    }
 
-    /**
-     * This is a callback function called when any of the text field is blurred.
-     * @private
-     */
-    function textFieldBlur () {
-        status.focusOnTextField = false
-    }
+        contextMenu.updateRadioButtonImages();
+    };
 
-    /**
-     * This is a callback function called when any of the text field is focused.
-     * @private
-     */
-    function textFieldFocus () {
-        status.focusOnTextField = true;
-    }
 
     /**
      * Get status
      * @param {string} key Field name
      * @returns {*}
      */
-    function getStatus (key) {
+    this.getStatus = function  (key) {
         if (!(key in status)) {
             console.warn("You have passed an invalid key for status.")
         }
         return status[key];
-    }
+    };
 
     /**
      * This method returns whether a shift key is currently pressed or not.
      * @returns {boolean}
      */
-    function isShiftDown () {
+    this.isShiftDown = function () {
         return status.shiftDown;
-    }
+    };
 
     /**
      * Set status
@@ -261,18 +241,13 @@ function Keyboard (svl, canvas, contextMenu, ribbon, uiContextMenu, zoomControl)
      * @param value Field value
      * @returns {setStatus}
      */
-    function setStatus (key, value) {
+    this.setStatus = function (key, value) {
         if (key in status) {
             status[key] = value;
         }
-        return this;
-    }
+    };
 
 
-    self.getStatus = getStatus;
-    self.isShiftDown = isShiftDown;
-    self.setStatus = setStatus;
-
-    init();
-    return self;
+    $(document).bind('keyup', this._documentKeyUp);
+    $(document).bind('keydown', this._documentKeyDown);
 }
