@@ -7,8 +7,8 @@
  */
 function Compass (d3, turf) {
     "use strict";
-    var self = { className : 'Compass' },
-        blinkInterval;
+    var self = this;
+    var blinkInterval;
 
     var imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
@@ -25,18 +25,9 @@ function Compass (d3, turf) {
         chart = svg.append('g'),
         needle;
 
-    function _init() {
-        svg.attr('width', width + padding.left + padding.right)
-            .attr('height', height + padding.top + padding.bottom + 30)
-            .style({ position: 'absolute', left: 0, top: 0 });
-
-        // chart.transition(100).attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.bottom) + ')');
-        // needle = chart.append('path')
-        //         .attr('d', 'M 0 -' + (width / 2 - 3) + ' L 10 9 L 0 6 L -10 9 z')
-        //         .attr('fill', 'white')
-        //         .attr('stroke', 'white')
-        //         .attr('stroke-width', 1);
-    }
+    svg.attr('width', width + padding.left + padding.right)
+        .attr('height', height + padding.top + padding.bottom + 30)
+        .style({ position: 'absolute', left: 0, top: 0 });
 
     /**
      * Mapping from an angle to a direction
@@ -256,7 +247,4 @@ function Compass (d3, turf) {
     self.stopBlinking = stopBlinking;
     self.updateMessage = updateMessage;
     self.update = update;
-
-    _init();
-    return self;
 }
