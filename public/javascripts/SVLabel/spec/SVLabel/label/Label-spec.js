@@ -74,7 +74,7 @@ describe("Label module", function () {
 
             return {x : x, y : y};
         };
-        svl.misc = UtilitiesMisc(JSON);
+        util.misc = UtilitiesMisc(JSON);
         svl.labelFactory = new LabelFactory(svl);
 
 
@@ -84,7 +84,7 @@ describe("Label module", function () {
         p3 = new Point(svl, 5, 5, pov, param);
         points = [p1,p2,p3];
         path = new Path(svl, [p1, p2, p3], {});
-        labelColors = svl.misc.getLabelColors();
+        labelColors = util.misc.getLabelColors();
         latlng = {lat: 38.894799, lng: -77.021906};
         param = {
             canvasWidth: svl.canvasWidth,

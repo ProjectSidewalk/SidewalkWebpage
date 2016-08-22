@@ -62,7 +62,7 @@ function ModalSkip () {
         if (radioValue == "GSVNotAvailable") {
             task.complete();
             svl.taskContainer.push(task);  // Pushed to completed tasks.
-            svl.misc.reportNoStreetView(task.getStreetEdgeId());
+            util.misc.reportNoStreetView(task.getStreetEdgeId());
         }
 
         if ('form' in svl && "taskContainer" in svl) {

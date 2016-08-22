@@ -402,7 +402,7 @@ function Admin (_, $, c3, turf) {
     }
 
     function initializeSubmittedLabels(map) {
-        var colorMapping = svl.misc.getLabelColors(),
+        var colorMapping = util.misc.getLabelColors(),
             geojsonMarkerOptions = {
                 radius: 5,
                 fillColor: "#ff7800",

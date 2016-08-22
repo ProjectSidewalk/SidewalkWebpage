@@ -156,7 +156,7 @@ function Label (svl, pathIn, params) {
                 var googleLatLng = new google.maps.LatLng(cameraLat + dLatLng.dlat, cameraLng + dLatLng.dlng);  // Todo
             }
 
-            var imagePaths = svl.misc.getIconImagePaths(),
+            var imagePaths = util.misc.getIconImagePaths(),
                 url = imagePaths[labelType].googleMapsIconImagePath;
 
             return new google.maps.Marker({
@@ -464,7 +464,7 @@ function Label (svl, pathIn, params) {
                     var iy = (idx / 3 - ix) / 512;
                     var imageCoordinateX = ix * 26;
                     var imageCoordinateY = 3328 - iy * 26;
-                    var canvasPoint = svl.misc.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
+                    var canvasPoint = util.misc.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
 
                     console.log(canvasPoint);
                     ctx.save();
@@ -524,7 +524,7 @@ function Label (svl, pathIn, params) {
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = util.color.changeAlphaRGBA(svl.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
         ctx.strokeStyle = 'rgba(255,255,255,1)';
 
         // Tag background
@@ -662,7 +662,7 @@ function Label (svl, pathIn, params) {
      * @returns {setSubLabelDescription}
      */
     function setSubLabelDescription (labelType) {
-        var labelDescriptions = svl.misc.getLabelDescriptions();
+        var labelDescriptions = util.misc.getLabelDescriptions();
         properties.labelProperties.subLabelDescription = labelDescriptions[labelType].text;
         return this;
     }

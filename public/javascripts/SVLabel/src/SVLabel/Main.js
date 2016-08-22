@@ -218,7 +218,10 @@ function Main (params) {
     }
 
     function startOnboarding () {
-        svl.onboarding = Onboarding(svl.statusModel);
+        svl.onboarding = Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, svl.map,
+            svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, svl.ribbon,
+            svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
+            svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
         if (!onboardingMission) {
             // If the onboarding mission is not yet in the missionContainer, add it there.

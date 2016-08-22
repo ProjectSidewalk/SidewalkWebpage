@@ -130,9 +130,9 @@ function Canvas ($, ribbon) {
     function closeLabelPath() {
 
         var labelType = ribbon.getStatus('selectedLabelType'),
-            labelColor = svl.misc.getLabelColors()[labelType],
-            labelDescription = svl.misc.getLabelDescriptions(ribbon.getStatus('selectedLabelType')),
-            iconImagePath = svl.misc.getIconImagePaths(labelDescription.id).iconImagePath;
+            labelColor = util.misc.getLabelColors()[labelType],
+            labelDescription = util.misc.getLabelDescriptions(ribbon.getStatus('selectedLabelType')),
+            iconImagePath = util.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
@@ -306,7 +306,7 @@ function Canvas ($, ribbon) {
         mouseStatus.currY = mousePosition.y;
 
         // Change a cursor according to the label type.
-        var cursorImagePaths = svl.misc.getLabelCursorImagePath(),
+        var cursorImagePaths = util.misc.getLabelCursorImagePath(),
             labelType = ribbon.getStatus('mode');
         if (labelType) {
             var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
@@ -402,7 +402,7 @@ function Canvas ($, ribbon) {
      */
     function renderTempPath() {
         var pathLen = tempPath.length,
-            labelColor = svl.misc.getLabelColors()[ribbon.getStatus('selectedLabelType')],
+            labelColor = util.misc.getLabelColors()[ribbon.getStatus('selectedLabelType')],
             pointFill = labelColor.fillStyle,
             curr, prev, r;
         pointFill = util.color.changeAlphaRGBA(pointFill, 0.5);
@@ -674,9 +674,9 @@ function Canvas ($, ribbon) {
         if (!target) { target = 'user'; }
 
         var pointData, pov, point, path, param = {},
-            labelColors = svl.misc.getLabelColors(),
-            labelDescriptions = svl.misc.getLabelDescriptions(),
-            iconImagePaths = svl.misc.getIconImagePaths(),
+            labelColors = util.misc.getLabelColors(),
+            labelDescriptions = util.misc.getLabelDescriptions(),
+            iconImagePaths = util.misc.getIconImagePaths(),
             length = labelPoints.length,
             points = [];
 

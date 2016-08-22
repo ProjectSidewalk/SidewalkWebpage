@@ -21,7 +21,8 @@ function RibbonMenu ($, tracker, uiRibbonMenu) {
         blinkInterval;
 
     function _init () {
-        var browser = getBrowser(), labelColors = svl.misc.getLabelColors();
+        var browser = getBrowser(),
+            labelColors = util.misc.getLabelColors();
         if (browser === 'mozilla') {
             properties.originalBackgroundColor = "-moz-linear-gradient(center top , #fff, #eee)";
         } else if (browser === 'msie') {
@@ -84,8 +85,8 @@ function RibbonMenu ($, tracker, uiRibbonMenu) {
                 svl.canvas.cancelDrawing();
             }
 
-            labelColors = svl.misc.getLabelColors();
-            ribbonConnectorPositions = svl.misc.getRibbonConnectionPositions();
+            labelColors = util.misc.getLabelColors();
+            ribbonConnectorPositions = util.misc.getRibbonConnectionPositions();
             borderColor = labelColors[labelType].fillStyle;
 
             if (labelType === 'Walk') {
@@ -186,7 +187,7 @@ function RibbonMenu ($, tracker, uiRibbonMenu) {
           var browser;
           var backgroundColor;
 
-          labelColors = svl.misc.getLabelColors();
+          labelColors = util.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
           $.each(uiRibbonMenu.buttons, function (i, v) {
@@ -218,7 +219,7 @@ function RibbonMenu ($, tracker, uiRibbonMenu) {
         // This method sets the border color of the ribbon menu buttons
         if (uiRibbonMenu) {
           var labelType, labelColors, borderColor;
-          labelColors = svl.misc.getLabelColors();
+          labelColors = util.misc.getLabelColors();
           borderColor = labelColors[mode].fillStyle;
 
           $.each(uiRibbonMenu.buttons, function (i, v) {

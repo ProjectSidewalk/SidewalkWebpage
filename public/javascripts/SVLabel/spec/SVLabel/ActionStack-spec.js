@@ -87,14 +87,14 @@ describe("The ActionStack module.", function () {
 
             return {x : x, y : y};
         };
-        svl.misc = UtilitiesMisc(JSON);
+        util.misc = UtilitiesMisc(JSON);
 
         pov = {
             heading: 0,
             pitch: 0,
             zoom: 1
         };
-        labelColors = svl.misc.getLabelColors();
+        labelColors = util.misc.getLabelColors();
         latlng = {lat: 38.894799, lng: -77.021906};
         latlng2 = {lat: 37.894799, lng: -76.021906};
         param = {

@@ -218,7 +218,7 @@ function MapService (canvas, uiMap, params) {
         var geometry = task.getGeometry();
         var callback = function (data, status) {
             if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                svl.misc.reportNoStreetView(task.getStreetEdgeId());
+                util.misc.reportNoStreetView(task.getStreetEdgeId());
                 svl.taskContainer.endTask(task);
 
                 // Get a new task and repeat
@@ -270,7 +270,6 @@ function MapService (canvas, uiMap, params) {
      * @returns {{x: number, y: number}}
      */
     function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        // return svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
         var zoomFactor = svl.zoomFactor[pov.zoom];
         var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
         var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);

@@ -35,7 +35,7 @@ function AdminTask(_, $, c3, d3, svl, params) {
         };
 
         var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-        var colorScheme = svl.misc.getLabelColors();
+        var colorScheme = util.misc.getLabelColors();
 
         // Prepare a layer to put d3 stuff
         var svg = d3.select(map.getPanes().overlayPane).append("svg");  // The base svg

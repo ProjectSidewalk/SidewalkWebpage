@@ -20,7 +20,7 @@ $(document).ready(function () {
     initializeSubmittedLabels(map);
 
     // Add legends
-    var colorMapping = svl.misc.getLabelColors();
+    var colorMapping = util.misc.getLabelColors();
     document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='4' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
     document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='4' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
     document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='4' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
@@ -223,7 +223,7 @@ function initializeNeighborhoodPolygons(map) {
 }
 
 function initializeSubmittedLabels(map) {
-    var colorMapping = svl.misc.getLabelColors(),
+    var colorMapping = util.misc.getLabelColors(),
         geojsonMarkerOptions = {
             radius: 5,
             fillColor: "#ff7800",

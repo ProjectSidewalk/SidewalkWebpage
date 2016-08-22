@@ -1,5 +1,5 @@
-var svl = svl || {};
-svl.misc = svl.misc || {};
+var util = util || {};
+util.misc = util.misc || {};
 
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
@@ -505,4 +505,4 @@ var ColorScheme = (function () {
     };
 }());
 
-svl.misc = UtilitiesMisc(JSON);
+util.misc = UtilitiesMisc(JSON);

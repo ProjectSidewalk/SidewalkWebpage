@@ -33,7 +33,7 @@ $(document).ready(function () {
         };
 
         var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
-        var colorScheme = svl.misc.getLabelColors();
+        var colorScheme = util.misc.getLabelColors();
 
         // Prepare a layer to put d3 stuff
         var svg = d3.select(map.getPanes().overlayPane).append("svg");  // The base svg
@@ -191,7 +191,7 @@ $(document).ready(function () {
             padding = {left: 5, top: 15},
             width = 200 - margin.left - margin.right,
             height = 50 - margin.top - margin.bottom;
-        var colorScheme = svl.misc.getLabelColors();
+        var colorScheme = util.misc.getLabelColors();
         // Prepare a group to store svg elements, and declare a text
       var dotPlots = {
         "CurbRamp": {

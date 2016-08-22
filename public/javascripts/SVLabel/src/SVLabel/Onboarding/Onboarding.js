@@ -1,4 +1,36 @@
-function Onboarding (statusModel) {
+/**
+ * Onboarding module.
+ * So many dependencies!
+ * @param svl
+ * @param actionStack
+ * @param audioEffect
+ * @param compass
+ * @param form
+ * @param mapService
+ * @param missionContainer
+ * @param modalComment
+ * @param modalMission
+ * @param modalSkip
+ * @param neighborhoodContainer
+ * @param ribbon
+ * @param statusField
+ * @param statusModel
+ * @param storage
+ * @param taskContainer
+ * @param tracker
+ * @param uiCanvas
+ * @param uiContextMenu
+ * @param uiMap
+ * @param uiOnboarding
+ * @param uiRibbon
+ * @param user
+ * @param zoomControl
+ * @returns {{className: string}}
+ * @constructor
+ */
+function Onboarding (svl, actionStack, audioEffect, compass, form, mapService, missionContainer, modalComment, modalMission,
+                     modalSkip, neighborhoodContainer, ribbon, statusField, statusModel, storage, taskContainer,
+                     tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = { className : 'Onboarding' },
         ctx, canvasWidth = 720, canvasHeight = 480,
         properties = {},
@@ -34,7 +66,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(1 / numStates);
                     statusModel.setProgressBar(1 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                     return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
                 }
             },
@@ -62,7 +94,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(2 / numStates);
                     statusModel.setProgressBar(2 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
                     return "label-attribute-1";
                 }
             },
@@ -94,7 +126,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(3 / numStates);
                     statusModel.setProgressBar(3 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
                     return "rate-attribute-1";
                 }
             },
@@ -116,7 +148,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(4 / numStates);
                     statusModel.setProgressBar(4 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
                 }
@@ -137,7 +169,7 @@ function Onboarding (statusModel) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
                 }
@@ -159,7 +191,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(5 / numStates);
                     statusModel.setProgressBar(5 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
                     return "select-label-type-2";
                 }
             },
@@ -188,7 +220,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(6 / numStates);
                     statusModel.setProgressBar(6 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
                     return "label-attribute-2";
                 }
             },
@@ -220,7 +252,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(7 / numStates);
                     statusModel.setProgressBar(7 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
                     return "rate-severity-2";
                 }
             },
@@ -241,7 +273,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(8 / numStates);
                     statusModel.setProgressBar(8 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
                 }
@@ -262,7 +294,7 @@ function Onboarding (statusModel) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
                 }
@@ -292,7 +324,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(9 / numStates);
                     statusModel.setProgressBar(9 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
                     return "label-attribute-3";
                 }
             },
@@ -324,7 +356,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(10 / numStates);
                     statusModel.setProgressBar(10 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
                     return "rate-severity-3";
                 }
             },
@@ -346,7 +378,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(11 / numStates);
                     statusModel.setProgressBar(11 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
                 }
@@ -367,7 +399,7 @@ function Onboarding (statusModel) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 3 ? "adjust-heading-angle-2" : "redo-rate-attribute-3"
                 }
@@ -388,7 +420,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(12 / numStates);
                     statusModel.setProgressBar(12 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
                     return "select-label-type-4";
                 }
             },
@@ -426,7 +458,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(13 / numStates);
                     statusModel.setProgressBar(13 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
                     return "label-attribute-4";
                 }
             },
@@ -458,7 +490,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(14 / numStates);
                     statusModel.setProgressBar(14 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
                     return "rate-severity-4";
                 }
             },
@@ -479,7 +511,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(15 / numStates);
                     statusModel.setProgressBar(15 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
                 }
@@ -500,7 +532,7 @@ function Onboarding (statusModel) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
                 }
@@ -530,7 +562,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(16 / numStates);
                     statusModel.setProgressBar(16 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
                     return "label-attribute-5";
                 }
             },
@@ -562,7 +594,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(17 / numStates);
                     statusModel.setProgressBar(17 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
                     return "rate-severity-5";
                 }
             },
@@ -583,7 +615,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(18 / numStates);
                     statusModel.setProgressBar(18 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
                 }
@@ -604,7 +636,7 @@ function Onboarding (statusModel) {
                 "panoId": "OgLbmLAuC4urfE5o7GP_JQ",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
                 }
@@ -635,7 +667,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(19 / numStates);
                     statusModel.setProgressBar(19 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
                     return "label-attribute-6";
                 }
             },
@@ -668,7 +700,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(20 / numStates);
                     statusModel.setProgressBar(20 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
                     return "adjust-heading-angle-3";
                 }
             },
@@ -688,7 +720,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(21 / numStates);
                     statusModel.setProgressBar(21 / numStates);
-                    svl.tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
+                    tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
                     return "walk-1";
                 }
             },
@@ -723,8 +755,8 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(22 / numStates);
                     statusModel.setProgressBar(22 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
-                    svl.map.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
+                    mapService.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                     return "select-label-type-7";
                 }
             },
@@ -753,7 +785,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(23 / numStates);
                     statusModel.setProgressBar(23 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
                     return "label-attribute-7";
                 }
             },
@@ -785,7 +817,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(24 / numStates);
                     statusModel.setProgressBar(24 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
                     return "rate-severity-7";
                 }
             },
@@ -806,7 +838,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(25 / numStates);
                     statusModel.setProgressBar(25 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
@@ -827,7 +859,7 @@ function Onboarding (statusModel) {
                 "panoId": "bdmGHJkiSgmO7_80SnbzXw",
                 "annotations": null,
                 "transition": function () {
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
                     var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                     return severity == 1 ? "adjust-heading-angle-4" : "redo-rate-attribute-7";
                 }
@@ -849,7 +881,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(26 / numStates);
                     statusModel.setProgressBar(26 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
                     return "instruction-1";
                 }
             },
@@ -869,8 +901,8 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(27 / numStates);
                     statusModel.setProgressBar(27 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
-                    svl.compass.showMessage();
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
+                    compass.showMessage();
                     return "instruction-2";
                 }
             },
@@ -893,7 +925,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(28 / numStates);
                     statusModel.setProgressBar(28 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
                     return "instruction-3";
                 }
             },
@@ -913,7 +945,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(29 / numStates);
                     statusModel.setProgressBar(29 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                     return "instruction-4";
                 }
             },
@@ -934,7 +966,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(30 / numStates);
                     statusModel.setProgressBar(30 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
                     return "instruction-5";
                 }
             },
@@ -956,7 +988,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(31 / numStates);
                     statusModel.setProgressBar(31 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
                     return "outro";
                 }
             },
@@ -984,7 +1016,7 @@ function Onboarding (statusModel) {
                 "transition": function () {
                     statusModel.setMissionCompletionRate(32 / numStates);
                     statusModel.setProgressBar(32 / numStates);
-                    svl.tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
                     return null;
                 }
             }
@@ -994,20 +1026,20 @@ function Onboarding (statusModel) {
     function _init () {
         status.isOnboarding = true;
 
-        svl.tracker.push('Onboarding_Start');
+        tracker.push('Onboarding_Start');
 
         if ("ui" in svl) {
-            var canvas = svl.ui.onboarding.canvas.get(0);
+            var canvas = uiOnboarding.canvas.get(0);
             if (canvas) ctx = canvas.getContext('2d');
-            svl.ui.onboarding.holder.css("visibility", "visible");
+            uiOnboarding.holder.css("visibility", "visible");
         }
 
         if ("map" in svl) {
-            svl.map.unlockDisableWalking().disableWalking().lockDisableWalking();
+            mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
         }
 
         if ("compass" in svl) {
-            svl.compass.hideMessage();
+            compass.hideMessage();
         }
 
         status.state = getState("initialize");
@@ -1103,7 +1135,7 @@ function Onboarding (statusModel) {
      * Hide the message box.
      */
     function hideMessage () {
-        if (svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.hide();
+        if (uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.hide();
     }
 
     /**
@@ -1130,50 +1162,39 @@ function Onboarding (statusModel) {
         var message = parameters.message, position = parameters.position;
         if (!position) position = "top-right";
 
-        svl.ui.onboarding.messageHolder.toggleClass("yellow-background");
-        setTimeout(function () { svl.ui.onboarding.messageHolder.toggleClass("yellow-background"); }, 100);
+        uiOnboarding.messageHolder.toggleClass("yellow-background");
+        setTimeout(function () { uiOnboarding.messageHolder.toggleClass("yellow-background"); }, 100);
 
-        svl.ui.onboarding.messageHolder.css({
+        uiOnboarding.messageHolder.css({
             top: 0,
             left: 0,
             width: 300
         });
 
-        // The following code is broken due to Chrome's bug. It does not properly re-render the text box.
-        // if (position == "top-left") {
-        //     svl.ui.onboarding.messageHolder.css({
-        //         top: 0,
-        //         left: 0
-        //     });
-        // } else {
-        //     svl.ui.onboarding.messageHolder.css({
-        //         top: 0,
-        //         left: 410
-        //     });
-        // }
-        if (!svl.ui.onboarding.messageHolder.is(":visible")) svl.ui.onboarding.messageHolder.show();
+
+        if (!uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.show();
 
 
-        svl.ui.onboarding.background.css("visibility", "hidden");
+        uiOnboarding.background.css("visibility", "hidden");
         if (parameters) {
             if ("width" in parameters) {
-                svl.ui.onboarding.messageHolder.css("width", parameters.width);
+                uiOnboarding.messageHolder.css("width", parameters.width);
             }
 
             if ("left" in parameters) {
-                svl.ui.onboarding.messageHolder.css("left", parameters.left);
+                uiOnboarding.messageHolder.css("left", parameters.left);
             }
 
             if ("top" in parameters) {
-                svl.ui.onboarding.messageHolder.css("top", parameters.top);
+                uiOnboarding.messageHolder.css("top", parameters.top);
             }
 
             if ("background" in parameters && parameters.background) {
-                svl.ui.onboarding.background.css("visibility", "visible");
+                uiOnboarding.background.css("visibility", "visible");
             }
         }
 
-        svl.ui.onboarding.messageHolder.html((typeof message == "function" ? message() : message));
+        uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
     /**
@@ -1186,33 +1207,31 @@ function Onboarding (statusModel) {
         hideMessage();
         if (!state) {
             // End of onboarding. Transition to the actual task.
-            svl.tracker.push('Onboarding_End');
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task);
-            svl.form.submit(data, task);
-            svl.ui.onboarding.background.css("visibility", "hidden");
-            svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
+            tracker.push('Onboarding_End');
+            var task = taskContainer.getCurrentTask();
+            var data = form.compileSubmissionData(task);
+            form.submit(data, task);
+            uiOnboarding.background.css("visibility", "hidden");
+            mapService.unlockDisableWalking().enableWalking().lockDisableWalking();
             setStatus("isOnboarding", false);
-            svl.storage.set("completedOnboarding", true);
+            storage.set("completedOnboarding", true);
 
-            if ("user" in svl && svl.user && svl.user.getProperty("username") !== "anonymous" && "missionContainer" in svl && "missionFactory" in svl) {
-                var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+            if (user.getProperty("username") !== "anonymous") {
+                var onboardingMission = missionContainer.getMission(null, "onboarding");
                 onboardingMission.setProperty("isCompleted", true);
-                svl.missionContainer.stage(onboardingMission).commit();
+                missionContainer.stage(onboardingMission).commit();
             }
 
             // Set the next mission
-            // var mission = svl.missionContainer.getMission("noRegionId", "initial-mission");
-            // if (mission.isCompleted()) {
-            var neighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
-            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
+            var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
             missions.map(function (m) { if (!m.isCompleted()) return m;});
             var mission = missions[0];  // Todo. Take care of the case where length of the missions is 0
 
-            svl.missionContainer.setCurrentMission(mission);
-            svl.modalMission.setMission(mission, neighborhood);
+            missionContainer.setCurrentMission(mission);
+            modalMission.setMission(mission, neighborhood);
             
-            svl.taskContainer.initNextTask();
+            taskContainer.initNextTask();
 
             return;
         }
@@ -1224,7 +1243,7 @@ function Onboarding (statusModel) {
 
         // Draw arrows to annotate target accessibility attributes
         if ("annotations" in state && state.annotations) {
-            var coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = svl.map.getPov(), drawAnnotations;
+            var coordinate, imX, imY, lineLength, lineAngle, x1, x2, y1, y2, currentPOV = mapService.getPov(), drawAnnotations;
             len = state.annotations.length;
 
             drawAnnotations = function () {
@@ -1232,7 +1251,7 @@ function Onboarding (statusModel) {
                 for (i = 0; i < len; i++) {
                     imX = state.annotations[i].x;
                     imY = state.annotations[i].y;
-                    currentPOV = svl.map.getPov();
+                    currentPOV = mapService.getPov();
 
                     // Map an image coordinate to a canvas coordinate
                     if (currentPOV.heading < 180) {
@@ -1244,7 +1263,7 @@ function Onboarding (statusModel) {
                             imX += svl.svImageWidth;
                         }
                     }
-                    coordinate = svl.misc.imageCoordinateToCanvasCoordinate(imX, imY, currentPOV);
+                    coordinate = util.misc.imageCoordinateToCanvasCoordinate(imX, imY, currentPOV);
 
                     if (state.annotations[i].type == "arrow") {
                         lineLength = state.annotations[i].length;
@@ -1280,9 +1299,7 @@ function Onboarding (statusModel) {
                 // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
                 // When they click OK, then the POV changes.
                 googleCallback = function () {
-                    svl.panorama.setPano(state.panoId);
-                    // svl.map.setPov(pov);
-                    // svl.map.setPosition(state.properties.lat, state.properties.lng);
+                    mapService.setPano(state.panoId);
                     google.maps.event.removeListener(googleTarget);
                 };
                 googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
@@ -1291,11 +1308,11 @@ function Onboarding (statusModel) {
                 callback = function () {
                     removeAnnotationListener();
                     next.call(this, state.transition);
-                    svl.panorama.setPano(state.panoId);
-                    svl.map.setPov(pov);
-                    svl.map.setPosition(state.properties.lat, state.properties.lng);
+                    mapService.setPano(state.panoId);
+                    mapService.setPov(pov);
+                    mapService.setPosition(state.properties.lat, state.properties.lng);
 
-                    if ("compass" in svl) svl.compass.hideMessage();
+                    if ("compass" in svl) compass.hideMessage();
                 };
                 $target.one("click", callback);
             } else if (state.properties.action == "SelectLabelType") {
@@ -1304,17 +1321,17 @@ function Onboarding (statusModel) {
                 labelType = state.properties.labelType;
                 subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
                 if ("ribbon" in svl) {
-                    svl.ribbon.startBlinking(labelType, subcategory);
+                    ribbon.startBlinking(labelType, subcategory);
                 }
 
                 if (subcategory) {
-                    $target = $(svl.ui.ribbonMenu.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
+                    $target = $(uiRibbon.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
                 } else {
-                    $target = $(svl.ui.ribbonMenu.holder.find('[val="' + labelType + '"]').get(0));
+                    $target = $(uiRibbon.holder.find('[val="' + labelType + '"]').get(0));
                 }
 
                 callback = function () {
-                    svl.ribbon.stopBlinking();
+                    ribbon.stopBlinking();
                     $target.off("click", callback); // Remove the handler
                     removeAnnotationListener();
                     next(state.transition);
@@ -1326,15 +1343,15 @@ function Onboarding (statusModel) {
                     imageY = state.properties.imageY,
                     tolerance = state.properties.tolerance;
                 labelType = state.properties.labelType;
-                $target = svl.ui.canvas.drawingLayer;
+                $target = uiCanvas.drawingLayer;
 
                 callback = function (e) {
                     // Check if the point that the user clicked is close enough to the given ground truth point.
                     var clickCoordinate = mouseposition(e, this),
-                        pov = svl.map.getPov(),
+                        pov = mapService.getPov(),
                         canvasX = clickCoordinate.x,
                         canvasY = clickCoordinate.y,
-                        imageCoordinate = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
+                        imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
                         distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) + (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
                     if (distance < tolerance * tolerance) {
@@ -1346,7 +1363,7 @@ function Onboarding (statusModel) {
                 $target.on("click", callback);
             } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                 var severity = state.properties.severity;
-                $target = svl.ui.contextMenu.radioButtons;
+                $target = uiContextMenu.radioButtons;
                 labelType = state.properties.labelType;
                 callback = function () {
                     $target.off("click", callback);
@@ -1358,7 +1375,7 @@ function Onboarding (statusModel) {
                 // Tell them to remove a label.
                 showGrabAndDragAnimation({direction: "left-to-right"});
                 callback = function () {
-                    var pov = svl.map.getPov();
+                    var pov = mapService.getPov();
                     if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                         if (typeof google != "undefined") google.maps.event.removeListener($target);
                         removeAnnotationListener();
@@ -1369,16 +1386,16 @@ function Onboarding (statusModel) {
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
                 if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
             } else if (state.properties.action == "WalkTowards") {
-                svl.map.unlockDisableWalking().enableWalking().lockDisableWalking();
+                mapService.unlockDisableWalking().enableWalking().lockDisableWalking();
                 callback = function () {
-                    var panoId = svl.map.getPanoId();
+                    var panoId = mapService.getPanoId();
                     if (state.properties.panoId == panoId) {
-                        window.setTimeout(function () { svl.map.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
+                        window.setTimeout(function () { mapService.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
                         if (typeof google != "undefined") google.maps.event.removeListener($target);
                         removeAnnotationListener();
                         next(state.transition);
                     } else {
-                        svl.panorama.setPano(state.panoId); // Force the interface to go back to the previous position.
+                        mapService.setPano(state.panoId); // Force the interface to go back to the previous position.
                     }
                 };
                 // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
@@ -1396,25 +1413,25 @@ function Onboarding (statusModel) {
                     if (previousClick && currentClick - previousClick < 300) {
                         canvasX = mouseposition(e, this).x;
                         canvasY = mouseposition(e, this).y;
-                        pov = svl.map.getPov();
-                        imageCoordinate = svl.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+                        pov = mapService.getPov();
+                        imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
 
                         // Check if where the user has clicked is in the right spot on the canvas
                         var doubleClickAnnotationCoordinate = state.annotations.filter(function (x) { return x.type == "double-click"; })[0];
                         if (Math.sqrt(Math.pow(imageCoordinate.y - doubleClickAnnotationCoordinate.y, 2) +
                                     Math.pow(imageCoordinate.x - doubleClickAnnotationCoordinate.x, 2)) < 300) {
-                            svl.ui.map.viewControlLayer.off("mouseup", mouseUpCallback);
-                            svl.panorama.setPano(state.properties.panoId);
+                            uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
+                            mapService.setPano(state.properties.panoId);
                             callback();
                         }
                     }
                     previousClick = currentClick;
                 };
-                svl.ui.map.viewControlLayer.on("mouseup", mouseUpCallback);
+                uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
             } else if (state.properties.action == "Instruction") {
                 if (!("okButton" in state) || state.okButton) {
                     // Insert an ok button.
-                    svl.ui.onboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
+                    uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
                 }
 
                 // Blink parts of the interface
@@ -1423,28 +1440,28 @@ function Onboarding (statusModel) {
                     for (i = 0; i < len; i++) {
                         switch (state.properties.blinks[i]) {
                             case "google-maps":
-                                svl.map.blinkGoogleMaps();
+                                mapService.blinkGoogleMaps();
                                 break;
                             case "compass":
-                                svl.compass.blink();
+                                compass.blink();
                                 break;
                             case "status-field":
-                                svl.statusField.blink();
+                                statusField.blink();
                                 break;
                             case "zoom":
-                                svl.zoomControl.blink();
+                                zoomControl.blink();
                                 break;
                             case "action-stack":
-                                svl.actionStack.blink();
+                                actionStack.blink();
                                 break;
                             case "sound":
-                                svl.audioEffect.blink();
+                                audioEffect.blink();
                                 break;
                             case "jump":
-                                svl.modalSkip.blink();
+                                modalSkip.blink();
                                 break;
                             case "feedback":
-                                svl.modalComment.blink();
+                                modalComment.blink();
                                 break;
                         }
                     }
@@ -1456,14 +1473,14 @@ function Onboarding (statusModel) {
                     removeAnnotationListener();
 
                     if ("blinks" in state.properties && state.properties.blinks) {
-                        svl.map.stopBlinkingGoogleMaps();
-                        svl.compass.stopBlinking();
-                        svl.statusField.stopBlinking();
-                        svl.zoomControl.stopBlinking();
-                        svl.actionStack.stopBlinking();
-                        svl.audioEffect.stopBlinking();
-                        svl.modalSkip.stopBlinking();
-                        svl.modalComment.stopBlinking();
+                        mapService.stopBlinkingGoogleMaps();
+                        compass.stopBlinking();
+                        statusField.stopBlinking();
+                        zoomControl.stopBlinking();
+                        actionStack.stopBlinking();
+                        audioEffect.stopBlinking();
+                        modalSkip.stopBlinking();
+                        modalComment.stopBlinking();
                     }
 
                     next.call(this, state.transition);
@@ -1572,7 +1589,7 @@ function Onboarding (statusModel) {
 
     function showGrabAndDragAnimation (parameters) {
         if (ClosedHandReady && OpenHandReady) {
-            svl.ui.onboarding.handGestureHolder.css("visibility", "visible");
+            uiOnboarding.handGestureHolder.css("visibility", "visible");
             animateHand("left-to-right");
             handAnimationInterval = setInterval(animateHand.bind(null, "left-to-right"), 2000);
         }
@@ -1580,7 +1597,7 @@ function Onboarding (statusModel) {
 
     function hideGrabAndDragAnimation () {
         clearInterval(handAnimationInterval);
-        svl.ui.onboarding.handGestureHolder.css("visibility", "hidden");
+        uiOnboarding.handGestureHolder.css("visibility", "hidden");
     }
 
     /**

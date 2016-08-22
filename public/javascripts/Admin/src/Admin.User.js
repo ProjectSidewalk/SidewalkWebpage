@@ -56,7 +56,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
 
     // Visualize the labels collected
     $.getJSON("/adminapi/labelLocations/" + self.username, function (data) {
-        var colorMapping = svl.misc.getLabelColors(),
+        var colorMapping = util.misc.getLabelColors(),
             geojsonMarkerOptions = {
                 radius: 5,
                 fillColor: "#ff7800",
@@ -189,7 +189,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
                     var style = !(d.action in eventProperties) ? eventProperties["Default"] : eventProperties[d.action];
                     if (d.action.indexOf("FinishLabeling") > -1) {
                         if (d.note) {
-                            var colors = svl.misc.getLabelColors();
+                            var colors = util.misc.getLabelColors();
                             var labelType = d.note.split(",")[0].split(":")[1];
 
                             if (labelType in colors) {

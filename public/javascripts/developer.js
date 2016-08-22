@@ -76,7 +76,7 @@ $(document).ready(function () {
     overlays[0].addTo(mapAccesScoreNeighborhoods);
     overlays[1].addTo(mapAccessScoreStreets);
 
-    var colorMapping = svl.misc.getLabelColors();
+    var colorMapping = util.misc.getLabelColors();
 
     // A map for Access Feature
     $.getJSON("/v1/access/features?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982", function (data) {

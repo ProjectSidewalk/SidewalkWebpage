@@ -14,7 +14,7 @@ function LabelCounter (d3) {
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
         height = 40 - margin.top - margin.bottom,
-        colorScheme = svl.misc.getLabelColors(),
+        colorScheme = util.misc.getLabelColors(),
         imageWidth = 22, imageHeight = 22;
 
     // Prepare a group to store svg elements, and declare a text

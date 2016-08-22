@@ -21,8 +21,8 @@ function OverlayMessageBox () {
      * @returns {*}
      */
     function setMessage (mode, message) {
-        var instructions = svl.misc.getLabelInstructions(),
-            labelColors = svl.misc.getLabelColors();
+        var instructions = util.misc.getLabelInstructions(),
+            labelColors = util.misc.getLabelColors();
 
         if ((mode in instructions) && (mode in labelColors) && "ui" in svl) {
             // Set the box color.
