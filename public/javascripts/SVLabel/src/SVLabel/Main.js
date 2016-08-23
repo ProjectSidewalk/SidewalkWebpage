@@ -432,7 +432,6 @@ function Main (params) {
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
-        svl.ui.ribbonMenu.informationButtons = $(".ribbon-mode-switch-info-buttons");
 
         // Context menu
         svl.ui.contextMenu = {};

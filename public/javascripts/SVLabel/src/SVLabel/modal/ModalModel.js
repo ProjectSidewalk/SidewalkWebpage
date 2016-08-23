@@ -9,8 +9,7 @@ ModalModel.prototype.setModalMissionMessage = function (mission, neighborhood, p
 };
 
 ModalModel.prototype.showModalExample = function (labelType) {
-    console.log(labelType)
-    this.trigger("ModalExmaple:show", labelType);
+    this.trigger("ModalExample:show", labelType);
 };
 
 ModalModel.prototype.showModalMissionComplete = function () {

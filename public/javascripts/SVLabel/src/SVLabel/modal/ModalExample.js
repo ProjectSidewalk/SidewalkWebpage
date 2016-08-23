@@ -6,12 +6,17 @@
 function ModalExample (modalModel, uiModalExample) {
     var self = this;
 
+    modalModel.on("ModalExample:show", function (labelType) {
+        console.log("ModalModelExample:show", labelType)
+        self.show(labelType);
+    });
+
     this._handleBackgroundClick = function () {
-        hide();
+        self.hide();
     };
 
     this._handleCloseButtonClick = function () {
-        hide();
+        self.hide();
     };
 
     this.hide = function () {

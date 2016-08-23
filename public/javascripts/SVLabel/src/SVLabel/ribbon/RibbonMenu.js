@@ -55,9 +55,6 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
             uiRibbonMenu.subcategories.on({
                click: handleSubcategoryClick
             });
-
-            // Handle info button click
-            uiRibbonMenu.informationButtons.on("click", handleInfoButtonClick);
         }
 
         // Disable mode switch when sign in modal is open
@@ -115,14 +112,6 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
             // Set the instructional message
             overlayMessageBox.setMessage(labelType);
             overlayMessageBox.setHelpLink(labelType);
-        }
-    }
-
-    function handleInfoButtonClick (e) {
-        e.stopPropagation();
-        if ("modalExample" in svl) {
-            var category = $(this).attr("val");
-            svl.modalExample.show(category);
         }
     }
 
