@@ -249,11 +249,11 @@ function ContextMenu () {
                     if (labelType == 'CurbRamp') {
                         example = " (e.g., narrow curb ramp)";
                     } else if (labelType == 'NoCurbRamp') {
-                        example = "";
+                        example = " (e.g., unclear if a curb ramp is needed)";
                     } else if (labelType == 'Obstacle') {
-                        example = " (e.g., sidewalk construction)";
+                        example = " (e.g., sidewalk blocking light pole)";
                     } else if (labelType == 'SurfaceProblem') {
-                        example = " (e.g., a leveled surface due to a tree root)";
+                        example = " (e.g., unleveled due to a tree root)";
                     }
                     $descriptionTextBox.prop("placeholder", defaultText + example);
                 }
