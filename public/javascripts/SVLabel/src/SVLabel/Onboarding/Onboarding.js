@@ -40,7 +40,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         state: 0,
         isOnboarding: true
     };
-    var numStates = 32;
     var states = onboardingStates.get();
 
     function _init () {
@@ -262,8 +261,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             x2,
             y1,
             y2,
-            currentPOV = mapService.getPov(),
-            drawAnnotations;
+            currentPOV = mapService.getPov();
 
         clear();
         for (var i = 0, len = state.annotations.length; i < len; i++) {
@@ -323,7 +321,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         // Draw arrows to annotate target accessibility attributes
         if (_onboardingStateAnnotationExists(state)) {
-            _drawAnnotations();
+            _drawAnnotations(state);
             if (typeof google != "undefined")  {
                 annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
                     _drawAnnotations(state);
@@ -340,7 +338,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         if ("properties" in state) {
             var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
-                _visitIntroduction(state);
+                _visitIntroduction(state, annotationListener);
             } else if (state.properties.action == "SelectLabelType") {
                 // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
                 // Move on to the next state if they click the button.
@@ -515,7 +513,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
     }
 
-    function _visitIntroduction (state) {
+    function _visitIntroduction (state, listener) {
         var pov = {
                 heading: state.properties.heading,
                 pitch: state.properties.pitch,
@@ -539,7 +537,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
             $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
             function callback () {
-                removeAnnotationListener();
+                if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
                 mapService.setPano(state.panoId);
                 mapService.setPov(pov);

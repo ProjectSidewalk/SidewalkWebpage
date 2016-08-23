@@ -29,6 +29,7 @@ describe("Onboarding module", function () {
     var zoomControl;
     var $uiOnboardingFixture;
 
+
     beforeEach(function () {
         statusModelMock = _.clone(Backbone.Events);
         svl = { rootDirectory: "/" };

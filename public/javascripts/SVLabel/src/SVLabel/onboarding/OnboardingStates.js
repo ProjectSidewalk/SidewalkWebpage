@@ -1,5 +1,6 @@
-function OnboardingStates (statusModel, tracker) {
-    var states = {
+function OnboardingStates (compass, mapService, statusModel, tracker) {
+    var numStates = 32;
+    this.states = {
         "initialize": {
             "properties": {
                 "action": "Introduction",
@@ -27,7 +28,7 @@ function OnboardingStates (statusModel, tracker) {
                 statusModel.setMissionCompletionRate(1 / numStates);
                 statusModel.setProgressBar(1 / numStates);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
-                return this.getAttribute("value") == "OK" ? "select-label-type-1" : null;
+                return "select-label-type-1";
             }
         },
         "select-label-type-1": {
@@ -1017,5 +1018,5 @@ function OnboardingStates (statusModel, tracker) {
 
     };
 
-    this.get = function () { return states; };
+    this.get = function () { return this.states; };
 }
