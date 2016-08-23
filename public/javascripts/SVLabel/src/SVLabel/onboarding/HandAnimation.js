@@ -7,7 +7,6 @@ function HandAnimation (uiOnboarding) {
     var ClosedHandReady = false;
     var ImageObjOpenHand = new Image();
     var ImageObjClosedHand = new Image();
-    var handAnimationInterval;
 
     this.initializeHandAnimation = function () {
         if (document.getElementById("hand-gesture-holder")) {
@@ -104,12 +103,14 @@ function HandAnimation (uiOnboarding) {
         if (ClosedHandReady && OpenHandReady) {
             uiOnboarding.handGestureHolder.css("visibility", "visible");
             this.animateHand("left-to-right");
-            handAnimationInterval = setInterval(this.animateHand.bind(null, "left-to-right"), 2000);
+            var handAnimationInterval = setInterval(this.animateHand.bind(null, "left-to-right"), 2000);
+            return handAnimationInterval;
         }
     };
 
-    this.hideGrabAndDragAnimation = function () {
-        clearInterval(handAnimationInterval);
+    this.hideGrabAndDragAnimation = function (interval) {
+        // clearInterval(handAnimationInterval);
+        clearInterval(interval);
         uiOnboarding.handGestureHolder.css("visibility", "hidden");
     }
 }

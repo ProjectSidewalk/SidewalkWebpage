@@ -329,188 +329,90 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             }
         }
 
-        // A nested function responsible for detaching events from google maps
-        function removeAnnotationListener () {
-            if (annotationListener) google.maps.event.removeListener(annotationListener);
-        }
-
         // Change behavior based on the current state.
         if ("properties" in state) {
-            var $target, labelType, subcategory;
             if (state.properties.action == "Introduction") {
                 _visitIntroduction(state, annotationListener);
             } else if (state.properties.action == "SelectLabelType") {
-                // Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
-                // Move on to the next state if they click the button.
-                labelType = state.properties.labelType;
-                subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
-
-                ribbon.startBlinking(labelType, subcategory);
-
-                if (subcategory) {
-                    $target = $(uiRibbon.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
-                } else {
-                    $target = $(uiRibbon.holder.find('[val="' + labelType + '"]').get(0));
-                }
-
-                callback = function () {
-                    ribbon.stopBlinking();
-                    $target.off("click", callback); // Remove the handler
-                    removeAnnotationListener();
-                    next(state.transition);
-                };
-                $target.on("click", callback);
+                _visitSelectLabelTypeState(state, annotationListener);
             } else if (state.properties.action == "LabelAccessibilityAttribute") {
-                // Tell the user to label the target attribute.
-                var imageX = state.properties.imageX,
-                    imageY = state.properties.imageY,
-                    tolerance = state.properties.tolerance;
-                labelType = state.properties.labelType;
-                $target = uiCanvas.drawingLayer;
-
-                callback = function (e) {
-                    // Check if the point that the user clicked is close enough to the given ground truth point.
-                    var clickCoordinate = mouseposition(e, this),
-                        pov = mapService.getPov(),
-                        canvasX = clickCoordinate.x,
-                        canvasY = clickCoordinate.y,
-                        imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
-                        distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) + (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
-
-                    if (distance < tolerance * tolerance) {
-                        $target.off("click", callback);
-                        removeAnnotationListener();
-                        next(state.transition);
-                    }
-                };
-                $target.on("click", callback);
+                _visitLabelAccessibilityAttributeState(state, annotationListener);
             } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
-                var severity = state.properties.severity;
-                $target = uiContextMenu.radioButtons;
-                labelType = state.properties.labelType;
-                callback = function () {
-                    $target.off("click", callback);
-                    removeAnnotationListener();
-                    next.call(this, state.transition);
-                };
-                $target.on("click", callback);  // This can be changed to "$target.one()"
+                _visitRateSeverity(state, annotationListener);
             } else if (state.properties.action == "AdjustHeadingAngle") {
-                // Tell them to remove a label.
-                handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
-                callback = function () {
-                    var pov = mapService.getPov();
-                    if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                        if (typeof google != "undefined") google.maps.event.removeListener($target);
-                        removeAnnotationListener();
-                        handAnimation.hideGrabAndDragAnimation();
-                        next(state.transition);
-                    }
-                };
-                // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-                if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
+                _visitAdjustHeadingAngle(state, annotationListener);
             } else if (state.properties.action == "WalkTowards") {
-                mapService.unlockDisableWalking().enableWalking().lockDisableWalking();
-                callback = function () {
-                    var panoId = mapService.getPanoId();
-                    if (state.properties.panoId == panoId) {
-                        window.setTimeout(function () { mapService.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
-                        if (typeof google != "undefined") google.maps.event.removeListener($target);
-                        removeAnnotationListener();
-                        next(state.transition);
-                    } else {
-                        mapService.setPano(state.panoId); // Force the interface to go back to the previous position.
-                    }
-                };
-                // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-
-                if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
-
-                // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
-                // take the user to the right panorama. In that case, programmatically move the user.
-                var currentClick, previousClick, canvasX, canvasY, pov, imageCoordinate;
-                var mouseUpCallback = function (e) {
-                    currentClick = new Date().getTime();
-
-
-                    // Check if the user has double clicked
-                    if (previousClick && currentClick - previousClick < 300) {
-                        canvasX = mouseposition(e, this).x;
-                        canvasY = mouseposition(e, this).y;
-                        pov = mapService.getPov();
-                        imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
-
-                        // Check if where the user has clicked is in the right spot on the canvas
-                        var doubleClickAnnotationCoordinate = state.annotations.filter(function (x) { return x.type == "double-click"; })[0];
-                        if (Math.sqrt(Math.pow(imageCoordinate.y - doubleClickAnnotationCoordinate.y, 2) +
-                                    Math.pow(imageCoordinate.x - doubleClickAnnotationCoordinate.x, 2)) < 300) {
-                            uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
-                            mapService.setPano(state.properties.panoId);
-                            callback();
-                        }
-                    }
-                    previousClick = currentClick;
-                };
-                uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
+                _visitWalkTowards(state, annotationListener);
             } else if (state.properties.action == "Instruction") {
-                if (!("okButton" in state) || state.okButton) {
-                    // Insert an ok button.
-                    uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
-                }
-
-                // Blink parts of the interface
-                if ("blinks" in state.properties && state.properties.blinks) {
-                    len = state.properties.blinks.length;
-                    for (i = 0; i < len; i++) {
-                        switch (state.properties.blinks[i]) {
-                            case "google-maps":
-                                mapService.blinkGoogleMaps();
-                                break;
-                            case "compass":
-                                compass.blink();
-                                break;
-                            case "status-field":
-                                statusField.blink();
-                                break;
-                            case "zoom":
-                                zoomControl.blink();
-                                break;
-                            case "action-stack":
-                                actionStack.blink();
-                                break;
-                            case "sound":
-                                audioEffect.blink();
-                                break;
-                            case "jump":
-                                modalSkip.blink();
-                                break;
-                            case "feedback":
-                                modalComment.blink();
-                                break;
-                        }
-                    }
-                }
-
-                $target = $("#onboarding-ok-button");
-                callback = function () {
-                    $target.off("click", callback);
-                    removeAnnotationListener();
-
-                    if ("blinks" in state.properties && state.properties.blinks) {
-                        mapService.stopBlinkingGoogleMaps();
-                        compass.stopBlinking();
-                        statusField.stopBlinking();
-                        zoomControl.stopBlinking();
-                        actionStack.stopBlinking();
-                        audioEffect.stopBlinking();
-                        modalSkip.stopBlinking();
-                        modalComment.stopBlinking();
-                    }
-
-                    next.call(this, state.transition);
-                };
-                $target.on("click", callback);
+                _visitInstruction(state, annotationListener);
             }
         }
+    }
+
+    function _visitWalkTowards (state, listener) {
+        mapService.unlockDisableWalking();
+        mapService.enableWalking();
+        mapService.lockDisableWalking();
+
+        var $target;
+        var callback = function () {
+            var panoId = mapService.getPanoId();
+            if (state.properties.panoId == panoId) {
+                window.setTimeout(function () { mapService.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
+                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                if (listener) google.maps.event.removeListener(listener);
+                next(state.transition);
+            } else {
+                mapService.setPano(state.panoId); // Force the interface to go back to the previous position.
+            }
+        };
+        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
+
+        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+
+        // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
+        // take the user to the right panorama. In that case, programmatically move the user.
+        var currentClick, previousClick, canvasX, canvasY, pov, imageCoordinate;
+        var mouseUpCallback = function (e) {
+            currentClick = new Date().getTime();
+
+
+            // Check if the user has double clicked
+            if (previousClick && currentClick - previousClick < 300) {
+                canvasX = mouseposition(e, this).x;
+                canvasY = mouseposition(e, this).y;
+                pov = mapService.getPov();
+                imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+
+                // Check if where the user has clicked is in the right spot on the canvas
+                var doubleClickAnnotationCoordinate = state.annotations.filter(function (x) { return x.type == "double-click"; })[0];
+                if (Math.sqrt(Math.pow(imageCoordinate.y - doubleClickAnnotationCoordinate.y, 2) +
+                        Math.pow(imageCoordinate.x - doubleClickAnnotationCoordinate.x, 2)) < 300) {
+                    uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
+                    mapService.setPano(state.properties.panoId);
+                    callback();
+                }
+            }
+            previousClick = currentClick;
+        };
+        uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
+    }
+
+    function _visitAdjustHeadingAngle (state, listener) {
+        var $target;
+        var interval;
+        interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
+        var callback = function () {
+            var pov = mapService.getPov();
+            if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                if (listener) google.maps.event.removeListener(listener);
+                handAnimation.hideGrabAndDragAnimation(interval);
+                next(state.transition);
+            }
+        };
+        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
+        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
 
     function _visitIntroduction (state, listener) {
@@ -526,7 +428,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
         // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
         // When they click OK, then the POV changes.
-
         if (typeof google != "undefined") {
             googleCallback = function () {
                 mapService.setPano(state.panoId);
@@ -549,114 +450,132 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
     }
 
+    function _visitRateSeverity (state, listener) {
+        var $target = uiContextMenu.radioButtons;
+        var callback = function () {
+            if (listener) google.maps.event.removeListener(listener);
+            $target.off("click", callback);
+            next.call(this, state.transition);
+        };
+        $target.on("click", callback);
+    }
 
-    // // Code for hand animation.
-    // // Todo. Clean up.
-    // var layer, stage, OpenHand, ClosedHand, OpenHandReady = false, ClosedHandReady = false,
-    //     ImageObjOpenHand = new Image(), ImageObjClosedHand = new Image(), handAnimationInterval;
-    // function _initializeHandAnimation () {
-    //     if (document.getElementById("hand-gesture-holder")) {
-    //         _hideGrabAndDragAnimation();
-    //         stage = new Kinetic.Stage({
-    //             container: "hand-gesture-holder",
-    //             width: 720,
-    //             height: 200
-    //         });
-    //         layer = new Kinetic.Layer();
-    //         stage.add(layer);
-    //         ImageObjOpenHand.onload = function () {
-    //             OpenHand = new Kinetic.Image({
-    //                 x: 0,
-    //                 y: stage.getHeight() / 2 - 59,
-    //                 image: ImageObjOpenHand,
-    //                 width: 128,
-    //                 height: 128
-    //             });
-    //             OpenHand.hide();
-    //             layer.add(OpenHand);
-    //             OpenHandReady = true;
-    //         };
-    //         ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
-    //
-    //         ImageObjClosedHand.onload = function () {
-    //             ClosedHand = new Kinetic.Image({
-    //                 x: 300,
-    //                 y: stage.getHeight() / 2 - 59,
-    //                 image: ImageObjClosedHand,
-    //                 width: 96,
-    //                 height: 96
-    //             });
-    //             ClosedHand.hide();
-    //             layer.add(ClosedHand);
-    //             ClosedHandReady = true;
-    //         };
-    //         ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
-    //     }
-    // }
-    //
-    // /**
-    //  * References:
-    //  * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
-    //  * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
-    //  */
-    // function _animateHand(direction) {
-    //     if (direction === 'left-to-right') {
-    //         ClosedHand.hide();
-    //         OpenHand.setPosition(350,100);
-    //         OpenHand.show();
-    //         OpenHand.transitionTo({
-    //             x: 350,
-    //             y: 30,
-    //             duration : 0.5,
-    //             callback : function () {
-    //                 setTimeout(function () {
-    //                     OpenHand.hide();
-    //                     ClosedHand.setPosition(400, 60);
-    //                     ClosedHand.show();
-    //                     ClosedHand.transitionTo({
-    //                         x: 550,
-    //                         y: 60,
-    //                         duration: 1
-    //                     });
-    //                 }, 300);
-    //             }
-    //         });
-    //     } else {
-    //         ClosedHand.hide();
-    //         OpenHand.setPosition(200,100);
-    //         OpenHand.show();
-    //         OpenHand.transitionTo({
-    //             x: 200,
-    //             y: 0,
-    //             duration : 0.5,
-    //             callback : function () {
-    //                 setTimeout(function () {
-    //                     OpenHand.hide();
-    //                     ClosedHand.setPosition(200, 30);
-    //                     ClosedHand.show();
-    //                     ClosedHand.transitionTo({
-    //                         x: 0,
-    //                         y: 30,
-    //                         duration: 1
-    //                     });
-    //                 }, 300);
-    //             }
-    //         });
-    //     }
-    // }
-    //
-    // function _showGrabAndDragAnimation (parameters) {
-    //     if (ClosedHandReady && OpenHandReady) {
-    //         uiOnboarding.handGestureHolder.css("visibility", "visible");
-    //         _animateHand("left-to-right");
-    //         handAnimationInterval = setInterval(_animateHand.bind(null, "left-to-right"), 2000);
-    //     }
-    // }
-    //
-    // function _hideGrabAndDragAnimation () {
-    //     clearInterval(handAnimationInterval);
-    //     uiOnboarding.handGestureHolder.css("visibility", "hidden");
-    // }
+    function _visitInstruction (state, listener) {
+        if (!("okButton" in state) || state.okButton) {
+            // Insert an ok button.
+            uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
+        }
+
+        // Blink parts of the interface
+        if ("blinks" in state.properties && state.properties.blinks) {
+            len = state.properties.blinks.length;
+            for (i = 0; i < len; i++) {
+                switch (state.properties.blinks[i]) {
+                    case "google-maps":
+                        mapService.blinkGoogleMaps();
+                        break;
+                    case "compass":
+                        compass.blink();
+                        break;
+                    case "status-field":
+                        statusField.blink();
+                        break;
+                    case "zoom":
+                        zoomControl.blink();
+                        break;
+                    case "action-stack":
+                        actionStack.blink();
+                        break;
+                    case "sound":
+                        audioEffect.blink();
+                        break;
+                    case "jump":
+                        modalSkip.blink();
+                        break;
+                    case "feedback":
+                        modalComment.blink();
+                        break;
+                }
+            }
+        }
+
+        var $target = $("#onboarding-ok-button");
+        var callback = function () {
+            if (listener) google.maps.event.removeListener(listener);
+
+            if ("blinks" in state.properties && state.properties.blinks) {
+                mapService.stopBlinkingGoogleMaps();
+                compass.stopBlinking();
+                statusField.stopBlinking();
+                zoomControl.stopBlinking();
+                actionStack.stopBlinking();
+                audioEffect.stopBlinking();
+                modalSkip.stopBlinking();
+                modalComment.stopBlinking();
+            }
+            // $target.off("click", callback);
+            next.call(this, state.transition);
+        };
+        $target.one("click", callback);
+    }
+
+    /**
+     * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
+     * Move on to the next state if they click the button.
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitSelectLabelTypeState(state, listener) {
+        var labelType = state.properties.labelType;
+        var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
+        var $target;
+
+        ribbon.startBlinking(labelType, subcategory);
+
+        if (subcategory) {
+            $target = $(uiRibbon.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
+        } else {
+            $target = $(uiRibbon.holder.find('[val="' + labelType + '"]').get(0));
+        }
+
+        var callback = function () {
+            ribbon.stopBlinking();
+            if (listener) google.maps.event.removeListener(listener);
+            next(state.transition);
+        };
+        $target.one("click", callback);
+    }
+
+    /**
+     * Tell the user to label the target attribute.
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitLabelAccessibilityAttributeState(state, listener) {
+        var imageX = state.properties.imageX;
+        var imageY = state.properties.imageY;
+        var tolerance = state.properties.tolerance;
+        var $target = uiCanvas.drawingLayer;
+
+        var callback = function (e) {
+            var clickCoordinate = mouseposition(e, this),
+                pov = mapService.getPov(),
+                canvasX = clickCoordinate.x,
+                canvasY = clickCoordinate.y,
+                imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
+                distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) + (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
+
+            if (distance < tolerance * tolerance) {
+                if (listener) google.maps.event.removeListener(listener);
+                next(state.transition);
+            }
+        };
+        $target.one("click", callback);
+    }
+
+
 
     /**
      * Check if the user is working on the onboarding right now
