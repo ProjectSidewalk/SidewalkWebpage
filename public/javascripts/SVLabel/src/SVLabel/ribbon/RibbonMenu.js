@@ -1,11 +1,11 @@
 /**
- * Todo. Split the UI code with the logic code.
- * @param $
+ * RibbonMenu module
+ * @param tracker
+ * @param uiRibbonMenu
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function RibbonMenu ($, tracker, uiRibbonMenu) {
+function RibbonMenu (tracker, uiRibbonMenu) {
     var self = { className: 'RibbonMenu'},
         properties = {
             borderWidth : "3px",

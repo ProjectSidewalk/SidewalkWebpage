@@ -1,21 +1,14 @@
-/**
- * ContextMenu module
- * @param $
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
- */
-function ContextMenu () {
+function ContextMenu (uiContextMenu) {
     var self = { className: "ContextMenu" },
         status = {
             targetLabel: null,
             visibility: 'hidden'
         };
-    var $menuWindow = svl.ui.contextMenu.holder,
-        $connector = svl.ui.contextMenu.connector,
-        $radioButtons = svl.ui.contextMenu.radioButtons,
-        $temporaryProblemCheckbox = svl.ui.contextMenu.temporaryProblemCheckbox,
-        $descriptionTextBox = svl.ui.contextMenu.textBox,
+    var $menuWindow = uiContextMenu.holder,
+        $connector = uiContextMenu.connector,
+        $radioButtons = uiContextMenu.radioButtons,
+        $temporaryProblemCheckbox = uiContextMenu.temporaryProblemCheckbox,
+        $descriptionTextBox = uiContextMenu.textBox,
         windowWidth = $menuWindow.width();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
@@ -28,13 +21,13 @@ function ContextMenu () {
     $descriptionTextBox.on('change', handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
-    svl.ui.contextMenu.closeButton.on('click', handleCloseButtonClick);
+    uiContextMenu.closeButton.on('click', handleCloseButtonClick);
     $OKButton.on('click', _handleOKButtonClick);
     $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
 
     function checkRadioButton (value) {
-        svl.ui.contextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
+        uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
     }
 
     /**

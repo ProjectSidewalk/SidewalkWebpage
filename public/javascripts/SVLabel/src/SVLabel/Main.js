@@ -99,7 +99,7 @@ function Main (params) {
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
 
-        svl.ribbon = new RibbonMenu($, svl.tracker, svl.ui.ribbonMenu);
+        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas($, svl.ribbon);
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
@@ -117,7 +117,7 @@ function Main (params) {
 
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
-        svl.contextMenu = new ContextMenu();
+        svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
         svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory);

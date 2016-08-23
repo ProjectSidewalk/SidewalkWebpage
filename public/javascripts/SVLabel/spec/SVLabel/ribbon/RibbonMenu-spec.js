@@ -123,7 +123,7 @@ describe("RibbonMenu module.", function () {
     svl.ui.ribbonMenu.subcategories = $fixture.find(".ribbon-menu-other-subcategories");
     svl.ui.ribbonMenu.informationButtons = $fixture.find(".ribbon-mode-switch-info-buttons");
 
-    ribbon = new RibbonMenu(jQuery, mockTracker, svl.ui.ribbonMenu);
+    ribbon = new RibbonMenu(mockTracker, svl.ui.ribbonMenu);
     ribbon.unlockDisableModeSwitch();
     ribbon.enableModeSwitch();
   });
