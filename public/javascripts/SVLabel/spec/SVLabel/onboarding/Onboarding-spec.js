@@ -46,6 +46,7 @@ describe("Onboarding module", function () {
         taskContainer = new TaskContainerMock();
         tracker = new TrackerMock();
         user = new UserMock();
+        zoomControl = new ZoomControlMock();
 
         $uiOnboardingFixture = $('  <div id="onboarding-holder" class="Window_StreetView"> \
                                         <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
@@ -163,6 +164,17 @@ describe("Onboarding module", function () {
         this.getProperty = function (key) {
             return this._properties[key];
         }
+    }
+
+    function ZoomControlMock () {
+        this.disableZoomIn = function () {};
+        this.disableZoomOut = function () {};
+        this.enableZoomIn = function () {};
+        this.enableZoomOut = function () {};
+        this.lockDisableZoomIn = function () {};
+        this.lockDisableZoomOut = function () {};
+        this.unlockDisableZoomIn = function () {};
+        this.unlockDisableZoomOut = function () {};
     }
 
 });

@@ -122,13 +122,14 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 				var blueBar = $uiModalMissionCompleteFixture.find('#blue-bar');
 				var barText = $uiModalMissionCompleteFixture.find('#bar-text');
 
-				setTimeout(function () { 
+				setTimeout(function () {
 					expect(greenBar.attr('width')).toBe('27.5');
 					expect(blueBar.attr('width')).toBe('27.5');
 					expect(barText.html()).toBe('20%');
-					done(); 
+					done();
 				}, 2000);
 			});
+		});
 
 		describe("with 10% mission completion rate", function() {
 			it("should change bar width and text", function (done) {
@@ -168,6 +169,4 @@ describe("ModalMissionCompleteProgressBar tests", function () {
 			});
 		});
 	});
-
-	
 });

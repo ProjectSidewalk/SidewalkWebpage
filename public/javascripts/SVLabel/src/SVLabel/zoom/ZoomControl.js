@@ -198,6 +198,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             // Adjust the pitch so it won't exceed max/min pitch.
             mapService.setPov(pov);
             return currentZoomLevel;
+        } else {
+            return false;
         }
     }
 
