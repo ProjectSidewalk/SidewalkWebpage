@@ -7,7 +7,6 @@ function ModalExample (modalModel, uiModalExample) {
     var self = this;
 
     modalModel.on("ModalExample:show", function (labelType) {
-        console.log("ModalModelExample:show", labelType)
         self.show(labelType);
     });
 

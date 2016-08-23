@@ -54,6 +54,10 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
             uiOverlayMessage.message.html(message);
         } else {
             uiOverlayMessage.message.html('<strong>' + instructions[mode].instructionalText + '</strong>');
+            uiOverlayMessage.message.find(".overlay-message-label-type").on('click', function () {
+                var labelType = $(this).attr("val");
+                modalModel.showModalExample(labelType);
+            });
         }
     };
 

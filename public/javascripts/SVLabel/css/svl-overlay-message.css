@@ -5,6 +5,7 @@
     left: 0;
     height: 20px;
     width: 100%;
+    z-index: 2;
 }
 
 #overlay-message {
@@ -22,5 +23,9 @@
     top: 2px;
     right: 3px;
     z-index: 2;
+    cursor: pointer;
+}
+
+.overlay-message-label-type {
     cursor: pointer;
 }

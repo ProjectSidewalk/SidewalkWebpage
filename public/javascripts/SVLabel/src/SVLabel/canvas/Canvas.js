@@ -190,7 +190,7 @@ function Canvas ($, ribbon) {
 
     function handleDrawingLayerMouseOut (e) {
         svl.tracker.push('LabelingCanvas_MouseOut');
-        if (!svl.isOnboarding() && !_mouseIsOverAnOverlayLink(e)) {
+        if (!svl.isOnboarding() && !_mouseIsOverAnOverlayLink(e) && !_mouseIsOverAnOverlayMessageBox(e)) {
             ribbon.backToWalk();
         }
     }
@@ -205,6 +205,12 @@ function Canvas ($, ribbon) {
         var x = e.clientX, y = e.clientY;
         var elementMouseIsOver = document.elementFromPoint(x, y);
         return $(elementMouseIsOver).text() == "Explain this!";
+    }
+
+    function _mouseIsOverAnOverlayMessageBox(e) {
+        var x = e.clientX, y = e.clientY;
+        var elementMouseIsOver = document.elementFromPoint(x, y);
+        return $(elementMouseIsOver).attr("id") == "overlay-message-box";
     }
 
     /**

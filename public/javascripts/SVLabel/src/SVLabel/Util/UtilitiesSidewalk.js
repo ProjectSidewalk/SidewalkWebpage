@@ -159,22 +159,22 @@ function UtilitiesMisc (JSON) {
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                instructionalText: 'Locate and label a <span class="underline">curb ramp</span>',
+                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="CurbRamp">curb ramp</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                instructionalText: 'Locate and label a <span class="underline">missing curb ramp</span>',
+                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="NoCurbRamp">missing curb ramp</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             Obstacle: {
                 id: 'Obstacle',
-                instructionalText: 'Locate and label an <span class="underline">obstacle in path</span>',
+                instructionalText: 'Locate and label an <span class="underline overlay-message-label-type" val="Obstacle">obstacle in path</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                instructionalText: 'Locate and label a <span class="underline">surface problem</span>',
+                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="SurfaceProblem">surface problem</span>',
                 textColor: 'rgba(255,255,255,1)'
             },
             Other: {
