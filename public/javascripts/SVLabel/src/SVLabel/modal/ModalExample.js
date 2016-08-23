@@ -3,51 +3,42 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalExample () {
-    var self = { className: "ModalExample" };
+function ModalExample (modalModel, uiModalExample) {
+    var self = this;
 
-    function _init () {
-        svl.ui.modalExample.close.on("click", handleCloseButtonClick);
-        svl.ui.modalExample.background.on("click", handleBackgroundClick);
-    }
-
-    function handleBackgroundClick () {
+    this._handleBackgroundClick = function () {
         hide();
-    }
+    };
 
-    function handleCloseButtonClick () {
+    this._handleCloseButtonClick = function () {
         hide();
-    }
+    };
 
-    function hide () {
-        svl.ui.modalExample.curbRamp.addClass("hidden");
-        svl.ui.modalExample.noCurbRamp.addClass("hidden");
-        svl.ui.modalExample.obstacle.addClass("hidden");
-        svl.ui.modalExample.surfaceProblem.addClass("hidden");
-    }
+    this.hide = function () {
+        uiModalExample.curbRamp.addClass("hidden");
+        uiModalExample.noCurbRamp.addClass("hidden");
+        uiModalExample.obstacle.addClass("hidden");
+        uiModalExample.surfaceProblem.addClass("hidden");
+    };
 
-    function show (key) {
-        hide();
+    this.show = function (key) {
+        this.hide();
         switch (key) {
             case "CurbRamp":
-                svl.ui.modalExample.curbRamp.removeClass("hidden");
+                uiModalExample.curbRamp.removeClass("hidden");
                 break;
             case "NoCurbRamp":
-                svl.ui.modalExample.noCurbRamp.removeClass("hidden");
+                uiModalExample.noCurbRamp.removeClass("hidden");
                 break;
             case "Obstacle":
-                svl.ui.modalExample.obstacle.removeClass("hidden");
+                uiModalExample.obstacle.removeClass("hidden");
                 break;
             case "SurfaceProblem":
-                svl.ui.modalExample.surfaceProblem.removeClass("hidden");
+                uiModalExample.surfaceProblem.removeClass("hidden");
                 break;
         }
-    }
+    };
 
-    self.hide = hide;
-    self.show = show;
-
-    _init();
-    
-    return self;
+    uiModalExample.close.on("click", this._handleCloseButtonClick);
+    uiModalExample.background.on("click", this._handleBackgroundClick);
 }

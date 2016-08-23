@@ -4,15 +4,28 @@
  * @constructor
  * @memberof svl
  */
-function OverlayMessageBox () {
-    var self = { 'className' : 'OverlayMessageBox' },
-        properties = { 'visibility' : 'visible' };
+function OverlayMessageBox (modalModel, uiOverlayMessage) {
+    var $helpLink = uiOverlayMessage.holder.find("#overlay-message-help-link");
 
-    function init() {
-        if ("ui" in svl && svl.ui && svl.ui.overlayMessage) {
-          setMessage('Walk');
+    this._properties = { 'visibility' : 'visible' };
+
+    this._handleHelpLinkClick = function (e) {
+        var labelType = $helpLink.children(0).attr("val");
+        var labelTypes = ["CurbRamp", "NoCurbRamp", "SurfaceProblem", "Obstacle"];
+        if (labelType != undefined && labelTypes.indexOf(labelType) >= 0) {
+            modalModel.showModalExample(labelType);
         }
-    }
+    };
+
+    this.setHelpLink = function (labelType) {
+        var labelTypes = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
+
+        if (labelTypes.indexOf(labelType) >= 0) {
+            $helpLink.html("<span val='" + labelType + "'>Explain this!</span>");
+        } else {
+            $helpLink.html("");
+        }
+    };
 
     /**
      * Set the message in the overlay box
@@ -20,54 +33,43 @@ function OverlayMessageBox () {
      * @param message
      * @returns {*}
      */
-    function setMessage (mode, message) {
-        var instructions = util.misc.getLabelInstructions(),
-            labelColors = util.misc.getLabelColors();
+    this.setMessage =function (mode, message) {
+        var instructions = util.misc.getLabelInstructions();
+        var labelColors = util.misc.getLabelColors();
 
-        if ((mode in instructions) && (mode in labelColors) && "ui" in svl) {
-            // Set the box color.
-            var modeColor = labelColors[mode];
-            var backgroundColor = util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
-            backgroundColor = util.color.changeDarknessRGBA(backgroundColor, 0.35);
+        // Set the box color.
+        var modeColor = labelColors[mode];
+        var backgroundColor = util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
+        backgroundColor = util.color.changeDarknessRGBA(backgroundColor, 0.35);
 
+        uiOverlayMessage.box.css({
+            'background' : backgroundColor
+        });
+        uiOverlayMessage.message.css({
+            'color' : instructions[mode].textColor
+        });
 
-            svl.ui.overlayMessage.box.css({
-                'background' : backgroundColor
-            });
-            svl.ui.overlayMessage.message.css({
-                'color' : instructions[mode].textColor
-            });
-
-            // Set the instructional message.
-            if (message) {
-                // Manually set a message.
-                svl.ui.overlayMessage.message.html(message);
-            } else {
-                // Otherwise use the pre set message
-                svl.ui.overlayMessage.message.html('<strong>' + instructions[mode].instructionalText + '</strong>');
-            }
-            return this;
+        // Set the instructional message.
+        if (message) {
+            uiOverlayMessage.message.html(message);
         } else {
-            return false;
+            uiOverlayMessage.message.html('<strong>' + instructions[mode].instructionalText + '</strong>');
         }
-    }
+    };
 
+    this.setMessage('Walk');
 
-    /**
-     * Set the visibility to visible or hidden.
-     * @param val
-     * @returns {setVisibility}
-     */
-    function setVisibility (val) {
-        if (val === 'visible' || val === 'hidden') {
-            properties.visibility = val;
-        }
-        return this;
-    }
-
-    self.setMessage = setMessage;
-    self.setVisibility = setVisibility;
-
-    init();
-    return self;
+    $helpLink.on('click', this._handleHelpLinkClick);
 }
+
+/**
+ * Set the visibility to visible or hidden.
+ * @param val
+ * @returns {setVisibility}
+ */
+OverlayMessageBox.prototype.setVisibility = function (val) {
+    if (val === 'visible' || val === 'hidden') {
+        this._properties.visibility = val;
+    }
+    return this;
+};

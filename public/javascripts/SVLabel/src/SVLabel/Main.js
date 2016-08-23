@@ -99,12 +99,11 @@ function Main (params) {
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
 
-        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
+        svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
+        svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas($, svl.ribbon);
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
-
-        svl.overlayMessageBox = new OverlayMessageBox();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -152,7 +151,7 @@ function Main (params) {
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
         svl.modalSkip = new ModalSkip();
-        svl.modalExample = new ModalExample();
+        svl.modalExample = new ModalExample(svl.modalModel, svl.ui.modalExample);
 
 
         // Set map parameters and instantiate it.
@@ -400,7 +399,8 @@ function Main (params) {
         // OverlayMessage
         svl.ui.overlayMessage = {};
         svl.ui.overlayMessage.holder = $("#overlay-message-holder");
-        svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'><span id='overlay-message'>Walk</span></span>");
+        svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'>" +
+            "<span id='overlay-message'>Walk</span><span id='overlay-message-help-link' class='underline bold'></span></span>");
         svl.ui.overlayMessage.box = $("#overlay-message-box");
         svl.ui.overlayMessage.message = $("#overlay-message");
 
@@ -411,7 +411,7 @@ function Main (params) {
         svl.ui.popUpMessage.background = $("#pop-up-message-background");
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
-        svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder")
+        svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
 
         // Progress
         svl.ui.progress = {};

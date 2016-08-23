@@ -1,11 +1,13 @@
 /**
  * RibbonMenu module
+ * Todo. Split the RibbonMenu UI component and the label type switching logic
+ * @param overlayMessageBox
  * @param tracker
  * @param uiRibbonMenu
  * @returns {{className: string}}
  * @constructor
  */
-function RibbonMenu (tracker, uiRibbonMenu) {
+function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
     var self = { className: 'RibbonMenu'},
         properties = {
             borderWidth : "3px",
@@ -67,7 +69,6 @@ function RibbonMenu (tracker, uiRibbonMenu) {
             $signInModalPassword.on('focus', disableModeSwitch);
             $signInModalPassword.on('blur', enableModeSwitch);
         }
-
     }
 
     /**
@@ -112,10 +113,8 @@ function RibbonMenu (tracker, uiRibbonMenu) {
             }
 
             // Set the instructional message
-            if (svl.overlayMessageBox) { svl.overlayMessageBox.setMessage(labelType); }
-
-            // Play an audio effect
-            // if ('audioEffect' in svl) { svl.audioEffect.play('glug1'); }
+            overlayMessageBox.setMessage(labelType);
+            overlayMessageBox.setHelpLink(labelType);
         }
     }
 

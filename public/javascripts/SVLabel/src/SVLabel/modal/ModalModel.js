@@ -8,6 +8,11 @@ ModalModel.prototype.setModalMissionMessage = function (mission, neighborhood, p
     this.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: callback })
 };
 
+ModalModel.prototype.showModalExample = function (labelType) {
+    console.log(labelType)
+    this.trigger("ModalExmaple:show", labelType);
+};
+
 ModalModel.prototype.showModalMissionComplete = function () {
     this.trigger("ModalMissionComplete:show");
 };

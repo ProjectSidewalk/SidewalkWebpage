@@ -14,3 +14,13 @@
     top: 2px;
     left: 3px;
 }
+
+#overlay-message-help-link {
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    z-index: 2;
+    cursor: pointer;
+}

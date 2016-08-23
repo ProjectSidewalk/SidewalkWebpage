@@ -1,18 +1,3 @@
-// Image distortion coefficient. Need to figure out how to compute these.
-// It seems like these constants do not depend on browsers... (tested on Chrome, Firefox, and Safari.)
-// Distortion coefficient for a window size 640x360: var alpha_x = 5.2, alpha_y = -5.25;
-// Distortion coefficient for a window size 720x480:
-// svl.canvasWidth = 720;
-// svl.canvasHeight = 480;
-// svl.svImageHeight = 6656;
-// svl.svImageWidth = 13312;
-// svl.alpha_x = 4.6;
-// svl.alpha_y = -4.65;
-// svl._labelCounter = 0;
-// svl.getLabelCounter = function () {
-//     return svl._labelCounter++;
-// };
-
 /**
  * A canvas module
  * @param $ {object} jQuery object
@@ -203,11 +188,23 @@ function Canvas ($, ribbon) {
 
     }
 
-    function handleDrawingLayerMouseOut () {
+    function handleDrawingLayerMouseOut (e) {
         svl.tracker.push('LabelingCanvas_MouseOut');
-        if (!svl.isOnboarding()) {
+        if (!svl.isOnboarding() && !_mouseIsOverAnOverlayLink(e)) {
             ribbon.backToWalk();
         }
+    }
+
+    /**
+     * Reference
+     * http://stackoverflow.com/questions/8813051/determine-which-element-the-mouse-pointer-is-on-top-of-in-javascript
+     * @param e
+     * @private
+     */
+    function _mouseIsOverAnOverlayLink (e) {
+        var x = e.clientX, y = e.clientY;
+        var elementMouseIsOver = document.elementFromPoint(x, y);
+        return $(elementMouseIsOver).text() == "Explain this!";
     }
 
     /**
