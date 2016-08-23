@@ -13,6 +13,7 @@ describe("Onboarding module", function () {
     var modalMission;
     var modalSkip;
     var neighborhoodContainer;
+    var onboardingStates;
     var ribbon;
     var statusField;
     var statusModel;
@@ -39,6 +40,7 @@ describe("Onboarding module", function () {
         missionContainer = new MissionContainerMock();
         modalMission = new ModalMissionMock();
         neighborhoodContainer = new NeighborhoodContainerMock();
+        onboardingStates = new OnboardingStatesMock();
         storage = new StorageMock();
         taskContainer = new TaskContainerMock();
         tracker = new TrackerMock();
@@ -64,7 +66,7 @@ describe("Onboarding module", function () {
         uiOnboarding.handGestureHolder = $uiOnboardingFixture.find("#hand-gesture-holder");
 
         onboarding = Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer,
-            modalComment, modalMission, modalSkip, neighborhoodContainer, ribbon, statusField, statusModel,
+            modalComment, modalMission, modalSkip, neighborhoodContainer, onboardingStates, ribbon, statusField, statusModel,
             storage, taskContainer, tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl)
     });
 
@@ -132,6 +134,10 @@ describe("Onboarding module", function () {
     function NeighborhoodMock () {
         this._properties = { regionId: 0 };
         this.getProperty = function (key) { return this._properties[key]; };
+    }
+
+    function OnboardingStatesMock () {
+        this.get = function () { return {}; };
     }
 
     function StorageMock () {
