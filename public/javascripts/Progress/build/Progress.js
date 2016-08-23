@@ -64,7 +64,7 @@ function Progress (_, $, c3, L) {
         ) {
 
             // Search for a region id in the query string. If you find one, focus on that region.
-            var regionId = svl.util.getURLParameter("regionId"),
+            var regionId = util.getURLParameter("regionId"),
                 i,
                 len;
             if (regionId && layers) {
