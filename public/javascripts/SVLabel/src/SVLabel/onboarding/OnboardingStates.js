@@ -28,7 +28,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(1 / numStates);
                 statusModel.setProgressBar(1 / numStates);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
-                return "select-label-type-1";
+                var value = this.getAttribute("value");
+                return value == "OK" ? "select-label-type-1" : null;
             }
         },
         "select-label-type-1": {

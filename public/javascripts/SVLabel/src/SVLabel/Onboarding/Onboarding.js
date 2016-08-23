@@ -54,6 +54,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         mapService.disableWalking();
         mapService.lockDisableWalking();
 
+        zoomControl.unlockDisableZoomIn();
+        zoomControl.disableZoomIn();
+        zoomControl.lockDisableZoomIn();
+
+        zoomControl.unlockDisableZoomOut();
+        zoomControl.disableZoomOut();
+        zoomControl.lockDisableZoomOut();
+
         compass.hideMessage();
 
         status.state = getState("initialize");
@@ -220,7 +228,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         mapService.unlockDisableWalking();
         mapService.enableWalking();
-        mapService.lockDisableWalking();
+
+        zoomControl.unlockDisableZoomIn();
+        zoomControl.enableZoomIn();
+
+        zoomControl.unlockDisableZoomOut();
+        zoomControl.enableZoomOut();
 
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
@@ -439,7 +452,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
             function callback () {
                 if (listener) google.maps.event.removeListener(listener);
-                next(state.transition);
+                next.call(this, state.transition);
                 mapService.setPano(state.panoId);
                 mapService.setPov(pov);
                 mapService.setPosition(state.properties.lat, state.properties.lng);

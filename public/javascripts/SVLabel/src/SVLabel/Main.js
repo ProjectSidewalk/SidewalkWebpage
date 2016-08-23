@@ -114,17 +114,14 @@ function Main (params) {
 
         svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage($);
-        svl.zoomControl = new ZoomControl(svl.tracker, svl.ui.zoomControl);
+
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
         svl.contextMenu = new ContextMenu();
-        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.zoomControl);
-
 
         // Game effects
         svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory);
         svl.completionMessage = new CompletionMessage(svl.gameEffectModel, svl.ui.task);
-
 
         svl.panoramaContainer = new PanoramaContainer();
 
@@ -163,6 +160,9 @@ function Main (params) {
         svl.map = new MapService(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+
+        svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
+        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.zoomControl);
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 

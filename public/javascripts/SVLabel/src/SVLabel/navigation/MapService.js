@@ -402,18 +402,20 @@ function MapService (canvas, uiMap, params) {
      * @returns {object} pov
      */
     function getPov () {
-        var pov = svl.panorama.getPov();
+        if ("panorama" in svl) {
+            var pov = svl.panorama.getPov();
 
-        // Pov can be less than 0. So adjust it.
-        while (pov.heading < 0) {
-            pov.heading += 360;
-        }
+            // Pov can be less than 0. So adjust it.
+            while (pov.heading < 0) {
+                pov.heading += 360;
+            }
 
-        // Pov can be more than 360. Adjust it.
-        while (pov.heading > 360) {
-            pov.heading -= 360;
+            // Pov can be more than 360. Adjust it.
+            while (pov.heading > 360) {
+                pov.heading -= 360;
+            }
+            return pov;
         }
-        return pov;
     }
 
     /**
@@ -1240,6 +1242,10 @@ function MapService (canvas, uiMap, params) {
         return this;
     }
 
+    function setZoom (zoomLevel) {
+        svl.panorama.setZoom(zoomLevel);
+    }
+
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
@@ -1273,6 +1279,7 @@ function MapService (canvas, uiMap, params) {
     self.setPosition = setPosition;
     self.setPov = setPov;
     self.setStatus = setStatus;
+    self.setZoom = setZoom;
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;

@@ -6,7 +6,7 @@
  * @constructor
  * @memberof svl
  */
-function ZoomControl (tracker, uiZoomControl) {
+function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     var self = { 'className' : 'ZoomControl' },
         properties = {
             maxZoomLevel: 3,
@@ -22,15 +22,6 @@ function ZoomControl (tracker, uiZoomControl) {
         },
         blinkInterval;
 
-    function _init () {
-        // Initialization function
-
-        //if ('domIds' in param) {
-        if (uiZoomControl) {
-          uiZoomControl.zoomIn.bind('click', handleZoomInButtonClick);
-          uiZoomControl.zoomOut.bind('click', handleZoomOutButtonClick);
-        }
-    }
 
     /**
      * Blink the zoom in and zoom-out buttons
@@ -147,26 +138,28 @@ function ZoomControl (tracker, uiZoomControl) {
     /**
      * This is a callback function for zoom-in button. This function increments a sv zoom level.
      */
-    function handleZoomInButtonClick () {
+    function _handleZoomInButtonClick () {
         if (tracker)  tracker.push('Click_ZoomIn');
 
         if (!status.disableZoomIn) {
-            var pov = svl.panorama.getPov();
+            var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
-            svl.canvas.clear().render2();
+            canvas.clear();
+            canvas.render2();
         }
     }
 
     /**
      * This is a callback function for zoom-out button. This function decrements a sv zoom level.
      */
-    function handleZoomOutButtonClick () {
+    function _handleZoomOutButtonClick () {
         if (tracker) tracker.push('Click_ZoomOut');
 
         if (!status.disableZoomOut) {
-            var pov = svl.panorama.getPov();
+            var pov = mapService.getPov();
             setZoom(pov.zoom - 1);
-            svl.canvas.clear().render2();
+            canvas.clear();
+            canvas.render2();
         }
     }
 
@@ -179,42 +172,32 @@ function ZoomControl (tracker, uiZoomControl) {
     function pointZoomIn (x, y) {
         if (!status.disableZoomIn) {
             // Cancel drawing when zooming in or out.
-            if ('canvas' in svl) {
-              svl.canvas.cancelDrawing();
+            canvas.cancelDrawing();
+
+            var currentPov = mapService.getPov(),
+                currentZoomLevel = currentPov.zoom,
+                width = svl.canvasWidth, height = svl.canvasHeight,
+                minPitch, maxPitch,
+                zoomFactor, deltaHeading, deltaPitch, pov = {};
+
+            if (currentZoomLevel >= properties.maxZoomLevel) return;
+            zoomFactor = currentZoomLevel; // This needs to be fixed as it wouldn't work above level 3.
+            deltaHeading = (x - (width / 2)) / width * (90 / zoomFactor); // Ugh. Hard coding.
+            deltaPitch = - (y - (height / 2)) / height * (70 / zoomFactor); // Ugh. Hard coding.
+            pov.zoom = currentZoomLevel + 1;
+            pov.heading = currentPov.heading + deltaHeading;
+            pov.pitch = currentPov.pitch + deltaPitch;
+            // Adjust the pitch angle.
+            maxPitch = mapService.getMaxPitch();
+            minPitch = mapService.getMinPitch();
+            if (pov.pitch > maxPitch) {
+                pov.pitch = maxPitch;
+            } else if (pov.pitch < minPitch) {
+                pov.pitch = minPitch;
             }
-            if ('panorama' in svl) {
-                var currentPov = svl.panorama.getPov(),
-                    currentZoomLevel = currentPov.zoom,
-                    width = svl.canvasWidth, height = svl.canvasHeight,
-                    minPitch, maxPitch,
-                    zoomFactor, deltaHeading, deltaPitch, pov = {};
-                if (currentZoomLevel >= properties.maxZoomLevel) return false;
-
-                zoomFactor = currentZoomLevel; // This needs to be fixed as it wouldn't work above level 3.
-                deltaHeading = (x - (width / 2)) / width * (90 / zoomFactor); // Ugh. Hard coding.
-                deltaPitch = - (y - (height / 2)) / height * (70 / zoomFactor); // Ugh. Hard coding.
-
-                pov.zoom = currentZoomLevel + 1;
-                pov.heading = currentPov.heading + deltaHeading;
-                pov.pitch = currentPov.pitch + deltaPitch;
-
-                // Adjust the pitch angle.
-                maxPitch = svl.map.getMaxPitch();
-                minPitch = svl.map.getMinPitch();
-                if (pov.pitch > maxPitch) {
-                    pov.pitch = maxPitch;
-                } else if (pov.pitch < minPitch) {
-                    pov.pitch = minPitch;
-                }
-
-                // Adjust the pitch so it won't exceed max/min pitch.
-                svl.panorama.setPov(pov);
-                return currentZoomLevel;
-            } else {
-                return false;
-            }
-        } else {
-            return false;
+            // Adjust the pitch so it won't exceed max/min pitch.
+            mapService.setPov(pov);
+            return currentZoomLevel;
         }
     }
 
@@ -225,7 +208,7 @@ function ZoomControl (tracker, uiZoomControl) {
         if (typeof zoomLevelIn !== "number") { return false; }
 
         // Cancel drawing when zooming in or out.
-        if ('canvas' in svl) { svl.canvas.cancelDrawing(); }
+        if ('canvas' in svl) { canvas.cancelDrawing(); }
 
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
@@ -237,7 +220,7 @@ function ZoomControl (tracker, uiZoomControl) {
         } else {
             zoomLevel = zoomLevelIn;
         }
-        svl.panorama.setZoom(zoomLevel);
+        mapService.setZoom(zoomLevel);
         return zoomLevel;
     }
 
@@ -285,7 +268,7 @@ function ZoomControl (tracker, uiZoomControl) {
      * @returns {updateOpacity}
      */
     function updateOpacity () {
-        var pov = svl.map.getPov();
+        var pov = mapService.getPov();
 
         if (pov && uiZoomControl) {
             var zoom = pov.zoom;
@@ -311,9 +294,9 @@ function ZoomControl (tracker, uiZoomControl) {
     /** Zoom in */
     function zoomIn () {
         if (!status.disableZoomIn) {
-            var pov = svl.panorama.getPov();
+            var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
-            svl.canvas.clear().render2();
+            canvas.clear().render2();
             return this;
         } else {
             return false;
@@ -325,9 +308,10 @@ function ZoomControl (tracker, uiZoomControl) {
         // This method is called from outside this class to zoom out from a GSV image.
         if (!status.disableZoomOut) {
             // ViewControl_ZoomOut
-            var pov = svl.panorama.getPov();
+            var pov = mapService.getPov();
             setZoom(pov.zoom - 1);
-            svl.canvas.clear().render2();
+            canvas.clear();
+            canvas.render2();
             return this;
         } else {
             return false;
@@ -354,7 +338,7 @@ function ZoomControl (tracker, uiZoomControl) {
     self.zoomIn = zoomIn;
     self.zoomOut = zoomOut;
 
-    _init();
-
+    uiZoomControl.zoomIn.bind('click', _handleZoomInButtonClick);
+    uiZoomControl.zoomOut.bind('click', _handleZoomOutButtonClick);
     return self;
 }
