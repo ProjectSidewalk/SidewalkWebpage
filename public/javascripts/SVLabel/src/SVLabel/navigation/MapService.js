@@ -1,3 +1,12 @@
+/**
+ * Todo. This module needs to be cleaned up.
+ * Todo. Separate the Google Maps component (UI and logic) and Street View component (UI and logic).
+ * @param canvas
+ * @param uiMap
+ * @param params
+ * @returns {{className: string}}
+ * @constructor
+ */
 function MapService (canvas, uiMap, params) {
     var self = { className: 'Map' },
         _canvas = canvas,

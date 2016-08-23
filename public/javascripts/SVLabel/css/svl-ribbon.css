@@ -176,7 +176,7 @@
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
-    z-index: 1;
+    z-index: 3;
     visibility: hidden;
 }
 

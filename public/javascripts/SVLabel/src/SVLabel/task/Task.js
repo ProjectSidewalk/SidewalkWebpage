@@ -86,6 +86,13 @@ function Task (turf, geojson, currentLat, currentLng) {
         return this;
     }
 
+    function _snapAPointOnALine(line, point, threshold, unit) {
+        if (!unit) unit = "kilometers";
+        if (!threshold) threshold = 0.025;
+        var snapped = turf.pointOnLine(line, point);
+        var distance = turf.distance(snapped, point);
+        return distance < threshold ? snapped : null;
+    }
 
     function completedTaskPaths () {
         if (svl.map) {
@@ -409,12 +416,6 @@ function Task (turf, geojson, currentLat, currentLng) {
                     })
                 ];
             } else if (paths) {
-                // check if paths--a list of Google Maps Polylines to render on the Google Maps pane for this task's street edge--already exists.
-                // If `paths` exist, remove it
-                // for (var i = 0; i < paths.length; i++) {
-                //     paths[i].setMap(null);
-                // }
-
                 var newTaskCompletionRate = getTaskCompletionRate();
 
                 if (taskCompletionRate < newTaskCompletionRate) {
@@ -437,10 +438,7 @@ function Task (turf, geojson, currentLat, currentLng) {
                 ];
             }
 
-            // for (i = 0; i < previousPaths.length; i++) {
-            //     previousPaths[i].setMap(svl.map.getMap());
-            // }
-            for (i = 0; i < paths.length; i++) {
+            for (var i = 0; i < paths.length; i++) {
                 paths[i].setMap(svl.map.getMap());
             }
         }

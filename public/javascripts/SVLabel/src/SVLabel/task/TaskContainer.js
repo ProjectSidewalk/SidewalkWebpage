@@ -1,9 +1,8 @@
 /**
  * TaskContainer module.
  *
- * Todo. This container needs a bit of work...
- * The fact that I have to instantiate the TaskContainer earlier than other objects requires me to inject, svl module (which is the top level module that contains everything else).
- * It definitely sucks, needs rewrite. Also this module is too tightly coupled with other modules.
+ * Todo. This module needs a bit of cleaning up.
+ * Todo. Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
  * @param turf
  * @returns {{className: string}}
  * @constructor
@@ -58,17 +57,13 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
         task.complete();
-        // Todo. I'm not sure why, but chainging the state of the `task` has no effect on the task in the `taskStoreByRegionId`. Apparently task is not a reference.
         // Go through the tasks and mark the completed task as isCompleted=true
         var neighborhoodTasks = taskStoreByRegionId[neighborhood.getProperty("regionId")];
-        var i = 0,
-            len = neighborhoodTasks.length;
-        for (; i < len; i++) {
+        for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
             }
         }
-
 
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
@@ -389,8 +384,7 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
      * KH: It maybe more natural to let a method in MapService.js do handle it...
      */
     function update () {
-        var i, len = previousTasks.length;
-        for (i = 0; i < len; i++) {
+        for (var i = 0, len = previousTasks.length; i < len; i++) {
             previousTasks[i].render();
         }
         currentTask.render();
