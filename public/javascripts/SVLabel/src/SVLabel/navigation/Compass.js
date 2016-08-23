@@ -92,11 +92,13 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         var events = $._data(uiCompass.messageHolder[0], "events");
         if (!events) {
             uiCompass.messageHolder.on('click', this._jumpBackToTheRoute);
+            uiCompass.messageHolder.css('cursor', 'pointer');
         }
     };
 
     this._makeTheMessageBoxUnclickable = function () {
         uiCompass.messageHolder.off('click', this._jumpBackToTheRoute);
+        uiCompass.messageHolder.css('cursor', 'default');
     };
 
     /**
@@ -143,13 +145,20 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Set the compass message.
      */
     this.setTurnMessage = function () {
-        var image, message,
+        var image,
+            message,
             angle = this.getCompassAngle(),
             direction = this._angleToDirection(angle);
 
         image = "<img src='" + this._directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
         message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" +
             image + "<span class='bold'>" + this._directionToDirectionMessage(direction) + "</span>";
+        uiCompass.message.html(message);
+    };
+
+    this.setBackToRouteMessage = function () {
+        var message = "Uh-oh, you've got quite far away from the audit route. <br />" +
+            "<span class='bold'>Click here to jump back.</span>";
         uiCompass.message.html(message);
     };
 
@@ -194,6 +203,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         } else {
             this.blink();
             this._makeTheMessageBoxClickable();
+            this.setBackToRouteMessage();
         }
     };
 }
