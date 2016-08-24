@@ -715,7 +715,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. ' +
-                '<span class="bold">Let’s take a step</span> to see if we can get a better look. To taske a step, ' +
+                '<span class="bold">Let’s take a step</span> to see if we can get a better look. To take a step, ' +
                 'double click on the circle below.',
                 "position": "top-right",
                 "parameters": null
