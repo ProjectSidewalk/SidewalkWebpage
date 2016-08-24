@@ -11,6 +11,10 @@ function PopUpMessage ($, param) {
         status = { haveAskedToSignIn: false },
         buttons = [];
 
+    function _attachCallbackToClickOK (callback) {
+        $("#pop-up-message-ok-button").one('click', callback);
+    }
+
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
         svl.ui.popUpMessage.content.append($html);
@@ -115,14 +119,19 @@ function PopUpMessage ($, param) {
      * Notification
      * @param title
      * @param message
+     * @param callback
      */
-    function notify(title, message) {
+    function notify(title, message, callback) {
         svl.ui.popUpMessage.buttonHolder.html("");
         setPosition(40, 260, 640);
         show();
         setTitle(title);
         setMessage(message);
         appendOKButton();
+
+        if (callback) {
+            _attachCallbackToClickOK(callback)
+        }
     }
 
     /**
