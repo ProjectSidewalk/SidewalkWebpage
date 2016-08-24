@@ -15,8 +15,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
 
-    this._animateMissionTasks = function (coll, index, max){
-        var collection = this._linestringToPoint(coll[index].getGeoJSON());
+    this._animateMissionTasks = function (completedTasks, index, max){
+        var collection = this._linestringToPoint(completedTasks[index].getGeoJSON());
         var featuresdata = collection.features;
         var leafletMap = this._map;
 
@@ -45,8 +45,6 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             .append("path")
             .attr("class", "lineConnect");
 
-        var originANDdestination = [featuresdata[0], featuresdata[featuresdata.length-1]];
-
         // reset projection on zoom
         leafletMap.on("viewreset", reset);
 
@@ -70,21 +68,22 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             linePath.style("opacity", "0").attr("d", toLine);
             g.attr("transform", "translate(" + (-topLeft[0] + 50) + "," + (-topLeft[1] + 50) + ")");
 
-        } // end reset
+        }
 
 
-        function transition() {
+        function transition(transitionDuration) {
+            if (!transitionDuration) transitionDuration = 1000;
             linePath.transition()
-                .duration(3000)
+                .duration(transitionDuration)
                 .attrTween("stroke-dasharray", tweenDash)
                 .each("end", function() {
                     if(index < max){
                         // recursively call the next animation render when this one is done
-                        self._animateMissionTasks(coll, index+1, max);
+                        self._animateMissionTasks(completedTasks, index + 1, max);
                     }
                     else{
                         //render the complete path as plain svg to avoid scaling issues
-                        renderPath(coll);
+                        renderPath(completedTasks);
                     }
                 });
         } //end transition
