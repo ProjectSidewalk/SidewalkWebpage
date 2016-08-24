@@ -1,4 +1,4 @@
-function AdminUser(_, $, c3, d3, svl, params) {
+function AdminUser(params) {
     var self = {};
     var _data = {};
     self.username = params.username;
@@ -193,7 +193,7 @@ function AdminUser(_, $, c3, d3, svl, params) {
                             var labelType = d.note.split(",")[0].split(":")[1];
 
                             if (labelType in colors) {
-                                return svl.util.color.RGBAToRGB(colors[labelType].fillStyle);
+                                return util.color.RGBAToRGB(colors[labelType].fillStyle);
                             }
                         }
                     }
