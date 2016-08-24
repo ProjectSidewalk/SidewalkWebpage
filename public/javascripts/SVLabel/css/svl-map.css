@@ -13,3 +13,9 @@
     height: 200px;
 }
 
+#google-maps-overlay {
+    color: #888;
+    font-size: 12px;
+    z-index: 1;
+
+}
