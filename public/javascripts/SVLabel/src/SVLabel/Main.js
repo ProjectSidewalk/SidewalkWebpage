@@ -267,7 +267,11 @@ function Main (params) {
 
         // Popup the message explaining the goal of the current mission
         if (svl.missionContainer.isTheFirstMission()) {
-            svl.modalMission.setMissionMessage(mission, neighborhood, null, initialMissionInstruction);
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage);
+            svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
+                svl.initialMissionInstruction.start(neighborhood);
+            });
         } else {
             svl.modalMission.setMissionMessage(mission, neighborhood);
         }
@@ -324,7 +328,6 @@ function Main (params) {
     }
 
     function initialMissionInstruction () {
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         svl.popUpMessage.notify("Let's get started!",
             "We have moved you to a street in " + neighborhood.getProperty("name") +
             ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
@@ -345,7 +348,7 @@ function Main (params) {
                     "complete your mission. We provide turn-by-turn instructions to guide your path.</span>");
                 svl.compass.blink();
             }
-        })
+        }, 1000);
     }
 
     function setStatus (key, value) { 
