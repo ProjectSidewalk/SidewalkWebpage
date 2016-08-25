@@ -1,4 +1,4 @@
-function InitialMissionInstruction (compass, mapService, popUpMessage) {
+function InitialMissionInstruction (compass, mapService, popUpMessage, taskContainer) {
     var self = this;
     var initialHeading;
     var finishedLookingAround = false;
@@ -6,6 +6,13 @@ function InitialMissionInstruction (compass, mapService, popUpMessage) {
 
     this._finishedInstructionToFollowTheGuidance = function () {
         self._stopBlinkingNavigationComponents();
+
+        mapService.bindPositionUpdate(self._instructToCheckSidewalks);
+    };
+
+    this._instructToCheckSidewalks = function () {
+        // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
+        // Todo.
     };
 
     this._instructToFollowTheGuidance = function () {

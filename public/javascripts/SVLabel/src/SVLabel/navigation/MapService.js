@@ -489,6 +489,42 @@ function MapService (canvas, uiMap, params) {
             return miles.toFixed(2) + " miles";
         }
     }
+
+    function _endTheCurrentTask(task, mission, neighborhood) {
+        // Finish a task and get a new task
+        svl.taskContainer.endTask(task);
+        mission.pushATaskToTheRoute(task);
+        var newTask = svl.taskContainer.nextTask(task);
+        svl.taskContainer.setCurrentTask(newTask);
+
+        // Check if the interface jumped the user to another discontinuous location.
+        // If the user has indeed jumped, tell them that we moved her to
+        // another location in the same neighborhood.
+        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+            var distanceLeft = distanceLeftFeetOrMiles();
+            svl.popUpMessage.notify(neighborhoodMessage,
+                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+        }
+
+        _moveToTheTaskLocation(newTask);
+    }
+
+    // Todo. Wrote this ad-hoc. Clean up and test later.
+    var positionUpdateCallbacks = [];
+    self.bindPositionUpdate = function (callback) {
+        if (typeof callback == "function") {
+            positionUpdateCallbacks.push(callback);
+        }
+    };
+    self.unbindPositionCallback = function (callback) {
+        var callbackIndex = positionUpdateCallbacks.indexOf(callback);
+        if (callbackIndex >= 0) {
+            positionUpdateCallbacks.splice(callbackIndex, 1);
+        }
+    };
+
     /**
      * A callback for position_change.
      */
@@ -510,30 +546,10 @@ function MapService (canvas, uiMap, params) {
 
                 // End of the task if the user is close enough to the end point
                 var task = svl.taskContainer.getCurrentTask();
-                if (task) {
-                    if (task.isAtEnd(position.lat(), position.lng(), 25)) {
-                        // Finish a task and get a new task
-                        svl.taskContainer.endTask(task);
-                        currentMission.pushATaskToTheRoute(task);
-                        var newTask = svl.taskContainer.nextTask(task);
-                        svl.taskContainer.setCurrentTask(newTask);
-
-                        // Check if the interface jumped the user to another discontinuous location. If the user jumped,
-                        // tell them that we moved her to another location in the same neighborhood.
-                        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-
-                            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-                            var distanceLeft = distanceLeftFeetOrMiles();
-                            svl.popUpMessage.notify(neighborhoodMessage,
-                                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-                        }
-
-                        _moveToTheTaskLocation(newTask);
-                    }
+                if (task && task.isAtEnd(position.lat(), position.lng(), 25)) {
+                    _endTheCurrentTask(task, currentMission, neighborhood);
                 }
-        }
-
+            }
         }
 
         // Set the heading angle when the user is dropped to the new position
@@ -543,6 +559,11 @@ function MapService (canvas, uiMap, params) {
             pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
+        }
+
+        //
+        for (var i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
+            positionUpdateCallbacks[i]();
         }
     }
 
