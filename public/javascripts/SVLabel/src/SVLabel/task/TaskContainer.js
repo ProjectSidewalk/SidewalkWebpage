@@ -167,9 +167,7 @@ function TaskContainer (streetViewService, svl, tracker) {
      * @returns {Array}
      */
     function findConnectedTask (regionId, taskIn, threshold, unit) {
-        var i,
-            len,
-            tasks = getTasksInRegion(regionId),
+        var tasks = getTasksInRegion(regionId),
             connectedTasks = [];
 
         if (!threshold) threshold = 0.01;  // 0.01 km.
@@ -178,9 +176,8 @@ function TaskContainer (streetViewService, svl, tracker) {
 
         if (taskIn) {
             tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
-            len = tasks.length;
 
-            for (i = 0; i < len; i++) {
+            for (var i = 0, len = tasks.length; i < len; i++) {
                 if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
                     connectedTasks.push(tasks[i]);
                 }
@@ -189,7 +186,6 @@ function TaskContainer (streetViewService, svl, tracker) {
         } else {
             return util.shuffle(tasks);
         }
-
     }
 
     /**

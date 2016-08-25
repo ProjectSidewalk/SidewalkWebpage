@@ -251,7 +251,12 @@ function Task (geojson, currentLat, currentLng) {
         var distanceAtTheFurthestPoint = this.getDistanceFromStart(latFurthest, lngFurthest);
         var distanceAtCurrentPoint = this.getDistanceFromStart(currentLat, currentLng);
 
-        return distanceAtTheFurthestPoint < distanceAtCurrentPoint;
+        var streetEdge =  _geojson.features[0];
+        var currentPosition = turf.point([currentLng, currentLat]);
+        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+
+        return (distanceAtTheFurthestPoint < distanceAtCurrentPoint) &&
+            turf.distance(currentPosition, snappedPosition) < 0.025;
     };
 
     /**
