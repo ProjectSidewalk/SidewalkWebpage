@@ -212,7 +212,8 @@ function TaskContainer (streetViewService, svl, tracker) {
         
         if (currentTask) {
             var currentLatLng = svl.map.getPosition();
-            var currentTaskDistance = currentTask.getDistanceWalked(currentLatLng.lat, currentLatLng.lng, unit);
+            currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
+            var currentTaskDistance = currentTask.getAuditedDistance(unit);
             distance += currentTaskDistance;
         }
         return distance;
@@ -379,12 +380,15 @@ function TaskContainer (streetViewService, svl, tracker) {
     /**
      * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
      * segments on Google Maps.
-     * KH: It maybe more natural to let a method in MapService.js do handle it...
+     * Todo. This should be done somewhere else.
      */
     function update () {
         for (var i = 0, len = previousTasks.length; i < len; i++) {
             previousTasks[i].render();
         }
+
+        var currentLatLng = svl.map.getPosition();
+        currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
     }
 

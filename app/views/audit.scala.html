@@ -622,7 +622,9 @@
         });
 
         function init() {
-            var mainParam = {}, formParam = {}, initialLocation = svl.taskContainer.getCurrentTask().initialLocation();
+            var mainParam = {},
+                    formParam = {},
+                    initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.hitId = '';
             formParam.assignmentId = '';

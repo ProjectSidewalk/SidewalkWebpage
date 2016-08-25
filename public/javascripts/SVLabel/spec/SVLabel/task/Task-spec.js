@@ -20,7 +20,7 @@ describe("Task module", function () {
         });
 
         it("should return the segments in the street edge that have been audited", function () {
-            var auditedCoordinates = task._getPointsOnAuditedSegments(lat, lng);
+            var auditedCoordinates = task._getPointsOnSegmentsToASnappedPoint(lat, lng);
             expect(auditedCoordinates[0]).toEqual([-77.069, 38.908]);
             expect(auditedCoordinates[1]).toEqual([-77.069, 38.9085]);
             expect(auditedCoordinates[2][0]).toBeCloseTo(lng, 0.001);
@@ -35,7 +35,7 @@ describe("Task module", function () {
         });
 
         it("should return the segments in the street edge that have been audited", function () {
-            var unauditedCoordinates = task._getPointsOnUnauditedSegments(lat, lng);
+            var unauditedCoordinates = task._getPointsOnSegmentsFromASnappedPoint(lat, lng);
             expect(unauditedCoordinates[0][0]).toBeCloseTo(lng);
             expect(unauditedCoordinates[0][1]).toBeCloseTo(lat);
             expect(unauditedCoordinates.length).toBe(3);
