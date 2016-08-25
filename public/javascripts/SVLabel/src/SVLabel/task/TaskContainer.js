@@ -22,15 +22,18 @@ function TaskContainer (streetViewService, svl, tracker) {
      * @param task The current task
      */
     function initNextTask (task) {
-        var nextTask = getNextTask(task),
-            geometry,
-            lat,
-            lng;
+        var nextTask = getNextTask(task);
+        var geometry;
+        var lat;
+        var lng;
+
+        var currentPosition = svl.map.getPosition();
+        nextTask.setStreetEdgeDirection(currentPosition.lat, currentPosition.lng);
+
         geometry = nextTask.getGeometry();
         lat = geometry.coordinates[0][1];
         lng = geometry.coordinates[0][0];
 
-        // var streetViewService = new google.maps.StreetViewService();
         var STREETVIEW_MAX_DISTANCE = 25;
         var latLng = new google.maps.LatLng(lat, lng);
 
@@ -296,20 +299,16 @@ function TaskContainer (streetViewService, svl, tracker) {
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
 
         if (candidateTasks.length > 0) {
-            newTask = candidateTasks[0];
+            // newTask = candidateTasks[0];
+            newTask = _.shuffle(candidateTasks)[0];
         } else {
             candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
-            newTask = candidateTasks[0];
+            newTask = _.shuffle(candidateTasks)[0];
         }
 
         if (task) {
-            var c1 = task.getLastCoordinate(),
-                c2 = newTask.getStartCoordinate(),
-                p1 = turf.point([c1.lng, c1.lat]),
-                p2 = turf.point([c2.lng, c2.lat]);
-            if (turf.distance(p1, p2, "kilometers") > 0.025) {
-                newTask.reverseCoordinates();
-            }
+            var coordinate = task.getLastCoordinate();
+            newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
         }
 
         return newTask;

@@ -12,15 +12,15 @@ function Task (geojson, currentLat, currentLng) {
     var _geojson;
     var _furthestPoint;
 
-    var taskCompletionRate = 0,
-        paths,
-        status = {
-            isCompleted: false
-        },
-        properties = {
-            auditTaskId: null,
-            streetEdgeId: null
-        };
+    var taskCompletionRate = 0;
+    var paths;
+    var status = {
+        isCompleted: false
+    };
+    var properties = {
+        auditTaskId: null,
+        streetEdgeId: null
+    };
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -28,12 +28,7 @@ function Task (geojson, currentLat, currentLng) {
      * @param currentLat Current latitude
      * @param currentLng Current longitude
      */
-    function _init (geojson, currentLat, currentLng) {
-        var len = geojson.features[0].geometry.coordinates.length - 1,
-            lat1 = geojson.features[0].geometry.coordinates[0][1],
-            lng1 = geojson.features[0].geometry.coordinates[0][0],
-            lat2 = geojson.features[0].geometry.coordinates[len][1],
-            lng2 = geojson.features[0].geometry.coordinates[len][0];
+    this.initialize = function (geojson, currentLat, currentLng) {
         _geojson = geojson;
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
@@ -43,20 +38,29 @@ function Task (geojson, currentLat, currentLng) {
         }
 
         if (currentLat && currentLng) {
-            // Continuing from the previous task (i.e., currentLat and currentLng exist).
-            var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
-                d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
-
-            if (d2 < d1) self.reverseCoordinates();
+            this.setStreetEdgeDirection(currentLat, currentLng);
         }
 
-        var lat = _geojson.features[0].geometry.coordinates[0][1];
-        var lng = _geojson.features[0].geometry.coordinates[0][0];
-
-        _furthestPoint = turf.point([lng, lat]);
-
         paths = null;
-    }
+    };
+
+    this.setStreetEdgeDirection = function (currentLat, currentLng) {
+        var len = geojson.features[0].geometry.coordinates.length - 1,
+            lat1 = geojson.features[0].geometry.coordinates[0][1],
+            lng1 = geojson.features[0].geometry.coordinates[0][0],
+            lat2 = geojson.features[0].geometry.coordinates[len][1],
+            lng2 = geojson.features[0].geometry.coordinates[len][0];
+        // Continuing from the previous task (i.e., currentLat and currentLng exist).
+        var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
+            d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
+
+        if (d2 < d1) {
+            self.reverseCoordinates();
+            _furthestPoint = turf.point([lng2, lat2]);
+        } else {
+            _furthestPoint = turf.point([lng1, lat1]);
+        }
+    };
 
     /**
      * Get the index of the segment in the street edge that is closest to the point
@@ -161,7 +165,6 @@ function Task (geojson, currentLat, currentLng) {
         var streetEdge =  _geojson.features[0];
         var currentPosition = turf.point([currentLng, currentLat]);
         var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
-        // var snappedPosition = this._snapAFurthestPointOnALine(streetEdge, currentPosition);
         var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
         var coordinates = [];
 
@@ -249,22 +252,6 @@ function Task (geojson, currentLat, currentLng) {
         var distanceAtCurrentPoint = this.getDistanceFromStart(currentLat, currentLng);
 
         return distanceAtTheFurthestPoint < distanceAtCurrentPoint;
-    };
-
-    this._snapAFurthestPointOnALine = function (line, point, threshold, unit) {
-        if (!unit) unit = "kilometers";
-        if (!threshold) threshold = 0.025;
-        var snapped = turf.pointOnLine(line, point);
-        var distance = turf.distance(snapped, point, unit);
-
-        // Return the previous _furthestPoint if the user is off from the route
-        var currentLat = point.geometry.coordinates[1];
-        var currentLng = point.geometry.coordinates[0];
-        if (distance < threshold && this._hasAdvanced(currentLat, currentLng)) {
-            return snapped;
-        } else {
-            return _furthestPoint;
-        }
     };
 
     /**
@@ -529,5 +516,5 @@ function Task (geojson, currentLat, currentLng) {
         }
     };
 
-    _init(geojson, currentLat, currentLng);
+    this.initialize(geojson, currentLat, currentLng);
 }
