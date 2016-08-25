@@ -5,9 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskFactory (turf) {
-    var self = { className: "TaskFactory" };
-
+function TaskFactory () {
     /**
      * Create a new task instance
      * @param geojson
@@ -15,11 +13,7 @@ function TaskFactory (turf) {
      * @param lng
      * @returns {svl.Task}
      */
-    function create(geojson, lat, lng) {
-        return new Task(turf, geojson, lat, lng);
-    }
-    
-    self.create = create;
-
-    return self;
+    this.create = function (geojson, lat, lng) {
+        return new Task(geojson, lat, lng);
+    };
 }

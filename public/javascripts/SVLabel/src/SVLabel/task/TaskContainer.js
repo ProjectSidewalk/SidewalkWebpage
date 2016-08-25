@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (streetViewService, svl, tracker, turf) {
+function TaskContainer (streetViewService, svl, tracker) {
     var self = { className: "TaskContainer" },
         previousTasks = [],
         currentTask = null,
@@ -211,7 +211,8 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
         }
         
         if (currentTask) {
-            var currentTaskDistance = currentTask.getDistanceWalked(unit);
+            var currentLatLng = svl.map.getPosition();
+            var currentTaskDistance = currentTask.getDistanceWalked(currentLatLng.lat, currentLatLng.lng, unit);
             distance += currentTaskDistance;
         }
         return distance;

@@ -132,8 +132,8 @@ function Main (params) {
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(turf);
-        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.tracker, turf);
+        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory();
+        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.tracker);
 
         // Mission.
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);

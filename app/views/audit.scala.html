@@ -596,8 +596,8 @@
         var lng1 = geojson.features[0].geometry.coordinates[0][0];
         var latLng = new google.maps.LatLng(lat1, lng1);
 
-        svl.taskFactory = new TaskFactory(turf);
-        svl.taskContainer = new TaskContainer(streetViewService, svl, svl.tracker, turf);
+        svl.taskFactory = new TaskFactory();
+        svl.taskContainer = new TaskContainer(streetViewService, svl, svl.tracker);
 
         // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
         streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {

@@ -1,15 +1,145 @@
 describe("RibbonMenu module.", function () {
-  var ribbon;
-  var $fixture;
-  var svl = {};
+    var ribbon;
+    var overlayMessageBoxMock;
+    var $fixture;
+    var svl = {};
 
-  svl.map = {};
-  svl.map.modeSwitchLabelClick = function () { return this; }; // mock function
-  svl.map.modeSwitchWalkClick = function () { return this; };
+    svl.map = {};
+    svl.map.modeSwitchLabelClick = function () { return this; }; // mock function
+    svl.map.modeSwitchWalkClick = function () { return this; };
 
-  beforeEach(function () {
+    beforeEach(function () {
 
-    $fixture = $(" <div id='ribbon-menu-holder'> \
+        $fixture = prepareAFixture();
+
+        var mockTracker = {
+            push: function (item) { }
+        };
+        overlayMessageBoxMock = new OverlayMessageBoxMock();
+
+        svl.ui = {};
+        svl.ui.ribbonMenu = {};
+        svl.map = {};
+        svl.map.modeSwitchLabelClick = function () { return this; };
+        svl.map.modeSwitchWalkClick = function () { return this; };
+
+
+        svl.ui.ribbonMenu.holder = $fixture; // .find("#ribbon-menu-landmark-button-holder");
+        svl.ui.ribbonMenu.streetViewHolder = $fixture.find("#street-view-holder");
+        svl.ui.ribbonMenu.buttons = $fixture.find('span.modeSwitch');
+        svl.ui.ribbonMenu.bottonBottomBorders = $fixture.find(".ribbon-menu-mode-switch-horizontal-line");
+        svl.ui.ribbonMenu.connector = $fixture.find("#ribbon-street-view-connector");
+        svl.ui.ribbonMenu.subcategoryHolder = $fixture.find("#ribbon-menu-other-subcategory-holder");
+        svl.ui.ribbonMenu.subcategories = $fixture.find(".ribbon-menu-other-subcategories");
+        svl.ui.ribbonMenu.informationButtons = $fixture.find(".ribbon-mode-switch-info-buttons");
+
+        ribbon = new RibbonMenu(overlayMessageBoxMock, mockTracker, svl.ui.ribbonMenu);
+        ribbon.unlockDisableModeSwitch();
+        ribbon.enableModeSwitch();
+    });
+
+    describe("The backToWalk method", function () {
+        it("should switch the mode to Walk", function () {
+            ribbon.backToWalk();
+            expect(ribbon.getStatus('mode')).toBe('Walk');
+        });
+    });
+
+    describe("The disableModeSwitch method", function() {
+        it("should disable mode switch", function() {
+            ribbon.disableModeSwitch();
+            expect(ribbon.getStatus('disableModeSwitch')).toBe(true);
+        });
+    });
+
+    describe("The enableModeSwitch method", function() {
+        it("should enable mode switch", function() {
+            ribbon.enableModeSwitch();
+            expect(ribbon.getStatus('disableModeSwitch')).toBe(false);
+        });
+    });
+
+    describe("The disableLandmarkLabels", function() {
+        it("should set disableLandmarkLabels to true", function() {
+            ribbon.disableLandmarkLabels();
+            expect(ribbon.getStatus('disableLandmarkLabels')).toBe(true);
+        });
+    });
+
+    describe("The enableLandmarkLabels", function() {
+        it("should set disableLandmarkLabels to false", function() {
+            ribbon.enableLandmarkLabels();
+            expect(ribbon.getStatus('disableLandmarkLabels')).toBe(false);
+        });
+    });
+
+    describe("The lockDisableModeSwitch", function() {
+        it("should not allow you to disable mode switch", function() {
+            ribbon.enableModeSwitch();
+            ribbon.lockDisableModeSwitch();
+            ribbon.disableModeSwitch();
+            ribbon.unlockDisableModeSwitch();
+            expect(ribbon.getStatus("disableModeSwitch")).toBeFalsy();
+        });
+
+        it("should not allow ribbon to enable mode switch", function() {
+            ribbon.disableModeSwitch()
+            ribbon.lockDisableModeSwitch();
+            ribbon.enableModeSwitch();
+            expect(ribbon.getStatus("disableModeSwitch")).toBe(true);
+        });
+    });
+
+    describe("The unlockDisableModeSwitch", function() {
+
+        it("should allow ribbon to disable mode switch", function() {
+            ribbon.lockDisableModeSwitch();
+            ribbon.disableModeSwitch();
+            expect(ribbon.getStatus("disableModeSwitch")).toBeFalsy();
+
+            ribbon.unlockDisableModeSwitch();
+            ribbon.disableModeSwitch();
+            expect(ribbon.getStatus("disableModeSwitch")).toBeTruthy();
+        });
+
+        it("should allow ribbon to enable mode switch", function() {
+            ribbon.disableModeSwitch();
+            ribbon.lockDisableModeSwitch();
+            ribbon.enableModeSwitch();
+            expect(ribbon.getStatus("disableModeSwitch")).toBeTruthy();
+
+            ribbon.unlockDisableModeSwitch();
+            ribbon.enableModeSwitch();
+            expect(ribbon.getStatus("disableModeSwitch")).toBeFalsy();
+        });
+    });
+
+    describe("The getStatus method", function () {
+        it("should warn when an illegal key is passed.", function () {
+            expect(ribbon.getStatus('invalid')).toBe(undefined);
+        });
+        it("should get the status of valid key", function() {
+            expect(ribbon.getStatus('disableModeSwitch')).toBe(false);
+        });
+    });
+
+    describe("The modeSwitch method", function() {
+        it("should switch the mode", function () {
+            ribbon.modeSwitch('CurbRamp');
+            expect(ribbon.getStatus('mode')).toBe('CurbRamp');
+        });
+    });
+
+    describe("The setAllowedMode method", function() {
+        it("should set allowedMode to mode", function() {
+            ribbon.setAllowedMode('valid');
+            expect(ribbon.getStatus('allowedMode')).toBe('valid');
+        });
+
+    });
+
+    function prepareAFixture () {
+        return $(" <div id='ribbon-menu-holder'> \
                   <span id=ribbon-menu-left-column-holder'> \
                     <div id='ribbon-menu-left-column-title'></div> \
                     <div id='ribbon-menu-left-column-button-holder'> \
@@ -101,131 +231,11 @@ describe("RibbonMenu module.", function () {
                     </div> \
                   </span> \
                 </div>");
+    }
 
-    var mockTracker = {
-      push: function (item) { }
-    };
-
-
-    svl.ui = {};
-    svl.ui.ribbonMenu = {};
-    svl.map = {};
-    svl.map.modeSwitchLabelClick = function () { return this; };
-    svl.map.modeSwitchWalkClick = function () { return this; };
-
-
-    svl.ui.ribbonMenu.holder = $fixture; // .find("#ribbon-menu-landmark-button-holder");
-    svl.ui.ribbonMenu.streetViewHolder = $fixture.find("#street-view-holder");
-    svl.ui.ribbonMenu.buttons = $fixture.find('span.modeSwitch');
-    svl.ui.ribbonMenu.bottonBottomBorders = $fixture.find(".ribbon-menu-mode-switch-horizontal-line");
-    svl.ui.ribbonMenu.connector = $fixture.find("#ribbon-street-view-connector");
-    svl.ui.ribbonMenu.subcategoryHolder = $fixture.find("#ribbon-menu-other-subcategory-holder");
-    svl.ui.ribbonMenu.subcategories = $fixture.find(".ribbon-menu-other-subcategories");
-    svl.ui.ribbonMenu.informationButtons = $fixture.find(".ribbon-mode-switch-info-buttons");
-
-    ribbon = new RibbonMenu(mockTracker, svl.ui.ribbonMenu);
-    ribbon.unlockDisableModeSwitch();
-    ribbon.enableModeSwitch();
-  });
-
-  describe("The backToWalk method", function () {
-    it("should switch the mode to Walk", function () {
-      ribbon.backToWalk();
-      expect(ribbon.getStatus('mode')).toBe('Walk');
-    });
-  });
-
-  describe("The disableModeSwitch method", function() {
-    it("should disable mode switch", function() {
-      ribbon.disableModeSwitch();
-      expect(ribbon.getStatus('disableModeSwitch')).toBe(true);
-    });
-  });
-
-  describe("The enableModeSwitch method", function() {
-    it("should enable mode switch", function() {
-      ribbon.enableModeSwitch();
-      expect(ribbon.getStatus('disableModeSwitch')).toBe(false);
-    });
-  });
-
-  describe("The disableLandmarkLabels", function() {
-    it("should set disableLandmarkLabels to true", function() {
-      ribbon.disableLandmarkLabels();
-      expect(ribbon.getStatus('disableLandmarkLabels')).toBe(true);
-    });
-  });
-
-  describe("The enableLandmarkLabels", function() {
-    it("should set disableLandmarkLabels to false", function() {
-      ribbon.enableLandmarkLabels();
-      expect(ribbon.getStatus('disableLandmarkLabels')).toBe(false);
-    });
-  });
-
-  describe("The lockDisableModeSwitch", function() {
-    it("should not allow you to disable mode switch", function() {
-      ribbon.enableModeSwitch();
-      ribbon.lockDisableModeSwitch();
-      ribbon.disableModeSwitch();
-      ribbon.unlockDisableModeSwitch();
-      expect(ribbon.getStatus("disableModeSwitch")).toBeFalsy();
-    });
-
-    it("should not allow ribbon to enable mode switch", function() {
-      ribbon.disableModeSwitch()
-      ribbon.lockDisableModeSwitch();
-      ribbon.enableModeSwitch();
-      expect(ribbon.getStatus("disableModeSwitch")).toBe(true);
-    });
-  });
-
-  describe("The unlockDisableModeSwitch", function() {
-
-    it("should allow ribbon to disable mode switch", function() {
-      ribbon.lockDisableModeSwitch();
-      ribbon.disableModeSwitch();
-      expect(ribbon.getStatus("disableModeSwitch")).toBeFalsy();
-
-      ribbon.unlockDisableModeSwitch();
-      ribbon.disableModeSwitch();
-      expect(ribbon.getStatus("disableModeSwitch")).toBeTruthy();
-    });
-
-    it("should allow ribbon to enable mode switch", function() {
-      ribbon.disableModeSwitch();
-      ribbon.lockDisableModeSwitch();
-      ribbon.enableModeSwitch();
-      expect(ribbon.getStatus("disableModeSwitch")).toBeTruthy();
-
-      ribbon.unlockDisableModeSwitch();
-      ribbon.enableModeSwitch();
-      expect(ribbon.getStatus("disableModeSwitch")).toBeFalsy();
-    });
-  });
-
-  describe("The getStatus method", function () {
-    it("should warn when an illegal key is passed.", function () {
-      expect(ribbon.getStatus('invalid')).toBe(undefined);
-    });
-    it("should get the status of valid key", function() {
-      expect(ribbon.getStatus('disableModeSwitch')).toBe(false);
-    });
-  });
-
-  describe("The modeSwitch method", function() {
-    it("should switch the mode", function () {
-      ribbon.modeSwitch('CurbRamp');
-      expect(ribbon.getStatus('mode')).toBe('CurbRamp');
-    });
-  });
-
-  describe("The setAllowedMode method", function() {
-    it("should set allowedMode to mode", function() {
-      ribbon.setAllowedMode('valid');
-      expect(ribbon.getStatus('allowedMode')).toBe('valid');
-    });
-
-  });
+    function OverlayMessageBoxMock () {
+        this.setHelpLink = function () {};
+        this.setMessage = function () {};
+    }
 
 });
