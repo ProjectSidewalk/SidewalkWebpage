@@ -52,6 +52,7 @@ describe("Task module", function () {
         });
 
         it("should return two segments", function () {
+            task.updateTheFurthestPointReached(lat, lng);
             var auditedSegments = task._getAuditedSegments(lat, lng);
             expect(auditedSegments.length).toBe(2);
             expect(auditedSegments[1].geometry.coordinates[1][0]).toBeCloseTo(lng);
