@@ -1,4 +1,4 @@
-function InitialMissionInstruction (compass, mapService, popUpMessage, taskContainer) {
+function InitialMissionInstruction (compass, mapService, neighborhoodContainer, popUpMessage, taskContainer) {
     var self = this;
     var initialHeading;
     var finishedLookingAround = false;
@@ -12,7 +12,13 @@ function InitialMissionInstruction (compass, mapService, popUpMessage, taskConta
 
     this._instructToCheckSidewalks = function () {
         // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
-        // Todo.
+        var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
+        var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
+        if (distance >= 0.025) {
+
+            popUpMessage.notify(title, message);
+            mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+        }
     };
 
     this._instructToFollowTheGuidance = function () {

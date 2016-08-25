@@ -200,13 +200,10 @@ function TaskContainer (streetViewService, svl, tracker, turf) {
         var completedTasks = getCompletedTasks(regionId),
             geojson,
             feature,
-            i,
-            len,
             distance = 0;
 
         if (completedTasks) {
-            len = completedTasks.length;
-            for (i = 0; i < len; i++) {
+            for (var i = 0, len = completedTasks.length; i < len; i++) {
                 geojson = completedTasks[i].getGeoJSON();
                 feature = geojson.features[0];
                 distance += turf.lineDistance(feature, unit);

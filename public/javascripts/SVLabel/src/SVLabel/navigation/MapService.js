@@ -518,7 +518,7 @@ function MapService (canvas, uiMap, params) {
             positionUpdateCallbacks.push(callback);
         }
     };
-    self.unbindPositionCallback = function (callback) {
+    self.unbindPositionUpdate = function (callback) {
         var callbackIndex = positionUpdateCallbacks.indexOf(callback);
         if (callbackIndex >= 0) {
             positionUpdateCallbacks.splice(callbackIndex, 1);
