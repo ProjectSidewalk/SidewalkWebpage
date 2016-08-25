@@ -15,6 +15,9 @@ function InitialMissionInstruction (compass, mapService, neighborhoodContainer, 
         var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
         var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
         if (distance >= 0.025) {
+            var title = "Please check both sides of the street!";
+            var message = "Remember, we would like you to check both sides of the street! " +
+                "Please label accessibility issues like sidewalk obstacles and surface problems!";
 
             popUpMessage.notify(title, message);
             mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
