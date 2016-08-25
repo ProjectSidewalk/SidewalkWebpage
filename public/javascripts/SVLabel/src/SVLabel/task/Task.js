@@ -128,28 +128,68 @@ function Task (geojson, currentLat, currentLng) {
      * http://turfjs.org/static/docs/module-turf_distance.html
      */
     function _getTaskCompletionRate (lat, lng) {
-        var i,
-            point,
-            lineLength,
-            cumsumRate,
-            line = _geojson.features[0],
-            currentPoint = turf.point([lng, lat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = this._indexOfTheClosestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            cumSum = 0;
-        for (i = 0; i < closestSegmentIndex; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
-            cumSum += turf.lineDistance(segment);
+        var totalStreetEdgeLength = turf.lineDistance(_geojson.features[0]);
+        var auditedStreetEdgeSegments = _getAuditedSegments(lat, lng);
+        var cumulativeDistance = 0;
+        for (var i = 0, len = auditedStreetEdgeSegments.length; i < len; i++) {
+            cumulativeDistance += turf.lineDistance(auditedStreetEdgeSegments[i]);
         }
 
-        point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-        cumSum += turf.distance(snapped, point);
-        lineLength = turf.lineDistance(line);
-        cumsumRate = cumSum / lineLength;
+        var cumulativeRate = cumulativeDistance / totalStreetEdgeLength;
 
-        return taskCompletionRate < cumsumRate ? cumsumRate : taskCompletionRate;
+        return taskCompletionRate < cumulativeRate ? cumulativeRate : taskCompletionRate;
+    }
+
+    this._getPointsOnAuditedSegments = function (lat, lng) {
+        var currentPosition = turf.point([lng, lat]);
+        var streetEdge =  _geojson.features[0];
+        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
+        var coordinates = [];
+        for (var i = 0; i <= closestSegmentIndex; i++) {
+            coordinates.push(streetEdge.geometry.coordinates[i]);
+        }
+        coordinates.push(snappedPosition.geometry.coordinates);
+        return coordinates;
+    };
+
+    function _getAuditedSegments (lat, lng) {
+        var currentPosition = turf.point([lng, lat]);
+        var streetEdge =  _geojson.features[0];
+        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
+        var coordinates = streetEdge.geometry.coordinates;
+
+        var returnSegments = [];
+        for (var i = 0; i < closestSegmentIndex; i++) {
+            returnSegments.push(turf.linestring([
+                [coordinates[i][0], coordinates[i][1]],
+                [coordinates[i + 1][0], coordinates[i + 1][1]]
+            ]));
+        }
+
+        // Last bit of segment
+        returnSegments.push(turf.linestring([
+            [coordinates[closestSegmentIndex][0], coordinates[closestSegmentIndex][1]],
+            [snappedPosition[closestSegmentIndex][0], snappedPosition[closestSegmentIndex][1]]
+        ]));
+
+        return returnSegments;
+    }
+
+    function _getUnauditedSegments (lat, lng) {
+        var line = _geojson.features[0];
+        var currentPoint = turf.point([lng, lat]);
+        var snapped = turf.pointOnLine(line, currentPoint);
+        var closestSegmentIndex = this._indexOfTheClosestSegment(currentPoint, line);
+        var coordinates = line.geometry.coordinates;
+        var incompletePath = [];
+
+
+        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
+        for (var i = closestSegmentIndex; i < coordinates.length - 1; i++) {
+            incompletePath.push(new google.maps.LatLng(coordinates[i + 1][1], coordinates[i + 1][0]))
+        }
     }
 
     /**

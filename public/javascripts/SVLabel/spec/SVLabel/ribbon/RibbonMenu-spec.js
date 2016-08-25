@@ -23,7 +23,6 @@ describe("RibbonMenu module.", function () {
         svl.map.modeSwitchLabelClick = function () { return this; };
         svl.map.modeSwitchWalkClick = function () { return this; };
 
-
         svl.ui.ribbonMenu.holder = $fixture; // .find("#ribbon-menu-landmark-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $fixture.find("#street-view-holder");
         svl.ui.ribbonMenu.buttons = $fixture.find('span.modeSwitch');
