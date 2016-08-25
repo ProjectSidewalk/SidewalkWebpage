@@ -9,10 +9,10 @@
  */
 function Task (geojson, currentLat, currentLng) {
     var self = this;
-    var _geojson,
-        lat,
-        lng,
-        taskCompletionRate = 0,
+    var _geojson;
+    var _furthestPoint;
+
+    var taskCompletionRate = 0,
         paths,
         status = {
             isCompleted: false
@@ -50,8 +50,10 @@ function Task (geojson, currentLat, currentLng) {
             if (d2 < d1) self.reverseCoordinates();
         }
 
-        lat = _geojson.features[0].geometry.coordinates[0][1];
-        lng = _geojson.features[0].geometry.coordinates[0][0];
+        var lat = _geojson.features[0].geometry.coordinates[0][1];
+        var lng = _geojson.features[0].geometry.coordinates[0][0];
+
+        _furthestPoint = turf.point([lng, lat]);
 
         paths = null;
     }
@@ -129,7 +131,7 @@ function Task (geojson, currentLat, currentLng) {
      */
     function _getTaskCompletionRate (lat, lng) {
         var totalStreetEdgeLength = turf.lineDistance(_geojson.features[0]);
-        var auditedStreetEdgeSegments = _getAuditedSegments(lat, lng);
+        var auditedStreetEdgeSegments = this._getAuditedSegments(lat, lng);
         var cumulativeDistance = 0;
         for (var i = 0, len = auditedStreetEdgeSegments.length; i < len; i++) {
             cumulativeDistance += turf.lineDistance(auditedStreetEdgeSegments[i]);
@@ -140,57 +142,69 @@ function Task (geojson, currentLat, currentLng) {
         return taskCompletionRate < cumulativeRate ? cumulativeRate : taskCompletionRate;
     }
 
-    this._getPointsOnAuditedSegments = function (lat, lng) {
-        var currentPosition = turf.point([lng, lat]);
+    this._coordinatesToSegments = function (coordinates) {
+        var returnSegments = [];
+        for (var i = 1, len = coordinates.length; i < len; i++) {
+            returnSegments.push(turf.linestring([
+                [coordinates[i - 1][0], coordinates[i - 1][1]],
+                [coordinates[i][0], coordinates[i][1]]
+            ]));
+        }
+        return returnSegments;
+    };
+
+    this._getPointsOnAuditedSegments = function (currentLat, currentLng) {
         var streetEdge =  _geojson.features[0];
-        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var currentPosition = turf.point([currentLng, currentLat]);
+        // var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var snappedPosition = this._snapAFurthestPointOnALine(streetEdge, currentPosition);
         var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
         var coordinates = [];
+
         for (var i = 0; i <= closestSegmentIndex; i++) {
             coordinates.push(streetEdge.geometry.coordinates[i]);
         }
+
         coordinates.push(snappedPosition.geometry.coordinates);
+
         return coordinates;
     };
 
-    function _getAuditedSegments (lat, lng) {
-        var currentPosition = turf.point([lng, lat]);
+    this._getPointsOnUnauditedSegments = function (currentLat, currentLng) {
         var streetEdge =  _geojson.features[0];
-        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var currentPosition = turf.point([currentLng, currentLat]);
+        //var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var snappedPosition = this._snapAFurthestPointOnALine(streetEdge, currentPosition);
         var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
-        var coordinates = streetEdge.geometry.coordinates;
+        var coordinates = [];
 
-        var returnSegments = [];
-        for (var i = 0; i < closestSegmentIndex; i++) {
-            returnSegments.push(turf.linestring([
-                [coordinates[i][0], coordinates[i][1]],
-                [coordinates[i + 1][0], coordinates[i + 1][1]]
-            ]));
+        coordinates.push(snappedPosition.geometry.coordinates);
+        for (var i = closestSegmentIndex + 1, len = streetEdge.geometry.coordinates.length; i < len; i++) {
+            coordinates.push(streetEdge.geometry.coordinates[i]);
         }
 
-        // Last bit of segment
-        returnSegments.push(turf.linestring([
-            [coordinates[closestSegmentIndex][0], coordinates[closestSegmentIndex][1]],
-            [snappedPosition[closestSegmentIndex][0], snappedPosition[closestSegmentIndex][1]]
-        ]));
+        return coordinates;
+    };
 
-        return returnSegments;
-    }
-
-    function _getUnauditedSegments (lat, lng) {
-        var line = _geojson.features[0];
-        var currentPoint = turf.point([lng, lat]);
-        var snapped = turf.pointOnLine(line, currentPoint);
-        var closestSegmentIndex = this._indexOfTheClosestSegment(currentPoint, line);
-        var coordinates = line.geometry.coordinates;
-        var incompletePath = [];
-
-
-        incompletePath.push(new google.maps.LatLng(snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]));
-        for (var i = closestSegmentIndex; i < coordinates.length - 1; i++) {
-            incompletePath.push(new google.maps.LatLng(coordinates[i + 1][1], coordinates[i + 1][0]))
+    this._getAuditedSegments = function (lat, lng) {
+        var coordinates = this._getPointsOnAuditedSegments(lat, lng);
+        if (coordinates.length > 1) {
+            return this._coordinatesToSegments(coordinates);
+        } else {
+            console.error("`Task._getPointsOnAuditedSegments` returned only 1 coordinate");
+            return [];
         }
-    }
+    };
+
+    this._getUnauditedSegments = function (lat, lng) {
+        var coordinates = this._getPointsOnUnauditedSegments(lat, lng);
+        if (coordinates.length > 1) {
+            return this._coordinatesToSegments(coordinates);
+        } else {
+            console.error("`Task._getPointsOnUnauditedSegments` returned only 1 coordinate");
+            return [];
+        }
+    };
 
     /**
      * Get a distance between a point and a segment
@@ -215,12 +229,12 @@ function Task (geojson, currentLat, currentLng) {
         }
     }
 
-    this._snapAPointOnALine = function (line, point, threshold, unit) {
+    this._snapAFurthestPointOnALine = function (line, point, threshold, unit) {
         if (!unit) unit = "kilometers";
         if (!threshold) threshold = 0.025;
         var snapped = turf.pointOnLine(line, point);
         var distance = turf.distance(snapped, point, unit);
-        return distance < threshold ? snapped : null;
+        return distance < threshold ? snapped : _furthestPoint;
     };
 
     /**
@@ -313,28 +327,11 @@ function Task (geojson, currentLat, currentLng) {
      */
     this.getDistanceWalked = function (currentLat, currentLng, unit) {
         if (!unit) unit = "kilometers";
+        var distance = 0;
+        var walkedSegments = this._getAuditedSegments(currentLat, currentLng);
 
-        var point,
-            line = _geojson.features[0],
-            currentPoint = turf.point([currentLng, currentLat]),
-            snapped = turf.pointOnLine(line, currentPoint),
-            closestSegmentIndex = this._indexOfTheClosestSegment(currentPoint, line),
-            coords = line.geometry.coordinates,
-            segment,
-            distance = 0;
-        var coordinates = [];
-        for (var i = 0; i < closestSegmentIndex; i++) {
-            coordinates.push([coords[i][0], coords[i][1]])
-        }
-        coordinates.push([coords[i][0], coords[i][1]]);
-        segment = turf.linestring(coordinates);
-        distance += turf.lineDistance(segment, unit);
-
-        // Check if the snapped point is not too far away from the current point. Then add the distance between the
-        // snapped point and the last segment point to cumSum.
-        if (turf.distance(snapped, currentPoint, unit) < 100) {
-            point = turf.point([coords[closestSegmentIndex][0], coords[closestSegmentIndex][1]]);
-            distance += turf.distance(snapped, point, unit);
+        for (var i = 0, len = walkedSegments.length; i < len; i++) {
+            distance += turf.lineDistance(walkedSegments[i], unit);
         }
         return distance;
     };
@@ -421,6 +418,10 @@ function Task (geojson, currentLat, currentLng) {
         }
     };
 
+    this.getTaskCompletionRate = function (){
+        return taskCompletionRate ? taskCompletionRate : 0;
+    };
+
     /**
      * Render the task path on the Google Maps pane.
      * Todo. This should go to the MapService or its submodule
@@ -486,8 +487,19 @@ function Task (geojson, currentLat, currentLng) {
         properties[key] = value;
     };
 
-    this.getTaskCompletionRate = function (){
-        return taskCompletionRate ? taskCompletionRate : 0;
+    this.getFurthestPointReached = function () {
+        return _furthestPoint;
+    };
+
+    this.updateTheFurthestPointReached = function (currentLat, currentLng) {
+        var latFurthest = _furthestPoint.geometry.coordinates[1];
+        var lngFurthest = _furthestPoint.geometry.coordinates[0];
+        var distanceAtTheFurthestPoint = this.getDistanceWalked(latFurthest, lngFurthest);
+        var distanceAtCurrentPoint = this.getDistanceWalked(currentLat, currentLng);
+
+        if (distanceAtCurrentPoint > distanceAtTheFurthestPoint) {
+            _furthestPoint = turf.point([currentLng, currentLat]);
+        }
     };
 
     _init(geojson, currentLat, currentLng);
