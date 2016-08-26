@@ -1,50 +1,57 @@
-function HandAnimation (uiOnboarding) {
+function HandAnimation (rootDirectory, uiOnboarding) {
     var layer;
-    var stage;
+    var stage = null;
     var OpenHand;
     var ClosedHand;
     var OpenHandReady = false;
     var ClosedHandReady = false;
     var ImageObjOpenHand = new Image();
     var ImageObjClosedHand = new Image();
+    var _uiOnboarding = uiOnboarding;
+    var $handGestureHolder = _uiOnboarding.holder.find('#hand-gesture-holder');
+    var onboardingImageDirectory = rootDirectory + "img/onboarding/";
 
     this.initializeHandAnimation = function () {
-        if (document.getElementById("hand-gesture-holder")) {
+        if ($handGestureHolder.length == 1) {
             this.hideGrabAndDragAnimation();
-            stage = new Kinetic.Stage({
-                container: "hand-gesture-holder",
-                width: 720,
-                height: 200
-            });
-            layer = new Kinetic.Layer();
-            stage.add(layer);
-            ImageObjOpenHand.onload = function () {
-                OpenHand = new Kinetic.Image({
-                    x: 0,
-                    y: stage.getHeight() / 2 - 59,
-                    image: ImageObjOpenHand,
-                    width: 128,
-                    height: 128
-                });
-                OpenHand.hide();
-                layer.add(OpenHand);
-                OpenHandReady = true;
-            };
-            ImageObjOpenHand.src = svl.rootDirectory + "img/onboarding/HandOpen.png";
 
-            ImageObjClosedHand.onload = function () {
-                ClosedHand = new Kinetic.Image({
-                    x: 300,
-                    y: stage.getHeight() / 2 - 59,
-                    image: ImageObjClosedHand,
-                    width: 96,
-                    height: 96
+            if (!stage) {
+                stage = new Kinetic.Stage({
+                    container: $handGestureHolder.get(0),
+                    width: 720,
+                    height: 200
                 });
-                ClosedHand.hide();
-                layer.add(ClosedHand);
-                ClosedHandReady = true;
-            };
-            ImageObjClosedHand.src = svl.rootDirectory + "img/onboarding/HandClosed.png";
+                layer = new Kinetic.Layer();
+                stage.add(layer);
+
+                ImageObjOpenHand.onload = function () {
+                    OpenHand = new Kinetic.Image({
+                        x: 0,
+                        y: stage.getHeight() / 2 - 59,
+                        image: ImageObjOpenHand,
+                        width: 128,
+                        height: 128
+                    });
+                    OpenHand.hide();
+                    layer.add(OpenHand);
+                    OpenHandReady = true;
+                };
+                ImageObjOpenHand.src = onboardingImageDirectory + "HandOpen.png";
+
+                ImageObjClosedHand.onload = function () {
+                    ClosedHand = new Kinetic.Image({
+                        x: 300,
+                        y: stage.getHeight() / 2 - 59,
+                        image: ImageObjClosedHand,
+                        width: 96,
+                        height: 96
+                    });
+                    ClosedHand.hide();
+                    layer.add(ClosedHand);
+                    ClosedHandReady = true;
+                };
+                ImageObjClosedHand.src = onboardingImageDirectory + "HandClosed.png";
+            }
         }
     };
 

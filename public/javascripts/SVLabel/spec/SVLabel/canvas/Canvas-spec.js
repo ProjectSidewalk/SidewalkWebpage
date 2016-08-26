@@ -1,4 +1,4 @@
-describe("Specs for the Canvas module.", function () {
+describe("Canvas module", function () {
   var param = {};
   var canvas = Canvas($, param);
 

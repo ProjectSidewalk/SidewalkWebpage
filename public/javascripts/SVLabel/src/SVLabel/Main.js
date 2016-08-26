@@ -218,17 +218,21 @@ function Main (params) {
         return missionLabels.indexOf("onboarding") >= 0 || svl.storage.get("completedOnboarding");
     }
 
+    var onboardingHandAnimation = null;
+    var onboardingStates = null;
     function startOnboarding () {
-        var handAnimation = new HandAnimation(svl.ui.onboarding);
-        var onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
+        if (!onboardingHandAnimation) {
+            onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
+            onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
+        }
 
-        svl.onboarding = Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, handAnimation, svl.map,
+        svl.onboarding = Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
             svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
             svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
             svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
         if (!onboardingMission) {
-            // If the onboarding mission is not yet in the missionContainer, add it there.
+            // Add the onboarding mission into the MissionContainer if it is not yet added.
             onboardingMission = svl.missionFactory.createOnboardingMission(1, false);
             svl.missionContainer.add(null, onboardingMission);
         }

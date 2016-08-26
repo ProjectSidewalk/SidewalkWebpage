@@ -770,15 +770,19 @@ function MapService (canvas, uiMap, params) {
      * @returns {hideLinks} This object.
      */
     function hideLinks () {
-        if (properties.browser === 'chrome') {
-            // Somehow chrome does not allow me to select path
-            // and fadeOut. Instead, I'm just manipulating path's style
-            // and making it hidden.
-            $('path').css('visibility', 'hidden');
-        } else {
-            // $('path').fadeOut(1000);
-            $('path').css('visibility', 'hidden');
-        }
+        var $paths = $("#viewControlLayer").find('path');
+        $paths.css('visibility', 'hidden');
+        $paths.css('pointer-events', 'none');
+        // if (properties.browser === 'chrome') {
+        //     // Somehow chrome does not allow me to select path
+        //     // and fadeOut. Instead, I'm just manipulating path's style
+        //     // and making it hidden.
+        //
+        //     $paths.css('visibility', 'hidden');
+        // } else {
+        //     // $('path').fadeOut(1000);
+        //     $paths.css('visibility', 'hidden');
+        // }
         return this;
     }
 
@@ -1023,6 +1027,7 @@ function MapService (canvas, uiMap, params) {
             }
         }
         $(".gmnoprint path").css('visibility', 'visible');
+        $(".gmnoprint path").css('pointer-events', 'all');
     }
 
     /**
@@ -1038,7 +1043,6 @@ function MapService (canvas, uiMap, params) {
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
 
-            //
             // View port restriction.
             // Do not allow users to look up the sky or down the ground.
             // If specified, do not allow users to turn around too much by restricting the heading angle.
