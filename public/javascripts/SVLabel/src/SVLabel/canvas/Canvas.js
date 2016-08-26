@@ -1,12 +1,11 @@
 /**
- * A canvas module
- * @param $ {object} jQuery object
- * @param ribbon {object} Other parameters
+ * Canvas Module.
+ * Todo. Go through the SVL library and remove all the unused public methods that are no longer used.
+ * @param ribbon
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function Canvas ($, ribbon) {
+function Canvas (ribbon) {
     var self = { className : 'Canvas' };
 
         // Mouse status and mouse event callback functions
@@ -124,13 +123,13 @@ function Canvas ($, ribbon) {
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
-        var pathLen = tempPath.length,
-            points = [],
+        var points = [],
             pov = svl.map.getPov();
 
-        for (var i = 0; i < pathLen; i++) {
+        for (var i = 0, pathLen = tempPath.length; i < pathLen; i++) {
             points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
+
         var path = new Path(svl, points, {});
         var latlng = svl.map.getPosition();
         var param = {
@@ -162,11 +161,17 @@ function Canvas ($, ribbon) {
         labels.push(status.currentLabel);  // Todo. Delete this. I think this is not necessary.
         svl.labelContainer.push(status.currentLabel);
 
+        // Todo. Instead of calling the contextMenu show, throw an Canvas:closeLabelPath event.
         if ('contextMenu' in svl) {
             svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
                 targetLabel: status.currentLabel,
                 targetLabelColor: labelColor.fillStyle
             });
+        }
+
+        // Todo. Again, thrown an event (e.g., Canvas:closeLabelPath) instead of svl.onboarding.pushOnboardingLabel invocation.
+        if ('onboarding' in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
+            svl.onboarding.pushOnboardingLabel(status.currentLabel);
         }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
@@ -282,8 +287,7 @@ function Canvas ($, ribbon) {
             if (properties.drawingMode == "path") {
                 // This part is executed for a double click event
                 // If the current status.drawing = true, then close the current path.
-                var pathLen = tempPath.length;
-                if (status.drawing && pathLen > 2) {
+                if (status.drawing && tempPath.length > 2) {
                     status.drawing = false;
 
                     closeLabelPath();
@@ -1006,9 +1010,12 @@ function Canvas ($, ribbon) {
     /**
      * @method
      */
+    /**
+     * This function sets the passed label's tagVisiblity to 'visible' and all the others to 'hidden'
+     * @param label
+     * @returns {showLabelTag}
+     */
     function showLabelTag (label) {
-        // This function sets the passed label's tagVisiblity to 'visible' and all the others to
-        // 'hidden'.
         if (!lock.showLabelTag) {
             var i,
                 labels = svl.labelContainer.getCanvasLabels(),
@@ -1028,7 +1035,8 @@ function Canvas ($, ribbon) {
             if (!isAnyVisible) {
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
-            self.clear().render2();
+            self.clear();
+            self.render2();
             return this;
         }
     }
@@ -1046,7 +1054,8 @@ function Canvas ($, ribbon) {
             labelLen = labels.length;
 
         for (var i = 0; i < labelLen; i += 1) {
-            labels[i].unlockVisibility().setVisibility('visible');
+            labels[i].unlockVisibility();
+            labels[i].setVisibility('visible');
         }
         return this;
     }

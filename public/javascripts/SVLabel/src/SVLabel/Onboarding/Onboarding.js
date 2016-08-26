@@ -42,9 +42,21 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     };
     var states = onboardingStates.get();
 
-    function _init () {
+    this._onboardingLabels = [];
+
+    this._removeOnboardingLabels = function () {
+        for (var i = 0, len = this._onboardingLabels.length; i < len; i++) {
+            this._onboardingLabels[i].remove();
+        }
+    };
+
+    this.start = function () {
         status.isOnboarding = true;
         tracker.push('Onboarding_Start');
+
+        this._removeOnboardingLabels();
+
+        $("#toolbar-onboarding-link").css("visibility", "hidden");
 
         var canvas = uiOnboarding.canvas.get(0);
         if (canvas) ctx = canvas.getContext('2d');
@@ -67,7 +79,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         status.state = getState("initialize");
         _visit(status.state);
         handAnimation.initializeHandAnimation();
-    }
+    };
 
     /**
      * Clear the onboarding canvas
@@ -225,6 +237,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var data = form.compileSubmissionData(task);
         form.submit(data, task);
         uiOnboarding.background.css("visibility", "hidden");
+
+        $("#toolbar-onboarding-link").css("visibility", "visible");
 
         mapService.unlockDisableWalking();
         mapService.enableWalking();
@@ -598,6 +612,10 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         return status.isOnboarding;
     }
 
+    this.pushOnboardingLabel = function (label) {
+        this._onboardingLabels.push(label);
+    };
+
     /**
      * Set status
      * @param key Status field name
@@ -617,8 +635,4 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     self.showMessage = showMessage;
     self.setStatus = setStatus;
     self.hideMessage = hideMessage;
-
-    _init();
-
-    return self;
 }

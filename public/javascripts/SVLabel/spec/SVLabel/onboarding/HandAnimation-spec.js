@@ -27,16 +27,16 @@ describe("HandAnimation module", function () {
 
     function prepareFixture() {
         return $('  <div id="onboarding-holder" class="Window_StreetView"> \
-                                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
-                                        <div id="hand-gesture-holder"></div> \
-                                        <div id="onboarding-background"></div> \
-                                        <div id="onboarding-message-holder" class="white-background"> \
-                                            <p></p> \
-                                        </div> \
-                                        <div style="display:none;"> \
-                                            <img src="" id="double-click-icon" width="200" alt="Double click icon"/> \
-                                        </div> \
-                                    </div>');
+                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
+                        <div id="hand-gesture-holder"></div> \
+                        <div id="onboarding-background"></div> \
+                        <div id="onboarding-message-holder" class="white-background"> \
+                            <p></p> \
+                        </div> \
+                        <div style="display:none;"> \
+                            <img src="" id="double-click-icon" width="200" alt="Double click icon"/> \
+                        </div> \
+                    </div>');
 
     }
 });

@@ -7,32 +7,38 @@ function InitialMissionInstruction (compass, mapService, neighborhoodContainer, 
     this._finishedInstructionToFollowTheGuidance = function () {
         self._stopBlinkingNavigationComponents();
 
-        mapService.bindPositionUpdate(self._instructToCheckSidewalks);
+        if (!svl.isOnboarding()) {
+            mapService.bindPositionUpdate(self._instructToCheckSidewalks);
+        }
     };
 
     this._instructToCheckSidewalks = function () {
-        // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
-        var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
-        var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
-        if (distance >= 0.025) {
-            var title = "Please check both sides of the street!";
-            var message = "Remember, we would like you to check both sides of the street! " +
-                "Please label accessibility issues like sidewalk obstacles and surface problems!";
+        if (!svl.isOnboarding()) {
+            // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
+            var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
+            var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
+            if (distance >= 0.025) {
+                var title = "Please check both sides of the street!";
+                var message = "Remember, we would like you to check both sides of the street! " +
+                    "Please label accessibility issues like sidewalk obstacles and surface problems!";
 
-            popUpMessage.notify(title, message);
-            mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+                popUpMessage.notify(title, message);
+                mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+            }
         }
     };
 
     this._instructToFollowTheGuidance = function () {
-        var title = "Follow the navigator and audit the street!";
-        var message = "Great! It looks like you finished auditing this intersection. " +
-            "Now, follow the red line in the map to complete your mission. " +
-            "We provide turn-by-turn instructions to guide your path.</span>";
+        if (!svl.isOnboarding()) {
+            var title = "Follow the navigator and audit the street!";
+            var message = "Great! It looks like you finished auditing this intersection. " +
+                "Now, follow the red line in the map to complete your mission. " +
+                "We provide turn-by-turn instructions to guide your path.</span>";
 
-        popUpMessage.notify(title, message, this._finishedInstructionToFollowTheGuidance);
-        compass.blink();
-        mapService.blinkGoogleMaps();
+            popUpMessage.notify(title, message, this._finishedInstructionToFollowTheGuidance);
+            compass.blink();
+            mapService.blinkGoogleMaps();
+        }
     };
 
     this._pollLookingAroundHasFinished = function () {
@@ -55,13 +61,15 @@ function InitialMissionInstruction (compass, mapService, neighborhoodContainer, 
     };
 
     this.start = function (neighborhood) {
-        popUpMessage.notify("Let's get started!",
-            "We have moved you to a street in " + neighborhood.getProperty("name") +
-            ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
-            "accessibility problems at this intersection.");
+        if (!svl.isOnboarding()) {
+            popUpMessage.notify("Let's get started!",
+                "We have moved you to a street in " + neighborhood.getProperty("name") +
+                ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
+                "accessibility problems at this intersection.");
 
-        initialHeading = mapService.getPov().heading;
-        lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1000);
+            initialHeading = mapService.getPov().heading;
+            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1000);
+        }
     };
 
 }

@@ -197,7 +197,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
         this.setTurnMessage();
 
-        if (this._checkEnRoute()) {
+        if (this._checkEnRoute() || svl.isOnboarding()) {
             this.stopBlinking();
             this._makeTheMessageBoxUnclickable();
         } else {

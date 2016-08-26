@@ -102,7 +102,7 @@ function Main (params) {
 
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
-        svl.canvas = new Canvas($, svl.ribbon);
+        svl.canvas = new Canvas(svl.ribbon);
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
         svl.statusField = new StatusField(svl.ui.status);
@@ -226,10 +226,14 @@ function Main (params) {
             onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
         }
 
-        svl.onboarding = Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
-            svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
-            svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
-            svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
+        if (!("onboarding" in svl && svl.onboarding)) {
+            svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
+                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
+                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
+                svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
+        }
+        svl.onboarding.start();
+
         var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
         if (!onboardingMission) {
             // Add the onboarding mission into the MissionContainer if it is not yet added.
