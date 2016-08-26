@@ -51,14 +51,20 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
+
         if (nextMission == null) throw new Error("No missions available");
+
         missionContainer.setCurrentMission(nextMission);
-        var nextNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
+        var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
 
         // If the current neighborhood is different from the next neighborhood
-        if (currentNeighborhood.getProperty("regionId") != nextNeighborhood.getProperty("regionId")) {
-            this._updateTheCurrentNeighborhood(nextNeighborhood);
+        if (currentNeighborhood.getProperty("regionId") != nextMissionNeighborhood.getProperty("regionId")) {
+            this._updateTheCurrentNeighborhood(nextMissionNeighborhood);
         }
+
+        // Adjust the target distance based on the tasks available
+        var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
+        nextMission.adjustTheTargetDistance(incompleteTaskDistance);
     };
 
     /**

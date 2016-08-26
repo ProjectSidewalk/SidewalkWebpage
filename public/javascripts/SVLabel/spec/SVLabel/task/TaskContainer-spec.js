@@ -33,4 +33,8 @@ describe("Tests for the TaskContainer module.", function () {
             expect(taskContainer.getTasksInRegion(1).length).toBe(2);
         });
     });
+
+    describe("`getIncompleteTaskDistance` method", function () {
+        it("should return the total distance of the incomplete tasks");
+    });
 });

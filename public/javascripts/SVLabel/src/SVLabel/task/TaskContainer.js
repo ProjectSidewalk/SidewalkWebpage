@@ -246,6 +246,12 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         return currentTask;
     }
 
+    self.getIncompleteTaskDistance = function (regionId, unit) {
+        var incompleteTasks = getIncompleteTasks(regionId);
+        var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
+        return taskDistances.reduce(function (a, b) { return a + b; }, 0);
+    };
+
     function getIncompleteTasks (regionId) {
         if (!regionId && regionId !== 0) {
             console.error("regionId is not specified")

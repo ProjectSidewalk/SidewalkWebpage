@@ -225,6 +225,8 @@ describe("MissionProgress module", function () {
             label: null,
             regionId: null
         };
+
+        this.adjustTheTargetDistance = function () { };
     }
 
     MissionMock.prototype.getProperty = function (key) {
@@ -272,5 +274,6 @@ describe("MissionProgress module", function () {
 
     function TaskContainerMock () {
         this.fetchTasksInARegion = function (neighborhoodId) {};
+        this.getIncompleteTaskDistance = function () { return 0; };
     }
 });

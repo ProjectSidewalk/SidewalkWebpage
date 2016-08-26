@@ -8,6 +8,9 @@
 function Mission(parameters) {
     var self = { className: "Mission" },
         properties = {
+            auditDistance: null,
+            auditDistanceFt: null,
+            auditDistanceMi: null,
             regionId: null,
             label: null,
             missionId: null,
@@ -78,6 +81,18 @@ function Mission(parameters) {
             setProperty("badgeURL", badgeURL);
         }
     }
+
+    /**
+     * Adjust the target distance if the total distance of available tasks are less than the target audit distance
+     * @param availableTaskDistance Available task distance in km
+     */
+    self.adjustTheTargetDistance = function (availableTaskDistance) {
+        if (properties.auditDistance && (properties.auditDistance / 1000 > availableTaskDistance)) {
+            properties.auditDistance = availableTaskDistance * 1000;
+            properties.auditDistanceFt = availableTaskDistance * 3280.84; // km -> ft
+            properties.auditedDistanceMi = availableTaskDistance * 0.621371;  // km -> mi
+        }
+    };
 
     /**
      * Because the imperial metric system is messed up.
