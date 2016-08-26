@@ -1,13 +1,13 @@
 /**
  * MissionContainer module
- * @param statusFieldMission.
+ * @param statusFieldMission.  Todo. The module should communicate with the statusFieldMission via StatusModel.
  * @param missionModel. Mission model object.
  * @param parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function MissionContainer (statusFieldMission, missionModel) {
+function MissionContainer (statusFieldMission, missionModel, taskModel) {
     var self = this;
     this._missionStoreByRegionId = { "noRegionId" : []};
     this._completedMissions = [];
@@ -114,11 +114,9 @@ function MissionContainer (statusFieldMission, missionModel) {
      */
     function getMission(regionId, label, level) {
         if (!regionId) regionId = "noRegionId";
-        var missions = self._missionStoreByRegionId[regionId],
-            i,
-            len = missions.length;
+        var missions = self._missionStoreByRegionId[regionId];
 
-        for (i = 0; i < len; i++) {
+        for (var i = 0, len = missions.length; i < len; i++) {
             if (missions[i].getProperty("label") == label) {
                 if (level) {
                     if (level == missions[i].getProperty("level")) {
@@ -178,28 +176,30 @@ function MissionContainer (statusFieldMission, missionModel) {
     this.nextMission = function (regionId) {
         var missions = getMissionsByRegionId (regionId);
         missions = missions.filter(function (m) { return !m.isCompleted(); });
+        missions.sort(function (m1, m2) {
+            var d1 = m1.getProperty("distance"), d2 = m2.getProperty("distance");
+            return d1 - d2;
+        });
 
         /**
          * Check if there are more missions remaining.
          */
-        if (missions.length > 0) {
-            missions.sort(function (m1, m2) {
-                var d1 = m1.getProperty("distance"), d2 = m2.getProperty("distance");
-                return d1 - d2;
-            });
-            return missions[0];
-        } else {
-            var nextRegionId = this._findARegionWithMission(regionId);
-            missions = missions = self._missionStoreByRegionId[nextRegionId];
-            missions = missions.filter(function (m) { return !m.isCompleted(); });
+        if (missions.length > 0 && taskModel.tasksAreAvailableInARegion()) {
             return missions[0];
         }
+
+        var nextRegionId = this._findARegionWithMission(regionId);
+        missions = missions = self._missionStoreByRegionId[nextRegionId];
+        missions = missions.filter(function (m) { return !m.isCompleted(); });
+        return missions[0];
     };
 
     this._getANextRegionId = function (currentRegionId) {
         var currentRegionId = currentRegionId.toString();
-        var regionIds = Object.keys(self._missionStoreByRegionId).map(function (key) { return key.toString(); });
+        var regionIds = Object.keys(self._missionStoreByRegionId);
+        regionIds = regionIds.map(function (key) { return key.toString(); });
         regionIds = regionIds.filter(function (regionId) { return regionId != "noRegionId"; });
+
         var currentRegionIdIndex = regionIds.indexOf(currentRegionId);
         var nextRegionIdIndex = currentRegionIdIndex + 1;
         if (nextRegionIdIndex < 0 || nextRegionIdIndex >= regionIds.length) {

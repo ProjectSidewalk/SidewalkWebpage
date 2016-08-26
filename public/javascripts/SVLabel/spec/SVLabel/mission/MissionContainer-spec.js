@@ -3,15 +3,21 @@ describe("MissionContainer module.", function () {
     var missionFactory;
     var statusFieldMission;
     var missionModel;
+    var taskModel;
     var m1_n1, m2_n1, m1_n2, m2_n2;
 
     beforeEach(function () {
         statusFieldMission = {};
         statusFieldMission.setMessage = function (mission) {};
+
         missionModel = _.clone(Backbone.Events);
         missionModel.submitMissions = function (missions) { };
+
+        taskModel = _.clone(Backbone.Events);
+        taskModel.tasksAreAvailableInARegion = function () { return true; }
+
         missionFactory = new MissionFactoryMock(missionModel);
-        missionContainer = new MissionContainer(statusFieldMission, missionModel);
+        missionContainer = new MissionContainer(statusFieldMission, missionModel, taskModel);
         missionContainer.refresh();
 
         m1_n1 = missionFactory.create(1, 1, "distance-mission", 1, 1000, 1000, 1, 0.1, false);
@@ -152,6 +158,10 @@ describe("MissionContainer module.", function () {
             var nextMission = missionContainer.nextMission(1);
             expect(nextMission).toEqual(m1_n2);
         });
+
+        it("should check if the tasks are available in the neighborhood when assigning a new mission", function () {
+
+        });
     });
 
     describe("`refresh` method", function () {
@@ -168,6 +178,7 @@ describe("MissionContainer module.", function () {
 
         it("should call StatusFieldMission.setMessage", function () {
             missionContainer.setCurrentMission(m1_n1);
+            expect(statusFieldMission.setMessage).toHaveBeenCalled();
         });
     });
 

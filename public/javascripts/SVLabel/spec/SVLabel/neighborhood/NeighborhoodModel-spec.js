@@ -34,6 +34,10 @@ describe("NeighborhoodModel module.", function () {
         });
     });
 
+    describe("`nextRegion` method", function () {
+        it("should return the regionId of the neighborhood that is available");
+    });
+
     function initializeGeojson() {
         geojson = {
             "type": "FeatureCollection",

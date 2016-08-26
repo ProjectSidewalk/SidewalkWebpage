@@ -50,3 +50,7 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
         }
     });
 };
+
+NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
+
+};

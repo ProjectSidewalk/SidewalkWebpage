@@ -92,6 +92,7 @@ function Main (params) {
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
         svl.statusModel = new StatusModel();
+        if (!("taskModel" in svl)) svl.taskModel = new TaskModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
         svl.tracker.push('TaskStart');
@@ -132,11 +133,11 @@ function Main (params) {
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory();
-        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.tracker);
+        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
+        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.taskModel, svl.tracker);
 
         // Mission.
-        svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
+        svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel, svl.taskModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer);
         svl.missionFactory = new MissionFactory (svl.missionModel);

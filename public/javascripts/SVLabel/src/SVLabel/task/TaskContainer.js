@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (streetViewService, svl, tracker) {
+function TaskContainer (streetViewService, svl, taskModel, tracker) {
     var self = { className: "TaskContainer" },
         previousTasks = [],
         currentTask = null,
@@ -16,6 +16,7 @@ function TaskContainer (streetViewService, svl, tracker) {
         taskStoreByRegionId = {};
 
     self._taskStoreByRegionId = taskStoreByRegionId;
+    taskModel._taskContainer = this;
 
     /**
      * I had to make this method to wrap the street view service.
