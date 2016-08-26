@@ -121,24 +121,20 @@ describe("MissionContainer module.", function () {
     describe("`nextMission` method", function () {
         beforeEach(function () {
             missionContainer.refresh();
-        });
 
-        it("should return the first mission of a neighborhood if no missions are completed", function () {
             missionContainer.add(1, m1_n1);
             missionContainer.add(1, m2_n1);
             missionContainer.add(2, m1_n2);
             missionContainer.add(2, m2_n2);
+        });
 
+        it("should return the first mission of a neighborhood if no missions are completed", function () {
             var nextMission = missionContainer.nextMission(1);
             expect(nextMission).toEqual(m1_n1);
         });
 
         it("should return the second mission of a neighborhood if the first mission has been completed", function () {
             m1_n1.properties.isCompleted = true;
-            missionContainer.add(1, m1_n1);
-            missionContainer.add(1, m2_n1);
-            missionContainer.add(2, m1_n2);
-            missionContainer.add(2, m2_n2);
             missionContainer.addToCompletedMissions(m1_n1);
 
             var nextMission = missionContainer.nextMission(1);
@@ -148,10 +144,6 @@ describe("MissionContainer module.", function () {
         it("should return the first mission of the next neighborhood if no missions are available in the current neighborhood", function () {
             m1_n1.properties.isCompleted = true;
             m2_n1.properties.isCompleted = true;
-            missionContainer.add(1, m1_n1);
-            missionContainer.add(1, m2_n1);
-            missionContainer.add(2, m1_n2);
-            missionContainer.add(2, m2_n2);
             missionContainer.addToCompletedMissions(m1_n1);
             missionContainer.addToCompletedMissions(m2_n1);
 
@@ -159,9 +151,17 @@ describe("MissionContainer module.", function () {
             expect(nextMission).toEqual(m1_n2);
         });
 
-        it("should check if the tasks are available in the neighborhood when assigning a new mission", function () {
+        describe("`TaskModel.tasksAreAvailableInARegion` in the method", function () {
+            beforeEach(function () {
+                spyOn(taskModel, 'tasksAreAvailableInARegion');
+            });
 
+            it("should check if the tasks are available in the neighborhood when assigning a new mission", function () {
+                var nextMission = missionContainer.nextMission(1);
+                expect(taskModel.tasksAreAvailableInARegion).toHaveBeenCalled();
+            });
         });
+
     });
 
     describe("`refresh` method", function () {
