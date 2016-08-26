@@ -14,7 +14,7 @@ describe("MissionContainer module.", function () {
         missionModel.submitMissions = function (missions) { };
 
         taskModel = _.clone(Backbone.Events);
-        taskModel.tasksAreAvailableInARegion = function () { return true; };
+        taskModel.tasksAreAvailableInARegion = function (regionId) { return true; };
 
         missionFactory = new MissionFactoryMock(missionModel);
         missionContainer = new MissionContainer(statusFieldMission, missionModel, taskModel);
@@ -158,12 +158,12 @@ describe("MissionContainer module.", function () {
 
             it("should check if the tasks are available in the neighborhood when assigning a new mission", function () {
                 var nextMission = missionContainer.nextMission(1);
-                expect(taskModel.tasksAreAvailableInARegion).toHaveBeenCalled();
+                expect(taskModel.tasksAreAvailableInARegion).toHaveBeenCalledWith(1);
             });
         });
 
         it("should return the first mission of the next neighborhood if no tasks are available in the current neighborhood", function () {
-            taskModel.tasksAreAvailableInARegion = function () { return false; };
+            taskModel.tasksAreAvailableInARegion = function (regionId) { return false; };
             var nextMission = missionContainer.nextMission(1);
             expect(nextMission).toEqual(m1_n2);
         });

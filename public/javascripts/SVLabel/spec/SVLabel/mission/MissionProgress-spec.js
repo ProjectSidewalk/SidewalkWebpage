@@ -248,6 +248,7 @@ describe("MissionProgress module", function () {
     function MissionContainerMock () {
         this._missionStoreByRegionId = {};
         this._status = { currentMission: null };
+        this.getIncompleteMissionsByRegionId = function (regionId) { return [ ]; };
         this.nextMission = function () { return new MissionMock(); };
         this.setCurrentMission = function (mission) { this._status.currentMission = mission; };
     }

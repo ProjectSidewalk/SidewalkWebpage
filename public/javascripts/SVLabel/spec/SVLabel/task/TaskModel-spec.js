@@ -5,6 +5,7 @@ describe("TaskModel module", function () {
     beforeEach(function () {
         taskModel = new TaskModel();
         taskContainer = new TaskContainerMock(taskModel);
+        taskModel._taskContainer = taskContainer;
     });
 
     describe("`tasksAreAvailableInARegion` method", function () {

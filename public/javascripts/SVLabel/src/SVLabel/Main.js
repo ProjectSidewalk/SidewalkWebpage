@@ -135,6 +135,7 @@ function Main (params) {
 
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.taskModel, svl.tracker);
+        svl.taskModel._taskContainer = svl.taskContainer;
 
         // Mission.
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel, svl.taskModel);

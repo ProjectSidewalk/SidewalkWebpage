@@ -7,15 +7,13 @@
  */
 function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel, missionContainer, neighborhoodContainer, taskContainer) {
     var self = this;
-
     var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
     var _modalModel = modalModel;
 
-
     _missionModel.on("MissionProgress:update", function (parameters) {
-        var mission = parameters.mission,
-            neighborhood = parameters.neighborhood;
+        var mission = parameters.mission;
+        var neighborhood = parameters.neighborhood;
         self.update(mission, neighborhood);
     });
 
@@ -38,9 +36,23 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         _missionModel.completeMission(mission);
     };
 
+    this._completeMissionsWithSatisfiedCriteria = function (neighborhood) {
+        var regionId = neighborhood.getProperty("regionId");
+        var missions = missionContainer.getIncompleteMissionsByRegionId(regionId);
+
+        for (var i = 0, len = missions.length; i < len; i++) {
+            if (missions[i].getMissionCompletionRate() > 0.999) {
+                missions[i].complete();
+                _missionModel.completeMission(missions[i]);
+            }
+        }
+    };
+
     this._checkMissionComplete = function (mission, neighborhood) {
         if (mission.getMissionCompletionRate() > 0.999) {
             this._completeTheCurrentMission(mission, neighborhood);
+            this._completeMissionsWithSatisfiedCriteria(neighborhood);
+
             this._updateTheCurrentMission(mission, neighborhood);
 
             _modalModel.updateModalMissionComplete(mission, neighborhood);
@@ -84,7 +96,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             svl.map.moveToTheTaskLocation(newTask);
         }, false);  // Fetch tasks in the new region
     };
-
 
     /**
      * This method updates the mission completion rate and its visualization.

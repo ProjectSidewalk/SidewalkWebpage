@@ -137,6 +137,11 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         return self._completedMissions;
     }
 
+    this.getIncompleteMissionsByRegionId = function (regionId) {
+        var missions = self.getMissionsByRegionId(regionId);
+        return missions.filter(function (mission) { !mission.getProperty("isCompleted"); });
+    };
+
     /**
      * Get all the completed missions with the given region id
      *
@@ -184,7 +189,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         /**
          * Check if there are more missions remaining.
          */
-        if (missions.length > 0 && taskModel.tasksAreAvailableInARegion()) {
+        if (missions.length > 0 && taskModel.tasksAreAvailableInARegion(regionId)) {
             return missions[0];
         }
 
