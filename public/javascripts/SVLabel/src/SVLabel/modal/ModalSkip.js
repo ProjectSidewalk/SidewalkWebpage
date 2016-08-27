@@ -110,7 +110,7 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
 
     /**
      * Blink the jump button
-     * Todo. This should be moved to a new module that is responsible for the left side menu
+     * Todo. This should be moved LeftMenu.js
      */
     this.blink = function () {
         self.stopBlinking();
@@ -137,7 +137,7 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
 
     /**
      * Stop blinking the jump button
-     * Todo. This should be moved to a new module that is responsible for the left hand side menu
+     * Todo. This should be moved to LeftMenu.js
      */
     this.stopBlinking = function () {
         window.clearInterval(blinkInterval);

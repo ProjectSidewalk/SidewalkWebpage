@@ -58,9 +58,13 @@ module.exports = function(grunt) {
                 ],
                 helpers: 'spec/SpecHelper.js',
                 vendor: [
+                    'lib/underscore.min.js',
+                    'lib/sinon-1.17.5.js',
+                    'lib/backbone-min.js',
                     'lib/jquery-2.1.4.min.js',
                     'lib/d3.v3.js',
                     'lib/turf.min.js',
+                    'lib/mapbox.js',
                     'lib/gsv/*.js',
                     'lib/kinetic-v4.3.3.min.js'
                 ]
