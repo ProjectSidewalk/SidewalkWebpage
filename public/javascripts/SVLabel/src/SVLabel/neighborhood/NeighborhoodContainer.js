@@ -1,7 +1,8 @@
 /**
  * NeighborhoodContainer module
- * @param neighborhoodModel
- * @param statusModel
+ * @param neighborhoodModel NeighborhoodModel object
+ * @param statusModel StatusModel object
+ * @param userModel UserModel object
  * @constructor
  */
 function NeighborhoodContainer (neighborhoodModel, statusModel, userModel) {
@@ -57,7 +58,7 @@ NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value) {
     this.setStatus('currentNeighborhood', value);
 
     var user = this._userModel.getUser();
-    if (user) {
+    if (user && user.getProperty("username") != "anonymous") {
         var href = "/contribution/" + user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
         this._statusModel.setNeighborhoodHref(href);
     }

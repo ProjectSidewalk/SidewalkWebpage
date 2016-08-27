@@ -7,8 +7,13 @@ describe("NeighborhoodContainer module", function () {
     beforeEach(function () {
         neighborhoodModel = _.clone(Backbone.Events);
         statusModel = _.clone(Backbone.Events);
+        statusModel.setNeighborhoodHref = function (href) {
+            this.trigger("StatusFieldNeighborhood:setHref", href);
+        };
+
         userModel = _.clone(Backbone.Events);
         userModel._user = new UserMock();
+        userModel.getUser = function () { return this._user; };
 
         neighborhoodContainer = new NeighborhoodContainer(neighborhoodModel, statusModel, userModel);
     });
@@ -42,10 +47,23 @@ describe("NeighborhoodContainer module", function () {
 
     describe("`setCurrentNeighborhood` method", function () {
         it("should set the current neighborhood", function () {
-            var mock = {test: "Test"};
-            neighborhoodContainer.setCurrentNeighborhood(mock);
-            expect(neighborhoodContainer.getCurrentNeighborhood()).toEqual(mock);
-        })
+            var neighborhoodMock = new NeighborhoodMock();
+            neighborhoodContainer.setCurrentNeighborhood(neighborhoodMock);
+            expect(neighborhoodContainer.getCurrentNeighborhood()).toEqual(neighborhoodMock);
+        });
+
+        describe("if the user is not anonymous", function () {
+            beforeEach(function () {
+                userModel._user._properties.username = "test";
+                spyOn(statusModel, 'setNeighborhoodHref');
+            });
+
+            it("should call the `StatusModel.setNeighborhoodHref` method", function () {
+                var neighborhoodMock = new NeighborhoodMock();
+                neighborhoodContainer.setCurrentNeighborhood(neighborhoodMock);
+                expect(statusModel.setNeighborhoodHref).toHaveBeenCalled();
+            });
+        });
     });
 
     describe("`get` method", function () {
@@ -116,5 +134,8 @@ describe("NeighborhoodContainer module", function () {
         };
     }
 
-    function UserMock () { }
+    function UserMock () {
+        this._properties = { username: "anonymous" };
+        this.getProperty = function (key) { return this._properties[key]; };
+    }
 });
