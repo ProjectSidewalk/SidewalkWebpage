@@ -1,7 +1,7 @@
 /**
  * ModalSkip module.
  * Todo. Too many dependencies. Break down the features.
- * Todo. Uandling uiLeftColumn (menu on the left side of the interface) should not be this module's responsibility
+ * Todo. handling uiLeftColumn (menu on the left side of the interface) should be LeftMenu's responsibility
  * Todo. Some of the responsibilities in `_handleClickOK` method should be delegated to ModalModel or other modules.
  * @param form
  * @param modalModel
@@ -49,16 +49,11 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
         self.showSkipMenu();
     };
 
-
     /**
-     * This method handles a click OK event
-     * @param e
+     * Todo. This needs to be moved. Maybe to the Form.js, or other modules in Data
+     * @param skipReasonLabel
      */
-    this._handleClickOK = function (e) {
-        tracker.push("ModalSkip_ClickOK");
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
-
-
+    this.skip = function (skipReasonLabel) {
         var position = navigationModel.getPosition();
         var incomplete = {
             issue_description: radioValue,
@@ -70,20 +65,29 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
         // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
         task.eraseFromGoogleMaps();
 
-        if (radioValue == "GSVNotAvailable") {
+        if (skipReasonLabel == "GSVNotAvailable") {
             task.complete();
             taskContainer.push(task);  // Pushed to completed tasks.
             util.misc.reportNoStreetView(task.getStreetEdgeId());
         }
 
-
         form.skipSubmit(incomplete, task);
         taskContainer.initNextTask();
+    };
+
+    /**
+     * This method handles a click OK event
+     * @param e
+     */
+    this._handleClickOK = function (e) {
+        tracker.push("ModalSkip_ClickOK");
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
+
+        this.skip(radioValue);
 
         ribbonMenu.backToWalk();
-
         self.hideSkipMenu();
-    }
+    };
 
     /**
      * This method handles a click Cancel event
@@ -92,7 +96,7 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
     this._handleClickCancel = function (e) {
         tracker.push("ModalSkip_ClickCancel");
         self.hideSkipMenu();
-    }
+    };
 
     /**
      * This method takes care of nothing.
@@ -101,10 +105,11 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
     this._handleClickRadio = function (e) {
         tracker.push("ModalSkip_ClickRadio");
         self._enableClickOK();
-    }
+    };
 
     /**
      * Blink the jump button
+     * Todo. This should be moved to a new module that is responsible for the left side menu
      */
     this.blink = function () {
         self.stopBlinking();
@@ -131,6 +136,7 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
 
     /**
      * Stop blinking the jump button
+     * Todo. This should be moved to a new module that is responsible for the left hand side menu
      */
     this.stopBlinking = function () {
         window.clearInterval(blinkInterval);
