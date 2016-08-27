@@ -8,7 +8,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
         "onboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
         "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood",
-        "area-coverage-mission": "Make the __PLACEHOLDER__ of this neighborhood accessible"
+        "area-coverage-mission": "Make __PLACEHOLDER__ of this neighborhood accessible"
     };
 
     modalModel.on("ModalMissionComplete:closed", function (param) {
