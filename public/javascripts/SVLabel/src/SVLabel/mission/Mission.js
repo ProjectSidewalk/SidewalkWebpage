@@ -1,5 +1,6 @@
 /**
  * Mission module
+ * Todo. Needs clean up
  * @param parameters
  * @returns {{className: string}}
  * @constructor
