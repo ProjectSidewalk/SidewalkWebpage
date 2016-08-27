@@ -53,7 +53,7 @@ NeighborhoodContainer.prototype.getStatus = function (key) {
     return this._status[key];
 };
 
-NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value, user) {
+NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value) {
     this.setStatus('currentNeighborhood', value);
 
     var user = this._userModel.getUser();

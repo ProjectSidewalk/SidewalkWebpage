@@ -126,7 +126,7 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer();
 
         var neighborhood;
-        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel);
+        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);
         svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
@@ -227,6 +227,7 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
+            // Todo. It should apss UserModel instead of User (i.e., svl.user)
             svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
                 svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
@@ -262,7 +263,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl || svl.user.getProperty('username') == "anonymous";
+        return 'user' in svl || svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {

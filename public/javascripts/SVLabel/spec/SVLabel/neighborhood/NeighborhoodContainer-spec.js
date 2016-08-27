@@ -1,14 +1,19 @@
-describe("NeighborhoodContainer module.", function () {
+describe("NeighborhoodContainer module", function () {
     var neighborhoodContainer;
     var neighborhoodModel;
+    var statusModel;
+    var userModel;
 
     beforeEach(function () {
         neighborhoodModel = _.clone(Backbone.Events);
-        neighborhoodContainer = new NeighborhoodContainer(neighborhoodModel);
+        statusModel = _.clone(Backbone.Events);
+        userModel = _.clone(Backbone.Events);
+        userModel._user = new UserMock();
+
+        neighborhoodContainer = new NeighborhoodContainer(neighborhoodModel, statusModel, userModel);
     });
 
     describe("`getStaus` method", function () {
-
         it("should return a status", function () {
             var mock = {test: "Test"};
 
@@ -110,4 +115,6 @@ describe("NeighborhoodContainer module.", function () {
             this._properties[key] = value;
         };
     }
+
+    function UserMock () { }
 });
