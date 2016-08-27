@@ -14,8 +14,12 @@ Set up the development environment for Scala, JavaScript and Postgres.
 To run the web server locally,
 
 1. Make sure the Postgres is running locally on port 5432
-2. Run `activator run` on the top directory where `build.sbt` is located. This should start the web server. Note that the first time compilation takes time.
-3. Run `grunt watch` so the changes you make to SVLabel JavaScript library will be automatically copiled on file updates.
+2. Run `activator run` on the top directory where `build.sbt` is located. This should start the web server. 
+Note that the first time compilation takes time.
+3. For the web application to run, you have to build the JavaScript and CSS files. 
+To do this, run `grunt watch` so the changes you make to SVLabel JavaScript library 
+will be automatically built on file updates. If `grunt watch` is not responding,
+you can run `grunt concat` and `grunt concat_css` to build the files.
 
 ## Running the Application Remotely
 To run the application remotely,
