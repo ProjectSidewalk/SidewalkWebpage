@@ -1,7 +1,7 @@
 /**
  * TaskContainer module.
  *
- * Todo. This module needs a bit of cleaning up.
+ * Todo. This module needs to be cleaned up.
  * Todo. Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
  * @param turf
  * @returns {{className: string}}
@@ -9,13 +9,13 @@
  * @memberof svl
  */
 function TaskContainer (streetViewService, svl, taskModel, tracker) {
-    var self = { className: "TaskContainer" },
-        previousTasks = [],
-        currentTask = null,
-        paths, previousPaths = [],
-        taskStoreByRegionId = {};
+    var self = { className: "TaskContainer" };
+    var previousTasks = [];
+    var currentTask = null;
+    var paths;
+    var previousPaths = [];
 
-    self._taskStoreByRegionId = taskStoreByRegionId;
+    self._taskStoreByRegionId = {};
 
     /**
      * I had to make this method to wrap the street view service.
@@ -61,7 +61,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
-        var neighborhoodTasks = taskStoreByRegionId[neighborhood.getProperty("regionId")];
+        var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
@@ -224,15 +224,15 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @returns {Array}
      */
     function getCompletedTasks (regionId) {
-        if (!(regionId in taskStoreByRegionId)) {
+        if (!(regionId in self._taskStoreByRegionId)) {
             console.error("getCompletedTasks needs regionId");
             return null;
         }
-        if (!Array.isArray(taskStoreByRegionId[regionId])) {
-            console.error("taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
+        if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
+            console.error("_taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
             return null;
         }
-        return taskStoreByRegionId[regionId].filter(function (task) {
+        return self._taskStoreByRegionId[regionId].filter(function (task) {
             return task.isCompleted();
         });
     }
@@ -255,21 +255,21 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         if (!regionId && regionId !== 0) {
             console.error("regionId is not specified")
         }
-        if (!(regionId in taskStoreByRegionId)) {
-            console.error("regionId is not in taskStoreByRegionId. This is probably because you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
+        if (!(regionId in self._taskStoreByRegionId)) {
+            console.error("regionId is not in _taskStoreByRegionId. This is probably because you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
             return null;
         }
-        if (!Array.isArray(taskStoreByRegionId[regionId])) {
-            console.error("taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
+        if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
+            console.error("_taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
             return null;
         }
-        return taskStoreByRegionId[regionId].filter(function (task) {
+        return self._taskStoreByRegionId[regionId].filter(function (task) {
             return !task.isCompleted();
         });
     }
 
     function getTasksInRegion (regionId) {
-        return regionId in taskStoreByRegionId ? taskStoreByRegionId[regionId] : null;
+        return regionId in self._taskStoreByRegionId ? self._taskStoreByRegionId[regionId] : null;
     }
 
     /**
@@ -355,11 +355,11 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @param task {object} Task object
      */
     function storeTask(regionId, task) {
-        if (!(regionId in taskStoreByRegionId)) taskStoreByRegionId[regionId] = [];
-        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
+        if (!(regionId in self._taskStoreByRegionId)) self._taskStoreByRegionId[regionId] = [];
+        var streetEdgeIds = self._taskStoreByRegionId[regionId].map(function (task) {
             return task.getStreetEdgeId();
         });
-        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) self._taskStoreByRegionId[regionId].push(task);  // Check for duplicates
     }
 
     /**

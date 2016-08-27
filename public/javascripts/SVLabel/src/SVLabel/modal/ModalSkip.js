@@ -15,7 +15,6 @@
  */
 function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
     var self = this;
-    this._modalModel = modalModel;
     var status = {
         disableClickOK: true
     };
@@ -56,22 +55,24 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
     this.skip = function (skipReasonLabel) {
         var position = navigationModel.getPosition();
         var incomplete = {
-            issue_description: radioValue,
+            issue_description: skipReasonLabel,
             lat: position.lat,
             lng: position.lng
         };
         var task = taskContainer.getCurrentTask();
+        if (task) {
+            // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
+            task.eraseFromGoogleMaps();
 
-        // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
-        task.eraseFromGoogleMaps();
+            if (skipReasonLabel == "GSVNotAvailable") {
+                task.complete();
+                taskContainer.push(task);  // Pushed to completed tasks.
+                util.misc.reportNoStreetView(task.getStreetEdgeId());
+            }
 
-        if (skipReasonLabel == "GSVNotAvailable") {
-            task.complete();
-            taskContainer.push(task);  // Pushed to completed tasks.
-            util.misc.reportNoStreetView(task.getStreetEdgeId());
+            form.skipSubmit(incomplete, task);
+
         }
-
-        form.skipSubmit(incomplete, task);
         taskContainer.initNextTask();
     };
 
@@ -83,7 +84,7 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
         tracker.push("ModalSkip_ClickOK");
         var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
 
-        this.skip(radioValue);
+        self.skip(radioValue);
 
         ribbonMenu.backToWalk();
         self.hideSkipMenu();
