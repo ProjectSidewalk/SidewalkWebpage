@@ -606,16 +606,18 @@
             svl.tracker = new Tracker();
         }
 
+        svl.userModel = new UserModel();
         @if(user) {
             var userParam = {
                 username : '@user.get.username',
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
             };
-            svl.user = new User(userParam);
+            svl.user = new User(userParam, userModel);
         } else {
             var userParam = { username : "anonymous" };
-            svl.user = new User(userParam);
+            svl.user = new User(userParam, userModel);
         }
+        svl.userModel._user = svl.user;
 
         @if(task) {
         var streetViewService = new google.maps.StreetViewService();

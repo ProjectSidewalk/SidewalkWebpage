@@ -1,5 +1,6 @@
 describe("StatusFieldNeighborhood module", function () {
     var statusFieldNeighborhood;
+    var statusModel;
     var uiStatus;
     var $uiStatus;
 
@@ -15,7 +16,12 @@ describe("StatusFieldNeighborhood module", function () {
             uiStatus.currentMissionDescription = $uiStatus.find("#current-mission-description");
             uiStatus.auditedDistance = $uiStatus.find("#status-audited-distance");
 
-            statusFieldNeighborhood = new StatusFieldNeighborhood(uiStatus);
+            statusModel = _.clone(Backbone.Events);
+            statusModel.setNeighborhoodHref = function (href) {
+                this.trigger("StatusFieldNeighborhood:setHref", href);
+            };
+
+            statusFieldNeighborhood = new StatusFieldNeighborhood(statusModel, uiStatus);
         });
 
         describe("`setAuditedDistance` method", function () {
@@ -46,6 +52,18 @@ describe("StatusFieldNeighborhood module", function () {
                 expect(uiStatus.neighborhoodName.text()).toBe("Test, ");
             });
         });
+
+        describe("triggering `StatusFieldNeighborhood:setHref` event", function () {
+            beforeEach(function () {
+                spyOn(statusFieldNeighborhood, 'setHref');
+            });
+
+            it("should call setHref", function () {
+                var href = "/test";
+                statusModel.setNeighborhoodHref(href);
+                expect(statusFieldNeighborhood.setHref).toHaveBeenCalledWith(href);
+            });
+        })
     });
 
 

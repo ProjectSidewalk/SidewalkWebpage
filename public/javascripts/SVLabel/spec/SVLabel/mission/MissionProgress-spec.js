@@ -166,6 +166,7 @@ describe("MissionProgress module", function () {
             spyOn(neighborhoodContainer, 'setCurrentNeighborhood');
             spyOn(neighborhoodModel, 'moveToANewRegion');
             spyOn(taskContainer, 'fetchTasksInARegion');
+
         });
 
         it("should call `NeighborhoodContainer.setCurrentNeighborhood`", function () {
@@ -267,6 +268,7 @@ describe("MissionProgress module", function () {
     function NeighborhoodContainerMock () {
         this.neighborhoods = {};
         this._status = { currentNeighborhood: new NeighborhoodMock(1) };
+
         this.get = function (id) { return new NeighborhoodMock(id); };
         this.setCurrentNeighborhood = function (neighborhood) {
             this._status.currentNeighborhood = neighborhood;
@@ -276,5 +278,10 @@ describe("MissionProgress module", function () {
     function TaskContainerMock () {
         this.fetchTasksInARegion = function (neighborhoodId) {};
         this.getIncompleteTaskDistance = function () { return 0; };
+    }
+
+    function UserMock () {
+        this._properties = { username: "test" };
+        this.getProperty = function (key) { return this._properties[key]; };
     }
 });

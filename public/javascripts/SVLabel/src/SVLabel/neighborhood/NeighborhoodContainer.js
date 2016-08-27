@@ -1,13 +1,15 @@
 /**
  * NeighborhoodContainer module
- * @param parameters
- * @returns {{className: string}}
+ * @param neighborhoodModel
+ * @param statusModel
  * @constructor
- * @memberof svl
  */
-function NeighborhoodContainer (neighborhoodModel) {
+function NeighborhoodContainer (neighborhoodModel, statusModel, userModel) {
     var self = this;
     this._neighborhoodModel = neighborhoodModel;
+    this._statusModel = statusModel;
+    this._userModel = userModel;
+
     this._neighborhoods = {};
     this._status = {
         currentNeighborhood: null
@@ -16,24 +18,6 @@ function NeighborhoodContainer (neighborhoodModel) {
     this._neighborhoodModel.on("NeighborhoodContainer:add", function (neighborhood) {
         self.add(neighborhood);
     });
-
-
-
-
-    /**
-     * Set the status
-     * @param key
-     * @param value
-     */
-    // function setStatus (key, value) {
-    //     _status[key] = value;
-    //
-    //     if (key == "currentNeighborhood" && "statusFieldNeighborhood" in svl && svl.statusFieldNeighborhood &&
-    //     typeof value == "object" && "className" in value && value.className == "Neighborhood") {
-    //         var href = "/contribution/" + svl.user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
-    //         statusFieldNeighborhood.setHref(href)
-    //     }
-    // }
 }
 
 
@@ -69,8 +53,14 @@ NeighborhoodContainer.prototype.getStatus = function (key) {
     return this._status[key];
 };
 
-NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value) {
+NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value, user) {
     this.setStatus('currentNeighborhood', value);
+
+    var user = this._userModel.getUser();
+    if (user) {
+        var href = "/contribution/" + user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
+        this._statusModel.setNeighborhoodHref(href);
+    }
 };
 
 NeighborhoodContainer.prototype.setStatus = function (key, value) {

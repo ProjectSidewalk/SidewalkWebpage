@@ -1,4 +1,11 @@
-function StatusFieldNeighborhood (uiStatus) {
+function StatusFieldNeighborhood (statusModel, uiStatus) {
+    var self = this;
+    this._statusModel = statusModel;
+
+    this._statusModel.on("StatusFieldNeighborhood:setHref", function (href) {
+        self.setHref(href);
+    });
+
     this.setAuditedDistance = function (distance) {
         uiStatus.auditedDistance.html(distance);
     };

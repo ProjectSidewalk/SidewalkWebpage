@@ -106,7 +106,7 @@ function Main (params) {
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
         svl.statusField = new StatusField(svl.ui.status);
-        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.ui.status);
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.statusModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
@@ -126,7 +126,7 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer();
 
         var neighborhood;
-        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
+        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel);
         svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
