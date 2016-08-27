@@ -106,7 +106,7 @@ function Main (params) {
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
         svl.statusField = new StatusField(svl.ui.status);
-        svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
@@ -343,6 +343,7 @@ function Main (params) {
 
     /**
      * Store jQuery DOM elements under svl.ui
+     * Todo. Once we update all the modules to take ui elements as injected argumentss, get rid of the svl.ui namespace and everything in it.
      * @private
      */
     function _initUI () {
@@ -373,11 +374,11 @@ function Main (params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
-
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
+        svl.ui.status.auditedDistance = $("#status-audited-distance");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -401,16 +402,6 @@ function Main (params) {
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
         svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
-
-        // Progress
-        svl.ui.progress = {};
-        svl.ui.progress.auditedDistance = $("#status-audited-distance");
-
-        // // ProgressPov
-        // svl.ui.progressPov = {};
-        // svl.ui.progressPov.rate = $("#status-completion-rate");
-        // svl.ui.progressPov.bar = $("#progress-pov-current-completion-bar");
-        // svl.ui.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
