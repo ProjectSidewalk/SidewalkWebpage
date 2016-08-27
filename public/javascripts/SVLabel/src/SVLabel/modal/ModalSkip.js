@@ -1,11 +1,11 @@
 /**
  * ModalSkip module.
- * Todo. Too many dependencies. Break down the features. 
+ * Todo. Too many dependencies. Break down the features.
  * Todo. Uandling uiLeftColumn (menu on the left side of the interface) should not be this module's responsibility
  * Todo. Some of the responsibilities in `_handleClickOK` method should be delegated to ModalModel or other modules.
  * @param form
- * @param mapService
  * @param modalModel
+ * @param navigationModel
  * @param ribbonMenu
  * @param taskContainer
  * @param tracker
@@ -13,7 +13,7 @@
  * @param uiModalSkip
  * @constructor
  */
-function ModalSkip (form, mapService, modalModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
     var self = this;
     this._modalModel = modalModel;
     var status = {
@@ -37,7 +37,7 @@ function ModalSkip (form, mapService, modalModel, ribbonMenu, taskContainer, tra
         uiModalSkip.ok.attr("disabled", false);
         uiModalSkip.ok.removeClass("disabled");
         status.disableClickOK = false;
-    }
+    };
 
     /**
      * Callback for clicking jump button
@@ -47,7 +47,7 @@ function ModalSkip (form, mapService, modalModel, ribbonMenu, taskContainer, tra
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
         self.showSkipMenu();
-    }
+    };
 
 
     /**
@@ -57,7 +57,9 @@ function ModalSkip (form, mapService, modalModel, ribbonMenu, taskContainer, tra
     this._handleClickOK = function (e) {
         tracker.push("ModalSkip_ClickOK");
         var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
-        var position = mapService.getPosition();
+
+
+        var position = navigationModel.getPosition();
         var incomplete = {
             issue_description: radioValue,
             lat: position.lat,

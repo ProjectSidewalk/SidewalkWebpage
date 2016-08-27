@@ -87,6 +87,7 @@ function Main (params) {
 
 
         // Models
+        svl.navigationModel = new NavigationModel();
         svl.neighborhoodModel = new NeighborhoodModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
@@ -152,7 +153,7 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
-        svl.modalSkip = new ModalSkip(svl.form, svl.map, svl.modalModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
+        svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.ui.modalExample);
 
 
@@ -161,6 +162,7 @@ function Main (params) {
         svl.map = new MapService(svl.canvas, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+        svl.navigationModel._mapService = svl.map;
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.zoomControl);
