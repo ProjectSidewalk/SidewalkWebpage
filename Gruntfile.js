@@ -23,6 +23,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/status/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/task/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/user/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/*.js'
@@ -73,6 +74,7 @@ module.exports = function(grunt) {
                 'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/status/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/task/*.js',
+                'public/javascripts/SVLabel/src/SVLabel/user/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
                 'public/javascripts/SVLabel/src/SVLabel/*.js'
