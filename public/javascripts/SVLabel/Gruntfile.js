@@ -41,15 +41,23 @@ module.exports = function(grunt) {
         jasmine: {
             src: [
                 'src/SVLabel/*.js',
-                'src/SVLabel/task/*.js',
-                'src/SVLabel/mission/*.js',
+                'src/SVLabel/canvas/*.js',
+                'src/SVLabel/data/*.js',
+                'src/SVLabel/game/*.js',
                 'src/SVLabel/label/*.js',
-                'src/SVLabel/neighborhood/*.js',
-                'src/SVLabel/panorama/*.js',
-                'src/SVLabel/status/*.js',
-                'src/SVLabel/util/*.js',
+                'src/SVLabel/menu/*.js',
+                'src/SVLabel/mission/*.js',
                 'src/SVLabel/modal/*.js',
-                'src/SVLabel/onboarding/onboarding.js'
+                'src/SVLabel/navigation/*.js',
+                'src/SVLabel/neighborhood/*.js',
+                'src/SVLabel/onboarding/*.js',
+                'src/SVLabel/panorama/*.js',
+                'src/SVLabel/ribbon/*.js',
+                'src/SVLabel/status/*.js',
+                'src/SVLabel/task/*.js',
+                'src/SVLabel/user/*.js',
+                'src/SVLabel/util/*.js',
+                'src/SVLabel/zoom/*.js'
             ],
             options: {
                 specs: [
@@ -64,6 +72,7 @@ module.exports = function(grunt) {
                     'lib/jquery-2.1.4.min.js',
                     'lib/d3.v3.js',
                     'lib/turf.min.js',
+                    'lib/mapbox.js',
                     'lib/mapbox.js',
                     'lib/gsv/*.js',
                     'lib/kinetic-v4.3.3.min.js'
