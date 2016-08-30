@@ -2,6 +2,7 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
+import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone, UUID}
 
 import models.street.{StreetEdge, StreetEdgeAssignmentCountTable, StreetEdgeTable}
@@ -125,6 +126,30 @@ object AuditTaskTable {
     * @return
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
+    auditTasks.filter(_.completed).list.size
+  }
+
+  /**
+    * Returns the number of tasks completed today
+    *
+    * Author: Manaswi Saha
+    * Date: Aug 30, 2016
+    */
+  def countCompletedAuditsToday: Int = db.withSession { implicit session =>
+    auditTasks.filter(_.completed).list.size
+//    val dateFormat = new SimpleDateFormat("Y-M-d")
+//    val today = dateFormat.format(Calendar.getInstance().getTime())
+//    println(today)
+//    auditTasks.filter(_.taskEnd === today).filter(_.completed).list.size
+  }
+
+  /**
+    * Returns the number of tasks completed
+    *
+    * Author: Manaswi Saha
+    * Date: Aug 30, 2016
+    */
+  def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
     auditTasks.filter(_.completed).list.size
   }
 
