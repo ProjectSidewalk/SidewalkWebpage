@@ -411,6 +411,8 @@ object AuditTaskTable {
     * @return
     */
   def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
     val selectTaskQuery = Q.query[Int, NewTask](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, NULL as audit_task_id
         |  FROM sidewalk.region
@@ -419,7 +421,12 @@ object AuditTaskTable {
         |WHERE region.region_id = ?
         |  AND st_e.deleted IS FALSE""".stripMargin
     )
-    selectTaskQuery(regionId).list
+
+    val newTasks = selectTaskQuery(regionId).list
+
+    newTasks.map(task =>
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+    )
   }
 
   /**
@@ -452,7 +459,10 @@ object AuditTaskTable {
         completedTasks.head
       }
     }
-    uniqueTasks.toList
+
+    uniqueTasks.toList.map(task =>
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+    )
   }
 
 
