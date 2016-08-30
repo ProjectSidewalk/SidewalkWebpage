@@ -109,12 +109,20 @@ function Tracker () {
         return item;
     }
 
+    function _isCanvasInteraction (action) {
+        return action.indexOf("LabelingCanvas") >= 0;
+    }
+
+    function _isContextMenuAction (action) {
+        return action.indexOf("ContextMenu") >= 0;
+    }
+
     function push (action, param) {
         var item = create(action, param);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
-        if (actions.length > 30) {
+        if (actions.length > 30 && !_isCanvasInteraction(action) && !_isContextMenuAction(action)) {
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);
