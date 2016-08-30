@@ -255,7 +255,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
             onboardingMission.setProperty("isCompleted", true);
-            missionContainer.stage(onboardingMission).commit();
+            missionContainer.addToCompletedMissions(onboardingMission);
         }
 
         // Set the next mission
