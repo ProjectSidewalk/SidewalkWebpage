@@ -136,11 +136,16 @@ object AuditTaskTable {
     * Date: Aug 30, 2016
     */
   def countCompletedAuditsToday: Int = db.withSession { implicit session =>
-    auditTasks.filter(_.completed).list.size
-//    val dateFormat = new SimpleDateFormat("Y-M-d")
+//    val dateFormat = new SimpleDateFormat("Y-mm-dd")
 //    val today = dateFormat.format(Calendar.getInstance().getTime())
-//    println(today)
-//    auditTasks.filter(_.taskEnd === today).filter(_.completed).list.size
+//    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).list.size
+
+    val countTasksQuery = Q.queryNA[Int](
+      """SELECT audit_task_id
+         | FROM sidewalk.audit_task
+         | WHERE audit_task.task_end::date = now()::date""".stripMargin
+    )
+    countTasksQuery.list.size
   }
 
   /**
@@ -150,7 +155,12 @@ object AuditTaskTable {
     * Date: Aug 30, 2016
     */
   def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
-    auditTasks.filter(_.completed).list.size
+    val countTasksQuery = Q.queryNA[Int](
+      """SELECT audit_task_id
+        | FROM sidewalk.audit_task
+        | WHERE audit_task.task_end::date = now()::date - interval '1' day""".stripMargin
+    )
+    countTasksQuery.list.size
   }
 
   /**

@@ -72,17 +72,15 @@ object LabelTable {
   */
   def countTodayLabels: Int = db.withSession { implicit session =>
 
-    val countQuery = Q.queryNA[(Int, Int)](
-      """SELECT audit_task.audit_task_id, label.label_id
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT label.label_id
         |  FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label
         |  ON label.audit_task_id = audit_task.audit_task_id
         |WHERE audit_task.task_end::date = now()::date
         |  AND label.deleted = false""".stripMargin
     )
-
-    val records = countQuery.list
-    records.size
+    countQuery.list.size
   }
 
   /*
@@ -90,9 +88,9 @@ object LabelTable {
   * Author: Manaswi Saha
   * Date: Aug 28, 2016
   */
-  def countYesterdayLabelsYesterday: Int = db.withTransaction { implicit session =>
-    val countQuery = Q.queryNA[(Int, Int)](
-      """SELECT audit_task.audit_task_id, label.label_id
+  def countYesterdayLabels: Int = db.withTransaction { implicit session =>
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT label.label_id
         |  FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label
         |  ON label.audit_task_id = audit_task.audit_task_id
@@ -100,8 +98,7 @@ object LabelTable {
         |  AND label.deleted = false""".stripMargin
     )
 
-    val records = countQuery.list
-    records.size
+    countQuery.list.size
   }
 
   /**

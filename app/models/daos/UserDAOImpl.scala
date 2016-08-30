@@ -6,13 +6,12 @@ import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
-
 import play.api.Play.current
 
 import scala.collection.mutable
 import scala.concurrent.Future
-
 import scala.slick.driver.PostgresDriver.simple._
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 class UserDAOImpl extends UserDAO {
 
@@ -65,6 +64,42 @@ object UserDAOImpl {
 
   def size: Int = db.withTransaction { implicit session =>
     userTable.list.size
+  }
+
+  /*
+  * Counts the number of users who contributedtoday.
+  * Author: Manaswi Saha
+  * Date: Aug 28, 2016
+  */
+  def countTodayUsers: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |WHERE audit_task.task_end::date = now()::date""".stripMargin
+    )
+    val records = countQuery.list
+    records.head
+  }
+
+  /*
+  * Counts the number of users who contributedtoday.
+  * Author: Manaswi Saha
+  * Date: Aug 28, 2016
+  */
+  def countYesterdayUsers: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |WHERE audit_task.task_end::date = now()::date - interval '1' day""".stripMargin
+    )
+    val records = countQuery.list
+    records.head
   }
 
 }
