@@ -59,9 +59,50 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
   )
 
-  def countLabels: Int = db.withTransaction( implicit session =>
+  def countLabels: Int = db.withTransaction(implicit session =>
     labels.filter(_.deleted === false).list.size
   )
+
+  /*
+  * Counts the number of labels added today.
+  * If the task goes over two days, then all labels for that audit task
+  * will be added for the task end date
+  * Author: Manaswi Saha
+  * Date: Aug 28, 2016
+  */
+  def countTodayLabels: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int, Int)](
+      """SELECT audit_task.audit_task_id, label.label_id
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.label
+        |  ON label.audit_task_id = audit_task.audit_task_id
+        |WHERE audit_task.task_end::date = now()::date
+        |  AND label.deleted = false""".stripMargin
+    )
+
+    val records = countQuery.list
+    records.size
+  }
+
+  /*
+  * Counts the number of labels added yesterday
+  * Author: Manaswi Saha
+  * Date: Aug 28, 2016
+  */
+  def countYesterdayLabelsYesterday: Int = db.withTransaction { implicit session =>
+    val countQuery = Q.queryNA[(Int, Int)](
+      """SELECT audit_task.audit_task_id, label.label_id
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.label
+        |  ON label.audit_task_id = audit_task.audit_task_id
+        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |  AND label.deleted = false""".stripMargin
+    )
+
+    val records = countQuery.list
+    records.size
+  }
 
   /**
     * This method returns the number of labels submitted by the given user
@@ -78,7 +119,7 @@ object LabelTable {
   }
 
   /**
-   * Saves a new labe in the table
+   * Saves a new label in the table
     *
     * @param label
    * @return
