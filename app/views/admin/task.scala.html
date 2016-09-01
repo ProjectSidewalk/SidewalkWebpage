@@ -24,7 +24,7 @@
     <script>
             $(document).ready(function () {
                 var auditTaskId = @task.auditTaskId;
-                window.admin = AdminTask(_, $, c3, d3, svl, {auditTaskId: auditTaskId});
+                window.admin = AdminTask({auditTaskId: auditTaskId});
             });
     </script>
 }

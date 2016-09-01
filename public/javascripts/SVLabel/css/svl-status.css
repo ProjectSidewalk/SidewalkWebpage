@@ -43,6 +43,10 @@
     width: 25px;
 }
 
+#status-holder-neighborhood-name {
+    display: inline;
+}
+
 /*#status-pane-title {*/
     /*border-bottom: 1px solid #ccc;*/
     /*font-size: 1em;*/

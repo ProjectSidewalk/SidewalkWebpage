@@ -1,4 +1,4 @@
-function AdminTask(_, $, c3, d3, svl, params) {
+function AdminTask(params) {
     var self = { auditTaskId: params.auditTaskId };
     var _data = {};
 

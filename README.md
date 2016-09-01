@@ -14,8 +14,12 @@ Set up the development environment for Scala, JavaScript and Postgres.
 To run the web server locally,
 
 1. Make sure the Postgres is running locally on port 5432
-2. Run `activator run` on the top directory where `build.sbt` is located. This should start the web server. Note that the first time compilation takes time.
-3. Run `grunt watch` so the changes you make to SVLabel JavaScript library will be automatically copiled on file updates.
+2. Run `activator run` on the top directory where `build.sbt` is located. This should start the web server. 
+Note that the first time compilation takes time.
+3. For the web application to run, you have to build the JavaScript and CSS files. 
+To do this, run `grunt watch` so the changes you make to SVLabel JavaScript library 
+will be automatically built on file updates. If `grunt watch` is not responding,
+you can run `grunt concat` and `grunt concat_css` to build the files.
 
 ## Running the Application Remotely
 To run the application remotely,
@@ -24,3 +28,7 @@ To run the application remotely,
 2. Upload the zip file to the web server
 3. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
 4. Run `nohup bin/sidewalk-webpage-[version] -Dconfig.resource=application-prod.conf -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
+
+### Deployment Related Docs (private - for team only)
+- [Volunteer Recruitment](https://docs.google.com/document/d/1S0QkTX4OP1eMoIK6NZ5Cu2EpCV5Y3lTOf5lFiCqiItA/edit#heading=h.txqj819si9cz)
+- [Responses and Feedback](https://docs.google.com/document/d/1e-Z9k2NL7hdgN2MZC8zIjwMohBl-xz7pta9vjCHQXnk/edit)

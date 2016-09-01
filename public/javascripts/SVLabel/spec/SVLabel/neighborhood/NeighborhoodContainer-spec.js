@@ -1,14 +1,24 @@
-describe("NeighborhoodContainer module.", function () {
+describe("NeighborhoodContainer module", function () {
     var neighborhoodContainer;
     var neighborhoodModel;
+    var statusModel;
+    var userModel;
 
     beforeEach(function () {
         neighborhoodModel = _.clone(Backbone.Events);
-        neighborhoodContainer = new NeighborhoodContainer(neighborhoodModel);
+        statusModel = _.clone(Backbone.Events);
+        statusModel.setNeighborhoodHref = function (href) {
+            this.trigger("StatusFieldNeighborhood:setHref", href);
+        };
+
+        userModel = _.clone(Backbone.Events);
+        userModel._user = new UserMock();
+        userModel.getUser = function () { return this._user; };
+
+        neighborhoodContainer = new NeighborhoodContainer(neighborhoodModel, statusModel, userModel);
     });
 
     describe("`getStaus` method", function () {
-
         it("should return a status", function () {
             var mock = {test: "Test"};
 
@@ -37,10 +47,23 @@ describe("NeighborhoodContainer module.", function () {
 
     describe("`setCurrentNeighborhood` method", function () {
         it("should set the current neighborhood", function () {
-            var mock = {test: "Test"};
-            neighborhoodContainer.setCurrentNeighborhood(mock);
-            expect(neighborhoodContainer.getCurrentNeighborhood()).toEqual(mock);
-        })
+            var neighborhoodMock = new NeighborhoodMock();
+            neighborhoodContainer.setCurrentNeighborhood(neighborhoodMock);
+            expect(neighborhoodContainer.getCurrentNeighborhood()).toEqual(neighborhoodMock);
+        });
+
+        describe("if the user is not anonymous", function () {
+            beforeEach(function () {
+                userModel._user._properties.username = "test";
+                spyOn(statusModel, 'setNeighborhoodHref');
+            });
+
+            it("should call the `StatusModel.setNeighborhoodHref` method", function () {
+                var neighborhoodMock = new NeighborhoodMock();
+                neighborhoodContainer.setCurrentNeighborhood(neighborhoodMock);
+                expect(statusModel.setNeighborhoodHref).toHaveBeenCalled();
+            });
+        });
     });
 
     describe("`get` method", function () {
@@ -109,5 +132,10 @@ describe("NeighborhoodContainer module.", function () {
         this.setProperty = function (key, value) {
             this._properties[key] = value;
         };
+    }
+
+    function UserMock () {
+        this._properties = { username: "anonymous" };
+        this.getProperty = function (key) { return this._properties[key]; };
     }
 });

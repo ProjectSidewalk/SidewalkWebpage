@@ -106,7 +106,7 @@ function Main (params) {
         svl.form = new Form($, params.form);
         svl.form.disableSubmit();
         svl.statusField = new StatusField(svl.ui.status);
-        svl.statusFieldNeighborhood = new StatusFieldNeighborhood();
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.statusModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
@@ -126,7 +126,7 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer();
 
         var neighborhood;
-        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
+        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);
         svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
@@ -227,6 +227,7 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
+            // Todo. It should apss UserModel instead of User (i.e., svl.user)
             svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
                 svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
@@ -262,7 +263,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl || svl.user.getProperty('username') == "anonymous";
+        return 'user' in svl || svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {
@@ -343,6 +344,7 @@ function Main (params) {
 
     /**
      * Store jQuery DOM elements under svl.ui
+     * Todo. Once we update all the modules to take ui elements as injected argumentss, get rid of the svl.ui namespace and everything in it.
      * @private
      */
     function _initUI () {
@@ -373,11 +375,11 @@ function Main (params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
-
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
+        svl.ui.status.auditedDistance = $("#status-audited-distance");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -401,16 +403,6 @@ function Main (params) {
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
         svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
-
-        // Progress
-        svl.ui.progress = {};
-        svl.ui.progress.auditedDistance = $("#status-audited-distance");
-
-        // // ProgressPov
-        // svl.ui.progressPov = {};
-        // svl.ui.progressPov.rate = $("#status-completion-rate");
-        // svl.ui.progressPov.bar = $("#progress-pov-current-completion-bar");
-        // svl.ui.progressPov.filler = $("#progress-pov-current-completion-bar-filler");
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};

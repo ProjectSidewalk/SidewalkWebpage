@@ -1,31 +1,30 @@
-function StatusFieldNeighborhood () {
-    var self = {className: "StatusFieldNeighborhood"};
+function StatusFieldNeighborhood (statusModel, uiStatus) {
+    var self = this;
+    this._statusModel = statusModel;
 
-    function setAuditedDistance(distance) {
-        svl.ui.progress.auditedDistance.html(distance);
-    }
+    this._statusModel.on("StatusFieldNeighborhood:setHref", function (href) {
+        self.setHref(href);
+    });
 
-    function setLabelCount(count) {
-        svl.ui.status.neighborhoodLabelCount.html(count);
-    }
+    this.setAuditedDistance = function (distance) {
+        uiStatus.auditedDistance.html(distance);
+    };
 
-    function setNeighborhoodName(name) {
-        svl.ui.status.neighborhoodName.html(name + ", ");
-    }
+    this.setLabelCount = function (count) {
+        uiStatus.neighborhoodLabelCount.html(count);
+    };
 
     /**
      * Set the href attribute of the link
      * @param hrefString
      */
-    function setHref(hrefString) {
-        if (svl.ui.status.neighborhoodLink) {
-            svl.ui.status.neighborhoodLink.attr("href", hrefString)
+    this.setHref = function (hrefString) {
+        if (uiStatus.neighborhoodLink) {
+            uiStatus.neighborhoodLink.attr("href", hrefString)
         }
-    }
+    };
 
-    self.setAuditedDistance = setAuditedDistance;
-    self.setLabelCount = setLabelCount;
-    self.setHref = setHref;
-    self.setNeighborhoodName = setNeighborhoodName;
-    return self;
+    this.setNeighborhoodName = function (name) {
+        uiStatus.neighborhoodName.html(name + ", ");
+    };
 }

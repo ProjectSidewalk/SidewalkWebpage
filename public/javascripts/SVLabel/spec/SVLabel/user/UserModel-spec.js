@@ -1,0 +1,3 @@
+describe("UserModel module", function () {
+
+});
