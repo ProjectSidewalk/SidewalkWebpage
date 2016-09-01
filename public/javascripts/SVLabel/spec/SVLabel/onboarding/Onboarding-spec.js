@@ -67,7 +67,7 @@ describe("Onboarding module", function () {
         uiOnboarding.canvas = $uiOnboardingFixture.find("#onboarding-canvas");
         uiOnboarding.handGestureHolder = $uiOnboardingFixture.find("#hand-gesture-holder");
 
-        onboarding = Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer,
+        onboarding = new Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer,
             modalComment, modalMission, modalSkip, neighborhoodContainer, onboardingStates, ribbon, statusField, statusModel,
             storage, taskContainer, tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl)
     });

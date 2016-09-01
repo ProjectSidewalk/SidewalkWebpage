@@ -19,6 +19,8 @@ describe("Compass module", function () {
         uiCompass.message = $compassFixture.find("#compass-message");
 
         svl = { rootDirectory: '/' };
+        svl.isOnboarding = function () { return false; };
+
         taskContainerMock = new TaskContainerMock();
         mapServiceMock = new MapServiceMock();
         compass = new Compass(svl, mapServiceMock, taskContainerMock, uiCompass);
