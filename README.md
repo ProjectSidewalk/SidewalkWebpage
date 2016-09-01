@@ -28,3 +28,7 @@ To run the application remotely,
 2. Upload the zip file to the web server
 3. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
 4. Run `nohup bin/sidewalk-webpage-[version] -Dconfig.resource=application-prod.conf -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
+
+### Deployment Related Docs (private - for team only)
+- [Volunteer Recruitment](https://docs.google.com/document/d/1S0QkTX4OP1eMoIK6NZ5Cu2EpCV5Y3lTOf5lFiCqiItA/edit#heading=h.txqj819si9cz)
+- [Responses and Feedback](https://docs.google.com/document/d/1e-Z9k2NL7hdgN2MZC8zIjwMohBl-xz7pta9vjCHQXnk/edit)
