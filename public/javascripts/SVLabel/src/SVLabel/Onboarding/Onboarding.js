@@ -466,6 +466,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
             function callback () {
                 if (listener) google.maps.event.removeListener(listener);
+                $target.off("click", callback);
                 next.call(this, state.transition);
                 mapService.setPano(state.panoId);
                 mapService.setPov(pov);
@@ -473,7 +474,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
                 compass.hideMessage();
             }
-            $target.one("click", callback);
+            $target.on("click", callback);
         }
     }
 
@@ -529,7 +530,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var $target = $("#onboarding-ok-button");
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
-
+            $target.off("click", callback);
             if ("blinks" in state.properties && state.properties.blinks) {
                 mapService.stopBlinkingGoogleMaps();
                 compass.stopBlinking();
@@ -543,7 +544,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             // $target.off("click", callback);
             next.call(this, state.transition);
         };
-        $target.one("click", callback);
+        $target.on("click", callback);
     }
 
     /**
@@ -568,10 +569,11 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         var callback = function () {
             ribbon.stopBlinking();
+            $target.off("click", callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
-        $target.one("click", callback);
+        $target.on("click", callback);
     }
 
     /**
@@ -595,11 +597,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) + (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
             if (distance < tolerance * tolerance) {
+                $target.off("click", callback);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             }
         };
-        $target.one("click", callback);
+        $target.on("click", callback);
     }
 
 
