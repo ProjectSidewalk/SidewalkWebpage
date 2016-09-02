@@ -55,9 +55,9 @@ object LabelTable {
 
 
   case class LabelCountPerDay(date: String, count: Int)
-  
+
   case class LabelMetadata(labelId: Int, auditTaskId: Int, userId: String, timestamp: java.sql.Timestamp,
-                           labelTypeDesc: String, severity: Int, description: String)
+                           labelTypeDesc: String, severity: Option[Int], description: String)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
@@ -134,7 +134,7 @@ object LabelTable {
    * Date: Sep 1, 2016
    */
   def selectTopLabelsAndMetadata(n: Integer): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.queryNA[(Int, Int, String, java.sql.Timestamp, String, Int, String)](
+    val selectQuery = Q.queryNA[(Int, Int, String, java.sql.Timestamp, String, Option[Int], String)](
       """SELECT lb1.label_id, lb1.audit_task_id, u.username, ati.timestamp,
         |       lb_big.label_type_desc, lb_big.severity, lb_big.description
         |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
