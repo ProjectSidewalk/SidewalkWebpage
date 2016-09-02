@@ -72,7 +72,6 @@ object LabelTable {
   * Counts the number of labels added today.
   * If the task goes over two days, then all labels for that audit task
   * will be added for the task end date
-  * Author: Manaswi Saha
   * Date: Aug 28, 2016
   */
   def countTodayLabels: Int = db.withSession { implicit session =>
@@ -90,7 +89,6 @@ object LabelTable {
 
   /*
   * Counts the number of labels added yesterday
-  * Author: Manaswi Saha
   * Date: Aug 28, 2016
   */
   def countYesterdayLabels: Int = db.withTransaction { implicit session =>
@@ -134,7 +132,6 @@ object LabelTable {
 
   /*
    * Retrieves label and its metadata
-   * Author: Manaswi Saha
    * Date: Sep 1, 2016
    */
   def selectTopLabelsAndMetadata(n: Integer): List[LabelMetadata] = db.withSession { implicit session =>
