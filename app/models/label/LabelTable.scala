@@ -56,8 +56,9 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  case class LabelMetadata(labelId: Int, auditTaskId: Int, userId: String, timestamp: java.sql.Timestamp,
-                           labelTypeDesc: String, severity: Option[Int], description: String)
+  case class LabelMetadata(labelId: Int, auditTaskId: Int, userId: String, username: String,
+                           timestamp: java.sql.Timestamp,
+                           labelTypeDesc: String, severity: Option[Int], description: Option[String])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
@@ -133,9 +134,9 @@ object LabelTable {
    * Retrieves label and its metadata
    * Date: Sep 1, 2016
    */
-  def selectTopLabelsAndMetadata(n: Integer): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.queryNA[(Int, Int, String, java.sql.Timestamp, String, Option[Int], String)](
-      """SELECT lb1.label_id, lb1.audit_task_id, u.username, ati.timestamp,
+  def selectTopLabelsAndMetadata(n: Int): List[LabelMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.queryNA[(Int, Int, String, String, java.sql.Timestamp, String, Option[Int], Option[String])](
+      """SELECT lb1.label_id, lb1.audit_task_id, u.user_id, u.username, ati.timestamp,
         |       lb_big.label_type_desc, lb_big.severity, lb_big.description
         |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
         |       sidewalk.user as u,
@@ -153,7 +154,37 @@ object LabelTable {
         |      at.user_id = u.user_id
         |	ORDER BY ati.timestamp DESC""".stripMargin
     )
-    selectQuery.list.map(label_i => LabelMetadata.tupled(label_i)).take(n)
+    selectQuery.list.map(label => LabelMetadata.tupled(label)).take(n)
+
+  }
+
+  /*
+   * Retrieves label by user and its metadata
+   * Date: Sep 2, 2016
+   */
+  def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.queryNA[(Int, Int, String, String, java.sql.Timestamp, String, Option[Int], Option[String])](
+      """SELECT lb1.label_id, lb1.audit_task_id, u.user_id, u.username, ati.timestamp,
+        |       lb_big.label_type_desc, lb_big.severity, lb_big.description
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
+        |       sidewalk.user as u,
+        |				(SELECT lb.label_id, lbt.description as label_type_desc, sev.severity, prob_desc.description
+        |					FROM label as lb
+        |				LEFT JOIN sidewalk.label_type as lbt
+        |					ON lb.label_type_id = lbt.label_type_id
+        |				LEFT JOIN sidewalk.problem_severity as sev
+        |					ON lb.label_id = sev.label_id
+        |				LEFT JOIN sidewalk.problem_description as prob_desc
+        |					ON lb.label_id = prob_desc.label_id
+        |				) AS lb_big
+        |WHERE lb1.audit_task_id = at.audit_task_id and (lb1.audit_task_id = ati.audit_task_id and
+        |      lb1.temporary_label_id = ati.temporary_label_id) and lb1.label_id = lb_big.label_id and
+        |      at.user_id = u.user_id
+        |	ORDER BY ati.timestamp DESC""".stripMargin
+    )
+    val userLabels = selectQuery.list.map(label => LabelMetadata.tupled(label))
+    val records = userLabels.filter(_.userId == userId.toString).take(n)
+    records
 
   }
 
