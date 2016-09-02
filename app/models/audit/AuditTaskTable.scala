@@ -2,6 +2,7 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
+import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone, UUID}
 
 import models.street.{StreetEdge, StreetEdgeAssignmentCountTable, StreetEdgeTable}
@@ -126,6 +127,40 @@ object AuditTaskTable {
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
     auditTasks.filter(_.completed).list.size
+  }
+
+  /**
+    * Returns the number of tasks completed today
+    *
+    * Author: Manaswi Saha
+    * Date: Aug 30, 2016
+    */
+  def countCompletedAuditsToday: Int = db.withSession { implicit session =>
+//    val dateFormat = new SimpleDateFormat("Y-mm-dd")
+//    val today = dateFormat.format(Calendar.getInstance().getTime())
+//    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).list.size
+
+    val countTasksQuery = Q.queryNA[Int](
+      """SELECT audit_task_id
+         | FROM sidewalk.audit_task
+         | WHERE audit_task.task_end::date = now()::date""".stripMargin
+    )
+    countTasksQuery.list.size
+  }
+
+  /**
+    * Returns the number of tasks completed
+    *
+    * Author: Manaswi Saha
+    * Date: Aug 30, 2016
+    */
+  def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
+    val countTasksQuery = Q.queryNA[Int](
+      """SELECT audit_task_id
+        | FROM sidewalk.audit_task
+        | WHERE audit_task.task_end::date = now()::date - interval '1' day""".stripMargin
+    )
+    countTasksQuery.list.size
   }
 
   /**
@@ -411,6 +446,8 @@ object AuditTaskTable {
     * @return
     */
   def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
     val selectTaskQuery = Q.query[Int, NewTask](
       """SELECT st_e.street_edge_id, st_e.geom, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.timestamp, NULL as audit_task_id
         |  FROM sidewalk.region
@@ -419,7 +456,12 @@ object AuditTaskTable {
         |WHERE region.region_id = ?
         |  AND st_e.deleted IS FALSE""".stripMargin
     )
-    selectTaskQuery(regionId).list
+
+    val newTasks = selectTaskQuery(regionId).list
+
+    newTasks.map(task =>
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+    )
   }
 
   /**
@@ -452,7 +494,10 @@ object AuditTaskTable {
         completedTasks.head
       }
     }
-    uniqueTasks.toList
+
+    uniqueTasks.toList.map(task =>
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+    )
   }
 
 

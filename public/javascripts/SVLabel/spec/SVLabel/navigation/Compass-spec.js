@@ -22,6 +22,9 @@ describe("Compass module", function () {
             rootDirectory: '/',
             isOnboarding: function () { return false; }
         };
+        svl = { rootDirectory: '/' };
+        svl.isOnboarding = function () { return false; };
+
         taskContainerMock = new TaskContainerMock();
         mapServiceMock = new MapServiceMock();
         compass = new Compass(svl, mapServiceMock, taskContainerMock, uiCompass);
