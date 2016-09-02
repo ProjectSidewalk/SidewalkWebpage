@@ -55,8 +55,7 @@ object LabelTable {
 
 
   case class LabelCountPerDay(date: String, count: Int)
-
-  /* Added by Manaswi Saha */
+  
   case class LabelMetadata(labelId: Int, auditTaskId: Int, userId: String, timestamp: java.sql.Timestamp,
                            labelTypeDesc: String, severity: Int, description: String)
 
