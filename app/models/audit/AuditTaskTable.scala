@@ -2,6 +2,7 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
+import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone, UUID}
 
 import models.street.{StreetEdge, StreetEdgeAssignmentCountTable, StreetEdgeTable}
@@ -126,6 +127,40 @@ object AuditTaskTable {
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
     auditTasks.filter(_.completed).list.size
+  }
+
+  /**
+    * Returns the number of tasks completed today
+    *
+    * Author: Manaswi Saha
+    * Date: Aug 30, 2016
+    */
+  def countCompletedAuditsToday: Int = db.withSession { implicit session =>
+//    val dateFormat = new SimpleDateFormat("Y-mm-dd")
+//    val today = dateFormat.format(Calendar.getInstance().getTime())
+//    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).list.size
+
+    val countTasksQuery = Q.queryNA[Int](
+      """SELECT audit_task_id
+         | FROM sidewalk.audit_task
+         | WHERE audit_task.task_end::date = now()::date""".stripMargin
+    )
+    countTasksQuery.list.size
+  }
+
+  /**
+    * Returns the number of tasks completed
+    *
+    * Author: Manaswi Saha
+    * Date: Aug 30, 2016
+    */
+  def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
+    val countTasksQuery = Q.queryNA[Int](
+      """SELECT audit_task_id
+        | FROM sidewalk.audit_task
+        | WHERE audit_task.task_end::date = now()::date - interval '1' day""".stripMargin
+    )
+    countTasksQuery.list.size
   }
 
   /**
