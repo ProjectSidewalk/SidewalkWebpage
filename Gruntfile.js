@@ -41,6 +41,12 @@ module.exports = function(grunt) {
                     'public/javascripts/Admin/src/*.js'
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
+            },
+            dist_faq: {
+                src: [
+                    'public/javascripts/FAQ/src/*.js'
+                ],
+                dest: 'public/javascripts/FAQ/build/FAQ.js'
             }
         },
         uglify: {
@@ -105,7 +111,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/**/*.js',
                     'public/javascripts/SVLabel/css/*.css',
                     'public/javascripts/Progress/src/**/*.js',
-                    'public/javascripts/Admin/src/**/*.js'
+                    'public/javascripts/Admin/src/**/*.js',
+                    'public/javascripts/FAQ/src/*.js'
                 ],
                 tasks: [
                     'concat',

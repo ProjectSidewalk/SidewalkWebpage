@@ -3,10 +3,26 @@
 
 @main(title) {
     @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/FAQ/build/FAQ.js")'></script>
+
     <div class="container">
         <h1>FAQ</h1>
+        <div class="spacer20"></div>
 
-        <h2 id="how-can-i-use-the-tool">How can I help?</h2>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Questions
+            </div>
+            <div class="panel-body">
+                <ul id="questions-list">
+                    <!--This list will be automatically filled-->
+                </ul>
+            </div>
+        </div>
+
+        <div class="spacer20"></div>
+
+        <h2 class="question" id="how-can-i-use-the-tool">How can I help?</h2>
         <div class="row">
             <div class="col-sm-12">
                 <p>
@@ -35,7 +51,7 @@
             </div>
         </div>
 
-        <h2 id="faq-can-i-select-a-neighborhood-to-audit">Can I select a neighborhood to audit?</h2>
+        <h2 class="question" id="faq-can-i-select-a-neighborhood-to-audit">Can I select a neighborhood to audit?</h2>
         <div class="row">
             <div class="col-sm-12">
                 <p>
@@ -60,7 +76,7 @@
             </div>
         </div>
 
-        <h2 id="faq-are-there-keyboard-shortcuts">Are there keyboard shortcuts to for the image labeling interface?</h2>
+        <h2 class="question" id="faq-are-there-keyboard-shortcuts">Are there keyboard shortcuts to for the image labeling interface?</h2>
         <div class="row">
             <div class="col-sm-12">
                 <div class="spacer10"></div>
@@ -153,7 +169,7 @@
         </div>
         <div class="spacer30"></div>
 
-        <h2 id="faq-what-should-i-do-when-i-find-conflicting-images">What should I do when I find conflicting Street View images?</h2>
+        <h2 class="question" id="faq-what-should-i-do-when-i-find-conflicting-images">What should I do when I find conflicting Street View images?</h2>
         <div class="row">
             <div class="col-sm-6">
                 <figure class="text-center">
@@ -179,7 +195,7 @@
             </div>
         </div>
 
-        <h2 id="faq-severity-examples">Are there any severity rating examples?</h2>
+        <h2 class="question" id="faq-severity-examples">Are there any severity rating examples?</h2>
 
         <div class="row">
             <div class="col-sm-12">
