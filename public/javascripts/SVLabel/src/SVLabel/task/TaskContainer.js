@@ -9,7 +9,8 @@
  * @memberof svl
  */
 function TaskContainer (streetViewService, svl, taskModel, tracker) {
-    var self = { className: "TaskContainer" };
+    var self = this;
+
     var previousTasks = [];
     var currentTask = null;
     var paths;
@@ -19,10 +20,10 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
 
     /**
      * I had to make this method to wrap the street view service.
-     * @param task The current task
+     * @param currentTask The current task
      */
-    function initNextTask (task) {
-        var nextTask = getNextTask(task);
+    self.initNextTask = function (nextTask) {
+        // var nextTask = self.nextTask(currentTask);
         var geometry;
         var lat;
         var lng;
@@ -44,13 +45,14 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
                     svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     // no street view available in this range.
-                    initNextTask();
+                    nextTask = self.nextTask();
+                    self.initNextTask(nextTask);
                 } else {
                     throw "Error loading Street View imagey.";
                 }
             });
         }
-    }
+    };
 
     /**
      * End the current task.
@@ -293,7 +295,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @param task Current task
      * @returns {*} Next task
      */
-    function getNextTask (task) {
+    this.nextTask = function (task) {
         var newTask = null,
             neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
             candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
@@ -314,7 +316,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         }
 
         return newTask;
-    }
+    };
 
     /**
      * Push a task to previousTasks
@@ -414,7 +416,6 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         return this;
     }
 
-    self.initNextTask = initNextTask;
     self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.fetchTasksInARegion = fetchTasksInARegion;
@@ -426,7 +427,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
     self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
-    self.nextTask = getNextTask;
+    // self.nextTask = getNextTask;
     self.push = pushATask;
 
     self.setCurrentTask = setCurrentTask;
@@ -434,6 +435,4 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
     self.totalLineDistanceInARegion = totalLineDistanceInARegion;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
-
-    return self;
 }

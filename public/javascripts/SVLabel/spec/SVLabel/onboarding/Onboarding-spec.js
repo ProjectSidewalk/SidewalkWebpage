@@ -152,7 +152,7 @@ describe("Onboarding module", function () {
 
     function TaskContainerMock () {
         this.getCurrentTask = function () { return new TaskMock(); }
-        this.initNextTask = function () { };
+        this.initNextTask = function (nextTask) { };
     }
 
     function TrackerMock () {

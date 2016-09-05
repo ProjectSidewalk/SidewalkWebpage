@@ -267,7 +267,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         modalMission.setMissionMessage(mission, neighborhood);
         modalMission.show();
 
-        taskContainer.initNextTask();
+        var nextTask = taskContainer.nextTask();
+        taskContainer.initNextTask(nextTask);
     }
 
     function _onboardingStateAnnotationExists (state) {

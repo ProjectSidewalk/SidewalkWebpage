@@ -368,7 +368,9 @@ function Form (navigationModel, taskContainer, params) {
 
         task.eraseFromGoogleMaps();
         self.skipSubmit(data, task);
-        taskContainer.initNextTask();
+
+        var nextTask = taskContainer.nextTask(task);
+        taskContainer.initNextTask(nextTask);
     };
 
     /**
