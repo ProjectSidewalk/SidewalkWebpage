@@ -1,12 +1,11 @@
 /**
  * A form module. This module is responsible for communicating with the server side for submitting collected data.
- * @param $ {object} jQuery object
  * @param params {object} Other parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Form ($, params) {
+function Form (navigationModel, taskContainer, params) {
     var self = { className : 'Form'},
         properties = {
             commentFieldMessage: undefined,
@@ -39,10 +38,10 @@ function Form ($, params) {
 
     function _init (params) {
         var params = params || {};
-        var hasGroupId = getURLParameter('groupId') !== "";
-        var hasHitId = getURLParameter('hitId') !== "";
-        var hasWorkerId = getURLParameter('workerId') !== "";
-        var assignmentId = getURLParameter('assignmentId');
+        var hasGroupId = util.getURLParameter('groupId') !== "";
+        var hasHitId = util.getURLParameter('hitId') !== "";
+        var hasWorkerId = util.getURLParameter('workerId') !== "";
+        var assignmentId = util.getURLParameter('assignmentId');
 
         properties.dataStoreUrl = "dataStoreUrl" in params ? params.dataStoreUrl : null;
 
@@ -348,6 +347,29 @@ function Form ($, params) {
         properties.taskRemaining = val;
         return this;
     }
+
+    self._prepareSkipData = function (issueDescription) {
+        var position = navigationModel.getPosition();
+        return {
+            issue_description: issueDescription,
+            lat: position.lat,
+            lng: position.lng
+        };
+    };
+
+    self.skip = function (task, skipReasonLabel) {
+        var data = self._prepareSkipData(skipReasonLabel);
+
+        if (skipReasonLabel == "GSVNotAvailable") {
+            task.complete();
+            taskContainer.push(task);
+            util.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+
+        task.eraseFromGoogleMaps();
+        self.skipSubmit(data, task);
+        taskContainer.initNextTask();
+    };
 
     /**
      * Submit the data collected so far and move to another location.

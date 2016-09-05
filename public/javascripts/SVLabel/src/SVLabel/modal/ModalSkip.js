@@ -71,7 +71,6 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
             }
 
             form.skipSubmit(incomplete, task);
-
         }
         taskContainer.initNextTask();
     };
@@ -83,7 +82,6 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
     this._handleClickOK = function (e) {
         tracker.push("ModalSkip_ClickOK");
         var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
-
         self.skip(radioValue);
 
         ribbonMenu.backToWalk();

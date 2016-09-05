@@ -30,6 +30,7 @@ describe("TaskModel module", function () {
         });
     });
 
+
     function TaskContainerMock (taskModel) {
         taskModel._taskContainer = this;
 
