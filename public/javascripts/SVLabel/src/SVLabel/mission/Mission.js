@@ -45,15 +45,19 @@ function Mission(parameters) {
             self.distance = parameters.distance;  // For debugging. You don't actually need this.
 
             if (parameters.label == "initial-mission") {
-                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
+                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets " +
+                    "in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have completed the first mission. " +
+                    "Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
                 var distance = parameters.distance;
                 var distanceString = imperialDistance();
 
-                instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
+                instruction = "Your goal is to <span class='bold'>audit " + distanceString +
+                    " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + distanceString +
+                    " of this neighborhood accessible.";
 
                 if (distance == 500) {
                     // 2000 ft
@@ -69,8 +73,10 @@ function Mission(parameters) {
                 }
             } else if (parameters.label == "area-coverage-mission") {
                 var coverage = parameters.coverage, coverageString = coverage + "%";
-                instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
+                instruction = "Your goal is to <span class='bold'>audit " + coverageString +
+                    " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + coverageString +
+                    " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
             } else if (parameters.label == "onboarding") {
 
