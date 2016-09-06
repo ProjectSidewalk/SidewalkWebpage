@@ -7,7 +7,9 @@ describe("NeighborhoodModel module.", function () {
     beforeEach(function () {
         initializeGeojson();
 
+        neighborhoodContainer = new NeighborhoodContainerMock();
         neighborhoodModel = new NeighborhoodModel();
+        neighborhoodModel._neighborhoodContainer = neighborhoodContainer;
 
     });
 
@@ -31,6 +33,30 @@ describe("NeighborhoodModel module.", function () {
             neighborhoodModel._handleFetchComplete(geojson);
             regionIds = neighborhoodContainer.getRegionIds();
             expect(regionIds).toEqual([1, 2]);
+        });
+    });
+
+    describe("`currentNeighborhood` method", function () {
+        beforeEach(function () {
+            spyOn(neighborhoodContainer, 'getCurrentNeighborhood');
+        });
+
+        describe("if `this._neighborhoodContainer` is set", function () {
+            it("should call `NeighborhoodContainer.getCurrentNeighborhood` method", function () {
+                var neighborhood = neighborhoodModel.currentNeighborhood();
+                expect(neighborhoodContainer.getCurrentNeighborhood).toHaveBeenCalled();
+            });
+        });
+
+        describe("if `this._neighborhoodContainer` is null", function () {
+            beforeEach(function () {
+                neighborhoodModel._neighborhoodContainer = null;
+            });
+
+            it("should return null", function () {
+                var neighborhood = neighborhoodModel.currentNeighborhood();
+                expect(neighborhood).toBeNull();
+            });
         });
     });
 
@@ -112,5 +138,9 @@ describe("NeighborhoodModel module.", function () {
                 }
             ]
         }
+    }
+
+    function NeighborhoodContainerMock () {
+        this.getCurrentNeighborhood = function () {};
     }
 });

@@ -4,14 +4,15 @@ describe("TaskContainer module.", function () {
     var taskContainer;
     var taskModel;
     var tracker;
+    var neighborhoodModel;
 
     beforeEach(function () {
         svl = {};
         streetViewService = new StreetViewServiceMock();
+        neighborhoodModel = _.clone(Backbone.Events);
         taskModel = _.clone(Backbone.Events);
         tracker = new TrackerMock();
-
-        taskContainer = new TaskContainer(streetViewService, svl, taskModel, tracker)
+        taskContainer = new TaskContainer(neighborhoodModel, streetViewService, svl, taskModel, tracker)
     });
 
     describe("`storeTask` method", function () {

@@ -88,7 +88,7 @@ function Main (params) {
 
         // Models
         svl.navigationModel = new NavigationModel();
-        svl.neighborhoodModel = new NeighborhoodModel();
+        if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -128,6 +128,8 @@ function Main (params) {
 
         var neighborhood;
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);
+        svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
+
         svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
@@ -135,7 +137,9 @@ function Main (params) {
         svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
 
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
-        if (!("taskContainer" in svl && svl.taskContainer)) svl.taskContainer = new TaskContainer(svl.streetViewService, svl, svl.taskModel, svl.tracker);
+        if (!("taskContainer" in svl && svl.taskContainer)) {
+            svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
+        }
         svl.taskModel._taskContainer = svl.taskContainer;
 
         // Mission.

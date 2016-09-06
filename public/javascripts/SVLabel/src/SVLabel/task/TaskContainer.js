@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (streetViewService, svl, taskModel, tracker) {
+function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -18,10 +18,6 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
 
     self._taskStoreByRegionId = {};
 
-    /**
-     * I had to make this method to wrap the street view service.
-     * @param currentTask The current task
-     */
     self.initNextTask = function (nextTask) {
         // var nextTask = self.nextTask(currentTask);
         var geometry;
@@ -129,6 +125,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
 
     /**
      * Request the server to populate tasks
+     * Todo. Move this to somewhere else. TaskModel?
      * @param regionId {number} Region id
      * @param callback A callback function
      * @param async {boolean}
@@ -168,9 +165,9 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @param unit {string} Distance unit
      * @returns {Array}
      */
-    function findConnectedTask (regionId, taskIn, threshold, unit) {
-        var tasks = getTasksInRegion(regionId),
-            connectedTasks = [];
+    self._findConnectedTask = function (regionId, taskIn, threshold, unit) {
+        var tasks = getTasksInRegion(regionId);
+        var connectedTasks = [];
 
         if (!threshold) threshold = 0.01;  // 0.01 km.
         if (!unit) unit = "kilometers";
@@ -296,9 +293,9 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @returns {*} Next task
      */
     this.nextTask = function (task) {
-        var newTask = null,
-            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
-            candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
+        var newTask = null;
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        var candidateTasks = self._findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
 
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
 
@@ -419,7 +416,6 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
     self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.fetchTasksInARegion = fetchTasksInARegion;
-    self.findConnectedTask = findConnectedTask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;

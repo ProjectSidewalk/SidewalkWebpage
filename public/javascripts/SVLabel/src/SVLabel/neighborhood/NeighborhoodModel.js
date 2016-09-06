@@ -1,5 +1,6 @@
 function NeighborhoodModel () {
     var self = this;
+    this._neighborhoodContainer = null;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -30,6 +31,11 @@ NeighborhoodModel.prototype.add = function (neighborhood) {
 NeighborhoodModel.prototype.create = function (regionId, layer, name) {
     var parameters = { regionId: regionId, layer: layer, name: name };
     this.trigger("NeighborhoodFactory:create", parameters);
+};
+
+NeighborhoodModel.prototype.currentNeighborhood = function () {
+    if (!this._neighborhoodContainer) return null;
+    return this._neighborhoodContainer.getCurrentNeighborhood();
 };
 
 NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
