@@ -166,26 +166,30 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {Array}
      */
     self._findConnectedTask = function (regionId, taskIn, threshold, unit) {
-        var tasks = getTasksInRegion(regionId);
-        var connectedTasks = [];
+        var tasks = self.getTasksInRegion(regionId);
 
-        if (!threshold) threshold = 0.01;  // 0.01 km.
-        if (!unit) unit = "kilometers";
-        tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+        if (tasks) {
+            var connectedTasks = [];
+            if (!threshold) threshold = 0.01;  // 0.01 km.
+            if (!unit) unit = "kilometers";
+            tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
-        if (taskIn) {
-            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+            if (taskIn) {
+                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
 
-            for (var i = 0, len = tasks.length; i < len; i++) {
-                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                    connectedTasks.push(tasks[i]);
+                for (var i = 0, len = tasks.length; i < len; i++) {
+                    if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                        connectedTasks.push(tasks[i]);
+                    }
                 }
+                return connectedTasks;
+            } else {
+                return util.shuffle(tasks);
             }
-            return connectedTasks;
         } else {
-            return util.shuffle(tasks);
+            return [];
         }
-    }
+    };
 
     /**
      * Get the total distance of completed segments
@@ -267,9 +271,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         });
     };
 
-    function getTasksInRegion (regionId) {
+    this.getTasksInRegion = function (regionId) {
         return regionId in self._taskStoreByRegionId ? self._taskStoreByRegionId[regionId] : null;
-    }
+    };
 
     /**
      * Check if the current task is the first task in this session
@@ -289,28 +293,28 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Get the next task and set it as a current task.
-     * @param task Current task
+     * @param finishedTask The task that has been finished.
      * @returns {*} Next task
      */
-    this.nextTask = function (task) {
+    this.nextTask = function (finishedTask) {
         var newTask;
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
-        // First seek the incomplete street edges (tasks) that are connected to the current task.
-        // If there isn't any connected tasks that are incomplete, randomly select a task from
+        // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
+        // If there aren't any connected tasks that are incomplete, randomly select a task from
         // any of the incomplete tasks in the neighborhood. If that is empty, return null.
-        var candidateTasks = self._findConnectedTask(currentNeighborhoodId, task, null, null);
+        var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
         if (candidateTasks.length == 0) {
-            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId);  // any incomplete tasks
+            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId);
             if (candidateTasks.length == 0) return null;
         }
 
         // Return the new task. Change the starting point of the new task accordingly.
         newTask = _.shuffle(candidateTasks)[0];
-        if (task) {
-            var coordinate = task.getLastCoordinate();
+        if (finishedTask) {
+            var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
         }
 
@@ -369,7 +373,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     function totalLineDistanceInARegion(regionId, unit) {
         if (!unit) unit = "kilometers";
-        var tasks = getTasksInRegion(regionId);
+        var tasks = self.getTasksInRegion(regionId);
 
         if (tasks) {
             var distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
@@ -421,7 +425,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
-    self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
     // self.nextTask = getNextTask;
