@@ -139,7 +139,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
 
     this.getIncompleteMissionsByRegionId = function (regionId) {
         var missions = self.getMissionsByRegionId(regionId);
-        return missions.filter(function (mission) { !mission.getProperty("isCompleted"); });
+        return missions.filter(function (mission) { return !mission.getProperty("isCompleted"); });
     };
 
     /**
@@ -243,7 +243,6 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         statusFieldMission.setMessage(mission);
         return this;
     };
-
 
     self._onLoadComplete = _onLoadComplete;
     self.getAvailableRegionIds = getAvailableRegionIds;

@@ -96,12 +96,6 @@ describe("TaskContainer module.", function () {
         });
     });
 
-    describe("`_handleNeighborhoodCompleted` method", function () {
-         it("should set the new task from the updated region", function () {
-
-         });
-    });
-
     function NeighborhoodMock () {
         this._properties = { regionId: 1 };
         this.getProperty = function (key) { return this._properties[key]; };

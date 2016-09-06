@@ -118,6 +118,21 @@ describe("MissionContainer module.", function () {
         });
     });
 
+    describe("`getIncompleteMissionsByRegionId` method", function () {
+        beforeEach(function () {
+            m1_n1.properties.isCompleted = true;
+            m1_n2.properties.isCompleted = true;
+            missionContainer.add(1, m1_n1);
+            missionContainer.add(1, m2_n1);
+            missionContainer.addToCompletedMissions(m1_n1);
+        });
+
+        it("should return the incomplete missions in the specified neighborhood", function () {
+            var missions = missionContainer.getIncompleteMissionsByRegionId(1);
+            expect(missions.length).toBe(1);
+        });
+    });
+
     describe("`nextMission` method", function () {
         beforeEach(function () {
             missionContainer.refresh();
