@@ -82,6 +82,7 @@ describe("Form module", function () {
         this.getCompletedTasks = function () { return this._previousTasks; };
         this.getCurrentTask = function () { return new TaskMock(); };
         this.initNextTask = function (nextTask) {};
+        this.nextTask = function () { return new TaskMock(); };
         this.push = function (task) { this._previousTasks.push(task); };
     }
 

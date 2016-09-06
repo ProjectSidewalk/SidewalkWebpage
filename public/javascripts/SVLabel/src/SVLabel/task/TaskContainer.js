@@ -19,7 +19,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self._taskStoreByRegionId = {};
 
     self.initNextTask = function (nextTask) {
-        // var nextTask = self.nextTask(currentTask);
         var geometry;
         var lat;
         var lng;
@@ -37,11 +36,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (streetViewService) {
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    setCurrentTask(nextTask);
-                    navigationModel.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
+                    lat = streetViewPanoramaData.location.latLng.lat();
+                    lng = streetViewPanoramaData.location.latLng.lng();
+                    self.setCurrentTask(nextTask);
+                    navigationModel.setPosition(lat, lng);
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     // no street view available in this range.
                     nextTask = self.nextTask();
+                    if (!nextTask) {
+                        // Todo. Handle no new tasks
+                    }
                     self.initNextTask(nextTask);
                 } else {
                     throw "Error loading Street View imagey.";
@@ -69,7 +73,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
 
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
+            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
             if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
@@ -88,9 +93,17 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         pushATask(task); // Push the data into previousTasks
 
         // Clear the current paths
-        var _geojson = task.getGeoJSON(),
-            gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
-        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
+        var _geojson = task.getGeoJSON();
+        var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
+            return new google.maps.LatLng(coord[1], coord[0]);
+        });
+        previousPaths.push(new google.maps.Polyline({
+            path: gCoordinates,
+            geodesic: true,
+            strokeColor: '#00ff00',
+            strokeOpacity: 1.0,
+            strokeWeight: 2
+        }));
         paths = null;
 
         return task;
@@ -175,7 +188,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
             if (taskIn) {
-                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
 
                 for (var i = 0, len = tasks.length; i < len; i++) {
                     if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
@@ -259,11 +272,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             console.error("regionId is not specified")
         }
         if (!(regionId in self._taskStoreByRegionId)) {
-            console.error("regionId is not in _taskStoreByRegionId. This is probably because you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
+            console.error("regionId is not in _taskStoreByRegionId. This is probably because " +
+                "you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
             return null;
         }
         if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
-            console.error("_taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
+            console.error("_taskStoreByRegionId[regionId] is not an array. " +
+                "Probably the data from this region is not loaded yet.");
             return null;
         }
         return self._taskStoreByRegionId[regionId].filter(function (task) {
@@ -343,7 +358,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Set the current task
      * @param task
      */
-    function setCurrentTask (task) {
+    this.setCurrentTask = function (task) {
         currentTask = task;
         if (tracker) tracker.push('TaskStart');
 
@@ -352,7 +367,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             svl.compass.showMessage();
             svl.compass.update();
         }
-    }
+    };
 
     /**
      * Store a task into taskStoreByRegionId
@@ -364,7 +379,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var streetEdgeIds = self._taskStoreByRegionId[regionId].map(function (task) {
             return task.getStreetEdgeId();
         });
-        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) self._taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) self._taskStoreByRegionId[regionId].push(task);
     }
 
     /**
@@ -430,7 +445,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     // self.nextTask = getNextTask;
     self.push = pushATask;
 
-    self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
     self.totalLineDistanceInARegion = totalLineDistanceInARegion;
     self.update = update;

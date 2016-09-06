@@ -81,6 +81,12 @@ describe("TaskContainer module.", function () {
 
     });
 
+    describe("In reaction to `Neighborhood:completed` event", function () {
+        it("should fetch the tasks in the new neighborhood and set the first task", function () {
+            throw "Implement this!";
+        });
+    });
+
     function NeighborhoodMock () {
         this._properties = { regionId: 1 };
         this.getProperty = function (key) { return this._properties[key]; };

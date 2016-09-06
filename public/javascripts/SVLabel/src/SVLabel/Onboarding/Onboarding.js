@@ -268,6 +268,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         modalMission.show();
 
         var nextTask = taskContainer.nextTask();
+        if (!nextTask) {
+            // Todo. Handle no new tasks
+        }
         taskContainer.initNextTask(nextTask);
     }
 

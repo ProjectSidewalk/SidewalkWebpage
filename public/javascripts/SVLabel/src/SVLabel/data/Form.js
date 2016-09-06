@@ -98,11 +98,9 @@ function Form (navigationModel, taskContainer, params) {
             if ("tracker" in svl) {
                 svl.tracker.push("Unload");
             }
-            if ("taskContainer" in svl) {
-                var task = svl.taskContainer.getCurrentTask();
-                var data = compileSubmissionData(task);
-                submit(data, task, false);
-            }
+            var task = taskContainer.getCurrentTask();
+            var data = compileSubmissionData(task);
+            submit(data, task, false);
         });
     }
 
@@ -370,7 +368,12 @@ function Form (navigationModel, taskContainer, params) {
         self.skipSubmit(data, task);
 
         var nextTask = taskContainer.nextTask(task);
-        taskContainer.initNextTask(nextTask);
+        if (!nextTask) {
+            // Todo. Handle no new tasks
+            // Find the next neighborhood.
+        } else {
+            taskContainer.initNextTask(nextTask);
+        }
     };
 
     /**

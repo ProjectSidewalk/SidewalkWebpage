@@ -58,5 +58,5 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
 };
 
 NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
-
+    throw "Implement this!";
 };

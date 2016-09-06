@@ -60,6 +60,18 @@ describe("NeighborhoodModel module.", function () {
         });
     });
 
+    describe("`neighborhoodCompleted` method", function () {
+        it("should find the next neighborhood", function () {
+            throw "Implement this!"
+        });
+        it("should call `moveToANewRegion` method", function () {
+            throw "Implement this!"
+        });
+        it("should emit `Neighborhood:completed` event", function () {
+            throw "Implement this!";
+        });
+    });
+
     describe("`nextRegion` method", function () {
         it("should return the regionId of the neighborhood that is available");
     });

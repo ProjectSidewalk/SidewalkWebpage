@@ -1,6 +1,7 @@
 /**
  * MissionProgress module.
  * Todo. Rename this... Probably some of these features should be moved to status/StatusFieldMission.js
+ * Todo. Get rid of neighborhoodContainer and taskContainer dependencies. Instead, communicate with them through neighborhoodModel and taskModel.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -10,11 +11,16 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
     var _modalModel = modalModel;
+    var _neighborhoodModel = neighborhoodModel;
 
     _missionModel.on("MissionProgress:update", function (parameters) {
         var mission = parameters.mission;
         var neighborhood = parameters.neighborhood;
         self.update(mission, neighborhood);
+    });
+
+    _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
+        throw "The user has completed auditing the neighborhood. ";
     });
 
     /**
@@ -80,7 +86,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     };
 
     /**
-     * Toco. This method should be moved to NeighborhoodContainer.
+     * Todo. This method should be moved to other place. Maybe NeighborhoodModel...
      * @param neighborhood
      * @private
      */
@@ -92,6 +98,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         taskContainer.fetchTasksInARegion(neighborhoodId, function () {
             // Jump to the new location.
             var newTask = taskContainer.nextTask();
+            if (!newTask) throw "You have audited all the streets in this neighborhood.";
             taskContainer.setCurrentTask(newTask);
             svl.map.moveToTheTaskLocation(newTask);
         }, false);  // Fetch tasks in the new region

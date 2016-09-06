@@ -45,7 +45,7 @@ describe("ModalSkip module", function () {
     describe("`_handleClickOK` method", function () {
         beforeEach(function () {
             spyOn(modalSkip, 'hideSkipMenu');
-            spyOn(modalSkip, 'skip');
+            spyOn(form, 'skip');
             spyOn(ribbonMenu, 'backToWalk');
             spyOn(tracker, 'push');
         });
@@ -57,7 +57,7 @@ describe("ModalSkip module", function () {
 
         it('should call the `skip` method', function () {
             modalSkip._handleClickOK();
-            expect(modalSkip.skip).toHaveBeenCalled();
+            expect(form.skip).toHaveBeenCalled();
         });
 
         it('should call the `Tracker.push` method', function () {
@@ -71,11 +71,16 @@ describe("ModalSkip module", function () {
         });
     });
 
-    function FormMock () {}
+    function FormMock () {
+        this.skip = function (task, radioValue) {};
+    }
     function RibbonMenuMock () {
         this.backToWalk = function () {};
     }
-    function TaskContainerMock () {}
+    function TaskContainerMock () {
+        this.getCurrentTask = function () { return new TaskMock(); }
+    }
+    function TaskMock() {}
     function TrackerMock () {
         this.push = function (item) {};
     }

@@ -331,6 +331,9 @@ function Main (params) {
                     availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
                     availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
                     var newTask = svl.taskContainer.nextTask();
+                    if (!newTask) {
+                        // Todo. Handle no new tasks
+                    }
                     svl.taskContainer.setCurrentTask(newTask);
                 }
                 mission = availableMissions[0];

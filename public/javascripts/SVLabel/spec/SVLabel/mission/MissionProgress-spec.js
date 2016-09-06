@@ -213,6 +213,12 @@ describe("MissionProgress module", function () {
         });
     });
 
+    describe("in response to `Neighborhood:completed` event", function () {
+        it("should update the mission", function () {
+            throw "Implement this!";
+        });
+    });
+
     function MissionMock () {
         this._properties = {
             missionId: null,

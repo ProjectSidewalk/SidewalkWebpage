@@ -495,20 +495,24 @@ function MapService (canvas, uiMap, params) {
         svl.taskContainer.endTask(task);
         mission.pushATaskToTheRoute(task);
         var newTask = svl.taskContainer.nextTask(task);
-        svl.taskContainer.setCurrentTask(newTask);
+        if (!newTask) {
+            // Todo. Handle no new tasks
+        } else {
+            svl.taskContainer.setCurrentTask(newTask);
 
-        // Check if the interface jumped the user to another discontinuous location.
-        // If the user has indeed jumped, tell them that we moved her to
-        // another location in the same neighborhood.
-        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-            var distanceLeft = distanceLeftFeetOrMiles();
-            svl.popUpMessage.notify(neighborhoodMessage,
-                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+            // Check if the interface jumped the user to another discontinuous location.
+            // If the user has indeed jumped, tell them that we moved her to
+            // another location in the same neighborhood.
+            if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+                var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+                var distanceLeft = distanceLeftFeetOrMiles();
+                svl.popUpMessage.notify(neighborhoodMessage,
+                    "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                    "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+            }
+
+            _moveToTheTaskLocation(newTask);
         }
-
-        _moveToTheTaskLocation(newTask);
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.
