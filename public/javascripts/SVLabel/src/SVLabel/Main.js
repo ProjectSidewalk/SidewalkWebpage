@@ -87,7 +87,7 @@ function Main (params) {
 
 
         // Models
-        svl.navigationModel = new NavigationModel();
+        if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
@@ -138,7 +138,7 @@ function Main (params) {
 
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 

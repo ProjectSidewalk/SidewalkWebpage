@@ -951,6 +951,7 @@ function MapService (canvas, uiMap, params) {
      * Set map position
      * @param lat
      * @param lng
+     * @param callback
      */
     function setPosition (lat, lng, callback) {
         // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.

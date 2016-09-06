@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -24,7 +24,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
         var lat;
         var lng;
 
-        var currentPosition = svl.map.getPosition();
+        var currentPosition = navigationModel.getPosition();
         nextTask.setStreetEdgeDirection(currentPosition.lat, currentPosition.lng);
 
         geometry = nextTask.getGeometry();
@@ -38,7 +38,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     setCurrentTask(nextTask);
-                    svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
+                    navigationModel.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     // no street view available in this range.
                     nextTask = self.nextTask();
@@ -55,7 +55,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
      */
     function endTask (task) {
         if (tracker) tracker.push("TaskEnd");
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        var neighborhood = neighborhoodModel.currentNeighborhood();
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
@@ -209,7 +209,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
         }
         
         if (currentTask) {
-            var currentLatLng = svl.map.getPosition();
+            var currentLatLng = navigationModel.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
             var currentTaskDistance = currentTask.getAuditedDistance(unit);
             distance += currentTaskDistance;
@@ -294,8 +294,9 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
      */
     this.nextTask = function (task) {
         var newTask = null;
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-        var candidateTasks = self._findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
+        var neighborhood = neighborhoodModel.currentNeighborhood();
+        var currentNeighborhoodId = neighborhood.getProperty("regionId");
+        var candidateTasks = self._findConnectedTask(currentNeighborhoodId, task, null, null);
 
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
 
@@ -303,7 +304,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
             // newTask = candidateTasks[0];
             newTask = _.shuffle(candidateTasks)[0];
         } else {
-            candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
+            candidateTasks = getIncompleteTasks(currentNeighborhoodId);
             newTask = _.shuffle(candidateTasks)[0];
         }
 
@@ -387,7 +388,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, taskModel, tr
             previousTasks[i].render();
         }
 
-        var currentLatLng = svl.map.getPosition();
+        var currentLatLng = navigationModel.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
     }
