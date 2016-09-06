@@ -256,8 +256,10 @@ function Main (params) {
         var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
         var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
         availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
+
         while(availableMissions.length == 0) {
-            nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, availableRegionIds);
+            var availableRegionIds;
+            nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, allRegionIds);
             availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
             if (nextRegionId == currentRegionId) {

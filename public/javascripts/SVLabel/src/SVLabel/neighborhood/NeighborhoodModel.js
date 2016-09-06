@@ -57,6 +57,20 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
     });
 };
 
+NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
+    var nextNeighborhoodId = this.nextRegion(currentNeighborhoodId);
+    this.moveToANewRegion(nextNeighborhoodId);
+
+    var parameters = {
+        completedRegionId: currentNeighborhoodId,
+        nextRegionId: nextNeighborhoodId
+    };
+    this.trigger("Neighborhood:completed", parameters);
+};
+
 NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
-    throw "Implement this!";
+    if (!this._neighborhoodContainer) return null;
+
+    var availableRegionIds = this._neighborhoodContainer.getRegionIds();
+    return this._neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
 };

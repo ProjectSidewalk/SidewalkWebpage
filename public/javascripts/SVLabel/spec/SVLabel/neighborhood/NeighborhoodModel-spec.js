@@ -61,20 +61,18 @@ describe("NeighborhoodModel module.", function () {
     });
 
     describe("`neighborhoodCompleted` method", function () {
-        it("should find the next neighborhood", function () {
-            throw "Implement this!"
+        beforeEach(function () {
+            neighborhoodContainer.getRegionIds = function () { return [1, 2, 3]; };
+            neighborhoodContainer.getNextRegionId = function (currentRegionId, availableRegionId) { return 2; };
+            spyOn(neighborhoodModel, 'moveToANewRegion');
         });
+
         it("should call `moveToANewRegion` method", function () {
-            throw "Implement this!"
-        });
-        it("should emit `Neighborhood:completed` event", function () {
-            throw "Implement this!";
+            neighborhoodModel.neighborhoodCompleted(1);
+            expect(neighborhoodModel.moveToANewRegion).toHaveBeenCalled();
         });
     });
 
-    describe("`nextRegion` method", function () {
-        it("should return the regionId of the neighborhood that is available");
-    });
 
     function initializeGeojson() {
         geojson = {
