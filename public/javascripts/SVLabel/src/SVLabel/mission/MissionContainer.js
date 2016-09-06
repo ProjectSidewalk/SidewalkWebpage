@@ -161,6 +161,16 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         return missions;
     }
 
+    this.getNeighborhoodCompleteMission = function (regionId) {
+        var missions = self.getMissionsByRegionId(regionId);
+        missions = missions.filter(function (mission) {
+            return mission.getProperty("label") == "area-coverage-mission" &&
+                mission.getProperty("coverage") == 1.0;
+        });
+
+        return missions.length > 0 ? missions[0] : null;
+    };
+
     function getAvailableRegionIds () {
         return Object.keys(self._missionStoreByRegionId);
     }

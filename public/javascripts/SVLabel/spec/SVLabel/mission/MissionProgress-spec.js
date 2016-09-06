@@ -49,25 +49,6 @@ describe("MissionProgress module", function () {
             neighborhood = new NeighborhoodMock();
         });
 
-        it("should call `_completeTheCurrentMission` if the mission is completed", function () {
-            mission.getMissionCompletionRate = function () { return 0; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._completeTheCurrentMission).not.toHaveBeenCalled();
-
-            mission.getMissionCompletionRate = function () { return 1.0; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._completeTheCurrentMission).toHaveBeenCalled();
-        });
-
-        it("should call `_updateTheCurrentMission` if the mission is completed", function () {
-            mission.getMissionCompletionRate = function () { return 0; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._updateTheCurrentMission).not.toHaveBeenCalled();
-
-            mission.getMissionCompletionRate = function () { return 1; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._updateTheCurrentMission).toHaveBeenCalled();
-        });
 
         it("should call `ModalModel.updateModalMissionComplete` if the mission is completed", function () {
             mission.getMissionCompletionRate = function () { return 0; };
@@ -89,6 +70,8 @@ describe("MissionProgress module", function () {
             expect(modalModel.showModalMissionComplete).toHaveBeenCalled();
         });
     });
+
+
 
     describe("`_updateTheCurrentMission` method", function () {
         beforeEach(function () {
@@ -215,14 +198,14 @@ describe("MissionProgress module", function () {
 
     describe("in response to `Neighborhood:completed` event", function () {
         it("should update the mission", function () {
-            throw "Implement this!";
+            throw "Implement this!"
         });
     });
 
     function MissionMock () {
         this._properties = {
             missionId: null,
-            coverrage: null,
+            coverage: null,
             distance: null,
             distanceFt: null,
             distanceMi: null,
@@ -234,6 +217,7 @@ describe("MissionProgress module", function () {
         };
 
         this.adjustTheTargetDistance = function () { };
+        this.complete = function () { this.properties.completed = true; }
     }
 
     MissionMock.prototype.getProperty = function (key) {

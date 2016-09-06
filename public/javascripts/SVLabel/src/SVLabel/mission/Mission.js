@@ -7,8 +7,8 @@
  * @memberof svl
  */
 function Mission(parameters) {
-    var self = { className: "Mission" },
-        properties = {
+    var self = this;
+    var properties = {
             auditDistance: null,
             auditDistanceFt: null,
             auditDistanceMi: null,
@@ -323,6 +323,4 @@ function Mission(parameters) {
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
     self.totalLineDistance = totalLineDistance;
-
-    return self;
 }

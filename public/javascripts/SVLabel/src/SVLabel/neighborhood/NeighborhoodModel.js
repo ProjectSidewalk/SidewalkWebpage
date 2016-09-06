@@ -61,6 +61,11 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
     });
 };
 
+NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {
+    if (!this._neighborhoodContainer) return null;
+    return this._neighborhoodContainer.get(neighborhoodId);
+};
+
 NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
     if (!this._neighborhoodContainer) return;
 
