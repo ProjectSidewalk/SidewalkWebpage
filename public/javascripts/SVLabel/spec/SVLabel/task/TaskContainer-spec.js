@@ -78,13 +78,28 @@ describe("TaskContainer module.", function () {
     });
 
     describe("`initNextTask` method", function () {
-
     });
 
     describe("In reaction to `Neighborhood:completed` event", function () {
-        it("should fetch the tasks in the new neighborhood and set the first task", function () {
-            throw "Implement this!";
+        beforeEach(function () {
+
         });
+
+        it("`fetchTasksInARegion` should be called to fetch the tasks in the new neighborhood", function () {
+            spyOn(taskContainer, 'fetchTasksInARegion');
+            var parameters = {
+                completedRegionId: 1,
+                nextRegionId: 2
+            };
+            neighborhoodModel.trigger("Neighborhood:completed", parameters);
+            expect(taskContainer.fetchTasksInARegion).toHaveBeenCalledWith(2, taskContainer._handleTaskFetchCompleted, false)
+        });
+    });
+
+    describe("`_handleNeighborhoodCompleted` method", function () {
+         it("should set the new task from the updated region", function () {
+
+         });
     });
 
     function NeighborhoodMock () {

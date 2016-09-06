@@ -252,8 +252,5 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.isTheFirstMission = isTheFirstMission;
-    // self.nextMission = nextMission;
-    // self.refresh = refresh;
-    // self.setCurrentMission = setCurrentMission;
 }
 

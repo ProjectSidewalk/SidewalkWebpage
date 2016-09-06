@@ -38,6 +38,10 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
     return this._neighborhoodContainer.getCurrentNeighborhood();
 };
 
+/**
+ * Todo. The method name is confusing. Make it clear that this method just updates the remote database.
+ * @param regionId
+ */
 NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
     regionId = parseInt(regionId, 10);
     var url = "/neighborhood/assignment";
@@ -58,7 +62,12 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
 };
 
 NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
+    if (!this._neighborhoodContainer) return;
+
     var nextNeighborhoodId = this.nextRegion(currentNeighborhoodId);
+    var nextNeighborhood = this._neighborhoodContainer.get(nextNeighborhoodId);
+
+    this.setCurrentNeighborhood(nextNeighborhood);
     this.moveToANewRegion(nextNeighborhoodId);
 
     var parameters = {
@@ -73,4 +82,10 @@ NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
 
     var availableRegionIds = this._neighborhoodContainer.getRegionIds();
     return this._neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+};
+
+NeighborhoodModel.prototype.setCurrentNeighborhood = function (neighborhood) {
+    if (this._neighborhoodContainer) {
+        this._neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+    }
 };

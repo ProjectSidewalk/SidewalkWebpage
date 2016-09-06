@@ -258,7 +258,6 @@ function Main (params) {
         availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
 
         while(availableMissions.length == 0) {
-            var availableRegionIds;
             nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, allRegionIds);
             availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
@@ -330,6 +329,7 @@ function Main (params) {
 
                     currentNeighborhood = svl.neighborhoodContainer.get(regionId);
                     svl.neighborhoodModel.moveToANewRegion(regionId);
+                    svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
                     availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
                     availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
                     var newTask = svl.taskContainer.nextTask();

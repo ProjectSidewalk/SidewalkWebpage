@@ -65,11 +65,17 @@ describe("NeighborhoodModel module.", function () {
             neighborhoodContainer.getRegionIds = function () { return [1, 2, 3]; };
             neighborhoodContainer.getNextRegionId = function (currentRegionId, availableRegionId) { return 2; };
             spyOn(neighborhoodModel, 'moveToANewRegion');
+            spyOn(neighborhoodContainer, 'setCurrentNeighborhood');
         });
 
         it("should call `moveToANewRegion` method", function () {
             neighborhoodModel.neighborhoodCompleted(1);
             expect(neighborhoodModel.moveToANewRegion).toHaveBeenCalled();
+        });
+
+        it("should call `NeighborhoodContainer.setCurrentNeighborhood`", function () {
+            neighborhoodModel.neighborhoodCompleted(1);
+            expect(neighborhoodContainer.setCurrentNeighborhood).toHaveBeenCalled();
         });
     });
 
@@ -151,6 +157,9 @@ describe("NeighborhoodModel module.", function () {
     }
 
     function NeighborhoodContainerMock () {
+        this._neighborhoods = {};
+        this.get = function (nid) { return this._neighborhoods[nid]; };
         this.getCurrentNeighborhood = function () {};
+        this.setCurrentNeighborhood = function (neighborhood) {};
     }
 });
