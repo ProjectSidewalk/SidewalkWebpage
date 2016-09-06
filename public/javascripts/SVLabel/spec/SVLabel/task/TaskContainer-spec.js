@@ -40,8 +40,7 @@ describe("TaskContainer module.", function () {
 
     describe("`nextTask` method", function () {
         describe("if no more tasks are available in the current neighborhood", function () {
-            it("should pick a next neighborhood");
-            it("should return a task from the next neighborhood");
+            it("should return null");
         });
 
         describe("if the current task is passed as an argument", function () {

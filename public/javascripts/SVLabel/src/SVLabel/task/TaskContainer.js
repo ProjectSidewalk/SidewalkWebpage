@@ -245,12 +245,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     self.getIncompleteTaskDistance = function (regionId, unit) {
-        var incompleteTasks = getIncompleteTasks(regionId);
+        var incompleteTasks = self.getIncompleteTasks(regionId);
         var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
         return taskDistances.reduce(function (a, b) { return a + b; }, 0);
     };
 
-    function getIncompleteTasks (regionId) {
+    self.getIncompleteTasks = function (regionId) {
         if (!regionId && regionId !== 0) {
             console.error("regionId is not specified")
         }
@@ -265,7 +265,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return self._taskStoreByRegionId[regionId].filter(function (task) {
             return !task.isCompleted();
         });
-    }
+    };
 
     function getTasksInRegion (regionId) {
         return regionId in self._taskStoreByRegionId ? self._taskStoreByRegionId[regionId] : null;
@@ -293,21 +293,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {*} Next task
      */
     this.nextTask = function (task) {
-        var newTask = null;
+        var newTask;
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
+
+        // First seek the incomplete street edges (tasks) that are connected to the current task.
+        // If there isn't any connected tasks that are incomplete, randomly select a task from
+        // any of the incomplete tasks in the neighborhood. If that is empty, return null.
         var candidateTasks = self._findConnectedTask(currentNeighborhoodId, task, null, null);
-
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
-
-        if (candidateTasks.length > 0) {
-            // newTask = candidateTasks[0];
-            newTask = _.shuffle(candidateTasks)[0];
-        } else {
-            candidateTasks = getIncompleteTasks(currentNeighborhoodId);
-            newTask = _.shuffle(candidateTasks)[0];
+        if (candidateTasks.length == 0) {
+            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId);  // any incomplete tasks
+            if (candidateTasks.length == 0) return null;
         }
 
+        // Return the new task. Change the starting point of the new task accordingly.
+        newTask = _.shuffle(candidateTasks)[0];
         if (task) {
             var coordinate = task.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
@@ -420,7 +421,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
-    self.getIncompleteTasks = getIncompleteTasks;
     self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
