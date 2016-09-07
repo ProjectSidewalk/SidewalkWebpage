@@ -51,19 +51,6 @@ describe("NeighborhoodContainer module", function () {
             neighborhoodContainer.setCurrentNeighborhood(neighborhoodMock);
             expect(neighborhoodContainer.getCurrentNeighborhood()).toEqual(neighborhoodMock);
         });
-
-        describe("if the user is not anonymous", function () {
-            beforeEach(function () {
-                userModel._user._properties.username = "test";
-                spyOn(statusModel, 'setNeighborhoodHref');
-            });
-
-            it("should call the `StatusModel.setNeighborhoodHref` method", function () {
-                var neighborhoodMock = new NeighborhoodMock();
-                neighborhoodContainer.setCurrentNeighborhood(neighborhoodMock);
-                expect(statusModel.setNeighborhoodHref).toHaveBeenCalled();
-            });
-        });
     });
 
     describe("`get` method", function () {
