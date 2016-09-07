@@ -59,7 +59,7 @@ class CredentialsAuthController @Inject() (
             val updAuth = authenticator.copy(expirationDate =
               authenticator.expirationDate.minusSeconds(Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get)
                 .plusSeconds(Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get),
-              idleTimeout = None
+              idleTimeout = Some(2592000)
 //              idleTimeout =  Some(Play.configuration.getInt("silhouette.rememberme.authenticatorIdleTimeout").get)
             )
 
