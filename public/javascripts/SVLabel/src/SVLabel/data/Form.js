@@ -5,7 +5,7 @@
  * @constructor
  * @memberof svl
  */
-function Form (navigationModel, taskContainer, params) {
+function Form (navigationModel, neighborhoodModel, taskContainer, params) {
     var self = { className : 'Form'},
         properties = {
             commentFieldMessage: undefined,
@@ -369,11 +369,12 @@ function Form (navigationModel, taskContainer, params) {
 
         var nextTask = taskContainer.nextTask(task);
         if (!nextTask) {
-            // Todo. Handle no new tasks
-            // Find the next neighborhood.
-        } else {
-            taskContainer.initNextTask(nextTask);
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            nextTask = taskContainer.nextTask();
         }
+        taskContainer.initNextTask(nextTask);
     };
 
     /**

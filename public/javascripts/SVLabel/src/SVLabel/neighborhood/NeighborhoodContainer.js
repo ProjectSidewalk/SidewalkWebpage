@@ -54,14 +54,12 @@ NeighborhoodContainer.prototype.getStatus = function (key) {
     return this._status[key];
 };
 
-NeighborhoodContainer.prototype.setCurrentNeighborhood = function (value) {
-    this.setStatus('currentNeighborhood', value);
+NeighborhoodContainer.prototype.setCurrentNeighborhood = function (newNeighborhood) {
+    var oldNeighborhood = this.getCurrentNeighborhood();
+    var parameters = { oldNeighborhood: oldNeighborhood, newNeighborhood: newNeighborhood };
+    this.setStatus('currentNeighborhood', newNeighborhood);
 
-    var user = this._userModel.getUser();
-    if (user && user.getProperty("username") != "anonymous") {
-        var href = "/contribution/" + user.getProperty("username") + "?regionId=" + value.getProperty("regionId");
-        this._statusModel.setNeighborhoodHref(href);
-    }
+    this._neighborhoodModel.trigger("NeighborhoodContainer:neighborhoodChanged", parameters);
 };
 
 NeighborhoodContainer.prototype.setStatus = function (key, value) {

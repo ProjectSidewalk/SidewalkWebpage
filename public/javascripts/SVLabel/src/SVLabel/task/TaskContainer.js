@@ -19,7 +19,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self._taskStoreByRegionId = {};
 
     neighborhoodModel.on("Neighborhood:completed", function (parameters) {
-        self.fetchTasksInARegion(parameters.nextRegionId, self._handleTaskFetchCompleted, false);
+        var regionId = parseInt(parameters.nextRegionId, 10);
+        self.fetchTasksInARegion(regionId, self._handleTaskFetchCompleted, false);
     });
 
     self._handleTaskFetchCompleted = function () {
@@ -27,15 +28,15 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         self.initNextTask(nextTask);
     };
 
-    self.initNextTask = function (nextTask) {
+    self.initNextTask = function (nextTaskIn) {
         var geometry;
         var lat;
         var lng;
 
         var currentPosition = navigationModel.getPosition();
-        nextTask.setStreetEdgeDirection(currentPosition.lat, currentPosition.lng);
+        nextTaskIn.setStreetEdgeDirection(currentPosition.lat, currentPosition.lng);
 
-        geometry = nextTask.getGeometry();
+        geometry = nextTaskIn.getGeometry();
         lat = geometry.coordinates[0][1];
         lng = geometry.coordinates[0][0];
 
@@ -47,15 +48,18 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 if (status === google.maps.StreetViewStatus.OK) {
                     lat = streetViewPanoramaData.location.latLng.lat();
                     lng = streetViewPanoramaData.location.latLng.lng();
-                    self.setCurrentTask(nextTask);
+                    self.setCurrentTask(nextTaskIn);
                     navigationModel.setPosition(lat, lng);
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     // no street view available in this range.
-                    nextTask = self.nextTask();
-                    if (!nextTask) {
-                        // Todo. Handle no new tasks
+                    nextTaskIn = self.nextTask();
+                    if (!nextTaskIn) {
+                        var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+                        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                        neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+                        nextTaskIn = self.nextTask();
                     }
-                    self.initNextTask(nextTask);
+                    self.initNextTask(nextTaskIn);
                 } else {
                     throw "Error loading Street View imagey.";
                 }
@@ -152,7 +156,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param callback A callback function
      * @param async {boolean}
      */
-    function fetchTasksInARegion(regionId, callback, async) {
+    self.fetchTasksInARegion = function (regionId, callback, async) {
         if (typeof async == "undefined") async = true;
 
         if (typeof regionId == "number") {
@@ -281,9 +285,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             console.error("regionId is not specified")
         }
         if (!(regionId in self._taskStoreByRegionId)) {
-            console.error("regionId is not in _taskStoreByRegionId. This is probably because " +
-                "you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
-            return null;
+            self.fetchTasksInARegion(regionId, null, false);
+            // console.error("regionId is not in _taskStoreByRegionId. This is probably because " +
+            //    "you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
+            // return null;
         }
         if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
             console.error("_taskStoreByRegionId[regionId] is not an array. " +
@@ -445,7 +450,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     self.endTask = endTask;
     self.fetchATask = fetchATask;
-    self.fetchTasksInARegion = fetchTasksInARegion;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;

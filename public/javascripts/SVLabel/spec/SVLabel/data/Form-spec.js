@@ -3,15 +3,18 @@ describe("Form module", function () {
     var formParameters;
 
     var navigationModel;
+    var neighborhoodModel;
     var taskContainer;
 
     beforeEach(function () {
         navigationModel = _.clone(Backbone.Events);
         navigationModel.getPosition = function () { return { lat: 0, lng: 0 }; };
+        neighborhoodModel = _.clone(Backbone.Events);
+
         taskContainer = new TaskContainerMock();
 
         formParameters = {};
-        form = new Form(navigationModel, taskContainer, formParameters);
+        form = new Form(navigationModel, neighborhoodModel, taskContainer, formParameters);
     });
 
 

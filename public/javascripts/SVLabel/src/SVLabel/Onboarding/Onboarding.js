@@ -29,7 +29,7 @@
  * @constructor
  */
 function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
-                     modalSkip, neighborhoodContainer, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
+                     modalSkip, neighborhoodContainer, neighborhoodModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
@@ -269,7 +269,10 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         var nextTask = taskContainer.nextTask();
         if (!nextTask) {
-            // Todo. Handle no new tasks
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            nextTask = taskContainer.nextTask();
         }
         taskContainer.initNextTask(nextTask);
     }

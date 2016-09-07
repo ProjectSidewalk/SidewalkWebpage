@@ -104,10 +104,10 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
-        svl.form = new Form(svl.navigationModel, svl.taskContainer, params.form);
+        svl.form = new Form(svl.navigationModel, svl.neighborhoodModel, svl.taskContainer, params.form);
         svl.form.disableSubmit();
         svl.statusField = new StatusField(svl.ui.status);
-        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.statusModel, svl.ui.status);
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
@@ -163,7 +163,7 @@ function Main (params) {
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        svl.map = new MapService(svl.canvas, svl.ui.map, mapParam);
+        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.navigationModel._mapService = svl.map;
@@ -234,8 +234,9 @@ function Main (params) {
 
         if (!("onboarding" in svl && svl.onboarding)) {
             // Todo. It should apss UserModel instead of User (i.e., svl.user)
+            // Todo. Onboarding dependencies definitely need to be cleaned up. Try to only pass models, which act as facades.
             svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
-                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
+                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, svl.neighborhoodModel, onboardingStates, svl.ribbon,
                 svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
                 svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }
@@ -251,7 +252,7 @@ function Main (params) {
     }
 
     function findTheNextRegionWithMissions (currentNeighborhood) {
-        var currentRegionId = currentNeighborhood.getPropety("regionId");
+        var currentRegionId = currentNeighborhood.getProperty("regionId");
         var allRegionIds = svl.neighborhoodContainer.getRegionIds();
         var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
         var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
@@ -313,36 +314,54 @@ function Main (params) {
             loadingMissionsCompleted && loadNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
-            var missionLabels = completedMissions.map(function (m) { return m.label; });
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
             var mission;
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
             } else {
-                var regionId = currentNeighborhood.getProperty("regionId");
-                var availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
-                availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-
-                if (availableMissions.length == 0) {
-                    regionId = findTheNextRegionWithMissions(currentNeighborhood);
-                    if (regionId == null) return;  // No missions available.
-
-                    currentNeighborhood = svl.neighborhoodContainer.get(regionId);
-                    svl.neighborhoodModel.moveToANewRegion(regionId);
-                    svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
-                    availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
-                    availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-                    var newTask = svl.taskContainer.nextTask();
-                    if (!newTask) {
-                        // Todo. Handle no new tasks
-                    }
-                    svl.taskContainer.setCurrentTask(newTask);
-                }
-                mission = availableMissions[0];
+                mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
+                currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 startTheMission(mission, currentNeighborhood);
             }
         }
+    }
+
+    function selectTheMission(currentNeighborhood) {
+        var regionId = currentNeighborhood.getProperty("regionId");
+        var availableMissions = svl.missionContainer.getIncompleteMissionsByRegionId(regionId);
+        var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
+
+        if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
+            regionId = findTheNextRegionWithMissions(currentNeighborhood);
+            if (regionId == null) return;  // No missions available.
+
+            currentNeighborhood = svl.neighborhoodContainer.get(regionId);
+            svl.neighborhoodModel.moveToANewRegion(regionId);
+            svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
+            availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
+            availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
+            var newTask = svl.taskContainer.nextTask();
+            if (!newTask) {
+                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+                newTask = svl.taskContainer.nextTask();
+            }
+            // svl.taskContainer.setCurrentTask(newTask);
+            svl.taskContainer.initNextTask(newTask);
+        }
+        return availableMissions[0];
+    }
+
+    function incompleteMissionExists(missions) {
+        var _missions = missions.filter(function (m) { return !m.isCompleted(); });
+        return _missions.length > 0;
+    }
+
+    function incompleteTaskExists(tasks) {
+        var _tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+        return _tasks.length > 0;
     }
 
     function getStatus (key) { 

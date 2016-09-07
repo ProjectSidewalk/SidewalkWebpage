@@ -7,7 +7,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function MapService (canvas, uiMap, params) {
+function MapService (canvas, neighborhoodModel, uiMap, params) {
     var self = { className: 'Map' },
         _canvas = canvas,
         mapIconInterval,
@@ -496,23 +496,24 @@ function MapService (canvas, uiMap, params) {
         mission.pushATaskToTheRoute(task);
         var newTask = svl.taskContainer.nextTask(task);
         if (!newTask) {
-            // Todo. Handle no new tasks
-        } else {
-            svl.taskContainer.setCurrentTask(newTask);
-
-            // Check if the interface jumped the user to another discontinuous location.
-            // If the user has indeed jumped, tell them that we moved her to
-            // another location in the same neighborhood.
-            if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-                var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-                var distanceLeft = distanceLeftFeetOrMiles();
-                svl.popUpMessage.notify(neighborhoodMessage,
-                    "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                    "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-            }
-
-            _moveToTheTaskLocation(newTask);
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            newTask = svl.taskContainer.nextTask();
         }
+        svl.taskContainer.setCurrentTask(newTask);
+
+        // Check if the interface jumped the user to another discontinuous location.
+        // If the user has indeed jumped, tell them that we moved her to
+        // another location in the same neighborhood.
+        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+            var distanceLeft = distanceLeftFeetOrMiles();
+            svl.popUpMessage.notify(neighborhoodMessage,
+                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+        }
+        _moveToTheTaskLocation(newTask);
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.

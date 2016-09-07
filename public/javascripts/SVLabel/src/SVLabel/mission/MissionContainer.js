@@ -162,6 +162,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
     }
 
     this.getNeighborhoodCompleteMission = function (regionId) {
+        if (typeof regionId == "undefined") throw "MissionContainer.getNeighborhoodCompleteMission: regionId undefined";
         var missions = self.getMissionsByRegionId(regionId);
         missions = missions.filter(function (mission) {
             return mission.getProperty("label") == "area-coverage-mission" &&

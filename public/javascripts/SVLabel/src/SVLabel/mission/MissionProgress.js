@@ -25,8 +25,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // The current neighborhood should have been updated
         // before this event has been triggered (in NeighborhoodModel),
         // so just select the first mission in the updated neighborhood.
-        var mission = missionContainer.getNeighborhoodCompleteMission();
+
+        var mission = missionContainer.getNeighborhoodCompleteMission(parameters.completedRegionId);
         var neighborhood = neighborhoodModel.getNeighborhood(parameters.completedRegionId);
+
         self._completeTheCurrentMission(mission, neighborhood);
         _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
