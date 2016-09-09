@@ -53,6 +53,8 @@ class CredentialsAuthController @Inject() (
         val result = Future.successful(Redirect(url))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
+            // Logger.info(authenticator.toString)
+
             // If you want to extend the expiration time, follow this instruction.
             // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
             //            val updAuth = if (!request.rememberme) authenticator else authenticator.copy(expirationDate =
@@ -71,7 +73,7 @@ class CredentialsAuthController @Inject() (
             val timestamp: Timestamp = new Timestamp(now.getMillis)
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-            Logger.debug(updatedAuthenticator.expirationDate.toDate.toString)
+            // Logger.info(updatedAuthenticator.toString)
             env.eventBus.publish(LoginEvent(user, request, request2lang))
             env.authenticatorService.init(updatedAuthenticator).flatMap(v => env.authenticatorService.embed(v, result))
           }
