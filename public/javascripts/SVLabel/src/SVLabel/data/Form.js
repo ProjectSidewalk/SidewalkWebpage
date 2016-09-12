@@ -1,5 +1,5 @@
 /**
- * 
+ *
  * @param labelContainer
  * @param navigationModel
  * @param neighborhoodModel
@@ -11,19 +11,14 @@
  * @constructor
  */
 function Form (labelContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, params) {
-    var self = { className : 'Form'};
+    var self = this;
     var properties = {
         commentFieldMessage: undefined,
-        isAMTTask : false,
-        isPreviewMode : false,
         previousLabelingTaskId: undefined,
         dataStoreUrl : undefined,
         taskRemaining : 0,
         taskDescription : undefined,
         taskPanoramaId: undefined,
-        hitId : undefined,
-        assignmentId: undefined,
-        turkerId: undefined,
         userExperiment: false
     };
 
@@ -43,77 +38,11 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
         disableSubmit : false
     };
 
-    function _init (params) {
-        var params = params || {};
-        var hasGroupId = util.getURLParameter('groupId') !== "";
-        var hasHitId = util.getURLParameter('hitId') !== "";
-        var hasWorkerId = util.getURLParameter('workerId') !== "";
-        var assignmentId = util.getURLParameter('assignmentId');
-
-        properties.dataStoreUrl = "dataStoreUrl" in params ? params.dataStoreUrl : null;
-
-        if (('assignmentId' in params) && params.assignmentId &&
-            ('hitId' in params) && params.hitId &&
-            ('turkerId' in params) && params.turkerId
-        ) {
-            properties.assignmentId = params.assignmentId;
-            properties.hitId = params.hitId;
-            properties.turkerId = params.turkerId;
-            $('input[name="assignmentId"]').attr('value', properties.assignmentId);
-            $('input[name="workerId"]').attr('value', properties.turkerId);
-            $('input[name="hitId"]').attr('value', properties.hitId);
-        }
-
-        if (assignmentId && assignmentId === 'ASSIGNMENT_ID_NOT_AVAILABLE') {
-            properties.isPreviewMode = true;
-            properties.isAMTTask = true;
-            unlockDisableSubmit().disableSubmit().lockDisableSubmit();
-            unlockDisableSkip().disableSkip().lockDisableSkip();
-        } else if (hasWorkerId && !assignmentId) {
-            properties.isPreviewMode = false;
-            properties.isAMTTask = false;
-        } else if (!assignmentId && !hasHitId && !hasWorkerId) {
-            properties.isPreviewMode = false;
-            properties.isAMTTask = false;
-        } else {
-            properties.isPreviewMode = false;
-            properties.isAMTTask = true;
-        }
-
-        // Check if this is a sandbox task or not
-        properties.isSandbox = false;
-        if (properties.isAMTTask) {
-            if (document.referrer.indexOf("workersandbox.mturk.com") !== -1) {
-                properties.isSandbox = true;
-                $form.prop("action", "https://workersandbox.mturk.com/mturk/externalSubmit");
-            }
-        }
-
-        // Check if this is a preview and, if so, disable submission and show a message saying this is a preview.
-        if (properties.isAMTTask && properties.isPreviewMode) {
-            var dom = '<div class="amt-preview-warning-holder">' +
-                '<div class="amt-preview-warning">' +
-                'Warning: you are on a Preview Mode!' +
-                '</div>' +
-                '</div>';
-            $("body").append(dom);
-            disableSubmit();
-            lockDisableSubmit();
-        }
-
-        $(window).on('beforeunload', function () {
-            tracker.push("Unload");
-            var task = taskContainer.getCurrentTask();
-            var data = compileSubmissionData(task);
-            submit(data, task, false);
-        });
-    }
-
     /**
      * This method gathers all the data needed for submission.
      * @returns {{}}
      */
-    function compileSubmissionData (task) {
+    this.compileSubmissionData = function (task) {
         var data = {};
 
         data.audit_task = {
@@ -223,7 +152,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
         }
 
         return data;
-    }
+    };
     
 
     /**
@@ -384,10 +313,10 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
     function skipSubmit (dataIn, task) {
         tracker.push('TaskSkip');
 
-        var data = compileSubmissionData(task);
+        var data = self.compileSubmissionData(task);
         data.incomplete = dataIn;
 
-        submit(data, task);
+        self.submit(data, task);
         return false;
     }
 
@@ -396,7 +325,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
      * @param data This can be an object of a compiled data for auditing, or an array of
      * the auditing data.
      */
-    function submit(data, task, async) {
+    this.submit = function (data, task, async) {
         if (typeof async == "undefined") { async = true; }
 
         if (data.constructor !== Array) { data = [data]; }
@@ -421,7 +350,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
                 console.error(result);
             }
         });
-    }
+    };
 
     /** Unlock disable submit */
     function unlockDisableSubmit () {
@@ -435,8 +364,6 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
         return this;
     }
 
-
-    self.compileSubmissionData = compileSubmissionData;
     self.disableSubmit = disableSubmit;
     self.disableSkip = disableSkip;
     self.enableSubmit = enableSubmit;
@@ -452,7 +379,13 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
     self.skipSubmit = skipSubmit;
     self.unlockDisableSubmit = unlockDisableSubmit;
     self.unlockDisableSkip = unlockDisableSkip;
-    self.submit = submit;
-    _init(params);
-    return self;
+
+    properties.dataStoreUrl = params.dataStoreUrl;
+
+    $(window).on('beforeunload', function () {
+        tracker.push("Unload");
+        var task = taskContainer.getCurrentTask();
+        var data = self.compileSubmissionData(task);
+        self.submit(data, task, false);
+    });
 }
