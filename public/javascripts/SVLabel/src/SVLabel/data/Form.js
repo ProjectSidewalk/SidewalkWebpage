@@ -1,40 +1,47 @@
 /**
- * A form module. This module is responsible for communicating with the server side for submitting collected data.
- * @param params {object} Other parameters
+ * 
+ * @param labelContainer
+ * @param navigationModel
+ * @param neighborhoodModel
+ * @param panoramaContainer
+ * @param taskContainer
+ * @param tracker
+ * @param params
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function Form (navigationModel, neighborhoodModel, taskContainer, params) {
-    var self = { className : 'Form'},
-        properties = {
-            commentFieldMessage: undefined,
-            isAMTTask : false,
-            isPreviewMode : false,
-            previousLabelingTaskId: undefined,
-            dataStoreUrl : undefined,
-            taskRemaining : 0,
-            taskDescription : undefined,
-            taskPanoramaId: undefined,
-            hitId : undefined,
-            assignmentId: undefined,
-            turkerId: undefined,
-            userExperiment: false
-        },
-        status = {
-            disabledButtonMessageVisibility: 'hidden',
-            disableSkipButton : false,
-            disableSubmit : false,
-            radioValue: undefined,
-            skipReasonDescription: undefined,
-            submitType: undefined,
-            taskDifficulty: undefined,
-            taskDifficultyComment: undefined
-        },
-        lock = {
-            disableSkipButton : false,
-            disableSubmit : false
-        };
+function Form (labelContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, params) {
+    var self = { className : 'Form'};
+    var properties = {
+        commentFieldMessage: undefined,
+        isAMTTask : false,
+        isPreviewMode : false,
+        previousLabelingTaskId: undefined,
+        dataStoreUrl : undefined,
+        taskRemaining : 0,
+        taskDescription : undefined,
+        taskPanoramaId: undefined,
+        hitId : undefined,
+        assignmentId: undefined,
+        turkerId: undefined,
+        userExperiment: false
+    };
+
+    var status = {
+        disabledButtonMessageVisibility: 'hidden',
+        disableSkipButton : false,
+        disableSubmit : false,
+        radioValue: undefined,
+        skipReasonDescription: undefined,
+        submitType: undefined,
+        taskDifficulty: undefined,
+        taskDifficultyComment: undefined
+    };
+
+    var lock = {
+        disableSkipButton : false,
+        disableSubmit : false
+    };
 
     function _init (params) {
         var params = params || {};
@@ -94,10 +101,8 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
             lockDisableSubmit();
         }
 
-        $(window).unload(function () {
-            if ("tracker" in svl) {
-                svl.tracker.push("Unload");
-            }
+        $(window).on('beforeunload', function () {
+            tracker.push("Unload");
             var task = taskContainer.getCurrentTask();
             var data = compileSubmissionData(task);
             submit(data, task, false);
@@ -109,7 +114,7 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
      * @returns {{}}
      */
     function compileSubmissionData (task) {
-        var i, j, len, data = {};
+        var data = {};
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
@@ -130,18 +135,17 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
             operating_system: util.getOperatingSystem()
         };
 
-        data.interactions = svl.tracker.getActions();
-        svl.tracker.refresh();
+        data.interactions = tracker.getActions();
+        tracker.refresh();
 
         data.labels = [];
-        var labels = svl.labelContainer.getCurrentLabels();
-        for(i = 0; i < labels.length; i += 1) {
-            var label = labels[i],
-                prop = label.getProperties(),
-                points = label.getPath().getPoints(),
-                pathLen = points.length;
-
+        var labels = labelContainer.getCurrentLabels();
+        for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
+            var label = labels[i];
+            var prop = label.getProperties();
+            var points = label.getPath().getPoints();
             var labelLatLng = label.toLatLng();
+
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
@@ -158,7 +162,7 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
                 description: label.getProperty('description')
             };
 
-            for (j = 0; j < pathLen; j += 1) {
+            for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
                 var point = points[j],
                     gsvImageCoordinate = point.getGSVImageCoordinate(),
                     pointParam = {
@@ -189,39 +193,33 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
 
         // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
         data.gsv_panoramas = [];
-        if ("panoramaContainer" in svl && svl.panoramaContainer) {
-            var temp,
-                panoramaData,
-                link,
-                linksc,
-                panoramas = svl.panoramaContainer.getStagedPanoramas();
-            len = panoramas.length;
 
-            for (i = 0; i < len; i++) {
-                panoramaData = panoramas[i].data();
-                links = [];
-
-                if ("links" in panoramaData) {
-                    for (j = 0; j < panoramaData.links.length; j++) {
-                        link = panoramaData.links[j];
-                        links.push({
-                            target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
-                            yaw_deg: ("heading" in link) ? link.heading : 0.0,
-                            description: ("description" in link) ? link.description : ""
-                        });
-                    }
+        var temp;
+        var panoramaData;
+        var link;
+        var links;
+        var panoramas = panoramaContainer.getStagedPanoramas();
+        for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
+            panoramaData = panoramas[i].data();
+            links = [];
+            if ("links" in panoramaData) {
+                for (j = 0; j < panoramaData.links.length; j++) {
+                    link = panoramaData.links[j];
+                    links.push({
+                        target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
+                        yaw_deg: ("heading" in link) ? link.heading : 0.0,
+                        description: ("description" in link) ? link.description : ""
+                    });
                 }
-
-                temp = {
-                    panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
-                    image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
-                    links: links,
-                    copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
-                };
-
-                data.gsv_panoramas.push(temp);
-                panoramas[i].setProperty("submitted", true);
             }
+            temp = {
+                panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
+                image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
+                links: links,
+                copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
+            };
+            data.gsv_panoramas.push(temp);
+            panoramas[i].setProperty("submitted", true);
         }
 
         return data;
@@ -384,7 +382,7 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
      * @returns {boolean}
      */
     function skipSubmit (dataIn, task) {
-        svl.tracker.push('TaskSkip');
+        tracker.push('TaskSkip');
 
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
@@ -400,17 +398,15 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
      */
     function submit(data, task, async) {
         if (typeof async == "undefined") { async = true; }
-        // svl.tracker.push('TaskSubmit');
-
-
 
         if (data.constructor !== Array) { data = [data]; }
 
         if ('interactions' in data[0] && data[0].constructor === Array) {
-            data[0].interactions.push(svl.tracker.create("TaskSubmit"));
+            var action = tracker.create("TaskSubmit");
+            data[0].interactions.push(action);
         }
 
-        svl.labelContainer.refresh();
+        labelContainer.refresh();
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -439,7 +435,7 @@ function Form (navigationModel, neighborhoodModel, taskContainer, params) {
         return this;
     }
 
-    //self.checkSubmittable = checkSubmittable;
+
     self.compileSubmissionData = compileSubmissionData;
     self.disableSubmit = disableSubmit;
     self.disableSkip = disableSkip;

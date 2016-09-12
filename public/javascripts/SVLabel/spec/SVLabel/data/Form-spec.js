@@ -2,19 +2,25 @@ describe("Form module", function () {
     var form;
     var formParameters;
 
+    var labelContainer;
     var navigationModel;
     var neighborhoodModel;
+    var panoramaContainer;
     var taskContainer;
+    var tracker;
 
     beforeEach(function () {
+        labelContainer = new LabelContainerMock();
         navigationModel = _.clone(Backbone.Events);
         navigationModel.getPosition = function () { return { lat: 0, lng: 0 }; };
         neighborhoodModel = _.clone(Backbone.Events);
 
+        panoramaContainer = new PanoramaContainerMock();
         taskContainer = new TaskContainerMock();
+        tracker = new TrackerMock();
 
         formParameters = {};
-        form = new Form(navigationModel, neighborhoodModel, taskContainer, formParameters);
+        form = new Form(labelContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, formParameters);
     });
 
 
@@ -80,6 +86,10 @@ describe("Form module", function () {
         });
     });
 
+    function LabelContainerMock () {}
+
+    function PanoramaContainerMock () {}
+
     function TaskContainerMock () {
         this._previousTasks = [];
         this.getCompletedTasks = function () { return this._previousTasks; };
@@ -97,5 +107,7 @@ describe("Form module", function () {
         this.getStreetEdgeId = function () { return this._properties.streetEdgeId; };
         this.isCompleted = function () { return this._status.isCompleted; };
     }
+
+    function TrackerMock () {}
 
 });

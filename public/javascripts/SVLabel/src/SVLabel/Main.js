@@ -101,11 +101,12 @@ function Main (params) {
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
+        svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
-        svl.form = new Form(svl.navigationModel, svl.neighborhoodModel, svl.taskContainer, params.form);
+        svl.form = new Form(svl.labelContainer, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.tracker, params.form);
         svl.form.disableSubmit();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
@@ -125,7 +126,6 @@ function Main (params) {
         svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory);
         svl.completionMessage = new CompletionMessage(svl.gameEffectModel, svl.ui.task);
 
-        svl.panoramaContainer = new PanoramaContainer();
 
         var neighborhood;
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);

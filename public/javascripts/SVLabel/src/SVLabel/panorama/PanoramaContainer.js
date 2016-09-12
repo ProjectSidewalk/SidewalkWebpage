@@ -1,4 +1,4 @@
-function PanoramaContainer () {
+function PanoramaContainer (streetViewService) {
     var self = { className: "PanoramaContainer" },
         container = {};
 
@@ -55,11 +55,7 @@ function PanoramaContainer () {
      * Request the panorama meta data.
      */
     function fetchPanoramaMetaData (panoramaId) {
-        if ("streetViewService") {
-            svl.streetViewService.getPanorama({ pano: panoramaId }, processSVData);
-        } else {
-            console.error("Street View Service not loaded")
-        }
+        streetViewService.getPanorama({ pano: panoramaId }, processSVData);
     }
 
     self.getPanorama = getPanorama;
