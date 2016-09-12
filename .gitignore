@@ -92,6 +92,7 @@ project/.sbtserver.lock
 node_modules
 public/javascripts/SVLabel/build/*
 public/javascripts/Admin/build/*
+public/javascripts/FAQ/build/*
 public/javascripts/Admin/Progress/*
 download
 

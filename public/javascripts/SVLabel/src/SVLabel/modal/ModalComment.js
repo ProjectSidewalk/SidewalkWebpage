@@ -1,42 +1,40 @@
 /**
  * ModalComment module.
+ * @param svl
+ * @param tracker
+ * @param ribbon
+ * @param taskContainer
  * @param uiLeftColumn
  * @param uiModalComment
  * @param modalModel
- * @returns {{className: string}}
+ * @param onboardingModel
  * @constructor
- * @memberof svl
  */
-function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel) {
-    var self = { className: 'ModalComment'},
-        status = {
-            disableClickOK: true
-        },
-        blinkInterval;
+function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel, onboardingModel) {
+    var self = this;
+    var status = {
+        disableClickOK: true
+    };
+    var blinkInterval;
 
     var _modalModel = modalModel;
     var _uiModalComment = uiModalComment;
     var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
 
-    function _init() {
-        disableClickOK();
-        _uiModalComment.ok.on("click", handleClickOK);
-        _uiModalComment.cancel.on("click", handleClickCancel);
-        _uiLeftColumn.feedback.on("click", handleClickFeedback);
-        _uiModalComment.textarea.on("focus", handleTextareaFocus);
-        _uiModalComment.textarea.on("blur", handleTextareaBlur);
-        _uiModalComment.textarea.on("input", handleTextareaChange);
-    }
+
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hide();
+    });
 
     /**
      * Blink the feedback button on the left
      */
-    function blink () {
-        stopBlinking();
+    self.blink = function () {
+        self.stopBlinking();
         blinkInterval = window.setInterval(function () {
             _uiLeftColumn.feedback.toggleClass("highlight-50");
         }, 500);
-    }
+    };
 
     /**
      * A callback function for clicking the feedback button on the left
@@ -51,21 +49,21 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         e.preventDefault();
         tracker.push("ModalComment_ClickOK");
 
-        var task = taskContainer.getCurrentTask(),
-            panoramaId = svl.map.getPanoId(),
-            latlng = svl.map.getPosition(),
-            pov = svl.map.getPov(),
-            data;
+        var task = taskContainer.getCurrentTask();
+        var panoramaId = svl.map.getPanoId();
+        var latlng = svl.map.getPosition();
+        var pov = svl.map.getPov();
+        var data;
 
-        data = _prepareCommentData(panoramaId, latlng.lat, latlng.lng, pov, task);
-        _submitComment(data);
-        hideCommentMenu();
+        data = self._prepareCommentData(panoramaId, latlng.lat, latlng.lng, pov, task);
+        self._submitComment(data);
+        self.hide();
     }
 
     function handleClickCancel (e) {
         tracker.push("ModalComment_ClickCancel");
         e.preventDefault();
-        hideCommentMenu();
+        self.hide();
     }
 
     /**
@@ -76,7 +74,7 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         if (comment.length > 0) {
             enableClickOK();
         } else {
-            disableClickOK();
+            self._disableClickOK();
         }
     }
 
@@ -88,22 +86,22 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         ribbon.disableModeSwitch();
     }
 
-    function hideCommentMenu () {
+    this.hide = function () {
         _uiModalComment.holder.addClass('hidden');
-    }
+    };
 
     function showCommentMenu () {
         _uiModalComment.textarea.val("");
         _uiModalComment.holder.removeClass('hidden');
         _uiModalComment.ok.addClass("disabled");
-        disableClickOK();
+        self._disableClickOK();
     }
 
-    function disableClickOK() {
+    self._disableClickOK = function () {
         _uiModalComment.ok.attr("disabled", true);
         _uiModalComment.ok.addClass("disabled");
         status.disableClickOK = true;
-    }
+    };
 
     function enableClickOK () {
         _uiModalComment.ok.attr("disabled", false);
@@ -114,17 +112,17 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     /**
      * Stop blinking the feedback button on the left column
      */
-    function stopBlinking () {
+    self.stopBlinking = function () {
         window.clearInterval(blinkInterval);
         _uiLeftColumn.feedback.removeClass("highlight-50");
-    }
+    };
 
     /**
      * Submit the comment.
      */
-    function _submitComment (data) {
-        var url = "/audit/comment",
-            async = true;
+    this._submitComment = function (data) {
+        var url = "/audit/comment";
+        var async = true;
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -138,9 +136,9 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
                 console.error(result);
             }
         });
-    }
+    };
 
-    function _prepareCommentData (panoramaId, lat, lng, pov, task) {
+    this._prepareCommentData = function (panoramaId, lat, lng, pov, task) {
         var streetEdgeId = task.getStreetEdgeId(),
             comment = _uiModalComment.textarea.val();
 
@@ -154,14 +152,14 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
             street_edge_id: streetEdgeId,
             zoom: pov ? pov.zoom : null
         };
-    }
+    };
 
-    _init();
 
-    self.blink = blink;
-    self.stopBlinking = stopBlinking;
-    self._submitComment = _submitComment;
-    self._prepareCommentData = _prepareCommentData;
-
-    return self;
+    self._disableClickOK();
+    _uiModalComment.ok.on("click", handleClickOK);
+    _uiModalComment.cancel.on("click", handleClickCancel);
+    _uiLeftColumn.feedback.on("click", handleClickFeedback);
+    _uiModalComment.textarea.on("focus", handleTextareaFocus);
+    _uiModalComment.textarea.on("blur", handleTextareaBlur);
+    _uiModalComment.textarea.on("input", handleTextareaChange);
 }

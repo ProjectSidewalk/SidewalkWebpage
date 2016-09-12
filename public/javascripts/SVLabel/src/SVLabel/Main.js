@@ -94,6 +94,7 @@ function Main (params) {
         svl.gameEffectModel = new GameEffectModel();
         svl.statusModel = new StatusModel();
         if (!("taskModel" in svl)) svl.taskModel = new TaskModel();
+        svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
         svl.tracker.push('TaskStart');
@@ -114,7 +115,7 @@ function Main (params) {
         svl.labelCounter = new LabelCounter(d3);
 
         svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
-        svl.popUpMessage = new PopUpMessage($);
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
@@ -152,14 +153,14 @@ function Main (params) {
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
-            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel, svl.statusModel);
+            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel,
+            svl.statusModel, svl.onboardingModel);
         svl.modalMissionComplete.hide();
 
-        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
-        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
+        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel, svl.onboardingModel);
+        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
-        svl.modalExample = new ModalExample(svl.modalModel, svl.ui.modalExample);
-
+        svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
@@ -233,10 +234,11 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
-            // Todo. It should apss UserModel instead of User (i.e., svl.user)
-            // Todo. Onboarding dependencies definitely need to be cleaned up. Try to only pass models, which act as facades.
+
+            // Todo. It should pass UserModel instead of User (i.e., svl.user)
+
             svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
-                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, svl.neighborhoodModel, onboardingStates, svl.ribbon,
+                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
                 svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
                 svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }

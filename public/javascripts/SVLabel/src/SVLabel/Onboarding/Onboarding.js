@@ -29,7 +29,7 @@
  * @constructor
  */
 function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
-                     modalSkip, neighborhoodContainer, neighborhoodModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
+                     modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
@@ -79,6 +79,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         status.state = getState("initialize");
         _visit(status.state);
         handAnimation.initializeHandAnimation();
+
+        onboardingModel.triggerStartOnboarding();
     };
 
     /**

@@ -3,6 +3,7 @@ describe("ModalMission", function () {
     var uiModalMission;
     var $uiModalMissionFixture;
     var modalModel;
+    var onboardingModel;
 
     beforeEach(function () {
         $uiModalMissionFixture = $('<div id="modal-mission-holder"> \
@@ -24,7 +25,8 @@ describe("ModalMission", function () {
         var missionContainer = new MissionContainerMock();
         var neighborhoodContainer = new NeighborhoodContainerMock();
         modalModel = _.clone(Backbone.Events);
-        modalMission = new ModalMission(missionContainer, neighborhoodContainer, uiModalMission, modalModel);
+        onboardingModel = _.clone(Backbone.Events);
+        modalMission = new ModalMission(missionContainer, neighborhoodContainer, uiModalMission, modalModel, onboardingModel);
     });
 
     describe("`_handleBackgroundClick` method", function () {
@@ -180,6 +182,14 @@ describe("ModalMission", function () {
                 done();
             });
 
+        });
+    });
+
+    describe("In response to the `Onboarding:startOnboarding` event", function () {
+        it("should call the `hide` method", function () {
+            spyOn(modalMission, 'hide');
+            onboardingModel.trigger("Onboarding:startOnboarding");
+            expect(modalMission.hide).toHaveBeenCalled();
         });
     });
 

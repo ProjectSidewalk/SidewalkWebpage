@@ -10,7 +10,7 @@
  */
 function ModalMissionComplete (svl, missionContainer, taskContainer,
                                modalMissionCompleteMap, modalMissionProgressBar,
-                               uiModalMissionComplete, modalModel, statusModel) {
+                               uiModalMissionComplete, modalModel, statusModel, onboardingModel) {
     var self = this;
     var _modalModel = modalModel;
     var nextMission;
@@ -38,6 +38,10 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
     _modalModel.on("ModalMissionComplete:one", function (parameters) {
         self.one(parameters.uiComponent, parameters.eventType, parameters.callback);
+    });
+
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hide();
     });
 
     this._handleBackgroundClick = function (e) {

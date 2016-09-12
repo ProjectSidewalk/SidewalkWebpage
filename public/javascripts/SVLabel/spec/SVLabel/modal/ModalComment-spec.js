@@ -8,6 +8,7 @@ describe("ModalComment.", function () {
     var uiModalComment;
     var taskContainer;
     var modalModel;
+    var onboardingModel;
 
     var $modalCommentFixture;
 
@@ -26,22 +27,14 @@ describe("ModalComment.", function () {
             }
         };
 
-        form = {
-            postJSON: function (url, data) {
+        form = new FormMock();
 
-            }
-        };
+        ribbon = new RibbonMenuMock();
 
-        ribbon = {
 
-        };
+        tracker = new TrackerMock();
 
-        tracker = {
-            push: function (item) {}
-        };
-
-        taskContainer = {
-        };
+        taskContainer = new TaskContainerMock();
 
         uiLeftColumn = {
             feedback: $('<div id="feedback-button"></div>')
@@ -74,9 +67,10 @@ describe("ModalComment.", function () {
         uiModalComment.cancel = $modalCommentFixture.find('#modal-comment-cancel-button');
         uiModalComment.textarea = $modalCommentFixture.find('#modal-comment-textarea');
 
-        modalModel = {};
+        modalModel = _.clone(Backbone.Events);
+        onboardingModel = _.clone(Backbone.Events);
 
-        modalComment = new ModalComment(svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel)
+        modalComment = new ModalComment(svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel, onboardingModel);
     });
 
     describe("`_prepareCommentData` method", function () {
@@ -132,4 +126,23 @@ describe("ModalComment.", function () {
         // });
     });
 
+    describe("In response to the `Onboarding:startOnboarding` event", function () {
+        it("should call the `hide` method", function () {
+            spyOn(modalComment, 'hide');
+            onboardingModel.trigger("Onboarding:startOnboarding");
+            expect(modalComment.hide).toHaveBeenCalled();
+        });
+    });
+
+    function FormMock () {
+        this.postJSON = function (url, data) {};
+    }
+
+    function RibbonMenuMock () {}
+
+    function TrackerMock () {
+        this.push = function (item) {};
+    }
+
+    function TaskContainerMock () {}
 });

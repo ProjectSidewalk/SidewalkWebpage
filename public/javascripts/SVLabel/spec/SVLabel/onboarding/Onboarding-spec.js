@@ -13,7 +13,11 @@ describe("Onboarding module", function () {
     var modalMission;
     var modalSkip;
     var neighborhoodContainer;
+<<<<<<< HEAD
     var neighborhoodModel;
+=======
+    var onboardingModel;
+>>>>>>> master
     var onboardingStates;
     var ribbon;
     var statusField;
@@ -50,6 +54,8 @@ describe("Onboarding module", function () {
         user = new UserMock();
         zoomControl = new ZoomControlMock();
 
+        onboardingModel = _.clone(Backbone.Events);
+
         $uiOnboardingFixture = $('  <div id="onboarding-holder" class="Window_StreetView"> \
                                         <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
                                         <div id="hand-gesture-holder"></div> \
@@ -70,7 +76,7 @@ describe("Onboarding module", function () {
         uiOnboarding.handGestureHolder = $uiOnboardingFixture.find("#hand-gesture-holder");
 
         onboarding = new Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer,
-            modalComment, modalMission, modalSkip, neighborhoodContainer, neighborhoodModel, onboardingStates, ribbon, statusField, statusModel,
+            modalComment, modalMission, modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel,
             storage, taskContainer, tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl)
     });
 
