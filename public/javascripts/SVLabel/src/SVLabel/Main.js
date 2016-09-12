@@ -148,13 +148,14 @@ function Main (params) {
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
-            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel, svl.statusModel, svl.onboardingModel);
+            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel,
+            svl.statusModel, svl.onboardingModel);
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel, svl.onboardingModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel);
         svl.modalSkip = new ModalSkip();
-        svl.modalExample = new ModalExample(svl.modalModel, svl.ui.modalExample);
+        svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
 
         // Set map parameters and instantiate it.

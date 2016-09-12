@@ -79,6 +79,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         status.state = getState("initialize");
         _visit(status.state);
         handAnimation.initializeHandAnimation();
+
+        onboardingModel.triggerStartOnboarding();
     };
 
     /**

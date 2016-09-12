@@ -477,7 +477,7 @@ function Task (geojson, currentLat, currentLng) {
                 ];
             } else if (paths) {
                 var latlng = svl.map.getPosition();
-                paths = this.getGooglePolylines(latlng.lat, latlng.lng);
+                paths = self.getGooglePolylines(latlng.lat, latlng.lng);
             } else {
                 // If this is a new task and the this Task instance's `paths` is not set yet, create a red GMaps Polyline.
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
