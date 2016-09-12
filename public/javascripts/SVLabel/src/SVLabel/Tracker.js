@@ -128,10 +128,6 @@ function Tracker () {
             svl.form.submit(data, task);
         }
 
-        if ("trackerViewer" in svl) {
-            svl.trackerViewer.add(item)
-        }
-
         return this;
     }
 

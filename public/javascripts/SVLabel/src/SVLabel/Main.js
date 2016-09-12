@@ -114,7 +114,7 @@ function Main (params) {
         svl.labelCounter = new LabelCounter(d3);
 
         svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
-        svl.popUpMessage = new PopUpMessage($);
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);

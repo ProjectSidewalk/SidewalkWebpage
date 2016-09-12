@@ -1,15 +1,22 @@
 /**
- * A MessageBox module
- * @param $
- * @param param
+ *
+ * @param form
+ * @param storage
+ * @param taskContainer
+ * @param tracker
+ * @param user
+ * @param uiPopUpMessage
  * @returns {{className: string}}
  * @constructor
- * @memberof svl
  */
-function PopUpMessage ($, param) {
-    var self = {className: 'PopUpMessage'},
-        status = { haveAskedToSignIn: false },
-        buttons = [];
+function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
+    var self = this;
+    var status = { haveAskedToSignIn: false };
+    var buttons = [];
+
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hide();
+    });
 
     function _attachCallbackToClickOK (callback) {
         $("#pop-up-message-ok-button").one('click', callback);
@@ -17,103 +24,102 @@ function PopUpMessage ($, param) {
 
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
-        svl.ui.popUpMessage.content.append($html);
+        uiPopUpMessage.content.append($html);
 
         if (callback) {
             $html.on("click", callback);
         }
-        $html.on('click', hide);
+        $html.on('click', self.hide);
         buttons.push($html);
     }
 
-    function appendButton (buttonDom, callback) {
+    this._appendButton = function (buttonDom, callback) {
         var $button = $(buttonDom);
         $button.css({ margin: '0 10 10 0' });
         $button.addClass('button');
-        svl.ui.popUpMessage.buttonHolder.append($button);
+        uiPopUpMessage.buttonHolder.append($button);
 
         if (callback) {
             $button.one('click', callback);
         }
-        $button.one('click', hide);
+        $button.one('click', self.hide);
         buttons.push($button);
-    }
+    };
 
-    function appendOKButton() {
+    this._appendOKButton = function () {
         var OKButton = '<button id="pop-up-message-ok-button">OK</button>';
         function handleClickOK () {
-            if ('tracker' in svl && svl.tracker) svl.tracker.push('PopUpMessage_ClickOk');
+            tracker.push('PopUpMessage_ClickOk');
             $("#pop-up-message-ok-button").remove();
         }
-        appendButton(OKButton, handleClickOK);
-    }
+        self._appendButton(OKButton, handleClickOK);
+    };
 
-    function haveAskedToSignIn () {
+    this.haveAskedToSignIn = function () {
         return status.haveAskedToSignIn;
-    }
+    };
 
     /**
      * Hides the message box.
      */
-    function hide () {
-        svl.ui.popUpMessage.holder.removeClass('visible');
-        svl.ui.popUpMessage.holder.addClass('hidden');
-        hideBackground();  // hide background
-        reset();  // reset all the parameters
+    this.hide = function () {
+        uiPopUpMessage.holder.removeClass('visible');
+        uiPopUpMessage.holder.addClass('hidden');
+        self.hideBackground();  // hide background
+        self.reset();  // reset all the parameters
         return this;
-    }
+    };
 
     /**
      * Hides the background
      */
-    function hideBackground () {
-        svl.ui.popUpMessage.holder.css({ width: '', height: '' });
-    }
+    this.hideBackground = function () {
+        uiPopUpMessage.holder.css({ width: '', height: '' });
+    };
 
     /**
      * Prompt a user who's not logged in to sign up/sign in.
      * Todo. I should move this to either User.js or a new module (e.g., SignUp.js?).
      */
-    function promptSignIn () {
-        svl.ui.popUpMessage.buttonHolder.html("");
-        setTitle("You've been contributing a lot!");
-        setMessage("Do you want to create an account to keep track of your progress?");
-        appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
+    this.promptSignIn = function () {
+        uiPopUpMessage.buttonHolder.html("");
+        self._setTitle("You've been contributing a lot!");
+        self._setMessage("Do you want to create an account to keep track of your progress?");
+        self._appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
             // Store the data in LocalStorage.
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task),
-                staged = svl.storage.get("staged");
+            var task = taskContainer.getCurrentTask();
+            var data = form.compileSubmissionData(task),
+                staged = storage.get("staged");
             staged.push(data);
-            svl.storage.set("staged", staged);
+            storage.set("staged", staged);
 
             $("#sign-in-modal").addClass("hidden");
             $("#sign-up-modal").removeClass("hidden");
             $('#sign-in-modal-container').modal('show');
         });
-        appendButton('<button id="pop-up-message-cancel-button" class="float">No</button>', function () {
-            if (!('user' in svl)) { svl.user = new User({username: 'anonymous'}); }
+        self._appendButton('<button id="pop-up-message-cancel-button" class="float">No</button>', function () {
 
-            svl.user.setProperty('firstTask', false);
+            user.setProperty('firstTask', false);
             // Submit the data as an anonymous user.
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task);
-            svl.form.submit(data, task);
+            var task = taskContainer.getCurrentTask();
+            var data = form.compileSubmissionData(task);
+            form.submit(data, task);
         });
         appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in"><small><span style="text-decoration: underline;">I do have an account! Let me sign in.</span></small></a></p>', function () {
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task),
-                staged = svl.storage.get("staged");
+            var task = taskContainer.getCurrentTask();
+            var data = form.compileSubmissionData(task),
+                staged = storage.get("staged");
             staged.push(data);
-            svl.storage.set("staged", staged);
+            storage.set("staged", staged);
 
             $("#sign-in-modal").removeClass("hidden");
             $("#sign-up-modal").addClass("hidden");
             $('#sign-in-modal-container').modal('show');
         });
-        setPosition(40, 260, 640);
-        show(true);
+        self._setPosition(40, 260, 640);
+        self.show(true);
         status.haveAskedToSignIn = true;
-    }
+    };
 
     /**
      * Notification
@@ -121,25 +127,25 @@ function PopUpMessage ($, param) {
      * @param message
      * @param callback
      */
-    function notify(title, message, callback) {
-        svl.ui.popUpMessage.buttonHolder.html("");
-        setPosition(40, 260, 640);
-        show();
-        setTitle(title);
-        setMessage(message);
-        appendOKButton();
+    this.notify = function (title, message, callback) {
+        uiPopUpMessage.buttonHolder.html("");
+        self._setPosition(40, 260, 640);
+        self.show();
+        self._setTitle(title);
+        self._setMessage(message);
+        self._appendOKButton();
 
         if (callback) {
             _attachCallbackToClickOK(callback)
         }
-    }
+    };
 
     /**
      * Reset all the parameters.
      */
-    function reset () {
-        svl.ui.popUpMessage.holder.css({ width: '', height: '' });
-        svl.ui.popUpMessage.foreground.css({
+    this.reset = function () {
+        uiPopUpMessage.holder.css({ width: '', height: '' });
+        uiPopUpMessage.foreground.css({
                     left: '',
                     top: '',
                     width: '',
@@ -147,7 +153,7 @@ function PopUpMessage ($, param) {
                     zIndex: ''
                 });
 
-        svl.ui.popUpMessage.foreground.css('padding-bottom', '')
+        uiPopUpMessage.foreground.css('padding-bottom', '')
 
         for (var i = 0; i < buttons.length; i++ ){
             try {
@@ -157,50 +163,48 @@ function PopUpMessage ($, param) {
             }
         }
         buttons = [];
-    }
+    };
 
     /**
      * This method shows a messaage box on the page.
      */
-    function show (disableOtherInteraction) {
+    this.show = function (disableOtherInteraction) {
         if (disableOtherInteraction) {
-            showBackground();
+            self._showBackground();
         }
 
-        svl.ui.popUpMessage.holder.removeClass('hidden');
-        svl.ui.popUpMessage.holder.addClass('visible');
+        uiPopUpMessage.holder.removeClass('hidden');
+        uiPopUpMessage.holder.addClass('visible');
         return this;
-    }
+    };
 
     /**
      * Show a semi-transparent background to block people to interact with
      * other parts of the interface.
      */
-    function showBackground () {
-        svl.ui.popUpMessage.holder.css({ width: '100%', height: '100%'});
-    }
+    this._showBackground = function () {
+        uiPopUpMessage.holder.css({ width: '100%', height: '100%'});
+    };
 
     /**
      * Sets the title
      */
-    function setTitle (title) {
-         svl.ui.popUpMessage.title.html(title);
-         return this;
-    }
+    this._setTitle = function (title) {
+         uiPopUpMessage.title.html(title);
+    };
 
     /**
      * Sets the message.
      */
-    function setMessage (message) {
-        svl.ui.popUpMessage.content.html(message);
-        return this;
-    }
+    this._setMessage = function (message) {
+        uiPopUpMessage.content.html(message);
+    };
 
     /*
      * Sets the position of the message.
      */
-    function setPosition (x, y, width, height) {
-        svl.ui.popUpMessage.foreground.css({
+    this._setPosition = function  (x, y, width, height) {
+        uiPopUpMessage.foreground.css({
             left: x,
             top: y,
             width: width,
@@ -208,14 +212,5 @@ function PopUpMessage ($, param) {
             zIndex: 2
         });
         return this;
-    }
-
-    self.haveAskedToSignIn = haveAskedToSignIn;
-    self.hide = hide;
-    self.hideBackground = hideBackground;
-    self.notify = notify;
-    self.promptSignIn = promptSignIn;
-    self.reset = reset;
-    self.show = show;
-    return self;
+    };
 }
