@@ -13,29 +13,7 @@
 function Form (labelContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, params) {
     var self = this;
     var properties = {
-        commentFieldMessage: undefined,
-        previousLabelingTaskId: undefined,
-        dataStoreUrl : undefined,
-        taskRemaining : 0,
-        taskDescription : undefined,
-        taskPanoramaId: undefined,
-        userExperiment: false
-    };
-
-    var status = {
-        disabledButtonMessageVisibility: 'hidden',
-        disableSkipButton : false,
-        disableSubmit : false,
-        radioValue: undefined,
-        skipReasonDescription: undefined,
-        submitType: undefined,
-        taskDifficulty: undefined,
-        taskDifficultyComment: undefined
-    };
-
-    var lock = {
-        disableSkipButton : false,
-        disableSubmit : false
+        dataStoreUrl : undefined
     };
 
     /**
@@ -156,83 +134,13 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
     
 
     /**
-     * Disable clicking the submit button
-     * @returns {*}
-     */
-    function disableSubmit () {
-        if (!lock.disableSubmit) {
-            status.disableSubmit = true;
-            //  $btnSubmit.attr('disabled', true);
-            //$btnSubmit.css('opacity', 0.5);
-            return this;
-        }
-        return false;
-    }
-
-    /**
-     * Disable clicking the skip button
-     * @returns {*}
-     */
-    function disableSkip () {
-        if (!lock.disableSkip) {
-            status.disableSkip = true;
-            // $btnSkip.attr('disabled', true);
-            //$btnSkip.css('opacity', 0.5);
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Enable clicking the submit button
-     * @returns {*}
-     */
-    function enableSubmit () {
-        if (!lock.disableSubmit) {
-            status.disableSubmit = false;
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Enable clicking the skip button
-     * @returns {*}
-     */
-    function enableSkip () {
-        if (!lock.disableSkip) {
-            status.disableSkip = false;
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    /** This method returns whether the task is in preview mode or not. */
-    function isPreviewMode () {
-        return properties.isPreviewMode;
-    }
-
-    function lockDisableSubmit () {
-        lock.disableSubmit = true;
-        return this;
-    }
-
-    function lockDisableSkip () {
-        lock.disableSkip = true;
-        return this;
-    }
-
-    /**
      * Post a json object
      * @param url
      * @param data
      * @param callback
      * @param async
      */
-    function postJSON (url, data, callback, async) {
+    this.postJSON = function (url, data, callback, async) {
         if (!async) async = true;
         $.ajax({
             async: async,
@@ -248,32 +156,9 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
                 console.error(result);
             }
         });
-    }
+    };
 
-    function setPreviousLabelingTaskId (val) {
-        properties.previousLabelingTaskId = val;
-        return this;
-    }
-
-    /** This method sets the taskDescription */
-    function setTaskDescription (val) {
-        properties.taskDescription = val;
-        return this;
-    }
-
-    /** This method sets the taskPanoramaId. Note it is not same as the GSV panorama id. */
-    function setTaskPanoramaId (val) {
-        properties.taskPanoramaId = val;
-        return this;
-    }
-
-    /** This method sets the number of remaining tasks */
-    function setTaskRemaining (val) {
-        properties.taskRemaining = val;
-        return this;
-    }
-
-    self._prepareSkipData = function (issueDescription) {
+    this._prepareSkipData = function (issueDescription) {
         var position = navigationModel.getPosition();
         return {
             issue_description: issueDescription,
@@ -282,7 +167,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
         };
     };
 
-    self.skip = function (task, skipReasonLabel) {
+    this.skip = function (task, skipReasonLabel) {
         var data = self._prepareSkipData(skipReasonLabel);
 
         if (skipReasonLabel == "GSVNotAvailable") {
@@ -310,7 +195,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
-    function skipSubmit (dataIn, task) {
+    this.skipSubmit = function (dataIn, task) {
         tracker.push('TaskSkip');
 
         var data = self.compileSubmissionData(task);
@@ -318,7 +203,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
 
         self.submit(data, task);
         return false;
-    }
+    };
 
     /**
      * Submit the data.
@@ -351,35 +236,7 @@ function Form (labelContainer, navigationModel, neighborhoodModel, panoramaConta
             }
         });
     };
-
-    /** Unlock disable submit */
-    function unlockDisableSubmit () {
-        lock.disableSubmit = false;
-        return this;
-    }
-
-    /** Unlock disable skip */
-    function unlockDisableSkip () {
-        lock.disableSkipButton = false;
-        return this;
-    }
-
-    self.disableSubmit = disableSubmit;
-    self.disableSkip = disableSkip;
-    self.enableSubmit = enableSubmit;
-    self.enableSkip = enableSkip;
-    self.isPreviewMode = isPreviewMode;
-    self.lockDisableSubmit = lockDisableSubmit;
-    self.lockDisableSkip = lockDisableSkip;
-    self.postJSON = postJSON;
-    self.setPreviousLabelingTaskId = setPreviousLabelingTaskId;
-    self.setTaskDescription = setTaskDescription;
-    self.setTaskRemaining = setTaskRemaining;
-    self.setTaskPanoramaId = setTaskPanoramaId;
-    self.skipSubmit = skipSubmit;
-    self.unlockDisableSubmit = unlockDisableSubmit;
-    self.unlockDisableSkip = unlockDisableSkip;
-
+    
     properties.dataStoreUrl = params.dataStoreUrl;
 
     $(window).on('beforeunload', function () {
