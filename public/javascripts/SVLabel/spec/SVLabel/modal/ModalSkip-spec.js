@@ -4,6 +4,7 @@ describe("ModalSkip module", function () {
 
     var form;
     var navigationModel;
+    var onboardingModel;
     var ribbonMenu;
     var taskContainer;
     var tracker;
@@ -18,6 +19,8 @@ describe("ModalSkip module", function () {
 
         form = new FormMock();
         navigationModel = _.clone(Backbone.Events);
+        onboardingModel = _.clone(Backbone.Events);
+
         ribbonMenu = new RibbonMenuMock();
         taskContainer = new TaskContainerMock();
         tracker = new TrackerMock();
@@ -39,7 +42,7 @@ describe("ModalSkip module", function () {
         uiModalSkip.cancel = $modalSkip.find("#modal-skip-cancel-button");
         uiModalSkip.radioButtons = $modalSkip.find(".modal-skip-radio-buttons");
 
-        modalSkip = new ModalSkip(form, modalModel, navigationModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip);
+        modalSkip = new ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip);
     });
 
     describe("`_handleClickOK` method", function () {
@@ -68,6 +71,14 @@ describe("ModalSkip module", function () {
         it('should call the `RibbonMenu.backToWalk` method', function () {
             modalSkip._handleClickOK();
             expect(ribbonMenu.backToWalk).toHaveBeenCalled();
+        });
+    });
+
+    describe("In response to the `Onboarding:startOnboarding` event", function () {
+        it("should call the `hide` method", function () {
+            spyOn(modalSkip, 'hideSkipMenu');
+            onboardingModel.trigger("Onboarding:startOnboarding");
+            expect(modalSkip.hideSkipMenu).toHaveBeenCalled();
         });
     });
 

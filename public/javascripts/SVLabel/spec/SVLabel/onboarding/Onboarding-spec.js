@@ -13,11 +13,8 @@ describe("Onboarding module", function () {
     var modalMission;
     var modalSkip;
     var neighborhoodContainer;
-<<<<<<< HEAD
     var neighborhoodModel;
-=======
     var onboardingModel;
->>>>>>> master
     var onboardingStates;
     var ribbon;
     var statusField;
@@ -56,17 +53,7 @@ describe("Onboarding module", function () {
 
         onboardingModel = _.clone(Backbone.Events);
 
-        $uiOnboardingFixture = $('  <div id="onboarding-holder" class="Window_StreetView"> \
-                                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
-                                        <div id="hand-gesture-holder"></div> \
-                                        <div id="onboarding-background"></div> \
-                                        <div id="onboarding-message-holder" class="white-background"> \
-                                            <p></p> \
-                                        </div> \
-                                        <div style="display:none;"> \
-                                            <img src="" id="double-click-icon" width="200" alt="Double click icon"/> \
-                                        </div> \
-                                    </div>');
+        $uiOnboardingFixture = prepareOnboardingFixture();
         uiOnboarding = {};
         uiOnboarding.holder = $uiOnboardingFixture;
         uiOnboarding.messageHolder = $uiOnboardingFixture.find("#onboarding-message-holder");
@@ -186,4 +173,17 @@ describe("Onboarding module", function () {
         this.unlockDisableZoomOut = function () {};
     }
 
+    function prepareOnboardingFixture () {
+        return $('  <div id="onboarding-holder" class="Window_StreetView"> \
+                                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
+                                        <div id="hand-gesture-holder"></div> \
+                                        <div id="onboarding-background"></div> \
+                                        <div id="onboarding-message-holder" class="white-background"> \
+                                            <p></p> \
+                                        </div> \
+                                        <div style="display:none;"> \
+                                            <img src="" id="double-click-icon" width="200" alt="Double click icon"/> \
+                                        </div> \
+                                    </div>');
+    }
 });

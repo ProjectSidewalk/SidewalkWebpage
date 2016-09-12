@@ -6,6 +6,7 @@
  * @param form
  * @param modalModel
  * @param navigationModel
+ * @param onboardingModel
  * @param ribbonMenu
  * @param taskContainer
  * @param tracker
@@ -13,12 +14,16 @@
  * @param uiModalSkip
  * @constructor
  */
-function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
     var self = this;
     var status = {
         disableClickOK: true
     };
     var blinkInterval;
+
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hideSkipMenu();
+    });
 
     /**
      * Disable clicking the ok button
@@ -47,33 +52,6 @@ function ModalSkip (form, modalModel, navigationModel, ribbonMenu, taskContainer
         tracker.push('ModalSkip_ClickJump');
         self.showSkipMenu();
     };
-
-    /**
-     * Todo. This needs to be moved. Maybe to the Form.js, or other modules in Data
-     * @param skipReasonLabel
-     */
-    // this.skip = function (skipReasonLabel) {
-    //     var position = navigationModel.getPosition();
-    //     var incomplete = {
-    //         issue_description: skipReasonLabel,
-    //         lat: position.lat,
-    //         lng: position.lng
-    //     };
-    //     var task = taskContainer.getCurrentTask();
-    //     if (task) {
-    //         // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
-    //         task.eraseFromGoogleMaps();
-    //
-    //         if (skipReasonLabel == "GSVNotAvailable") {
-    //             task.complete();
-    //             taskContainer.push(task);  // Pushed to completed tasks.
-    //             util.misc.reportNoStreetView(task.getStreetEdgeId());
-    //         }
-    //
-    //         form.skipSubmit(incomplete, task);
-    //     }
-    //     taskContainer.initNextTask();
-    // };
 
     /**
      * This method handles a click OK event
