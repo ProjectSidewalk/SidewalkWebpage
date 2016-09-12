@@ -10,6 +10,7 @@ describe("ModalMissionComplete", function () {
     var mission;
     var statusModel;
     var modalModel;
+    var onboardingModel;
 
     beforeEach(function () {
         $uiModalMissionCompleteFixture = $('<div id="modal-mission-complete-holder"> \
@@ -103,7 +104,7 @@ describe("ModalMissionComplete", function () {
         statusModel.setMissionCompletionRate = function (completionRate) {
             this.trigger("StatusFieldMissionProgressBar:setCompletionRate", completionRate);
         };
-
+        onboardingModel = _.clone(Backbone.Events);
 
         modalMissionCompleteBarMock = {
             update: function () {}
@@ -119,7 +120,7 @@ describe("ModalMissionComplete", function () {
         missionContainerMock = new MissionContainerMock();
         modalMissionComplete = new ModalMissionComplete( {}, missionContainerMock, taskContainerMock,
             modalMissionCompleteMapMock, modalMissionCompleteBarMock, uiModalMissionComplete,
-            modalModel, statusModel);
+            modalModel, statusModel, onboardingModel);
 
         mission = new MissionMock();
         mission.properties.distanceMi = 0.7575;
@@ -288,6 +289,13 @@ describe("ModalMissionComplete", function () {
         });
     });
 
+    describe("In response to the `Onboarding:startOnboarding` event", function () {
+        it("should call the `hide` method", function () {
+            spyOn(modalMissionComplete, 'hide');
+            onboardingModel.trigger("Onboarding:startOnboarding");
+            expect(modalMissionComplete.hide).toHaveBeenCalled();
+        });
+    });
 
     // Mocks
     function MissionMock () {

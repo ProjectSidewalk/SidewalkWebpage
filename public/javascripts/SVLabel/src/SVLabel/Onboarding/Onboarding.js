@@ -29,7 +29,7 @@
  * @constructor
  */
 function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
-                     modalSkip, neighborhoodContainer, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
+                     modalSkip, neighborhoodContainer, onboardingModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;

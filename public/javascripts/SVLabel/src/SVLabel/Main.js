@@ -93,6 +93,7 @@ function Main (params) {
         svl.gameEffectModel = new GameEffectModel();
         svl.statusModel = new StatusModel();
         if (!("taskModel" in svl)) svl.taskModel = new TaskModel();
+        svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
         svl.tracker.push('TaskStart');
@@ -147,11 +148,11 @@ function Main (params) {
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
-            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel, svl.statusModel);
+            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel, svl.statusModel, svl.onboardingModel);
         svl.modalMissionComplete.hide();
 
-        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel);
-        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel);
+        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel, svl.onboardingModel);
+        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel);
         svl.modalSkip = new ModalSkip();
         svl.modalExample = new ModalExample(svl.modalModel, svl.ui.modalExample);
 
@@ -227,9 +228,10 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
-            // Todo. It should apss UserModel instead of User (i.e., svl.user)
+            // Todo. It should pass UserModel instead of User (i.e., svl.user)
+
             svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation, svl.map,
-                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, onboardingStates, svl.ribbon,
+                svl.missionContainer, svl.modalComment, svl.modalMission, svl.modalSkip, svl.neighborhoodContainer, svl.onboardingModel, onboardingStates, svl.ribbon,
                 svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
                 svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }
