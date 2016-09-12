@@ -1,9 +1,22 @@
-function StatusFieldNeighborhood (statusModel, uiStatus) {
+function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiStatus) {
     var self = this;
+    this._neighborhoodModel = neighborhoodModel;
     this._statusModel = statusModel;
+    this._userModel = userModel;
 
     this._statusModel.on("StatusFieldNeighborhood:setHref", function (href) {
         self.setHref(href);
+    });
+
+    this._neighborhoodModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
+        var newNeighborhood = parameters.newNeighborhood;
+        self.setNeighborhoodName(newNeighborhood.getProperty("name"));
+
+        var user = self._userModel.getUser();
+        if (user && user.getProperty("username") != "anonymous") {
+            var href = "/contribution/" + user.getProperty("username") + "?regionId=" + newNeighborhood.getProperty("regionId");
+            self.setHref(href);
+        }
     });
 
     this.setAuditedDistance = function (distance) {

@@ -18,6 +18,10 @@ describe("Compass module", function () {
         uiCompass.messageHolder = $compassFixture.find("#compass-message-holder");
         uiCompass.message = $compassFixture.find("#compass-message");
 
+        svl = {
+            rootDirectory: '/',
+            isOnboarding: function () { return false; }
+        };
         svl = { rootDirectory: '/' };
         svl.isOnboarding = function () { return false; };
 

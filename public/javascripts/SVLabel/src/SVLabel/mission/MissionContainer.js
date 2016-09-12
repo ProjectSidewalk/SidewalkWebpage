@@ -139,7 +139,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
 
     this.getIncompleteMissionsByRegionId = function (regionId) {
         var missions = self.getMissionsByRegionId(regionId);
-        return missions.filter(function (mission) { !mission.getProperty("isCompleted"); });
+        return missions.filter(function (mission) { return !mission.getProperty("isCompleted"); });
     };
 
     /**
@@ -160,6 +160,17 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         });
         return missions;
     }
+
+    this.getNeighborhoodCompleteMission = function (regionId) {
+        if (typeof regionId == "undefined") throw "MissionContainer.getNeighborhoodCompleteMission: regionId undefined";
+        var missions = self.getMissionsByRegionId(regionId);
+        missions = missions.filter(function (mission) {
+            return mission.getProperty("label") == "area-coverage-mission" &&
+                mission.getProperty("coverage") == 1.0;
+        });
+
+        return missions.length > 0 ? missions[0] : null;
+    };
 
     function getAvailableRegionIds () {
         return Object.keys(self._missionStoreByRegionId);
@@ -244,7 +255,6 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         return this;
     };
 
-
     self._onLoadComplete = _onLoadComplete;
     self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
@@ -252,8 +262,5 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.isTheFirstMission = isTheFirstMission;
-    // self.nextMission = nextMission;
-    // self.refresh = refresh;
-    // self.setCurrentMission = setCurrentMission;
 }
 

@@ -1,6 +1,7 @@
 /**
  * MissionProgress module.
  * Todo. Rename this... Probably some of these features should be moved to status/StatusFieldMission.js
+ * Todo. Get rid of neighborhoodContainer and taskContainer dependencies. Instead, communicate with them through neighborhoodModel and taskModel.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -10,11 +11,30 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
     var _modalModel = modalModel;
+    var _neighborhoodModel = neighborhoodModel;
 
     _missionModel.on("MissionProgress:update", function (parameters) {
         var mission = parameters.mission;
         var neighborhood = parameters.neighborhood;
         self.update(mission, neighborhood);
+    });
+
+    _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
+        // When the user has complete auditing all the streets in the neighborhood,
+        // show the 100% coverage mission completion message.
+        // The current neighborhood should have been updated
+        // before this event has been triggered (in NeighborhoodModel),
+        // so just select the first mission in the updated neighborhood.
+
+        var mission = missionContainer.getNeighborhoodCompleteMission(parameters.completedRegionId);
+        var neighborhood = neighborhoodModel.getNeighborhood(parameters.completedRegionId);
+
+        self._completeTheCurrentMission(mission, neighborhood);
+        _modalModel.updateModalMissionComplete(mission, neighborhood);
+        _modalModel.showModalMissionComplete();
+
+        var nextMission = missionContainer.nextMission(parameters.nextRegionId);
+        missionContainer.setCurrentMission(nextMission);
     });
 
     /**
@@ -80,7 +100,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     };
 
     /**
-     * Toco. This method should be moved to NeighborhoodContainer.
+     * Todo. This method should be moved to other place. Maybe NeighborhoodModel...
      * @param neighborhood
      * @private
      */
@@ -92,6 +112,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         taskContainer.fetchTasksInARegion(neighborhoodId, function () {
             // Jump to the new location.
             var newTask = taskContainer.nextTask();
+            if (!newTask) throw "You have audited all the streets in this neighborhood.";
             taskContainer.setCurrentTask(newTask);
             svl.map.moveToTheTaskLocation(newTask);
         }, false);  // Fetch tasks in the new region

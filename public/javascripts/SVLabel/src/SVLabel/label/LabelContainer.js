@@ -12,9 +12,6 @@ function LabelContainer($) {
 
     var neighborhoodLabels = {};
 
-    function _init() {
-    }
-
     function countLabels(regionId) {
         if (regionId) {
             if (regionId in neighborhoodLabels) {
@@ -166,6 +163,5 @@ function LabelContainer($) {
     self.removeLabel = removeLabel;
 //    self.save = save;
 
-    _init();
     return self;
 }

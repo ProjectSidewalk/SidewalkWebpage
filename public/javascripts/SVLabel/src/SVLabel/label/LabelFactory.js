@@ -1,13 +1,12 @@
 /**
  * LabelFactory module.
- * @returns {{className: string}}
+ * @param svl Todo. Try to get rid of svl dependency
  * @constructor
  */
 function LabelFactory (svl) {
-    var self = { className: "LabelFactory" },
-        temporaryLabelId = 1;
+    var temporaryLabelId = 1;
 
-    function create (path, param) {
+    this.create = function (path, param) {
         if (path) {
             var label = new Label(svl, path, param);
             if (label) {
@@ -18,12 +17,8 @@ function LabelFactory (svl) {
                 return label;
             }
         } else {
-            // Todo. Need to be rewritten.
             path = new Path(svl, [new Point(svl, 0, 0, {}, {})]);
             return new Label(svl, path, param);
         }
-    }
-
-    self.create = create;
-    return self;
+    };
 }

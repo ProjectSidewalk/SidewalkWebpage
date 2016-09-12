@@ -39,6 +39,8 @@ function Task (geojson, currentLat, currentLng) {
 
         if (currentLat && currentLng) {
             this.setStreetEdgeDirection(currentLat, currentLng);
+        } else {
+            _furthestPoint = turf.point([currentLng, currentLat]);
         }
 
         paths = null;
@@ -197,7 +199,7 @@ function Task (geojson, currentLat, currentLng) {
         if (coordinates.length > 1) {
             return this._coordinatesToSegments(coordinates);
         } else {
-            console.error("`Task._getSegmentsToAPoint` returned only 1 coordinate");
+            // console.error("`Task._getSegmentsToAPoint` returned only 1 coordinate");
             return [];
         }
     };
@@ -246,6 +248,7 @@ function Task (geojson, currentLat, currentLng) {
     }
 
     this._hasAdvanced = function (currentLat, currentLng) {
+        if (typeof _furthestPoint == "undefined") return false;
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];
         var distanceAtTheFurthestPoint = this.getDistanceFromStart(latFurthest, lngFurthest);
@@ -340,6 +343,7 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     this.getAuditedDistance = function (unit) {
+        if (typeof _furthestPoint == "undefined") return 0;
         if (!unit) unit = "kilometers";
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];

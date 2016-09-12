@@ -29,7 +29,7 @@
  * @constructor
  */
 function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
-                     modalSkip, neighborhoodContainer, onboardingModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
+                     modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
@@ -269,7 +269,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         modalMission.setMissionMessage(mission, neighborhood);
         modalMission.show();
 
-        taskContainer.initNextTask();
+        var nextTask = taskContainer.nextTask();
+        if (!nextTask) {
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            nextTask = taskContainer.nextTask();
+        }
+        taskContainer.initNextTask(nextTask);
     }
 
     function _onboardingStateAnnotationExists (state) {

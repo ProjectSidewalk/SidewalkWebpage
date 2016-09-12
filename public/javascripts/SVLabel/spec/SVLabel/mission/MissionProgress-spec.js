@@ -15,9 +15,16 @@ describe("MissionProgress module", function () {
     beforeEach(function () {
         svl = { isOnboarding: function () { return false; }};
         gameEffectModel = _.clone(Backbone.Events);
+        gameEffectModel.playAudio = function () {};
+
         missionModel  = _.clone(Backbone.Events);
+        missionModel.completeMission = function () {};
+
         modalModel = _.clone(Backbone.Events);
         neighborhoodModel = _.clone(Backbone.Events);
+
+        neighborhoodModel.getNeighborhood = function (regionId) { return new NeighborhoodMock(regionId); };
+
         statusModel = _.clone(Backbone.Events);
         missionContainer = new MissionContainerMock();
         neighborhoodContainer = new NeighborhoodContainerMock();
@@ -49,25 +56,6 @@ describe("MissionProgress module", function () {
             neighborhood = new NeighborhoodMock();
         });
 
-        it("should call `_completeTheCurrentMission` if the mission is completed", function () {
-            mission.getMissionCompletionRate = function () { return 0; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._completeTheCurrentMission).not.toHaveBeenCalled();
-
-            mission.getMissionCompletionRate = function () { return 1.0; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._completeTheCurrentMission).toHaveBeenCalled();
-        });
-
-        it("should call `_updateTheCurrentMission` if the mission is completed", function () {
-            mission.getMissionCompletionRate = function () { return 0; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._updateTheCurrentMission).not.toHaveBeenCalled();
-
-            mission.getMissionCompletionRate = function () { return 1; };
-            missionProgress._checkMissionComplete(mission, neighborhood);
-            expect(missionProgress._updateTheCurrentMission).toHaveBeenCalled();
-        });
 
         it("should call `ModalModel.updateModalMissionComplete` if the mission is completed", function () {
             mission.getMissionCompletionRate = function () { return 0; };
@@ -89,6 +77,8 @@ describe("MissionProgress module", function () {
             expect(modalModel.showModalMissionComplete).toHaveBeenCalled();
         });
     });
+
+
 
     describe("`_updateTheCurrentMission` method", function () {
         beforeEach(function () {
@@ -207,16 +197,26 @@ describe("MissionProgress module", function () {
         });
     });
 
-    describe("in response to events", function () {
-        beforeEach(function () {
+    describe("in response to `Neighborhood:completed` event", function () {
+        it("should assign the new mission in a different neighborhood", function () {
+            missionContainer.setCurrentMission(mission);
+            
+            var currentMission = missionContainer.getCurrentMission();
+            var parameters = {
+                completedRegionId: 1,
+                nextRegionId: 2
+            };
 
+            neighborhoodModel.trigger("Neighborhood:completed", parameters);
+            var newMission = missionContainer.getCurrentMission();
+            expect(currentMission).not.toBe(newMission);
         });
     });
 
     function MissionMock () {
         this._properties = {
             missionId: null,
-            coverrage: null,
+            coverage: null,
             distance: null,
             distanceFt: null,
             distanceMi: null,
@@ -228,6 +228,7 @@ describe("MissionProgress module", function () {
         };
 
         this.adjustTheTargetDistance = function () { };
+        this.complete = function () { this._properties.completed = true; }
     }
 
     MissionMock.prototype.getProperty = function (key) {
@@ -249,6 +250,8 @@ describe("MissionProgress module", function () {
     function MissionContainerMock () {
         this._missionStoreByRegionId = {};
         this._status = { currentMission: null };
+        this.getCurrentMission = function () { return this._status.currentMission; };
+        this.getNeighborhoodCompleteMission = function () { return new MissionMock(); };
         this.getIncompleteMissionsByRegionId = function (regionId) { return [ ]; };
         this.nextMission = function () { return new MissionMock(); };
         this.setCurrentMission = function (mission) { this._status.currentMission = mission; };

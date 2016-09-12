@@ -118,6 +118,37 @@ describe("MissionContainer module.", function () {
         });
     });
 
+    describe("`getIncompleteMissionsByRegionId` method", function () {
+        beforeEach(function () {
+            m1_n1.properties.isCompleted = true;
+            m1_n2.properties.isCompleted = true;
+            missionContainer.add(1, m1_n1);
+            missionContainer.add(1, m2_n1);
+            missionContainer.addToCompletedMissions(m1_n1);
+        });
+
+        it("should return the incomplete missions in the specified neighborhood", function () {
+            var missions = missionContainer.getIncompleteMissionsByRegionId(1);
+            expect(missions.length).toBe(1);
+        });
+    });
+
+    describe("`getNeighborhoodCompleteMission` method", function () {
+        var m_100percent;
+        beforeEach(function () {
+            missionContainer.add(1, m1_n1);
+            missionContainer.add(1, m2_n1);
+            m_100percent = missionFactory.create(1, 100, "area-coverage-mission", 1, 1000, 1000, 1, 1.0, false);
+
+            missionContainer.add(1, m_100percent);
+        });
+
+        it("should find the area-coverage-mission", function () {
+            var m = missionContainer.getNeighborhoodCompleteMission(1);
+            expect(m).toBe(m_100percent);
+        });
+    });
+
     describe("`nextMission` method", function () {
         beforeEach(function () {
             missionContainer.refresh();

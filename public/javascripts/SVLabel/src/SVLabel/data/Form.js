@@ -1,12 +1,11 @@
 /**
  * A form module. This module is responsible for communicating with the server side for submitting collected data.
- * @param $ {object} jQuery object
  * @param params {object} Other parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Form ($, params) {
+function Form (navigationModel, neighborhoodModel, taskContainer, params) {
     var self = { className : 'Form'},
         properties = {
             commentFieldMessage: undefined,
@@ -39,10 +38,10 @@ function Form ($, params) {
 
     function _init (params) {
         var params = params || {};
-        var hasGroupId = getURLParameter('groupId') !== "";
-        var hasHitId = getURLParameter('hitId') !== "";
-        var hasWorkerId = getURLParameter('workerId') !== "";
-        var assignmentId = getURLParameter('assignmentId');
+        var hasGroupId = util.getURLParameter('groupId') !== "";
+        var hasHitId = util.getURLParameter('hitId') !== "";
+        var hasWorkerId = util.getURLParameter('workerId') !== "";
+        var assignmentId = util.getURLParameter('assignmentId');
 
         properties.dataStoreUrl = "dataStoreUrl" in params ? params.dataStoreUrl : null;
 
@@ -99,11 +98,9 @@ function Form ($, params) {
             if ("tracker" in svl) {
                 svl.tracker.push("Unload");
             }
-            if ("taskContainer" in svl) {
-                var task = svl.taskContainer.getCurrentTask();
-                var data = compileSubmissionData(task);
-                submit(data, task, false);
-            }
+            var task = taskContainer.getCurrentTask();
+            var data = compileSubmissionData(task);
+            submit(data, task, false);
         });
     }
 
@@ -349,24 +346,50 @@ function Form ($, params) {
         return this;
     }
 
+    self._prepareSkipData = function (issueDescription) {
+        var position = navigationModel.getPosition();
+        return {
+            issue_description: issueDescription,
+            lat: position.lat,
+            lng: position.lng
+        };
+    };
+
+    self.skip = function (task, skipReasonLabel) {
+        var data = self._prepareSkipData(skipReasonLabel);
+
+        if (skipReasonLabel == "GSVNotAvailable") {
+            task.complete();
+            taskContainer.push(task);
+            util.misc.reportNoStreetView(task.getStreetEdgeId());
+        }
+
+        task.eraseFromGoogleMaps();
+        self.skipSubmit(data, task);
+
+        var nextTask = taskContainer.nextTask(task);
+        if (!nextTask) {
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            nextTask = taskContainer.nextTask();
+        }
+        taskContainer.initNextTask(nextTask);
+    };
+
     /**
      * Submit the data collected so far and move to another location.
      * 
-     * Todo. I hate the fact that this method sets the new task as a side effect. Need to fix.
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
     function skipSubmit (dataIn, task) {
         svl.tracker.push('TaskSkip');
-        // var task = svl.taskContainer.getCurrentTask();
+
         var data = compileSubmissionData(task);
         data.incomplete = dataIn;
+
         submit(data, task);
-
-        // if ("taskContainer" in svl) {
-        //     svl.taskContainer.initNextTask(task);
-        // }
-
         return false;
     }
 

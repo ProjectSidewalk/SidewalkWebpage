@@ -1,13 +1,14 @@
 /**
  * Mission module
+ * Todo. Needs clean up
  * @param parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
 function Mission(parameters) {
-    var self = { className: "Mission" },
-        properties = {
+    var self = this;
+    var properties = {
             auditDistance: null,
             auditDistanceFt: null,
             auditDistanceMi: null,
@@ -44,15 +45,19 @@ function Mission(parameters) {
             self.distance = parameters.distance;  // For debugging. You don't actually need this.
 
             if (parameters.label == "initial-mission") {
-                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have completed the first mission. Keep making the city more accessible!";
+                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets " +
+                    "in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have completed the first mission. " +
+                    "Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
             } else if (parameters.label == "distance-mission") {
                 var distance = parameters.distance;
                 var distanceString = imperialDistance();
 
-                instruction = "Your goal is to <span class='bold'>audit " + distanceString + " of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have successfully made " + distanceString + " of this neighborhood accessible.";
+                instruction = "Your goal is to <span class='bold'>audit " + distanceString +
+                    " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + distanceString +
+                    " of this neighborhood accessible.";
 
                 if (distance == 500) {
                     // 2000 ft
@@ -68,8 +73,10 @@ function Mission(parameters) {
                 }
             } else if (parameters.label == "area-coverage-mission") {
                 var coverage = parameters.coverage, coverageString = coverage + "%";
-                instruction = "Your goal is to <span class='bold'>audit " + coverageString + " of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have successfully made " + coverageString + " of this neighborhood accessible.";
+                instruction = "Your goal is to <span class='bold'>audit " + coverageString +
+                    " of the streets in this neighborhood and find the accessibility attributes!";
+                completionMessage = "Good job! You have successfully made " + coverageString +
+                    " of this neighborhood accessible.";
                 badgeURL = svl.rootDirectory + "/img/misc/Badge" + coverage + "Percent.png";
             } else if (parameters.label == "onboarding") {
 
@@ -157,66 +164,6 @@ function Mission(parameters) {
         var completedTasks = _tasksForTheMission.filter(function (t) { return t.isCompleted(); });
         var distances = completedTasks.map(function (t) { return t.lineDistance(unit); });
         return distances.sum();
-    }
-
-    /**
-     * Todo. WARNING. This method is not completed yet. DO NOT USE.
-     * @param currentTask
-     * @param unit
-     * @returns {*}
-     */
-    function computeRoute (currentTask, unit) {
-        if ("taskContainer" in svl && svl.taskContainer && "neighborhoodContainer" in svl && svl.neighborhoodContainer) {
-            if (!unit) unit = "kilometers";
-            var tmpDistance  = currentTask.lineDistance(unit);
-            var tasksInARoute = [currentTask];
-            var targetDistance = properties.distance / 1000;
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(); // Todo. Pass this as a parameter
-            var incompleteTasks = svl.taskContainer.getIncompleteTasks(neighborhood.getProperty("regionId"));
-            var connectedTasks;
-            var currentTaskIndex;
-            var lastCoordinate;
-            var lastPoint;
-
-            if (targetDistance < tmpDistance && incompleteTasks.length == 0) {
-                return tasksInARoute;
-            }
-
-            // Check if there are any street edges connected to the last coordinate of currentTask's street edge.
-            lastCoordinate = currentTask.getLastCoordinate();
-            lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
-            connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
-            if (connectedTasks.length == 0) {
-                // Reverse the coordinates in the currentTask's street edge if there are no street edges connected to the current last coordinate
-                currentTask.reverseCoordinates();
-                lastCoordinate = currentTask.getLastCoordinate();
-                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
-                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
-            }
-
-            // Compute a route
-            while (targetDistance > tmpDistance && incompleteTasks.length > 0) {
-                lastCoordinate = currentTask.getLastCoordinate();
-                lastPoint = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
-                connectedTasks = incompleteTasks.filter(function (t) { return t.isConnectedToAPoint(lastPoint) && tasksInARoute.indexOf(t) < 0});
-
-                if (connectedTasks.length > 0) {
-                    connectedTasks = util.shuffle(connectedTasks);
-                    currentTask = connectedTasks[0];
-                } else {
-                    incompleteTasks = util.shuffle(incompleteTasks);  // Shuffle the incommplete tasks
-                    currentTask = incompleteTasks[0];  // get the first item in the array
-                }
-                currentTaskIndex = incompleteTasks.indexOf(currentTask);
-                incompleteTasks.splice(currentTaskIndex, 1);  // Remove the current task from the incomplete tasks
-
-                tasksInARoute.push(currentTask);
-                tmpDistance +=  currentTask.lineDistance(unit);
-            }
-            return tasksInARoute;
-        } else {
-            return null;
-        }
     }
 
     /**
@@ -365,7 +312,6 @@ function Mission(parameters) {
 
     self.complete = complete;
     self.completedLineDistance = completedLineDistance;
-    self.computeRoute = computeRoute;
     self.getLabelCount = getLabelCount;
     self.getProperty = getProperty;
     self.getRoute = getRoute;
@@ -377,6 +323,4 @@ function Mission(parameters) {
     self.toString = toString;
     self.toSubmissionFormat = toSubmissionFormat;
     self.totalLineDistance = totalLineDistance;
-
-    return self;
 }

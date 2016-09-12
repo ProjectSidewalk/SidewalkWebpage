@@ -13,7 +13,7 @@ describe("NeighborhoodFactory module.", function () {
     });
 
     describe("`create` method", function () {
-        it("create a neighborhood", function () {
+        it("should create a neighborhood", function () {
             var neighborhood = neighborhoodFactory.create(1, null, "Test");
             expect(neighborhood.getProperty("regionId")).toBe(1);
         });

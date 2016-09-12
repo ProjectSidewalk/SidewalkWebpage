@@ -1,5 +1,6 @@
 function NeighborhoodModel () {
     var self = this;
+    this._neighborhoodContainer = null;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -32,6 +33,15 @@ NeighborhoodModel.prototype.create = function (regionId, layer, name) {
     this.trigger("NeighborhoodFactory:create", parameters);
 };
 
+NeighborhoodModel.prototype.currentNeighborhood = function () {
+    if (!this._neighborhoodContainer) return null;
+    return this._neighborhoodContainer.getCurrentNeighborhood();
+};
+
+/**
+ * Todo. The method name is confusing. Make it clear that this method just updates the remote database.
+ * @param regionId
+ */
 NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
     regionId = parseInt(regionId, 10);
     var url = "/neighborhood/assignment";
@@ -51,6 +61,36 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
     });
 };
 
-NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
+NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {
+    if (!this._neighborhoodContainer) return null;
+    return this._neighborhoodContainer.get(neighborhoodId);
+};
 
+NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
+    if (!this._neighborhoodContainer) return;
+
+    var nextNeighborhoodId = this.nextRegion(currentNeighborhoodId);
+    var nextNeighborhood = this._neighborhoodContainer.get(nextNeighborhoodId);
+
+    this.setCurrentNeighborhood(nextNeighborhood);
+    this.moveToANewRegion(nextNeighborhoodId);
+
+    var parameters = {
+        completedRegionId: currentNeighborhoodId,
+        nextRegionId: nextNeighborhoodId
+    };
+    this.trigger("Neighborhood:completed", parameters);
+};
+
+NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
+    if (!this._neighborhoodContainer) return null;
+
+    var availableRegionIds = this._neighborhoodContainer.getRegionIds();
+    return this._neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
+};
+
+NeighborhoodModel.prototype.setCurrentNeighborhood = function (neighborhood) {
+    if (this._neighborhoodContainer) {
+        this._neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+    }
 };
