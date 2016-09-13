@@ -321,6 +321,15 @@ function Main (params) {
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
             } else {
+                // If the user has completed the onboarding mission but the data is only stored in the browser
+                // because the user completed it as an anonymous user, store the record on the server.
+                var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+                var hasCompletionRecordStored = onboardingMission.getProperty("isCompleted");
+                if (svl.user.getProperty("username") !== "anonymous" && !hasCompletionRecordStored) {
+                    onboardingMission.setProperty("isCompleted", true);
+                    svl.missionModel.completeMission(onboardingMission, null);
+                }
+
                 mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
