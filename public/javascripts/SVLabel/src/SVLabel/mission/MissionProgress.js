@@ -6,7 +6,8 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel, missionContainer, neighborhoodContainer, taskContainer) {
+function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel,
+                          missionContainer, neighborhoodContainer, taskContainer, tracker) {
     var self = this;
     var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
@@ -37,12 +38,24 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         missionContainer.setCurrentMission(nextMission);
     });
 
+
+
     /**
      * Finish the mission.
      * @param mission
      */
     this._completeTheCurrentMission = function (mission, neighborhood) {
+        tracker.push(
+            "MissionComplete",
+            {
+                missionLabel: mission.getProperty("label"),
+                missionDistance: mission.getProperty("distance"),
+                neighborhoodId: neighborhood.getProperty("regionId")
+            }
+        );
         mission.complete();
+
+        // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
         _gameEffectModel.playAudio({audioType: "applause"});
 
@@ -53,7 +66,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             svl.statusFieldNeighborhood.setLabelCount(count);
         }
 
-        _missionModel.completeMission(mission);
+        _missionModel.completeMission(mission, neighborhood);
     };
 
     this._completeMissionsWithSatisfiedCriteria = function (neighborhood) {

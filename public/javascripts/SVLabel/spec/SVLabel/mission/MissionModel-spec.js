@@ -23,7 +23,7 @@ describe("MissionModel", function () {
             expect(spy.called).toBe(true);
 
             var args = spy.getCalls()[0].args;
-            expect(args).toEqual([missionMock]);
+            expect(args[0].mission).toEqual(missionMock);
             done();
         });
     });

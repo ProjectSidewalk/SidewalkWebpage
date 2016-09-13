@@ -3,6 +3,7 @@ describe("Form module", function () {
     var formParameters;
 
     var labelContainer;
+    var missionModel;
     var navigationModel;
     var neighborhoodModel;
     var panoramaContainer;
@@ -11,6 +12,7 @@ describe("Form module", function () {
 
     beforeEach(function () {
         labelContainer = new LabelContainerMock();
+        missionModel = _.clone(Backbone.Events);
         navigationModel = _.clone(Backbone.Events);
         navigationModel.getPosition = function () { return { lat: 0, lng: 0 }; };
         neighborhoodModel = _.clone(Backbone.Events);
@@ -20,7 +22,7 @@ describe("Form module", function () {
         tracker = new TrackerMock();
 
         formParameters = {};
-        form = new Form(labelContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, formParameters);
+        form = new Form(labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, formParameters);
     });
 
 
@@ -83,6 +85,20 @@ describe("Form module", function () {
                 form.skip(task, "GSVNotAvailable");
                 expect(util.misc.reportNoStreetView).toHaveBeenCalled();
             });
+        });
+    });
+
+    describe("In response to `MissionProgress:complete` event", function () {
+        it("it should submit the collected data", function () {
+            spyOn(taskContainer, 'getCurrentTask');
+            spyOn(form, 'compileSubmissionData');
+            spyOn(form, 'submit');
+
+            missionModel.trigger("MissionProgress:complete");
+
+            expect(taskContainer.getCurrentTask).toHaveBeenCalled();
+            expect(form.compileSubmissionData).toHaveBeenCalled();
+            expect(form.submit).toHaveBeenCalled();
         });
     });
 

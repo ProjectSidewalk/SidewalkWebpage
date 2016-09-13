@@ -38,7 +38,7 @@ describe("MissionContainer module.", function () {
         });
 
         it("should add the completed mission to `completedMissions`", function (done) {
-            missionModel.trigger("MissionProgress:complete", m1_n1);
+            missionModel.trigger("MissionProgress:complete", { mission: m1_n1 });
 
             var missions = missionContainer.getCompletedMissions();
             expect(missions).toEqual([m1_n1]);

@@ -11,6 +11,7 @@ describe("MissionProgress module", function () {
     var taskContainer;
     var mission;
     var neighborhood;
+    var tracker;
 
     beforeEach(function () {
         svl = { isOnboarding: function () { return false; }};
@@ -29,6 +30,7 @@ describe("MissionProgress module", function () {
         missionContainer = new MissionContainerMock();
         neighborhoodContainer = new NeighborhoodContainerMock();
         taskContainer = new TaskContainerMock();
+        tracker = new TrackerMock();
 
         modalModel.updateModalMissionComplete = function (mission, neighborhood) {
             this.trigger("ModalMissionComplete:update", { mission: mission, neighborhood: neighborhood });
@@ -42,7 +44,7 @@ describe("MissionProgress module", function () {
         statusModel.setProgressBar = function (completionRate) {};
 
         missionProgress = new MissionProgress(svl, gameEffectModel, missionModel, modalModel, neighborhoodModel,
-            statusModel, missionContainer, neighborhoodContainer, taskContainer);
+            statusModel, missionContainer, neighborhoodContainer, taskContainer, tracker);
     });
 
     describe("`_checkMissionComplete` method", function () {
@@ -281,6 +283,10 @@ describe("MissionProgress module", function () {
     function TaskContainerMock () {
         this.fetchTasksInARegion = function (neighborhoodId) {};
         this.getIncompleteTaskDistance = function () { return 0; };
+    }
+
+    function TrackerMock () {
+        this.push = function (item) {};
     }
 
     function UserMock () {

@@ -15,7 +15,8 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
 
     var _missionModel = missionModel;
 
-    _missionModel.on("MissionProgress:complete", function (mission) {
+    _missionModel.on("MissionProgress:complete", function (parameters) {
+        var mission = parameters.mission;
         self.addToCompletedMissions(mission);
         _missionModel.submitMissions([mission]);
     });

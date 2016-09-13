@@ -9,6 +9,7 @@ describe("Onboarding module", function () {
     var handAnimation;
     var mapService;
     var missionContainer;
+    var missionModel;
     var modalComment;
     var modalMission;
     var modalSkip;
@@ -41,6 +42,7 @@ describe("Onboarding module", function () {
         handAnimation = new HandAnimationMock();
         mapService = new MapServiceMock();
         missionContainer = new MissionContainerMock();
+        missionModel = _.clone(Backbone.Events);
         modalMission = new ModalMissionMock();
         neighborhoodContainer = new NeighborhoodContainerMock();
         neighborhoodModel = _.clone(Backbone.Events);
@@ -62,7 +64,7 @@ describe("Onboarding module", function () {
         uiOnboarding.canvas = $uiOnboardingFixture.find("#onboarding-canvas");
         uiOnboarding.handGestureHolder = $uiOnboardingFixture.find("#hand-gesture-holder");
 
-        onboarding = new Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer,
+        onboarding = new Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, missionModel,
             modalComment, modalMission, modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel,
             storage, taskContainer, tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl)
     });

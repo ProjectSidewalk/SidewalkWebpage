@@ -28,7 +28,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
+function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, missionModel, modalComment, modalMission,
                      modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
@@ -257,7 +257,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
             onboardingMission.setProperty("isCompleted", true);
-            missionContainer.addToCompletedMissions(onboardingMission);
+            // missionContainer.addToCompletedMissions(onboardingMission);
+            missionModel.completeMission(onboardingMission, null);
         }
 
         // Set the next mission

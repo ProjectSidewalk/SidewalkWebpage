@@ -10,11 +10,17 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, params) {
+function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, params) {
     var self = this;
     var properties = {
         dataStoreUrl : undefined
     };
+
+    missionModel.on("MissionProgress:complete", function (parameters) {
+        var task = taskContainer.getCurrentTask();
+        var data = self.compileSubmissionData(task);
+        self.submit(data, task);
+    });
 
     /**
      * This method gathers all the data needed for submission.
