@@ -145,3 +145,14 @@ p {
     border: solid 1px #eee;
     width: 240px;
 }
+
+kbd {
+    /*overriding bootstraps's ugly kbd tag*/
+    background-color: white;
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    color: #444;
+    font-weight:normal;
+    font-size: small;
+}
