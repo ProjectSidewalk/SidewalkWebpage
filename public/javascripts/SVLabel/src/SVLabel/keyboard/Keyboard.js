@@ -96,29 +96,18 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
             return;
         }
 
-        // This is a callback method that is triggered when a keyDown event occurs.
+        /*
+         This is a callback method that is triggered when a keyDown
+         event occurs and focus is not on ContextMenu's textbox.
+         */
         if (!status.focusOnTextField) {
             var label;
             switch (e.keyCode) {
-                // "Enter"
-                case 13:
-                    if (contextMenu.isOpen()) {
-                        contextMenu.hide();
-                    }
-                    break;
                 case 16:
                     // "Shift"
                     status.shiftDown = false;
                     break;
-                case 27:
-                    // "Escape"
-                    if (canvas.getStatus('drawing')) {
-                        canvas.cancelDrawing();
-                    } else {
-                        ribbon.backToWalk();
-                    }
-                    break;
-                    case 49:  // "1"
+                case 49:  // "1"
                     if (contextMenu.isOpen()) {
                         contextMenu.checkRadioButton(1);
                         label = contextMenu.getTargetLabel();
@@ -209,6 +198,27 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         zoomControl.zoomIn();
                     }
             }
+        }
+
+        /*
+         This is a callback method that is triggered when a keyDown
+         event occurs. It is not relevant to ContextMenu's textbox focus.
+         */
+        switch (e.keyCode) {
+            case 13:
+                // "Enter"
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                }
+                break;
+            case 27:
+                // "Escape"
+                if (canvas.getStatus('drawing')) {
+                    canvas.cancelDrawing();
+                } else {
+                    ribbon.backToWalk();
+                }
+                break;
         }
 
         contextMenu.updateRadioButtonImages();
