@@ -169,6 +169,7 @@
             <div class="col-lg-12">
                 <p>Last 100 comments</p>
                 <table class="table table-striped table-condensed">
+                    <thead>
                         <tr><th class="col-md-2">Username</th>
                             <th class="col-md-3">Timestamp</th>
                             <th class="col-md-2">Panorama Id</th>
@@ -241,8 +242,9 @@
     <script>
         $(document).ready(function () {
             window.admin = Admin (_, $, c3, turf);
-            $('#labelTable').dataTable();
+//            $('#labelTable').dataTable();
             $('#userTable').dataTable();
+            $('#labelTable').dataTable();
 
 
         });
