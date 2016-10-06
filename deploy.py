@@ -8,9 +8,10 @@ import datetime
 import re
 import time
 
-remote_home_directory = "/nfshomes/kotaro"
+remote_home_directory = "/var/www/html/sidewalk"
 sidewalk_app_directory = remote_home_directory + "/sidewalk-webpage"
-hostname="sidewalk.umiacs.umd.edu"
+hostname = "sidewalk.umiacs.umd.edu"
+
 
 def transfer_a_zipfile(zip_file_path, username, password):
     zip_file_name = os.path.split(zip_file_path)[1]
@@ -31,14 +32,15 @@ def transfer_a_zipfile(zip_file_path, username, password):
     sftp.close()
     transport.close()
 
+
 def unzip_remote_file(client, zip_file_name):
     """Unzip and run the application"""
     print "Unzipping the files"
-    command = "unzip %s -d %s" % (sidewalk_app_directory + "/" + zip_file_name, sidewalk_app_directory)
+    command = "unzip %s -d %s" % (sidewalk_app_directory +
+                                  "/" + zip_file_name, sidewalk_app_directory)
     stdin, stdout, stderr = client.exec_command(command, timeout=30)
     stdout.read()
     print "Finished unzipping the files"
-
 
 
 def run_application(client):
@@ -49,7 +51,6 @@ def run_application(client):
     print "Started running the application."
 
 
-
 def move_existing_application(client):
     """Check if the sidewalk-webpage directory exists already. If so, change the name of the directory"""
     print "Checking if the directory `sidewalk-webpage` already exists"
@@ -57,12 +58,14 @@ def move_existing_application(client):
     stdin, stdout, stderr = client.exec_command(command)
     ls_output = stdout.read().split("\n")
     if "sidewalk-webpage" in ls_output:
-        print "Chainging the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
-        command = "mv %s %s" % (sidewalk_app_directory + "/sidewalk-webpage", sidewalk_app_directory + "/_sidewalk-webpage")
+        print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
+        command = "mv %s %s" % (sidewalk_app_directory + "/sidewalk-webpage",
+                                sidewalk_app_directory + "/_sidewalk-webpage")
         stdin, stdout, stderr = client.exec_command(command)
         stdout.read()
     else:
         print "Directory `sidewalk-webpage` does not exist"
+
 
 def remove_previous_application(client):
     """Remove the application that was previously here"""
@@ -83,10 +86,12 @@ def rename_new_application_directory(client, zip_file_name):
     """Change the directory name from `sidewalk-webpage-[Date]`to `sidewalk-webpage` and run the app"""
     unzipped_dir_name = zip_file_name.replace(".zip", "")
     print "Changing the directory name from %s to %s" % (unzipped_dir_name, "sidewalk-webpage")
-    command = "mv %s %s" % (sidewalk_app_directory + "/" + unzipped_dir_name, sidewalk_app_directory + "/sidewalk-webpage")
+    command = "mv %s %s" % (sidewalk_app_directory + "/" +
+                            unzipped_dir_name, sidewalk_app_directory + "/sidewalk-webpage")
     stdin, stdout, stderr = client.exec_command(command)
     stdout.read()
     print "Finished renaming"
+
 
 def add_timestamp_to_the_footer():
 
@@ -95,12 +100,13 @@ def add_timestamp_to_the_footer():
 
         timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
-                               """<span id="application-version">Last updated: """ + timestamp + """</span>""",
-                               file_contents)
+                                   """<span id="application-version">Last updated: """ + timestamp + """</span>""",
+                                   file_contents)
 
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
+
 
 def remove_timestamp_from_the_footer():
     with file("./app/views/main.scala.html", "r+") as f:
@@ -108,7 +114,6 @@ def remove_timestamp_from_the_footer():
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
                                    """<span id="application-version"></span>""",
                                    file_contents)
-
 
         f.seek(0)
         f.write(new_file_contents)
