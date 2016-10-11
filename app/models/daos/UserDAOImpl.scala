@@ -67,7 +67,28 @@ object UserDAOImpl {
   }
 
   /*
-  * Counts the number of users who contributedtoday.
+   * Counts anonymous user records
+   * Date: Oct 10, 2016
+   */
+
+  def count_anonymous_users: Int = db.withSession { implicit session =>
+
+    val countAUsers = Q.queryNA[(Int)](
+      """select count(distinct ip_address)
+        |from sidewalk.audit_task_environment
+        |where audit_task_id in (select audit_task_id
+        |						from sidewalk.audit_task
+        |						where user_id = (select user_id
+        |						                 from sidewalk.user
+        |						                 where username = 'anonymous')
+        |						      and completed = true);""".stripMargin
+    )
+    val records = countAUsers.list
+    return records.head
+  }
+
+  /*
+  * Counts the number of users who contributed today.
   * Author: Manaswi Saha
   * Date: Aug 28, 2016
   */
@@ -85,7 +106,7 @@ object UserDAOImpl {
   }
 
   /*
-  * Counts the number of users who contributedtoday.
+  * Counts the number of users who contributed yesterday.
   * Author: Manaswi Saha
   * Date: Aug 28, 2016
   */
