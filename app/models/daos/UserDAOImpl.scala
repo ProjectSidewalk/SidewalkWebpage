@@ -58,6 +58,11 @@ object UserDAOImpl {
   val userTable = TableQuery[UserTable]
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
+  case class AnonymousUserProfile(ipAddress: String,
+                                  missionCount: Int, auditCount: Int,
+                                  labelCount: Int)
+  case class AnonymousUserRecords(ipAddress: String, taskId: Int)
+
   def all: List[DBUser] = db.withTransaction { implicit session =>
     userTable.list
   }
@@ -65,16 +70,15 @@ object UserDAOImpl {
   def size: Int = db.withTransaction { implicit session =>
     userTable.list.size
   }
-
   /*
-   * Counts anonymous user records
-   * Date: Oct 10, 2016
+   * Gets anonymous user records
+   * Date: Oct 11, 2016
    */
 
-  def count_anonymous_users: Int = db.withSession { implicit session =>
+  def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
 
-    val countAUsers = Q.queryNA[(Int)](
-      """select count(distinct ip_address)
+    val anonUsers = Q.queryNA[(String, Int)](
+      """select ip_address, audit_task_id
         |from sidewalk.audit_task_environment
         |where audit_task_id in (select audit_task_id
         |						from sidewalk.audit_task
@@ -83,8 +87,38 @@ object UserDAOImpl {
         |						                 where username = 'anonymous')
         |						      and completed = true);""".stripMargin
     )
-    val records = countAUsers.list
-    return records.head
+    anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
+  }
+
+  /*
+   * Counts anonymous user records
+   * Date: Oct 10, 2016
+   */
+
+  def countAnonymousUsers: Int = db.withSession { implicit session =>
+
+    val anonUsers = getAnonymousUsers
+    anonUsers.groupBy(_.ipAddress).keySet.size
+  }
+
+  /*
+   * Counts anonymous user records
+   * Date: Oct 11, 2016
+   */
+
+  def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
+
+    val countAUsers = Q.queryNA[(String, Int, Int, Int)](
+      """select ip_address, mission_count, audit_count, label_count
+        |from sidewalk.audit_task_environment
+        |where audit_task_id in (select audit_task_id
+        |						from sidewalk.audit_task
+        |						where user_id = (select user_id
+        |						                 from sidewalk.user
+        |						                 where username = 'anonymous')
+        |						      and completed = true);""".stripMargin
+    )
+    countAUsers.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
   }
 
   /*
