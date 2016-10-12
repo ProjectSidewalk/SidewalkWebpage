@@ -97,7 +97,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
         }
 
         /*
-         This is a callback method that is triggered when a keyDown
+         This is a callback method that is triggered when a keyUp
          event occurs and focus is not on ContextMenu's textbox.
          */
         if (!status.focusOnTextField) {
@@ -201,7 +201,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
         }
 
         /*
-         This is a callback method that is triggered when a keyDown
+         This is a callback method that is triggered when a keyUp
          event occurs. It is not relevant to ContextMenu's textbox focus.
          */
         switch (e.keyCode) {
