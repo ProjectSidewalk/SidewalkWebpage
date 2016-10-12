@@ -58,9 +58,7 @@ object UserDAOImpl {
   val userTable = TableQuery[UserTable]
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
-  case class AnonymousUserProfile(ipAddress: String,
-                                  missionCount: Int, auditCount: Int,
-                                  labelCount: Int)
+  case class AnonymousUserProfile(ipAddress: String, auditCount: Int, labelCount: Int)
   case class AnonymousUserRecords(ipAddress: String, taskId: Int)
 
   def all: List[DBUser] = db.withTransaction { implicit session =>
@@ -108,17 +106,9 @@ object UserDAOImpl {
 
   def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
 
-    val countAUsers = Q.queryNA[(String, Int, Int, Int)](
-      """select ip_address, mission_count, audit_count, label_count
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous')
-        |						      and completed = true);""".stripMargin
-    )
-    countAUsers.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
+    val anonUsers = getAnonymousUsers
+    anonUsers.groupBy(_.ipAddress).count
+    anonUsers.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
   }
 
   /*
