@@ -36,6 +36,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         var nextMission = missionContainer.nextMission(parameters.nextRegionId);
         missionContainer.setCurrentMission(nextMission);
+
+        //update the audited distance based on the new neighborhood
+        svl.taskContainer.updateAuditedDistance("miles");
     });
 
 
