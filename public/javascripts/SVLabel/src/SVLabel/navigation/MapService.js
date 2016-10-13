@@ -619,6 +619,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
         }
 
+        //This is necessary for supporting touch devices, because there is no mouse hover
+        mouseStatus.prevX = mouseposition(e, this).x;
+        mouseStatus.prevY = mouseposition(e, this).y;
     }
 
     /**

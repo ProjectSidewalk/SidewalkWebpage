@@ -655,7 +655,38 @@
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
+
+            enableTouchSupport();
         });
+
+        function enableTouchSupport() {
+            $(document).on('touchstart touchmove touchend touchcancel', function(e) {
+                var event = e.originalEvent;
+                var touches = event.changedTouches,
+                        first = touches[0],
+                        type = "";
+
+                switch(event.type) {
+                    case "touchstart": type = "mousedown"; break;
+                    case "touchmove":  type = "mousemove"; break;
+                    case "touchend":   type = "mouseup";   break;
+                    default:           return;
+                }
+
+                var simulatedEvent = new MouseEvent(type, {
+                    screenX: first.screenX,
+                    screenY: first.screenY,
+                    clientX: first.clientX,
+                    clientY: first.clientY
+                });
+
+                first.target.dispatchEvent(simulatedEvent);
+            });
+
+            $("#interaction-area-holder").on("touchmove", function (event) {
+                event.preventDefault();
+            });
+        }
 
         function init() {
             var mainParam = {},
