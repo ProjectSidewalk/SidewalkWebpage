@@ -227,14 +227,13 @@
 
         <div class="row">
             <h1>Anonymous Users</h1>
-            <b>Total:</b> @UserDAOImpl.countAnonymousUsers <br/>
             <div class="col-lg-12">
-                <table id="anonUserTable" class="table table-striped table-condensed">
+                <table id="anonUserTable" data-order='[[ 1, "desc" ]]' class="table table-striped table-condensed">
                     <thead>
                         <tr>
-                            <th class="col-md-3">IP Address</th>
-                            <th class="col-md-1">Audit Count</th>
-                            <th class="col-md-1">Label Count</th>
+                            <th class="col-md-6">IP Address</th>
+                            <th class="col-md-3">Audit Count</th>
+                            <th class="col-md-3">Label Count</th>
                         </tr>
                     </thead>
                     <tbody>
