@@ -107,7 +107,10 @@ object UserDAOImpl {
   def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
 
     val anonUsers = getAnonymousUsers
-    anonUsers.groupBy(_.ipAddress).count
+
+    // Placeholder code -- won't compile
+    anonUsers.groupBy(_.ipAddress).keySet.size
+    // Get task count and label count
     anonUsers.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
   }
 
