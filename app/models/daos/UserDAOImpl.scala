@@ -72,6 +72,15 @@ object UserDAOImpl {
   def size: Int = db.withTransaction { implicit session =>
     userTable.list.size
   }
+
+  /*
+   * Total number of contributing users
+   */
+  def countContributingUsers: Int = db.withTransaction { implicit session =>
+    val count = size - 1 + countAnonymousUsers
+    count
+  }
+
   /*
    * Gets anonymous user records
    * Date: Oct 11, 2016
