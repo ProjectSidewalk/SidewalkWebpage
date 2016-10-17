@@ -322,6 +322,7 @@ function Canvas (ribbon) {
             if (rightClickMenu && rightClickMenu.isAnyOpen()) {
                 cursorUrl = 'default';
             }
+            $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }
 
