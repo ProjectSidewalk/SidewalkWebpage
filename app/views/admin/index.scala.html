@@ -64,14 +64,17 @@
                     <tr>
                         <th></th>
                         <th>Coverage</th>
+                        <th>Total</th>
                     </tr>
                     <tr>
                         <th>Audited Streets</th>
                         <td>@StreetEdgeTable.countAuditedStreets()</td>
+                        <td>x</td>
                     </tr>
                     <tr>
                         <th>Distance</th>
                         <td>@("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                        <td>x miles</td>
                     </tr>
                     <tr>
                         <th>
@@ -80,6 +83,7 @@
                         <td>
                             @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%
                         </td>
+                        <td></td>
                     </tr>
                 </table>
             </div>

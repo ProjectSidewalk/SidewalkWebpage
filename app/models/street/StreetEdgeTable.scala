@@ -141,7 +141,7 @@ object StreetEdgeTable {
   }
 
   /**
-    * Returns all the streets in the given regionthat has been audited
+    * Returns all the streets in the given region that has been audited
     * @param regionId
     * @param auditCount
     * @return
