@@ -3,11 +3,15 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalExample (modalModel, uiModalExample) {
+function ModalExample (modalModel, onboardingModel, uiModalExample) {
     var self = this;
 
     modalModel.on("ModalExample:show", function (labelType) {
         self.show(labelType);
+    });
+
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hide();
     });
 
     this._handleBackgroundClick = function () {

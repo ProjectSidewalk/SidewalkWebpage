@@ -28,8 +28,8 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment, modalMission,
-                     modalSkip, neighborhoodContainer, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
+function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, missionModel, modalComment, modalMission,
+                     modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel, storage, taskContainer,
                      tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
@@ -79,6 +79,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         status.state = getState("initialize");
         _visit(status.state);
         handAnimation.initializeHandAnimation();
+
+        onboardingModel.triggerStartOnboarding();
     };
 
     /**
@@ -255,7 +257,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
             onboardingMission.setProperty("isCompleted", true);
-            missionContainer.addToCompletedMissions(onboardingMission);
+            // missionContainer.addToCompletedMissions(onboardingMission);
+            missionModel.completeMission(onboardingMission, null);
         }
 
         // Set the next mission
@@ -267,7 +270,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         modalMission.setMissionMessage(mission, neighborhood);
         modalMission.show();
 
-        taskContainer.initNextTask();
+        var nextTask = taskContainer.nextTask();
+        if (!nextTask) {
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            nextTask = taskContainer.nextTask();
+        }
+        taskContainer.initNextTask(nextTask);
     }
 
     function _onboardingStateAnnotationExists (state) {

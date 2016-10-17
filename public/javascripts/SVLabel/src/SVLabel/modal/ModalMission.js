@@ -4,10 +4,11 @@
  * @param neighborhoodContainer
  * @param uiModalMission
  * @param modalModel
+ * @param onboardingModel
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, modalModel) {
+function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, modalModel, onboardingModel) {
     var self = this;
     var _missionContainer = missionContainer;
     var _neighborhoodContainer = neighborhoodContainer;
@@ -27,6 +28,10 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         var neighborhood = _neighborhoodContainer.getCurrentNeighborhood();
         self.setMissionMessage (mission, neighborhood);
         self.show();
+    });
+
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hide();
     });
 
     // Mission titles. Keys are mission labels.

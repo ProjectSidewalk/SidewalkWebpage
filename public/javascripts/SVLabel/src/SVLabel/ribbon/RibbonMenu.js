@@ -1,6 +1,7 @@
 /**
  * RibbonMenu module
  * Todo. Split the RibbonMenu UI component and the label type switching logic
+ * Todo. Consider moving this under menu instead of ribbon.
  * @param overlayMessageBox
  * @param tracker
  * @param uiRibbonMenu

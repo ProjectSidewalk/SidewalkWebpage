@@ -1,0 +1,48 @@
+.faq p {
+    font-size: 16px;
+}
+
+.faq .maincontent {
+    padding-left: 40px;
+}
+
+figure figcaption {
+    padding-top: 10px;
+}
+
+.faq video, .faq img, .faq iframe {
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    border-radius:4px;
+}
+
+.faq video, .faq iframe {
+    border: 1px solid #ddd;
+
+}
+
+.faq .faq-item {
+    margin-bottom: 100px;
+}
+
+.faq .faq-item h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#faq-panel .panel-body{
+    padding: 0;
+}
+.faq ul#questions-list {
+    padding: 0;
+    list-style-type: none;
+    margin: 0;
+}
+
+.faq ul#questions-list li {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.faq ul#questions-list li:hover {
+    /*background-color: #eee;*/
+}

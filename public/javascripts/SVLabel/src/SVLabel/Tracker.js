@@ -5,19 +5,28 @@
  * @memberof svl
  */
 function Tracker () {
-    var self = {className: 'Tracker'},
-        actions = [],
-        prevActions = [];
+    var self = this;
+    var actions = [];
+    var prevActions = [];
 
-    
+    this._isCanvasInteraction = function (action) {
+        return action.indexOf("LabelingCanvas") >= 0;
+    };
+
+    this._isContextMenuAction = function (action) {
+        return action.indexOf("ContextMenu") >= 0;
+    };
+
     /** Returns actions */
-    function getActions () { return actions; }
+    this.getActions = function () {
+        return actions;
+    };
 
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
 
-    function create(action, param) {
+    this.create = function (action, param) {
         var pov, latlng, panoId, note, temporaryLabelId;
 
         if (param) {
@@ -45,6 +54,23 @@ function Tracker () {
                 note = "";
             }
             note = note + "";  // Make sure it is a string.
+
+            if ("missionLabel" in param) {
+                note += note == "" ? "" : ",";
+                note += "MissionLabel:" + param.missionLabel;
+            }
+
+            if ("missionDistance" in param) {
+                note += note == "" ? "" : ",";
+                note += "MissionDistance:" + param.missionDistance;
+            }
+
+            if ("neighborhoodId" in param) {
+                note += note == "" ? "" : ",";
+                note += "NeighborhoodId:" + param.neighborhoodId;
+            }
+
+            if ("neighborhoodId")
 
             if ("LabelType" in param && "canvasX" in param && "canvasY" in param) {
                 if (note.length != 0) { note += ","; }
@@ -107,47 +133,28 @@ function Tracker () {
             timestamp: timestamp
         };
         return item;
-    }
+    };
 
-    function _isCanvasInteraction (action) {
-        return action.indexOf("LabelingCanvas") >= 0;
-    }
-
-    function _isContextMenuAction (action) {
-        return action.indexOf("ContextMenu") >= 0;
-    }
-
-    function push (action, param) {
-        var item = create(action, param);
+    this.push = function (action, param) {
+        var item = self.create(action, param);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
-        if (actions.length > 30 && !_isCanvasInteraction(action) && !_isContextMenuAction(action)) {
+        if (actions.length > 30 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);
         }
-
-        if ("trackerViewer" in svl) {
-            svl.trackerViewer.add(item)
-        }
-
         return this;
-    }
+    };
 
     /**
      * Put the previous labeling actions into prevActions. Then refresh the current actions.
      */
-    function refresh () {
+    this.refresh = function () {
         prevActions = prevActions.concat(actions);
         actions = [];
-        push("RefreshTracker");
-    }
-
-    self.create = create;
-    self.getActions = getActions;
-    self.push = push;
-    self.refresh = refresh;
-    return self;
+        self.push("RefreshTracker");
+    };
 }
 

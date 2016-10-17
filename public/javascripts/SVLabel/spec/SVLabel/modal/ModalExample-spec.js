@@ -1,6 +1,7 @@
 describe("ModalExample module", function () {
     var modalExample;
     var modalModel;
+    var onboardingModel;
     var uiModalExample;
     var $modalExampleFixture;
 
@@ -16,11 +17,13 @@ describe("ModalExample module", function () {
         uiModalExample.surfaceProblem = $modalExampleFixture.find("#modal-surface-problem-example");
 
         modalModel = _.clone(Backbone.Events);
+        onboardingModel = _.clone(Backbone.Events);
+
         modalModel.showModalExample = function (labelType) {
             this.trigger("ModalExample:show", labelType);
         };
 
-        modalExample = new ModalExample(modalModel, uiModalExample);
+        modalExample = new ModalExample(modalModel, onboardingModel, uiModalExample);
     });
 
     describe("In response to the `ModalExample:show` event", function () {
@@ -31,6 +34,14 @@ describe("ModalExample module", function () {
         it("should call a `show` method", function () {
             modalModel.showModalExample("CurbRamp");
             expect(modalExample.show).toHaveBeenCalledWith("CurbRamp");
+        });
+    });
+
+    describe("In response to the `Onboarding:startOnboarding` event", function () {
+        it("should call the `hide` method", function () {
+            spyOn(modalExample, 'hide');
+            onboardingModel.trigger("Onboarding:startOnboarding");
+            expect(modalExample.hide).toHaveBeenCalled();
         });
     });
 

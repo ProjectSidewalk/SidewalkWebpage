@@ -76,8 +76,8 @@ MissionModel.prototype.addAMission = function (mission) {
     this.trigger("MissionContainer:addAMission", mission);
 };
 
-MissionModel.prototype.completeMission = function (mission) {
-    this.trigger("MissionProgress:complete", mission);
+MissionModel.prototype.completeMission = function (mission, neighborhood) {
+    this.trigger("MissionProgress:complete", { mission: mission, neighborhood: neighborhood });
 };
 
 MissionModel.prototype.createAMission = function (parameters) {

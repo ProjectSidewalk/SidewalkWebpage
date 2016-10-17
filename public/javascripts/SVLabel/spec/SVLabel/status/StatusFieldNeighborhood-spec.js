@@ -1,6 +1,8 @@
 describe("StatusFieldNeighborhood module", function () {
     var statusFieldNeighborhood;
+    var neighborhoodModel;
     var statusModel;
+    var userModel;
     var uiStatus;
     var $uiStatus;
 
@@ -20,8 +22,10 @@ describe("StatusFieldNeighborhood module", function () {
             statusModel.setNeighborhoodHref = function (href) {
                 this.trigger("StatusFieldNeighborhood:setHref", href);
             };
+            neighborhoodModel = _.clone(Backbone.Events);
+            userModel = _.clone(Backbone.Events);
 
-            statusFieldNeighborhood = new StatusFieldNeighborhood(statusModel, uiStatus);
+            statusFieldNeighborhood = new StatusFieldNeighborhood(neighborhoodModel, statusModel, userModel, uiStatus);
         });
 
         describe("`setAuditedDistance` method", function () {

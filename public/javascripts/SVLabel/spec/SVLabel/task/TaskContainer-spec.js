@@ -1,21 +1,24 @@
-describe("Tests for the TaskContainer module.", function () {
+describe("TaskContainer module.", function () {
     var svl;
-    var compass = null;
-    var streetViewService = null;
+    var streetViewService;
     var taskContainer;
-    var tracker = { push: function (item) { } };
+    var taskModel;
+    var tracker;
+    var navigationModel;
+    var neighborhoodModel;
 
-    var TaskMock = function (street_edge_id) {
-        this.street_edge_id = street_edge_id;
-    };
-    TaskMock.prototype.getStreetEdgeId = function () { return this.street_edge_id; };
+    beforeEach(function () {
+        svl = {};
+        streetViewService = new StreetViewServiceMock();
+        navigationModel = _.clone(Backbone.Events);
+        neighborhoodModel = _.clone(Backbone.Events);
+        neighborhoodModel.currentNeighborhood = function () { return new NeighborhoodMock(); };
+        taskModel = _.clone(Backbone.Events);
+        tracker = new TrackerMock();
+        taskContainer = new TaskContainer(navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker)
+    });
 
-    describe("The storeTask method", function () {
-        beforeEach(function () {
-            svl = {};
-            taskContainer = new TaskContainer(streetViewService, svl, tracker, turf);
-        });
-
+    describe("`storeTask` method", function () {
         it("should store tasks in taskStoreByRegionId", function () {
             var t1 = new TaskMock(1);
             var t2 = new TaskMock(2);
@@ -37,4 +40,75 @@ describe("Tests for the TaskContainer module.", function () {
     describe("`getIncompleteTaskDistance` method", function () {
         it("should return the total distance of the incomplete tasks");
     });
+
+    describe("`nextTask` method", function () {
+        var t1, t2;
+        beforeEach(function () {
+            t1 = new TaskMock(1);
+            t2 = new TaskMock(2);
+            taskContainer.storeTask(1, t1);
+            taskContainer.storeTask(1, t2);
+        });
+
+        describe("if no more tasks are available in the current neighborhood", function () {
+            it("should return null", function () {
+                t1._properties.isCompleted = true;
+                t2._properties.isCompleted = true;
+
+                var task = taskContainer.nextTask();
+                expect(task).toBeNull();
+            });
+        });
+
+        describe("if the current task is passed as an argument", function () {
+            describe("if a user has gone out of the neighborhood", function () {
+                it("should randomly pick a task from the current neighborhood and return it");
+            });
+
+            describe("if all connected tasks have been already completed", function () {
+                it("should randomly pick a task from the current neighborhood and return it");
+            });
+
+            it("should return one of the tasks that are connected to the current task");
+        });
+
+        describe("if no argument is passed", function () {
+            it("should randomly pick a task from the current neighborhood and return it");
+        });
+    });
+
+    describe("`initNextTask` method", function () {
+    });
+
+    describe("In reaction to `Neighborhood:completed` event", function () {
+        beforeEach(function () {
+
+        });
+
+        it("`fetchTasksInARegion` should be called to fetch the tasks in the new neighborhood", function () {
+            spyOn(taskContainer, 'fetchTasksInARegion');
+            var parameters = {
+                completedRegionId: 1,
+                nextRegionId: 2
+            };
+            neighborhoodModel.trigger("Neighborhood:completed", parameters);
+            expect(taskContainer.fetchTasksInARegion).toHaveBeenCalledWith(2, taskContainer._handleTaskFetchCompleted, false)
+        });
+    });
+
+    function NeighborhoodMock () {
+        this._properties = { regionId: 1 };
+        this.getProperty = function (key) { return this._properties[key]; };
+    }
+    function StreetViewServiceMock () {}
+    function TaskMock (street_edge_id) {
+        this._properties = { isCompleted: false };
+        this.isCompleted = function () { return this._properties.isCompleted; };
+        this.street_edge_id = street_edge_id;
+    }
+    TaskMock.prototype.getStreetEdgeId = function () { return this.street_edge_id; };
+
+    function TrackerMock () {
+        this.push = function (item) {};
+    }
 });

@@ -84,7 +84,8 @@ function Neighborhood (parameters) {
     function getGeoJSON(){
         var layer = properties.layer;
         if (layer){
-            return layer.getLayers()[0].feature;
+            // return layer.getLayers()[0].feature;
+            return layer.feature;
         } else {
             return null;
         }

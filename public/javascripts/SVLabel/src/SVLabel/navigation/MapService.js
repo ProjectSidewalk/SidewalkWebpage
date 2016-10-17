@@ -7,7 +7,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function MapService (canvas, uiMap, params) {
+function MapService (canvas, neighborhoodModel, uiMap, params) {
     var self = { className: 'Map' },
         _canvas = canvas,
         mapIconInterval,
@@ -495,6 +495,12 @@ function MapService (canvas, uiMap, params) {
         svl.taskContainer.endTask(task);
         mission.pushATaskToTheRoute(task);
         var newTask = svl.taskContainer.nextTask(task);
+        if (!newTask) {
+            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            newTask = svl.taskContainer.nextTask();
+        }
         svl.taskContainer.setCurrentTask(newTask);
 
         // Check if the interface jumped the user to another discontinuous location.
@@ -507,7 +513,6 @@ function MapService (canvas, uiMap, params) {
                 "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
                 "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
         }
-
         _moveToTheTaskLocation(newTask);
     }
 
@@ -614,6 +619,9 @@ function MapService (canvas, uiMap, params) {
             }
         }
 
+        //This is necessary for supporting touch devices, because there is no mouse hover
+        mouseStatus.prevX = mouseposition(e, this).x;
+        mouseStatus.prevY = mouseposition(e, this).y;
     }
 
     /**
@@ -951,6 +959,7 @@ function MapService (canvas, uiMap, params) {
      * Set map position
      * @param lat
      * @param lng
+     * @param callback
      */
     function setPosition (lat, lng, callback) {
         // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.

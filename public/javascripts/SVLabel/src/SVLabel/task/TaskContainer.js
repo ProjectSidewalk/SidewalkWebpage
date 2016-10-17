@@ -1,36 +1,42 @@
 /**
  * TaskContainer module.
  *
- * Todo. This module needs a bit of cleaning up.
+ * Todo. This module needs to be cleaned up.
  * Todo. Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
  * @param turf
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function TaskContainer (streetViewService, svl, taskModel, tracker) {
-    var self = { className: "TaskContainer" },
-        previousTasks = [],
-        currentTask = null,
-        paths, previousPaths = [],
-        taskStoreByRegionId = {};
+function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+    var self = this;
 
-    self._taskStoreByRegionId = taskStoreByRegionId;
+    var previousTasks = [];
+    var currentTask = null;
+    var paths;
+    var previousPaths = [];
 
-    /**
-     * I had to make this method to wrap the street view service.
-     * @param task The current task
-     */
-    function initNextTask (task) {
-        var nextTask = getNextTask(task);
+    self._taskStoreByRegionId = {};
+
+    neighborhoodModel.on("Neighborhood:completed", function (parameters) {
+        var regionId = parseInt(parameters.nextRegionId, 10);
+        self.fetchTasksInARegion(regionId, self._handleTaskFetchCompleted, false);
+    });
+
+    self._handleTaskFetchCompleted = function () {
+        var nextTask = self.nextTask();
+        self.initNextTask(nextTask);
+    };
+
+    self.initNextTask = function (nextTaskIn) {
         var geometry;
         var lat;
         var lng;
 
-        var currentPosition = svl.map.getPosition();
-        nextTask.setStreetEdgeDirection(currentPosition.lat, currentPosition.lng);
+        var currentPosition = navigationModel.getPosition();
+        nextTaskIn.setStreetEdgeDirection(currentPosition.lat, currentPosition.lng);
 
-        geometry = nextTask.getGeometry();
+        geometry = nextTaskIn.getGeometry();
         lat = geometry.coordinates[0][1];
         lng = geometry.coordinates[0][0];
 
@@ -40,28 +46,37 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         if (streetViewService) {
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    setCurrentTask(nextTask);
-                    svl.map.setPosition(streetViewPanoramaData.location.latLng.lat(), streetViewPanoramaData.location.latLng.lng());
+                    lat = streetViewPanoramaData.location.latLng.lat();
+                    lng = streetViewPanoramaData.location.latLng.lng();
+                    self.setCurrentTask(nextTaskIn);
+                    navigationModel.setPosition(lat, lng);
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     // no street view available in this range.
-                    initNextTask();
+                    nextTaskIn = self.nextTask();
+                    if (!nextTaskIn) {
+                        var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+                        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                        neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+                        nextTaskIn = self.nextTask();
+                    }
+                    self.initNextTask(nextTaskIn);
                 } else {
                     throw "Error loading Street View imagey.";
                 }
             });
         }
-    }
+    };
 
     /**
      * End the current task.
      */
     function endTask (task) {
         if (tracker) tracker.push("TaskEnd");
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        var neighborhood = neighborhoodModel.currentNeighborhood();
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
-        var neighborhoodTasks = taskStoreByRegionId[neighborhood.getProperty("regionId")];
+        var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
@@ -71,7 +86,8 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
 
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" && getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
+        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
+            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
             if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
@@ -90,9 +106,17 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         pushATask(task); // Push the data into previousTasks
 
         // Clear the current paths
-        var _geojson = task.getGeoJSON(),
-            gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) { return new google.maps.LatLng(coord[1], coord[0]); });
-        previousPaths.push(new google.maps.Polyline({ path: gCoordinates, geodesic: true, strokeColor: '#00ff00', strokeOpacity: 1.0, strokeWeight: 2 }));
+        var _geojson = task.getGeoJSON();
+        var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
+            return new google.maps.LatLng(coord[1], coord[0]);
+        });
+        previousPaths.push(new google.maps.Polyline({
+            path: gCoordinates,
+            geodesic: true,
+            strokeColor: '#00ff00',
+            strokeOpacity: 1.0,
+            strokeWeight: 2
+        }));
         paths = null;
 
         return task;
@@ -127,11 +151,12 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
 
     /**
      * Request the server to populate tasks
+     * Todo. Move this to somewhere else. TaskModel?
      * @param regionId {number} Region id
      * @param callback A callback function
      * @param async {boolean}
      */
-    function fetchTasksInARegion(regionId, callback, async) {
+    self.fetchTasksInARegion = function (regionId, callback, async) {
         if (typeof async == "undefined") async = true;
 
         if (typeof regionId == "number") {
@@ -166,27 +191,31 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @param unit {string} Distance unit
      * @returns {Array}
      */
-    function findConnectedTask (regionId, taskIn, threshold, unit) {
-        var tasks = getTasksInRegion(regionId),
-            connectedTasks = [];
+    self._findConnectedTask = function (regionId, taskIn, threshold, unit) {
+        var tasks = self.getTasksInRegion(regionId);
 
-        if (!threshold) threshold = 0.01;  // 0.01 km.
-        if (!unit) unit = "kilometers";
-        tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+        if (tasks) {
+            var connectedTasks = [];
+            if (!threshold) threshold = 0.01;  // 0.01 km.
+            if (!unit) unit = "kilometers";
+            tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
-        if (taskIn) {
-            tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });  // Filter out the current task
+            if (taskIn) {
+                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
 
-            for (var i = 0, len = tasks.length; i < len; i++) {
-                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                    connectedTasks.push(tasks[i]);
+                for (var i = 0, len = tasks.length; i < len; i++) {
+                    if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                        connectedTasks.push(tasks[i]);
+                    }
                 }
+                return connectedTasks;
+            } else {
+                return util.shuffle(tasks);
             }
-            return connectedTasks;
         } else {
-            return util.shuffle(tasks);
+            return [];
         }
-    }
+    };
 
     /**
      * Get the total distance of completed segments
@@ -210,7 +239,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         }
         
         if (currentTask) {
-            var currentLatLng = svl.map.getPosition();
+            var currentLatLng = navigationModel.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
             var currentTaskDistance = currentTask.getAuditedDistance(unit);
             distance += currentTaskDistance;
@@ -224,15 +253,15 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @returns {Array}
      */
     function getCompletedTasks (regionId) {
-        if (!(regionId in taskStoreByRegionId)) {
+        if (!(regionId in self._taskStoreByRegionId)) {
             console.error("getCompletedTasks needs regionId");
             return null;
         }
-        if (!Array.isArray(taskStoreByRegionId[regionId])) {
-            console.error("taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
+        if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
+            console.error("_taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
             return null;
         }
-        return taskStoreByRegionId[regionId].filter(function (task) {
+        return self._taskStoreByRegionId[regionId].filter(function (task) {
             return task.isCompleted();
         });
     }
@@ -246,31 +275,34 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
     }
 
     self.getIncompleteTaskDistance = function (regionId, unit) {
-        var incompleteTasks = getIncompleteTasks(regionId);
+        var incompleteTasks = self.getIncompleteTasks(regionId);
         var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
         return taskDistances.reduce(function (a, b) { return a + b; }, 0);
     };
 
-    function getIncompleteTasks (regionId) {
+    self.getIncompleteTasks = function (regionId) {
         if (!regionId && regionId !== 0) {
             console.error("regionId is not specified")
         }
-        if (!(regionId in taskStoreByRegionId)) {
-            console.error("regionId is not in taskStoreByRegionId. This is probably because you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
+        if (!(regionId in self._taskStoreByRegionId)) {
+            self.fetchTasksInARegion(regionId, null, false);
+            // console.error("regionId is not in _taskStoreByRegionId. This is probably because " +
+            //    "you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
+            // return null;
+        }
+        if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
+            console.error("_taskStoreByRegionId[regionId] is not an array. " +
+                "Probably the data from this region is not loaded yet.");
             return null;
         }
-        if (!Array.isArray(taskStoreByRegionId[regionId])) {
-            console.error("taskStoreByRegionId[regionId] is not an array. Probably the data from this region is not loaded yet.");
-            return null;
-        }
-        return taskStoreByRegionId[regionId].filter(function (task) {
+        return self._taskStoreByRegionId[regionId].filter(function (task) {
             return !task.isCompleted();
         });
-    }
+    };
 
-    function getTasksInRegion (regionId) {
-        return regionId in taskStoreByRegionId ? taskStoreByRegionId[regionId] : null;
-    }
+    this.getTasksInRegion = function (regionId) {
+        return regionId in self._taskStoreByRegionId ? self._taskStoreByRegionId[regionId] : null;
+    };
 
     /**
      * Check if the current task is the first task in this session
@@ -290,31 +322,33 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
 
     /**
      * Get the next task and set it as a current task.
-     * @param task Current task
+     * @param finishedTask The task that has been finished.
      * @returns {*} Next task
      */
-    function getNextTask (task) {
-        var newTask = null,
-            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood(),
-            candidateTasks = findConnectedTask(neighborhood.getProperty("regionId"), task, null, null);
+    this.nextTask = function (finishedTask) {
+        var newTask;
+        var neighborhood = neighborhoodModel.currentNeighborhood();
+        var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
+        // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
+        // If there aren't any connected tasks that are incomplete, randomly select a task from
+        // any of the incomplete tasks in the neighborhood. If that is empty, return null.
+        var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
-
-        if (candidateTasks.length > 0) {
-            // newTask = candidateTasks[0];
-            newTask = _.shuffle(candidateTasks)[0];
-        } else {
-            candidateTasks = getIncompleteTasks(neighborhood.getProperty("regionId"));
-            newTask = _.shuffle(candidateTasks)[0];
+        if (candidateTasks.length == 0) {
+            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId);
+            if (candidateTasks.length == 0) return null;
         }
 
-        if (task) {
-            var coordinate = task.getLastCoordinate();
+        // Return the new task. Change the starting point of the new task accordingly.
+        newTask = _.shuffle(candidateTasks)[0];
+        if (finishedTask) {
+            var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
         }
 
         return newTask;
-    }
+    };
 
     /**
      * Push a task to previousTasks
@@ -338,7 +372,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * Set the current task
      * @param task
      */
-    function setCurrentTask (task) {
+    this.setCurrentTask = function (task) {
         currentTask = task;
         if (tracker) tracker.push('TaskStart');
 
@@ -347,7 +381,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
             svl.compass.showMessage();
             svl.compass.update();
         }
-    }
+    };
 
     /**
      * Store a task into taskStoreByRegionId
@@ -355,11 +389,11 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      * @param task {object} Task object
      */
     function storeTask(regionId, task) {
-        if (!(regionId in taskStoreByRegionId)) taskStoreByRegionId[regionId] = [];
-        var streetEdgeIds = taskStoreByRegionId[regionId].map(function (task) {
+        if (!(regionId in self._taskStoreByRegionId)) self._taskStoreByRegionId[regionId] = [];
+        var streetEdgeIds = self._taskStoreByRegionId[regionId].map(function (task) {
             return task.getStreetEdgeId();
         });
-        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) taskStoreByRegionId[regionId].push(task);  // Check for duplicates
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) self._taskStoreByRegionId[regionId].push(task);
     }
 
     /**
@@ -368,7 +402,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
      */
     function totalLineDistanceInARegion(regionId, unit) {
         if (!unit) unit = "kilometers";
-        var tasks = getTasksInRegion(regionId);
+        var tasks = self.getTasksInRegion(regionId);
 
         if (tasks) {
             var distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
@@ -388,7 +422,7 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
             previousTasks[i].render();
         }
 
-        var currentLatLng = svl.map.getPosition();
+        var currentLatLng = navigationModel.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
     }
@@ -414,26 +448,18 @@ function TaskContainer (streetViewService, svl, taskModel, tracker) {
         return this;
     }
 
-    self.initNextTask = initNextTask;
     self.endTask = endTask;
     self.fetchATask = fetchATask;
-    self.fetchTasksInARegion = fetchTasksInARegion;
-    self.findConnectedTask = findConnectedTask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
-    self.getIncompleteTasks = getIncompleteTasks;
-    self.getTasksInRegion = getTasksInRegion;
     self.isFirstTask = isFirstTask;
     self.length = length;
-    self.nextTask = getNextTask;
+    // self.nextTask = getNextTask;
     self.push = pushATask;
 
-    self.setCurrentTask = setCurrentTask;
     self.storeTask = storeTask;
     self.totalLineDistanceInARegion = totalLineDistanceInARegion;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
-
-    return self;
 }

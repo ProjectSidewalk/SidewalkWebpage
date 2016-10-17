@@ -1,147 +1,132 @@
 /**
- * A ModalSkip module
- * @param $
- * @returns {{className: string}}
+ * ModalSkip module.
+ * Todo. Too many dependencies. Break down the features.
+ * Todo. handling uiLeftColumn (menu on the left side of the interface) should be LeftMenu's responsibility
+ * Todo. Some of the responsibilities in `_handleClickOK` method should be delegated to ModalModel or other modules.
+ * @param form
+ * @param modalModel
+ * @param navigationModel
+ * @param onboardingModel
+ * @param ribbonMenu
+ * @param taskContainer
+ * @param tracker
+ * @param uiLeftColumn
+ * @param uiModalSkip
  * @constructor
- * @memberof svl
  */
-function ModalSkip () {
-    var self = { className : 'ModalSkip' },
-        status = {
-            disableClickOK: true
-        },
-        blinkInterval;
+function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+    var self = this;
+    var status = {
+        disableClickOK: true
+    };
+    var blinkInterval;
 
-    function _init () {
-        disableClickOK();
-        svl.ui.modalSkip.ok.bind("click", handlerClickOK);
-        svl.ui.modalSkip.cancel.bind("click", handlerClickCancel);
-        svl.ui.modalSkip.radioButtons.bind("click", handlerClickRadio);
-        svl.ui.leftColumn.jump.on('click', handleClickJump);
-    }
+    onboardingModel.on("Onboarding:startOnboarding", function () {
+        self.hideSkipMenu();
+    });
 
     /**
-     * Blink the jump button
+     * Disable clicking the ok button
      */
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            svl.ui.leftColumn.jump.toggleClass("highlight-50");
-        }, 500);
-    }
+    this._disableClickOK = function () {
+        uiModalSkip.ok.attr("disabled", true);
+        uiModalSkip.ok.addClass("disabled");
+        status.disableClickOK = true;
+    };
+
+    /**
+     * Enable clicking the ok button
+     */
+    this._enableClickOK = function () {
+        uiModalSkip.ok.attr("disabled", false);
+        uiModalSkip.ok.removeClass("disabled");
+        status.disableClickOK = false;
+    };
 
     /**
      * Callback for clicking jump button
      * @param e
      */
-    function handleClickJump (e) {
+    this._handleClickJump = function (e) {
         e.preventDefault();
-        svl.tracker.push('ModalSkip_ClickJump');
-        svl.modalSkip.showSkipMenu();
-    }
-
+        tracker.push('ModalSkip_ClickJump');
+        self.showSkipMenu();
+    };
 
     /**
      * This method handles a click OK event
      * @param e
      */
-    function handlerClickOK (e) {
-        svl.tracker.push("ModalSkip_ClickOK");
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val(),
-            position = svl.panorama.getPosition(),
-            incomplete = {
-                issue_description: radioValue,
-                lat: position.lat(),
-                lng: position.lng()
-            };
-        var task = svl.taskContainer.getCurrentTask();
-        
-        // Set the task's `_paths` to blank so it will not get rendered on the google maps pane.
-        task.eraseFromGoogleMaps();
+    this._handleClickOK = function (e) {
+        tracker.push("ModalSkip_ClickOK");
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
 
-        if (radioValue == "GSVNotAvailable") {
-            task.complete();
-            svl.taskContainer.push(task);  // Pushed to completed tasks.
-            util.misc.reportNoStreetView(task.getStreetEdgeId());
-        }
+        // self.skip(radioValue);
+        var task = taskContainer.getCurrentTask();
+        form.skip(task, radioValue);
 
-        if ('form' in svl && "taskContainer" in svl) {
-            svl.form.skipSubmit(incomplete, task);
-            svl.taskContainer.initNextTask();
-        }
-        
-        if ('ribbon' in svl) { 
-            svl.ribbon.backToWalk(); 
-        }
-
-        hideSkipMenu();
-    }
+        ribbonMenu.backToWalk();
+        self.hideSkipMenu();
+    };
 
     /**
      * This method handles a click Cancel event
      * @param e
      */
-    function handlerClickCancel (e) {
-        svl.tracker.push("ModalSkip_ClickCancel");
-        hideSkipMenu();
-    }
+    this._handleClickCancel = function (e) {
+        tracker.push("ModalSkip_ClickCancel");
+        self.hideSkipMenu();
+    };
 
     /**
      * This method takes care of nothing.
      * @param e
      */
-    function handlerClickRadio (e) {
-        svl.tracker.push("ModalSkip_ClickRadio");
-        enableClickOK();
-    }
+    this._handleClickRadio = function (e) {
+        tracker.push("ModalSkip_ClickRadio");
+        self._enableClickOK();
+    };
+
+    /**
+     * Blink the jump button
+     * Todo. This should be moved LeftMenu.js
+     */
+    this.blink = function () {
+        self.stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiLeftColumn.jump.toggleClass("highlight-50");
+        }, 500);
+    };
 
     /**
      * Hide a skip menu
      */
-    function hideSkipMenu () {
-        svl.ui.modalSkip.radioButtons.prop('checked', false);
-        svl.ui.modalSkip.holder.addClass('hidden');
-    }
+    this.hideSkipMenu = function () {
+        uiModalSkip.radioButtons.prop('checked', false);
+        uiModalSkip.holder.addClass('hidden');
+    };
 
     /**
      * Show a skip menu
      */
-    function showSkipMenu () {
-        svl.ui.modalSkip.holder.removeClass('hidden');
-        disableClickOK();
-    }
-
-    /**
-     * Disable clicking the ok button
-     */
-    function disableClickOK () {
-        svl.ui.modalSkip.ok.attr("disabled", true);
-        svl.ui.modalSkip.ok.addClass("disabled");
-        status.disableClickOK = true;
-    }
-
-    /**
-     * Enable clicking the ok button
-     */
-    function enableClickOK () {
-        svl.ui.modalSkip.ok.attr("disabled", false);
-        svl.ui.modalSkip.ok.removeClass("disabled");
-        status.disableClickOK = false;
-    }
+    this.showSkipMenu = function () {
+        uiModalSkip.holder.removeClass('hidden');
+        this._disableClickOK();
+    };
 
     /**
      * Stop blinking the jump button
+     * Todo. This should be moved to LeftMenu.js
      */
-    function stopBlinking () {
+    this.stopBlinking = function () {
         window.clearInterval(blinkInterval);
-        svl.ui.leftColumn.jump.removeClass("highlight-50");
-    }
+        uiLeftColumn.jump.removeClass("highlight-50");
+    };
 
-    _init();
-
-    self.blink = blink;
-    self.showSkipMenu = showSkipMenu;
-    self.hideSkipMenu = hideSkipMenu;
-    self.stopBlinking = stopBlinking;
-    return self;
+    // Initialize
+    this._disableClickOK();
+    uiModalSkip.ok.bind("click", this._handleClickOK);
+    uiModalSkip.cancel.bind("click", this._handleClickCancel);
+    uiModalSkip.radioButtons.bind("click", this._handleClickRadio);
+    uiLeftColumn.jump.on('click', this._handleClickJump);
 }
