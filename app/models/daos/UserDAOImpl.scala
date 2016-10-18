@@ -119,7 +119,6 @@ object UserDAOImpl {
 
   def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
 
-    // TODO: To convert the following code in play slick
     val anonProfileQuery = Q.queryNA[(String, Int, Int)](
       """select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count, sum (anonProfile.n_labels) as label_count
         |from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
