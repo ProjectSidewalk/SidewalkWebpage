@@ -159,8 +159,8 @@
                             <td>@label.temporary</td>
                             <td>@label.description</td>
                             <td>
-                                <a data-target="#lightbox" href= "#gsvlabelLightbox">
-                                View</a>
+                                <a data-toggle="lightbox" href='@routes.AdminController.gsvLabelView(label.labelId)'>
+                                    View</a>
                             </td>
 
                         </tr>
@@ -286,6 +286,7 @@
             $('#labelTable').dataTable();
             $('#userTable').dataTable();
             $('#anonUserTable').dataTable();
+            $('#gsvlabelLightbox').lightbox(options)
 
         });
     </script>
