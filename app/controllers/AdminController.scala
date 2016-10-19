@@ -67,6 +67,17 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  def gsvLabelView(labelId: Int) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      LabelTable.find(labelId) match {
+        case Some(label) => Future.successful(Ok(views.html.admin.gsv("Project Sidewalk", request.identity, label)))
+        case _ => Future.successful(Redirect("/"))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
   // JSON APIs
 
   /**

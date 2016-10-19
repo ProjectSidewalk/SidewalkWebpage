@@ -1,4 +1,5 @@
-@import models.user.{ User, WebpageActivityTable }
+@import models.user.User
+@import models.user.WebpageActivityTable
 @import models.daos._
 @import models.audit._
 @import models.label._
@@ -143,8 +144,9 @@
                             <th class="col-md-3" data-class-name="priority">Timestamp</th>
                             <th class="col-md-2">Label Type</th>
                             <th class="col-md-1">Severity</th>
-                            <th class="col-md-2">Temporary?</th>
+                            <th class="col-md-1">Temporary?</th>
                             <th class="col-md-5">Description</th>
+                            <th class="col-md-2">GSV</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -156,11 +158,21 @@
                             <td>@label.severity</td>
                             <td>@label.temporary</td>
                             <td>@label.description</td>
+                            <td>
+                                <a data-target="#lightbox" href= "#gsvlabelLightbox">
+                                View</a>
+                            </td>
 
                         </tr>
                      }
                     </tbody>
                 </table>
+                <div id="gsvlabelLightbox" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class='lightbox-content'>
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_NotPassable.png")'>
+                        <div class="lightbox-caption"><p>This is the caption for the label you clicked</p></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -253,7 +265,11 @@
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/bootstrap-lightbox.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/bootstrap-lightbox.min.css")' rel="stylesheet"/>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/bootstrap-lightbox.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/bootstrap-lightbox.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>

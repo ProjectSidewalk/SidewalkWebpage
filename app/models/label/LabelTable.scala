@@ -65,6 +65,17 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
   )
 
+  /**
+    * Find a label
+    *
+    * @param labelId
+    * @return
+    */
+  def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
+    val labelList = labels.filter(_.labelId === labelId).list
+    labelList.headOption
+  }
+
   def countLabels: Int = db.withTransaction(implicit session =>
     labels.filter(_.deleted === false).list.size
   )
