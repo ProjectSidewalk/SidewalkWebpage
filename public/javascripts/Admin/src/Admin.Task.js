@@ -142,6 +142,8 @@ function AdminTask(params) {
                         var d = featuresdata[counter];
 
                         if (d) {
+                            map.setView([d.geometry.coordinates[1], d.geometry.coordinates[0]], 18);
+
                             if ("label" in d.properties) {
                                 var label = d.properties.label;
                                 var fill = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
