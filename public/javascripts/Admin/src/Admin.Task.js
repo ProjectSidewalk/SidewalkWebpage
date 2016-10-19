@@ -102,7 +102,7 @@ function AdminTask(params) {
                     map.latLngToLayerPoint(new L.LatLng(y, x)).y + ")";
             });
 
-            // Animate the marker
+            // Animate the marker's radius to 7px
             markerGroup = markerGroup.attr("counter", 0)
                 .transition()
                 .each("start", function () {
@@ -136,7 +136,7 @@ function AdminTask(params) {
                             map.latLngToLayerPoint(new L.LatLng(y, x)).y + ")" +
                             "rotate(" + heading + ")";
                     })
-                    .each("end", function () {
+                    .each("start", function () {
                         // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
                         var counter = d3.select(this).attr("counter");
                         var d = featuresdata[counter];
