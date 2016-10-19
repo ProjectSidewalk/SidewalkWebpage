@@ -34,6 +34,8 @@ function AdminTask(params) {
             ]
         };
 
+
+
         var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
         var colorScheme = util.misc.getLabelColors();
 
@@ -118,7 +120,7 @@ function AdminTask(params) {
 
             // Chain transitions
             for (var i = 0; i < featuresdata.length; i++) {
-                featuresdata[i].properties.timestamp /= 5;
+                featuresdata[i].properties.timestamp /= 1;
             }
 
             var currentTimestamp = featuresdata[0].properties.timestamp;
@@ -140,6 +142,17 @@ function AdminTask(params) {
                         // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
                         var counter = d3.select(this).attr("counter");
                         var d = featuresdata[counter];
+
+                        if(!self.panorama)
+                            self.panorama = AdminPanorama($("#pano")[0]);
+
+                        self.panorama.changePanoId(d.properties.panoId);
+
+                        self.panorama.setPov({
+                            heading: d.properties.heading,
+                            pitch: d.properties.pitch,
+                            zoom: d.properties.zoom
+                        });
 
                         if (d) {
                             map.setView([d.geometry.coordinates[1], d.geometry.coordinates[0]], 18);
@@ -197,6 +210,8 @@ function AdminTask(params) {
             var x = d.geometry.coordinates[0];
             return map.latLngToLayerPoint(new L.LatLng(y, x))
         }
+
+
     })();
     
     self.data = _data;

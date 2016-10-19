@@ -136,12 +136,18 @@ object AuditTaskInteractionTable {
       val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
       val properties = if (interaction.labelType.isEmpty) {
         Json.obj(
+          "panoId" -> interaction.gsvPanoramaId,
           "heading" -> interaction.heading.get.toDouble,
+          "pitch" -> interaction.pitch,
+          "zoom" -> interaction.zoom,
           "timestamp" -> interaction.timestamp.getTime
         )
       } else {
         Json.obj(
+          "panoId" -> interaction.gsvPanoramaId,
           "heading" -> interaction.heading.get.toDouble,
+          "pitch" -> interaction.pitch,
+          "zoom" -> interaction.zoom,
           "timestamp" -> interaction.timestamp.getTime,
           "label" -> Json.obj(
             "label_type" -> interaction.labelType,
