@@ -168,12 +168,6 @@
                      }
                     </tbody>
                 </table>
-                <div id="gsvlabelLightbox" class="lightbox hide fade"  tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class='lightbox-content'>
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_NotPassable.png")'>
-                        <div class="lightbox-caption"><p>This is the caption for the label you clicked</p></div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -266,11 +260,11 @@
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/bootstrap-lightbox.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/bootstrap-lightbox.min.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/ekko-lightbox.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/ekko-lightbox.min.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/bootstrap-lightbox.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/bootstrap-lightbox.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/ekko-lightbox.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/ekko-lightbox.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
@@ -288,6 +282,11 @@
             $('#userTable').dataTable();
             $('#anonUserTable').dataTable();
 
+        });
+
+        $(document).on('click', '[data-toggle="lightbox"]', function(event) {
+            event.preventDefault();
+            $(this).ekkoLightbox();
         });
     </script>
 }
