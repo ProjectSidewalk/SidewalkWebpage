@@ -13,6 +13,7 @@ function AdminPanorama(svHolder) {
      */
     function _init () {
         self.svHolder = $(svHolder);
+        self.svHolder.addClass("admin-panorama");
 
         // svHolder's children are absolutely aligned, svHolder's position has to be either absolute or relative
         if(self.svHolder.css('position') != "absolute" && self.svHolder.css('position') != "relative")
