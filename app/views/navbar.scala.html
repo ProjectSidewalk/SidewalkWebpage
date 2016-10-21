@@ -150,7 +150,15 @@
             function signInSuccess(data) {
                 var htmlString = $("#navbar-dropdown-list-signed-in").html();
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
+
                 $("#navbar-dropdown-list").html(htmlString);
+
+                // Append the link to the admin interface if it the user is admin
+                if (data.roles.indexOf("Administrator") >= 0) {
+                    var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
+                    $("#nav-user-menu").append(adminLi);
+                }
+
                 $('#sign-in-modal-container').modal('toggle');
             }
 
