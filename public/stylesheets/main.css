@@ -156,3 +156,7 @@ kbd {
     font-weight:normal;
     font-size: small;
 }
+
+.admin-panorama .gm-style, .admin-panorama #pano {
+    border-radius: 5px;
+}

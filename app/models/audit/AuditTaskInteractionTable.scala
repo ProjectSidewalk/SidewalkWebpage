@@ -20,7 +20,8 @@ case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, a
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
                                 note: Option[String], timestamp: java.sql.Timestamp,
-                                labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float])
+                                labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
+                                canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
 class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -53,7 +54,7 @@ object AuditTaskInteractionTable {
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(r.nextInt, r.nextInt, r.nextString, r.nextStringOption, r.nextFloatOption, r.nextFloatOption,
       r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextStringOption, r.nextTimestamp,
-      r.nextStringOption, r.nextFloatOption, r.nextFloatOption)
+      r.nextStringOption, r.nextFloatOption, r.nextFloatOption, r.nextInt, r.nextInt, r.nextInt, r.nextInt)
   })
 
 
@@ -107,7 +108,9 @@ object AuditTaskInteractionTable {
       """SELECT interaction.audit_task_interaction_id, interaction.audit_task_id, interaction.action,
         |interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
         |interaction.zoom, interaction. note, interaction.timestamp, label_type.label_type,
-        |label_point.lat AS label_lat, label_point.lng AS label_lng
+        |label_point.lat AS label_lat, label_point.lng AS label_lng, label_point.canvas_x as canvas_x,
+        |label_point.canvas_y as canvas_y, label_point.canvas_width as canvas_width,
+        |label_point.canvas_height as canvas_height
         |FROM sidewalk.audit_task_interaction AS interaction
         |LEFT JOIN sidewalk.label
         |ON interaction.temporary_label_id = label.temporary_label_id
@@ -136,16 +139,28 @@ object AuditTaskInteractionTable {
       val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
       val properties = if (interaction.labelType.isEmpty) {
         Json.obj(
+          "panoId" -> interaction.gsvPanoramaId,
           "heading" -> interaction.heading.get.toDouble,
-          "timestamp" -> interaction.timestamp.getTime
+          "pitch" -> interaction.pitch,
+          "zoom" -> interaction.zoom,
+          "timestamp" -> interaction.timestamp.getTime,
+          "canvasHeight" -> interaction.canvasHeight,
+          "canvasWidth" -> interaction.canvasWidth
         )
       } else {
         Json.obj(
+          "panoId" -> interaction.gsvPanoramaId,
           "heading" -> interaction.heading.get.toDouble,
+          "pitch" -> interaction.pitch,
+          "zoom" -> interaction.zoom,
           "timestamp" -> interaction.timestamp.getTime,
+          "canvasHeight" -> interaction.canvasHeight,
+          "canvasWidth" -> interaction.canvasWidth,
           "label" -> Json.obj(
             "label_type" -> interaction.labelType,
-            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat)
+            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
+            "canvasX" -> interaction.canvasX,
+            "canvasY" -> interaction.canvasY
           )
         )
       }
