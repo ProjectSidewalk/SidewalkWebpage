@@ -159,9 +159,8 @@
                             <td>@label.temporary</td>
                             <td>@label.description</td>
                             <td>
-                                <a data-toggle="lightbox" href='@routes.AdminController.gsvLabelView(label.labelId)'
-                                target="_blank">
-                                    View</a>
+                                <a data-toggle="lightbox" id="labelView" data-width="960" data-type="url"
+                                href='@routes.AdminController.gsvLabelView(label.labelId)'>View</a>
                             </td>
 
                         </tr>
@@ -284,8 +283,8 @@
 
         });
 
-        $(document).on('click', '[data-toggle="lightbox"]', function(event) {
-            event.preventDefault();
+        $('#labelView').click(function (e) {
+            e.preventDefault();
             $(this).ekkoLightbox();
         });
     </script>
