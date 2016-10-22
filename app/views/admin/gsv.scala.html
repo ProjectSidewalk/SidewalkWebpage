@@ -1,6 +1,7 @@
 @import models.user.User
-@import models.label.Label
-@(title: String, admin: Option[User] = None, label: Label)
+@import models.label.LabelTable.LabelMetadata
+@import models.label.LabelPoint
+@(title: String, admin: Option[User] = None, labelPointObj: LabelPoint, labelObj: LabelMetadata)
 
 <html>
     <head>
@@ -9,34 +10,35 @@
     </head>
     <body>
         <div class="">
+            <div id="svholder">
+            </div>
             <table>
                 <tr>
                     <th>Time Submitted</th>
-                    <td></td>
+                    <td>@labelObj.timestamp</td>
                 </tr>
                 <tr>
                     <th>Label Type</th>
-                    <td></td>
+                    <td>@labelObj.labelTypeValue</td>
                 </tr>
                 <tr>
                     <th>Severity</th>
-                    <td></td>
+                    <td>@labelObj.severity</td>
                 </tr>
                 <tr>
                     <th>Temporary</th>
-                    <td></td>
+                    <td>@labelObj.temporary</td>
                 </tr>
                 <tr>
                     <th>Description</th>
-                    <td></td>
+                    <td>@labelObj.description</td>
                 </tr>
             </table>
         </div>
 
         <script>
                 $(document).ready(function () {
-                    var labelId = @label.labelId;
-    //                window.admin = AdminGSVLabel({labelId: auditTaskId});
+                    window.admin = AdminGSVLabel({labelObj: labelObj, labelPointObj: labelPointObj});
                 });
         </script>
     </body>

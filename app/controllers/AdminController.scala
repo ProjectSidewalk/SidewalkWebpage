@@ -10,7 +10,8 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable
+import models.label.LabelTable.LabelMetadata
+import models.label.{LabelPointTable, LabelTable}
 import models.mission.MissionTable
 import models.region.RegionTable
 import models.street.{StreetEdge, StreetEdgeTable}
@@ -69,8 +70,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def gsvLabelView(labelId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      LabelTable.find(labelId) match {
-        case Some(label) => Future.successful(Ok(views.html.admin.gsv("Project Sidewalk", request.identity, label)))
+      LabelPointTable.find(labelId) match {
+        case Some(labelPointObj) => Future.successful(Ok(views.html.admin.gsv("Project Sidewalk", request.identity,
+          labelPointObj, LabelTable.getLabelMetadata(labelId))))
         case _ => Future.successful(Redirect("/"))
       }
     } else {
