@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "1.0.17"
+version := "1.0.18"
 
 scalaVersion := "2.10.4"
 
@@ -42,7 +42,7 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
   "joda-time" % "joda-time" % "2.9.4",
   "org.geotools" % "gt-coverage" % "14.3",
-  "org.geotools" % "gt-epsg-wkt" % "14.3",
+  "org.geotools" % "gt-epsg-hsql" % "14.3",
   "org.geotools" % "gt-geotiff" % "14.3",
   "org.geotools" % "gt-main" % "14.3",
   "org.geotools" % "gt-referencing" % "14.3"
