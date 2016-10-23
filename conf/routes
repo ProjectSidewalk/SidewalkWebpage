@@ -21,6 +21,7 @@ GET     /signOut                                @controllers.UserController.sign
 POST    /signUp                                 @controllers.SignUpController.signUp(url: String ?= "/")
 POST    /authenticate/credentials               @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                   @controllers.CredentialsAuthController.postAuthenticate
+POST    /authapi/signup                         @controllers.SignUpController.postSignUp
 
 # Admin
 GET     /admin                                  @controllers.AdminController.index

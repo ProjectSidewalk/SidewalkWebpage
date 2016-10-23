@@ -113,7 +113,7 @@
                     <h4 class="modal-title" id="sign-up-label">Sign up</h4>
                 </div>
                 <div class="modal-body">
-                    @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/"))) {
+                    @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/")), args ='id -> "sign-up-form") {
                     @text(forms.SignUpForm.form("username"), "Username", icon = "person")
                     @text(forms.SignUpForm.form("email"), "Email", icon = "at")
                     @password(forms.SignUpForm.form("password"), "Password", icon = "key")
@@ -154,7 +154,7 @@
                 $("#navbar-dropdown-list").html(htmlString);
 
                 // Append the link to the admin interface if it the user is admin
-                if (data.roles.indexOf("Administrator") >= 0) {
+                if (data.roles && data.roles.indexOf("Administrator") >= 0) {
                     var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
                     $("#nav-user-menu").append(adminLi);
                 }
@@ -166,6 +166,13 @@
             $('#sign-in-form').submit(function () {
                 var data = $(this).serialize();
                 var url = '/authapi/authenticate';
+                $.post(url, data, signInSuccess);
+                return false;
+            });
+
+            $('#sign-up-form').submit(function () {
+                var data = $(this).serialize();
+                var url = '/authapi/signup';
                 $.post(url, data, signInSuccess);
                 return false;
             });
