@@ -124,15 +124,18 @@ def call_activator_dist():
     command = 'activator dist'
     subprocess.call(command.split())
 
+def create_distribution():
+    print "Adding timestamp to the footer"
+    add_timestamp_to_the_footer()
+
+    print "Started zipping up files"
+    call_activator_dist()
+    remove_timestamp_from_the_footer()
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1] == 'dist':
-            print "Adding timestamp to the footer"
-            add_timestamp_to_the_footer()
-
-            print "Started zipping up files"
-            call_activator_dist()
-            remove_timestamp_from_the_footer()
+            create_distribution()
 
         elif sys.argv[1] == 'push':
             if len(sys.argv) > 2:
@@ -156,3 +159,7 @@ if __name__ == '__main__':
                 client.close()
             else:
                 print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"
+
+    else:
+        pass
+
