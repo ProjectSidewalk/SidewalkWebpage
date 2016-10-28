@@ -18,7 +18,7 @@ import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.User
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.extras.geojson
 
 import scala.concurrent.Future
@@ -61,18 +61,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
         case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
-        case _ => Future.successful(Redirect("/"))
-      }
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  def gsvLabelView(labelId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      LabelPointTable.find(labelId) match {
-        case Some(labelPointObj) => Future.successful(Ok(views.html.admin.gsv("Project Sidewalk", request.identity,
-          labelPointObj, LabelTable.getLabelMetadata(labelId))))
         case _ => Future.successful(Redirect("/"))
       }
     } else {
@@ -282,6 +270,32 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val featureCollection: JsObject = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
           Future.successful(Ok(featureCollection))
         case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      LabelPointTable.find(labelId) match {
+        case Some(labelPointObj) =>
+          val labelMetadata = LabelTable.getLabelMetadata(labelId)
+          val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+          Future.successful(Ok(labelMetadataJson))
+        case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+      }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def gsvLabelView(labelId: Int) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      LabelPointTable.find(labelId) match {
+        case Some(labelPointObj) => Future.successful(Ok(views.html.admin.gsv("Project Sidewalk", request.identity,
+          labelId)))
+        case _ => Future.successful(Redirect("/"))
       }
     } else {
       Future.successful(Redirect("/"))
