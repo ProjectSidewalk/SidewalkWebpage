@@ -25,7 +25,6 @@ POST    /signUp                                 @controllers.SignUpController.si
 GET     /admin                                  @controllers.AdminController.index
 GET     /admin/user/:username                   @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                     @controllers.AdminController.task(taskId: Int)
-GET     /admin/gsv/:labelId                     @controllers.AdminController.gsvLabelView(labelId: Int)
 
 GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate    @controllers.AdminController.getNeighborhoodCompletionRate

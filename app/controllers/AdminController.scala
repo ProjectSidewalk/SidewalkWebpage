@@ -72,6 +72,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Get a list of all labels
+    *
     * @return
     */
   def getAllLabels = UserAwareAction.async { implicit request =>
@@ -96,6 +97,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Returns audit coverage of each neighborhood
+    *
     * @return
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
@@ -108,7 +110,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
       val neighborhoods = RegionTable.selectAllNamedNeighborhoods
-      val completionRates: List[JsObject] = for ( neighborhood <- neighborhoods ) yield {
+      val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
         val streets: List[StreetEdge] = StreetEdgeTable.selectStreetsByARegionId(neighborhood.regionId)
         val auditedStreets: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsByARegionId(neighborhood.regionId)
 
@@ -158,8 +160,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
           val features: List[JsObject] = streets.map { edge =>
             val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-            val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
+          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
             val properties = Json.obj(
               "street_edge_id" -> edge.streetEdgeId,
               "source" -> edge.source,
@@ -179,6 +181,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * This method returns the onboarding interaction data
+    *
     * @return
     */
   def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
@@ -194,6 +197,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * This method returns the tasks and labels submitted by the given user.
+    *
     * @param username Username
     * @return
     */
@@ -210,7 +214,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getMissionsCompletedByUsers = UserAwareAction.async{ implicit request =>
+  def getMissionsCompletedByUsers = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val missionsCompleted = MissionTable.selectMissionsCompletedByUsers.map(x =>
         Json.obj("usrename" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m, "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
@@ -232,6 +236,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Get records of audit task interactions of a user
+    *
     * @param username
     * @return
     */
@@ -284,18 +289,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
-      }
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  def gsvLabelView(labelId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      LabelPointTable.find(labelId) match {
-        case Some(labelPointObj) => Future.successful(Ok(views.html.admin.gsv("Project Sidewalk", request.identity,
-          labelId)))
-        case _ => Future.successful(Redirect("/"))
       }
     } else {
       Future.successful(Redirect("/"))
