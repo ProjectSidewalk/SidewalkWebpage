@@ -159,8 +159,7 @@
                             <td>@label.temporary</td>
                             <td>@label.description</td>
                             <td>
-                                <a data-toggle="lightbox" id="labelView" data-width="960" data-type="url"
-                                href='@routes.AdminController.gsvLabelView(label.labelId)'>View</a>
+                                <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                             </td>
 
                         </tr>
@@ -254,6 +253,7 @@
                 </table>
             </div>
         </div>
+
     </div>
     <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
@@ -283,9 +283,9 @@
 
         });
 
-        $('#labelView').click(function (e) {
+        $('.labelView').click(function (e) {
             e.preventDefault();
-            $(this).ekkoLightbox();
+            window.admin.adminGSVLabelView.showLabel($(this).data('labelId'));
         });
     </script>
 }

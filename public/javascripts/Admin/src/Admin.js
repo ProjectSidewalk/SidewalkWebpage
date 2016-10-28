@@ -471,10 +471,16 @@ function Admin (_, $, c3, turf) {
             numberOfBins: numberOfBins
         };
     }
+
+    function initializeAdminGSVLabelView() {
+        self.adminGSVLabelView = AdminGSVLabel();
+    }
+
     initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
+    initializeAdminGSVLabelView();
         
 
     return self;
