@@ -123,11 +123,21 @@ function AdminPanorama(svHolder) {
         self.ctx.clearRect(0, 0, self.drawingCanvas.width, self.drawingCanvas.height);
     }
 
+    /*
+    Sometimes strangely the GSV is not shown, calling this function might fix it
+    related:http://stackoverflow.com/questions/18426083/how-do-i-force-redraw-with-google-maps-api-v3-0
+     */
+    function refreshGSV() {
+        if (typeof google != "undefined")
+            google.maps.event.trigger(self.panorama,'resize');
+    }
+
     //init
     _init();
 
     self.changePanoId = changePanoId;
     self.setPov = setPov;
     self.renderLabel = renderLabel;
+    self.refreshGSV = refreshGSV;
     return self;
 }

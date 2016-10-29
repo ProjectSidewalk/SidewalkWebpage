@@ -35,6 +35,7 @@ GET     /adminapi/auditpath/:id                 @controllers.AdminController.get
 GET     /adminapi/auditedStreets/:username      @controllers.AdminController.getStreetsAuditedByAUser(username: String)
 GET     /adminapi/labelLocations/:username      @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                    @controllers.AdminController.getAllLabels
+GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit

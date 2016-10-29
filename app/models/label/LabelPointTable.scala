@@ -48,6 +48,17 @@ object LabelPointTable {
   val labelPoints = TableQuery[LabelPointTable]
 
   /**
+    * Find a label point
+    *
+    * @param labelId
+    * @return
+    */
+  def find(labelId: Int): Option[LabelPoint] = db.withSession { implicit session =>
+    val labelList = labelPoints.filter(_.labelId === labelId).list
+    labelList.headOption
+  }
+
+  /**
    * Stores a label point into the label_point table
    * @param point
    * @return

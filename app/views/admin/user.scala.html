@@ -83,7 +83,7 @@
                     @LabelTable.selectTopLabelsAndMetadataByUser(1000, UUID.fromString(user.get.userId)).map { userLabel =>
                         <tr>
                             <td>@userLabel.timestamp</td>
-                            <td>@userLabel.labelTypeDesc</td>
+                            <td>@userLabel.labelTypeValue</td>
                             <td>@userLabel.severity</td>
                             <td>@userLabel.temporary</td>
                             <td>@userLabel.description</td>
