@@ -1,33 +1,37 @@
 var map;
+var markerLayer;
+L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
-function Admin (_, $, c3, turf) {
-    var self = {};
-
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
-
-    // Construct a bounding box for this map that the user cannot move out of
-    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262),
-        northEast = L.latLng(39.060, -76.830),
-        bounds = L.latLngBounds(southWest, northEast),
+// Construct a bounding box for this map that the user cannot move out of
+// https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
+var southWest = L.latLng(38.761, -77.262),
+    northEast = L.latLng(39.060, -76.830),
+    bounds = L.latLngBounds(southWest, northEast),
 
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-        tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
-        mapboxTiles = L.tileLayer(tileUrl, {
-            attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-        }),
-        map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
-            // set that bounding box as maxBounds to restrict moving the map
-            // see full maxBounds documentation:
-            // http://leafletjs.com/reference.html#map-maxbounds
-            maxBounds: bounds,
-            maxZoom: 19,
-            minZoom: 9
-        })
-        // .addLayer(mapboxTiles)
-            .fitBounds(bounds)
-            .setView([38.892, -77.038], 12),
-        popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
+    tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
+    mapboxTiles = L.tileLayer(tileUrl, {
+        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    }),
+    map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+        // set that bounding box as maxBounds to restrict moving the map
+        // see full maxBounds documentation:
+        // http://leafletjs.com/reference.html#map-maxbounds
+        maxBounds: bounds,
+        maxZoom: 19,
+        minZoom: 9
+    })
+
+        .fitBounds(bounds)
+        .setView([38.892, -77.038], 12),
+    popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
+function Admin (_, $, c3, turf) {
+    if(typeof(markerLayer) != "undefined") {
+        markerLayer.clearLayers();
+    }
+    var self = {};
+
+
     
     // Draw an onboarding interaction chart
     $.getJSON("/adminapi/onboardingInteractions", function (data) {
@@ -379,7 +383,7 @@ function Admin (_, $, c3, turf) {
         $.getJSON("/contribution/streets/all", function (data) {
 
             // Render audited street segments
-            L.geoJson(data, {
+            markerLayer = L.geoJson(data, {
                 pointToLayer: L.mapbox.marker.style,
                 style: function(feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
@@ -404,6 +408,7 @@ function Admin (_, $, c3, turf) {
     }
 
     function initializeSubmittedLabels(map) {
+
         var colorMapping = util.misc.getLabelColors(),
             geojsonMarkerOptions = {
                 radius: 5,
@@ -445,9 +450,10 @@ function Admin (_, $, c3, turf) {
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-
+            console.log(visibleMarkers);
             // Render submitted labels
             L.geoJson(data, {
+
                 pointToLayer: function (feature, latlng) {
                     var style = $.extend(true, {}, geojsonMarkerOptions);
                     style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
@@ -455,7 +461,8 @@ function Admin (_, $, c3, turf) {
                     return L.circleMarker(latlng, style);
                 },
                 filter: function(feature, layer){
-                  return feature.properties.label_type != "CurbRamp";
+                    return $.inArray(feature.properties.label_type, visibleMarkers);
+
                 },
                 onEachFeature: onEachLabelFeature
             })
@@ -479,16 +486,17 @@ function Admin (_, $, c3, turf) {
             numberOfBins: numberOfBins
         };
     }
+
+
+
     initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
-        
+
 
     return self;
 
 
 }
-function reloadMap(){
-    map.invalidateSize();
-}
+

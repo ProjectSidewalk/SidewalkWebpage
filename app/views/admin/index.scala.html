@@ -18,11 +18,11 @@
                     <div id="admin-map"></div>
                     <div id="map-label-legend">
                         <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td><td><input type="checkbox" value="displaylabel" name="curbramp" checked="true" onclick="reloadMap();"></td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td><input type="checkbox" value="displaylabel" name="missingcurbramp" checked="true" onclick="reloadMap();"></td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td><input type="checkbox" value="displaylabel" name="obstacle" checked="true" onclick="reloadMap();"></td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td><input type="checkbox" value="displaylabel" name="surfaceprob" checked="true" onclick="reloadMap();"></td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" name="auditedstreet" checked="true" onclick="reloadMap();"></td></tr>
+                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="updateVisibleMarkers();"></td></tr>
                         </table>
                     </div>
                 </div>
@@ -256,6 +256,29 @@
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
+    <script>
+            var visibleMarkers = [];
+            function updateVisibleMarkers() {
+                visibleMarkers = []
+                if (document.getElementById("curbramp").checked) {
+                    visibleMarkers.push("curbramp");
+                }
+                if (document.getElementById("missingcurbramp").checked) {
+                    visibleMarkers.push("missingcurbramp");
+                }
+                if (document.getElementById("obstacle").checked) {
+                    visibleMarkers.push("obstacle");
+                }
+                if (document.getElementById("surfaceprob").checked) {
+                    visibleMarkers.push("surfaceprob");
+                }
+                if (document.getElementById("auditedstreet").checked) {
+                    visibleMarkers.push("auditedstreet");
+                }
+                window.admin = Admin (_, $, c3, turf);
+
+            }
+    </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/src/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
@@ -264,6 +287,9 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
     <script>
+
+
+
         $(document).ready(function () {
             window.admin = Admin (_, $, c3, turf);
             $('#commentsTable').dataTable();
