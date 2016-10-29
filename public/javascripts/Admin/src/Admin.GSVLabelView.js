@@ -39,6 +39,10 @@ function AdminGSVLabel() {
                                 '<th>Description</th>'+
                                 '<td id="description"></td>'+
                             '</tr>'+
+                            '<tr>' +
+                                '<th>Task ID</th>' +
+                                '<td id="task"></td>' +
+                            '</tr>'+
                             '</table>'+
                         '</div>'+
                     '</div>'+
@@ -52,6 +56,7 @@ function AdminGSVLabel() {
         self.modalSeverity = self.modal.find("#severity");
         self.modalTemporary = self.modal.find("#temporary");
         self.modalDescription = self.modal.find("#description");
+        self.modalTask = self.modal.find("#task");
     }
 
     function showLabel(labelId) {
@@ -85,6 +90,7 @@ function AdminGSVLabel() {
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+labelMetadata['audit_task_id']+"</a>");
 
         self.panorama.refreshGSV();
     }
