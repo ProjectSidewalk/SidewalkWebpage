@@ -1,3 +1,5 @@
+var map;
+
 function Admin (_, $, c3, turf) {
     var self = {};
 
@@ -428,8 +430,10 @@ function Admin (_, $, c3, turf) {
                 "SurfaceProblem": 0
             };
 
+
             for (var i = data.features.length - 1; i >= 0; i--) {
                 labelCounter[data.features[i].properties.label_type] += 1;
+
             }
             //document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
             //document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
@@ -447,7 +451,11 @@ function Admin (_, $, c3, turf) {
                 pointToLayer: function (feature, latlng) {
                     var style = $.extend(true, {}, geojsonMarkerOptions);
                     style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+
                     return L.circleMarker(latlng, style);
+                },
+                filter: function(feature, layer){
+                  return feature.properties.label_type != "CurbRamp";
                 },
                 onEachFeature: onEachLabelFeature
             })
@@ -478,4 +486,9 @@ function Admin (_, $, c3, turf) {
         
 
     return self;
+
+
+}
+function reloadMap(){
+    map.invalidateSize();
 }
