@@ -32,8 +32,7 @@ def transfer_a_zipfile(zip_file_path, username, password):
     sftp.close()
     transport.close()
 
-
-def unzip_remote_file(client, zip_file_name):
+def unzip_file(client, zip_file_name):
     """Unzip and run the application"""
     print "Unzipping the files"
     command = "unzip %s -d %s" % (sidewalk_app_directory +
@@ -150,7 +149,7 @@ if __name__ == '__main__':
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(hostname, username=username, password=password)
 
-                unzip_remote_file(client, zip_file_name)
+                unzip_file(client, zip_file_name)
                 move_existing_application(client)
                 rename_new_application_directory(client, zip_file_name)
                 run_application(client)
@@ -161,5 +160,11 @@ if __name__ == '__main__':
                 print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"
 
     else:
-        pass
+        create_distribution()
+        zip_file_path = sys.argv[2]
+        unzip_file(zip_file_path)
+        move_existing_application(client)
+        rename_new_application_directory(client, zip_file_path)
+        run_application(client)
+        remove_previous_application(client)
 
