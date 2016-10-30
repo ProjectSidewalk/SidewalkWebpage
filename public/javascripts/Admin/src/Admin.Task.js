@@ -34,6 +34,8 @@ function AdminTask(params) {
             ]
         };
 
+
+
         var overlayPolygonLayer = L.geoJson(overlayPolygon).addTo(map);
         var colorScheme = util.misc.getLabelColors();
 
@@ -102,7 +104,7 @@ function AdminTask(params) {
                     map.latLngToLayerPoint(new L.LatLng(y, x)).y + ")";
             });
 
-            // Animate the marker
+            // Animate the marker's radius to 7px
             markerGroup = markerGroup.attr("counter", 0)
                 .transition()
                 .each("start", function () {
@@ -118,7 +120,7 @@ function AdminTask(params) {
 
             // Chain transitions
             for (var i = 0; i < featuresdata.length; i++) {
-                featuresdata[i].properties.timestamp /= 5;
+                featuresdata[i].properties.timestamp /= 1.5;
             }
 
             var currentTimestamp = featuresdata[0].properties.timestamp;
@@ -136,17 +138,30 @@ function AdminTask(params) {
                             map.latLngToLayerPoint(new L.LatLng(y, x)).y + ")" +
                             "rotate(" + heading + ")";
                     })
-                    .each("end", function () {
+                    .each("start", function () {
                         // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
                         var counter = d3.select(this).attr("counter");
                         var d = featuresdata[counter];
 
+                        if(!self.panorama)
+                            self.panorama = AdminPanorama($("#svholder")[0]);
+
+                        self.panorama.changePanoId(d.properties.panoId);
+
+                        self.panorama.setPov({
+                            heading: d.properties.heading,
+                            pitch: d.properties.pitch,
+                            zoom: d.properties.zoom
+                        });
+
                         if (d) {
+                            map.setView([d.geometry.coordinates[1], d.geometry.coordinates[0]], 18);
+
                             if ("label" in d.properties) {
                                 var label = d.properties.label;
                                 var fill = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
-                                console.log(label)
-                                console.log(fill)
+                                // console.log(label)
+                                // console.log(fill)
                                 var p = map.latLngToLayerPoint(new L.LatLng(label.coordinates[1], label.coordinates[0]));
                                 var c = g.append("circle")
                                     .attr("r", 5)
@@ -162,6 +177,10 @@ function AdminTask(params) {
                                     .on("mouseout", function () {
                                         d3.select(this).attr("r", 5);
                                     });
+
+                                var adminPanoramaLabel = AdminPanoramaLabel(label.label_type, label.canvasX, label.canvasY,
+                                                                d.properties.canvasWidth, d.properties.canvasHeight);
+                                self.panorama.renderLabel(adminPanoramaLabel);
                                 // Update the chart as well
                                 // dotPlotVisualization.increment(label.label_type);
                                 // dotPlotVisualization.udpate();
@@ -195,6 +214,8 @@ function AdminTask(params) {
             var x = d.geometry.coordinates[0];
             return map.latLngToLayerPoint(new L.LatLng(y, x))
         }
+
+
     })();
     
     self.data = _data;
