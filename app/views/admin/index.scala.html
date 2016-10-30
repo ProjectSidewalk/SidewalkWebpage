@@ -258,26 +258,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script>
             var visibleMarkers = [];
-            function updateVisibleMarkers() {
-                visibleMarkers = []
-                if (document.getElementById("curbramp").checked) {
-                    visibleMarkers.push("curbramp");
-                }
-                if (document.getElementById("missingcurbramp").checked) {
-                    visibleMarkers.push("missingcurbramp");
-                }
-                if (document.getElementById("obstacle").checked) {
-                    visibleMarkers.push("obstacle");
-                }
-                if (document.getElementById("surfaceprob").checked) {
-                    visibleMarkers.push("surfaceprob");
-                }
-                if (document.getElementById("auditedstreet").checked) {
-                    visibleMarkers.push("auditedstreet");
-                }
-                window.admin = Admin (_, $, c3, turf);
 
-            }
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/src/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
@@ -290,15 +271,43 @@
 
 
 
+
+
+        function updateVisibleMarkers() {
+            visibleMarkers = []
+            if (document.getElementById("curbramp").checked) {
+                visibleMarkers.push("CurbRamp");
+            }
+            if (document.getElementById("missingcurbramp").checked) {
+                visibleMarkers.push("NoCurbRamp");
+            }
+            if (document.getElementById("obstacle").checked) {
+                visibleMarkers.push("Obstacle");
+            }
+            if (document.getElementById("surfaceprob").checked) {
+                visibleMarkers.push("SurfaceProblem");
+            }
+
+
+            map.removeLayer(markerLayer);
+            map.removeLayer(auditedStreetLayer);
+            initializeSubmittedLabels(map);
+            if (document.getElementById("auditedstreet").checked) {
+                initializeAuditedStreets(map);
+            }
+
+        }
+
         $(document).ready(function () {
             window.admin = Admin (_, $, c3, turf);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();
             $('#anonUserTable').dataTable();
+            updateVisibleMarkers();
+
+
 
         });
-
-
     </script>
 }
