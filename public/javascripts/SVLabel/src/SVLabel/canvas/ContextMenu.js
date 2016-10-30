@@ -244,7 +244,7 @@ function ContextMenu (uiContextMenu) {
                     } else if (labelType == 'NoCurbRamp') {
                         example = " (e.g., unclear if a curb ramp is needed)";
                     } else if (labelType == 'Obstacle') {
-                        example = " (e.g., sidewalk blocking light pole)";
+                        example = " (e.g., light pole blocking sidewalk)";
                     } else if (labelType == 'SurfaceProblem') {
                         example = " (e.g., unleveled due to a tree root)";
                     }
