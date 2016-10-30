@@ -8,40 +8,36 @@ function AdminGSVLabel() {
     function _resetModal() {
         self.modal =
             $('<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
-                '<div class="modal-dialog" role="document" style="width: 430px">'+
+                '<div class="modal-dialog" role="document" style="width: 550px">'+
                     '<div class="modal-content">'+
                         '<div class="modal-header">'+
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
                             '<h4 class="modal-title" id="myModalLabel">Label</h4>'+
                         '</div>'+
                         '<div class="modal-body">'+
-                            '<div id="svholder" style="width: 400px; height:300px">'+
+                            '<div id="svholder" style="width: 520px; height:300px">'+
                         '</div>'+
                         '<div class="modal-footer">'+
                             '<table class="table table-striped" style="font-size:small">'+
                             '<tr>'+
-                                '<th>Time Submitted</th>'+
-                                '<td id="timestamp"></td>'+
-                            '</tr>'+
-                            '<tr>'+
                                 '<th>Label Type</th>'+
                                 '<td id="label-type-value"></td>'+
-                            '</tr>'+
-                            '<tr>'+
                                 '<th>Severity</th>'+
                                 '<td id="severity"></td>'+
                             '</tr>'+
                             '<tr>'+
+                                '<th>Task ID</th>' +
+                                '<td id="task"></td>' +
                                 '<th>Temporary</th>'+
                                 '<td id="temporary"></td>'+
                             '</tr>'+
                             '<tr>'+
                                 '<th>Description</th>'+
-                                '<td id="description"></td>'+
+                                '<td colspan="3" id="description"></td>'+
                             '</tr>'+
-                            '<tr>' +
-                                '<th>Task ID</th>' +
-                                '<td id="task"></td>' +
+                            '<tr>'+
+                            '<th>Time Submitted</th>'+
+                            '<td id="timestamp" colspan="3"></td>'+
                             '</tr>'+
                             '</table>'+
                         '</div>'+
@@ -85,12 +81,15 @@ function AdminGSVLabel() {
             labelMetadata['canvas_width'], labelMetadata['canvas_height']);
         self.panorama.renderLabel(adminPanoramaLabel);
 
-        self.modalTimestamp.html(new Date(labelMetadata['timestamp'] * 1000));
+        var labelDate = moment(new Date(labelMetadata['timestamp']));
+        self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
-        self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+labelMetadata['audit_task_id']+"</a>");
+        self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
+            labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
+            labelMetadata['username'] + "</a>");
 
         self.panorama.refreshGSV();
     }

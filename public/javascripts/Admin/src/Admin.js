@@ -414,9 +414,17 @@ function Admin (_, $, c3, turf) {
             };
 
         function onEachLabelFeature(feature, layer) {
-            if (feature.properties && feature.properties.type) {
-                layer.bindPopup(feature.properties.type);
-            }
+            layer.on('click', function(){
+                self.adminGSVLabelView.showLabel(feature.properties.label_id);
+            });
+            layer.on({
+                'mouseover': function() {
+                    layer.setRadius(15);
+                },
+                'mouseout': function() {
+                    layer.setRadius(5);
+                }
+            })
         }
 
         $.getJSON("/adminapi/labels/all", function (data) {
@@ -476,11 +484,19 @@ function Admin (_, $, c3, turf) {
         self.adminGSVLabelView = AdminGSVLabel();
     }
 
+    function initializeLabelTable() {
+        $('.labelView').click(function (e) {
+            e.preventDefault();
+            self.adminGSVLabelView.showLabel($(this).data('labelId'));
+        });
+    }
+
     initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
     initializeAdminGSVLabelView();
+    initializeLabelTable();
         
 
     return self;
