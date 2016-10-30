@@ -74,6 +74,7 @@ function AdminPanorama(svHolder) {
             self.panorama.setPano(newId);
             self.panoId = newId;
             _clearCanvas();
+            self.refreshGSV();
         }
         return this;
     }
@@ -88,6 +89,7 @@ function AdminPanorama(svHolder) {
             self.panorama.setPov(newPov);
             self.panoPov = newPov;
             _clearCanvas();
+            self.refreshGSV();
         }
         return this;
     }
