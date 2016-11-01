@@ -1,6 +1,7 @@
 function Admin (_, $, c3, turf) {
     var self = {};
-
+    var markerLayer;
+    var auditedStreetLayer;
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
     // Construct a bounding box for this map that the user cannot move out of
@@ -377,7 +378,7 @@ function Admin (_, $, c3, turf) {
         $.getJSON("/contribution/streets/all", function (data) {
 
             // Render audited street segments
-            L.geoJson(data, {
+            auditedStreetLayer = L.geoJson(data, {
                 pointToLayer: L.mapbox.marker.style,
                 style: function(feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
@@ -451,17 +452,38 @@ function Admin (_, $, c3, turf) {
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
-            L.geoJson(data, {
+            markerLayer = L.geoJson(data, {
                 pointToLayer: function (feature, latlng) {
                     var style = $.extend(true, {}, geojsonMarkerOptions);
                     style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
                     return L.circleMarker(latlng, style);
+                },
+                filter: function (feature, layer) {
+                    return ($.inArray(feature.properties.label_type, visibleMarkers) > -1);
+
                 },
                 onEachFeature: onEachLabelFeature
             })
                 .addTo(map);
         });
     }
+
+    function clearMap(){
+        map.removeLayer(markerLayer);
+    }
+    function clearAuditedStreetLayer(){
+        map.removeLayer(auditedStreetLayer);
+    }
+    function redrawAuditedStreetLayer(){
+        initializeAuditedStreets(map);
+    }
+    function redrawLabels(){
+        initializeSubmittedLabels(map);
+    }
+    Admin.clearMap = clearMap;
+    Admin.redrawLabels = redrawLabels;
+    Admin.clearAuditedStreetLayer = clearAuditedStreetLayer;
+    Admin.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
 
     // A helper method to make an histogram of an array.
     function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
