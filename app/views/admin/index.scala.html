@@ -19,11 +19,11 @@
                     <div id="admin-map"></div>
                     <div id="map-label-legend">
                         <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
+                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                         </table>
                     </div>
                 </div>
@@ -274,6 +274,8 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
     <script>
         $(document).ready(function () {
+
+
             window.admin = Admin (_, $, c3, turf);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
@@ -281,5 +283,7 @@
             $('#anonUserTable').dataTable();
 
         });
+
+
     </script>
 }

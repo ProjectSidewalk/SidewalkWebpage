@@ -1,5 +1,8 @@
 function Admin (_, $, c3, turf) {
     var self = {};
+    self.markerLayer = null;
+    self.auditedStreetLayer = null;
+    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -377,7 +380,7 @@ function Admin (_, $, c3, turf) {
         $.getJSON("/contribution/streets/all", function (data) {
 
             // Render audited street segments
-            L.geoJson(data, {
+            self.auditedStreetLayer = L.geoJson(data, {
                 pointToLayer: L.mapbox.marker.style,
                 style: function(feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
@@ -451,17 +454,60 @@ function Admin (_, $, c3, turf) {
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
-            L.geoJson(data, {
+            self.markerLayer = L.geoJson(data, {
                 pointToLayer: function (feature, latlng) {
                     var style = $.extend(true, {}, geojsonMarkerOptions);
                     style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
                     return L.circleMarker(latlng, style);
+                },
+                filter: function (feature, layer) {
+                    return ($.inArray(feature.properties.label_type, self.visibleMarkers) > -1);
+
                 },
                 onEachFeature: onEachLabelFeature
             })
                 .addTo(map);
         });
     }
+
+    function clearMap(){
+        map.removeLayer(self.markerLayer);
+    }
+    function clearAuditedStreetLayer(){
+        map.removeLayer(self.auditedStreetLayer);
+    }
+    function redrawAuditedStreetLayer(){
+        initializeAuditedStreets(map);
+    }
+    function redrawLabels(){
+        initializeSubmittedLabels(map);
+    }
+
+    function updateVisibleMarkers() {
+        self.visibleMarkers = []
+        if (document.getElementById("curbramp").checked) {
+            self.visibleMarkers.push("CurbRamp");
+        }
+        if (document.getElementById("missingcurbramp").checked) {
+            self.visibleMarkers.push("NoCurbRamp");
+        }
+        if (document.getElementById("obstacle").checked) {
+            self.visibleMarkers.push("Obstacle");
+        }
+        if (document.getElementById("surfaceprob").checked) {
+            self.visibleMarkers.push("SurfaceProblem");
+        }
+
+        admin.clearMap();
+        admin.clearAuditedStreetLayer();
+        admin.redrawLabels();
+
+        if (document.getElementById("auditedstreet").checked) {
+            admin.redrawAuditedStreetLayer();
+        }
+
+    }
+
 
     // A helper method to make an histogram of an array.
     function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
@@ -497,7 +543,11 @@ function Admin (_, $, c3, turf) {
     initializeSubmittedLabels(map);
     initializeAdminGSVLabelView();
     initializeLabelTable();
-        
 
+    self.clearMap = clearMap;
+    self.redrawLabels = redrawLabels;
+    self.clearAuditedStreetLayer = clearAuditedStreetLayer;
+    self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
+    self.updateVisibleMarkers = updateVisibleMarkers;
     return self;
 }
