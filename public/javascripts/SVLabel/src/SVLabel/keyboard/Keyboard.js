@@ -124,7 +124,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         if (label) {
                             label.setProperty('severity', 2);
                         }
-
+                    }
                     break;
                 case 51:  // "3"
                     if (contextMenu.isOpen()) {
@@ -133,7 +133,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         if (label) {
                             label.setProperty('severity', 3);
                         }
-
+                    }
                     break;
                 case 52:  // "4"
                     if (contextMenu.isOpen()) {
@@ -142,7 +142,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         if (label) {
                             label.setProperty('severity', 4);
                         }
-                  
+                    }
                     break;
                 case 53:  // "5"
                     if (contextMenu.isOpen()) {
