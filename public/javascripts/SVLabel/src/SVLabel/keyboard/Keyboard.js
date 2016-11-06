@@ -115,10 +115,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                             label.setProperty('severity', 1);
                         }
                     }
-                    else{
-                        ribbon.modeSwitchClick("CurbRamp");
-                        break;
-                    }
+
                     break;
                 case 50:  // "2"
                     if (contextMenu.isOpen()) {
@@ -127,8 +124,6 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         if (label) {
                             label.setProperty('severity', 2);
                         }
-                    } else {
-                        ribbon.modeSwitchClick("NoCurbRamp");
                     }
                     break;
                 case 51:  // "3"
@@ -138,8 +133,6 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         if (label) {
                             label.setProperty('severity', 3);
                         }
-                    } else {
-                        ribbon.modeSwitchClick("Obstacle");
                     }
                     break;
                 case 52:  // "4"
@@ -149,8 +142,6 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         if (label) {
                             label.setProperty('severity', 4);
                         }
-                    } else {
-                        ribbon.modeSwitchClick("SurfaceProblem");
                     }
                     break;
                 case 53:  // "5"
