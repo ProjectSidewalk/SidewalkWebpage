@@ -2,7 +2,7 @@ function Admin (_, $, c3, turf) {
     var self = {};
     self.markerLayer = null;
     self.auditedStreetLayer = null;
-    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
+    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other"];
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -497,6 +497,7 @@ function Admin (_, $, c3, turf) {
         if (document.getElementById("surfaceprob").checked) {
             self.visibleMarkers.push("SurfaceProblem");
         }
+        self.visibleMarkers.push("Other");
 
         admin.clearMap();
         admin.clearAuditedStreetLayer();
