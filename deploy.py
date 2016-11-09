@@ -14,7 +14,7 @@ sidewalk_home_directory = "/Users/manaswi/git/SidewalkWebpage" #"/var/www/html/s
 sidewalk_app_directory = sidewalk_home_directory + "/sidewalk-webpage"
 hostname = "sidewalk.umiacs.umd.edu"
 
-
+# Is not being used now
 def transfer_a_zipfile(zip_file_path, username, password):
     zip_file_name = os.path.split(zip_file_path)[1]
     port = 22
@@ -34,15 +34,7 @@ def transfer_a_zipfile(zip_file_path, username, password):
     sftp.close()
     transport.close()
 
-def unzip_file(zip_file_path):
-    """Unzip and run the application"""
-    print "Unzipping the files"
-    command = "tar -xf %s -s'|[^/]*/||' -C %s" % (zip_file_path, sidewalk_app_directory)
-    subprocess.call(command.split())
-
-    change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
-    subprocess.call(change_permission_command.split())
-    print "Finished unzipping the files"
+# Functions to manage distribution files
 
 def stop_existing_application():
     rm_pid_cmd = "rm " + sidewalk_app_directory + "/RUNNING_PID"
@@ -68,14 +60,6 @@ def stop_existing_application():
     else:
         print "No application running process to kill"
 
-def run_application():
-    """Run the application"""
-    print "Starting the application"
-    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
-    subprocess.call(command.split())
-    print "Started running the application"
-
-
 def move_existing_application():
     """Check if the sidewalk-webpage directory exists already. If so, change the name of the directory"""
     print "Checking if the directory `sidewalk-webpage` already exists"
@@ -84,45 +68,50 @@ def move_existing_application():
     stdout, stderr = p.communicate()
 
     ls_output = stdout.read().split("\n")
-    if "sidewalk-webpage" not in ls_output:
+    if "sidewalk-webpage"  in ls_output:
+        print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
+        command = "mv %s %s" % (sidewalk_app_directory,
+                            sidewalk_home_directory + "/_sidewalk-webpage")
+        subprocess.call(command.split())
+    else:
         # Directory doesn't exist create one
         print "Directory `sidewalk-webpage` does not exist"
         command = "mkdir " + sidewalk_app_directory
         subprocess.call(command.split())
 
-    print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
-    # Rename it by appending the version number
-    command = "mv %s %s" % (sidewalk_home_directory + "/sidewalk-webpage",
-                            sidewalk_home_directory + "/_sidewalk-webpage")
+def unzip_file(zip_file_path):
+    """Unzip and run the application"""
+    print "Unzipping the files"
+    command = "tar -xf %s -s'|[^/]*/||' -C %s" % (zip_file_path, sidewalk_app_directory)
     subprocess.call(command.split())
 
+    change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
+    subprocess.call(change_permission_command.split())
+    print "Finished unzipping the files"
+
+def run_application():
+    """Run the application"""
+    print "Starting the application"
+    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
+    subprocess.call(command.split())
+    print "Started running the application"
 
 def remove_previous_application():
     """Remove the application that was previously here"""
     print "Checking if the directory `_sidewalk-webpage` exists"
-    command = "ls %s" % sidewalk_app_directory
-    stdin, stdout, stderr = client.exec_command(command)
+    command = "ls %s" % sidewalk_home_directory
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+
     ls_output = stdout.read().split("\n")
     if "_sidewalk-webpage" in ls_output:
         print "Removing `_sidewalk-webpage` directory"
-        command = "rm -r %s" % sidewalk_app_directory + "/_sidewalk-webpage"
-        stding, stdout, stderr = client.exec_command(command)
-        print stdout.read()
+        command = "rm -r %s" % sidewalk_home_directory + "/_sidewalk-webpage"
+        subprocess.call(command.split())
     else:
         print "Directory `_sidewalk-webpage` does not exist"
 
-
-def rename_new_application_directory(zip_file_name):
-    """Change the directory name from `sidewalk-webpage-[Date]`to `sidewalk-webpage` and run the app"""
-    unzipped_dir_name = zip_file_name.replace(".zip", "")
-    print "Changing the directory name from %s to %s" % (unzipped_dir_name, "sidewalk-webpage")
-    command = "mv %s %s" % (sidewalk_app_directory + "/" +
-                            unzipped_dir_name, sidewalk_app_directory + "/sidewalk-webpage")
-    stdin, stdout, stderr = client.exec_command(command)
-    stdout.read()
-    print "Finished renaming"
-
-
+# Functions to add timestamp to the deployed version
 def add_timestamp_to_the_footer():
 
     with file("./app/views/main.scala.html", "r+") as f:
@@ -137,7 +126,6 @@ def add_timestamp_to_the_footer():
         f.write(new_file_contents)
         f.truncate()
 
-
 def remove_timestamp_from_the_footer():
     with file("./app/views/main.scala.html", "r+") as f:
         file_contents = f.read()
@@ -149,7 +137,7 @@ def remove_timestamp_from_the_footer():
         f.write(new_file_contents)
         f.truncate()
 
-
+# Functions to create a binary distribution
 def call_activator_dist():
     command = 'activator dist'
     subprocess.call(command.split())
@@ -162,6 +150,7 @@ def create_distribution():
     call_activator_dist()
     remove_timestamp_from_the_footer()
 
+# Main Script
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1] == 'dist':
@@ -169,6 +158,7 @@ if __name__ == '__main__':
 
     else:
         # create_distribution()
+
         # Get created distribution file
         current_file_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         zip_file_path = os.path.join(current_file_path, "target/universal/")
@@ -178,7 +168,6 @@ if __name__ == '__main__':
         stop_existing_application()
         move_existing_application()
         unzip_file(zip_file_path)
-        # rename_new_application_directory(client, zip_file_path)
-        # run_application(client)
-        # remove_previous_application(client)
+        run_application()
+        remove_previous_application()
 
