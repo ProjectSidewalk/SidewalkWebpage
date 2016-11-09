@@ -1,15 +1,17 @@
 import getpass
 import os
+import inspect
 import paramiko
 import subprocess
 import sys
+import glob
 
 import datetime
 import re
 import time
 
-remote_home_directory = "/var/www/html/sidewalk"
-sidewalk_app_directory = remote_home_directory + "/sidewalk-webpage"
+sidewalk_home_directory = "/Users/manaswi/git/SidewalkWebpage" #"/var/www/html/sidewalk"
+sidewalk_app_directory = sidewalk_home_directory + "/sidewalk-webpage"
 hostname = "sidewalk.umiacs.umd.edu"
 
 
@@ -24,49 +26,78 @@ def transfer_a_zipfile(zip_file_path, username, password):
     print "Connected to the host."
     print "Connecting to the SFTP port (%d)" % port
     sftp = paramiko.SFTPClient.from_transport(transport)
-    print "SFTP port open. Starting to upload %s to %s" % (zip_file_path, sidewalk_app_directory)
+    print "SFTP port open. Starting to upload %s to %s" % (zip_file_path, sidewalk_home_directory)
 
-    destination_filename = sidewalk_app_directory + "/" + zip_file_name
+    destination_filename = sidewalk_home_directory + "/" + zip_file_name
     sftp.put(zip_file_path, destination_filename)
     print "Finished uploading the file"
     sftp.close()
     transport.close()
 
-def unzip_file(client, zip_file_name):
+def unzip_file(zip_file_path):
     """Unzip and run the application"""
     print "Unzipping the files"
-    command = "unzip %s -d %s" % (sidewalk_app_directory +
-                                  "/" + zip_file_name, sidewalk_app_directory)
-    stdin, stdout, stderr = client.exec_command(command, timeout=30)
-    stdout.read()
+    command = "tar -xf %s -s'|[^/]*/||' -C %s" % (zip_file_path, sidewalk_app_directory)
+    subprocess.call(command.split())
+
+    change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
+    subprocess.call(change_permission_command.split())
     print "Finished unzipping the files"
 
+def stop_existing_application():
+    rm_pid_cmd = "rm " + sidewalk_app_directory + "/RUNNING_PID"
+    subprocess.call(rm_pid_cmd.split())
 
-def run_application(client):
+    # Identify the running Play PID. If there is one, kill.
+    play_pid_command="netstat -tulpn"
+    p1 = subprocess.Popen(play_pid_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p2 = subprocess.Popen(["grep", "9000"], stdin=p1.stdout, stdout=subprocess.PIPE)
+    p3 = subprocess.Popen(["awk", "{print $7}"], stdin=p2.stdout, stdout=subprocess.PIPE)
+    p4 = subprocess.Popen(["cut", "-d", "/", "-f", "1"], stdin=p3.stdout, stdout=subprocess.PIPE)
+    p1.stdout.close()
+    p2.stdout.close()
+    p3.stdout.close()
+    stdout, stderr = p4.communicate()
+    play_pid_9000 = stdout.strip('\n')
+
+    if play_pid_9000 != '':
+        print "Running process has pid: " + play_pid_9000
+        p = subprocess.Popen(["kill", play_pid_9000], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.communicate()
+        print "Killed older application process"
+    else:
+        print "No application running process to kill"
+
+def run_application():
     """Run the application"""
     print "Starting the application"
-    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_app_directory
-    stdin, stdout, stderr = client.exec_command(command)
-    print "Started running the application."
+    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
+    subprocess.call(command.split())
+    print "Started running the application"
 
 
-def move_existing_application(client):
+def move_existing_application():
     """Check if the sidewalk-webpage directory exists already. If so, change the name of the directory"""
     print "Checking if the directory `sidewalk-webpage` already exists"
-    command = "ls %s" % sidewalk_app_directory
-    stdin, stdout, stderr = client.exec_command(command)
+    command = "ls %s" % sidewalk_home_directory
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+
     ls_output = stdout.read().split("\n")
-    if "sidewalk-webpage" in ls_output:
-        print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
-        command = "mv %s %s" % (sidewalk_app_directory + "/sidewalk-webpage",
-                                sidewalk_app_directory + "/_sidewalk-webpage")
-        stdin, stdout, stderr = client.exec_command(command)
-        stdout.read()
-    else:
+    if "sidewalk-webpage" not in ls_output:
+        # Directory doesn't exist create one
         print "Directory `sidewalk-webpage` does not exist"
+        command = "mkdir " + sidewalk_app_directory
+        subprocess.call(command.split())
+
+    print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
+    # Rename it by appending the version number
+    command = "mv %s %s" % (sidewalk_home_directory + "/sidewalk-webpage",
+                            sidewalk_home_directory + "/_sidewalk-webpage")
+    subprocess.call(command.split())
 
 
-def remove_previous_application(client):
+def remove_previous_application():
     """Remove the application that was previously here"""
     print "Checking if the directory `_sidewalk-webpage` exists"
     command = "ls %s" % sidewalk_app_directory
@@ -81,7 +112,7 @@ def remove_previous_application(client):
         print "Directory `_sidewalk-webpage` does not exist"
 
 
-def rename_new_application_directory(client, zip_file_name):
+def rename_new_application_directory(zip_file_name):
     """Change the directory name from `sidewalk-webpage-[Date]`to `sidewalk-webpage` and run the app"""
     unzipped_dir_name = zip_file_name.replace(".zip", "")
     print "Changing the directory name from %s to %s" % (unzipped_dir_name, "sidewalk-webpage")
@@ -136,35 +167,18 @@ if __name__ == '__main__':
         if sys.argv[1] == 'dist':
             create_distribution()
 
-        elif sys.argv[1] == 'push':
-            if len(sys.argv) > 2:
-                zip_file_path = sys.argv[2]
-                zip_file_name = os.path.split(zip_file_path)[1]
-                username = raw_input("Username:")
-                password = getpass.getpass("Password:")
-
-                transfer_a_zipfile(zip_file_path, username, password)
-
-                client = paramiko.SSHClient()
-                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                client.connect(hostname, username=username, password=password)
-
-                unzip_file(client, zip_file_name)
-                move_existing_application(client)
-                rename_new_application_directory(client, zip_file_name)
-                run_application(client)
-                remove_previous_application(client)
-
-                client.close()
-            else:
-                print "Filename not specified. Usage: python deploy.py <filename of the zipped app>"
-
     else:
-        create_distribution()
-        zip_file_path = sys.argv[2]
+        # create_distribution()
+        # Get created distribution file
+        current_file_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        zip_file_path = os.path.join(current_file_path, "target/universal/")
+        file_list = glob.glob(zip_file_path + "sidewalk-webpage-*.zip")
+        zip_file_path = file_list[-1]
+
+        stop_existing_application()
+        move_existing_application()
         unzip_file(zip_file_path)
-        move_existing_application(client)
-        rename_new_application_directory(client, zip_file_path)
-        run_application(client)
-        remove_previous_application(client)
+        # rename_new_application_directory(client, zip_file_path)
+        # run_application(client)
+        # remove_previous_application(client)
 
