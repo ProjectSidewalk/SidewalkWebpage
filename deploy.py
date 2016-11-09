@@ -1,5 +1,6 @@
 import getpass
 import os
+import shutil
 import inspect
 import paramiko
 import subprocess
@@ -37,8 +38,8 @@ def transfer_a_zipfile(zip_file_path, username, password):
 # Functions to manage distribution files
 
 def stop_existing_application():
-    rm_pid_cmd = "rm " + sidewalk_app_directory + "/RUNNING_PID"
-    subprocess.call(rm_pid_cmd.split())
+    # rm_pid_cmd = "rm " + sidewalk_app_directory + "/RUNNING_PID"
+    # subprocess.call(rm_pid_cmd.split())
 
     # Identify the running Play PID. If there is one, kill.
     play_pid_command="netstat -tulpn"
@@ -54,20 +55,19 @@ def stop_existing_application():
 
     if play_pid_9000 != '':
         print "Running process has pid: " + play_pid_9000
-        p = subprocess.Popen(["kill", play_pid_9000], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.communicate()
+        subprocess.call(["kill", play_pid_9000])
         print "Killed older application process"
     else:
-        print "No application running process to kill"
+        print "No running application process to kill"
 
 def move_existing_application():
     """Check if the sidewalk-webpage directory exists already. If so, change the name of the directory"""
     print "Checking if the directory `sidewalk-webpage` already exists"
     command = "ls %s" % sidewalk_home_directory
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
+    ls_output = stdout.split("\n")
 
-    ls_output = stdout.read().split("\n")
     if "sidewalk-webpage"  in ls_output:
         print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
         command = "mv %s %s" % (sidewalk_app_directory,
@@ -76,18 +76,45 @@ def move_existing_application():
     else:
         # Directory doesn't exist create one
         print "Directory `sidewalk-webpage` does not exist"
-        command = "mkdir " + sidewalk_app_directory
-        subprocess.call(command.split())
+
+    # Create a new sidewalk-webpage folder
+    command = "mkdir " + sidewalk_app_directory
+    subprocess.call(command.split())
+    print "Directory `sidewalk-webpage` created"
 
 def unzip_file(zip_file_path):
     """Unzip and run the application"""
     print "Unzipping the files"
-    command = "tar -xf %s -s'|[^/]*/||' -C %s" % (zip_file_path, sidewalk_app_directory)
-    subprocess.call(command.split())
+    # command = "bsdtar -xf %s -s'|[^/]*/||' -C %s" % (zip_file_path, sidewalk_app_directory)
+    command = "unzip %s -d %s" % (zip_file_path, sidewalk_app_directory)
+    p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+
+    if stdout not in  ['', '\n']:
+        print stdout
+        zip_file_name = (zip_file_path.split('/')[-1]).replace(".zip", "")
+        print "Zip Filename: " + zip_file_name
+
+        unzipped_folder = os.path.join(sidewalk_app_directory, zip_file_name)
+        print unzipped_folder
+        for filename in os.listdir(unzipped_folder):
+            file_to_move = os.path.join(unzipped_folder, filename)
+            print "File to move:" + file_to_move
+            if os.path.isdir(file_to_move):
+                shutil.copytree(file_to_move, sidewalk_app_directory)
+                os.removedirs(file_to_move)
+            else:
+                shutil.copy(file_to_move, sidewalk_app_directory)
+                os.remove(file_to_move)
+        shutil.rmtree(unzipped_folder)
+    else:
+        print "Error while unzipping:"
+        print stderr
+    print "Finished unzipping the files"
 
     change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
     subprocess.call(change_permission_command.split())
-    print "Finished unzipping the files"
+
 
 def run_application():
     """Run the application"""
@@ -100,10 +127,10 @@ def remove_previous_application():
     """Remove the application that was previously here"""
     print "Checking if the directory `_sidewalk-webpage` exists"
     command = "ls %s" % sidewalk_home_directory
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
+    ls_output = stdout.split("\n")
 
-    ls_output = stdout.read().split("\n")
     if "_sidewalk-webpage" in ls_output:
         print "Removing `_sidewalk-webpage` directory"
         command = "rm -r %s" % sidewalk_home_directory + "/_sidewalk-webpage"
@@ -164,10 +191,11 @@ if __name__ == '__main__':
         zip_file_path = os.path.join(current_file_path, "target/universal/")
         file_list = glob.glob(zip_file_path + "sidewalk-webpage-*.zip")
         zip_file_path = file_list[-1]
+        print "File to be deployed: " + zip_file_path
 
         stop_existing_application()
         move_existing_application()
         unzip_file(zip_file_path)
-        run_application()
+        # # run_application()
         remove_previous_application()
 
