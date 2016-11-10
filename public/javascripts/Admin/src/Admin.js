@@ -2,7 +2,7 @@ function Admin (_, $, c3, turf) {
     var self = {};
     self.markerLayer = null;
     self.auditedStreetLayer = null;
-    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other"];
+    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Occlusion", "NoSidewalk", "Other"];
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
