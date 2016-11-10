@@ -102,7 +102,6 @@ def unzip_file(zip_file_path):
     # change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
     # subprocess.call(change_permission_command.split())
 
-
 def run_application():
     """Run the application"""
     print "Starting the application"
@@ -135,7 +134,6 @@ def add_timestamp_to_the_footer():
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
                                    """<span id="application-version">Last updated: """ + timestamp + """</span>""",
                                    file_contents)
-
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
@@ -146,7 +144,6 @@ def remove_timestamp_from_the_footer():
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
                                    """<span id="application-version"></span>""",
                                    file_contents)
-
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
@@ -170,9 +167,6 @@ def prepare_local_repo():
 
     # Run grunt
     run_shell_command("grunt")
-
-
-
 
 # Main Script
 if __name__ == '__main__':
