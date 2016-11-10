@@ -13,6 +13,12 @@ import time
 sidewalk_home_directory = "/var/www/html/sidewalk"
 sidewalk_app_directory = sidewalk_home_directory + "/sidewalk-webpage"
 
+
+# Helper function
+def run_shell_command(command):
+    subprocess.call(command.split())
+
+
 # Functions to manage distribution files
 
 def stop_existing_application():
@@ -50,14 +56,14 @@ def move_existing_application():
         print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
         command = "mv %s %s" % (sidewalk_app_directory,
                             sidewalk_home_directory + "/_sidewalk-webpage")
-        subprocess.call(command.split())
+        run_shell_command(command)
     else:
         # Directory doesn't exist create one
         print "Directory `sidewalk-webpage` does not exist"
 
     # Create a new sidewalk-webpage folder
     command = "mkdir " + sidewalk_app_directory
-    subprocess.call(command.split())
+    run_shell_command(command)
     print "Directory `sidewalk-webpage` created"
 
 def unzip_file(zip_file_path):
@@ -102,7 +108,7 @@ def run_application():
     """Run the application"""
     print "Starting the application"
     command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
-    subprocess.call(command.split())
+    run_shell_command(command)
     print "Started running the application"
 
 def remove_previous_application():
@@ -116,7 +122,7 @@ def remove_previous_application():
     if "_sidewalk-webpage" in ls_output:
         print "Removing `_sidewalk-webpage` directory"
         command = "rm -r %s" % sidewalk_home_directory + "/_sidewalk-webpage"
-        subprocess.call(command.split())
+        run_shell_command(command)
     else:
         print "Directory `_sidewalk-webpage` does not exist"
 
@@ -149,7 +155,7 @@ def remove_timestamp_from_the_footer():
 # Functions to create a binary distribution
 def call_activator_dist():
     command = 'activator dist'
-    subprocess.call(command.split())
+    run_shell_command(command)
 
 def create_distribution():
     print "Adding timestamp to the footer"
