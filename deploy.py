@@ -165,6 +165,13 @@ def create_distribution():
     call_activator_dist()
     remove_timestamp_from_the_footer()
 
+def prepare_local_repo():
+    # Update repo
+    run_shell_command("git pull")
+
+    # Run grunt
+    run_shell_command("grunt")
+    
 # Main Script
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -172,6 +179,7 @@ if __name__ == '__main__':
             create_distribution()
 
     else:
+        prepare_local_repo()
         create_distribution()
 
         # Get created distribution file
