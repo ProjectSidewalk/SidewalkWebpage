@@ -29,9 +29,9 @@
                                     <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">Other labels
                                         <span class="caret"></span></button>
                                     <ul class="dropdown-menu" style="padding:1em;">
-                                        <li><input type="radio" name="otherRadio" checked="checked" style="margin-right: 1em">Can't see sidewalk</li>
-                                        <li><input type="radio" name="otherRadio" style="margin-right: 1em">No sidewalk</li>
-                                        <li><input type="radio" name="otherRadio" style="margin-right: 1em">Other</li>
+                                        <li><input type="radio" name="otherRadio" id="occlusion" onclick="admin.updateVisibleMarkers();" checked="checked" style="margin-right: 1em">Can't see sidewalk</li>
+                                        <li><input type="radio" name="otherRadio" id="nosidewalk" onclick="admin.updateVisibleMarkers();" style="margin-right: 1em">No sidewalk</li>
+                                        <li><input type="radio" name="otherRadio" id="other" onclick="admin.updateVisibleMarkers();" style="margin-right: 1em">Other</li>
                                     </ul>
                                 </td>
                                 <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
