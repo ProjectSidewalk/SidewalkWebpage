@@ -12,7 +12,7 @@ import datetime
 import re
 import time
 
-sidewalk_home_directory = "/Users/manaswi/git/SidewalkWebpage" #"/var/www/html/sidewalk"
+sidewalk_home_directory = "/var/www/html/sidewalk"
 sidewalk_app_directory = sidewalk_home_directory + "/sidewalk-webpage"
 hostname = "sidewalk.umiacs.umd.edu"
 
