@@ -1,8 +1,6 @@
-import getpass
 import os
 import shutil
 import inspect
-import paramiko
 import subprocess
 import sys
 import glob
@@ -14,27 +12,6 @@ import time
 
 sidewalk_home_directory = "/var/www/html/sidewalk"
 sidewalk_app_directory = sidewalk_home_directory + "/sidewalk-webpage"
-hostname = "sidewalk.umiacs.umd.edu"
-
-# Is not being used now
-def transfer_a_zipfile(zip_file_path, username, password):
-    zip_file_name = os.path.split(zip_file_path)[1]
-    port = 22
-
-    # Upload the zip file to the remote server
-    print "Connecting to %s" % hostname
-    transport = paramiko.Transport((hostname, port))
-    transport.connect(username=username, password=password)
-    print "Connected to the host."
-    print "Connecting to the SFTP port (%d)" % port
-    sftp = paramiko.SFTPClient.from_transport(transport)
-    print "SFTP port open. Starting to upload %s to %s" % (zip_file_path, sidewalk_home_directory)
-
-    destination_filename = sidewalk_home_directory + "/" + zip_file_name
-    sftp.put(zip_file_path, destination_filename)
-    print "Finished uploading the file"
-    sftp.close()
-    transport.close()
 
 # Functions to manage distribution files
 
@@ -189,7 +166,7 @@ if __name__ == '__main__':
             create_distribution()
 
     else:
-        # create_distribution()
+        create_distribution()
 
         # Get created distribution file
         current_file_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
