@@ -6,6 +6,7 @@ import paramiko
 import subprocess
 import sys
 import glob
+import errno
 
 import datetime
 import re
@@ -100,20 +101,24 @@ def unzip_file(zip_file_path):
         for filename in os.listdir(unzipped_folder):
             file_to_move = os.path.join(unzipped_folder, filename)
             print "File to move:" + file_to_move
-            if os.path.isdir(file_to_move):
-                shutil.copytree(file_to_move, sidewalk_app_directory)
-                os.removedirs(file_to_move)
-            else:
-                shutil.copy(file_to_move, sidewalk_app_directory)
-                os.remove(file_to_move)
+
+            try:
+                shutil.copytree(file_to_move, os.path.join(sidewalk_app_directory, filename))
+            except OSError as e:
+                # If the error was caused because the source wasn't a directory
+                if e.errno == errno.ENOTDIR:
+                    shutil.copy(file_to_move, sidewalk_app_directory)
+                else:
+                    print('\tDirectory not copied. Error: %s' % e)
+
         shutil.rmtree(unzipped_folder)
     else:
         print "Error while unzipping:"
         print stderr
     print "Finished unzipping the files"
 
-    change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
-    subprocess.call(change_permission_command.split())
+    # change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
+    # subprocess.call(change_permission_command.split())
 
 
 def run_application():
@@ -196,6 +201,6 @@ if __name__ == '__main__':
         stop_existing_application()
         move_existing_application()
         unzip_file(zip_file_path)
-        # # run_application()
+        run_application()
         remove_previous_application()
 
