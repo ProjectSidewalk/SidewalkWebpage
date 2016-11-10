@@ -23,18 +23,10 @@
                             <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                             <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                             <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-occlusion"></td><td>Can't see sidewalk</td><td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-nosidewalk"></td><td>No Sidewalk</td><td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-other"></td><td>Other</td><td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                             <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-other"></td>
-                                <td>
-                                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">Other labels
-                                        <span class="caret"></span></button>
-                                    <ul class="dropdown-menu" style="padding:1em;">
-                                        <li><input type="radio" name="otherRadio" id="occlusion" onclick="admin.updateVisibleMarkers();" checked="checked" style="margin-right: 1em">Can't see sidewalk</li>
-                                        <li><input type="radio" name="otherRadio" id="nosidewalk" onclick="admin.updateVisibleMarkers();" style="margin-right: 1em">No sidewalk</li>
-                                        <li><input type="radio" name="otherRadio" id="other" onclick="admin.updateVisibleMarkers();" style="margin-right: 1em">Other</li>
-                                    </ul>
-                                </td>
-                                <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
 
                         </table>
                     </div>

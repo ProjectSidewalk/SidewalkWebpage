@@ -331,7 +331,7 @@ var ColorScheme = (function () {
             },
             Other: {
                 id: 'Other',
-                fillStyle: 'rgba(204, 204, 204, 0.9)'
+                fillStyle: 'rgba(204, 204, 204, 0.9)',
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
@@ -352,43 +352,54 @@ var ColorScheme = (function () {
         var colors = {
             Walk : {
                 id : 'Walk',
-                fillStyle : 'rgba(0, 0, 0, 1)'
+                fillStyle : 'rgba(0, 0, 0, 1)',
+                strokeStyle: '#ffffff'
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                fillStyle: 'rgba(0, 222, 38, 1)'  // 'rgba(0, 244, 38, 1)'
+                fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
+                strokeStyle: '#ffffff'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                fillStyle: 'rgba(233, 39, 113, 1)'  // 'rgba(255, 39, 113, 1)'
+                fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
+                strokeStyle: '#ffffff'
             },
             Obstacle: {
                 id: 'Obstacle',
-                fillStyle: 'rgba(0, 161, 203, 1)'
+                fillStyle: 'rgba(0, 161, 203, 1)',
+                strokeStyle: '#ffffff'
             },
             Other: {
                 id: 'Other',
-                fillStyle: 'rgba(179, 179, 179, 1)' //'rgba(204, 204, 204, 1)'
+                fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
+                strokeStyle: '#0000ff'
+
             },
             Occlusion: {
                 id: 'Occlusion',
-                fillStyle: 'rgba(179, 179, 179, 1)'
+                fillStyle: 'rgba(179, 179, 179, 1)',
+                strokeStyle: '#009902'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                fillStyle: 'rgba(179, 179, 179, 1)'
+                fillStyle: 'rgba(179, 179, 179, 1)',
+                strokeStyle: '#ff0000'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                fillStyle: 'rgba(241, 141, 5, 1)'
+                fillStyle: 'rgba(241, 141, 5, 1)',
+                strokeStyle: '#ffffff'
             },
             Void: {
                 id: 'Void',
-                fillStyle: 'rgba(255, 255, 255, 1)'
+                fillStyle: 'rgba(255, 255, 255, 1)',
+                strokeStyle: '#ffffff'
             },
             Unclear: {
                 id: 'Unclear',
-                fillStyle: 'rgba(128, 128, 128, 0.5)'
+                fillStyle: 'rgba(128, 128, 128, 0.5)',
+                strokeStyle: '#ffffff'
             }
         };
         return category ? colors[category].fillStyle : colors;
