@@ -171,7 +171,7 @@ def prepare_local_repo():
 
     # Run grunt
     run_shell_command("grunt")
-    
+
 # Main Script
 if __name__ == '__main__':
     if len(sys.argv) > 1:
