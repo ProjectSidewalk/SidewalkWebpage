@@ -194,6 +194,31 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $(svl.ui.ribbonMenu.buttons).each(function() {
+            var val = $(this).attr('val');
+
+            if(val != 'Walk' && val != 'Other') {
+                $(this).attr({
+                    'data-toggle': 'tooltip',
+                    'data-placement': 'top',
+                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                });
+            }
+        });
+
+        $(svl.ui.ribbonMenu.subcategories).each(function() {
+            var val = $(this).attr('val');
+
+            if(val != 'Walk' && val != 'Other') {
+                $(this).attr({
+                    'data-toggle': 'tooltip',
+                    'data-placement': 'left',
+                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                });
+            }
+        });
+        $('[data-toggle="tooltip"]').tooltip()
     }
 
     function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
