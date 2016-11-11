@@ -167,6 +167,8 @@ function Main (params) {
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+        svl.alert = new Alert();
+        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.navigationModel._mapService = svl.map;
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);

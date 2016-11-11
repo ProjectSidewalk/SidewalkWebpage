@@ -120,6 +120,7 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
         tracker.push('Click_Subcategory_' + subcategory);
+        svl.keyboardShortcutAlert.modeSwitchButtonClicked(subcategory);
         modeSwitch(subcategory);
         hideSubcategories();
     }
@@ -135,6 +136,7 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
 
             // Track the user action
             tracker.push('Click_ModeSwitch_' + labelType);
+            svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
             modeSwitch(labelType);
         }
     }

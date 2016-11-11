@@ -153,30 +153,30 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                         }
                     }
                     break;
-                case 66:
+                case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                     // "b" for a blocked view
                     ribbon.modeSwitch("Occlusion");
                     break;
-                case 67:
+                case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
                     // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
                     ribbon.modeSwitch("CurbRamp");
                     break;
-                case 69:
+                case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
                     // "e" for Explore. Switch the mode to Walk (camera) mode.
                     ribbon.modeSwitch("Walk");
                     break;
-                case 77:
+                case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
                     // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
                     ribbon.modeSwitch("NoCurbRamp");
                     break;
-                case 78:
+                case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
                     ribbon.modeSwitch("NoSidewalk");
                     break;
-                case 79:
+                case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
                     // "o" for Obstacle
                     ribbon.modeSwitch("Obstacle");
                     break;
-                case 83:
+                case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
                     ribbon.modeSwitch("SurfaceProblem");
                     break;
                 case 90:
