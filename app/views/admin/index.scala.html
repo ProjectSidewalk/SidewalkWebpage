@@ -39,32 +39,32 @@
                         <th>Today</th>
                         <th>Yesterday</th>
                     </tr>
-                    <tr>
-                        <th>Total Users</th>
+                    <tr style="text-align:center">
+                        <th style="text-align:left">Total Users</th>
                         <td>@UserDAOImpl.countContributingUsers</td>
                         <td>@UserDAOImpl.countTodayUsers</td>
                         <td>@UserDAOImpl.countYesterdayUsers</td>
                     </tr>
-                    <tr style="font-size: 90%">
+                    <tr style="font-size: 90%; text-align:center">
                         <td style="text-align:right">Registered</td>
                         <td>@UserDAOImpl.countRegisteredUsers</td>
                         <td>@UserDAOImpl.countRegisteredUsersVisitedToday</td>
                         <td>@UserDAOImpl.countRegisteredUsersVisitedYesterday</td>
                     </tr>
-                    <tr style="font-size: 90%">
+                    <tr style="font-size: 90%; text-align:center">
                         <td style="text-align:right">Anonymous</td>
                         <td>@UserDAOImpl.countAnonymousUsers</td>
                         <td>@UserDAOImpl.countAnonymousUsersVisitedToday</td>
                         <td>@UserDAOImpl.countAnonymousUsersVisitedYesterday</td>
                     </tr>
-                    <tr>
-                        <th>Labels</th>
+                    <tr style="text-align:center">
+                        <th style="text-align:left">Labels</th>
                         <td>@LabelTable.countLabels</td>
                         <td>@LabelTable.countTodayLabels</td>
                         <td>@LabelTable.countYesterdayLabels</td>
                     </tr>
-                    <tr>
-                        <th>Audits</th>
+                    <tr style="text-align:center">
+                        <th style="text-align:left">Audits</th>
                         <td>@AuditTaskTable.countCompletedAudits</td>
                         <td>@AuditTaskTable.countCompletedAuditsToday</td>
                         <td>@AuditTaskTable.countCompletedAuditsYesterday</td>
