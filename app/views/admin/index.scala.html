@@ -69,12 +69,12 @@
                     <tr>
                         <th>Audited Streets</th>
                         <td>@StreetEdgeTable.countAuditedStreets()</td>
-                        <td>x</td>
+                        <td>@StreetEdgeTable.countTotalStreets()</td>
                     </tr>
                     <tr>
                         <th>Distance</th>
-                        <td>@("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
-                        <td>x miles</td>
+                        <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                        <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
                     </tr>
                     <tr>
                         <th>
