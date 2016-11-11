@@ -2,7 +2,7 @@ function KeyboardShortcutAlert(alertHandler) {
     var self = {
         'clickCount': {}
     };
-    var MINIMUM_CLICKS_BEFORE_ALERT = 5;
+    var MINIMUM_CLICKS_BEFORE_ALERT = 10;
 
     function modeSwitchButtonClicked(labelType) {
         if(labelType == 'Walk')
