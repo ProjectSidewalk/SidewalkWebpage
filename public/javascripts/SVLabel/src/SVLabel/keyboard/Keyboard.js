@@ -91,11 +91,6 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyUp = function (e) {
-        if (svl.isOnboarding()) {
-            // Don't allow users to use keyboard shortcut during the onboarding.
-            return;
-        }
-
         /*
          This is a callback method that is triggered when a keyUp
          event occurs and focus is not on ContextMenu's textbox.

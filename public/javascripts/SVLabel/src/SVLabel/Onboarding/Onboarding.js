@@ -567,23 +567,25 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     function _visitSelectLabelTypeState(state, listener) {
         var labelType = state.properties.labelType;
         var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
-        var $target;
+        var event;
 
         ribbon.startBlinking(labelType, subcategory);
 
         if (subcategory) {
-            $target = $(uiRibbon.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
+            event = subcategory
         } else {
-            $target = $(uiRibbon.holder.find('[val="' + labelType + '"]').get(0));
+            event = labelType
         }
 
         var callback = function () {
+            console.log('callback :)');
             ribbon.stopBlinking();
-            $target.off("click", callback);
+            $(document).off('ModeSwitch_' + event, callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
-        $target.on("click", callback);
+
+        $(document).on('ModeSwitch_' + event, callback);
     }
 
     /**

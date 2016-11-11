@@ -76,6 +76,8 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
     function modeSwitch (mode) {
         var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
         tracker.push('ModeSwitch_' + labelType);
+        $(document).trigger('ModeSwitch_' + labelType);
+
         if (status.disableModeSwitch === false) {
             var labelColors, ribbonConnectorPositions, borderColor;
 
