@@ -122,13 +122,13 @@ object UserDAOImpl {
     val anonProfileQuery = Q.queryNA[(String, Int, Int)](
       """select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count, sum (anonProfile.n_labels) as label_count
         |from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
-        |		  from (select ip_address, audit_task_id
-        |				 from sidewalk.audit_task_environment
-        |				 where audit_task_id in (select audit_task_id
-        |											  from sidewalk.audit_task
-        |											  where user_id = (select user_id
-        |												                 from sidewalk.user
-        |												                 where username = 'anonymous')
+        |		   from (select ip_address, audit_task_id
+        |				     from sidewalk.audit_task_environment
+        |				     where audit_task_id in (select audit_task_id
+        |											                from sidewalk.audit_task
+        |											                where user_id = (select user_id
+        |												                              from sidewalk.user
+        |												                              where username = 'anonymous')
         |											         and completed = true)
         |				) as anonUsersTable
         |		  left join sidewalk.label as l
