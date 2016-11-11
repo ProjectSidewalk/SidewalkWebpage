@@ -83,6 +83,14 @@ object UserDAOImpl {
   }
 
   /*
+   * Total number of contributing registered users
+   */
+  def countRegisteredUsers: Int = db.withTransaction { implicit session =>
+    val count = size - 1
+    count
+  }
+
+  /*
    * Gets anonymous user records
    * Date: Oct 11, 2016
    */
@@ -138,12 +146,11 @@ object UserDAOImpl {
   }
 
   /*
-  * Counts the number of users who contributed today.
+  * Counts the number of registered users who contributed today.
   * Author: Manaswi Saha
-  * Date: Aug 28, 2016
-  * Updated: Nov 10, 2016
+  * Date: Nov 11, 2016
   */
-  def countTodayUsers: Int = db.withSession { implicit session =>
+  def countRegisteredUsersVisitedToday: Int = db.withSession { implicit session =>
     // TODO: Condense both calculations into one query and then using filters
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -155,11 +162,20 @@ object UserDAOImpl {
         |												          from sidewalk.user
         |												          where username = 'anonymous')""".stripMargin
     )
-    val records = countQuery.list
-    val countAnonUsers = countAnonymousUsersVisitedToday
-    val count = records.head + countAnonUsers
+    val count = countQuery.list.head
     count
+  }
 
+  /*
+  * Counts the number of users who contributed today.
+  * Author: Manaswi Saha
+  * Date: Aug 28, 2016
+  * Updated: Nov 11, 2016
+  */
+  def countTodayUsers: Int = db.withSession { implicit session =>
+
+    val count = countRegisteredUsersVisitedToday + countAnonymousUsersVisitedToday
+    count
   }
 
   /*
@@ -185,12 +201,11 @@ object UserDAOImpl {
   }
 
   /*
-  * Counts the number of users who contributed yesterday.
+  * Counts the number of registered users who contributed yesterday.
   * Author: Manaswi Saha
-  * Date: Aug 28, 2016
-  * Updated: Nov 10, 2016
+  * Date: Nov 11, 2016
   */
-  def countYesterdayUsers: Int = db.withSession { implicit session =>
+  def countRegisteredUsersVisitedYesterday: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -202,9 +217,19 @@ object UserDAOImpl {
         |												          from sidewalk.user
         |												          where username = 'anonymous')""".stripMargin
     )
-    val records = countQuery.list
-    val countAnonUsers = countAnonymousUsersVisitedYesterday
-    val count = records.head + countAnonUsers
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
+  * Counts the number of users who contributed yesterday.
+  * Author: Manaswi Saha
+  * Date: Aug 28, 2016
+  * Updated: Nov 11, 2016
+  */
+  def countYesterdayUsers: Int = db.withSession { implicit session =>
+
+    val count = countRegisteredUsersVisitedYesterday + countAnonymousUsersVisitedYesterday
     count
   }
 

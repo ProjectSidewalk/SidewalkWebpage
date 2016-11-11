@@ -41,21 +41,21 @@
                     </tr>
                     <tr>
                         <th>Total Users</th>
-                        <td>@UserDAOImpl.size</td>
+                        <td>@UserDAOImpl.countContributingUsers</td>
                         <td>@UserDAOImpl.countTodayUsers</td>
                         <td>@UserDAOImpl.countYesterdayUsers</td>
                     </tr>
                     <tr style="font-size: 90%">
                         <td style="text-align:right">Registered</td>
-                        <td>@UserDAOImpl.size</td>
-                        <td>@UserDAOImpl.countTodayUsers</td>
-                        <td>@UserDAOImpl.countYesterdayUsers</td>
+                        <td>@UserDAOImpl.countRegisteredUsers</td>
+                        <td>@UserDAOImpl.countRegisteredUsersVisitedToday</td>
+                        <td>@UserDAOImpl.countRegisteredUsersVisitedYesterday</td>
                     </tr>
                     <tr style="font-size: 90%">
                         <td style="text-align:right">Anonymous</td>
-                        <td>@UserDAOImpl.size</td>
-                        <td>@UserDAOImpl.countTodayUsers</td>
-                        <td>@UserDAOImpl.countYesterdayUsers</td>
+                        <td>@UserDAOImpl.countAnonymousUsers</td>
+                        <td>@UserDAOImpl.countAnonymousUsersVisitedToday</td>
+                        <td>@UserDAOImpl.countAnonymousUsersVisitedYesterday</td>
                     </tr>
                     <tr>
                         <th>Labels</th>
