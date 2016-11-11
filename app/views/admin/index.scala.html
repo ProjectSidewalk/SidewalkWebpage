@@ -241,7 +241,7 @@
                     @UserDAOImpl.getAnonymousUserProfiles.map { anon =>
                         <tr>
                             <td>@anon.ipAddress</td>
-                            <td>x</td>
+                            <td>@anon.timestamp</td>
                             <td>@anon.auditCount</td>
                             <td>@anon.labelCount</td>
                         </tr>
