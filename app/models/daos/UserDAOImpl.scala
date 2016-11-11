@@ -118,7 +118,17 @@ object UserDAOImpl {
    */
 
   def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
+    // TODO: Implement a more cleaner, elegant solution
+    /*
+    Correct way of doing it:
+      - Using anonUsersTable, filter/join to get (i) ip_address with timestamp
+        (ii) user records with ip_address and the audit and label counts
+    - Join both results based on ip_address
 
+    The following solution does:
+      - Runs two sub-queries to get the above mentioned results (which has a redundant computation of anonUsersTable
+      - Does a join on the result of the two queries.
+    */
     val anonProfileQuery = Q.queryNA[(String, java.sql.Timestamp, Int, Int)](
       """select AnonProfile.ip_address, LastAuditTimestamp.new_timestamp, AnonProfile.audit_count, AnonProfile.label_count
         |from (select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count,
@@ -159,6 +169,8 @@ object UserDAOImpl {
 
     anonProfileQuery.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
     /*
+    An attempt:
+
     val anonProfileQuery = Q.queryNA[(String, Int, Int)](
       """select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count, sum (anonProfile.n_labels) as label_count
         |from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
