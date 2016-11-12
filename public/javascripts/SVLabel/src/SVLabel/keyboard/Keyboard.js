@@ -209,6 +209,7 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
                 } else {
                     ribbon.backToWalk();
                 }
+                svl.modalExample.hide();
                 break;
         }
 
