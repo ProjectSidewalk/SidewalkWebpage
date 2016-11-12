@@ -24,7 +24,7 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
         .attr('id', 'blue-bar')
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(49,130,189,1)")
+        .attr("fill", "rgba(80,80,80,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
 
@@ -35,7 +35,7 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
         .attr('id', 'green-bar')
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", "rgba(100,240,110,1)")
+        .attr("fill", "rgba(20,220,120,1)")
         .attr("height", svgCoverageBarHeight)
         .attr("width", 0);
     var horizontalBarMissionLabel = gBarChart2.selectAll("text")
