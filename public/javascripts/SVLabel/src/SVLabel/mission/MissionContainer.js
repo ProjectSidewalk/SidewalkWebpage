@@ -13,6 +13,12 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
     this._completedMissions = [];
     this._currentMission = null;
 
+    /*
+    This variable keeps the distance of completed missions minus completed audits to fix the problem that
+    is discussed here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297#issuecomment-259697107
+     */
+    var tasksMissionsOffset= 0;
+
     var _missionModel = missionModel;
 
     _missionModel.on("MissionProgress:complete", function (parameters) {
@@ -256,6 +262,14 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         return this;
     };
 
+    function setTasksMissionsOffset(value) {
+        tasksMissionsOffset = value;
+    }
+
+    function getTasksMissionsOffset(value) {
+        return tasksMissionsOffset;
+    }
+
     self._onLoadComplete = _onLoadComplete;
     self.getAvailableRegionIds = getAvailableRegionIds;
     self.getCompletedMissions = getCompletedMissions;
@@ -263,5 +277,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
     self.getMission = getMission;
     self.getMissionsByRegionId = getMissionsByRegionId;
     self.isTheFirstMission = isTheFirstMission;
+    self.setTasksMissionsOffset = setTasksMissionsOffset;
+    self.getTasksMissionsOffset = getTasksMissionsOffset;
 }
 
