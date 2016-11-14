@@ -13,6 +13,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     var previousTasks = [];
     var currentTask = null;
+    var nextJumpTask = null;
     var paths;
     var previousPaths = [];
 
@@ -374,6 +375,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.setCurrentTask = function (task) {
         currentTask = task;
+        if (tracker) tracker.push('TaskStart');
+
+        if ('compass' in svl) {
+            svl.compass.setTurnMessage();
+            svl.compass.showMessage();
+            svl.compass.update();
+        }
+    };
+
+    /**
+     * Set the jump task
+     * @param task
+     */
+    this.setNextJumpTask = function (task) {
+        nextJumpTask = task;
         if (tracker) tracker.push('TaskStart');
 
         if ('compass' in svl) {

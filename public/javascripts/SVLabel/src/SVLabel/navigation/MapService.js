@@ -511,10 +511,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
             newTask = svl.taskContainer.nextTask();
         }
-        svl.taskContainer.setCurrentTask(newTask);
 
+        svl.taskContainer.setCurrentTask(newTask);
         // Check if the interface jumped the user to another discontinuous location.
-        // If the user has indeed jumped, [UPDATE] before jumping, let user know
+        // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
         // label the location before proceeding.
         if (!svl.taskContainer.isFirstTask() && !task.isConnectedTo(newTask)) {
             // Old code:
@@ -538,7 +538,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Show message to the user instructing him to label the current location
             svl.compass.showLabelBeforeJumpMessage();
         }
-        else{
+        else {
+            svl.taskContainer.setCurrentTask(newTask);
             moveToTheTaskLocation(newTask);
         }
 
@@ -560,11 +561,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 distance = turf.distance(jumpPosition, currentPosition, "kilometers");
 
             // Jump to the new location if it's really far away from his location.
-            if (distance > 0.1) {
-                console.log("You are way off!")
-                var messageTitle = "Jumping to a new location now";
+            if (distance > 0.07) {
+                console.log("You are way off! " + distance)
+                var messageTitle = "Jumped to the new location";
                 svl.popUpMessage.notify(messageTitle,
-                    "Looks like you finished labeling your current location. Let's move you to a new location now."); //v2
+                    "Looks like you finished labeling your current location. " +
+                    "We have automatically jumped you to your new location now."); //v2
                 // v3: "Don't walk too far");
                 // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
                 // Old:

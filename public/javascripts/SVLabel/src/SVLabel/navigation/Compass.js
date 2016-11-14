@@ -104,7 +104,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     // Part of the new jump mechanism
     // -- start --
     this._jumpToTheNewRoute = function () {
-        var task = taskContainer.getCurrentTask();
+        var task = taskContainer.getCurrentTask(); // TODO: Get the jump task
+
+        //Before jumping, rest jump location; disable blink and turn off listener
         mapService.moveToTheTaskLocation(task);
     };
 
