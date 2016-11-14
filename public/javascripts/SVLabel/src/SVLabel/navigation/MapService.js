@@ -220,6 +220,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
+    /*
+     * Get the status of the labelBeforeJump listener
+     */
+    function getLabelBeforeJumpListenerStatus(){
+        return status.labelBeforeJumpListenerSet;
+    }
+
     /**
      * A helper function to move a user to the task location
      * @param task
@@ -513,9 +520,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Old code:
             //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
             //var distanceLeft = distanceLeftFeetOrMiles();
+            console.log("I am in here now")
 
             // Track before-jump actions every time the user moves away from his location
-            jumpLocation = setBeforeJumpLocation;
+            jumpLocation = setBeforeJumpLocation();
 
             //Listener activated for tracking before-jump actions
             if (!status.labelBeforeJumpListenerSet) {
@@ -553,6 +561,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             // Jump to the new location if it's really far away from his location.
             if (distance > 0.1) {
+                console.log("You are way off!")
                 var messageTitle = "Jumping to a new location now";
                 svl.popUpMessage.notify(messageTitle,
                     "Looks like you finished labeling your current location. Let's move you to a new location now."); //v2
@@ -1386,6 +1395,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
+    self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
 
     _init(params);
     return self;

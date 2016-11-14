@@ -223,13 +223,16 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
                 .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
         }
 
-        this.setTurnMessage();
+        if (!mapService.getLabelBeforeJumpListenerStatus()) {
+            this.setTurnMessage();
+        }
 
         if (this._checkEnRoute() || svl.isOnboarding()) {
             this.stopBlinking();
             this._makeTheMessageBoxUnclickable();
         }
-        else if (mapService.status.labelBeforeJumpListenerSet) {
+        else if (mapService.getLabelBeforeJumpListenerStatus()) {
+            console.log("The status" + mapService.getLabelBeforeJumpListenerStatus())
         } else {
             this.blink();
             this._makeTheMessageBoxClickable();
