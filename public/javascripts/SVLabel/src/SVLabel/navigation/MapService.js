@@ -506,7 +506,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Check if the interface jumped the user to another discontinuous location.
         // If the user has indeed jumped, tell them that we moved her to
         // another location in the same neighborhood.
-        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
+        if (!svl.taskContainer.isFirstTask() && !task.isConnectedTo(newTask)) {
+            
             var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
             var distanceLeft = distanceLeftFeetOrMiles();
             svl.popUpMessage.notify(neighborhoodMessage,
