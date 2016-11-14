@@ -520,7 +520,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             //Listener activated for tracking before-jump actions
             if (!status.labelBeforeJumpListenerSet) {
                 try {
-                    google.maps.event.addListenerOnce(svl.panorama, "pano_changed", trackBeforeJumpActions);
+                    google.maps.event.addListener(svl.panorama, "pano_changed", trackBeforeJumpActions);
                     status.labelBeforeJumpListenerSet = true
                 } catch (err) {
 
@@ -530,7 +530,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Show message to the user instructing him to label the current location
             svl.compass.showLabelBeforeJumpMessage();
         }
-        moveToTheTaskLocation(newTask);
+        else{
+            moveToTheTaskLocation(newTask);
+        }
+
     }
 
     /**
@@ -557,6 +560,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
                 // Old:
                 //"You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+                moveToTheTaskLocation(svl.taskContainer.getCurrentTask());
             }
         }
     }
