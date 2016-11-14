@@ -122,7 +122,7 @@ function Main (params) {
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
-        svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory);
+        svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory, svl.storage);
         svl.completionMessage = new CompletionMessage(svl.gameEffectModel, svl.ui.task);
 
 
