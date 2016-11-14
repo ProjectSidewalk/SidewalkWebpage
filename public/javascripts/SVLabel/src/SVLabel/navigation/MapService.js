@@ -44,8 +44,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             lockDisablePanning: false,
             lockDisableWalking : false,
             panoLinkListenerSet: false,
-            svLinkArrowsLoaded : false
-        };
+            svLinkArrowsLoaded : false,
+            labelBeforeJumpListenerSet: false
+        },
+        jumpLocation = undefined;
 
     var initialPositionUpdate = true,
         panoramaOptions,
@@ -223,7 +225,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param task
      * @private
      */
-    function _moveToTheTaskLocation(task) {
+    function moveToTheTaskLocation(task) {
+        status.labelBeforeJumpListenerSet = false;
         var geometry = task.getGeometry();
         var callback = function (data, status) {
             if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
@@ -233,7 +236,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Get a new task and repeat
                 task = svl.taskContainer.nextTask(task);
                 svl.taskContainer.setCurrentTask(task);
-                _moveToTheTaskLocation(task);
+                moveToTheTaskLocation(task);
             }
         };
         // Jump to the new location if it's really far away.
@@ -504,17 +507,68 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.taskContainer.setCurrentTask(newTask);
 
         // Check if the interface jumped the user to another discontinuous location.
-        // If the user has indeed jumped, tell them that we moved her to
-        // another location in the same neighborhood.
+        // If the user has indeed jumped, [UPDATE] before jumping, let user know
+        // label the location before proceeding.
         if (!svl.taskContainer.isFirstTask() && !task.isConnectedTo(newTask)) {
-            
-            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-            var distanceLeft = distanceLeftFeetOrMiles();
-            svl.popUpMessage.notify(neighborhoodMessage,
-                "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+            // Old code:
+            //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+            //var distanceLeft = distanceLeftFeetOrMiles();
+
+            // Track before-jump actions every time the user moves away from his location
+            jumpLocation = setBeforeJumpLocation;
+
+            //Listener activated for tracking before-jump actions
+            if (!status.labelBeforeJumpListenerSet) {
+                try {
+                    google.maps.event.addListenerOnce(svl.panorama, "pano_changed", trackBeforeJumpActions);
+                    status.labelBeforeJumpListenerSet = true
+                } catch (err) {
+
+                }
+            }
+
+            // Show message to the user instructing him to label the current location
+            svl.compass.showLabelBeforeJumpMessage();
         }
-        _moveToTheTaskLocation(newTask);
+        moveToTheTaskLocation(newTask);
+    }
+
+    /**
+     * Callback for to track when user moves away from his current location
+     */
+
+    function trackBeforeJumpActions() {
+
+        // This is a callback function that is called each time the user moves
+        // before jumping and checks if too far
+
+        if (status.labelBeforeJumpListenerSet) {
+            var currentLatLng = getPosition(),
+                currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
+                jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
+                distance = turf.distance(jumpPosition, currentPosition, "kilometers");
+
+            // Jump to the new location if it's really far away from his location.
+            if (distance > 0.1) {
+                var messageTitle = "Jumping to a new location now";
+                svl.popUpMessage.notify(messageTitle,
+                    "Looks like you finished labeling your current location. Let's move you to a new location now."); //v2
+                // v3: "Don't walk too far");
+                // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
+                // Old:
+                //"You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
+            }
+        }
+    }
+
+    /**
+     *
+     *
+     * @returns {setBeforeJumpLocation}
+     */
+    function setBeforeJumpLocation () {
+        // Get user's current location
+        return getPosition();
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.
@@ -1313,7 +1367,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.lockRenderLabels = lockRenderLabels;
     self.modeSwitchLabelClick = modeSwitchLabelClick;
     self.modeSwitchWalkClick = modeSwitchWalkClick;
-    self.moveToTheTaskLocation = _moveToTheTaskLocation;
+    self.moveToTheTaskLocation = moveToTheTaskLocation;
     self.plotMarkers = plotMarkers;
     self.save = save;
     self.setHeadingRange = setHeadingRange;
@@ -1327,6 +1381,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
+    self.setBeforeJumpLocation = setBeforeJumpLocation;
 
     _init(params);
     return self;

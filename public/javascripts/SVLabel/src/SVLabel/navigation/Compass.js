@@ -101,6 +101,22 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.messageHolder.css('cursor', 'default');
     };
 
+    // Part of the new jump mechanism
+    // -- start --
+    this._jumpToTheNewRoute = function () {
+        var task = taskContainer.getCurrentTask();
+        mapService.moveToTheTaskLocation(task);
+    };
+
+    this._makeTheLabelBeforeJumpMessageBoxClickable = function () {
+        var events = $._data(uiCompass.messageHolder[0], "events");
+        if (!events) {
+            uiCompass.messageHolder.on('click', this._jumpToTheNewRoute);
+            uiCompass.messageHolder.css('cursor', 'pointer');
+        }
+    };
+    // -- end --
+
     /**
      * Get the compass angle
      * @returns {number}
@@ -156,6 +172,12 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.message.html(message);
     };
 
+    this.setLabelBeforeJumpMessage = function () {
+        var message = "<div style='width: 20%'> You have reached the end of the path. " +
+            "Finish labeling the current location and <br/><span class='bold'>click here to jump</span> once done.</div>";
+        uiCompass.message.html(message);
+    };
+
     this.setBackToRouteMessage = function () {
         var message = "Uh-oh, you're quite far away from the audit route. <br />" +
             "<span class='bold'>Click here to jump back.</span>";
@@ -179,6 +201,12 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.messageHolder.removeClass("highlight-50");
     };
 
+    this.showLabelBeforeJumpMessage = function() {
+        this.blink();
+        this._makeTheLabelBeforeJumpMessageBoxClickable();
+        this.setLabelBeforeJumpMessage();
+    };
+
     /**
      * Update the compass visualization
      */
@@ -200,6 +228,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         if (this._checkEnRoute() || svl.isOnboarding()) {
             this.stopBlinking();
             this._makeTheMessageBoxUnclickable();
+        }
+        else if (mapService.status.labelBeforeJumpListenerSet) {
         } else {
             this.blink();
             this._makeTheMessageBoxClickable();
