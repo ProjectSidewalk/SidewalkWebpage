@@ -7,7 +7,7 @@ body {
 }
 
 .bold {
-    font-weight: bold;
+    font-weight: 600;
 }
 
 #map {
@@ -51,14 +51,19 @@ h3,
 h4,
 h5 {
     font-family: 'Open Sans', 'Noto Sans', sans-serif;
-    font-weight: bold;
 }
 h2 {
-    font-size: 28px;
+    font-size: 24px;
+}
+h3 {
+    font-size: 21px;
 }
 h4 {
     color: gray;
-    font-size: 20px;
+    font-size: 18px;
+}
+h5 {
+    font-size: 14px;
 }
 p {
     font-size: 20px;
@@ -126,6 +131,7 @@ p {
     height: auto;
     margin: 0 auto -60px;
     padding: 0 0 60px;
+    color: #3d464d;
 }
 
 .footer {

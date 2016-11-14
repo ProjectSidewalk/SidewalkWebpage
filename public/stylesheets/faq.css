@@ -1,5 +1,5 @@
 .faq p {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .faq .maincontent {
@@ -45,4 +45,13 @@ figure figcaption {
 
 .faq ul#questions-list li:hover {
     /*background-color: #eee;*/
+}
+
+.faq table {
+    font-size: 14px;
+}
+
+/* the youtube videos */
+iframe {
+    margin-top: 30px;
 }
