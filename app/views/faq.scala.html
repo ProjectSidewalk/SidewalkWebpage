@@ -84,14 +84,19 @@
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
-                                While some problems that we find via Google Street View (GSV) have likely been fixed
-                                and thus do not accurately reflect the real world, we have performed a number of
-                                virtual vs. physical audits and have found high agreement [1, 2]. This is similar to
-                                prior work [3, 4, 5].
+                                Google Street View provides a rich visual data source to inspect a city without
+                                leaving your home. However, the images shown are collected periodically every few years.
+                                Hence, they might be out of date. Indeed, some users have reported that problems shown in
+                                our interface have recently been resolved. Generally, however, street-level infrastructure
+                                does not change very often. We have conducted two studies of our own that compare audit
+                                data from our online interfaces to audit data collected via traditional, in-person walk-around
+                                audits [1,2]. In both cases, we found high agreement--in other words, the images in Google Street
+                                View are a good representation of the state of the physical world. This is consistent with
+                                findings from previous studies [3, 4, 5].
                             </p>
                             <p>
-                                Moreover, GSV imagery is often updated as the GSV technology improves and it is
-                                already being treated as a valuable resource by the accessibility community.
+                                Moreover, with the advancement of GSV technology, imagery is likely to become even more
+                                accurate than it is already.
                             </p>
 
                             <br/>
@@ -126,8 +131,10 @@
                                 <li>
                                     <div class="title">
                                         [3] &nbsp;
-                                        Can virtual streetscape audits reliably
-                                        replace physical streetscape audits?
+                                        <a href="http://link.springer.com/article/10.1007/s11524-010-9505-x">
+                                            Can virtual streetscape audits reliably
+                                            replace physical streetscape audits?
+                                        </a>
                                     </div>
                                     <div class="desc">
                                         Badland, H.M., Opit, S., Witten, K., Kearns, R.A. and
@@ -138,9 +145,11 @@
                                 <li>
                                     <div class="title">
                                         [4] &nbsp;
-                                        Using Google Earth to conduct a
-                                        neighborhood audit: reliability of a virtual audit
-                                        instrument.
+                                        <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2952684/">
+                                            Using Google Earth to conduct a
+                                            neighborhood audit: reliability of a virtual audit
+                                            instrument.
+                                        </a>
                                     </div>
                                     <div class="desc">
                                         Clarke, P., Ailshire, J., Melendez, R., Bader, M. and
@@ -151,20 +160,10 @@
                                 <li>
                                     <div class="title">
                                         [5] &nbsp;
-                                        CrossingGuard: exploring
-                                        information content in navigation aids for visually
-                                        impaired pedestrians.
-                                    </div>
-                                    <div class="desc">
-                                        Guy, R. and Truong, K.
-                                        <i>Journal of urban health : bulletin of the New York Academy of Medicine.</i>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="title">
-                                        [6] &nbsp;
+                                        <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3031144/">
                                         Using Google
                                         Street View to audit neighborhood environments.
+                                        </a>
                                     </div>
                                     <div class="desc">
                                         Rundle, A.G., Bader, M.D.M., Richards, C.A.,
@@ -212,12 +211,17 @@
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
-                                Don't worry! We store all your labels.
+                                Yes, you're right, labels do disappear after you take a step in the Google Street View interface
+                                but <strong>don't worry</strong>, we store all of your labels.
                             </p>
                             <p>
-                                Every label is associated with a specific location in the street view and only visible
-                                in that particular one. This means, if you walk, you will not be able to view your previous
-                                labels. But you can still view them in the top-down map.
+                                So, <i>why</i> does it work like this? Well, the answer is kind of complicated but the short answer is:
+                                    the Google Street View interface is akin to a 3-dimensional interface similar to walking in the real world.
+                                    When you place a label, we convert the 3D position of the label to a 2D lat/long position. However, once you take a
+                                    step to a new location, we cannot accurately recompute the label's position in 3D for that new view. See, we told
+                                    you it was kind of complicated. :)
+
+                                    Rest assured, you can always see your applied labels in the top-down map in the bottom-right hand corner of your screen.
                             </p>
                         </div>
                         <div class="col-sm-12" style="text-align:center">

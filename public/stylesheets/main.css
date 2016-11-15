@@ -6,7 +6,7 @@ body {
     margin: 0;
 }
 
-.bold {
+b, .bold, strong {
     font-weight: 600;
 }
 
