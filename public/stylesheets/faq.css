@@ -70,3 +70,17 @@ ul.reference li .title {
     font-weight: 600;
     display: inline-block;
 }
+
+.video {
+    position: relative;
+    height: 0;
+    padding-bottom: 56.25%;
+}
+
+.video iframe {
+    position: absolute;
+    top: 0;
+    left: 15px;
+    width: 94%;
+    height: 100%;
+}
