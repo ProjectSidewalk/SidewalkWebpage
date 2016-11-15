@@ -55,3 +55,18 @@ figure figcaption {
 iframe {
     margin-top: 30px;
 }
+
+ul.reference {
+    list-style-type: none;
+    padding-left: 0;
+    font-size: 11px;
+}
+
+ul.reference li {
+    margin-bottom: 10px;
+}
+
+ul.reference li .title {
+    font-weight: 600;
+    display: inline-block;
+}
