@@ -121,7 +121,7 @@ object UserDAOImpl {
     anonUsers.groupBy(_.ipAddress).keySet.size
   }
 
-/*
+  /*
    * Counts anonymous user records visited today
    * Date: Nov 10, 2016
    */
