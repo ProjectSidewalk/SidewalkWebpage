@@ -11,13 +11,12 @@ import re
 import time
 
 sidewalk_home_directory = "/var/www/html/sidewalk"
-sidewalk_app_directory = sidewalk_home_directory + "/sidewalk-webpage"
-
+sidewalk_git_directory = "/var/www/html/sidewalk/SidewalkWebpage"
+sidewalk_app_directory = sidewalk_git_directory + "/sidewalk-webpage"
 
 # Helper function
 def run_shell_command(command):
     subprocess.call(command.split())
-
 
 # Functions to manage distribution files
 
@@ -28,18 +27,18 @@ def stop_existing_application():
     # Identify the running Play PID. If there is one, kill.
     play_pid_command="netstat -tulpn"
     p1 = subprocess.Popen(play_pid_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p2 = subprocess.Popen(["grep", "9000"], stdin=p1.stdout, stdout=subprocess.PIPE)
+    p2 = subprocess.Popen(["grep", "9005"], stdin=p1.stdout, stdout=subprocess.PIPE)
     p3 = subprocess.Popen(["awk", "{print $7}"], stdin=p2.stdout, stdout=subprocess.PIPE)
     p4 = subprocess.Popen(["cut", "-d", "/", "-f", "1"], stdin=p3.stdout, stdout=subprocess.PIPE)
     p1.stdout.close()
     p2.stdout.close()
     p3.stdout.close()
     stdout, stderr = p4.communicate()
-    play_pid_9000 = stdout.strip('\n')
+    play_pid = stdout.strip('\n')
 
-    if play_pid_9000 != '':
-        print "Running process has pid: " + play_pid_9000
-        subprocess.call(["kill", play_pid_9000])
+    if play_pid != '':
+        print "Running process has pid: " + play_pid
+        subprocess.call(["kill", play_pid])
         print "Killed older application process"
     else:
         print "No running application process to kill"
@@ -47,7 +46,7 @@ def stop_existing_application():
 def move_existing_application():
     """Check if the sidewalk-webpage directory exists already. If so, change the name of the directory"""
     print "Checking if the directory `sidewalk-webpage` already exists"
-    command = "ls %s" % sidewalk_home_directory
+    command = "ls %s" % sidewalk_git_directory
     p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     ls_output = stdout.split("\n")
@@ -55,7 +54,7 @@ def move_existing_application():
     if "sidewalk-webpage"  in ls_output:
         print "Changing the directory name from `sidewalk-webpage` to `_sidewalk-webpage`"
         command = "mv %s %s" % (sidewalk_app_directory,
-                            sidewalk_home_directory + "/_sidewalk-webpage")
+                                sidewalk_git_directory + "/_sidewalk-webpage")
         run_shell_command(command)
     else:
         # Directory doesn't exist create one
@@ -103,25 +102,24 @@ def unzip_file(zip_file_path):
     # change_permission_command = "chmod g+w " + sidewalk_app_directory + "/*"
     # subprocess.call(change_permission_command.split())
 
-
 def run_application():
     """Run the application"""
     print "Starting the application"
-    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
+    command = "nohup %s/bin/sidewalk-webpage -Dhttp.port=9005 &" % sidewalk_app_directory
     run_shell_command(command)
     print "Started running the application"
 
 def remove_previous_application():
     """Remove the application that was previously here"""
     print "Checking if the directory `_sidewalk-webpage` exists"
-    command = "ls %s" % sidewalk_home_directory
+    command = "ls %s" % sidewalk_git_directory
     p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     ls_output = stdout.split("\n")
 
     if "_sidewalk-webpage" in ls_output:
         print "Removing `_sidewalk-webpage` directory"
-        command = "rm -r %s" % sidewalk_home_directory + "/_sidewalk-webpage"
+        command = "rm -r %s" % sidewalk_git_directory + "/_sidewalk-webpage"
         run_shell_command(command)
     else:
         print "Directory `_sidewalk-webpage` does not exist"
@@ -136,7 +134,6 @@ def add_timestamp_to_the_footer():
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
                                    """<span id="application-version">Last updated: """ + timestamp + """</span>""",
                                    file_contents)
-
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
@@ -147,7 +144,6 @@ def remove_timestamp_from_the_footer():
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
                                    """<span id="application-version"></span>""",
                                    file_contents)
-
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
