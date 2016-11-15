@@ -33,3 +33,4 @@ To run the application remotely,
 ## Deployment Related Docs (private - for team only)
 - [Volunteer Recruitment](https://docs.google.com/document/d/1S0QkTX4OP1eMoIK6NZ5Cu2EpCV5Y3lTOf5lFiCqiItA/edit#heading=h.txqj819si9cz)
 - [Responses and Feedback](https://docs.google.com/document/d/1e-Z9k2NL7hdgN2MZC8zIjwMohBl-xz7pta9vjCHQXnk/edit)
+- [Server Notes](https://docs.google.com/document/d/1bXflDqd-hpFUdcrJUJzJh3CibgDJr_UGjAgxJz4OymU/edit)

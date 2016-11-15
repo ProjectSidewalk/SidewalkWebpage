@@ -3,7 +3,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
+function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
     var self = { className: 'AudioEffect' };
 
     var _self = this;
@@ -18,12 +18,9 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
             glug1: new Audio(fileDirectory + 'audio/glug1.wav'),
             yay: new Audio(fileDirectory + 'audio/yay.mp3')
         },
-        status = {
-            mute: false
-        },
         blinkInterval;
 
-    uiSoundButton.sound.on('click', handleClickSound);
+    uiSoundButton.sound.on('click', toggleSound);
 
     this._model.on("play", function (parameter) {
         play(parameter.audioType);
@@ -46,25 +43,29 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
     /**
      * Callback for button click
      */
-    function handleClickSound () {
-        if (status.mute) {
-            // Unmute
-            uiSoundButton.muteIcon.addClass('hidden');
-            uiSoundButton.soundIcon.removeClass('hidden');
+    function toggleSound () {
+        if (storage.get("muted"))
             unmute();
-        } else {
-            // Mute
-            uiSoundButton.soundIcon.addClass('hidden');
-            uiSoundButton.muteIcon.removeClass('hidden');
+        else
             mute();
-        }
     }
 
     /**
      * Mute
      */
     function mute () {
-        status.mute = true;
+        uiSoundButton.soundIcon.addClass('hidden');
+        uiSoundButton.muteIcon.removeClass('hidden');
+        storage.set("muted", true);
+    }
+
+    /**
+     * Unmute
+     */
+    function unmute () {
+        uiSoundButton.muteIcon.addClass('hidden');
+        uiSoundButton.soundIcon.removeClass('hidden');
+        storage.set("muted", false);
     }
 
 
@@ -74,7 +75,7 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
      * @returns {play}
      */
     function play (name) {
-        if (name in audios && !status.mute && typeof audios[name].play == "function") {
+        if (name in audios && !storage.get("muted") && typeof audios[name].play == "function") {
             audios[name].play();
         }
         return this;
@@ -88,12 +89,11 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory) {
         uiSoundButton.sound.removeClass("highlight-50");
     }
 
-    /**
-     * Unmute
-     */
-    function unmute () {
-        status.mute = false;
-    }
+    // To add the appropriate style to the sound button based on the storage when the document is loaded
+    if(storage.get("muted"))
+        mute();
+    else
+        unmute();
 
     self.blink = blink;
     self.play = play;

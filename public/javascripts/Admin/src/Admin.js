@@ -2,7 +2,7 @@ function Admin (_, $, c3, turf) {
     var self = {};
     self.markerLayer = null;
     self.auditedStreetLayer = null;
-    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
+    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Occlusion", "NoSidewalk", "Other"];
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -451,6 +451,10 @@ function Admin (_, $, c3, turf) {
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+            document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
+            document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
+            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
+
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
@@ -458,6 +462,7 @@ function Admin (_, $, c3, turf) {
                 pointToLayer: function (feature, latlng) {
                     var style = $.extend(true, {}, geojsonMarkerOptions);
                     style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                    style.color = colorMapping[feature.properties.label_type].strokeStyle;
                     return L.circleMarker(latlng, style);
                 },
                 filter: function (feature, layer) {
@@ -497,6 +502,16 @@ function Admin (_, $, c3, turf) {
         if (document.getElementById("surfaceprob").checked) {
             self.visibleMarkers.push("SurfaceProblem");
         }
+        if (document.getElementById("occlusion").checked) {
+            self.visibleMarkers.push("Occlusion");
+        }
+        if (document.getElementById("nosidewalk").checked) {
+            self.visibleMarkers.push("NoSidewalk");
+        }
+        if (document.getElementById("other").checked) {
+            self.visibleMarkers.push("Other");
+        }
+
 
         admin.clearMap();
         admin.clearAuditedStreetLayer();

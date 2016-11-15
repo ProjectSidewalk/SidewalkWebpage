@@ -183,7 +183,8 @@ function Mission(parameters) {
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit)
+                + svl.missionContainer.getTasksMissionsOffset();
             if (completedDistance > targetDistance) {
                 return 1.0;
             }
@@ -191,7 +192,7 @@ function Mission(parameters) {
             var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
             var completedMissions = missions.filter(function (m) { return m.isCompleted(); });  // Get the completed missions
 
-            completedMissions = completedMissions.filter(function (m) { return m.getProperty("distance") / 1000 < completedDistance; });
+            completedMissions = completedMissions.filter(function (m) { return m.getProperty("distance") / 1000 <= completedDistance; });
             var lastMissionDistance;
             if (completedMissions.length > 0) {
                 lastMissionDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;

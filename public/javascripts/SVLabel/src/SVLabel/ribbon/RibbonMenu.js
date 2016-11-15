@@ -76,6 +76,8 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
     function modeSwitch (mode) {
         var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
         tracker.push('ModeSwitch_' + labelType);
+        $(document).trigger('ModeSwitch_' + labelType);
+
         if (status.disableModeSwitch === false) {
             var labelColors, ribbonConnectorPositions, borderColor;
 
@@ -120,6 +122,7 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
         tracker.push('Click_Subcategory_' + subcategory);
+        svl.keyboardShortcutAlert.modeSwitchButtonClicked(subcategory);
         modeSwitch(subcategory);
         hideSubcategories();
     }
@@ -135,6 +138,7 @@ function RibbonMenu (overlayMessageBox, tracker, uiRibbonMenu) {
 
             // Track the user action
             tracker.push('Click_ModeSwitch_' + labelType);
+            svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
             modeSwitch(labelType);
         }
     }

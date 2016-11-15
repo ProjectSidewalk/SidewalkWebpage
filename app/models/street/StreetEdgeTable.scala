@@ -82,6 +82,15 @@ object StreetEdgeTable {
   }
 
   /**
+    * Count the number of streets that have been audited at least a given number of times
+    *
+    * @return
+    */
+  def countTotalStreets(): Int = db.withSession { implicit session =>
+    all.size
+  }
+  
+  /**
     * This method returns the audit completion rate
     *
     * @param auditCount
@@ -90,6 +99,19 @@ object StreetEdgeTable {
   def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
     val allEdges = streetEdgesWithoutDeleted.list
     countAuditedStreets(auditCount).toFloat / allEdges.length
+  }
+
+  /**
+    * Get the total distance in miles
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    *
+    * @return
+    */
+  def totalStreetDistance(): Float = db.withSession { implicit session =>
+    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+
+    val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+    (distances.sum * 0.000621371).toFloat
   }
 
   /**
@@ -141,7 +163,7 @@ object StreetEdgeTable {
   }
 
   /**
-    * Returns all the streets in the given regionthat has been audited
+    * Returns all the streets in the given region that has been audited
     * @param regionId
     * @param auditCount
     * @return
