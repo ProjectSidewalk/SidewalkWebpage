@@ -167,6 +167,8 @@ function Main (params) {
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+        svl.alert = new Alert();
+        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.navigationModel._mapService = svl.map;
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
@@ -192,6 +194,33 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $(svl.ui.ribbonMenu.buttons).each(function() {
+            var val = $(this).attr('val');
+
+            if(val != 'Walk' && val != 'Other') {
+                $(this).attr({
+                    'data-toggle': 'tooltip',
+                    'data-placement': 'top',
+                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                });
+            }
+        });
+
+        $(svl.ui.ribbonMenu.subcategories).each(function() {
+            var val = $(this).attr('val');
+
+            if(val != 'Walk' && val != 'Other') {
+                $(this).attr({
+                    'data-toggle': 'tooltip',
+                    'data-placement': 'left',
+                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                });
+            }
+        });
+        $('[data-toggle="tooltip"]').tooltip({
+            delay: { "show": 500, "hide": 100 }
+        })
     }
 
     function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {

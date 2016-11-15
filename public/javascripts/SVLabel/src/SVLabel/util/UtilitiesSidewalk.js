@@ -241,19 +241,35 @@ function UtilitiesMisc (JSON) {
         var descriptions = {
             'Walk' : {
                 'id' : 'Walk',
-                'text' : 'Walk'
+                'text' : 'Walk',
+                shortcut: {
+                    keyNumber: 69,
+                    keyChar: 'E'
+                }
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                text: 'Curb Ramp'
+                text: 'Curb Ramp',
+                shortcut: {
+                    keyNumber: 67,
+                    keyChar: 'C'
+                }
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                text: 'Missing Curb Ramp'
+                text: 'Missing Curb Ramp',
+                shortcut: {
+                    keyNumber: 77,
+                    keyChar: 'M'
+                }
             },
             Obstacle: {
                 id: 'Obstacle',
-                text: 'Obstacle in Path'
+                text: 'Obstacle in Path',
+                shortcut: {
+                    keyNumber: 79,
+                    keyChar: 'O'
+                }
             },
             Other: {
                 id: 'Other',
@@ -261,15 +277,27 @@ function UtilitiesMisc (JSON) {
             },
             Occlusion: {
                 id: 'Occlusion',
-                text: "Can't see the sidewalk"
+                text: "Can't see the sidewalk",
+                shortcut: {
+                    keyNumber: 66,
+                    keyChar: 'B'
+                }
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                text: 'No Sidewalk'
+                text: 'No Sidewalk',
+                shortcut: {
+                    keyNumber: 78,
+                    keyChar: 'N'
+                }
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                text: 'Surface Problem'
+                text: 'Surface Problem',
+                shortcut: {
+                    keyNumber: 83,
+                    keyChar: 'S'
+                }
             },
             Void: {
                 id: 'Void',
