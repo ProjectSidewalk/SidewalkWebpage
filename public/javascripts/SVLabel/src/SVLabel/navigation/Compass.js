@@ -101,12 +101,24 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.messageHolder.css('cursor', 'default');
     };
 
-    // Part of the new jump mechanism
-    // -- start --
-    this._jumpToTheNewRoute = function () {
-        var task = taskContainer.getCurrentTask(); // TODO: Get the jump task
+    /*
+     * Part of the new jump mechanism
+     */
+    //  ** start **
 
-        //Before jumping, rest jump location; disable blink and turn off listener
+    this.resetBeforeJump = function () {
+        this.stopBlinking();
+        this._makeTheLabelBeforeJumpMessageBoxUnclickable();
+        mapService.resetBeforeJumpLocationAndListener();
+    };
+
+    this._jumpToTheNewRoute = function () {
+
+        // Finish clean up tasks before jumping
+        this.resetBeforeJump();
+
+        var task = taskContainer.getBeforeJumpNewTask();
+        taskContainer.setCurrentTask(task);
         mapService.moveToTheTaskLocation(task);
     };
 
@@ -117,7 +129,12 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             uiCompass.messageHolder.css('cursor', 'pointer');
         }
     };
-    // -- end --
+
+    this._makeTheLabelBeforeJumpMessageBoxUnclickable = function () {
+        uiCompass.messageHolder.off('click', this._jumpToTheNewRoute);
+        uiCompass.messageHolder.css('cursor', 'default');
+    };
+    // ** end **
 
     /**
      * Get the compass angle
@@ -227,19 +244,18 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
         if (!mapService.getLabelBeforeJumpListenerStatus()) {
             this.setTurnMessage();
+
+            if (this._checkEnRoute() || svl.isOnboarding()) {
+                this.stopBlinking();
+                this._makeTheMessageBoxUnclickable();
+            }
+            else {
+                this.blink();
+                this._makeTheMessageBoxClickable();
+                this.setBackToRouteMessage();
+            }
         }
 
-        if (this._checkEnRoute() || svl.isOnboarding()) {
-            this.stopBlinking();
-            this._makeTheMessageBoxUnclickable();
-        }
-        else if (mapService.getLabelBeforeJumpListenerStatus()) {
-            console.log("The status" + mapService.getLabelBeforeJumpListenerStatus())
-        } else {
-            this.blink();
-            this._makeTheMessageBoxClickable();
-            this.setBackToRouteMessage();
-        }
     };
 }
 

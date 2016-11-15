@@ -47,6 +47,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svLinkArrowsLoaded : false,
             labelBeforeJumpListenerSet: false
         },
+        listeners = {
+            beforeJumpListenerHandle: undefined
+        },
         jumpLocation = undefined;
 
     var initialPositionUpdate = true,
@@ -233,6 +236,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @private
      */
     function moveToTheTaskLocation(task) {
+
         status.labelBeforeJumpListenerSet = false;
         var geometry = task.getGeometry();
         var callback = function (data, status) {
@@ -501,48 +505,51 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     function _endTheCurrentTask(task, mission, neighborhood) {
-        // Finish a task and get a new task
-        svl.taskContainer.endTask(task);
-        mission.pushATaskToTheRoute(task);
-        var newTask = svl.taskContainer.nextTask(task);
-        if (!newTask) {
-            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-            newTask = svl.taskContainer.nextTask();
-        }
 
-        svl.taskContainer.setCurrentTask(newTask);
-        // Check if the interface jumped the user to another discontinuous location.
-        // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
-        // label the location before proceeding.
-        if (!svl.taskContainer.isFirstTask() && !task.isConnectedTo(newTask)) {
-            // Old code:
-            //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-            //var distanceLeft = distanceLeftFeetOrMiles();
-            console.log("I am in here now")
+        if (!status.labelBeforeJumpListenerSet) {
 
-            // Track before-jump actions every time the user moves away from his location
-            jumpLocation = setBeforeJumpLocation();
-
-            //Listener activated for tracking before-jump actions
-            if (!status.labelBeforeJumpListenerSet) {
-                try {
-                    google.maps.event.addListener(svl.panorama, "pano_changed", trackBeforeJumpActions);
-                    status.labelBeforeJumpListenerSet = true
-                } catch (err) {
-
-                }
+            // Finish a task and get a new task
+            svl.taskContainer.endTask(task);
+            mission.pushATaskToTheRoute(task);
+            var newTask = svl.taskContainer.nextTask(task);
+            if (!newTask) {
+                var currentNeighborhood = neighborhoodModel.currentNeighborhood();
+                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+                newTask = svl.taskContainer.nextTask();
             }
 
-            // Show message to the user instructing him to label the current location
-            svl.compass.showLabelBeforeJumpMessage();
-        }
-        else {
-            svl.taskContainer.setCurrentTask(newTask);
-            moveToTheTaskLocation(newTask);
-        }
+            // Set the newTask before jumping
+            svl.taskContainer.setBeforeJumpNewTask(newTask);
 
+            // Check if the interface jumped the user to another discontinuous location.
+            // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
+            // label the location before proceeding.
+            if (!svl.taskContainer.isFirstTask() && !task.isConnectedTo(newTask)) {
+                // Old code:
+                //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+                //var distanceLeft = distanceLeftFeetOrMiles();
+                console.log("I am in here now")
+
+                // Track before-jump actions every time the user moves away from his location
+                setBeforeJumpLocation();
+
+                //Listener activated for tracking before-jump actions
+                try {
+                    listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
+                        "pano_changed", trackBeforeJumpActions);
+                    status.labelBeforeJumpListenerSet = true
+
+                    // Show message to the user instructing him to label the current location
+                    svl.compass.showLabelBeforeJumpMessage();
+                } catch (err) {}
+
+            }
+            else {
+                svl.taskContainer.setCurrentTask(newTask);
+                moveToTheTaskLocation(newTask);
+            }
+        }
     }
 
     /**
@@ -571,19 +578,29 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
                 // Old:
                 //"You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-                moveToTheTaskLocation(svl.taskContainer.getCurrentTask());
+
+                var newTask = svl.taskContainer.getBeforeJumpNewTask();
+                svl.taskContainer.setCurrentTask(newTask);
+                moveToTheTaskLocation(newTask);
             }
         }
     }
 
     /**
+     * Reset before JumpLocation and Jump Task listener
+     */
+    function resetBeforeJumpLocationAndListener () {
+        jumpLocation = undefined;
+        google.maps.event.removeListener(listeners.beforeJumpListenerHandle);
+    }
+
+    /**
      *
-     *
-     * @returns {setBeforeJumpLocation}
+     * Sets before JumpLocation
      */
     function setBeforeJumpLocation () {
-        // Get user's current location
-        return getPosition();
+        // Set user's current location
+        jumpLocation = getPosition();
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.
@@ -1397,6 +1414,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
+    self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
     self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
 
     _init(params);

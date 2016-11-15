@@ -13,7 +13,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     var previousTasks = [];
     var currentTask = null;
-    var nextJumpTask = null;
+    var beforeJumpNewTask = null;
     var paths;
     var previousPaths = [];
 
@@ -275,6 +275,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return currentTask;
     }
 
+    /**
+     * Get the before jump task
+     * @returns {*}
+     */
+    function getBeforeJumpTask () {
+        return beforeJumpNewTask;
+    }
+
     self.getIncompleteTaskDistance = function (regionId, unit) {
         var incompleteTasks = self.getIncompleteTasks(regionId);
         var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
@@ -385,18 +393,18 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Set the jump task
+     * Store the before jump new task
      * @param task
      */
-    this.setNextJumpTask = function (task) {
-        nextJumpTask = task;
-        if (tracker) tracker.push('TaskStart');
+    this.setBeforeJumpNewTask = function (task) {
+        beforeJumpNewTask = task;
+        // if (tracker) tracker.push('TaskStart');
 
-        if ('compass' in svl) {
-            svl.compass.setTurnMessage();
-            svl.compass.showMessage();
-            svl.compass.update();
-        }
+        // if ('compass' in svl) {
+        //     svl.compass.setTurnMessage();
+        //     svl.compass.showMessage();
+        //     svl.compass.update();
+        // }
     };
 
     /**
@@ -469,6 +477,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
+    self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
     // self.nextTask = getNextTask;
