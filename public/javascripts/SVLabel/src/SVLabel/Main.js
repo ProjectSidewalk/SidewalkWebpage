@@ -359,11 +359,40 @@ function Main (params) {
                     svl.missionModel.completeMission(onboardingMission, null);
                 }
 
+                _calculateAndSetTasksMissionsOffset();
+
                 mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 startTheMission(mission, currentNeighborhood);
             }
+        }
+    }
+
+    function _calculateAndSetTasksMissionsOffset() {
+        var neighborhoodId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+
+        var completedTasksDistance = svl.taskContainer.getCompletedTaskDistance(neighborhoodId);
+
+        var missions = svl.missionContainer.getMissionsByRegionId(neighborhoodId);
+        var completedMissions = missions.filter(function (m) { return m.isCompleted(); });
+
+        var completedMissionsDistance = 0;
+
+        if(completedMissions.length > 0)
+            completedMissionsDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
+
+        if(completedMissionsDistance > completedTasksDistance) {
+            /*
+            In this case the user has audited part of a street to complete a mission, then refreshed the browser
+            and the audited street is not saved.
+             */
+            svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance);
+        } else {
+            /*
+            In this case we don't need to store any offset
+             */
+            svl.missionContainer.setTasksMissionsOffset(0);
         }
     }
 
