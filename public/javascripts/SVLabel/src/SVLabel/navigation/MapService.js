@@ -237,7 +237,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function moveToTheTaskLocation(task) {
 
-        status.labelBeforeJumpListenerSet = false;
+        if (status.labelBeforeJumpListenerSet){
+            status.labelBeforeJumpListenerSet = false;
+            // Reset all parameters
+            resetBeforeJumpLocationAndListener();
+        }
+
         var geometry = task.getGeometry();
         var callback = function (data, status) {
             if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
@@ -529,16 +534,17 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Old code:
                 //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
                 //var distanceLeft = distanceLeftFeetOrMiles();
-                console.log("I am in here now")
+                console.log("I am in here now");
+                status.labelBeforeJumpListenerSet = true;
 
-                // Track before-jump actions every time the user moves away from his location
+                // Store before jump location for tracking before-jump actions every time the user
+                // moves away from his location
                 setBeforeJumpLocation();
 
-                //Listener activated for tracking before-jump actions
+                // Listener activated for tracking before-jump actions
                 try {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
-                    status.labelBeforeJumpListenerSet = true
 
                     // Show message to the user instructing him to label the current location
                     svl.compass.showLabelBeforeJumpMessage();
@@ -569,16 +575,20 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             // Jump to the new location if it's really far away from his location.
             if (distance > 0.07) {
+
                 console.log("You are way off! " + distance)
                 var messageTitle = "Jumped to the new location";
+
+                // Message versions:
+                // v3: "Don't walk too far");
+                // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
+                // v0: "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
                 svl.popUpMessage.notify(messageTitle,
                     "Looks like you finished labeling your current location. " +
                     "We have automatically jumped you to your new location now."); //v2
-                // v3: "Don't walk too far");
-                // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
-                // Old:
-                //"You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
 
+                // Reset jump parameters before jumping
+                svl.compass.resetBeforeJump();
                 var newTask = svl.taskContainer.getBeforeJumpNewTask();
                 svl.taskContainer.setCurrentTask(newTask);
                 moveToTheTaskLocation(newTask);
