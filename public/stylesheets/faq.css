@@ -1,5 +1,5 @@
 .faq p {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .faq .maincontent {
@@ -45,4 +45,42 @@ figure figcaption {
 
 .faq ul#questions-list li:hover {
     /*background-color: #eee;*/
+}
+
+.faq table {
+    font-size: 14px;
+}
+
+/* the youtube videos */
+iframe {
+    margin-top: 30px;
+}
+
+ul.reference {
+    list-style-type: none;
+    padding-left: 0;
+    font-size: 11px;
+}
+
+ul.reference li {
+    margin-bottom: 10px;
+}
+
+ul.reference li .title {
+    font-weight: 600;
+    display: inline-block;
+}
+
+.video {
+    position: relative;
+    height: 0;
+    padding-bottom: 56.25%;
+}
+
+.video iframe {
+    position: absolute;
+    top: 0;
+    left: 15px;
+    width: 94%;
+    height: 100%;
 }
