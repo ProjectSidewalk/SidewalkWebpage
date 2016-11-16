@@ -48,7 +48,7 @@ function Alert() {
 
             self.hideTimeout = setTimeout(function() {
                 self.hideAlert();
-            }, 10000);
+            }, 15000);
         }
     }
 
