@@ -41,6 +41,26 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     /**
+     * Get the angle to the next goal.
+     * @returns {number}
+     */
+    function _getTargetAngle() {
+        var task = taskContainer.getCurrentTask();
+        var latlng = mapService.getPosition();
+        var geometry = task.getGeometry();  // get the street geometry of the current task
+        var coordinates = geometry.coordinates;  // get the latlng coordinates of the streets
+        var distArray = coordinates.map(function(o) {
+            return Math.sqrt(_norm(latlng.lat, latlng.lng, o[1], o[0]));
+        });
+        var minimum = Math.min.apply(Math, distArray);
+        var argmin = distArray.indexOf(minimum);
+        var argTarget;
+        argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
+
+        return util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
+    }
+
+    /**
      * Check if the user is following the route that we specified
      * @param threshold
      * @param unit
@@ -60,26 +80,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             return turf.distance(currentPoint, snapped, unit) < threshold;
         }
         return true;
-    }
-
-    /**
-     * Get the angle to the next goal.
-     * @returns {number}
-     */
-    function _getTargetAngle() {
-        var task = taskContainer.getCurrentTask();
-        var latlng = mapService.getPosition();
-        var geometry = task.getGeometry();  // get the street geometry of the current task
-        var coordinates = geometry.coordinates;  // get the latlng coordinates of the streets
-        var distArray = coordinates.map(function(o) {
-            return Math.sqrt(_norm(latlng.lat, latlng.lng, o[1], o[0]));
-        });
-        var minimum = Math.min.apply(Math, distArray);
-        var argmin = distArray.indexOf(minimum);
-        var argTarget;
-        argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
-
-        return util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
     }
 
     function _jumpBackToTheRoute() {
