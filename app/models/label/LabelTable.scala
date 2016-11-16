@@ -123,7 +123,6 @@ object LabelTable {
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
-    println(countQuery)
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
     countQueryResult.list.size
@@ -158,7 +157,6 @@ object LabelTable {
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
-    println(countQuery)
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
     countQueryResult.list.size
