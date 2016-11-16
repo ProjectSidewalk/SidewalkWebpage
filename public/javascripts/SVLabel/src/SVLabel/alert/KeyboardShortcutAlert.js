@@ -12,7 +12,9 @@ function KeyboardShortcutAlert(alertHandler) {
             self['clickCount'][labelType]++;
         else
             self['clickCount'][labelType] = 1;
-        if(self['clickCount'][labelType] >= MINIMUM_CLICKS_BEFORE_ALERT) {
+
+        if (self['clickCount'][labelType] >= MINIMUM_CLICKS_BEFORE_ALERT &&
+            (svl.onboarding == null || svl.onboarding.isOnboarding() == false)) {
             var labelDescription = util.misc.getLabelDescriptions(labelType);
             if ('text' in labelDescription && 'shortcut' in labelDescription) {
                 var labelText = util.misc.getLabelDescriptions(labelType)['text'];
