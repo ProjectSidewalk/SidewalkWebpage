@@ -91,7 +91,7 @@ function Canvas (ribbon) {
             svl.ui.canvas.drawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
             svl.ui.canvas.drawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
             svl.ui.canvas.drawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
-            svl.ui.canvas.drawingLayer.on('mouseout', handleDrawingLayerMouseOut);
+            $("#interaction-area-holder").on('mouseleave', handleDrawingLayerMouseOut);
         }
         if (svl.ui.canvas.deleteIcon) {
           svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);

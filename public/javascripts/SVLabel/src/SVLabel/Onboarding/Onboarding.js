@@ -578,7 +578,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
 
         var callback = function () {
-            console.log('callback :)');
             ribbon.stopBlinking();
             $(document).off('ModeSwitch_' + event, callback);
             if (listener) google.maps.event.removeListener(listener);
