@@ -349,6 +349,5 @@ object UserDAOImpl {
       l <- labelTable
     }.yield(a, t, l)).groupby(_.ipAddress).map{case (a,t,l) => (a,a.map(_.audit_task_id).length)}
     */
-
   }
-
+}
