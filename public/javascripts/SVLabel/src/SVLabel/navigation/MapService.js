@@ -509,13 +509,23 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
+    function finishCurrentTaskBeforeJumping(){
+        // Finish the current task
+        var currentTask = svl.taskContainer.getCurrentTask();
+        svl.taskContainer.endTask(currentTask);
+        // BUG: mission is not available
+        // mission.pushATaskToTheRoute(currentTask);
+    }
+
     function _endTheCurrentTask(task, mission, neighborhood) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
-            // Finish a task and get a new task
-            svl.taskContainer.endTask(task);
-            mission.pushATaskToTheRoute(task);
+            // Get a new task and check if its disconnected from the current task
+            // If yes, then finish the current task after the user has labeling the
+            // the current location before jumping to the new location
+
+            //Get a new task
             var newTask = svl.taskContainer.nextTask(task);
             if (!newTask) {
                 var currentNeighborhood = neighborhoodModel.currentNeighborhood();
@@ -523,9 +533,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
                 newTask = svl.taskContainer.nextTask();
             }
-
-            // Set the newTask before jumping
-            svl.taskContainer.setBeforeJumpNewTask(newTask);
 
             // Check if the interface jumped the user to another discontinuous location.
             // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
@@ -535,6 +542,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
                 //var distanceLeft = distanceLeftFeetOrMiles();
                 console.log("I am in here now");
+
+                // Set the newTask before jumping
+                svl.taskContainer.setBeforeJumpNewTask(newTask);
+
                 status.labelBeforeJumpListenerSet = true;
 
                 // Store before jump location for tracking before-jump actions every time the user
@@ -552,6 +563,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             }
             else {
+                // Finish a task
+                finishCurrentTaskBeforeJumping();
+
+                // Move to the new task
                 svl.taskContainer.setCurrentTask(newTask);
                 moveToTheTaskLocation(newTask);
             }
@@ -587,8 +602,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     "Looks like you finished labeling your current location. " +
                     "We have automatically jumped you to your new location now."); //v2
 
+                // Finish the current task
+                finishCurrentTaskBeforeJumping();
+
                 // Reset jump parameters before jumping
                 svl.compass.resetBeforeJump();
+
+                // Jump to the new task
                 var newTask = svl.taskContainer.getBeforeJumpNewTask();
                 svl.taskContainer.setCurrentTask(newTask);
                 moveToTheTaskLocation(newTask);
@@ -1394,7 +1414,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.enablePanning = enablePanning;
     self.enableClickZoom = enableClickZoom;
     self.enableWalking = enableWalking;
+    self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
     self.getInitialPanoId = getInitialPanoId;
+    self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
     self.getMap = getMap;
     self.getMaxPitch = getMaxPitch;
     self.getMinPitch = getMinPitch;
@@ -1411,7 +1433,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.modeSwitchWalkClick = modeSwitchWalkClick;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
     self.plotMarkers = plotMarkers;
+    self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
     self.save = save;
+    self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setHeadingRange = setHeadingRange;
     self.setMode = setMode;
     self.setPano = setPano;
@@ -1423,9 +1447,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
-    self.setBeforeJumpLocation = setBeforeJumpLocation;
-    self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
-    self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
+
 
     _init(params);
     return self;

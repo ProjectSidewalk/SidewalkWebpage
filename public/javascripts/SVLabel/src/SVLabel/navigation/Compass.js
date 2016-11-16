@@ -113,6 +113,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
     function _jumpToTheNewRoute () {
 
+        // Finish the current task
+        mapService.finishCurrentTaskBeforeJumping();
+
         // Finish clean up tasks before jumping
         resetBeforeJump();
 

@@ -185,6 +185,10 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
         task.eraseFromGoogleMaps();
         self.skipSubmit(data, task);
 
+        // If the jump was clicked in the middle of the beforeJumpTask,
+        // reset the beforeJump tracking parameters
+        //resetBeforeJumpLocationAndListener()
+
         var nextTask = taskContainer.nextTask(task);
         if (!nextTask) {
             var currentNeighborhood = neighborhoodModel.currentNeighborhood();
