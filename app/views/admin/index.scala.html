@@ -23,14 +23,18 @@
                             <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                             <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                             <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-occlusion"></td><td>Can't see sidewalk</td><td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-nosidewalk"></td><td>No Sidewalk</td><td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr><td id="map-legend-other"></td><td>Other</td><td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                             <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+
                         </table>
                     </div>
                 </div>
             </div>
         </div>
         <div class="row">
-            <div class="col-lg-4">
+            <div class="col-lg-5">
                 <h1>Activities</h1>
                 <table class="table table-striped table-condensed">
                     <tr>
@@ -40,22 +44,77 @@
                         <th>Yesterday</th>
                     </tr>
                     <tr>
-                        <th>Users</th>
-                        <td>@UserDAOImpl.size</td>
-                        <td>@UserDAOImpl.countTodayUsers</td>
-                        <td>@UserDAOImpl.countYesterdayUsers</td>
+                        <th>Total Users</th>
+                        <th>@UserDAOImpl.countContributingUsers</th>
+                        <th>@UserDAOImpl.countTodayUsers</th>
+                        <th>@UserDAOImpl.countYesterdayUsers</th>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Registered</td>
+                        <td>@UserDAOImpl.countRegisteredUsers</td>
+                        <td>@UserDAOImpl.countRegisteredUsersVisitedToday</td>
+                        <td>@UserDAOImpl.countRegisteredUsersVisitedYesterday</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Anonymous</td>
+                        <td>@UserDAOImpl.countAnonymousUsers</td>
+                        <td>@UserDAOImpl.countAnonymousUsersVisitedToday</td>
+                        <td>@UserDAOImpl.countAnonymousUsersVisitedYesterday</td>
                     </tr>
                     <tr>
-                        <th>Labels</th>
-                        <td>@LabelTable.countLabels</td>
-                        <td>@LabelTable.countTodayLabels</td>
-                        <td>@LabelTable.countYesterdayLabels</td>
+                        <th>Total Labels</th>
+                        <th>@LabelTable.countLabels</th>
+                        <th>@LabelTable.countTodayLabels</th>
+                        <th>@LabelTable.countYesterdayLabels</th>
                     </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Curb Ramp</th>
+                        <td>@LabelTable.countLabelsBasedOnType("CurbRamp")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("CurbRamp")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("CurbRamp")</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Missing Curb Ramp</th>
+                        <td>@LabelTable.countLabelsBasedOnType("NoCurbRamp")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("NoCurbRamp")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("NoCurbRamp")</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Obstacle in Path</th>
+                        <td>@LabelTable.countLabelsBasedOnType("Obstacle")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("Obstacle")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("Obstacle")</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Surface Problem</th>
+                        <td>@LabelTable.countLabelsBasedOnType("SurfaceProblem")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("SurfaceProblem")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("SurfaceProblem")</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Other</th>
+                        <td>@LabelTable.countLabelsBasedOnType("Other")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("Other")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("Other")</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">Occlusion</th>
+                        <td>@LabelTable.countLabelsBasedOnType("Occlusion")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("Occlusion")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
+                    </tr>
+                    <tr style="font-size: 90%;">
+                        <td style="padding-left: 30px">No Sidewalk</th>
+                        <td>@LabelTable.countLabelsBasedOnType("NoSidewalk")</td>
+                        <td>@LabelTable.countTodayLabelsBasedOnType("NoSidewalk")</td>
+                        <td>@LabelTable.countYesterdayLabelsBasedOnType("NoSidewalk")</td>
+                    </tr>
+
                     <tr>
                         <th>Audits</th>
-                        <td>@AuditTaskTable.countCompletedAudits</td>
-                        <td>@AuditTaskTable.countCompletedAuditsToday</td>
-                        <td>@AuditTaskTable.countCompletedAuditsYesterday</td>
+                        <th>@AuditTaskTable.countCompletedAudits</th>
+                        <th>@AuditTaskTable.countCompletedAuditsToday</th>
+                        <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
                     </tr>
                 </table>
             </div>
@@ -65,14 +124,17 @@
                     <tr>
                         <th></th>
                         <th>Coverage</th>
+                        <th>Total</th>
                     </tr>
                     <tr>
                         <th>Audited Streets</th>
                         <td>@StreetEdgeTable.countAuditedStreets()</td>
+                        <td>@StreetEdgeTable.countTotalStreets()</td>
                     </tr>
                     <tr>
                         <th>Distance</th>
-                        <td>@("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                        <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                        <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
                     </tr>
                     <tr>
                         <th>
@@ -81,6 +143,7 @@
                         <td>
                             @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%
                         </td>
+                        <td></td>
                     </tr>
                 </table>
             </div>
@@ -236,7 +299,8 @@
                 <table id="anonUserTable" data-order='[[ 1, "desc" ]]' class="table table-striped table-condensed">
                     <thead>
                         <tr>
-                            <th class="col-md-6">IP Address</th>
+                            <th class="col-md-3">IP Address</th>
+                            <th class="col-md-3">Last Audited</th>
                             <th class="col-md-3">Audit Count</th>
                             <th class="col-md-3">Label Count</th>
                         </tr>
@@ -245,6 +309,7 @@
                     @UserDAOImpl.getAnonymousUserProfiles.map { anon =>
                         <tr>
                             <td>@anon.ipAddress</td>
+                            <td>@anon.timestamp</td>
                             <td>@anon.auditCount</td>
                             <td>@anon.labelCount</td>
                         </tr>

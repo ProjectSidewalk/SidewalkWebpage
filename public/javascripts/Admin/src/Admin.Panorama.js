@@ -43,7 +43,7 @@ function AdminPanorama(svHolder) {
 
         self.ctx = self.drawingCanvas.getContext("2d");
 
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, {}) : null;
+        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panoId = null;
 
         self.panoPov = {
