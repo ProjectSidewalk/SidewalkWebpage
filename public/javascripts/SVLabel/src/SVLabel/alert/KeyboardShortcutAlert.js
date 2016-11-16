@@ -20,7 +20,7 @@ function KeyboardShortcutAlert(alertHandler) {
                 var labelText = util.misc.getLabelDescriptions(labelType)['text'];
                 var labelKeyboardChar = util.misc.getLabelDescriptions(labelType)['shortcut']['keyChar'];
 
-                alertHandler.showAlert('You can also press <kbd>'+ labelKeyboardChar +'</kbd> for choosing the "' +
+                alertHandler.showAlert('You can also press the <kbd>'+ labelKeyboardChar +'</kbd> key for selecting the "' +
                     labelText + '" label.', labelType, true);
                 self['clickCount'][labelType] = 0;
             }
