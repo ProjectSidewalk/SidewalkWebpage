@@ -178,6 +178,9 @@ if __name__ == '__main__':
         if sys.argv[1] == 'dist':
             create_distribution()
 
+        elif sys.argv[1] == 'run':
+            run_application()
+
     else:
         prepare_local_repo()
         create_distribution()
