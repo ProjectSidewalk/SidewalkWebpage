@@ -97,3 +97,7 @@ public/javascripts/Admin/Progress/*
 download
 
 public/javascripts/SVLabel/build/SVLabel.js
+
+# sidewalk-webpage-binary directory
+sidewalk-webpage/
+nohup.out

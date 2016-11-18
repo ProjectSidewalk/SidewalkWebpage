@@ -12,6 +12,7 @@ import time
 
 sidewalk_home_directory = "/var/www/html/sidewalk"
 sidewalk_git_directory = "/var/www/html/sidewalk/SidewalkWebpage"
+#sidewalk_git_directory = "/Users/manaswi/git/SidewalkWebpage"
 sidewalk_app_directory = sidewalk_git_directory + "/sidewalk-webpage"
 
 # Helper function
@@ -105,8 +106,9 @@ def unzip_file(zip_file_path):
 def run_application():
     """Run the application"""
     print "Starting the application"
-    command = "nohup %s/bin/sidewalk-webpage -Dhttp.port=9005 &" % sidewalk_app_directory
-    run_shell_command(command)
+    command = "nohup %s/bin/sidewalk-webpage -Dhttp.port=9005 > %s/nohup.out &" % (sidewalk_app_directory,
+                                                                                   sidewalk_app_directory)
+    subprocess.call(command, shell=True)
     print "Started running the application"
 
 def remove_previous_application():
@@ -174,6 +176,9 @@ if __name__ == '__main__':
         if sys.argv[1] == 'dist':
             create_distribution()
 
+        elif sys.argv[1] == 'run':
+            run_application()
+
     else:
         prepare_local_repo()
         create_distribution()
@@ -190,4 +195,3 @@ if __name__ == '__main__':
         unzip_file(zip_file_path)
         run_application()
         remove_previous_application()
-
