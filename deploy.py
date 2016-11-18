@@ -108,7 +108,8 @@ def run_application():
     """Run the application"""
     print "Starting the application"
     command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
-    run_shell_command(command)
+
+    subprocess.call(command, shell=True)
     print "Started running the application"
 
 def remove_previous_application():

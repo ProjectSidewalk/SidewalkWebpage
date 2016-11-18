@@ -12,7 +12,7 @@ import time
 
 sidewalk_home_directory = "/var/www/html/sidewalk"
 sidewalk_git_directory = "/var/www/html/sidewalk/SidewalkWebpage"
-sidewalk_git_directory = "/Users/manaswi/git/SidewalkWebpage"
+#sidewalk_git_directory = "/Users/manaswi/git/SidewalkWebpage"
 sidewalk_app_directory = sidewalk_git_directory + "/sidewalk-webpage"
 
 # Helper function
@@ -108,8 +108,7 @@ def run_application():
     print "Starting the application"
     command = "nohup %s/bin/sidewalk-webpage -Dhttp.port=9005 > %s/nohup.out &" % (sidewalk_app_directory,
                                                                                    sidewalk_app_directory)
-    print command.split()
-    run_shell_command(command)
+    subprocess.call(command, shell=True)
     print "Started running the application"
 
 def remove_previous_application():
