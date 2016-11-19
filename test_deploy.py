@@ -187,6 +187,7 @@ if __name__ == '__main__':
         current_file_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         zip_file_path = os.path.join(current_file_path, "target/universal/")
         file_list = glob.glob(zip_file_path + "sidewalk-webpage-*.zip")
+        file_list = sorted(file_list)
         zip_file_path = file_list[-1]
         print "File to be deployed: " + zip_file_path
 
