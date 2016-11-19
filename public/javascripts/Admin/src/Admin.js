@@ -60,7 +60,7 @@ function Admin (_, $, c3, turf) {
         completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
         var numberOfBins = 10;
         var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-        console.log(histogram);
+        // console.log(histogram);
         var counts = histogram.histogram;
         counts.unshift("Count");
         var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
