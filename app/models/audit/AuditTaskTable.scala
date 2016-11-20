@@ -462,8 +462,8 @@ object AuditTaskTable {
         |  ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task
         |  ON street.street_edge_id = audit_task.street_edge_id
-        |  AND audit_task.user_id = '25b85b51-574b-436e-a9c4-339eef879e78'
-        |WHERE region.region_id = 344
+        |  AND audit_task.user_id = ?
+        |WHERE region.region_id = ?
         |  AND street.deleted = FALSE
         |  AND audit_task.completed = TRUE
         |ORDER BY audit_task.task_end""".stripMargin

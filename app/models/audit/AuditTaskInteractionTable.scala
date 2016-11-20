@@ -138,10 +138,12 @@ object AuditTaskInteractionTable {
         |INNER JOIN sidewalk.audit_task_interaction
         |  ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
         |WHERE audit_task.user_id = ?
-        |  AND audit_task.completed = TRUE
         |  AND (
         |    audit_task_interaction.action = 'MissionComplete'
-        |    OR audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
+        |    OR (
+        |      audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
+        |      AND audit_task.completed = TRUE
+        |    )
         |  )
         |ORDER BY audit_task_interaction.audit_task_interaction_id""".stripMargin
     )
