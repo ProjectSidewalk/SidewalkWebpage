@@ -20,7 +20,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         boxLeft: 45,
         boxWidth: 640
     };
-
     this._status = {
         isOpen: false
     };
@@ -44,13 +43,23 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         self.hide();
     });
 
+    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+        uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+    });
+
     this._handleBackgroundClick = function (e) {
-        var nextMission = missionContainer.getCurrentMission();
-        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
-        self.hide();
+        self._closeModal();
     };
 
     this._handleCloseButtonClick = function (e) {
+        self._closeModal();
+    };
+
+    this._closeModal = function (e) {
+        if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+            // reload the page to load another neighborhood
+            window.location.replace('/audit');
+        }
         var nextMission = missionContainer.getCurrentMission();
         _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
         self.hide();

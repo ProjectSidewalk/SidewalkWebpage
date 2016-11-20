@@ -271,6 +271,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }, 500);
     }
 
+    function hideGoogleMaps () {
+        svl.ui.googleMaps.holder.hide();
+    }
+
+    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+        hideGoogleMaps();
+    });
+
     /**
      * This function maps canvas coordinate to image coordinate
      * @param canvasX

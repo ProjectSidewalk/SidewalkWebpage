@@ -1,6 +1,7 @@
 function NeighborhoodModel () {
     var self = this;
     this._neighborhoodContainer = null;
+    this.isNeighborhoodCompleted = false;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -80,6 +81,7 @@ NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoo
         nextRegionId: nextNeighborhoodId
     };
     this.trigger("Neighborhood:completed", parameters);
+    this.isNeighborhoodCompleted = true;
 };
 
 NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
