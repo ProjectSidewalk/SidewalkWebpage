@@ -91,6 +91,12 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
             this._updateTheCurrentMission(mission, neighborhood);
 
+            // While the mission complete modal is open, after the **neighborhood** is 100% audited,
+            // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
+            // and it changes the modal's neighborhood information while it is open.
+            if (svl.modalMissionComplete.isOpen())
+                return;
+
             _modalModel.updateModalMissionComplete(mission, neighborhood);
             _modalModel.showModalMissionComplete();
         }
