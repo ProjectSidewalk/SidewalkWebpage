@@ -3,7 +3,7 @@ package models.label
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
-import models.audit.{AuditTask, AuditTaskTable}
+import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskTable}
 import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -12,8 +12,23 @@ import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Label(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelTypeId: Int, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: Boolean, temporaryLabelId: Option[Int])
-case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
+case class Label(labelId: Int,
+                 auditTaskId: Int,
+                 gsvPanoramaId: String,
+                 labelTypeId: Int,
+                 photographerHeading: Float,
+                 photographerPitch: Float,
+                 panoramaLat: Float,
+                 panoramaLng: Float,
+                 deleted: Boolean,
+                 temporaryLabelId: Option[Int])
+
+case class LabelLocation(labelId: Int,
+                         auditTaskId: Int,
+                         gsvPanoramaId: String,
+                         labelType: String,
+                         lat: Float,
+                         lng: Float)
 
 /**
  *
@@ -258,6 +273,37 @@ object LabelTable {
     val userLabels = retrieveLabelMetadata
     val record = userLabels.filter(_.labelId == labelId)
     record.head
+  }
+
+  /**
+    * Returns all the labels submitted by the given user
+    * @param userId
+    * @return
+    */
+  def selectLabelsByUserId(userId: UUID): List[Label] = db.withSession { implicit session =>
+    val _labels = for {
+      (_labels, _auditTasks) <- labels.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
+      if _auditTasks.userId === userId.toString
+    } yield _labels
+    _labels.list
+  }
+
+  /**
+    * Returns all the labels of the given user that are associated with the given interactions
+    * @param userId
+    * @param interactions
+    * @return
+    */
+  def selectLabelsByInteractions(userId: UUID, interactions: List[AuditTaskInteraction]) = {
+    val labels = selectLabelsByUserId(userId).filter(_.temporaryLabelId.isDefined)
+
+    // Filter the labels based on the interactions
+    val filteredLabels = for {
+      l <- labels
+      i <- interactions
+      if l.auditTaskId == i.auditTaskId && l.temporaryLabelId == i.temporaryLabelId
+    } yield l
+    filteredLabels
   }
 
   /*
