@@ -74,3 +74,9 @@ NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoo
     });
     this.isNeighborhoodCompleted = true;
 };
+
+NeighborhoodModel.prototype.setCurrentNeighborhood = function (neighborhood) {
+    if (this._neighborhoodContainer) {
+        this._neighborhoodContainer.setCurrentNeighborhood(neighborhood);
+    }
+};
