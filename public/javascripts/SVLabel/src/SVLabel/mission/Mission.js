@@ -163,7 +163,7 @@ function Mission(parameters) {
         if (!unit) unit = "kilometers";
         var completedTasks = _tasksForTheMission.filter(function (t) { return t.isCompleted(); });
         var distances = completedTasks.map(function (t) { return t.lineDistance(unit); });
-        return distances.sum();
+        return distances.length > 0 ? distances.sum() : 0;
     }
 
     /**

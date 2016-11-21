@@ -237,14 +237,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 distance += turf.lineDistance(feature, unit);
             }
         }
-        
+
+        distance += getCurrentTaskDistance(unit);
+
+        return distance;
+    }
+
+    function getCurrentTaskDistance(unit) {
+        if (!unit) unit = "kilometers";
+
         if (currentTask) {
             var currentLatLng = navigationModel.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
             var currentTaskDistance = currentTask.getAuditedDistance(unit);
-            distance += currentTaskDistance;
+            return currentTaskDistance;
         }
-        return distance;
+        return 0;
     }
 
     /**
@@ -451,6 +459,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
+    self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
     self.isFirstTask = isFirstTask;
