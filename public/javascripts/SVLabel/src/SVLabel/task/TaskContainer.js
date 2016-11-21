@@ -58,6 +58,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     self.setCurrentTask(nextTaskIn);
                     navigationModel.setPosition(lat, lng);
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    nextTaskIn.complete();
                     // no street view available in this range.
                     self.getFinishedAndInitNextTask();
                 } else {
