@@ -69,30 +69,8 @@ NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {
 
 NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
     if (!this._neighborhoodContainer) return;
-
-    var nextNeighborhoodId = this.nextRegion(currentNeighborhoodId);
-    var nextNeighborhood = this._neighborhoodContainer.get(nextNeighborhoodId);
-
-    this.setCurrentNeighborhood(nextNeighborhood);
-    this.moveToANewRegion(nextNeighborhoodId);
-
-    var parameters = {
-        completedRegionId: currentNeighborhoodId,
-        nextRegionId: nextNeighborhoodId
-    };
-    this.trigger("Neighborhood:completed", parameters);
+    this.trigger("Neighborhood:completed", {
+        completedRegionId: currentNeighborhoodId
+    });
     this.isNeighborhoodCompleted = true;
-};
-
-NeighborhoodModel.prototype.nextRegion = function (currentRegionId) {
-    if (!this._neighborhoodContainer) return null;
-
-    var availableRegionIds = this._neighborhoodContainer.getRegionIds();
-    return this._neighborhoodContainer.getNextRegionId(currentRegionId, availableRegionIds);
-};
-
-NeighborhoodModel.prototype.setCurrentNeighborhood = function (neighborhood) {
-    if (this._neighborhoodContainer) {
-        this._neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-    }
 };

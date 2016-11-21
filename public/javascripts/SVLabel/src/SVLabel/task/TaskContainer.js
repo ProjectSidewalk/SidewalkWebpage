@@ -18,11 +18,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     self._taskStoreByRegionId = {};
 
-    neighborhoodModel.on("Neighborhood:completed", function (parameters) {
-        var regionId = parseInt(parameters.nextRegionId, 10);
-        self.fetchTasksInARegion(regionId, self._handleTaskFetchCompleted, false);
-    });
-
     self._handleTaskFetchCompleted = function () {
         var nextTask = self.nextTask();
         self.initNextTask(nextTask);

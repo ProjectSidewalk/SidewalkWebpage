@@ -23,9 +23,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
         // When the user has complete auditing all the streets in the neighborhood,
         // show the 100% coverage mission completion message.
-        // The current neighborhood should have been updated
-        // before this event has been triggered (in NeighborhoodModel),
-        // so just select the first mission in the updated neighborhood.
 
         var mission = missionContainer.getNeighborhoodCompleteMission(parameters.completedRegionId);
         var neighborhood = neighborhoodModel.getNeighborhood(parameters.completedRegionId);
@@ -33,12 +30,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         self._completeTheCurrentMission(mission, neighborhood);
         _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
-
-        var nextMission = missionContainer.nextMission(parameters.nextRegionId);
-        missionContainer.setCurrentMission(nextMission);
-
-        //update the audited distance based on the new neighborhood
-        svl.taskContainer.updateAuditedDistance("miles");
     });
 
 
