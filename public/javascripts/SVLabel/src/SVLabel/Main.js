@@ -410,15 +410,7 @@ function Main (params) {
             svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            var newTask = svl.taskContainer.nextTask();
-            if (!newTask) {
-                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-                newTask = svl.taskContainer.nextTask();
-            }
-            // svl.taskContainer.setCurrentTask(newTask);
-            svl.taskContainer.initNextTask(newTask);
+            taskContainer.getFinishedAndInitNextTask();
         }
         return availableMissions[0];
     }
