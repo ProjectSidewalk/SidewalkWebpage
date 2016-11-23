@@ -410,7 +410,7 @@ function Main (params) {
             svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            taskContainer.getFinishedAndInitNextTask();
+            svl.taskContainer.getFinishedAndInitNextTask();
         }
         return availableMissions[0];
     }
