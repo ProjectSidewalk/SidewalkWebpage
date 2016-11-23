@@ -299,11 +299,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val labels = LabelTable.selectLocationsOfLabels
     val features: List[JsObject] = labels.map { label =>
-      val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+
       val properties = Json.obj(
         "gsv_panorama_id" -> label.gsvPanoramaId
       )
-      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+      Json.obj("properties" -> properties)
     }
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
