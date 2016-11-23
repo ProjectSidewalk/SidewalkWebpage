@@ -358,10 +358,8 @@ function Main (params) {
                     onboardingMission.setProperty("isCompleted", true);
                     svl.missionModel.completeMission(onboardingMission, null);
                 }
-
-                _calculateAndSetTasksMissionsOffset();
-
                 mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
+                _calculateAndSetTasksMissionsOffset();
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 startTheMission(mission, currentNeighborhood);
