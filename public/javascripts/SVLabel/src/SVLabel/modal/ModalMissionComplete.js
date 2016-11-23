@@ -59,10 +59,11 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         if (svl.neighborhoodModel.isNeighborhoodCompleted) {
             // reload the page to load another neighborhood
             window.location.replace('/audit');
+        } else {
+            var nextMission = missionContainer.getCurrentMission();
+            _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
+            self.hide();
         }
-        var nextMission = missionContainer.getCurrentMission();
-        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
-        self.hide();
     };
 
     this.hide = function () {
