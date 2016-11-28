@@ -1,8 +1,10 @@
-function InitialMissionInstruction (compass, mapService, neighborhoodContainer, popUpMessage, taskContainer) {
+function InitialMissionInstruction(compass, mapService, neighborhoodContainer, popUpMessage, taskContainer) {
     var self = this;
     var initialHeading;
-    var finishedLookingAround = false;
     var lookingAroundInterval;
+    var lastHeadingTransformed;
+    var viewedCWTransformed = 0, viewedCCWTransformed = 360;
+    var initialPanoId;
 
     this._finishedInstructionToFollowTheGuidance = function () {
         self._stopBlinkingNavigationComponents();
@@ -31,9 +33,9 @@ function InitialMissionInstruction (compass, mapService, neighborhoodContainer, 
     this._instructToFollowTheGuidance = function () {
         if (!svl.isOnboarding()) {
             var title = "Follow the navigator and audit the street!";
-            var message = "Great! It looks like you finished auditing this intersection. " +
-                "Now, follow the red line in the map to complete your mission. " +
-                "We provide turn-by-turn instructions to guide your path.</span>";
+            var message = "It looks like you've looked around this entire intersection. " +
+                "If you're done labeling this place, it's time to take a step. " +
+                "Walk in the direction of the red line highlighted on the map.";
 
             popUpMessage.notify(title, message, this._finishedInstructionToFollowTheGuidance);
             compass.blink();
@@ -41,17 +43,45 @@ function InitialMissionInstruction (compass, mapService, neighborhoodContainer, 
         }
     };
 
+    this._transformAngle = function(angle) {
+        while ((angle - initialHeading) % 360 < 0)
+            angle += 360;
+        return (angle - initialHeading) % 360;
+    };
+
     this._pollLookingAroundHasFinished = function () {
         var currentHeadingAngle = mapService.getPov().heading;
-        var angleDelta = util.math.toRadians(initialHeading - currentHeadingAngle);
 
-        if (Math.cos(angleDelta) < 0) {
-            finishedLookingAround = true;
+        var transformedCurrent = self._transformAngle(currentHeadingAngle);
+        var direction;
+        var EPS = 30; //the smaller it is the higher the speed of calling this function should be
+
+        if (transformedCurrent > 360-EPS && lastHeadingTransformed < EPS)
+            direction = transformedCurrent - (lastHeadingTransformed + 360);
+        else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360-EPS)
+            direction = transformedCurrent - (lastHeadingTransformed - 360);
+        else
+            direction = transformedCurrent - lastHeadingTransformed;
+
+        if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) {
+            // user is rotating clockwise
+            viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
+        } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) {
+            //user is rotating counter clockwise
+            viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
         }
 
-        if (finishedLookingAround && Math.cos(angleDelta) > 0.5) {
+        lastHeadingTransformed = transformedCurrent;
+
+        var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
+
+        if (overallAngleViewed >= 360 - EPS) {
             clearInterval(lookingAroundInterval);
-            self._instructToFollowTheGuidance();
+            
+            //check the panoId to make sure the user hasn't walked
+            if (mapService.getPanoId() == initialPanoId) {
+                self._instructToFollowTheGuidance();
+            }
         }
     };
 
@@ -68,7 +98,9 @@ function InitialMissionInstruction (compass, mapService, neighborhoodContainer, 
                 "accessibility problems at this intersection.");
 
             initialHeading = mapService.getPov().heading;
-            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1000);
+            lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
+            initialPanoId = mapService.getPanoId();
+            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
         }
     };
 

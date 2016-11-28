@@ -52,7 +52,7 @@
     min-height: 480px;
 
     border-radius: 3px 3px 3px 3px;
-    z-index: 2;
+    z-index: 4;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
 }
@@ -126,11 +126,11 @@
 }
 
 .modal-foreground .mapbox #map-legend #green-square {
-    fill: rgba(100,240,110,1);
+    fill: rgba(20,220,120,1);
 }
 
 .modal-foreground .mapbox #map-legend #blue-square {
-    fill: rgba(49,130,189,1);
+    fill: rgba(100,100,100,1);
 }
 
 .modal-foreground .leaflet-zoom-hide svg {
@@ -139,8 +139,8 @@
 
 .modal-foreground .leaflet-zoom-hide .lineConnect {
     fill: none;
-    stroke: rgb(100,240,110);
-    stroke-width: 3;
+    stroke: rgb(20,220,120);
+    stroke-width: 5;
     opacity: 0;
 }
 .leaflet-control-attribution {

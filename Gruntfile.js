@@ -9,6 +9,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/SVLabel/lib/gsv/GSVPano.js',
                     'public/javascripts/SVLabel/lib/gsv/GSVPanoPointCloud.js',
+                    'public/javascripts/SVLabel/src/SVLabel/alert/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/data/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/game/*.js',

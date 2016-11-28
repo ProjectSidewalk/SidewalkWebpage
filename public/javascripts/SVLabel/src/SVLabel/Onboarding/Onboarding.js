@@ -388,7 +388,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
     function _visitWalkTowards (state, listener) {
         mapService.unlockDisableWalking();
-        mapService.enableWalking();
         mapService.lockDisableWalking();
 
         var $target;
@@ -416,19 +415,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
             // Check if the user has double clicked
             if (previousClick && currentClick - previousClick < 300) {
-                canvasX = mouseposition(e, this).x;
-                canvasY = mouseposition(e, this).y;
-                pov = mapService.getPov();
-                imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
-
-                // Check if where the user has clicked is in the right spot on the canvas
-                var doubleClickAnnotationCoordinate = state.annotations.filter(function (x) { return x.type == "double-click"; })[0];
-                if (Math.sqrt(Math.pow(imageCoordinate.y - doubleClickAnnotationCoordinate.y, 2) +
-                        Math.pow(imageCoordinate.x - doubleClickAnnotationCoordinate.x, 2)) < 300) {
-                    uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
-                    mapService.setPano(state.properties.panoId);
-                    callback();
-                }
+                //Previously, we checked if the user double-clicked on the correct location,
+                // it wasn't working correctly and we removed that. So it will jump them if they click anywhere
+                uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
+                mapService.setPano(state.properties.panoId);
+                mapService.disableWalking();
+                callback();
             }
             previousClick = currentClick;
         };
@@ -567,23 +559,24 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     function _visitSelectLabelTypeState(state, listener) {
         var labelType = state.properties.labelType;
         var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
-        var $target;
+        var event;
 
         ribbon.startBlinking(labelType, subcategory);
 
         if (subcategory) {
-            $target = $(uiRibbon.subcategoryHolder.find('[val="' + subcategory + '"]').get(0));
+            event = subcategory
         } else {
-            $target = $(uiRibbon.holder.find('[val="' + labelType + '"]').get(0));
+            event = labelType
         }
 
         var callback = function () {
             ribbon.stopBlinking();
-            $target.off("click", callback);
+            $(document).off('ModeSwitch_' + event, callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
-        $target.on("click", callback);
+
+        $(document).on('ModeSwitch_' + event, callback);
     }
 
     /**

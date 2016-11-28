@@ -84,6 +84,10 @@ object LabelTable {
     labels.filter(_.deleted === false).list.size
   )
 
+  def countLabelsBasedOnType(labelTypeString: String): Int = db.withTransaction(implicit session =>
+    labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).list.size
+  )
+
   /*
   * Counts the number of labels added today.
   * If the task goes over two days, then all labels for that audit task
@@ -104,6 +108,27 @@ object LabelTable {
   }
 
   /*
+  * Counts the number of specific label types added today.
+  * If the task goes over two days, then all labels for that audit task
+  * will be added for the task end date
+  * Date: Aug 28, 2016
+  */
+  def countTodayLabelsBasedOnType(labelType: String): Int = db.withSession { implicit session =>
+
+    val countQuery = s"""SELECT label.label_id
+                         |  FROM sidewalk.audit_task
+                         |INNER JOIN sidewalk.label
+                         |  ON label.audit_task_id = audit_task.audit_task_id
+                         |WHERE audit_task.task_end::date = now()::date
+                         |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
+                         |														FROM sidewalk.label_type as lt
+                         |														WHERE lt.label_type='$labelType')""".stripMargin
+    val countQueryResult = Q.queryNA[(Int)](countQuery)
+
+    countQueryResult.list.size
+  }
+
+  /*
   * Counts the number of labels added yesterday
   * Date: Aug 28, 2016
   */
@@ -116,9 +141,27 @@ object LabelTable {
         |WHERE audit_task.task_end::date = now()::date - interval '1' day
         |  AND label.deleted = false""".stripMargin
     )
-
     countQuery.list.size
   }
+
+  /*
+  * Counts the number of specific label types added yesterday
+  * Date: Aug 28, 2016
+  */
+  def countYesterdayLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
+    val countQuery = s"""SELECT label.label_id
+                         |  FROM sidewalk.audit_task
+                         |INNER JOIN sidewalk.label
+                         |  ON label.audit_task_id = audit_task.audit_task_id
+                         |WHERE audit_task.task_end::date = now()::date - interval '1' day
+                         |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
+                         |														FROM sidewalk.label_type as lt
+                         |														WHERE lt.label_type='$labelType')""".stripMargin
+    val countQueryResult = Q.queryNA[(Int)](countQuery)
+
+    countQueryResult.list.size
+  }
+
 
   /**
     * This method returns the number of labels submitted by the given user

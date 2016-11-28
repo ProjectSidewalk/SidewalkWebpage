@@ -122,7 +122,7 @@ function Main (params) {
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
-        svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory);
+        svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory, svl.storage);
         svl.completionMessage = new CompletionMessage(svl.gameEffectModel, svl.ui.task);
 
 
@@ -167,6 +167,8 @@ function Main (params) {
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+        svl.alert = new Alert();
+        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.navigationModel._mapService = svl.map;
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
@@ -192,6 +194,33 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $(svl.ui.ribbonMenu.buttons).each(function() {
+            var val = $(this).attr('val');
+
+            if(val != 'Walk' && val != 'Other') {
+                $(this).attr({
+                    'data-toggle': 'tooltip',
+                    'data-placement': 'top',
+                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                });
+            }
+        });
+
+        $(svl.ui.ribbonMenu.subcategories).each(function() {
+            var val = $(this).attr('val');
+
+            if(val != 'Walk' && val != 'Other') {
+                $(this).attr({
+                    'data-toggle': 'tooltip',
+                    'data-placement': 'left',
+                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                });
+            }
+        });
+        $('[data-toggle="tooltip"]').tooltip({
+            delay: { "show": 500, "hide": 100 }
+        })
     }
 
     function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
@@ -330,11 +359,40 @@ function Main (params) {
                     svl.missionModel.completeMission(onboardingMission, null);
                 }
 
+                _calculateAndSetTasksMissionsOffset();
+
                 mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 startTheMission(mission, currentNeighborhood);
             }
+        }
+    }
+
+    function _calculateAndSetTasksMissionsOffset() {
+        var neighborhoodId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+
+        var completedTasksDistance = svl.taskContainer.getCompletedTaskDistance(neighborhoodId);
+
+        var missions = svl.missionContainer.getMissionsByRegionId(neighborhoodId);
+        var completedMissions = missions.filter(function (m) { return m.isCompleted(); });
+
+        var completedMissionsDistance = 0;
+
+        if(completedMissions.length > 0)
+            completedMissionsDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
+
+        if(completedMissionsDistance > completedTasksDistance) {
+            /*
+            In this case the user has audited part of a street to complete a mission, then refreshed the browser
+            and the audited street is not saved.
+             */
+            svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance);
+        } else {
+            /*
+            In this case we don't need to store any offset
+             */
+            svl.missionContainer.setTasksMissionsOffset(0);
         }
     }
 
