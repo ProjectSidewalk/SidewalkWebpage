@@ -70,7 +70,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    function endTask (task) {
+    this.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
         var neighborhood = neighborhoodModel.currentNeighborhood();
 
@@ -121,7 +121,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         paths = null;
 
         return task;
-    }
+    };
 
 
     /**
@@ -182,7 +182,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         } else {
             console.error("regionId should be an integer value");
         }
-    }
+    };
 
     /**
      * Find tasks (i.e., street edges) in the region that are connected to the given task.
@@ -449,7 +449,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return this;
     }
 
-    self.endTask = endTask;
+    // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
