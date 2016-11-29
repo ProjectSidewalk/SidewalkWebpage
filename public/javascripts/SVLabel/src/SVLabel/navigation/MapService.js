@@ -50,7 +50,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         listeners = {
             beforeJumpListenerHandle: undefined
         },
-        jumpLocation = undefined;
+        jumpLocation = undefined,
+        missionJump = undefined;
 
     var initialPositionUpdate = true,
         panoramaOptions,
@@ -513,8 +514,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Finish the current task
         var currentTask = svl.taskContainer.getCurrentTask();
         svl.taskContainer.endTask(currentTask);
-        // BUG: mission is not available
-        // mission.pushATaskToTheRoute(currentTask);
+        missionJump.pushATaskToTheRoute(currentTask);
     }
 
     function _endTheCurrentTask(task, mission, neighborhood) {
@@ -524,7 +524,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Get a new task and check if its disconnected from the current task
             // If yes, then finish the current task after the user has labeling the
             // the current location before jumping to the new location
+            console.log("Task ID:" + task.getAuditTaskId());
 
+            // Set mission
+            missionJump = mission;
             //Get a new task
             var newTask = svl.taskContainer.nextTask(task);
             if (!newTask) {
