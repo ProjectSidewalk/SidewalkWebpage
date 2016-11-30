@@ -388,7 +388,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
             svl.compass.showMessage();
-            svl.compass.update();
+            if (!svl.map.getLabelBeforeJumpListenerStatus()) svl.compass.update();
         }
     };
 

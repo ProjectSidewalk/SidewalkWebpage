@@ -272,9 +272,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
         if (distance > 0.1) setPosition(lat, lng, callback);
 
-        if ("compass" in svl) {
-            svl.compass.update();
+        if (status.labelBeforeJumpListenerSet){
+            if ("compass" in svl) {
+                svl.compass.update();
+            }
+
         }
+
     }
 
     /**
