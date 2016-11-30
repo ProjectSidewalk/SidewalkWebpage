@@ -539,7 +539,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Get a new task and check if its disconnected from the current task
             // If yes, then finish the current task after the user has labeling the
             // the current location before jumping to the new location
-            console.log("Task ID:" + task.getAuditTaskId());
+            //console.log("Task ID:" + task.getAuditTaskId());
 
             // Set mission
             missionJump = mission;
@@ -556,10 +556,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
             // label the location before proceeding.
             if (!svl.taskContainer.isFirstTask() && !task.isConnectedTo(newTask)) {
-                // Old code:
-                //var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-                //var distanceLeft = distanceLeftFeetOrMiles();
-                console.log("I am in here now");
+
+                //console.log("I am in here now");
 
                 // Set the newTask before jumping
                 svl.taskContainer.setBeforeJumpNewTask(newTask);
@@ -609,7 +607,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Jump to the new location if it's really far away from his location.
             if (distance > 0.07) {
 
-                console.log("You are way off! " + distance)
+                //console.log("You are way off! " + distance)
                 var messageTitle = "Moved to a new location";
 
                 // Message versions:
