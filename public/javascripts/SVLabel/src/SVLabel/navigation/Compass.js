@@ -194,8 +194,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setLabelBeforeJumpMessage () {
-        var message = "<div style='width: 20%'> You have reached the end of the path. " +
-            "Finish labeling the current location and <br/><span class='bold'>click here to jump</span> once done.</div>";
+        var message = "<div style='width: 20%'> You are reaching the end of a path. We need to move you to a new location.<br/>" +
+            "Finish labeling your current location and <span class='bold'>click here to move</span>.</div>";
         uiCompass.message.html(message);
     }
 

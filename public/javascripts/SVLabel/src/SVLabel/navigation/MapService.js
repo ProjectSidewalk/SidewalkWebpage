@@ -231,6 +231,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return status.labelBeforeJumpListenerSet;
     }
 
+    /*
+     * Set the status of the labelBeforeJump listener
+     */
+    function setLabelBeforeJumpListenerStatus(statusToSet){
+        status.labelBeforeJumpListenerSet = statusToSet;
+    }
+
     /**
      * A helper function to move a user to the task location
      * @param task
@@ -239,7 +246,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function moveToTheTaskLocation(task) {
 
         if (status.labelBeforeJumpListenerSet){
-            status.labelBeforeJumpListenerSet = false;
+            setLabelBeforeJumpListenerStatus(false);
             // Reset all parameters
             resetBeforeJumpLocationAndListener();
         }
@@ -264,6 +271,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
             distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
         if (distance > 0.1) setPosition(lat, lng, callback);
+
+        if ("compass" in svl) {
+            svl.compass.update();
+        }
     }
 
     /**
@@ -595,7 +606,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if (distance > 0.07) {
 
                 console.log("You are way off! " + distance)
-                var messageTitle = "Jumped to the new location";
+                var messageTitle = "Moved to a new location";
 
                 // Message versions:
                 // v3: "Don't walk too far");
@@ -603,7 +614,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // v0: "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
                 svl.popUpMessage.notify(messageTitle,
                     "Looks like you finished labeling your current location. " +
-                    "We have automatically jumped you to your new location now."); //v2
+                    "We have automatically moved you to a new location now."); //v2
 
                 // Finish the current task
                 finishCurrentTaskBeforeJumping();
@@ -1440,6 +1451,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.save = save;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setHeadingRange = setHeadingRange;
+    self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus;
     self.setMode = setMode;
     self.setPano = setPano;
     self.setPitchRange = setPitchRange;

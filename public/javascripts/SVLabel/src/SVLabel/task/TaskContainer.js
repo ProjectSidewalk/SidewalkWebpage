@@ -62,7 +62,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     }
                     self.initNextTask(nextTaskIn);
                 } else {
-                    throw "Error loading Street View imagey.";
+                    throw "Error loading Street View imagery.";
                 }
             });
         }
