@@ -398,13 +398,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.setBeforeJumpNewTask = function (task) {
         beforeJumpNewTask = task;
-        // if (tracker) tracker.push('TaskStart');
-
-        // if ('compass' in svl) {
-        //     svl.compass.setTurnMessage();
-        //     svl.compass.showMessage();
-        //     svl.compass.update();
-        // }
     };
 
     /**
