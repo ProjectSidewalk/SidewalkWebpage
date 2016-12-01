@@ -689,7 +689,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                         if (distance < STREETVIEW_MAX_DISTANCE) {
                             svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                if (status === google.maps.StreetViewStatus.OK) svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                                if (status === google.maps.StreetViewStatus.OK) self.setPano(streetViewPanoramaData.location.pano);
                             });
                         }
                     }
@@ -950,10 +950,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param panoramaId
      * @returns {setPano}
      */
-    function setPano (panoramaId) {
+    self.setPano = function (panoramaId) {
         svl.panorama.setPano(panoramaId);
         return this;
-    }
+    };
 
     /**
      * Set map position
@@ -967,7 +967,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
             if (status === google.maps.StreetViewStatus.OK) {
-                svl.panorama.setPano(streetViewPanoramaData.location.pano);
+                self.setPano(streetViewPanoramaData.location.pano);
                 // svl.panorama.setPosition(gLatLng);
                 map.setCenter(gLatLng);
             } else {
@@ -1317,7 +1317,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.save = save;
     self.setHeadingRange = setHeadingRange;
     self.setMode = setMode;
-    self.setPano = setPano;
+    // self.setPano = setPano;
     self.setPitchRange = setPitchRange;
     self.setPosition = setPosition;
     self.setPov = setPov;

@@ -5,7 +5,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
+function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     var self = this;
     var status = {
         focusOnTextField: false,
@@ -25,7 +25,8 @@ function Keyboard (svl, canvas, contextMenu, ribbon, zoomControl) {
         var maxVal = Math.max.apply(null, cosines);
         var maxIndex = cosines.indexOf(maxVal);
         if(cosines[maxIndex] > 0.5){
-            svl.panorama.setPano(svl.panorama.links[maxIndex].pano);
+            var panoramaId = svl.panorama.links[maxIndex].pano;
+            googleMap.setPano(panoramaId);
         }
     };
 
