@@ -17,6 +17,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
     // Todo. Make the method name more descriptive.
     this._movePano = function (angle) {
+        if (googleMap.getStatus("disableWalking")) return;
+
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panorama.links.map(function(link) {
             var headingAngleOffset = util.math.toRadians(svl.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
@@ -26,6 +28,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         var maxIndex = cosines.indexOf(maxVal);
         if(cosines[maxIndex] > 0.5){
             var panoramaId = svl.panorama.links[maxIndex].pano;
+
             googleMap.setPano(panoramaId);
         }
     };
