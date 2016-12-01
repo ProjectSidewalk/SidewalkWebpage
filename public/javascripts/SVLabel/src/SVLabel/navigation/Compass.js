@@ -194,8 +194,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setLabelBeforeJumpMessage () {
-        var message = "<div style='width: 20%'> You are reaching the end of a path. We need to move you to a new location.<br/>" +
-            "Finish labeling your current location and <span class='bold'>click here to move</span>.</div>";
+        var message = "<div style='width: 20%'>You have reached the end of this route. Finish labeling this area and <br/> " +
+            "<span class='bold'>click here to move to a new location.</span></div>";
         uiCompass.message.html(message);
     }
 
@@ -223,13 +223,18 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function showLabelBeforeJumpMessage () {
-        self.blink();
+        //Color the message yellow
+        uiCompass.messageHolder.toggleClass("highlight-50");
+        // Start blinking after 15 seconds
+        var v = window.setTimeout(function () { self.blink(); }, 15000);
         _makeTheLabelBeforeJumpMessageBoxClickable();
         self.setLabelBeforeJumpMessage();
     }
 
     function removeLabelBeforeJumpMessage () {
         self.stopBlinking();
+        // uiCompass.messageHolder.addClass("white-background-75");
+        // uiCompass.messageHolder.removeClass("highlight-50");
         _makeTheLabelBeforeJumpMessageBoxUnclickable();
     }
 
