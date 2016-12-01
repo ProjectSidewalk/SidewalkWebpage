@@ -117,6 +117,7 @@ function Main (params) {
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
+        svl.jumpAlert = new JumpAlert(svl.alert);
         svl.navigationModel._mapService = svl.map;
 
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);

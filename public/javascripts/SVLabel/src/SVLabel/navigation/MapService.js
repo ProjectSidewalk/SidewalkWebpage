@@ -277,6 +277,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.update();
             }
 
+            // Show tip message informing the user that they have been moved
+            svl.jumpAlert.showJumpTipMessage();
         }
 
     }
