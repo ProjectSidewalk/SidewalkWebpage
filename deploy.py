@@ -107,8 +107,9 @@ def unzip_file(zip_file_path):
 def run_application():
     """Run the application"""
     print "Starting the application"
-    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
-
+    # command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
+    command = "nohup %s/bin/sidewalk-webpage -Dhttp.port=9000 > %s/nohup.out &" % (sidewalk_app_directory,
+                                                                                   sidewalk_app_directory)
     subprocess.call(command, shell=True)
     print "Started running the application"
 
