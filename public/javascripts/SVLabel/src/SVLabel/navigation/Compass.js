@@ -9,6 +9,7 @@
 function Compass (svl, mapService, taskContainer, uiCompass) {
     var self = {className: 'Compass'};
     var blinkInterval;
+    var blinkTimer;
 
     var imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
@@ -106,7 +107,12 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     //  ** start **
 
+    function cancelTimer() {
+        window.clearTimeout(blinkTimer);
+    }
+
     function resetBeforeJump () {
+        cancelTimer();
         removeLabelBeforeJumpMessage();
         mapService.resetBeforeJumpLocationAndListener();
     }
@@ -122,6 +128,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         var task = taskContainer.getBeforeJumpNewTask();
         taskContainer.setCurrentTask(task);
         mapService.moveToTheTaskLocation(task);
+        svl.jumpModel.triggerUserClickJumpMessage();
     }
 
     function _makeTheLabelBeforeJumpMessageBoxClickable () {
@@ -135,6 +142,20 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _makeTheLabelBeforeJumpMessageBoxUnclickable () {
         uiCompass.messageHolder.off('click', _jumpToTheNewRoute);
         uiCompass.messageHolder.css('cursor', 'default');
+    }
+
+    function showLabelBeforeJumpMessage () {
+        //Color the message yellow
+        uiCompass.messageHolder.toggleClass("highlight-50");
+        // Start blinking after 15 seconds
+        blinkTimer = window.setTimeout(function () { self.blink(); }, 15000);
+        _makeTheLabelBeforeJumpMessageBoxClickable();
+        self.setLabelBeforeJumpMessage();
+    }
+
+    function removeLabelBeforeJumpMessage () {
+        self.stopBlinking();
+        _makeTheLabelBeforeJumpMessageBoxUnclickable();
     }
     // ** end **
 
@@ -220,22 +241,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         blinkInterval = null;
         uiCompass.messageHolder.addClass("white-background-75");
         uiCompass.messageHolder.removeClass("highlight-50");
-    }
-
-    function showLabelBeforeJumpMessage () {
-        //Color the message yellow
-        uiCompass.messageHolder.toggleClass("highlight-50");
-        // Start blinking after 15 seconds
-        var v = window.setTimeout(function () { self.blink(); }, 15000);
-        _makeTheLabelBeforeJumpMessageBoxClickable();
-        self.setLabelBeforeJumpMessage();
-    }
-
-    function removeLabelBeforeJumpMessage () {
-        self.stopBlinking();
-        // uiCompass.messageHolder.addClass("white-background-75");
-        // uiCompass.messageHolder.removeClass("highlight-50");
-        _makeTheLabelBeforeJumpMessageBoxUnclickable();
     }
 
     /**

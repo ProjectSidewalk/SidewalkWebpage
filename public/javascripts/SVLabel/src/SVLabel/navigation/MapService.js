@@ -245,10 +245,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function moveToTheTaskLocation(task) {
 
+        // Reset all jump parameters
         if (status.labelBeforeJumpListenerSet){
             setLabelBeforeJumpListenerStatus(false);
-            // Reset all parameters
             resetBeforeJumpLocationAndListener();
+            console.log("Jumped to street: " + task.getStreetEdgeId());
+        } else {
+            console.log("Moved to street: " + task.getStreetEdgeId());
         }
 
         var geometry = task.getGeometry();
@@ -272,15 +275,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
         if (distance > 0.1) setPosition(lat, lng, callback);
 
+        /*
         if (status.labelBeforeJumpListenerSet){
-            if ("compass" in svl) {
-                svl.compass.update();
-            }
-
-            // Show tip message informing the user that they have been moved
-            svl.jumpAlert.showJumpTipMessage();
-        }
-
+            setLabelBeforeJumpListenerStatus(false);
+            if ("compass" in svl) {svl.compass.update();}
+        }*/
     }
 
     /**
@@ -537,6 +536,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function _endTheCurrentTask(task, mission, neighborhood) {
 
         if (!status.labelBeforeJumpListenerSet) {
+            console.log("Current street: " + task.getStreetEdgeId());
 
             // Get a new task and check if its disconnected from the current task
             // If yes, then finish the current task after the user has labeling the
@@ -610,15 +610,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if (distance > 0.07) {
 
                 //console.log("You are way off! " + distance)
-                var messageTitle = "Moved to a new location";
 
                 // Message versions:
                 // v3: "Don't walk too far");
                 // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
                 // v0: "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-                svl.popUpMessage.notify(messageTitle,
-                    "Looks like you finished labeling your current location. " +
-                    "We have automatically moved you to a new location now."); //v2
+
+                // var messageTitle = "Moved to a new location";
+                // svl.popUpMessage.notify(messageTitle,
+                //     "Looks like you finished labeling your current location. " +
+                //     "We have automatically moved you to a new location now."); //v2
 
                 // Finish the current task
                 finishCurrentTaskBeforeJumping();
@@ -630,6 +631,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 var newTask = svl.taskContainer.getBeforeJumpNewTask();
                 svl.taskContainer.setCurrentTask(newTask);
                 moveToTheTaskLocation(newTask);
+                svl.jumpModel.triggerTooFarFromJumpLocation();
             }
         }
     }
