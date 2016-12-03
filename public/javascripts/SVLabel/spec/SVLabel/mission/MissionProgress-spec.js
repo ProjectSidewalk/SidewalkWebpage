@@ -199,7 +199,7 @@ describe("MissionProgress module", function () {
         });
     });
 
-    describe("in response to `Neighborhood:completed` event", function () {
+    xdescribe("in response to `Neighborhood:completed` event", function () {
         it("should assign the new mission in a different neighborhood", function () {
             missionContainer.setCurrentMission(mission);
             
