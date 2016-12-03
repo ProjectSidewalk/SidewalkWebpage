@@ -282,7 +282,7 @@ object LabelTable {
     */
   def selectLabelsByUserId(userId: UUID): List[Label] = db.withSession { implicit session =>
     val _labels = for {
-      (_labels, _auditTasks) <- labels.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
+      (_labels, _auditTasks) <- labelsWithoutDeleted.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
       if _auditTasks.userId === userId.toString
     } yield _labels
     _labels.list
@@ -297,7 +297,7 @@ object LabelTable {
   def selectLabelsByInteractions(userId: UUID, interactions: List[AuditTaskInteraction]) = {
     val labels = selectLabelsByUserId(userId).filter(_.temporaryLabelId.isDefined)
 
-    // Filter the labels based on the interactions
+    // Yield labels that share the same audit task id and temporary label id.
     val filteredLabels = for {
       l <- labels
       i <- interactions
