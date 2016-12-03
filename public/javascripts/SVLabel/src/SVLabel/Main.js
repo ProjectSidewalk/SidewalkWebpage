@@ -172,7 +172,7 @@ function Main (params) {
         svl.navigationModel._mapService = svl.map;
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
-        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.zoomControl);
+        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 

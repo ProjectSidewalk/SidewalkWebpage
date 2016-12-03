@@ -159,7 +159,8 @@ object UserDAOImpl {
         |WHERE audit_task.task_end::date = now()::date
         |      and audit_task.user_id != (select user_id
         |												          from sidewalk.user
-        |												          where username = 'anonymous')""".stripMargin
+        |												          where username = 'anonymous')
+        |      and audit_task.completed = true""".stripMargin
     )
     val count = countQuery.list.head
     count
@@ -189,11 +190,11 @@ object UserDAOImpl {
         |from sidewalk.audit_task_environment
         |where audit_task_id in (select audit_task_id
         |						from sidewalk.audit_task
-        |						where completed = true
-        |						      and task_end::date = now()::date - interval '1' day
-        |							    and user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous'));""".stripMargin
+        |						where audit_task.completed = true
+        |						      and audit_task.task_end::date = now()::date - interval '1' day
+        |							    and audit_task.user_id = (select user_id
+        |						                                 from sidewalk.user
+        |						                                 where username = 'anonymous'));""".stripMargin
     )
     val records = anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
     records.groupBy(_.ipAddress).keySet.size
@@ -211,7 +212,8 @@ object UserDAOImpl {
         |  FROM sidewalk.audit_task
         |INNER JOIN sidewalk.user
         |  ON sidewalk.user.user_id = audit_task.user_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |WHERE audit_task.completed = true
+        |      and audit_task.task_end::date = now()::date - interval '1' day
         |      and audit_task.user_id != (select user_id
         |												          from sidewalk.user
         |												          where username = 'anonymous')""".stripMargin
