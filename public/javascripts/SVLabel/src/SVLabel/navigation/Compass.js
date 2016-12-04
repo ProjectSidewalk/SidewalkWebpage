@@ -145,8 +145,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function showLabelBeforeJumpMessage () {
-        //Color the message yellow
-        uiCompass.messageHolder.toggleClass("highlight-50");
         // Start blinking after 15 seconds
         blinkTimer = window.setTimeout(function () { self.blink(); }, 15000);
         _makeTheLabelBeforeJumpMessageBoxClickable();
