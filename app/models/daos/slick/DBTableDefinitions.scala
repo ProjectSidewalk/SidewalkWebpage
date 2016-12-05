@@ -1,8 +1,6 @@
 package models.daos.slick
 
-// import play.api.db.slick.Config.driver.simple._
-import scala.slick.driver.PostgresDriver.simple._
-
+import models.utils.MyPostgresDriver.simple._
 
 object DBTableDefinitions {
 
