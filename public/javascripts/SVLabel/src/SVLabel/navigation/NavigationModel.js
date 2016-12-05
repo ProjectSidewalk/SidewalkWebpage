@@ -4,6 +4,14 @@ function NavigationModel () {
 
 _.extend(NavigationModel.prototype, Backbone.Events);
 
+NavigationModel.prototype.disableWalking = function () {
+    if (this._mapService) this._mapService.disableWalking();
+};
+
+NavigationModel.prototype.enableWalking = function () {
+    if (this._mapService) this._mapService.enableWalking();
+};
+
 NavigationModel.prototype.getPosition = function () {
     return this._mapService ? this._mapService.getPosition() : null;
 };

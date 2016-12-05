@@ -50,8 +50,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var STREETVIEW_MAX_DISTANCE = 25;
         var latLng = new google.maps.LatLng(lat, lng);
 
+        navigationModel.disableWalking();
+
         if (streetViewService) {
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                navigationModel.enableWalking();
                 if (status === google.maps.StreetViewStatus.OK) {
                     lat = streetViewPanoramaData.location.latLng.lat();
                     lng = streetViewPanoramaData.location.latLng.lng();
@@ -71,7 +74,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    function endTask (task) {
+    self.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
         var neighborhood = neighborhoodModel.currentNeighborhood();
 
@@ -121,7 +124,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         paths = null;
 
         return task;
-    }
+    };
 
 
     /**
@@ -457,7 +460,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return this;
     }
 
-    self.endTask = endTask;
+    // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCurrentTaskDistance = getCurrentTaskDistance;
