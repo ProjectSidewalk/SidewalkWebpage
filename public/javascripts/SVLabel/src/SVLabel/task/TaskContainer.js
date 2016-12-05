@@ -90,8 +90,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         updateAuditedDistance("miles");
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
-            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
-            if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
+            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
+            !svl.popUpMessage.haveAskedToSignIn())) {
+            svl.popUpMessage.promptSignIn();
         } else {
             // Submit the data.
             var data = svl.form.compileSubmissionData(task),
