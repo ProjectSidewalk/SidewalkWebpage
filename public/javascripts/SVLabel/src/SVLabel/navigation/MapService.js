@@ -524,6 +524,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
                 var distanceLeft = distanceLeftFeetOrMiles();
                 var message = "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                    "You have " + distanceLeft + " to go before you're done with this mission, keep it up!";
 
                 self.disableWalking();
                 svl.popUpMessage.notify(neighborhoodMessage, message, function () {
