@@ -119,6 +119,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
     function _jumpToTheNewRoute () {
 
+        svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         mapService.finishCurrentTaskBeforeJumping();
 
@@ -146,7 +147,10 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
     function showLabelBeforeJumpMessage () {
         // Start blinking after 15 seconds
-        blinkTimer = window.setTimeout(function () { self.blink(); }, 15000);
+        blinkTimer = window.setTimeout(function () {
+            svl.tracker.push('LabelBeforeJump_Blink');
+            self.blink();
+        }, 15000);
         _makeTheLabelBeforeJumpMessageBoxClickable();
         self.setLabelBeforeJumpMessage();
     }

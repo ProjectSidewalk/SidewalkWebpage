@@ -576,6 +576,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         "pano_changed", trackBeforeJumpActions);
 
                     // Show message to the user instructing him to label the current location
+                    svl.tracker.push('LabelBeforeJump_ShowMsg');
                     svl.compass.showLabelBeforeJumpMessage();
                 } catch (err) {}
 
