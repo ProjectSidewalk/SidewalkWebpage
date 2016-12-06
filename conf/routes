@@ -11,6 +11,7 @@ GET     /about                                  @controllers.ApplicationControll
 GET     /developer                              @controllers.ApplicationController.developer
 GET     /terms                                  @controllers.ApplicationController.terms
 GET     /demo                                   @controllers.ApplicationController.demo
+GET     /results                                @controllers.ApplicationController.results
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
 
