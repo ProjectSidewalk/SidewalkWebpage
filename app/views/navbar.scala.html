@@ -13,11 +13,11 @@
             <ul class="nav navbar-nav navbar-right">
                 @if(url.isDefined && url.get != "/audit") {
                     <li>
-                        <a href='@routes.ApplicationController.demo'>Demo</a>
+                        <a href='@routes.ApplicationController.results'>View Results</a>
                     </li>
                 } else {
                     <li>
-                        <a href='@routes.ApplicationController.demo' target="_blank">Demo</a>
+                        <a href='@routes.ApplicationController.results' target="_blank">View Results</a>
                     </li>
                 }
 

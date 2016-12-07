@@ -90,20 +90,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         updateAuditedDistance("miles");
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
-            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
-            if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
-        } else {
-            // Submit the data.
-            var data = svl.form.compileSubmissionData(task),
-                staged = svl.storage.get("staged");
+            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
+            !svl.popUpMessage.haveAskedToSignIn())) {
+            svl.popUpMessage.promptSignIn();
+        }
 
-            if (staged.length > 0) {
-                staged.push(data);
-                svl.form.submit(staged, task);
-                svl.storage.set("staged", []);  // Empty the staged data.
-            } else {
-                svl.form.submit(data, task);
-            }
+        // Submit the data.
+        var data = svl.form.compileSubmissionData(task),
+            staged = svl.storage.get("staged");
+
+        if (staged.length > 0) {
+            staged.push(data);
+            svl.form.submit(staged, task);
+            svl.storage.set("staged", []);  // Empty the staged data.
+        } else {
+            svl.form.submit(data, task);
         }
 
         pushATask(task); // Push the data into previousTasks
