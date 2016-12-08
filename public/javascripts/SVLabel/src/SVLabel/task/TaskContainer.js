@@ -43,8 +43,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var STREETVIEW_MAX_DISTANCE = 25;
         var latLng = new google.maps.LatLng(lat, lng);
 
+        navigationModel.disableWalking();
+
         if (streetViewService) {
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                navigationModel.enableWalking();
                 if (status === google.maps.StreetViewStatus.OK) {
                     lat = streetViewPanoramaData.location.latLng.lat();
                     lng = streetViewPanoramaData.location.latLng.lng();
@@ -70,7 +73,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    this.endTask = function (task) {
+    self.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
         var neighborhood = neighborhoodModel.currentNeighborhood();
 
@@ -87,14 +90,15 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         updateAuditedDistance("miles");
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
-            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
-            if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
+            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
+            !svl.popUpMessage.haveAskedToSignIn())) {
+            svl.popUpMessage.promptSignIn();
         }
 
         // Submit the data.
-        var data = svl.form.compileSubmissionData(task);
+        var data = svl.form.compileSubmissionData(task),
+            staged = svl.storage.get("staged");
 
-        var staged = svl.storage.get("staged");
         if (staged.length > 0) {
             staged.push(data);
             svl.form.submit(staged, task);

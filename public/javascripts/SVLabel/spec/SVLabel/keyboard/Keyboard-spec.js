@@ -2,6 +2,7 @@ describe("Keyboard module", function () {
     var keyboard;
     var svl;
     var contextMenuMock;
+    var googleMap;
     var labelMock;
     var ribbonMock;
     var zoomControlMock;
@@ -14,7 +15,8 @@ describe("Keyboard module", function () {
         contextMenuMock = new ContextMenuMock();
         ribbonMock = null;
         zoomControlMock = null;
-        keyboard = new Keyboard(svl, null, contextMenuMock, ribbonMock, zoomControlMock);
+        googleMap = new MapServiceMock();
+        keyboard = new Keyboard(svl, null, contextMenuMock, googleMap, ribbonMock, zoomControlMock);
     });
 
     describe("`getStatus` method", function() {
@@ -135,5 +137,10 @@ describe("Keyboard module", function () {
         this.setProperty = function (key, value) {
             this._properties[key] = value;
         };
+    }
+
+    function MapServiceMock () {
+        this.status = { disableWalking: false };
+
     }
 });
