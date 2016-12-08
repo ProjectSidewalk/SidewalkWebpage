@@ -274,6 +274,18 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }, 500);
     }
 
+    function destroyMaps() {
+        hideGoogleMaps();
+    }
+
+    function hideGoogleMaps () {
+        svl.ui.googleMaps.holder.hide();
+    }
+
+    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+        destroyMaps();
+    });
+
     /**
      * This function maps canvas coordinate to image coordinate
      * @param canvasX
@@ -501,29 +513,25 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Finish a task and get a new task
         svl.taskContainer.endTask(task);
         mission.pushATaskToTheRoute(task);
-        var newTask = svl.taskContainer.nextTask(task);
-        if (!newTask) {
-            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-            newTask = svl.taskContainer.nextTask();
-        }
-        svl.taskContainer.setCurrentTask(newTask);
-        _moveToTheTaskLocation(newTask);
 
-        // Check if the interface jumped the user to another discontinuous location.
-        // If the user has indeed jumped, tell them that we moved her to
-        // another location in the same neighborhood.
-        if (!task.isConnectedTo(newTask) && !svl.taskContainer.isFirstTask()) {
-            var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
-            var distanceLeft = distanceLeftFeetOrMiles();
-            var message = "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
-                "You have " + distanceLeft + " to go before you're done with this mission, keep it up!";
+        var nextTask = svl.taskContainer.getFinishedAndInitNextTask(task);
 
-            self.disableWalking();
-            svl.popUpMessage.notify(neighborhoodMessage, message, function () {
-                self.enableWalking();
+        if (nextTask) {
+            // Check if the interface jumped the user to another discontinuous location.
+            // If the user has indeed jumped, tell them that we moved her to
+            // another location in the same neighborhood.
+            if (!task.isConnectedTo(nextTask) && !svl.taskContainer.isFirstTask()) {
+                var neighborhoodMessage = "Jumped back to " + neighborhood.getProperty("name");
+                var distanceLeft = distanceLeftFeetOrMiles();
+                var message = "You just stepped outside of your mission neighborhood so we auto-magically jumped you back. " +
+                    "You have " + distanceLeft + " to go before you're done with this mission, keep it up!";
+
+                self.disableWalking();
+                svl.popUpMessage.notify(neighborhoodMessage, message, function () {
+                    self.enableWalking();
                 });
+            }
+            _moveToTheTaskLocation(nextTask);
         }
     }
 

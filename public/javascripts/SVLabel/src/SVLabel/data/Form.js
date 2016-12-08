@@ -185,14 +185,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
         task.eraseFromGoogleMaps();
         self.skipSubmit(data, task);
 
-        var nextTask = taskContainer.nextTask(task);
-        if (!nextTask) {
-            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-            nextTask = taskContainer.nextTask();
-        }
-        taskContainer.initNextTask(nextTask);
+        taskContainer.getFinishedAndInitNextTask(task);
     };
 
     /**
