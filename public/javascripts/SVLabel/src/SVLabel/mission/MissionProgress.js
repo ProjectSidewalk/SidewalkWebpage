@@ -125,6 +125,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         neighborhoodModel.moveToANewRegion(neighborhoodId);
 
+        var currentTask = taskContainer.getCurrentTask();
+        taskContainer.endTask(currentTask);
+
         taskContainer.fetchTasksInARegion(neighborhoodId, function () {
             // Jump to the new location.
             var newTask = taskContainer.nextTask();

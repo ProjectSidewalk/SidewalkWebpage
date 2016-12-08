@@ -76,6 +76,46 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+    * Insert or update the submitted audit task in the database
+    * @param auditTask
+    * @return
+    */
+  def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, amtAssignmentId: Option[Int]): Int = {
+    if (auditTask.auditTaskId.isDefined) {
+      // Update the existing audit task row
+      val id = auditTask.auditTaskId.get
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      AuditTaskTable.updateTaskEnd(id, timestamp)
+      id
+    } else {
+      // Insert audit task
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val auditTaskObj = user match {
+        case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
+          Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
+        case None =>
+          val user: Option[DBUser] = UserTable.find("anonymous")
+          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
+            Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
+      }
+      AuditTaskTable.save(auditTaskObj)
+    }
+  }
+
+  def updateAuditTaskCompleteness(auditTaskId: Int, auditTask: TaskSubmission, incomplete: Option[IncompleteTaskSubmission]): Unit = {
+    if (auditTask.completed.isDefined && auditTask.completed.get) {
+      AuditTaskTable.updateCompleted(auditTaskId, completed=true)
+      StreetEdgeAssignmentCountTable.incrementCompletion(auditTask.streetEdgeId)
+    } else if (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable") {
+      // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion
+      AuditTaskTable.updateCompleted(auditTaskId, completed=true)
+      StreetEdgeAssignmentCountTable.incrementCompletion(auditTask.streetEdgeId) // Increment task completion
+    }
+  }
+
+  /**
    * Parse the submitted data and insert them into tables.
    *
    * @return
@@ -99,36 +139,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case _ => None
           }
 
-          // Check if there is auditTaskId
-          val auditTaskId: Int = if (data.auditTask.auditTaskId.isDefined) {
-            // Update the existing audit task row
-            val id = data.auditTask.auditTaskId.get
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            AuditTaskTable.updateTaskEnd(id, timestamp)
-            id
-          } else {
-            // Insert audit task
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            val auditTask = request.identity match {
-              case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
-              case None =>
-                val user: Option[DBUser] = UserTable.find("anonymous")
-                AuditTask(0, amtAssignmentId, user.get.userId, data.auditTask.streetEdgeId, Timestamp.valueOf(data.auditTask.taskStart), Some(timestamp), false)
-            }
-            AuditTaskTable.save(auditTask)
-          }
-
+          // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count
-          if (data.auditTask.completed.isDefined && data.auditTask.completed.get) {
-            AuditTaskTable.updateCompleted(auditTaskId, completed=true)
-            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId)
-          } else if (data.incomplete.isDefined && data.incomplete.get.issueDescription == "GSVNotAvailable") {
-            // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion
-            AuditTaskTable.updateCompleted(auditTaskId, completed=true)
-            StreetEdgeAssignmentCountTable.incrementCompletion(data.auditTask.streetEdgeId) // Increment task completion
-          }
+          val auditTaskId: Int = updateAuditTaskTable(request.identity, data.auditTask, amtAssignmentId)
+          updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {

@@ -107,6 +107,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             svl.form.submit(data, task);
         }
 
+
         pushATask(task); // Push the data into previousTasks
 
         // Clear the current paths
@@ -185,7 +186,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         } else {
             console.error("regionId should be an integer value");
         }
-    }
+    };
 
     /**
      * Find tasks (i.e., street edges) in the region that are connected to the given task.
