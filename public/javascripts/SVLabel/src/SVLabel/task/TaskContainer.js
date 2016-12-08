@@ -19,14 +19,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     self._taskStoreByRegionId = {};
 
-    neighborhoodModel.on("Neighborhood:completed", function (parameters) {
-        var regionId = parseInt(parameters.nextRegionId, 10);
-        self.fetchTasksInARegion(regionId, self._handleTaskFetchCompleted, false);
-    });
-
     self._handleTaskFetchCompleted = function () {
         var nextTask = self.nextTask();
         self.initNextTask(nextTask);
+    };
+
+    self.getFinishedAndInitNextTask = function (finished) {
+        var newTask = self.nextTask(finished);
+        if (!newTask) {
+            var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+            svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+        } else {
+            svl.taskContainer.initNextTask(newTask);
+        }
+        return newTask;
     };
 
     self.initNextTask = function (nextTaskIn) {
@@ -44,23 +51,20 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var STREETVIEW_MAX_DISTANCE = 25;
         var latLng = new google.maps.LatLng(lat, lng);
 
+        navigationModel.disableWalking();
+
         if (streetViewService) {
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                navigationModel.enableWalking();
                 if (status === google.maps.StreetViewStatus.OK) {
                     lat = streetViewPanoramaData.location.latLng.lat();
                     lng = streetViewPanoramaData.location.latLng.lng();
                     self.setCurrentTask(nextTaskIn);
                     navigationModel.setPosition(lat, lng);
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                    nextTaskIn.complete();
                     // no street view available in this range.
-                    nextTaskIn = self.nextTask();
-                    if (!nextTaskIn) {
-                        var currentNeighborhood = neighborhoodModel.currentNeighborhood();
-                        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-                        neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-                        nextTaskIn = self.nextTask();
-                    }
-                    self.initNextTask(nextTaskIn);
+                    self.getFinishedAndInitNextTask();
                 } else {
                     throw "Error loading Street View imagery.";
                 }
@@ -71,7 +75,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    function endTask (task) {
+    self.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
         var neighborhood = neighborhoodModel.currentNeighborhood();
 
@@ -88,21 +92,23 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         updateAuditedDistance("miles");
 
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
-            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15)) {
-            if (!svl.popUpMessage.haveAskedToSignIn()) svl.popUpMessage.promptSignIn();
-        } else {
-            // Submit the data.
-            var data = svl.form.compileSubmissionData(task),
-                staged = svl.storage.get("staged");
-
-            if (staged.length > 0) {
-                staged.push(data);
-                svl.form.submit(staged, task);
-                svl.storage.set("staged", []);  // Empty the staged data.
-            } else {
-                svl.form.submit(data, task);
-            }
+            getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
+            !svl.popUpMessage.haveAskedToSignIn())) {
+            svl.popUpMessage.promptSignIn();
         }
+
+        // Submit the data.
+        var data = svl.form.compileSubmissionData(task),
+            staged = svl.storage.get("staged");
+
+        if (staged.length > 0) {
+            staged.push(data);
+            svl.form.submit(staged, task);
+            svl.storage.set("staged", []);  // Empty the staged data.
+        } else {
+            svl.form.submit(data, task);
+        }
+
 
         pushATask(task); // Push the data into previousTasks
 
@@ -121,7 +127,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         paths = null;
 
         return task;
-    }
+    };
 
 
     /**
@@ -182,7 +188,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         } else {
             console.error("regionId should be an integer value");
         }
-    }
+    };
 
     /**
      * Find tasks (i.e., street edges) in the region that are connected to the given task.
@@ -238,14 +244,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 distance += turf.lineDistance(feature, unit);
             }
         }
-        
+
+        distance += getCurrentTaskDistance(unit);
+
+        return distance;
+    }
+
+    function getCurrentTaskDistance(unit) {
+        if (!unit) unit = "kilometers";
+
         if (currentTask) {
             var currentLatLng = navigationModel.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
             var currentTaskDistance = currentTask.getAuditedDistance(unit);
-            distance += currentTaskDistance;
+            return currentTaskDistance;
         }
-        return distance;
+        return 0;
     }
 
     /**
@@ -467,9 +481,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return this;
     }
 
-    self.endTask = endTask;
+    // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
+    self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
     self.getBeforeJumpNewTask = getBeforeJumpTask;

@@ -23,9 +23,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
         // When the user has complete auditing all the streets in the neighborhood,
         // show the 100% coverage mission completion message.
-        // The current neighborhood should have been updated
-        // before this event has been triggered (in NeighborhoodModel),
-        // so just select the first mission in the updated neighborhood.
 
         var mission = missionContainer.getNeighborhoodCompleteMission(parameters.completedRegionId);
         var neighborhood = neighborhoodModel.getNeighborhood(parameters.completedRegionId);
@@ -33,12 +30,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         self._completeTheCurrentMission(mission, neighborhood);
         _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
-
-        var nextMission = missionContainer.nextMission(parameters.nextRegionId);
-        missionContainer.setCurrentMission(nextMission);
-
-        //update the audited distance based on the new neighborhood
-        svl.taskContainer.updateAuditedDistance("miles");
     });
 
 
@@ -91,6 +82,12 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
             this._updateTheCurrentMission(mission, neighborhood);
 
+            // While the mission complete modal is open, after the **neighborhood** is 100% audited,
+            // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
+            // and it changes the modal's neighborhood information while it is open.
+            if (svl.modalMissionComplete.isOpen())
+                return;
+
             _modalModel.updateModalMissionComplete(mission, neighborhood);
             _modalModel.showModalMissionComplete();
         }
@@ -124,6 +121,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var neighborhoodId = neighborhood.getProperty("regionId");
         neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         neighborhoodModel.moveToANewRegion(neighborhoodId);
+
+        var currentTask = taskContainer.getCurrentTask();
+        taskContainer.endTask(currentTask);
 
         taskContainer.fetchTasksInARegion(neighborhoodId, function () {
             // Jump to the new location.

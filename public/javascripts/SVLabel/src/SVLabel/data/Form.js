@@ -5,7 +5,7 @@
  * @param neighborhoodModel
  * @param panoramaContainer
  * @param taskContainer
- * @param mapService
+	 * @param mapService
  * @param compass
  * @param tracker
  * @param params
@@ -196,14 +196,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             mapService.finishCurrentTaskBeforeJumping();
         }
 
-        var nextTask = taskContainer.nextTask(task);
-        if (!nextTask) {
-            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-            nextTask = taskContainer.nextTask();
-        }
-        taskContainer.initNextTask(nextTask);
+        taskContainer.getFinishedAndInitNextTask(task);
     };
 
     /**

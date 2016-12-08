@@ -179,7 +179,7 @@ function Main (params) {
 
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
-        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.ribbon, svl.zoomControl);
+        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
@@ -365,10 +365,8 @@ function Main (params) {
                     onboardingMission.setProperty("isCompleted", true);
                     svl.missionModel.completeMission(onboardingMission, null);
                 }
-
-                _calculateAndSetTasksMissionsOffset();
-
                 mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
+                _calculateAndSetTasksMissionsOffset();
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 startTheMission(mission, currentNeighborhood);
@@ -417,15 +415,7 @@ function Main (params) {
             svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            var newTask = svl.taskContainer.nextTask();
-            if (!newTask) {
-                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-                newTask = svl.taskContainer.nextTask();
-            }
-            // svl.taskContainer.setCurrentTask(newTask);
-            svl.taskContainer.initNextTask(newTask);
+            svl.taskContainer.getFinishedAndInitNextTask();
         }
         return availableMissions[0];
     }
@@ -566,7 +556,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
-        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar')
+        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");

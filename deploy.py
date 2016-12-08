@@ -107,8 +107,9 @@ def unzip_file(zip_file_path):
 def run_application():
     """Run the application"""
     print "Starting the application"
-    command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
-
+    # command = "%s/sidewalk_runner.sh >/dev/null 2>&1 &" % sidewalk_home_directory
+    command = "nohup %s/bin/sidewalk-webpage -Dhttp.port=9000 > %s/nohup.out &" % (sidewalk_app_directory,
+                                                                                   sidewalk_app_directory)
     subprocess.call(command, shell=True)
     print "Started running the application"
 
@@ -190,6 +191,7 @@ if __name__ == '__main__':
         current_file_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         zip_file_path = os.path.join(current_file_path, "target/universal/")
         file_list = glob.glob(zip_file_path + "sidewalk-webpage-*.zip")
+        file_list = sorted(file_list)
         zip_file_path = file_list[-1]
         print "File to be deployed: " + zip_file_path
 
