@@ -92,19 +92,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var unit = "miles";
         var regionId = neighborhood.getProperty("regionId");
 
-        // Compute the distance traveled in this mission, distance traveled so far, and the remaining distance
-        // in this neighborhood
-        var maxDist = 0;
-        var completedMissions = missionContainer.getCompletedMissions();
-        var regionMissions = completedMissions.filter( function (m) { return m.getProperty("regionId") == regionId; });
-
-        if(regionMissions.length > 1){
-            // Map mission distances and sort them descending. Take second highest (highest is this mission)
-            var missionDistances =  regionMissions.map( function (d) { return d.getProperty("distanceMi"); }).sort().reverse();
-            maxDist = missionDistances[1];
-        }
-
-        var missionDistance = mission.getProperty("distanceMi") - maxDist;
+        var missionDistance = mission.getProperty("auditDistanceMi");
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
 
