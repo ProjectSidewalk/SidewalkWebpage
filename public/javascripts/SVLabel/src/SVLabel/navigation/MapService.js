@@ -565,7 +565,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Set mission
             missionJump = mission;
             //Get a new task
-            var nextTask = svl.taskContainer.getFinishedAndInitNextTask(task);
+            var nextTask = svl.taskContainer.getFinishedAndFindNextTask(task);
 
             // Check if the interface jumped the user to another discontinuous location.
             // If the user has indeed jumped, [UPDATE] before jumping, let the user know to

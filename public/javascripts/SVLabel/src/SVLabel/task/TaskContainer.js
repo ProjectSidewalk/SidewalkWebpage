@@ -24,15 +24,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         self.initNextTask(nextTask);
     };
 
-    self.getFinishedAndInitNextTask = function (finished) {
+    self.getFinishedAndFindNextTask = function getFinishedAndFindNextTask (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-        } else {
-            svl.taskContainer.initNextTask(newTask);
         }
+        return newTask;
+    };
+
+    self.getFinishedAndInitNextTask = function (finished) {
+        var newTask = self.getFinishedAndFindNextTask(finished);
+        if (newTask) svl.taskContainer.initNextTask(newTask);
         return newTask;
     };
 
@@ -64,7 +68,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     nextTaskIn.complete();
                     // no street view available in this range.
-                    self.getFinishedAndInitNextTask();
+                    self.getFinishedAndInitNextTask(nextTaskIn);
                 } else {
                     throw "Error loading Street View imagery.";
                 }
