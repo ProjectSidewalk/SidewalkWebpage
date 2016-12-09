@@ -13,6 +13,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     var previousTasks = [];
     var currentTask = null;
+    var beforeJumpNewTask = null;
     var paths;
     var previousPaths = [];
 
@@ -23,15 +24,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         self.initNextTask(nextTask);
     };
 
-    self.getFinishedAndInitNextTask = function (finished) {
+    self.getFinishedAndFindNextTask = function getFinishedAndFindNextTask (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-        } else {
-            svl.taskContainer.initNextTask(newTask);
         }
+        return newTask;
+    };
+
+    self.getFinishedAndInitNextTask = function (finished) {
+        var newTask = self.getFinishedAndFindNextTask(finished);
+        if (newTask) svl.taskContainer.initNextTask(newTask);
         return newTask;
     };
 
@@ -63,9 +68,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                     nextTaskIn.complete();
                     // no street view available in this range.
-                    self.getFinishedAndInitNextTask();
+                    self.getFinishedAndInitNextTask(nextTaskIn);
                 } else {
-                    throw "Error loading Street View imagey.";
+                    throw "Error loading Street View imagery.";
                 }
             });
         }
@@ -288,6 +293,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return currentTask;
     }
 
+    /**
+     * Get the before jump task
+     * @returns {*}
+     */
+    function getBeforeJumpTask () {
+        return beforeJumpNewTask;
+    }
+
     self.getIncompleteTaskDistance = function (regionId, unit) {
         var incompleteTasks = self.getIncompleteTasks(regionId);
         var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
@@ -350,7 +363,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
         if (candidateTasks.length == 0) {
-            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId);
+            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function(t) {
+                return (t.getStreetEdgeId() != finishedTask.getStreetEdgeId());
+            });
             if (candidateTasks.length == 0) return null;
         }
 
@@ -393,8 +408,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
             svl.compass.showMessage();
-            svl.compass.update();
+            if (!svl.map.getLabelBeforeJumpListenerStatus()) svl.compass.update();
         }
+    };
+
+    /**
+     * Store the before jump new task
+     * @param task
+     */
+    this.setBeforeJumpNewTask = function (task) {
+        beforeJumpNewTask = task;
     };
 
     /**
@@ -468,6 +491,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCurrentTask = getCurrentTask;
+    self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
     // self.nextTask = getNextTask;

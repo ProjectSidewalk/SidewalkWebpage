@@ -5,12 +5,14 @@
  * @param neighborhoodModel
  * @param panoramaContainer
  * @param taskContainer
+	 * @param mapService
+ * @param compass
  * @param tracker
  * @param params
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, tracker, params) {
+function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     var properties = {
         dataStoreUrl : undefined
@@ -184,6 +186,15 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
         task.eraseFromGoogleMaps();
         self.skipSubmit(data, task);
+
+        // If the jump was clicked in the middle of the beforeJumpTask,
+        // reset the beforeJump tracking parameters
+        var jumpListenerStatus = mapService.getLabelBeforeJumpListenerStatus();
+        if (jumpListenerStatus) {
+            mapService.setLabelBeforeJumpListenerStatus(false);
+            compass.resetBeforeJump();
+            mapService.finishCurrentTaskBeforeJumping();
+        }
 
         taskContainer.getFinishedAndInitNextTask(task);
     };
