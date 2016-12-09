@@ -641,6 +641,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Reset jump parameters before jumping
                 svl.compass.resetBeforeJump();
 
+                svl.tracker.push('LabelBeforeJump_AutoJump');
+
                 // Jump to the new task
                 var newTask = svl.taskContainer.getBeforeJumpNewTask();
                 svl.taskContainer.setCurrentTask(newTask);
