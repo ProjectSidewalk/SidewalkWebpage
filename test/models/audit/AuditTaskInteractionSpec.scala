@@ -72,7 +72,7 @@ class AuditTaskInteractionSpec extends Specification  {
         val auditTaskInteraction = AuditTaskInteraction(1, 1, "TestAction", Some("TestPanoramaId"),
           Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(1), timestamp)
 
-        // TODO. OK, this is too much of work.
+        // TODO. Complete if I have time. Not necessary for testing the logic for counting the number of labels in the last mission.
       }
     }
   }

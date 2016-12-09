@@ -34,16 +34,40 @@ class LabelTableSpec extends Specification  {
         val auditTasks = TableQuery[AuditTaskTable]
         val labelTypes = TableQuery[LabelTypeTable]
         val labels = TableQuery[LabelTable]
+
         (users.ddl ++ streetEdges.ddl ++ auditTasks.ddl ++ labelTypes.ddl ++ labels.ddl).create
 
-        val label = Label(1, 1, "TestPanoramaId", 1, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(1))
-//        labels += label
+        //labels += Label(1, 1, "TestPanoramaId1", 1, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(1))
+        //labels += Label(2, 1, "TestPanoramaId2", 2, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(2))
+        //labels += Label(3, 1, "TestPanoramaId3", 1, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(3))
+
+        //val length = labels.list.size
+
+        //length shouldEqual 3
+        labels.delete
+      }
+    }
+
+    "be able to retrieve labels from the first mission " in new WithApplication(app = appWithMemoryDatabase) {
+//      play.api.db.slick.DB.withSession { implicit session =>
+//
+//        Q.updateNA("""CREATE SCHEMA IF NOT EXISTS "sidewalk";""").execute
+//        val users = TableQuery[UserTable]
+//        val streetEdges = TableQuery[StreetEdgeTable]
+//        val auditTasks = TableQuery[AuditTaskTable]
+//        val labelTypes = TableQuery[LabelTypeTable]
+//        val labels = TableQuery[LabelTable]
+//        (users.ddl ++ streetEdges.ddl ++ auditTasks.ddl ++ labelTypes.ddl ++ labels.ddl).create
+//
+//        labels += Label(1, 1, "TestPanoramaId1", 1, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(1))
+//        labels += Label(2, 1, "TestPanoramaId2", 2, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(2))
+//        labels += Label(3, 1, "TestPanoramaId3", 1, 0.0f, 0.0f, 0.0f, 0.0f, deleted=false, Some(3))
 //
 //        val length = labels.list.size
 //
-//        length shouldEqual 1
-        labels.delete
-      }
+//        length shouldEqual 3
+//        labels.delete
+//      }
     }
   }
 
