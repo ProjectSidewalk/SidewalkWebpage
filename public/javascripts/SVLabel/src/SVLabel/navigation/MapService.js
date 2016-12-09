@@ -635,13 +635,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 //     "Looks like you finished labeling your current location. " +
                 //     "We have automatically moved you to a new location now."); //v2
 
+                svl.tracker.push('LabelBeforeJump_AutoJump');
+
                 // Finish the current task
                 finishCurrentTaskBeforeJumping();
 
                 // Reset jump parameters before jumping
                 svl.compass.resetBeforeJump();
-
-                svl.tracker.push('LabelBeforeJump_AutoJump');
 
                 // Jump to the new task
                 var newTask = svl.taskContainer.getBeforeJumpNewTask();
