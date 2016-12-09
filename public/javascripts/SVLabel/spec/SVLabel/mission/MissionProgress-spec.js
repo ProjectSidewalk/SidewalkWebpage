@@ -25,6 +25,7 @@ describe("MissionProgress module", function () {
         neighborhoodModel = _.clone(Backbone.Events);
 
         neighborhoodModel.getNeighborhood = function (regionId) { return new NeighborhoodMock(regionId); };
+        neighborhoodModel.moveToANewRegion = function (regionId) { };
 
         statusModel = _.clone(Backbone.Events);
         missionContainer = new MissionContainerMock();
@@ -158,7 +159,6 @@ describe("MissionProgress module", function () {
             spyOn(neighborhoodContainer, 'setCurrentNeighborhood');
             spyOn(neighborhoodModel, 'moveToANewRegion');
             spyOn(taskContainer, 'fetchTasksInARegion');
-
         });
 
         it("should call `NeighborhoodContainer.setCurrentNeighborhood`", function () {
@@ -199,6 +199,44 @@ describe("MissionProgress module", function () {
         });
     });
 
+    describe("`_updateTheCurrentNeighborhood` method", function () {
+
+        beforeEach(function () {
+            spyOn(neighborhoodModel, 'moveToANewRegion');
+            spyOn(taskContainer, 'endTask');
+            spyOn(taskContainer, 'fetchTasksInARegion');
+        });
+
+        it("should set the current neighborhood", function () {
+            var neighborhood = new NeighborhoodMock(100);
+
+            missionProgress._updateTheCurrentNeighborhood(neighborhood);
+            var cn = neighborhoodContainer.getCurrentNeighborhood();
+            expect(cn).toBe(neighborhood);
+        });
+
+        it("should should call `NeighborhoodModel.moveToANewRegion`", function () {
+            var neighborhood = new NeighborhoodMock(100);
+            missionProgress._updateTheCurrentNeighborhood(neighborhood);
+            expect(neighborhoodModel.moveToANewRegion).toHaveBeenCalledWith(100);
+        });
+
+        it("should call `TaskContainer.endTask`", function () {
+            var neighborhood = new NeighborhoodMock(100);
+            var task = new TaskMock();
+            taskContainer.setCurrentTask(task);
+            missionProgress._updateTheCurrentNeighborhood(neighborhood);
+            expect(taskContainer.endTask).toHaveBeenCalledWith(task);
+        });
+
+        it("should call `TaskContainer.fetchTasksInARegion` to fetch tasks in the new neighborhood", function () {
+            var neighborhood = new NeighborhoodMock(100);
+            missionProgress._updateTheCurrentNeighborhood(neighborhood);
+            expect(taskContainer.fetchTasksInARegion).toHaveBeenCalled();
+        });
+    });
+
+    // Todo. KH: Deactivated the test. I have no clue which previous commit have broken this test.
     xdescribe("in response to `Neighborhood:completed` event", function () {
         it("should assign the new mission in a different neighborhood", function () {
             missionContainer.setCurrentMission(mission);
@@ -275,14 +313,25 @@ describe("MissionProgress module", function () {
         this._status = { currentNeighborhood: new NeighborhoodMock(1) };
 
         this.get = function (id) { return new NeighborhoodMock(id); };
+        this.getCurrentNeighborhood = function () {
+            return this._status.currentNeighborhood;
+        };
         this.setCurrentNeighborhood = function (neighborhood) {
             this._status.currentNeighborhood = neighborhood;
         };
     }
 
     function TaskContainerMock () {
+        this._currentTask = null;
+        this.endTask = function (task) {};
         this.fetchTasksInARegion = function (neighborhoodId) {};
+        this.getCurrentTask = function () { return this._currentTask; };
         this.getIncompleteTaskDistance = function () { return 0; };
+        this.setCurrentTask = function (task) { this._currentTask = task; };
+    }
+
+    function TaskMock () {
+
     }
 
     function TrackerMock () {
