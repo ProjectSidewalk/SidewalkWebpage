@@ -21,14 +21,6 @@ import play.api.db.BoneCPPlugin
 import scala.slick.driver.JdbcDriver.backend.Database
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-// https://groups.google.com/forum/#!msg/play-framework/znFuqeRz84w/k39KMfuNhcEJ
-// Doesn't work.
-class MyBoneCPPlugin(val app: play.api.Application) extends BoneCPPlugin(app) {
-  override def onStop(): Unit = {
-
-  }
-}
-
 class AuditTaskInteractionSpec extends Specification  {
 
 //  val appWithMemoryDatabase = FakeApplication(additionalConfiguration = inMemoryDatabase())
@@ -61,62 +53,62 @@ class AuditTaskInteractionSpec extends Specification  {
     }
   }
 
-//  "`AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser` method" should {
-//    "be able to fetch interactions of a given user" in new WithApplication(app = FakeApplication()) {
-//      play.api.db.slick.DB.withSession { implicit session =>
-//
-//        // Create tables
-//        Q.updateNA("""CREATE SCHEMA IF NOT EXISTS "sidewalk";""").execute
-//        lazy val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
-//        lazy val auditTasks = TableQuery[AuditTaskTable]
-//        lazy val streetEdges = TableQuery[StreetEdgeTable]
-//        lazy val regions = TableQuery[RegionTable]
-//        lazy val regionTypes = TableQuery[RegionTypeTable]
-//        lazy val users = TableQuery[UserTable]
-//        lazy val labelTypes = TableQuery[LabelTypeTable]
-//        lazy val labels = TableQuery[LabelTable]
-//
-//        lazy val ddl = users.ddl ++
-//          regionTypes.ddl ++
-//          regions.ddl ++
-//          streetEdges.ddl ++
-//          auditTasks.ddl ++
-//          auditTaskInteractions.ddl ++
-//          labelTypes.ddl ++
-//          labels.ddl
-//        ddl.create
-//
-//        try {
-//          // Populate data
-//          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
-//          lazy val auditTaskInteraction = AuditTaskInteraction(1, 1, "TestAction", Some("TestPanoramaId"),
-//            Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(1), timestamp)
-//
-//          lazy val gf: GeometryFactory = new GeometryFactory()
-//          lazy val coordinates: Array[Coordinate] = Array(new Coordinate(0, 0), new Coordinate(1, 0))
-//          lazy val streetGeom = gf.createLineString(coordinates)
-//
-//          lazy val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426655440000")
-//          lazy val user = DBUser(uuid.toString, "TestUserName", "TestUser@email.com")
-//          lazy val streetEdge = StreetEdge(1, streetGeom, 0, 1, 0.0f, 0.0f, 1.0f, 0.0f, "primary", deleted = false, Some(timestamp))
-//          lazy val task = AuditTask(1, None, uuid.toString, 1, timestamp, Some(timestamp), completed = true)
-//
-//          users += user
-//          streetEdges += streetEdge
-//          auditTasks += task
-//
-//          auditTaskInteractions += auditTaskInteraction
-//
-//          lazy val fetched = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(uuid)
-//
-//          fetched.length shouldEqual 1
-//          fetched.head shouldEqual auditTaskInteraction
-//        } finally {
-//          ddl.drop
-//        }
-//      }
-//    }
-//  }
+  "`AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser` method" should {
+    "be able to fetch interactions of a given user" in new WithApplication(app = FakeApplication()) {
+      play.api.db.slick.DB.withSession { implicit session =>
+
+        // Create tables
+        Q.updateNA("""CREATE SCHEMA IF NOT EXISTS "sidewalk";""").execute
+        lazy val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
+        lazy val auditTasks = TableQuery[AuditTaskTable]
+        lazy val streetEdges = TableQuery[StreetEdgeTable]
+        lazy val regions = TableQuery[RegionTable]
+        lazy val regionTypes = TableQuery[RegionTypeTable]
+        lazy val users = TableQuery[UserTable]
+        lazy val labelTypes = TableQuery[LabelTypeTable]
+        lazy val labels = TableQuery[LabelTable]
+
+        lazy val ddl = users.ddl ++
+          regionTypes.ddl ++
+          regions.ddl ++
+          streetEdges.ddl ++
+          auditTasks.ddl ++
+          auditTaskInteractions.ddl ++
+          labelTypes.ddl ++
+          labels.ddl
+        ddl.create
+
+        try {
+          // Populate data
+          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
+          lazy val auditTaskInteraction = AuditTaskInteraction(1, 1, "TestAction", Some("TestPanoramaId"),
+            Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(1), timestamp)
+
+          lazy val gf: GeometryFactory = new GeometryFactory()
+          lazy val coordinates: Array[Coordinate] = Array(new Coordinate(0, 0), new Coordinate(1, 0))
+          lazy val streetGeom = gf.createLineString(coordinates)
+
+          lazy val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426655440000")
+          lazy val user = DBUser(uuid.toString, "TestUserName", "TestUser@email.com")
+          lazy val streetEdge = StreetEdge(1, streetGeom, 0, 1, 0.0f, 0.0f, 1.0f, 0.0f, "primary", deleted = false, Some(timestamp))
+          lazy val task = AuditTask(1, None, uuid.toString, 1, timestamp, Some(timestamp), completed = true)
+
+          users += user
+          streetEdges += streetEdge
+          auditTasks += task
+
+          auditTaskInteractions += auditTaskInteraction
+
+          lazy val fetched = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(uuid)
+
+          fetched.length shouldEqual 1
+          fetched.head shouldEqual auditTaskInteraction
+        } finally {
+          ddl.drop
+        }
+      }
+    }
+  }
 
   "`AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser` method" should {
     "be able to fetch interactions of a given user at the given region" in new WithApplication(
@@ -126,6 +118,9 @@ class AuditTaskInteractionSpec extends Specification  {
       // Variables have to be `lazy` to prevent "obtain a connection from a pool that has already been shutdown" error
       // https://github.com/playframework/playframework/issues/3867
       // https://groups.google.com/forum/#!msg/play-framework/znFuqeRz84w/k39KMfuNhcEJ
+      // https://groups.google.com/forum/#!msg/play-framework/znFuqeRz84w/k39KMfuNhcEJ
+      // Doesn't work.
+      // TODO. Ok, doesn't work... Need to run test one by one. Otherwise the SQLException stops the tests
 
       lazy val database = play.api.db.slick.DB
 //      implicit lazy val session = database.createSession()
