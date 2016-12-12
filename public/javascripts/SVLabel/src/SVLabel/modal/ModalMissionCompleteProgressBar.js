@@ -1,6 +1,6 @@
 function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
     var $completeBar = uiModalMissionComplete.holder.find("#modal-mission-complete-complete-bar");
-    var svgCoverageBarWidth = 275,
+    var svgCoverageBarWidth = 370,
         svgCoverageBarHeight = 20;
     var svgCoverageBar = d3.select($completeBar.get(0))
         .append("svg")

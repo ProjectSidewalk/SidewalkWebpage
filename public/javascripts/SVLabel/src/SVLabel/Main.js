@@ -103,10 +103,25 @@ function Main (params) {
         svl.labelContainer = new LabelContainer($);
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
+
+
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.tracker, params.form);
+
+
+        // Set map parameters and instantiate it.
+        var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
+        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
+        svl.map.disableClickZoom();
+        svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+        svl.alert = new Alert();
+        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
+        svl.jumpModel = new JumpModel();
+        svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
+        svl.navigationModel._mapService = svl.map;
+
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -162,14 +177,6 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
-        // Set map parameters and instantiate it.
-        var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
-        svl.map.disableClickZoom();
-        svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
-        svl.alert = new Alert();
-        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
-        svl.navigationModel._mapService = svl.map;
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
@@ -389,10 +396,8 @@ function Main (params) {
                     onboardingMission.setProperty("isCompleted", true);
                     svl.missionModel.completeMission(onboardingMission, null);
                 }
-
-                _calculateAndSetTasksMissionsOffset();
-
                 mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
+                _calculateAndSetTasksMissionsOffset();
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 startTheMission(mission, currentNeighborhood);
@@ -441,15 +446,7 @@ function Main (params) {
             svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            var newTask = svl.taskContainer.nextTask();
-            if (!newTask) {
-                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-                newTask = svl.taskContainer.nextTask();
-            }
-            // svl.taskContainer.setCurrentTask(newTask);
-            svl.taskContainer.initNextTask(newTask);
+            svl.taskContainer.getFinishedAndInitNextTask();
         }
         return availableMissions[0];
     }
@@ -590,7 +587,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
-        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar')
+        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
