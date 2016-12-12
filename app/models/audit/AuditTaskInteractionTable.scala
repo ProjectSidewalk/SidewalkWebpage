@@ -129,15 +129,15 @@ object AuditTaskInteractionTable {
         |  audit_task_interaction.note,
         |  audit_task_interaction.temporary_label_id,
         |  audit_task_interaction.timestamp
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.street_edge
+        |FROM "sidewalk"."audit_task"
+        |INNER JOIN "sidewalk"."street_edge"
         |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |INNER JOIN sidewalk.region
+        |INNER JOIN "sidewalk"."region"
         |  ON region.region_id = ?
         |  AND ST_Intersects(region.geom, street_edge.geom)
-        |INNER JOIN sidewalk.audit_task_interaction
+        |INNER JOIN "sidewalk"."audit_task_interaction"
         |  ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.user_id = ?
+        |WHERE "audit_task".user_id = ?
         |  AND (
         |    audit_task_interaction.action = 'MissionComplete'
         |    OR (
