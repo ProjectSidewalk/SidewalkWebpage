@@ -57,6 +57,9 @@ POST    /task                                   @controllers.TaskController.post
 GET     /mission                                @controllers.MissionController.getMissions
 POST    /mission                                @controllers.MissionController.post
 
+# Labels
+GET     /label/currentMission                   @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
+
 # Neighborhoods
 GET     /neighborhoods                          @controllers.RegionController.listNeighborhoods
 POST    /neighborhood/assignment                @controllers.RegionController.setANewRegion

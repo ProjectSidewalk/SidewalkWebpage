@@ -415,16 +415,25 @@ object AuditTaskTable {
     val userId: String = user.userId.toString
 
     val selectEdgeQuery = Q.query[(String, Int), StreetEdge](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+//      Changed the query to make sure audit tasks that are not marked as complete are audited again.
+      """
+       |WITH result AS (
+       |	SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2,
+       |         st_e.way_type, st_e.deleted, st_e.timestamp, audit_task.completed
        |  FROM sidewalk.region
-       |INNER JOIN sidewalk.street_edge AS st_e
-       |  ON ST_Intersects(st_e.geom, region.geom)
-       |LEFT JOIN sidewalk.audit_task
-       |  ON st_e.street_edge_id = audit_task.street_edge_id
-       |  AND audit_task.user_id = ?
-       |WHERE st_e.deleted = FALSE
-       |  AND region.region_id = ?
-       |  AND audit_task.audit_task_id ISNULL""".stripMargin
+       |	INNER JOIN sidewalk.street_edge AS st_e
+       |	  ON ST_Intersects(st_e.geom, region.geom)
+       |	LEFT JOIN sidewalk.audit_task
+       |	  ON st_e.street_edge_id = audit_task.street_edge_id
+       |	  AND audit_task.user_id = ?
+       |	WHERE st_e.deleted = FALSE
+       |	  AND region.region_id = ?
+       |)
+       |SELECT * FROM result as r1
+       |WHERE NOT EXISTS (
+       |	SELECT street_edge_id FROM result GROUP BY street_edge_id
+       |  HAVING max(cast(completed as int))=1 AND street_edge_id = r1.street_edge_id
+       |)""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((userId, regionId)).list
@@ -437,6 +446,44 @@ object AuditTaskTable {
       case _ =>
         selectANewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
     }
+  }
+
+  /**
+    * Get tasks in the region
+    *
+    * @param regionId Region id
+    * @return
+    */
+  def selectCompletedTasksInARegion(regionId: Int, userId: UUID): List[NewTask] = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
+    val selectCompletedTasksInARegionQuery = Q.query[(String, Int), NewTask](
+      """SELECT street.street_edge_id,
+        |       street.geom,
+        |       street.x1,
+        |       street.y1,
+        |       street.x2,
+        |       street.y2,
+        |       street.timestamp,
+        |       audit_task.completed
+        |  FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge AS street
+        |  ON ST_Intersects(street.geom, region.geom)
+        |LEFT JOIN sidewalk.audit_task
+        |  ON street.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.user_id = ?
+        |WHERE region.region_id = ?
+        |  AND street.deleted = FALSE
+        |  AND audit_task.completed = TRUE
+        |ORDER BY audit_task.task_end""".stripMargin
+    )
+
+    val result = selectCompletedTasksInARegionQuery((userId.toString, regionId)).list
+    val uniqueTasks = for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield tasks.head
+
+    uniqueTasks.toList.map(task =>
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+    )
   }
 
   /**
@@ -475,12 +522,20 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val selectIncompleteTaskQuery = Q.query[(String, Int), NewTask](
-      """SELECT street.street_edge_id, street.geom, street.x1, street.y1, street.x2, street.y2, street.timestamp, audit_task.completed
+      """SELECT street.street_edge_id,
+        |       street.geom,
+        |       street.x1,
+        |       street.y1,
+        |       street.x2,
+        |       street.y2,
+        |       street.timestamp,
+        |       audit_task.completed
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task
-        |  ON street.street_edge_id = audit_task.street_edge_id AND audit_task.user_id = ?
+        |  ON street.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.user_id = ?
         |WHERE region.region_id = ?
         |  AND street.deleted = FALSE""".stripMargin
     )

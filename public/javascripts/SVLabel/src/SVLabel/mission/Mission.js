@@ -163,7 +163,7 @@ function Mission(parameters) {
         if (!unit) unit = "kilometers";
         var completedTasks = _tasksForTheMission.filter(function (t) { return t.isCompleted(); });
         var distances = completedTasks.map(function (t) { return t.lineDistance(unit); });
-        return distances.sum();
+        return distances.length > 0 ? distances.sum() : 0;
     }
 
     /**
@@ -182,25 +182,13 @@ function Mission(parameters) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            var targetDistance = getProperty("distance") / 1000;  // Convert meters to kilometers
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit)
-                + svl.missionContainer.getTasksMissionsOffset();
-            if (completedDistance > targetDistance) {
-                return 1.0;
-            }
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+            var lastMissionDistance = getProperty("distance") / 1000 - getProperty("auditDistance") / 1000;
 
-            var missions = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-            var completedMissions = missions.filter(function (m) { return m.isCompleted(); });  // Get the completed missions
+            var currentMissionTargetDistance = getProperty("auditDistance") / 1000 + svl.missionContainer.getTasksMissionsOffset();
+            var currentMissionCompletedDistance = completedDistance - lastMissionDistance + svl.missionContainer.getTasksMissionsOffset();
 
-            completedMissions = completedMissions.filter(function (m) { return m.getProperty("distance") / 1000 <= completedDistance; });
-            var lastMissionDistance;
-            if (completedMissions.length > 0) {
-                lastMissionDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
-            } else {
-                lastMissionDistance = 0;
-            }
-
-            return Math.max(0, completedDistance - lastMissionDistance) / (targetDistance - lastMissionDistance);
+            return Math.min(Math.max(currentMissionCompletedDistance / currentMissionTargetDistance, 0), 1);
         } else {
             return 0;
         }
