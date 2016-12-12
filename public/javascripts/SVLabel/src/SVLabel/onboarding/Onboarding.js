@@ -399,7 +399,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             } else {
-                mapService.setPano(state.panoId); // Force the interface to go back to the previous position.
+                mapService.setPano(state.panoId, true); // Force the interface to go back to the previous position.
             }
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
@@ -418,7 +418,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 //Previously, we checked if the user double-clicked on the correct location,
                 // it wasn't working correctly and we removed that. So it will jump them if they click anywhere
                 uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
-                mapService.setPano(state.properties.panoId);
+                mapService.setPano(state.properties.panoId, true);
                 mapService.disableWalking();
                 callback();
             }
@@ -459,7 +459,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         // When they click OK, then the POV changes.
         if (typeof google != "undefined") {
             googleCallback = function () {
-                mapService.setPano(state.panoId);
+                mapService.setPano(state.panoId, true);
                 google.maps.event.removeListener(googleTarget);
             };
 
@@ -470,7 +470,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 if (listener) google.maps.event.removeListener(listener);
                 $target.off("click", callback);
                 next.call(this, state.transition);
-                mapService.setPano(state.panoId);
+                mapService.setPano(state.panoId, true);
                 mapService.setPov(pov);
                 mapService.setPosition(state.properties.lat, state.properties.lng);
 

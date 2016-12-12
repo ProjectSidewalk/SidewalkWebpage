@@ -955,10 +955,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      *
      * @param panoramaId
+     * @param force: force to change pano, even if walking is disabled
      * @returns {setPano}
      */
-    self.setPano = function (panoramaId) {
-        if (!status.disableWalking) {
+    self.setPano = function (panoramaId, force) {
+        if (force == undefined) force = false;
+
+        if (!status.disableWalking || force == true) {
             svl.panorama.setPano(panoramaId);
         }
         return this;
