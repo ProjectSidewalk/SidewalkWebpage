@@ -145,7 +145,9 @@ object AuditTaskInteractionTable {
           "zoom" -> interaction.zoom,
           "timestamp" -> interaction.timestamp.getTime,
           "canvasHeight" -> interaction.canvasHeight,
-          "canvasWidth" -> interaction.canvasWidth
+          "canvasWidth" -> interaction.canvasWidth,
+          "action" -> interaction.action,
+          "note" -> interaction.note
         )
       } else {
         Json.obj(
@@ -156,6 +158,8 @@ object AuditTaskInteractionTable {
           "timestamp" -> interaction.timestamp.getTime,
           "canvasHeight" -> interaction.canvasHeight,
           "canvasWidth" -> interaction.canvasWidth,
+          "action" -> interaction.action,
+          "note" -> interaction.note,
           "label" -> Json.obj(
             "label_type" -> interaction.labelType,
             "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
