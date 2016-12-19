@@ -44,6 +44,9 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     });
 
     svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+        var neighborhood = svl.neighborhoodContainer.get(parameters.completedRegionId);
+        var neighborhoodName = neighborhood.getProperty("name");
+        self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
     });
 
@@ -110,7 +113,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName);
+        this.setMissionTitle(neighborhoodName + ": Mission Complete!");
 
         modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
@@ -118,6 +121,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
+
     };
 
     uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
