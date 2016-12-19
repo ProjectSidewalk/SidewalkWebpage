@@ -570,8 +570,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Check if the interface jumped the user to another discontinuous location.
             // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
             // label the location before proceeding.
-            console.log("First Task:" + svl.taskContainer.isFirstTask());
-            console.log("Task Connected:" + task.isConnectedTo(nextTask));
 
             if (nextTask && !task.isConnectedTo(nextTask)) {
 
