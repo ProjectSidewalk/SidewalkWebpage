@@ -24,19 +24,15 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         self.initNextTask(nextTask);
     };
 
-    self.getFinishedAndFindNextTask = function getFinishedAndFindNextTask (finished) {
+    self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+        } else {
+            svl.taskContainer.initNextTask(newTask);
         }
-        return newTask;
-    };
-
-    self.getFinishedAndInitNextTask = function (finished) {
-        var newTask = self.getFinishedAndFindNextTask(finished);
-        if (newTask) svl.taskContainer.initNextTask(newTask);
         return newTask;
     };
 
