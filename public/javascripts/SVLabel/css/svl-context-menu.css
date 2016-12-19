@@ -11,7 +11,7 @@
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
     visibility: hidden;
-    z-index: 100;
+    z-index: 2;
 ;
 }
 
