@@ -364,7 +364,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
         if (candidateTasks.length == 0) {
             candidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function(t) {
-                return (t.getStreetEdgeId() != finishedTask.getStreetEdgeId());
+                return (t.getStreetEdgeId() != (finishedTask ? finishedTask.getStreetEdgeId(): null));
             });
             if (candidateTasks.length == 0) return null;
         }
