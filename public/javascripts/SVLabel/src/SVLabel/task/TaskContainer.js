@@ -30,7 +30,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-            newTask = svl.taskContainer.nextTask();
         }
         return newTask;
     };

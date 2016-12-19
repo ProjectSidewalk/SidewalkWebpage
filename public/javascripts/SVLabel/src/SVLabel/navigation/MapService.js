@@ -572,7 +572,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // label the location before proceeding.
             console.log("First Task:" + svl.taskContainer.isFirstTask());
             console.log("Task Connected:" + task.isConnectedTo(nextTask));
-            if (!task.isConnectedTo(nextTask)) {
+
+            if (nextTask && !task.isConnectedTo(nextTask)) {
 
                 //console.log("I am in here now");
 
@@ -600,9 +601,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Finish a task
                 finishCurrentTaskBeforeJumping();
 
-                // Move to the new task
-                svl.taskContainer.setCurrentTask(nextTask);
-                moveToTheTaskLocation(nextTask);
+                // Move to the new task if the neighborhood has not finished
+                if (nextTask) {
+                    svl.taskContainer.setCurrentTask(nextTask);
+                    moveToTheTaskLocation(nextTask);
+                }
             }
         }
     }
