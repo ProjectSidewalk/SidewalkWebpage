@@ -9,6 +9,29 @@ function Tracker () {
     var actions = [];
     var prevActions = [];
 
+    this.init = function () {
+        this.trackWindowEvents();
+    };
+
+    this.trackWindowEvents = function() {
+        var prefix = "LowLevelEvent_";
+
+        // track all mouse related events
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
+            self.push(prefix + e.type, {
+                cursorX: e.originalEvent.x,
+                cursorY: e.originalEvent.y
+            });
+        });
+
+        // keyboard related events
+        $(document).on('keydown keyup', function(e) {
+            self.push(prefix + e.type, {
+                keyCode: e.keyCode
+            });
+        });
+    };
+
     this._isCanvasInteraction = function (action) {
         return action.indexOf("LabelingCanvas") >= 0;
     };
@@ -117,7 +140,7 @@ function Tracker () {
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.
-        if (actions.length > 30 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
+        if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
             var task = svl.taskContainer.getCurrentTask();
             var data = svl.form.compileSubmissionData(task);
             svl.form.submit(data, task);
@@ -133,5 +156,7 @@ function Tracker () {
         actions = [];
         self.push("RefreshTracker");
     };
+
+    this.init();
 }
 
