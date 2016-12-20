@@ -15,6 +15,9 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
         if (labelType != undefined && labelTypes.indexOf(labelType) >= 0) {
             modalModel.showModalExample(labelType);
         }
+        svl.tracker.push("ExplainThis_Click", {
+            labelType: labelType
+        });
     };
 
     this.setHelpLink = function (labelType) {
