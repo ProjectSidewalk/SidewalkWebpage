@@ -566,7 +566,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Set mission
             missionJump = mission;
             //Get a new task
-            var nextTask = svl.taskContainer.getFinishedAndFindNextTask(task);
+            // var nextTask = svl.taskContainer.getFinishedAndFindNextTask(task);
+            var nextTask = svl.taskContainer.nextTask(task);
 
             // Check if the interface jumped the user to another discontinuous location.
             // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
@@ -574,7 +575,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             if (nextTask && !task.isConnectedTo(nextTask)) {
 
-                //console.log("I am in here now");
 
                 // Set the newTask before jumping
                 svl.taskContainer.setBeforeJumpNewTask(nextTask);
@@ -605,6 +605,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     svl.taskContainer.setCurrentTask(nextTask);
                     moveToTheTaskLocation(nextTask);
                 }
+            }
+            if (!nextTask) {
+                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
             }
         }
     }
