@@ -27,7 +27,7 @@ function Tracker () {
      */
 
     this.create = function (action, param) {
-        var pov, latlng, panoId, note, temporaryLabelId;
+        var pov, latlng, panoId, note = "", temporaryLabelId;
 
         if (param) {
             if (('x' in param) && ('y' in param)) {
@@ -36,8 +36,6 @@ function Tracker () {
                 note = "targetPanoId:" + param.TargetPanoId;
             } else if ('RadioValue' in param) {
                 note = "RadioValue:" + param.RadioValue;
-            } else if ('keyCode' in param) {
-                note = 'keyCode:' + param.keyCode;
             } else if ('errorType' in param) {
                 note = 'errorType:' + param.errorType;
             } else if ('quickCheckImageId' in param) {
@@ -49,11 +47,14 @@ function Tracker () {
             } else if ("checked" in param) {
                 note = "checked:" + param.checked;
             } else if ("onboardingTransition" in param) {
-                note = "from:" + param.onboardingTransition;
-            } else {
                 note = "";
             }
             note = note + "";  // Make sure it is a string.
+
+            if ('keyCode' in param) {
+                note += note == "" ? "" : ",";
+                note += 'keyCode:' + param.keyCode;
+            }
 
             if ("missionLabel" in param) {
                 note += note == "" ? "" : ",";
@@ -69,8 +70,6 @@ function Tracker () {
                 note += note == "" ? "" : ",";
                 note += "NeighborhoodId:" + param.neighborhoodId;
             }
-
-            if ("neighborhoodId")
 
             if ("LabelType" in param && "canvasX" in param && "canvasY" in param) {
                 if (note.length != 0) { note += ","; }
