@@ -45,7 +45,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             lockDisableWalking : false,
             panoLinkListenerSet: false,
             svLinkArrowsLoaded : false,
-            labelBeforeJumpListenerSet: false
+            labelBeforeJumpListenerSet: false,
+            jumpMsgShown: false
         },
         listeners = {
             beforeJumpListenerHandle: undefined
@@ -588,10 +589,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 try {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
-
-                    // Show message to the user instructing him to label the current location
-                    svl.tracker.push('LabelBeforeJump_ShowMsg');
-                    svl.compass.showLabelBeforeJumpMessage();
                 } catch (err) {}
 
             }
@@ -629,7 +626,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 distance = turf.distance(jumpPosition, currentPosition, "kilometers");
 
             // Jump to the new location if it's really far away from his location.
-            if (distance > 0.07) {
+            if (!status.jumpMsgShown && distance >= 0.01) {
+                //console.log("Jump message shown at " + distance)
+
+                // Show message to the user instructing him to label the current location
+                svl.tracker.push('LabelBeforeJump_ShowMsg');
+                svl.compass.showLabelBeforeJumpMessage();
+                status.jumpMsgShown = true
+
+            }
+            else if (distance > 0.07) {
 
                 //console.log("You are way off! " + distance)
 
@@ -665,6 +671,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function resetBeforeJumpLocationAndListener () {
         jumpLocation = undefined;
+        status.jumpMsgShown = false;
         google.maps.event.removeListener(listeners.beforeJumpListenerHandle);
     }
 
