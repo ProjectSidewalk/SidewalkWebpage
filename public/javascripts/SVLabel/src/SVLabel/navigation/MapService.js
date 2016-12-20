@@ -571,7 +571,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Check if the interface jumped the user to another discontinuous location.
             // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
             // label the location before proceeding.
-            if (!task.isConnectedTo(nextTask)) {
+
+            if (nextTask && !task.isConnectedTo(nextTask)) {
 
                 //console.log("I am in here now");
 
@@ -599,9 +600,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Finish a task
                 finishCurrentTaskBeforeJumping();
 
-                // Move to the new task
-                svl.taskContainer.setCurrentTask(nextTask);
-                moveToTheTaskLocation(nextTask);
+                // Move to the new task if the neighborhood has not finished
+                if (nextTask) {
+                    svl.taskContainer.setCurrentTask(nextTask);
+                    moveToTheTaskLocation(nextTask);
+                }
             }
         }
     }
