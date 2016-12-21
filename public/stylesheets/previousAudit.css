@@ -37,3 +37,66 @@ svg {
     font-weight: bold;
     font-size: 13px;
 }
+
+#svholder {
+    width:360px;
+    height:240px;
+    position: absolute;
+    top: 15px;
+    right: 30px;
+}
+
+#eventsholder {
+    width: 360px;
+    position: absolute;
+    right: 30px;
+    bottom: 50px;
+    top: 285px; /* 240 + 15 + 15 */
+    border-radius: 5px;
+    background-color: white;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+    overflow: scroll;
+    padding: 0 10px;
+}
+
+#eventsholder .event {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+#eventsholder .event .type {
+    font-weight: bold;
+}
+
+#timeline {
+    position: absolute;
+    right: 30px;
+    top: 265px;
+    width: 360px;
+    height: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 5px;
+}
+
+#timeline #timeline-handle {
+    position: absolute;
+    left: 0;
+    margin-left: -7px;
+    top: -3px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+#timeline #timeline-active {
+    position: absolute;
+    top:0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    background-color: #249dff;
+    border-radius: 5px;
+}

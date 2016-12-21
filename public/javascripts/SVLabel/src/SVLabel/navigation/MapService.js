@@ -530,6 +530,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         if ('compass' in svl) { svl.compass.update(); }
+        svl.tracker.push("PanoId_Changed");
     }
 
     // missions greater than 3000 feet are measured in miles
@@ -747,6 +748,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // This is a callback function that is fired when pov is changed
         updateCanvas();
         if ("compass" in svl) { svl.compass.update(); }
+        svl.tracker.push("POV_Changed");
     }
 
     /**

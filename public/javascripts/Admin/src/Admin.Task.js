@@ -120,8 +120,20 @@ function AdminTask(params) {
 
             // Chain transitions
             for (var i = 0; i < featuresdata.length; i++) {
-                featuresdata[i].properties.timestamp /= 1.5;
+                // This controls the speed.
+                featuresdata[i].properties.timestamp /= 1;
             }
+
+            var totalDuration =
+                featuresdata[featuresdata.length-1].properties.timestamp - featuresdata[0].properties.timestamp;
+
+            $("#timeline-active").animate({
+                width: "100%"
+            }, totalDuration);
+
+            $("#timeline-handle").animate({
+                left: "100%"
+            }, totalDuration);
 
             var currentTimestamp = featuresdata[0].properties.timestamp;
             for (var i = 0; i < featuresdata.length; i++) {
@@ -153,6 +165,8 @@ function AdminTask(params) {
                             pitch: d.properties.pitch,
                             zoom: d.properties.zoom
                         });
+
+                        self.showEvent(d.properties);
 
                         if (d) {
                             map.setView([d.geometry.coordinates[1], d.geometry.coordinates[0]], 18);
@@ -217,6 +231,15 @@ function AdminTask(params) {
 
 
     })();
+
+    self.showEvent = function(data) {
+        var eventsholder = $("#eventsholder");
+        var event = $("<div class='event'/>");
+        event.append("<div class='type'>" + data['action'] + "</div>");
+        event.append("<div class='desc'>"+ data['note'] +"</div>");
+
+        event.hide().prependTo(eventsholder).fadeIn(300);
+    };
     
     self.data = _data;
     return self;

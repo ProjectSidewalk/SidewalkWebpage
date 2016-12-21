@@ -22,65 +22,37 @@ function Tracker () {
         return actions;
     };
 
+    this._notesToString = function (param) {
+        if (!param)
+            return "";
+
+        var note = "";
+        for (var key in param) {
+            if (note.length > 0)
+                note += ",";
+            note += key + ':' + param[key];
+        }
+
+        return note;
+    };
+
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
 
-    this.create = function (action, param) {
-        var pov, latlng, panoId, note, temporaryLabelId;
+    this.create = function (action, notes, extraData) {
+        if (!notes)
+            notes = {};
 
-        if (param) {
-            if (('x' in param) && ('y' in param)) {
-                note = 'x:' + param.x + ',y:' + param.y;
-            } else if ('TargetPanoId' in param) {
-                note = "targetPanoId:" + param.TargetPanoId;
-            } else if ('RadioValue' in param) {
-                note = "RadioValue:" + param.RadioValue;
-            } else if ('keyCode' in param) {
-                note = 'keyCode:' + param.keyCode;
-            } else if ('errorType' in param) {
-                note = 'errorType:' + param.errorType;
-            } else if ('quickCheckImageId' in param) {
-                note = param.quickCheckImageId;
-            } else if ('quickCheckCorrectness' in param) {
-                note = param.quickCheckCorrectness;
-            } else if ('labelId' in param) {
-                note = 'labelId:' + param.labelId;
-            } else if ("checked" in param) {
-                note = "checked:" + param.checked;
-            } else if ("onboardingTransition" in param) {
-                note = "from:" + param.onboardingTransition;
-            } else {
-                note = "";
-            }
-            note = note + "";  // Make sure it is a string.
+        if (!extraData)
+            extraData = {};
 
-            if ("missionLabel" in param) {
-                note += note == "" ? "" : ",";
-                note += "MissionLabel:" + param.missionLabel;
-            }
+        var pov, latlng, panoId, temporaryLabelId;
 
-            if ("missionDistance" in param) {
-                note += note == "" ? "" : ",";
-                note += "MissionDistance:" + param.missionDistance;
-            }
+        var note = this._notesToString(notes);
 
-            if ("neighborhoodId" in param) {
-                note += note == "" ? "" : ",";
-                note += "NeighborhoodId:" + param.neighborhoodId;
-            }
-
-            if ("neighborhoodId")
-
-            if ("LabelType" in param && "canvasX" in param && "canvasY" in param) {
-                if (note.length != 0) { note += ","; }
-                note += "labelType:" + param.LabelType + ",canvasX:" + param.canvasX + ",canvasY:" + param.canvasY;
-            }
-            if ('temporary_label_id' in param) {
-                temporaryLabelId = param.temporary_label_id;
-            }
-        } else {
-            note = "";
+        if ('temporaryLabelId' in extraData) {
+            temporaryLabelId = extraData['temporaryLabelId'];
         }
 
         // Initialize variables. Note you cannot get pov, panoid, or position
@@ -135,8 +107,13 @@ function Tracker () {
         return item;
     };
 
-    this.push = function (action, param) {
-        var item = self.create(action, param);
+    /**
+     * @param action: the action to be stored in the database
+     * @param notes: (optional) the notes field in the database
+     * @param extraData: (optional) extra data that should not be stored in the notes field in db
+     */
+    this.push = function (action, notes, extraData) {
+        var item = self.create(action, notes, extraData);
         actions.push(item);
 
         // Submit the data collected thus far if actions is too long.

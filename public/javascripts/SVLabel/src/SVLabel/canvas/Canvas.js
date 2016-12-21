@@ -175,10 +175,11 @@ function Canvas (ribbon) {
         }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
-            'temporary_label_id': status.currentLabel.getProperty('temporary_label_id'),
-            'LabelType': labelDescription.id,
+            labelType: labelDescription.id,
             canvasX: tempPath[0].x,
             canvasY: tempPath[0].y
+        }, {
+            temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
         });
         svl.actionStack.push('addLabel', status.currentLabel);
 
