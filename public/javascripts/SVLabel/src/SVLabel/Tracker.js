@@ -19,15 +19,15 @@ function Tracker () {
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
             self.push(prefix + e.type, {
-                cursorX: e.originalEvent.x,
-                cursorY: e.originalEvent.y
+                cursorX: 'pageX' in e ? e.pageX : null,
+                cursorY: 'pageY' in e ? e.pageY : null
             });
         });
 
         // keyboard related events
         $(document).on('keydown keyup', function(e) {
             self.push(prefix + e.type, {
-                keyCode: e.keyCode
+                keyCode: 'keyCode' in e ? e.keyCode : null
             });
         });
     };
