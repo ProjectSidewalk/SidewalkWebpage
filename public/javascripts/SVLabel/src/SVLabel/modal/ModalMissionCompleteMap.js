@@ -21,11 +21,13 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._overlayPolygon = null;
     this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
+    this._completedTasksLayer = [];
 
     this._animateMissionTasks = function (completedTasks, index, max){
         var collection = this._linestringToPoint(completedTasks[index].getGeoJSON());
         var featuresdata = collection.features;
         var leafletMap = this._map;
+        var completedTasksLayer = this._completedTasksLayer;
 
         var svg = d3.select(leafletMap.getPanes().overlayPane).append("svg"),
 
@@ -130,6 +132,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                 var  geojsonFeature = missionTasks[i].getFeature();
                 var layer = L.geoJson(geojsonFeature).addTo(leafletMap);
                 layer.setStyle(missionTaskLayerStyle);
+                completedTasksLayer.push(layer);
             }
         }
     };
@@ -150,7 +153,13 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             len,
             geojsonFeature,
             layer,
-            completedTaskLayerStyle = { color: "rgb(100,100,100)", opacity: 1, weight: 5 };
+            completedTaskLayerStyle = { color: "rgb(100,100,100)", opacity: 1, weight: 5 },
+            leafletMap = this._map;
+
+        // remove previous tasks
+        _.each(this._completedTasksLayer, function(element) {
+            leafletMap.removeLayer(element);
+        });
 
         // remove after animation, otherwise segments remain green from previous tasks
         d3.select(this._map.getPanes().overlayPane)
@@ -167,6 +176,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                 geojsonFeature = completedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(this._map);
                 layer.setStyle(completedTaskLayerStyle);
+                this._completedTasksLayer.push(layer);
             }
         }
 
@@ -195,6 +205,9 @@ ModalMissionCompleteMap.prototype.hide = function () {
 };
 
 ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
+    // Clear the previous highlighted region
+    if(this._overlayPolygonLayer)
+        this._map.removeLayer(this._overlayPolygonLayer);
     // Focus on the current region on the Leaflet map
     var center = neighborhood.center();
     var neighborhoodGeom = neighborhood.getGeoJSON();

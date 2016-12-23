@@ -6,13 +6,13 @@
  * @memberof svl
  */
 function LabelContainer($) {
-    var self = {className: 'LabelContainer'};
+    var self = this;
     var currentCanvasLabels = [],
         prevCanvasLabels = [];
 
     var neighborhoodLabels = {};
 
-    function countLabels(regionId) {
+    this.countLabels = function (regionId) {
         if (regionId) {
             if (regionId in neighborhoodLabels) {
                 // return neighborhoodLabels[regionId].filter(function (l) { return l.getStatus("deleted"); }).length;
@@ -21,9 +21,9 @@ function LabelContainer($) {
                 return 0;
             }
         }
-    }
+    };
 
-    function fetchLabelsInANeighborhood(regionId, callback) {
+    this.fetchLabelsInANeighborhood = function (regionId, callback) {
         $.getJSON("/userapi/labels?regionId=" + regionId, function (data) {
             if ("features" in data) {
                 var features = data.features,
@@ -34,28 +34,37 @@ function LabelContainer($) {
                     label = svl.labelFactory.create(null, {
                         labelId: features[i].properties.label_id
                     });
-                    pushToNeighborhoodLabels(regionId, label);  // NOTE: I should actually convert each JSON object into a Label.
+                    self.pushToNeighborhoodLabels(regionId, label);  // NOTE: I should actually convert each JSON object into a Label.
                 }
                 if (callback) callback();
             }
         });
-    }
+    };
+
+    this.fetchLabelsInTheCurrentMission = function (regionId, callback) {
+        $.getJSON(
+            '/label/currentMission',
+            { regionId: regionId },
+            function (result) {
+                if (callback) callback(result);
+            });
+    };
 
     /**
      * Returns canvas labels. NOTE: I don't think this is used anywhere anymore.
      */
-    function getCanvasLabels () {
+    this.getCanvasLabels = function () {
         return prevCanvasLabels.concat(currentCanvasLabels);
-    }
+    };
 
     /** Get current label */
-    function getCurrentLabels () {
+    this.getCurrentLabels = function () {
         return currentCanvasLabels;
-    }
+    };
 
-    function getPreviousLabels () {
+    this.getPreviousLabels = function () {
         return prevCanvasLabels;
-    }
+    };
 
     /** Load labels */
     function load () {
@@ -66,7 +75,7 @@ function LabelContainer($) {
      * Push a label into canvasLabels
      * @param label
      */
-    function push(label) {
+    this.push = function (label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
         
@@ -80,15 +89,14 @@ function LabelContainer($) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
         }
-            
-    }
+    };
 
     /**
      * Push a label into neighborhoodLabels
      * @param neighborhoodId
      * @param label
      */
-    function pushToNeighborhoodLabels(neighborhoodId, label) {
+    this.pushToNeighborhoodLabels = function (neighborhoodId, label) {
         if (!(neighborhoodId in neighborhoodLabels)) {
             neighborhoodLabels[neighborhoodId] = [];
         }
@@ -111,24 +119,24 @@ function LabelContainer($) {
             }
         }
         neighborhoodLabels[neighborhoodId].push(label);
-    }
+    };
 
     /** Refresh */
-    function refresh () {
+    this.refresh = function () {
         prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
         currentCanvasLabels = [];
-    }
+    };
 
     /**  Flush the canvasLabels */
-    function removeAll() {
+    this.removeAll = function () {
         currentCanvasLabels = [];
-    }
+    };
 
     /**
      * This function removes a passed label and its child path and points
      * @method
      */
-    function removeLabel (label) {
+    this.removeLabel = function (label) {
         if (!label) { return false; }
         svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
@@ -144,24 +152,9 @@ function LabelContainer($) {
         svl.canvas.clear();
         svl.canvas.render();
         return this;
-    }
+    };
 
     function save () {
         svl.storage.set("labels", currentCanvasLabels);
     }
-
-    self.countLabels = countLabels;
-    self.fetchLabelsInANeighborhood = fetchLabelsInANeighborhood;
-    self.getCanvasLabels = getCanvasLabels;
-    self.getCurrentLabels = getCurrentLabels;
-    self.getPreviousLabels = getPreviousLabels;
-//    self.load = load;
-    self.push = push;
-    self.pushToNeighborhoodLabels = pushToNeighborhoodLabels;
-    self.refresh = refresh;
-    self.removeAll = removeAll;
-    self.removeLabel = removeLabel;
-//    self.save = save;
-
-    return self;
 }

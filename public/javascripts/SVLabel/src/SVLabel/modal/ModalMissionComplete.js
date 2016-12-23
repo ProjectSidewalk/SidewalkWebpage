@@ -20,7 +20,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         boxLeft: 45,
         boxWidth: 640
     };
-
     this._status = {
         isOpen: false
     };
@@ -44,16 +43,30 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         self.hide();
     });
 
+    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+        var neighborhood = svl.neighborhoodContainer.get(parameters.completedRegionId);
+        var neighborhoodName = neighborhood.getProperty("name");
+        self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
+        uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+    });
+
     this._handleBackgroundClick = function (e) {
-        var nextMission = missionContainer.getCurrentMission();
-        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
-        self.hide();
+        self._closeModal();
     };
 
     this._handleCloseButtonClick = function (e) {
-        var nextMission = missionContainer.getCurrentMission();
-        _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
-        self.hide();
+        self._closeModal();
+    };
+
+    this._closeModal = function (e) {
+        if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+            // reload the page to load another neighborhood
+            window.location.replace('/audit');
+        } else {
+            var nextMission = missionContainer.getCurrentMission();
+            _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
+            self.hide();
+        }
     };
 
     this.hide = function () {
@@ -82,19 +95,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var unit = "miles";
         var regionId = neighborhood.getProperty("regionId");
 
-        // Compute the distance traveled in this mission, distance traveled so far, and the remaining distance
-        // in this neighborhood
-        var maxDist = 0;
-        var completedMissions = missionContainer.getCompletedMissions();
-        var regionMissions = completedMissions.filter( function (m) { return m.getProperty("regionId") == regionId; });
-
-        if(regionMissions.length > 1){
-            // Map mission distances and sort them descending. Take second highest (highest is this mission)
-            var missionDistances =  regionMissions.map( function (d) { return d.getProperty("distanceMi"); }).sort().reverse();
-            maxDist = missionDistances[1];
-        }
-
-        var missionDistance = mission.getProperty("distanceMi") - maxDist;
+        var missionDistance = mission.getProperty("auditDistanceMi");
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
 
@@ -112,7 +113,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName);
+        this.setMissionTitle(neighborhoodName + ": Mission Complete!");
 
         modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
@@ -120,6 +121,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
+
     };
 
     uiModalMissionComplete.background.on("click", this._handleBackgroundClick);

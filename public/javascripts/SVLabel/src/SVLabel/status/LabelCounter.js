@@ -6,7 +6,7 @@
  * @memberof svl
  */
 function LabelCounter (d3) {
-    var self = {className: 'LabelCounter'};
+    var self = this;
 
     var radius = 0.4, dR = radius / 2,
         svgWidth = 200, svgHeight = 120,
@@ -125,28 +125,21 @@ function LabelCounter (d3) {
             .attr("width", imageWidth)
             .attr("height", imageHeight)
             .attr('transform', 'translate(0,-15)');
-      //dotPlots[key].countLabel = dotPlots[key].plot.selectAll("text.count-label")
-      //  .data([0])
-      //  .enter()
-      //  .append("text")
-      //  .style("font-size", "11px")
-      //  .style("fill", "gray")
-      //  .attr("class", "visible");
     }
 
 
-    function countLabel(labelType) {
+    this.countLabel = function (labelType) {
         return labelType in dotPlots ? dotPlots[labelType].count : null;
-    }
+    };
 
     /**
      * Set label counts to 0
      */
-    function reset () {
+    this.reset = function () {
         for (var key in dotPlots) {
-            set(key, 0);
+            self.set(key, 0);
         }
-    }
+    };
 
     /**
      * Update the label count visualization.
@@ -265,42 +258,41 @@ function LabelCounter (d3) {
      * Decrement the label count
      * @param key {string} Label type
      */
-    function decrement(key) {
+    this.decrement = function (key) {
         if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
         update(key);
-    }
+    };
 
     /**
      * Increment the label count
      * @param key {string} Label type
      */
-    function increment(key) {
+    this.increment = function (key) {
         if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);
         }
-    }
+    };
 
     /**
      * Set the number of label count
      * @param key {string} Label type
      * @param num {number} Label type count
      */
-    function set(key, num) {
+    this.set = function (key, num) {
         dotPlots[key].count = num;
         update(key);
-    }
+    };
 
     // Initialize
     update();
-    self.countLabel = countLabel;
-    self.increment = increment;
-    self.decrement = decrement;
-    self.set = set;
-    self.reset = reset;
-    return self;
+    // self.countLabel = countLabel;
+    // self.increment = increment;
+    // self.decrement = decrement;
+    // self.set = set;
+    // self.reset = reset;
 }

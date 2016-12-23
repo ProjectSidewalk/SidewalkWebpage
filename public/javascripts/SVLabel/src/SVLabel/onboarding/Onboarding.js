@@ -270,14 +270,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         modalMission.setMissionMessage(mission, neighborhood);
         modalMission.show();
 
-        var nextTask = taskContainer.nextTask();
-        if (!nextTask) {
-            var currentNeighborhood = neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-            nextTask = taskContainer.nextTask();
-        }
-        taskContainer.initNextTask(nextTask);
+        taskContainer.getFinishedAndInitNextTask();
     }
 
     function _onboardingStateAnnotationExists (state) {

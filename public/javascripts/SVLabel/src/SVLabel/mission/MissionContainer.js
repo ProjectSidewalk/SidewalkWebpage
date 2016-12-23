@@ -267,6 +267,8 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
     }
 
     function getTasksMissionsOffset(value) {
+        // See issue https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297
+        // Check pull request for more details
         return tasksMissionsOffset;
     }
 
