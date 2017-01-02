@@ -19,13 +19,63 @@
                     <div id="admin-map"></div>
                     <div id="map-label-legend">
                         <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-occlusion"></td><td>Can't see sidewalk</td><td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-nosidewalk"></td><td>No Sidewalk</td><td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
-                            <tr><td id="map-legend-other"></td><td>Other</td><td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
+                            <tr>
+                                <td id="map-legend-curb-ramp" width="10%"></td>
+                                <td width="30%">Curb Ramp</td>
+                                <td width="5%"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "curb-ramp-slider"></div></td>
+                                <td width="20%" align= "center"><span id="curb-ramp-severity-label">All</span></td>
+
+                            </tr>
+                            <tr>
+                                <td id="map-legend-no-curb-ramp"></td>
+                                <td width = "30%">Missing Curb Ramp</td>
+                                <td width="5"><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "missing-curb-ramp-slider"></div></td>
+                                <td width="20%" align= "center"><span id="missing-curb-ramp-severity-label">All</span></td>
+                            </tr>
+
+                            <tr>
+                                <td id="map-legend-obstacle"></td>
+                                <td>Obstacle in Path</td>
+                                <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "obstacle-slider"></div></td>
+                                <td width="20%" align= "center"><span id="obstacle-severity-label">All</span></td>
+                            </tr>
+                            <tr><td id="map-legend-surface-problem"></td>
+                                <td>Surface Problem</td>
+                                <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "surface-problem-slider"></div></td>
+                                <td width="20%" align= "center"><span id="surface-problem-severity-label">All</span></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-occlusion"></td>
+                                <td>Can't see sidewalk</td>
+                                <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "occlusion-slider"></div></td>
+                                <td width="20%" align= "center"><span id="occlusion-severity-label">All</span></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-nosidewalk"></td>
+                                <td>No Sidewalk</td>
+                                <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "no-sidewalk-slider"></div></td>
+                                <td width="20%" align= "center"><span id="no-sidewalk-severity-label">All</span></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-other"></td>
+                                <td>Other</td>
+                                <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                <td width="15%" align="right">Severity:</td>
+                                <td width="30%"align="left"><div id = "other-slider"></div></td>
+                                <td width="20%" align= "center"><span id="other-severity-label">All</span></td>
+                            </tr>
                             <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
 
                         </table>
@@ -328,6 +378,7 @@
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/ekko-lightbox.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/ekko-lightbox.min.css")' rel="stylesheet"/>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
@@ -339,6 +390,52 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
+
+    <script>
+
+        var labelArr = new Array("None", 1, 2, 3, 4, 5, "All");
+        var sliderToLabelMap = {};
+        sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
+        sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
+        sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
+        sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
+        sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
+        sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
+        sliderToLabelMap["other-slider"] = "#other-severity-label";
+
+        $( "*[id*='slider']" ).each(function() {
+            $(this).slider({
+                min : 0,
+                max : 6,
+                step: 1,
+                value: 6,
+                slide: function(event, ui) {
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.value]);
+                   // $("#curb-ramp-severity-label").text(labelArr[ui.value]);
+                }
+            });
+        });
+
+        /*$( "#curb-ramp-slider" ).slider({
+            min : 0,
+            max : 6,
+            step: 1,
+            value: 6,
+            slide: function(event, ui) {
+                $("#curb-ramp-severity-label").text(labelArr[ui.value]);
+            }
+        });*/
+
+       /* function severityChanger( event, ui ) {
+            $("#curb-ramp-severity-label").text(labelArr[ui.value]);
+            // $("#label").css("margin-left", (ui.value-min)/(max-min)*100+"%");
+            // $("#label").css("left", "-50px");
+        }*/
+
+
+
+    </script>
+
     <script>
         $(document).ready(function () {
 
