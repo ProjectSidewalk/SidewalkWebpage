@@ -29,16 +29,15 @@
                         <table class="table filter">
                             <tr>
                                 <td></td>
-                                <td colspan="2" align="left" style="font-weight:bold"> Type</td>
+                                <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
                                 <td colspan="2" align="left" style="font-weight:bold">Severity</td>
-
                             </tr>
                             <tr>
                                 <td id="map-legend-curb-ramp" width="12px"></td>
                                 <td width="190px">Curb Ramp</td>
                                 <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td>
-                                <td width="121px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
-                                <td width="85px" align= "center" ><span id="curb-ramp-severity-label">All</span></td>
+                                <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
+                                <td width="60px" align= "center" ><span id="curb-ramp-severity-label">All</span></td>
 
                             </tr>
                             <tr>
@@ -399,8 +398,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
 
     <script>
-
-        var labelArr = new Array("None", 1, 2, 3, 4, 5, "All");
+        var labelArr = new Array(1, 2, 3, 4, 5, "All");
         var sliderToLabelMap = {};
         sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
         sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
@@ -413,42 +411,21 @@
         $( "*[id*='slider']" ).each(function() {
             $(this).slider({
                 min : 0,
-                max : 6,
+                max : 5,
                 step: 1,
-                value: 6,
+                value: 5,
                 slide: function(event, ui) {
                     $(sliderToLabelMap[this.id]).text(labelArr[ui.value]);
-                   // $("#curb-ramp-severity-label").text(labelArr[ui.value]);
                 },
                 change: function(event,ui) {
                     admin.updateVisibleMarkers();
                 }
             });
         });
-
-        /*$( "#curb-ramp-slider" ).slider({
-            min : 0,
-            max : 6,
-            step: 1,
-            value: 6,
-            slide: function(event, ui) {
-                $("#curb-ramp-severity-label").text(labelArr[ui.value]);
-            }
-        });*/
-
-       /* function severityChanger( event, ui ) {
-            $("#curb-ramp-severity-label").text(labelArr[ui.value]);
-            // $("#label").css("margin-left", (ui.value-min)/(max-min)*100+"%");
-            // $("#label").css("left", "-50px");
-        }*/
-
-
-
     </script>
 
     <script>
         $(document).ready(function () {
-
 
             window.admin = Admin (_, $, c3, turf);
             $('#commentsTable').dataTable();

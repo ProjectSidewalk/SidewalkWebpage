@@ -491,19 +491,17 @@ function Admin (_, $, c3, turf) {
     }
 
     function updateMarkerSeverity(label, severity) {
-        if (severity == 0) {
-            self.visibleMarkers[label] = [];
-        } else if (severity === 1) {
+       if (severity === 0) {
             self.visibleMarkers[label] = [1];
-        } else if (severity === 2) {
+        } else if (severity === 1) {
             self.visibleMarkers[label] = [2];
-        } else if (severity === 3) {
+        } else if (severity === 2) {
             self.visibleMarkers[label] = [3];
-        } else if (severity === 4) {
+        } else if (severity === 3) {
             self.visibleMarkers[label] = [4];
-        } else if (severity === 5) {
+        } else if (severity === 4) {
             self.visibleMarkers[label] = [5];
-        } else if (severity === 6) {
+        } else if (severity === 5) {
             self.visibleMarkers[label] = [1,2,3,4,5];
         }
     }
