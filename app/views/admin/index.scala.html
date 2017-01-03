@@ -412,6 +412,9 @@
                 slide: function(event, ui) {
                     $(sliderToLabelMap[this.id]).text(labelArr[ui.value]);
                    // $("#curb-ramp-severity-label").text(labelArr[ui.value]);
+                },
+                change: function(event,ui) {
+                    admin.updateVisibleMarkers();
                 }
             });
         });
