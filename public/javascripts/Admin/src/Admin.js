@@ -491,18 +491,27 @@ function Admin (_, $, c3, turf) {
     }
 
     function updateMarkerSeverity(label, severity) {
-       if (severity === 0) {
-            self.visibleMarkers[label] = [1];
-        } else if (severity === 1) {
-            self.visibleMarkers[label] = [2];
-        } else if (severity === 2) {
-            self.visibleMarkers[label] = [3];
-        } else if (severity === 3) {
-            self.visibleMarkers[label] = [4];
-        } else if (severity === 4) {
-            self.visibleMarkers[label] = [5];
-        } else if (severity === 5) {
-            self.visibleMarkers[label] = [1,2,3,4,5];
+        switch (severity) {
+            case 0: // Slider has value '1'
+                self.visibleMarkers[label] = [1];
+                break;
+            case 1: // Slider has value '2'
+                self.visibleMarkers[label] = [2];
+                break;
+            case 2: // Slider has value '3'
+                self.visibleMarkers[label] = [3];
+                break;
+            case 3: // Slider has value '4'
+                self.visibleMarkers[label] = [4];
+                break;
+            case 4: // Slider has value '5'
+                self.visibleMarkers[label] = [5];
+                break;
+            case 5: // Slider has value 'All'
+                self.visibleMarkers[label] = [1,2,3,4,5];
+                break;
+            default:
+                break;
         }
     }
 
