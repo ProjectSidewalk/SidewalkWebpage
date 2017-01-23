@@ -16,11 +16,11 @@
     <div id="row">
         <div class="col-md-2">
         <ul class="nav nav-pills nav-stacked">
-            <li class="active"><a href="#tabs-1"data-toggle="pill">Overview</a></li>
-            <li><a href="#tabs-2" data-toggle="pill">Analytics</a></li>
-            <li><a href="#tabs-3" data-toggle="pill">Contributions</a></li>
-            <li><a href="#tabs-4" data-toggle="pill">Users</a></li>
-            <li><a href="#tabs-5" data-toggle="pill">Anonymous Users</a></li>
+            <li class="active"><a href="#tabs-1"data-toggle="pill" id="overview">Overview</a></li>
+            <li><a href="#tabs-2" data-toggle="pill" id="analytics">Analytics</a></li>
+            <li><a href="#tabs-3" data-toggle="pill" id="contributions">Contributions</a></li>
+            <li><a href="#tabs-4" data-toggle="pill" id="users">Users</a></li>
+            <li><a href="#tabs-5" data-toggle="pill" id="anonymous">Anonymous Users</a></li>
         </ul>
         </div>
         <div class="col-md-10">
@@ -437,8 +437,8 @@
         $('#anonUserTable').dataTable();
         $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
         $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
+
     });
 
 
-</script>
-}
+</script> }
