@@ -6,6 +6,159 @@ function Admin (_, $, c3, turf) {
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
+    // console.log(document.getElementById("anonUserTable").rows);
+    // Getting data for histograms
+    var regUserTable = document.getElementById("userTable").rows;
+    var anonUserTable = document.getElementById("anonUserTable").rows;
+
+    var regUserLabels = [], regUserAudits = [], regUserMissions = [];
+    var anonUserLabels = [], anonUserAudits = [];
+
+    for(var i = 1; i < regUserTable.length; i++) {
+        var userInfo = regUserTable[i].innerText.split("\t");
+        regUserLabels.push(userInfo[userInfo.length - 1]);
+        regUserAudits.push(userInfo[userInfo.length - 2]);
+        regUserMissions.push(userInfo[userInfo.length - 3]);
+    }
+
+    for(var i = 1; i < anonUserTable.length; i++) {
+        var userInfo = anonUserTable[i].innerText.split("\t");
+        anonUserLabels.push(userInfo[userInfo.length - 1]);
+        anonUserAudits.push(userInfo[userInfo.length - 2]);
+    }
+
+    var allUsersLabels = regUserLabels.concat(anonUserLabels);
+    var allUsersAudits = regUserAudits.concat(anonUserAudits);
+
+    // new histogram code
+    drawHistogram("svg1", "Labels Made Per User (Registered)", "Labels", regUserLabels);
+    drawHistogram("svg2", "Labels Made Per User (Anonymous)", "Labels", anonUserLabels);
+    drawHistogram("svg3", "Labels Made Per User (All)", "Labels", allUsersLabels);
+    drawHistogram("svg4", "Audits Made Per User (Registered)", "Audits", regUserAudits);
+    drawHistogram("svg5", "Audits Made Per User (Anonymous)", "Audits", anonUserAudits);
+    drawHistogram("svg6", "Audits Made Per User (All)", "Audits", allUsersAudits);
+    drawHistogram("svg7", "Missions Cleared Per User (Registered)", "Missions", regUserMissions);
+
+    function drawHistogram(svgID, title, xAxis, data) {
+        var mean = Math.round(d3.mean(data));
+        var median = Math.round(d3.median(data));
+        var padding = 20;
+        var titlePadding = 25;
+        var meanMedianOffset = 60;
+        var meanOffset = 30;
+        var medianOffset = 50;
+        var correcting = 20;
+        var textOffset = 15;
+
+        var formatCount = d3.format(",.0f");
+
+        var svg = d3.select("#" + svgID),
+            margin = {top: 10, right: 30, bottom: 40, left: 30},
+            width = +svg.attr("width") - margin.left - margin.right,
+            height = +svg.attr("height") - margin.top - margin.bottom,
+            g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var x = d3.scaleLinear()
+            .domain([0, d3.max(data)])
+            .range([padding, width]);
+            //.rangeRound([padding, width]);
+
+        var bins = d3.histogram()
+            .domain(x.domain())
+            .thresholds(x.ticks(10))
+            (data);
+
+        var y = d3.scaleLinear()
+            .domain([0, d3.max(bins, function(d) { return d.length; })])
+            .range([height, padding + meanMedianOffset]);
+
+        svg.append("text")
+            .attr("transform",
+                    "translate(" + (margin.left + x(d3.max(data) / 2)) + " ," + (height + margin.top + 35) + ")")
+            .style("text-anchor", "middle")
+            .style("font-family", "Helvetica Neue")
+            .text(xAxis);
+
+        svg.append("text")
+            .attr("x", width/2 + padding)
+            .attr("y", margin.top + titlePadding)
+            .style("text-anchor", "middle")
+            .style("font-family", "Helvetica Neue")
+            .style("font-size", "32px")
+            .text(title);
+
+        svg.append("text")
+            .attr("transform",
+                  "translate(" + (margin.left + x(mean)) + " ," + (titlePadding + meanOffset + correcting - textOffset) + ")")
+            .style("text-anchor", "middle")
+            .style("font-family", "Helvetica Neue")
+            .style("font-size", "12px")
+            .style("fill", "#ee7600")
+            .text("Mean: " + mean);
+
+        svg.append("text")
+            .attr("transform",
+                    "translate(" + (margin.left + x(median)) + " ," + (titlePadding + medianOffset + correcting - textOffset) + ")")
+            .style("text-anchor", "middle")
+            .style("font-family", "Helvetica Neue")
+            .style("font-size", "12px")
+            .style("fill", "#ee7600")
+            .text("Median: " + median);
+
+        svg.append("rect")
+            .attr("x", margin.left + x(mean))
+            .attr("y", margin.top + titlePadding + meanOffset)
+            .attr("width", 2)
+            .attr("height", height - correcting - meanOffset)
+            .style("fill", "#ee7600");
+
+        svg.append("rect")
+            .attr("x", margin.left + x(median))//width / d3.max(data) * median + padding + margin.left)
+            .attr("y", margin.top + titlePadding + medianOffset)
+            .attr("width", 2)
+            .attr("height", height - correcting - medianOffset)
+            .style("fill", "#ee7600");
+
+        // svg.append("text")
+        //     .attr("x", -width/3)
+        //     .attr("y", height/2 + margin.top)
+        //     .attr("transform", "rotate(-90)")
+        //     .style("text-anchor", "middle")
+        //     .style("font-family", "Lato")
+        //     .text("User Time Spent (min)");
+
+        var bar = g.selectAll(".bar")
+            .data(bins)
+            .enter().append("g")
+            .attr("class", "bar")
+            .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; });
+
+        bar.append("rect")
+            .attr("x", 1)
+            .attr("width", x(bins[0].x1) - x(bins[0].x0) - 1)
+            .attr("height", function(d) { return height - y(d.length); })
+            .style("fill", "steelblue");
+
+        // bar.append("text")
+        //     .attr("dy", ".75em")
+        //     .attr("y", 6)
+        //     .attr("x", (x(bins[0].x1) - x(bins[0].x0)) / 2)
+        //     .attr("text-anchor", "middle")
+        //     .text(function(d) { return formatCount(d.length); });
+
+        g.append("g")
+            .attr("class", "axis axis--y")
+            .attr("transform", "translate(" + padding+ ")")
+            .call(d3.axisLeft(y));
+
+        g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+        }
+    // end new histogram code
+
+
     // Construct a bounding box for this map that the user cannot move out of
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
     var southWest = L.latLng(38.761, -77.262),
@@ -29,263 +182,8 @@ function Admin (_, $, c3, turf) {
             .fitBounds(bounds)
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
-    
-    // Draw an onboarding interaction chart
-    $.getJSON("/adminapi/onboardingInteractions", function (data) {
-        function cmp (a, b) {
-            return a.timestamp - b.timestamp;
-        }
 
-        // Group the audit task interaction records by audit_task_id, then go through each group and compute
-        // the duration between the first time stamp and the last time stamp.
-        var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
-        var completionDurationArray = [];
-        var record1;
-        var record2;
-        var duration;
-        for (var auditTaskId in grouped) {
-            grouped[auditTaskId].sort(cmp);
-            record1 = grouped[auditTaskId][0];
-            record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-            duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
-            completionDurationArray.push(duration);
-        }
-        completionDurationArray.sort(function (a, b) { return a - b; });
 
-        // Bounce rate
-        var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
-        var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
-
-        // Histogram of duration
-        completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
-        var numberOfBins = 10;
-        var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-        // console.log(histogram);
-        var counts = histogram.histogram;
-        counts.unshift("Count");
-        var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
-
-        $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
-
-        var chart = c3.generate({
-            bindto: '#onboarding-completion-duration-histogram',
-            data: {
-                columns: [
-                    counts
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    label: "Onboarding Completion Time (s)",
-                    type: 'category',
-                    categories: bins
-                },
-                y: {
-                    label: "Count",
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-        var i,
-            len = data.length;
-
-        // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-        var missions = {};
-        var printedMissionName;
-        for (i = 0; i < len; i++) {
-            // Set the printed mission name
-            if (data[i].label == "initial-mission") {
-                printedMissionName = "Initial Mission (1000 ft)";
-            } else if (data[i].label == "distance-mission") {
-                if (data[i].level <= 2) {
-                    printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                } else {
-                    printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
-                }
-            } else {
-                printedMissionName = "Onboarding";
-            }
-
-            // Create a counter for the printedMissionName if it does not exist yet.
-            if (!(printedMissionName in missions)) {
-                missions[printedMissionName] = {
-                    label: data[i].label,
-                    level: data[i].level,
-                    printedMissionName: printedMissionName,
-                    count: 0
-                };
-            }
-            missions[printedMissionName].count += 1;
-        }
-        var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
-        arrayOfMissions.sort(function (a, b) {
-            if (a.count < b.count) { return 1; }
-            else if (a.count > b.count) { return -1; }
-            else { return 0; }
-        });
-        
-        var missionCountArray = ["Mission Counts"];
-        var missionNames = [];
-        for (i = 0; i < arrayOfMissions.length; i++) {
-            missionCountArray.push(arrayOfMissions[i].count);
-            missionNames.push(arrayOfMissions[i].printedMissionName);
-        }
-        var chart = c3.generate({
-            bindto: '#completed-mission-histogram',
-            data: {
-                columns: [
-                    missionCountArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: missionNames
-                },
-                y: {
-                    label: "# Users Completed the Mission",
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-        var i,
-            len = data.length,
-            completionRate,
-            row,
-            rows = "";
-        var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
-        var coverageDistanceArray = ["Neighborhood Coverage (m)"];
-        var neighborhoodNames = [];
-        for (i = 0; i < len; i++) {
-            completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
-            coverageRateColumn.push(completionRate);
-            coverageDistanceArray.push(data[i].completed_distance_m);
-
-            neighborhoodNames.push(data[i].name);
-            // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
-            // rows += row;
-        }
-
-        var coverageChart = c3.generate({
-            bindto: '#neighborhood-completion-rate',
-            data: {
-                columns: [
-                    coverageRateColumn
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: neighborhoodNames
-                },
-                y: {
-                    label: "Neighborhood Coverage Rate (%)",
-                    min: 0,
-                    max: 100,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-
-        var coverageDistanceChart = c3.generate({
-            bindto: '#neighborhood-completed-distance',
-            data: {
-                columns: [
-                    coverageDistanceArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: neighborhoodNames
-                },
-                y: {
-                    label: "Coverage Distance (m)",
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-
-    });
-
-    $.getJSON("/contribution/auditCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-            counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
-        var chart = c3.generate({
-            bindto: "#audit-count-chart",
-            data: {
-                x: 'Date',
-                columns: [ dates, counts ],
-                types: { 'Audit Count': 'line' }
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: { format: '%Y-%m-%d' }
-                },
-                y: {
-                    label: "Street Audit Count",
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON("/userapi/labelCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-            counts = ['Label Count'].concat(data[0].map(function (x) { return x.count; }));
-        var chart = c3.generate({
-            bindto: "#label-count-chart",
-            data: {
-                x: 'Date',
-                columns: [ dates, counts ],
-                types: { 'Audit Count': 'line' }
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: { format: '%Y-%m-%d' }
-                },
-                y: {
-                    label: "Label Count",
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
 
     // Initialize the map
     /**
