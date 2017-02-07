@@ -2,7 +2,8 @@ function Admin (_, $, c3, turf) {
     var self = {};
     self.markerLayer = null;
     self.auditedStreetLayer = null;
-    self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Occlusion", "NoSidewalk", "Other"];
+    self.visibleMarkers = {"CurbRamp" : [1,2,3,4,5], "NoCurbRamp" : [1,2,3,4,5], "Obstacle" : [1,2,3,4,5],
+        "SurfaceProblem" : [1,2,3,4,5], "Occlusion" : [1,2,3,4,5], "NoSidewalk" : [1,2,3,4,5], "Other" : [1,2,3,4,5]};
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -466,7 +467,8 @@ function Admin (_, $, c3, turf) {
                     return L.circleMarker(latlng, style);
                 },
                 filter: function (feature, layer) {
-                    return ($.inArray(feature.properties.label_type, self.visibleMarkers) > -1);
+                    return ($.inArray(feature.properties.label_type, Object.keys(self.visibleMarkers)) > - 1
+                    && $.inArray(feature.properties.severity, self.visibleMarkers[feature.properties.label_type]) > -1);
 
                 },
                 onEachFeature: onEachLabelFeature
@@ -488,28 +490,53 @@ function Admin (_, $, c3, turf) {
         initializeSubmittedLabels(map);
     }
 
+    function updateMarkerSeverity(label, severity) {
+        switch (severity) {
+            case 0: // Slider has value '1'
+                self.visibleMarkers[label] = [1];
+                break;
+            case 1: // Slider has value '2'
+                self.visibleMarkers[label] = [2];
+                break;
+            case 2: // Slider has value '3'
+                self.visibleMarkers[label] = [3];
+                break;
+            case 3: // Slider has value '4'
+                self.visibleMarkers[label] = [4];
+                break;
+            case 4: // Slider has value '5'
+                self.visibleMarkers[label] = [5];
+                break;
+            case 5: // Slider has value 'All'
+                self.visibleMarkers[label] = [1,2,3,4,5];
+                break;
+            default:
+                break;
+        }
+    }
+
     function updateVisibleMarkers() {
-        self.visibleMarkers = []
+        self.visibleMarkers = {}
         if (document.getElementById("curbramp").checked) {
-            self.visibleMarkers.push("CurbRamp");
+            updateMarkerSeverity("CurbRamp", $('#curb-ramp-slider').slider("option", "value"));
         }
         if (document.getElementById("missingcurbramp").checked) {
-            self.visibleMarkers.push("NoCurbRamp");
+            updateMarkerSeverity("NoCurbRamp", $('#missing-curb-ramp-slider').slider("option", "value"));
         }
         if (document.getElementById("obstacle").checked) {
-            self.visibleMarkers.push("Obstacle");
+            updateMarkerSeverity("Obstacle", $('#obstacle-slider').slider("option", "value"));
         }
         if (document.getElementById("surfaceprob").checked) {
-            self.visibleMarkers.push("SurfaceProblem");
+            updateMarkerSeverity("SurfaceProblem", $('#surface-problem-slider').slider("option", "value"));
         }
         if (document.getElementById("occlusion").checked) {
-            self.visibleMarkers.push("Occlusion");
+            updateMarkerSeverity("Occlusion", $('#occlusion-slider').slider("option", "value"));
         }
         if (document.getElementById("nosidewalk").checked) {
-            self.visibleMarkers.push("NoSidewalk");
+            updateMarkerSeverity("NoSidewalk", $('#no-sidewalk-slider').slider("option", "value"));
         }
         if (document.getElementById("other").checked) {
-            self.visibleMarkers.push("Other");
+            updateMarkerSeverity("Other", $('#other-slider').slider("option", "value"));
         }
 
 
