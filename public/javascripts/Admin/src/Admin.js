@@ -1,7 +1,6 @@
 function Admin (_, $, c3, turf) {
     var self = {};
     self.markerLayer = null;
-    self.data = null;
     self.graphsLoaded = false;
     self.auditedStreetLayer = null;
     self.visibleMarkers = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Occlusion", "NoSidewalk", "Other"];
