@@ -1,10 +1,11 @@
 function Admin (_, $, c3, turf) {
     var self = {};
+    var severityList = [1,2,3,4,5];
     self.markerLayer = null;
     self.graphsLoaded = false;
     self.auditedStreetLayer = null;
-    self.visibleMarkers = {"CurbRamp" : [1,2,3,4,5], "NoCurbRamp" : [1,2,3,4,5], "Obstacle" : [1,2,3,4,5],
-        "SurfaceProblem" : [1,2,3,4,5], "Occlusion" : [1,2,3,4,5], "NoSidewalk" : [1,2,3,4,5], "Other" : [1,2,3,4,5]};
+    self.visibleMarkers = {"CurbRamp" : severityList, "NoCurbRamp" : severityList, "Obstacle" : severityList,
+        "SurfaceProblem" : severityList, "Occlusion" : severityList, "NoSidewalk" : severityList, "Other" : severityList};
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -252,7 +253,7 @@ function Admin (_, $, c3, turf) {
                 self.visibleMarkers[label] = [5];
                 break;
             case 5: // Slider has value 'All'
-                self.visibleMarkers[label] = [1,2,3,4,5];
+                self.visibleMarkers[label] = severityList;
                 break;
             default:
                 break;
