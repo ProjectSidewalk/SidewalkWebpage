@@ -550,6 +550,14 @@ function Admin (_, $, c3, turf) {
 
     }
 
+    // Toggles the state of the checkboxes for all the labels on the map
+    function toggleAll() {
+        var checked = document.getElementById("check_all").checked;
+        var checkBoxes = $("input[value=displaylabel]");
+        checkBoxes.prop('checked', checked);
+        updateVisibleMarkers();
+    }
+
 
     // A helper method to make an histogram of an array.
     function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
@@ -591,5 +599,6 @@ function Admin (_, $, c3, turf) {
     self.clearAuditedStreetLayer = clearAuditedStreetLayer;
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.updateVisibleMarkers = updateVisibleMarkers;
+    self.toggleAll = toggleAll;
     return self;
 }
