@@ -29,7 +29,7 @@ function Admin (_, $, c3, turf) {
 
     var allUsersLabels = regUserLabels.concat(anonUserLabels);
     var allUsersAudits = regUserAudits.concat(anonUserAudits);
-
+/*
     // new histogram code
     drawHistogram("svg1", "Labels Made Per User (Registered)", "Labels", regUserLabels);
     drawHistogram("svg2", "Labels Made Per User (Anonymous)", "Labels", anonUserLabels);
@@ -37,7 +37,7 @@ function Admin (_, $, c3, turf) {
     drawHistogram("svg4", "Audits Made Per User (Registered)", "Audits", regUserAudits);
     drawHistogram("svg5", "Audits Made Per User (Anonymous)", "Audits", anonUserAudits);
     drawHistogram("svg6", "Audits Made Per User (All)", "Audits", allUsersAudits);
-    drawHistogram("svg7", "Missions Cleared Per User (Registered)", "Missions", regUserMissions);
+    drawHistogram("svg7", "Missions Completed Per User (Registered)", "Missions", regUserMissions);
 
     function drawHistogram(svgID, title, xAxis, data) {
         var mean = Math.round(d3.mean(data));
@@ -78,6 +78,14 @@ function Admin (_, $, c3, turf) {
             .style("text-anchor", "middle")
             .style("font-family", "Helvetica Neue")
             .text(xAxis);
+
+        //new y-axis labels
+        svg.append("text")
+            .attr("x", -1 * (height / 2 + titlePadding + meanOffset))
+            .attr("y", margin.left / 2)
+            .attr("transform", "rotate(-90)")
+            .style("font-family", "Helvetica Neue")
+            .text("Users");
 
         svg.append("text")
             .attr("x", width/2 + padding)
@@ -157,7 +165,7 @@ function Admin (_, $, c3, turf) {
             .call(d3.axisBottom(x));
         }
     // end new histogram code
-
+*/
 
     // Construct a bounding box for this map that the user cannot move out of
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
@@ -183,6 +191,319 @@ function Admin (_, $, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
+        // Draw an onboarding interaction chart
+    $.getJSON("/adminapi/onboardingInteractions", function (data) {
+        function cmp (a, b) {
+            return a.timestamp - b.timestamp;
+        }
+
+        // Group the audit task interaction records by audit_task_id, then go through each group and compute
+        // the duration between the first time stamp and the last time stamp.
+        var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
+        var completionDurationArray = [];
+        var record1;
+        var record2;
+        var duration;
+        for (var auditTaskId in grouped) {
+            grouped[auditTaskId].sort(cmp);
+            record1 = grouped[auditTaskId][0];
+            record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
+            duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
+            completionDurationArray.push(duration);
+        }
+        completionDurationArray.sort(function (a, b) { return a - b; });
+
+        // Bounce rate
+        var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
+        var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
+
+        // Histogram of duration
+        completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
+        var numberOfBins = 10;
+        var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
+        // console.log(histogram);
+        var counts = histogram.histogram;
+        counts.unshift("Count");
+        var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize / 60).toFixed(1) + " - " + ((i + 1) * histogram.stepSize / 60).toFixed(1); });
+
+        $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
+
+        var chart = c3.generate({
+            bindto: '#onboarding-completion-duration-histogram',
+            data: {
+                columns: [
+                    counts
+                ],
+                type: 'bar'
+            },
+            axis: {
+                x: {
+                    label: {
+                        text: 'Tutorial Completion Time (min)',
+                        position: 'outer-center'
+                    },
+                    type: 'category',
+                    categories: bins
+                },
+                y: {
+                    label: {
+                        text: 'Count',
+                        position: 'outer-middle'
+                    },
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+    });
+
+    $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
+        var i,
+            len = data.length;
+
+        // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
+        var missions = {};
+        var printedMissionName;
+        for (i = 0; i < len; i++) {
+            // Set the printed mission name
+            if (data[i].label == "initial-mission") {
+                printedMissionName = "Initial Mission (1000 ft)";
+            } else if (data[i].label == "distance-mission") {
+                if (data[i].level <= 2) {
+                    printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
+                } else {
+                    printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
+                }
+            } else {
+                printedMissionName = "Tutorial";
+            }
+
+            // Create a counter for the printedMissionName if it does not exist yet.
+            if (!(printedMissionName in missions)) {
+                missions[printedMissionName] = {
+                    label: data[i].label,
+                    level: data[i].level,
+                    printedMissionName: printedMissionName,
+                    count: 0
+                };
+            }
+            missions[printedMissionName].count += 1;
+        }
+        var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
+        arrayOfMissions.sort(function (a, b) {
+            if (a.count < b.count) { return 1; }
+            else if (a.count > b.count) { return -1; }
+            else { return 0; }
+        });
+
+        var missionCountArray = ["Mission Counts"];
+        var missionNames = [];
+        for (i = 0; i < arrayOfMissions.length; i++) {
+            console.log(arrayOfMissions[i]);
+            missionCountArray.push(arrayOfMissions[i].count);
+            var rawMissionName = arrayOfMissions[i].printedMissionName;
+            if(rawMissionName.includes("Distance")) {
+                var missionDist = rawMissionName.substring(rawMissionName.indexOf("(") + 1, rawMissionName.length - 1);
+
+                if(missionDist.includes("mi")) {
+                    //miles to feet
+                    missionDist = parseInt(missionDist.substring(0, missionDist.indexOf(" "))) * 5280 + " ft";
+                }
+
+                missionNames.push(missionDist);
+            } else {
+                missionNames.push(rawMissionName);
+            }
+
+        }
+
+        var chart = c3.generate({
+            bindto: '#completed-mission-histogram',
+            data: {
+                columns: [
+                    missionCountArray
+                ],
+                type: 'bar'
+            },
+            axis: {
+                x: {
+                    label: {
+                        text: 'Mission Distance',
+                        position: 'outer-center'
+                    },
+                    type: 'category',
+                    categories: missionNames
+                },
+                y: {
+                    label: {
+                        text: 'Users',
+                        position: 'outer-middle'
+                    },
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+    });
+
+    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+        var i,
+            len = data.length,
+            completionRate,
+            row,
+            rows = "";
+        var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
+        var coverageDistanceArray = ["Neighborhood Coverage (m)"];
+        var neighborhoodNames = [];
+        for (i = 0; i < len; i++) {
+            completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
+            //console.log(data[i].name);
+            //console.log(completionRate);
+            coverageRateColumn.push(completionRate);
+            coverageDistanceArray.push(data[i].completed_distance_m);
+
+            neighborhoodNames.push(data[i].name);
+            // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
+            // rows += row;
+        }
+
+        coverageRateColumn.sort(function(a, b) {
+            return b - a;
+        });
+        coverageDistanceArray.sort(function(a, b) {
+            return b - a;
+        });
+
+        var coverageChart = c3.generate({
+            bindto: '#neighborhood-completion-rate',
+            size: {
+                // hardcoded value
+                height: 4000,
+            },
+            data: {
+                columns: [
+                    coverageRateColumn
+                ],
+                type: 'bar'
+            },
+            axis: {
+                x: {
+                    type: 'category',
+                    categories: neighborhoodNames
+                },
+                y: {
+                    label: {
+                        text: 'Coverage Rate (%)',
+                        position: 'outer-middle'
+                    },
+                    min: 0,
+                    max: 100,
+                    padding: { top: 50, bottom: 10 },
+                },
+                rotated: true
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        var coverageDistanceChart = c3.generate({
+            bindto: '#neighborhood-completed-distance',
+            size: {
+                // hardcoded value
+                height: 4000
+            },
+            data: {
+                columns: [
+                    coverageDistanceArray
+                ],
+                type: 'bar'
+            },
+            axis: {
+                x: {
+                    // label: {
+                    //     text: 'Neighborhood',
+                    //     position: 'outer-center'
+                    // },
+                    type: 'category',
+                    categories: neighborhoodNames
+                },
+                y: {
+                    label: {
+                        text: 'Coverage Distance (m)',
+                        position: 'outer-middle'
+                    },
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                },
+                rotated: true
+            },
+            legend: {
+                show: false
+            }
+        });
+
+    });
+
+    $.getJSON("/contribution/auditCounts/all", function (data) {
+        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
+            counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
+        var chart = c3.generate({
+            bindto: "#audit-count-chart",
+            data: {
+                x: 'Date',
+                columns: [ dates, counts ],
+                types: { 'Audit Count': 'line' }
+            },
+            axis: {
+                x: {
+                    type: 'timeseries',
+                    tick: { format: '%Y-%m-%d' }
+                },
+                y: {
+                    label: "Street Audit Count",
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+    });
+
+    $.getJSON("/userapi/labelCounts/all", function (data) {
+        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
+            counts = ['Label Count'].concat(data[0].map(function (x) { return x.count; }));
+        var chart = c3.generate({
+            bindto: "#label-count-chart",
+            data: {
+                x: 'Date',
+                columns: [ dates, counts ],
+                types: { 'Audit Count': 'line' }
+            },
+            axis: {
+                x: {
+                    type: 'timeseries',
+                    tick: { format: '%Y-%m-%d' }
+                },
+                y: {
+                    label: "Label Count",
+                    min: 0,
+                    padding: { top: 50, bottom: 10 }
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+    });
 
 
     // Initialize the map
