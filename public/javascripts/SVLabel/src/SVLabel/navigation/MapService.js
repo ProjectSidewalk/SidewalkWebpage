@@ -160,14 +160,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 mode : 'html4',
                 // position: fenway,
                 pov: properties.panoramaPov,
-                pano: params.taskPanoId
+                pano: params.taskPanoId,
+                showRoadLabels: false
             };
         } else if (params.Lat && params.Lng) {
             fenway = new google.maps.LatLng(params.Lat, params.Lng);
             panoramaOptions = {
                 mode : 'html4',
                 position: fenway,
-                pov: properties.panoramaPov
+                pov: properties.panoramaPov,
+                showRoadLabels: false
             };
 
         } else {
