@@ -3,25 +3,39 @@ function Admin (_, $, c3, turf) {
     self.markerLayer = null;
 
     self.curbRampLayers = [];
-/*    for (i = 0; i < 5; i++) {
-        curbRampLayers[i] = [];
-    }*/
-   /* self.curbRampLayer1 = null;
-    self.curbRampLayer2 = null;
-    self.curbRampLayer3 = null;
-    self.curbRampLayer4 = null;
-    self.curbRampLayer5 = null;*/
+    self.missingCurbRampLayers = [];
+    self.obstacleLayers = [];
+    self.surfaceProblemLayers = [];
+    self.cantSeeSidewalkLayers = [];
+    self.noSidewalkLayers = [];
+    self.otherLayers = [];
 
-    self.missingCurbRampLayer = null;
-    self.obstacleLayer = null;
-    self.surfaceProblemLayer = null;
-    self.cantSeeSidewalkLayer = null;
-    self.noSidewalkLayer = null;
-    self.otherLayer = null;
+    for (i = 0; i < 5; i++) {
+        self.curbRampLayers[i] = [];
+        self.missingCurbRampLayers[i] = [];
+        self.obstacleLayers[i] = [];
+        self.surfaceProblemLayers[i] = [];
+        self.cantSeeSidewalkLayers[i] = [];
+        self.noSidewalkLayers[i] = [];
+        self.otherLayers[i] = [];
+    }
+
+    self.allLayers = {
+        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
+        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
+        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
+    };
 
     self.auditedStreetLayer = null;
-    self.visibleMarkers = {"CurbRamp" : [1,2,3,4,5], "NoCurbRamp" : [1,2,3,4,5], "Obstacle" : [1,2,3,4,5],
-        "SurfaceProblem" : [1,2,3,4,5], "Occlusion" : [1,2,3,4,5], "NoSidewalk" : [1,2,3,4,5], "Other" : [1,2,3,4,5]};
+    self.visibleMarkers = {
+        "CurbRamp": [1, 2, 3, 4, 5],
+        "NoCurbRamp": [1, 2, 3, 4, 5],
+        "Obstacle": [1, 2, 3, 4, 5],
+        "SurfaceProblem": [1, 2, 3, 4, 5],
+        "Occlusion": [1, 2, 3, 4, 5],
+        "NoSidewalk": [1, 2, 3, 4, 5],
+        "Other": [1, 2, 3, 4, 5]
+    };
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -31,7 +45,7 @@ function Admin (_, $, c3, turf) {
         northEast = L.latLng(39.060, -76.830),
         bounds = L.latLngBounds(southWest, northEast),
 
-    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
+        // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
         tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
         mapboxTiles = L.tileLayer(tileUrl, {
             attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
@@ -48,16 +62,18 @@ function Admin (_, $, c3, turf) {
             .fitBounds(bounds)
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
-    
+
     // Draw an onboarding interaction chart
     $.getJSON("/adminapi/onboardingInteractions", function (data) {
-        function cmp (a, b) {
+        function cmp(a, b) {
             return a.timestamp - b.timestamp;
         }
 
         // Group the audit task interaction records by audit_task_id, then go through each group and compute
         // the duration between the first time stamp and the last time stamp.
-        var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
+        var grouped = _.groupBy(data, function (x) {
+            return x.audit_task_id;
+        });
         var completionDurationArray = [];
         var record1;
         var record2;
@@ -69,20 +85,28 @@ function Admin (_, $, c3, turf) {
             duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
             completionDurationArray.push(duration);
         }
-        completionDurationArray.sort(function (a, b) { return a - b; });
+        completionDurationArray.sort(function (a, b) {
+            return a - b;
+        });
 
         // Bounce rate
-        var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
+        var zeros = _.countBy(completionDurationArray, function (x) {
+            return x == 0;
+        });
         var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
 
         // Histogram of duration
-        completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
+        completionDurationArray = completionDurationArray.filter(function (x) {
+            return x != 0;
+        });  // Remove zeros
         var numberOfBins = 10;
         var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
         // console.log(histogram);
         var counts = histogram.histogram;
         counts.unshift("Count");
-        var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
+        var bins = histogram.histogram.map(function (x, i) {
+            return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1);
+        });
 
         $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
@@ -103,7 +127,7 @@ function Admin (_, $, c3, turf) {
                 y: {
                     label: "Count",
                     min: 0,
-                    padding: { top: 50, bottom: 10 }
+                    padding: {top: 50, bottom: 10}
                 }
             },
             legend: {
@@ -144,13 +168,21 @@ function Admin (_, $, c3, turf) {
             }
             missions[printedMissionName].count += 1;
         }
-        var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
-        arrayOfMissions.sort(function (a, b) {
-            if (a.count < b.count) { return 1; }
-            else if (a.count > b.count) { return -1; }
-            else { return 0; }
+        var arrayOfMissions = Object.keys(missions).map(function (key) {
+            return missions[key];
         });
-        
+        arrayOfMissions.sort(function (a, b) {
+            if (a.count < b.count) {
+                return 1;
+            }
+            else if (a.count > b.count) {
+                return -1;
+            }
+            else {
+                return 0;
+            }
+        });
+
         var missionCountArray = ["Mission Counts"];
         var missionNames = [];
         for (i = 0; i < arrayOfMissions.length; i++) {
@@ -173,7 +205,7 @@ function Admin (_, $, c3, turf) {
                 y: {
                     label: "# Users Completed the Mission",
                     min: 0,
-                    padding: { top: 50, bottom: 10 }
+                    padding: {top: 50, bottom: 10}
                 }
             },
             legend: {
@@ -218,7 +250,7 @@ function Admin (_, $, c3, turf) {
                     label: "Neighborhood Coverage Rate (%)",
                     min: 0,
                     max: 100,
-                    padding: { top: 50, bottom: 10 }
+                    padding: {top: 50, bottom: 10}
                 }
             },
             legend: {
@@ -242,7 +274,7 @@ function Admin (_, $, c3, turf) {
                 y: {
                     label: "Coverage Distance (m)",
                     min: 0,
-                    padding: { top: 50, bottom: 10 }
+                    padding: {top: 50, bottom: 10}
                 }
             },
             legend: {
@@ -253,24 +285,28 @@ function Admin (_, $, c3, turf) {
     });
 
     $.getJSON("/contribution/auditCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-            counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
+        var dates = ['Date'].concat(data[0].map(function (x) {
+                return x.date;
+            })),
+            counts = ['Audit Count'].concat(data[0].map(function (x) {
+                return x.count;
+            }));
         var chart = c3.generate({
             bindto: "#audit-count-chart",
             data: {
                 x: 'Date',
-                columns: [ dates, counts ],
-                types: { 'Audit Count': 'line' }
+                columns: [dates, counts],
+                types: {'Audit Count': 'line'}
             },
             axis: {
                 x: {
                     type: 'timeseries',
-                    tick: { format: '%Y-%m-%d' }
+                    tick: {format: '%Y-%m-%d'}
                 },
                 y: {
                     label: "Street Audit Count",
                     min: 0,
-                    padding: { top: 50, bottom: 10 }
+                    padding: {top: 50, bottom: 10}
                 }
             },
             legend: {
@@ -280,24 +316,28 @@ function Admin (_, $, c3, turf) {
     });
 
     $.getJSON("/userapi/labelCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-            counts = ['Label Count'].concat(data[0].map(function (x) { return x.count; }));
+        var dates = ['Date'].concat(data[0].map(function (x) {
+                return x.date;
+            })),
+            counts = ['Label Count'].concat(data[0].map(function (x) {
+                return x.count;
+            }));
         var chart = c3.generate({
             bindto: "#label-count-chart",
             data: {
                 x: 'Date',
-                columns: [ dates, counts ],
-                types: { 'Audit Count': 'line' }
+                columns: [dates, counts],
+                types: {'Audit Count': 'line'}
             },
             axis: {
                 x: {
                     type: 'timeseries',
-                    tick: { format: '%Y-%m-%d' }
+                    tick: {format: '%Y-%m-%d'}
                 },
                 y: {
                     label: "Label Count",
                     min: 0,
-                    padding: { top: 50, bottom: 10 }
+                    padding: {top: 50, bottom: 10}
                 }
             },
             legend: {
@@ -310,13 +350,17 @@ function Admin (_, $, c3, turf) {
     /**
      * This function adds a semi-transparent white polygon on top of a map
      */
-    function initializeOverlayPolygon (map) {
+    function initializeOverlayPolygon(map) {
         var overlayPolygon = {
             "type": "FeatureCollection",
-            "features": [{"type": "Feature", "geometry": {
-                "type": "Polygon", "coordinates": [
-                    [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
-                ]}}]};
+            "features": [{
+                "type": "Feature", "geometry": {
+                    "type": "Polygon", "coordinates": [
+                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36], [-75, 36]]
+                    ]
+                }
+            }]
+        };
         var layer = L.geoJson(overlayPolygon);
         layer.setStyle({color: "#ccc", fillColor: "#ccc"});
         layer.addTo(map);
@@ -401,7 +445,7 @@ function Admin (_, $, c3, turf) {
             // Render audited street segments
             self.auditedStreetLayer = L.geoJson(data, {
                 pointToLayer: L.mapbox.marker.style,
-                style: function(feature) {
+                style: function (feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
                     var randomInt = Math.floor(Math.random() * 5);
                     style.color = "#000";
@@ -424,30 +468,6 @@ function Admin (_, $, c3, turf) {
     }
 
     function initializeSubmittedLabels(map) {
-        var colorMapping = util.misc.getLabelColors(),
-            geojsonMarkerOptions = {
-                radius: 5,
-                fillColor: "#ff7800",
-                color: "#ffffff",
-                weight: 1,
-                opacity: 0.5,
-                fillOpacity: 0.5,
-                "stroke-width": 1
-            };
-
-        function onEachLabelFeature(feature, layer) {
-            layer.on('click', function(){
-                self.adminGSVLabelView.showLabel(feature.properties.label_id);
-            });
-            layer.on({
-                'mouseover': function() {
-                    layer.setRadius(15);
-                },
-                'mouseout': function() {
-                    layer.setRadius(5);
-                }
-            })
-        }
 
         $.getJSON("/adminapi/labels/all", function (data) {
             // Count a number of each label type
@@ -477,44 +497,44 @@ function Admin (_, $, c3, turf) {
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
-          /*  self.markerLayer = L.geoJson(data, {
-                pointToLayer: function (feature, latlng) {
-                    var style = $.extend(true, {}, geojsonMarkerOptions);
-                    style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                    style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                    return L.circleMarker(latlng, style);
-                },
-                filter: function (feature, layer) {
-                    return ($.inArray(feature.properties.label_type, Object.keys(self.visibleMarkers)) > - 1
-                    && $.inArray(feature.properties.severity, self.visibleMarkers[feature.properties.label_type]) > -1);
+            /*  self.markerLayer = L.geoJson(data, {
+             pointToLayer: function (feature, latlng) {
+             var style = $.extend(true, {}, geojsonMarkerOptions);
+             style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+             style.color = colorMapping[feature.properties.label_type].strokeStyle;
+             return L.circleMarker(latlng, style);
+             },
+             filter: function (feature, layer) {
+             return ($.inArray(feature.properties.label_type, Object.keys(self.visibleMarkers)) > - 1
+             && $.inArray(feature.properties.severity, self.visibleMarkers[feature.properties.label_type]) > -1);
 
-                },
-                onEachFeature: onEachLabelFeature
-            })
-                .addTo(map);*/
+             },
+             onEachFeature: onEachLabelFeature
+             })
+             .addTo(map);*/
 
-          /*self.curbRampLayer1 = L.geoJson(data, {
-              pointToLayer: function (feature, latlng) {
-                  var style = $.extend(true, {}, geojsonMarkerOptions);
-                  style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                  style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                  return L.circleMarker(latlng, style);
-              },
-              filter: function (feature, layer) {
-                  return (feature.properties.label_type == "CurbRamp" && feature.properties.severity == 5);
+            /*self.curbRampLayer1 = L.geoJson(data, {
+             pointToLayer: function (feature, latlng) {
+             var style = $.extend(true, {}, geojsonMarkerOptions);
+             style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+             style.color = colorMapping[feature.properties.label_type].strokeStyle;
+             return L.circleMarker(latlng, style);
+             },
+             filter: function (feature, layer) {
+             return (feature.properties.label_type == "CurbRamp" && feature.properties.severity == 5);
 
-              },
-              onEachFeature: onEachLabelFeature
-          })
-              .addTo(map);*/
+             },
+             onEachFeature: onEachLabelFeature
+             })
+             .addTo(map);*/
 
-            self.curbRampLayers[0] = initializeLayer(data, "CurbRamp", 1).addTo(map);
-            self.curbRampLayers[1] = initializeLayer(data, "CurbRamp", 2).addTo(map);
-            self.curbRampLayers[2]= initializeLayer(data, "CurbRamp", 3).addTo(map);
-            self.curbRampLayers[3] = initializeLayer(data, "CurbRamp", 4).addTo(map);
-            self.curbRampLayers[4] = initializeLayer(data, "CurbRamp", 5).addTo(map);
-
-            //initializeAllLayers(data);
+            /* self.curbRampLayers[0] = initializeLayer(data, "CurbRamp", 1).addTo(map);
+             self.curbRampLayers[1] = initializeLayer(data, "CurbRamp", 2).addTo(map);
+             self.curbRampLayers[2]= initializeLayer(data, "CurbRamp", 3).addTo(map);
+             self.curbRampLayers[3] = initializeLayer(data, "CurbRamp", 4).addTo(map);
+             self.curbRampLayers[4] = initializeLayer(data, "CurbRamp", 5).addTo(map);
+             */
+            initializeAllLayers(data);
         });
 
         function initializeLayer(data, type, severity) {
@@ -535,8 +555,32 @@ function Admin (_, $, c3, turf) {
     }
 
 
+    function onEachLabelFeature(feature, layer) {
+        layer.on('click', function () {
+            self.adminGSVLabelView.showLabel(feature.properties.label_id);
+        });
+        layer.on({
+            'mouseover': function () {
+                layer.setRadius(15);
+            },
+            'mouseout': function () {
+                layer.setRadius(5);
+            }
+        })
+    }
 
-/*    function createLayer(data) {
+    var colorMapping = util.misc.getLabelColors(),
+        geojsonMarkerOptions = {
+            radius: 5,
+            fillColor: "#ff7800",
+            color: "#ffffff",
+            weight: 1,
+            opacity: 0.5,
+            fillOpacity: 0.5,
+            "stroke-width": 1
+        };
+
+    function createLayer(data) {
         return L.geoJson(data, {
             pointToLayer: function (feature, latlng) {
                 var style = $.extend(true, {}, geojsonMarkerOptions);
@@ -549,36 +593,43 @@ function Admin (_, $, c3, turf) {
     }
 
     function initializeAllLayers(data) {
+
         for (i = 0; i < data.features.length; i++) {
-            if (data.features[i].properties.label_type == "CurbRamp") {
-                if (data.features[i].properties.severity == 1) {
-                    self.curbRampLayers[0].push(data.features[i]);
-                } else if (data.features[i].properties.severity == 2) {
-                    self.curbRampLayers[1].push(data.features[i]);
-                } else if (data.features[i].properties.severity == 3) {
-                    self.curbRampLayers[2].push(data.features[i]);
-                } else if (data.features[i].properties.severity == 4) {
-                    self.curbRampLayers[3].push(data.features[i]);
-                } else if (data.features[i].properties.severity == 5) {
-                    self.curbRampLayers[4].push(data.features[i]);
-                }
+            var labelType = data.features[i].properties.label_type;
+            if (data.features[i].properties.severity == 1) {
+                self.allLayers[labelType][0].push(data.features[i]);
+            } else if (data.features[i].properties.severity == 2) {
+                self.allLayers[labelType][1].push(data.features[i]);
+            } else if (data.features[i].properties.severity == 3) {
+                self.allLayers[labelType][2].push(data.features[i]);
+            } else if (data.features[i].properties.severity == 4) {
+                self.allLayers[labelType][3].push(data.features[i]);
+            } else if (data.features[i].properties.severity == 5) {
+                self.allLayers[labelType][4].push(data.features[i]);
             }
         }
-        for (i = 0; i < self.curbRampLayers.length; i++) {
-            self.curbRampLayers[i] = createLayer(self.curbRampLayers[i]);
-        }
-    }*/
 
-    function clearMap(){
+        Object.keys(self.allLayers).forEach(function (key) {
+            for (i = 0; i < self.allLayers[key].length; i++) {
+                self.allLayers[key][i] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key][i]});
+                self.allLayers[key][i].addTo(map);
+            }
+        })
+    }
+
+    function clearMap() {
         map.removeLayer(self.markerLayer);
     }
-    function clearAuditedStreetLayer(){
+
+    function clearAuditedStreetLayer() {
         map.removeLayer(self.auditedStreetLayer);
     }
-    function redrawAuditedStreetLayer(){
+
+    function redrawAuditedStreetLayer() {
         initializeAuditedStreets(map);
     }
-    function redrawLabels(){
+
+    function redrawLabels() {
         initializeSubmittedLabels(map);
     }
 
@@ -600,34 +651,32 @@ function Admin (_, $, c3, turf) {
                 self.visibleMarkers[label] = [5];
                 break;
             case 5: // Slider has value 'All'
-                self.visibleMarkers[label] = [1,2,3,4,5];
+                self.visibleMarkers[label] = [1, 2, 3, 4, 5];
                 break;
             default:
                 break;
         }
     }
 
-    function toggleLayers(label) {
-        if (label == "CurbRamp") {
-            if (document.getElementById("curbramp").checked) {
-                for (i = 0; i < self.curbRampLayers.length; i++) {
-                    if (!map.hasLayer(self.curbRampLayers[i])
-                        && ($('#curb-ramp-slider').slider("option", "value") == i ||
-                            $('#curb-ramp-slider').slider("option", "value")== 5 )) {
-                        map.addLayer(self.curbRampLayers[i]);
-                    } else if ($('#curb-ramp-slider').slider("option", "value") != 5
-                    && $('#curb-ramp-slider').slider("option", "value") != i ){
-                        map.removeLayer(self.curbRampLayers[i]);
+    function toggleLayers(label, checkboxId, sliderId) {
+            if (document.getElementById(checkboxId).checked) {
+                for (i = 0; i < self.allLayers[label].length; i++) {
+                    if (!map.hasLayer(self.allLayers[label][i])
+                        && ($(sliderId).slider("option", "value") == i ||
+                        $(sliderId).slider("option", "value") == 5 )) {
+                        map.addLayer(self.allLayers[label][i]);
+                    } else if ($(sliderId).slider("option", "value") != 5
+                        && $(sliderId).slider("option", "value") != i) {
+                        map.removeLayer(self.allLayers[label][i]);
                     }
                 }
             } else {
-                for (i = 0; i < self.curbRampLayers.length; i++) {
-                    if (map.hasLayer(self.curbRampLayers[i])) {
-                        map.removeLayer(self.curbRampLayers[i]);
+                for (i = 0; i < self.allLayers[label].length; i++) {
+                    if (map.hasLayer(self.allLayers[label][i])) {
+                        map.removeLayer(self.allLayers[label][i]);
                     }
                 }
             }
-        }
     }
 
     function updateVisibleMarkers() {
