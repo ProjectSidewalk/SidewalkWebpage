@@ -1,6 +1,24 @@
 function Admin (_, $, c3, turf) {
     var self = {};
     self.markerLayer = null;
+
+    self.curbRampLayers = [];
+/*    for (i = 0; i < 5; i++) {
+        curbRampLayers[i] = [];
+    }*/
+   /* self.curbRampLayer1 = null;
+    self.curbRampLayer2 = null;
+    self.curbRampLayer3 = null;
+    self.curbRampLayer4 = null;
+    self.curbRampLayer5 = null;*/
+
+    self.missingCurbRampLayer = null;
+    self.obstacleLayer = null;
+    self.surfaceProblemLayer = null;
+    self.cantSeeSidewalkLayer = null;
+    self.noSidewalkLayer = null;
+    self.otherLayer = null;
+
     self.auditedStreetLayer = null;
     self.visibleMarkers = {"CurbRamp" : [1,2,3,4,5], "NoCurbRamp" : [1,2,3,4,5], "Obstacle" : [1,2,3,4,5],
         "SurfaceProblem" : [1,2,3,4,5], "Occlusion" : [1,2,3,4,5], "NoSidewalk" : [1,2,3,4,5], "Other" : [1,2,3,4,5]};
@@ -459,7 +477,7 @@ function Admin (_, $, c3, turf) {
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
-            self.markerLayer = L.geoJson(data, {
+          /*  self.markerLayer = L.geoJson(data, {
                 pointToLayer: function (feature, latlng) {
                     var style = $.extend(true, {}, geojsonMarkerOptions);
                     style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
@@ -473,9 +491,83 @@ function Admin (_, $, c3, turf) {
                 },
                 onEachFeature: onEachLabelFeature
             })
-                .addTo(map);
+                .addTo(map);*/
+
+          /*self.curbRampLayer1 = L.geoJson(data, {
+              pointToLayer: function (feature, latlng) {
+                  var style = $.extend(true, {}, geojsonMarkerOptions);
+                  style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                  style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                  return L.circleMarker(latlng, style);
+              },
+              filter: function (feature, layer) {
+                  return (feature.properties.label_type == "CurbRamp" && feature.properties.severity == 5);
+
+              },
+              onEachFeature: onEachLabelFeature
+          })
+              .addTo(map);*/
+
+            self.curbRampLayers[0] = initializeLayer(data, "CurbRamp", 1).addTo(map);
+            self.curbRampLayers[1] = initializeLayer(data, "CurbRamp", 2).addTo(map);
+            self.curbRampLayers[2]= initializeLayer(data, "CurbRamp", 3).addTo(map);
+            self.curbRampLayers[3] = initializeLayer(data, "CurbRamp", 4).addTo(map);
+            self.curbRampLayers[4] = initializeLayer(data, "CurbRamp", 5).addTo(map);
+
+            //initializeAllLayers(data);
         });
+
+        function initializeLayer(data, type, severity) {
+            return L.geoJson(data, {
+                pointToLayer: function (feature, latlng) {
+                    var style = $.extend(true, {}, geojsonMarkerOptions);
+                    style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                    style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                    return L.circleMarker(latlng, style);
+                },
+                filter: function (feature, layer) {
+                    return (feature.properties.label_type == type && feature.properties.severity == severity);
+
+                },
+                onEachFeature: onEachLabelFeature
+            })
+        }
     }
+
+
+
+/*    function createLayer(data) {
+        return L.geoJson(data, {
+            pointToLayer: function (feature, latlng) {
+                var style = $.extend(true, {}, geojsonMarkerOptions);
+                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                return L.circleMarker(latlng, style);
+            },
+            onEachFeature: onEachLabelFeature
+        })
+    }
+
+    function initializeAllLayers(data) {
+        for (i = 0; i < data.features.length; i++) {
+            if (data.features[i].properties.label_type == "CurbRamp") {
+                if (data.features[i].properties.severity == 1) {
+                    self.curbRampLayers[0].push(data.features[i]);
+                } else if (data.features[i].properties.severity == 2) {
+                    self.curbRampLayers[1].push(data.features[i]);
+                } else if (data.features[i].properties.severity == 3) {
+                    self.curbRampLayers[2].push(data.features[i]);
+                } else if (data.features[i].properties.severity == 4) {
+                    self.curbRampLayers[3].push(data.features[i]);
+                } else if (data.features[i].properties.severity == 5) {
+                    self.curbRampLayers[4].push(data.features[i]);
+                }
+            }
+        }
+        for (i = 0; i < self.curbRampLayers.length; i++) {
+            self.curbRampLayers[i] = createLayer(self.curbRampLayers[i]);
+        }
+    }*/
 
     function clearMap(){
         map.removeLayer(self.markerLayer);
@@ -512,6 +604,29 @@ function Admin (_, $, c3, turf) {
                 break;
             default:
                 break;
+        }
+    }
+
+    function toggleLayers(label) {
+        if (label == "CurbRamp") {
+            if (document.getElementById("curbramp").checked) {
+                for (i = 0; i < self.curbRampLayers.length; i++) {
+                    if (!map.hasLayer(self.curbRampLayers[i])
+                        && ($('#curb-ramp-slider').slider("option", "value") == i ||
+                            $('#curb-ramp-slider').slider("option", "value")== 5 )) {
+                        map.addLayer(self.curbRampLayers[i]);
+                    } else if ($('#curb-ramp-slider').slider("option", "value") != 5
+                    && $('#curb-ramp-slider').slider("option", "value") != i ){
+                        map.removeLayer(self.curbRampLayers[i]);
+                    }
+                }
+            } else {
+                for (i = 0; i < self.curbRampLayers.length; i++) {
+                    if (map.hasLayer(self.curbRampLayers[i])) {
+                        map.removeLayer(self.curbRampLayers[i]);
+                    }
+                }
+            }
         }
     }
 
@@ -591,5 +706,6 @@ function Admin (_, $, c3, turf) {
     self.clearAuditedStreetLayer = clearAuditedStreetLayer;
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.updateVisibleMarkers = updateVisibleMarkers;
+    self.toggleLayers = toggleLayers;
     return self;
 }
