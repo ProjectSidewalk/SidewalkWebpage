@@ -328,7 +328,6 @@ function Canvas (ribbon) {
         }
 
 
-
         if (!status.drawing) {
             var ret = isOn(mouseStatus.currX, mouseStatus.currY);
             if (ret && ret.className === 'Path') {
@@ -970,7 +969,7 @@ function Canvas (ribbon) {
         // Update the opacity of Zoom In and Zoom Out buttons.
         if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
 
-        // This like of code checks if the golden insertion code is running or not.
+        // This line of code checks if the golden insertion code is running or not.
         if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
 
         return this;

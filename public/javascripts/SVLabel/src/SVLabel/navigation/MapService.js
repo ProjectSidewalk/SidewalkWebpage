@@ -59,6 +59,20 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
 
+    var povChange = {
+        "currPov": {
+            heading: 0,
+            pitch: 0,
+            zoom: 1
+        },
+
+        "prevPov": {
+            heading: 0,
+            pitch: 0,
+            zoom: 1
+        },
+        "status": false
+    };
     // Mouse status and mouse event callback functions
     var mouseStatus = {
             currX:0,
@@ -908,31 +922,34 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         // Show label delete menu
-            var item = _canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-            if (item && item.className === "Point") {
-                var path = item.belongsTo();
-                var selectedLabel = path.belongsTo();
+        var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        if (item && item.className === "Point") {
+            // console.log("On a point");
+            var path = item.belongsTo();
+            var selectedLabel = path.belongsTo();
 
-                _canvas.setCurrentLabel(selectedLabel);
-                _canvas.showLabelTag(selectedLabel);
-                _canvas.clear();
-                _canvas.render2();
-            } else if (item && item.className === "Label") {
-                var selectedLabel = item;
-                _canvas.setCurrentLabel(selectedLabel);
-                _canvas.showLabelTag(selectedLabel);
-            } else if (item && item.className === "Path") {
-                var label = item.belongsTo();
-                _canvas.clear();
-                _canvas.render2();
-                _canvas.showLabelTag(label);
-            }
-            else {
-                // canvas.hideDeleteLabel();
-                _canvas.showLabelTag(undefined);
-                _canvas.setCurrentLabel(undefined);
-            }
-
+            _canvas.setCurrentLabel(selectedLabel);
+            _canvas.showLabelTag(selectedLabel);
+            _canvas.clear();
+            _canvas.render2();
+        } else if (item && item.className === "Label") {
+            console.log("On a label");
+            var selectedLabel = item;
+            _canvas.setCurrentLabel(selectedLabel);
+            _canvas.showLabelTag(selectedLabel);
+        } else if (item && item.className === "Path") {
+            console.log("On a Path");
+            var label = item.belongsTo();
+            _canvas.clear();
+            _canvas.render2();
+            _canvas.showLabelTag(label);
+        }
+        else {
+            // console.log("On nothing");
+            // canvas.hideDeleteLabel();
+            _canvas.showLabelTag(undefined);
+            _canvas.setCurrentLabel(undefined);
+        }
 
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
@@ -1216,6 +1233,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         $(".gmnoprint path").css('pointer-events', 'all');
     }
 
+    /*
+     * Gets the pov change tracking variable
+     */
+    function getPovChangeStatus(){
+        return povChange;
+    }
+
     /**
      * Update POV of Street View as a user drag a mouse cursor.
      * @param dx
@@ -1225,6 +1249,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
+            povChange["prevPov"] = pov;
 
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
@@ -1256,6 +1281,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             }
+
+            // Update the status of pov change
+            povChange["status"] = true;
+            povChange["currPov"] = pov;
 
             //
             // Set the property this object. Then update the Street View image
@@ -1484,6 +1513,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.getProperty = getProperty;
     self.getPosition = getPosition;
     self.getPov = getPov;
+    self.getPovChangeStatus = getPovChangeStatus;
     self.hideLinks = hideLinks;
     self.load = load;
     self.lockDisablePanning = lockDisablePanning;
@@ -1493,6 +1523,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.modeSwitchWalkClick = modeSwitchWalkClick;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
     self.plotMarkers = plotMarkers;
+    // self.povToCanvasCoordinate = povToCanvasCoordinate;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
     self.save = save;
     self.setBeforeJumpLocation = setBeforeJumpLocation;

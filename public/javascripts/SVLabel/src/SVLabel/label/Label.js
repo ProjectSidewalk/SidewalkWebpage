@@ -433,6 +433,9 @@ function Label (svl, pathIn, params) {
         }
         if (!status.deleted) {
             if (status.visibility === 'visible') {
+                // Render a path
+                path.render2(ctx, pov);
+
                 // Render a tag
                 // Get a text to render (e.g, attribute type), and
                 // canvas coordinate to render the tag.
@@ -442,8 +445,6 @@ function Label (svl, pathIn, params) {
                     showDelete();
                 }
 
-                // Render a path
-                path.render2(ctx, pov);
             } else if (false) {
                 // Render labels that are not in the current panorama but are close enough.
                 // Get the label'svar latLng = toLatLng();

@@ -80,8 +80,10 @@ function Path (svl, points, params) {
             width = xMax - xMin;
             height = yMax - yMin;
         } else {
-            xMin = canvasCoords[0].x;
-            yMin = canvasCoords[0].y;
+            // xMin = canvasCoords[0].x;
+            // yMin = canvasCoords[0].y;
+            xMin = points[0].getCanvasX();
+            yMin = points[0].getCanvasY();
             width = 0;
             height = 0;
         }
@@ -97,7 +99,18 @@ function Path (svl, points, params) {
         return properties.fillStyle;
     }
 
+    /***
+     * Get canvas coordinates of points from the POV
+     */
+    function povToCanvasCoordinate() {
+        return svl.map.povToCanvasCoordinate();
+    }
+
     /**
+     * Mar 5, 2017: Due to updates to the POV based coordinate calculation
+     * This function needs to be updated
+     * gsvImageCoordinate2CanvasCoordinate() wouldn't be called
+     *
      * Get canvas coordinates of points that constitute the path.
      * @param pov
      * @returns {Array}
@@ -434,11 +447,17 @@ function Path (svl, points, params) {
                 ctx.restore();
             }
 
+            /**
+             * This is the main part for the current sidewalk.umiacs.umd.edu
+             * interface
+             */
+            // Start
             // Render points
             for (j = 0; j < pathLen; j += 1) {
                 point = self.points[j];
                 point.render(pov, ctx);
             }
+            // End of the main part
 
             if (pathLen > 1) {
                 // Render segments
