@@ -1249,7 +1249,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
-            povChange["prevPov"] = pov;
+            povChange["prevPov"] = $.extend(true, {}, pov);
 
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
@@ -1283,8 +1283,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
 
             // Update the status of pov change
-            povChange["status"] = true;
             povChange["currPov"] = pov;
+            povChange["status"] = true;
 
             //
             // Set the property this object. Then update the Street View image

@@ -209,6 +209,8 @@ function Point (svl, x, y, pov, params) {
 
     /***
      * Get canvas coordinates of points from the POV
+     * @return {Object} Top and Left offsets for the given viewport that point to
+     *     the desired point-of-view.
      */
     function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
 

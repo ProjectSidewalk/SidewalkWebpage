@@ -881,6 +881,10 @@ function Canvas (ribbon) {
         status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
+        var povChange = svl.map.getPovChangeStatus();
+        if (labels.length == 0 && povChange["status"]){
+            povChange["status"] = false
+        }
 
         var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;
         // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
