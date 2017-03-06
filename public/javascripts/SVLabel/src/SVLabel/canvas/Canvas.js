@@ -960,6 +960,7 @@ function Canvas (ribbon) {
                 label.render(ctx, pov);
             }
         }
+        povChange["status"] = false;
 
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) { renderTempPath(); }

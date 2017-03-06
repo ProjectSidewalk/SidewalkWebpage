@@ -353,7 +353,6 @@ function Point (svl, x, y, pov, params) {
                 console.log("Behind Camera");
             }
             console.log("CalculatedRendererPt at: " + self.canvasCoordinate.x + ", " + self.canvasCoordinate.y);
-            povChange["status"] = false;
         }
         /*
         else{
