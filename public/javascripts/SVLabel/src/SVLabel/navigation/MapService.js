@@ -263,13 +263,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function moveToTheTaskLocation(task) {
 
         // Reset all jump parameters
-        if (status.labelBeforeJumpListenerSet){
+        if (status.labelBeforeJumpListenerSet) {
             setLabelBeforeJumpListenerStatus(false);
             resetBeforeJumpLocationAndListener();
-            console.log("Jumped to street: " + task.getStreetEdgeId());
-        } else {
-            console.log("Moved to street: " + task.getStreetEdgeId());
+            // console.log("Jumped to street: " + task.getStreetEdgeId());
         }
+        // } else {
+        //     console.log("Moved to street: " + task.getStreetEdgeId());
+        // }
 
         var geometry = task.getGeometry();
         var callback = function (data, status) {
