@@ -75,7 +75,6 @@ function Canvas (ribbon) {
     var systemLabels = [];
     var labels = [];
 
-
     // Initialization
     function _init () {
         var el = document.getElementById("label-canvas");
@@ -113,9 +112,9 @@ function Canvas (ribbon) {
      */
     function closeLabelPath() {
 
-        var labelType = ribbon.getStatus('selectedLabelType'),
-            labelColor = util.misc.getLabelColors()[labelType],
-            labelDescription = util.misc.getLabelDescriptions(ribbon.getStatus('selectedLabelType')),
+        var labelType = ribbon.getStatus('selectedLabelType');
+        var labelColor = util.misc.getLabelColors()[labelType],
+            labelDescription = util.misc.getLabelDescriptions(labelType),
             iconImagePath = util.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
@@ -123,8 +122,7 @@ function Canvas (ribbon) {
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
-        var points = [],
-            pov = svl.map.getPov();
+        var points = [], pov = svl.map.getPov();
 
         for (var i = 0, pathLen = tempPath.length; i < pathLen; i++) {
             points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
@@ -249,7 +247,9 @@ function Canvas (ribbon) {
             if (properties.drawingMode == "point") {
                 tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
                 closeLabelPath();
-            } else if (properties.drawingMode == "path") {
+            }
+            // NOT being used now in this tool
+            else if (properties.drawingMode == "path") {
                 // Path labeling.
 
                 // Define point parameters to draw
@@ -284,7 +284,9 @@ function Canvas (ribbon) {
             clear();
             setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
             render2();
-        } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
+        }
+        // NOT being used now in this tool
+        else if (currTime - mouseStatus.prevMouseUpTime < 400) {
             if (properties.drawingMode == "path") {
                 // This part is executed for a double click event
                 // If the current status.drawing = true, then close the current path.
