@@ -326,7 +326,6 @@ function Point (svl, x, y, pov, params) {
     function getCanvasCoordinate (pov) {
 
         var origPov = $.extend(true, {}, self.originalPov);
-        // var origCoord = $.extend(true, {}, self.originalCanvasCoordinate);
 
         var povChange = svl.map.getPovChangeStatus();
         var povChangeStatus = povChange["status"];
@@ -350,23 +349,15 @@ function Point (svl, x, y, pov, params) {
                 // Update the new pov of the label
                 self.pov = calculatePointPov(self.canvasCoordinate.x, self.canvasCoordinate.y, currentPov);
 
-                console.log("Original: " + origCoord.x + ", " + origCoord.y);
-                console.log("Offset: " + offset.left + ", " + offset.top);
-                console.log("Calculated: " + self.canvasCoordinate.x + ", " + self.canvasCoordinate.y);
-
             } else {
                 // If offset is null, the marker is "behind" the camera,
                 // therefore we position the marker outside of the viewport
                 var pointWidth = 3; //TODO: Get from Point class
                 self.canvasCoordinate.x = -(9999 + pointWidth);
                 self.canvasCoordinate.y = 0;
-
                 // Update the new pov of the label
                 self.pov = {};
-
-                console.log("Behind Camera");
             }
-
         }
         return self.canvasCoordinate;
     }
