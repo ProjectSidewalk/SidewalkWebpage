@@ -7,6 +7,8 @@ function UtilitiesMisc (JSON) {
     /**
      *
      * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
+     *
+     * Only used for Onboarding
 
      * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
      * @param ix

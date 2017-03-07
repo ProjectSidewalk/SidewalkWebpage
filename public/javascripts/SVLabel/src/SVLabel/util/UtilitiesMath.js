@@ -1,5 +1,7 @@
 var util = util || {};
-util.math = {}
+util.math = {};
+
+
 
 /**
  * This method takes an angle value in radian and returns a value in degree

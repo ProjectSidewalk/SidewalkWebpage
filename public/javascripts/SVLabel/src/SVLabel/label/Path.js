@@ -121,7 +121,7 @@ function Path (svl, points, params) {
         var canvasCoords = [];
 
         for (i = 0; i < len; i += 1) {
-            canvasCoord = points[i].getCanvasCoordinate(pov);
+            canvasCoord = points[i].calculateCanvasCoordinate(pov);
             canvasCoords.push(canvasCoord);
         }
 

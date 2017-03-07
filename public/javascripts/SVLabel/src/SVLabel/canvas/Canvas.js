@@ -885,11 +885,12 @@ function Canvas (ribbon) {
 
         var povChange = svl.map.getPovChangeStatus();
         if (labels.length == 0 && povChange["status"]){
-            povChange["status"] = false
+            povChange["status"] = false;
         }
 
         var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;
-        // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
+        // The image coordinates of the points in system labels shift as the projection parameters
+        // (i.e., heading and pitch) that
         // you can get from Street View API change. So adjust the image coordinate
         // Note that this adjustment happens only once
         if (!status.svImageCoordinatesAdjusted) {
