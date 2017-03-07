@@ -57,6 +57,7 @@ function Point (svl, x, y, pov, params) {
         if (self.svImageCoordinate.x < 0) {
             self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
         }
+
         // Keep the original canvas coordinate and
         // canvas pov just in case.
         self.canvasCoordinate = {
@@ -68,8 +69,14 @@ function Point (svl, x, y, pov, params) {
             y : y
         };
 
-        // var pointPOV = calculatePointPov(pov);
-        var pointPOV = pov;
+        var pointPOV;
+        if (!jQuery.isEmptyObject(pov)){
+            pointPOV = calculatePointPov(x, y, pov);
+        }
+        else {
+            pointPOV = pov;
+        }
+
         self.pov = {
             heading : pointPOV.heading,
             pitch : pointPOV.pitch,
@@ -125,26 +132,66 @@ function Point (svl, x, y, pov, params) {
      * @returns {{heading: Number, pitch: Number, zoom: Number}}
      */
 
-    /* OLD
     function getPOV () {
-        return pov;
-    }*/
+        return $.extend(true, {}, self.pov);
+    }
+
+    function sgn(x) {
+        return x >= 0 ? 1 : -1;
+    }
 
     /** Get POV
      * This method returns the pov of this label based on panorama's POV
      * @returns {{heading: Number, pitch: Number, zoom: Number}}
      */
-    function calculatePointPov (pov) {
-        var heading, pitch = parseInt(pov.pitch, 10),
-            zoom = parseInt(pov.zoom, 10),
-            svImage = getGSVImageCoordinate(),
-            svImageX = svImage.x;
+    function calculatePointPov (u, v, pov) {
+        var heading = parseInt(pov.heading, 10),
+            pitch = parseInt(pov.pitch, 10),
+            zoom = parseInt(pov.zoom, 10);
 
-        heading = parseInt((parseInt(svImageX, 10) / svl.svImageWidth) * 360, 10) % 360;
+        var PI = Math.PI;
+        var cos = Math.cos;
+        var sin = Math.sin;
+        var tan = Math.tan;
+        var sqrt = Math.sqrt;
+        var atan2 = Math.atan2;
+        var asin = Math.asin;
+
+        var fov = get3dFov(zoom) * PI / 180.0;
+        var width = svl.canvasWidth;
+        var height = svl.canvasHeight;
+
+        var h0 = heading * PI / 180.0;
+        var p0 = pitch * PI / 180.0;
+
+        var f = 0.5 * width / tan(0.5 * fov);
+
+        var x0 = f * cos(p0) * sin(h0);
+        var y0 = f * cos(p0) * cos(h0);
+        var z0 = f * sin(p0);
+
+        var du = u - width / 2;
+        var dv = height / 2 - v;
+
+        var ux = sgn(cos(p0)) * cos(h0);
+        var uy = -sgn(cos(p0)) * sin(h0);
+        var uz = 0;
+
+        var vx = -sin(p0) * sin(h0);
+        var vy = -sin(p0) * cos(h0);
+        var vz = cos(p0);
+
+        var x = x0 + du * ux + dv * vx;
+        var y = y0 + du * uy + dv * vy;
+        var z = z0 + du * uz + dv * vz;
+
+        var R = sqrt(x * x + y * y + z * z);
+        var h = atan2(x, y);
+        var p = asin(z / R);
 
         return {
-            heading: parseInt(heading, 10),
-            pitch: pitch,
+            heading: h * 180.0 / PI,
+            pitch: p * 180.0 / PI,
             zoom: zoom
         };
     }
@@ -164,50 +211,6 @@ function Point (svl, x, y, pov, params) {
     }
 
     /***
-     * Get canvas coordinates of points for a specific POV
-     * @param original canvas coordinate of the point
-     */
-    // function povToCanvasCoordinate(origCanvasCoord, targetPov) {
-    //
-    //     var povChangeStatus = povChange["status"];
-    //
-    //     var canvasCoord = origCanvasCoord;
-    //     if (povChangeStatus){
-    //         var currentPov = povChange["prevPov"],
-    //             targetPov = povChange["currPov"];
-    //         var zoom = currentPov.zoom;
-    //
-    //         var viewport = document.getElementById('pano');
-    //
-    //
-    //         // Calculate the position according to the viewport. Even though the marker
-    //         // doesn't sit directly underneath the panorama container, we pass it on as
-    //         // the viewport because it has the actual viewport dimensions.
-    //         var offset = povToPixel3DOffset(targetPov, currentPov, zoom, viewport);
-    //
-    //         if (offset !== null) {
-    //             canvasCoord.x = offset.left - origCanvasCoord.x;
-    //             canvasCoord.y = offset.top - origCanvasCoord.y;
-    //         } else {
-    //             // If offset is null, the marker is "behind" the camera,
-    //             // therefore we position the marker outside of the viewport
-    //             var pointWidth = 3; //TODO: Get from Point class
-    //             canvasCoord.x = -(9999 + pointWidth);
-    //             canvasCoord.y = 0;
-    //         }
-    //         povChange["status"] = false;
-    //     }
-    //     else{
-    //         //TODO: Determine how to directly use the targetPOV for giving the coordinate values
-    //         // Check if there exists such as case through testing
-    //         // Display error message for this case
-    //         console.log("We got a direct targetPOV when the previous one is unavailable. Returning orig canvas coordinate");
-    //     }
-    //     return canvasCoord;
-    //
-    // }
-
-    /***
      * Get canvas coordinates of points from the POV
      * @return {Object} Top and Left offsets for the given viewport that point to
      *     the desired point-of-view.
@@ -223,7 +226,7 @@ function Point (svl, x, y, pov, params) {
         };
 
         var DEG_TO_RAD = Math.PI / 180.0;
-        var fov = PanoMarker.get3dFov(zoom) * DEG_TO_RAD;
+        var fov = get3dFov(zoom) * DEG_TO_RAD;
         var h0 = currentPov.heading * DEG_TO_RAD;
         var p0 = currentPov.pitch * DEG_TO_RAD;
         var h = targetPov.heading * DEG_TO_RAD;
@@ -321,10 +324,9 @@ function Point (svl, x, y, pov, params) {
      * @returns {{x, y}}
      */
     function getCanvasCoordinate (pov) {
-        // self.canvasCoordinate = svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-        // return svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-        var origCoord = $.extend(true, {}, self.originalCanvasCoordinate);
+
         var origPov = $.extend(true, {}, self.originalPov);
+        // var origCoord = $.extend(true, {}, self.originalCanvasCoordinate);
 
         var povChange = svl.map.getPovChangeStatus();
         var povChangeStatus = povChange["status"];
@@ -341,28 +343,31 @@ function Point (svl, x, y, pov, params) {
             // the viewport because it has the actual viewport dimensions.
             var offset = povToPixel3DOffset(targetPov, currentPov, zoom, viewport);
 
+
             if (offset !== null) {
-                self.canvasCoordinate.x = offset.left - origCoord.x;
-                self.canvasCoordinate.y = offset.top - origCoord.y;
+                self.canvasCoordinate.x = offset.left; // - origCoord.x;
+                self.canvasCoordinate.y = offset.top; //- origCoord.y;
+                // Update the new pov of the label
+                self.pov = calculatePointPov(self.canvasCoordinate.x, self.canvasCoordinate.y, currentPov);
+
+                console.log("Original: " + origCoord.x + ", " + origCoord.y);
+                console.log("Offset: " + offset.left + ", " + offset.top);
+                console.log("Calculated: " + self.canvasCoordinate.x + ", " + self.canvasCoordinate.y);
+
             } else {
                 // If offset is null, the marker is "behind" the camera,
                 // therefore we position the marker outside of the viewport
                 var pointWidth = 3; //TODO: Get from Point class
                 self.canvasCoordinate.x = -(9999 + pointWidth);
                 self.canvasCoordinate.y = 0;
+
+                // Update the new pov of the label
+                self.pov = {};
+
                 console.log("Behind Camera");
             }
-            console.log("CalculatedRendererPt at: " + self.canvasCoordinate.x + ", " + self.canvasCoordinate.y);
-        }
-        /*
-        else{
-            //TODO: Determine how to directly use the targetPOV for giving the coordinate values
-            // Check if there exists such as case through testing
-            // Display error message for this case
-            console.log("We got a direct targetPOV when the previous one is unavailable. Returning orig canvas coordinate");
-        }*/
 
-        // self.canvasCoordinate = svl.map.povToCanvasCoordinate($.extend(true, {}, self.originalCanvasCoordinate), pov);
+        }
         return self.canvasCoordinate;
     }
 
@@ -401,8 +406,6 @@ function Point (svl, x, y, pov, params) {
                 x = coord.x,
                 y = coord.y,
                 r = properties.radiusInnerCircle;
-
-            console.log("Rendering at: " + x + ", " + y);
 
             ctx.save();
             ctx.strokeStyle = properties.strokeStyleOuterCircle;
@@ -553,10 +556,11 @@ function Point (svl, x, y, pov, params) {
     }
 
     self.belongsTo = getParent;
-    self.getPOV = calculatePointPov;
+    self.calculatePointPov = calculatePointPov;
     self.getCanvasCoordinate = getCanvasCoordinate;
     self.getCanvasX = getCanvasX;
     self.getCanvasY = getCanvasY;
+    self.getPOV = getPOV;
     self.getFill = getFill;
     self.getFillStyle = getFillStyle;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
