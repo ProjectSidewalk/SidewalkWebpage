@@ -175,7 +175,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // position: fenway,
                 pov: properties.panoramaPov,
                 pano: params.taskPanoId,
-                showRoadLabels: false
+                showRoadLabels: false,
+                motionTracking: false,
+                motionTrackingControl: false
             };
         } else if (params.Lat && params.Lng) {
             fenway = new google.maps.LatLng(params.Lat, params.Lng);
@@ -183,7 +185,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 mode : 'html4',
                 position: fenway,
                 pov: properties.panoramaPov,
-                showRoadLabels: false
+                showRoadLabels: false,
+                motionTracking: false,
+                motionTrackingControl: false
             };
 
         } else {

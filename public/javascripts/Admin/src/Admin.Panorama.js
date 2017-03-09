@@ -61,6 +61,8 @@ function AdminPanorama(svHolder) {
             self.panorama.set('panControl', false);
             self.panorama.set('zoomControl', false);
             self.panorama.set('keyboardShortcuts', false);
+            self.panorama.set('motionTracking', false);
+            self.panorama.set('motionTrackingControl', false);
         }
 
         return this;
