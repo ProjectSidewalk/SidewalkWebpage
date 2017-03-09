@@ -51,7 +51,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                     "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9710,
-                    "y": -385,
+                    "y": -325,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -70,7 +70,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
                 "imageX": 9710,
-                "imageY": -385,
+                "imageY": -325,
                 "tolerance": 300
             },
             "message": {
@@ -85,7 +85,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                     "name": "arrow-1b",
                     "type": "arrow",
                     "x": 9710,
-                    "y": -385,
+                    "y": -325,
                     "length": 50,
                     "angle": 0,
                     "text": null,
