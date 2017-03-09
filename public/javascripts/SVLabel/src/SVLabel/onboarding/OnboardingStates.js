@@ -1,6 +1,7 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
     var numStates = 32;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
+    var afterWalkPanoId = "bdmGHJkiSgmO7_80SnbzXw";
     this.states = {
         "initialize": {
             "properties": {
@@ -9,7 +10,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "pitch": -6,
                 "zoom": 1,
                 "lat": 38.94042608,
-                "lng": -77.06766133,
+                "lng": -77.06766133
             },
             "message": {
                 "message": function () {
@@ -47,12 +48,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": [
                 {
+                    "name": "arrow-1a",
                     "type": "arrow",
-                    "x": 9810,
-                    "y": -345,
+                    "x": 9710,
+                    "y": -385,
                     "length": 50,
                     "angle": 0,
-                    "text": null
+                    "text": null,
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -66,8 +69,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 9810,
-                "imageY": -345,
+                "imageX": 9710,
+                "imageY": -385,
                 "tolerance": 300
             },
             "message": {
@@ -79,13 +82,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": [
                 {
+                    "name": "arrow-1b",
                     "type": "arrow",
-                    "x": 9810,
-                    "y": -345,
+                    "x": 9710,
+                    "y": -385,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "yellow"
+                    "fill": "yellow",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -178,12 +183,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 8320,
+                    "x": 8100,
                     "y": -250,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": null
+                    "fill": null,
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -197,7 +203,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 8320,
+                "imageX": 8100,
                 "imageY": -250,
                 "tolerance": 300
             },
@@ -210,12 +216,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 8320,
+                    "x": 8100,
                     "y": -250,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "yellow"
+                    "fill": "yellow",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -286,12 +293,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 7990,
-                    "y": -280,
+                    "x": 7860,
+                    "y": -250,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": null
+                    "fill": null,
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -305,8 +313,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
-                "imageX": 7990,
-                "imageY": -280,
+                "imageX": 7860,
+                "imageY": -250,
                 "tolerance": 300
             },
             "message": {
@@ -318,12 +326,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 7990,
-                    "y": -280,
+                    "x": 7860,
+                    "y": -250,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "yellow"
+                    "fill": "yellow",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -418,22 +427,25 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3770,
-                    "y": -750,
+                    "x": 4800,
+                    "y": -810,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "white"
+                    "fill": "white",
+                    "originalPov": {}
                 },
                 {
                     "type": "arrow",
-                    "x": 4628,
+                    "x": 3820,
                     "y": -800,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "white"
+                    "fill": "white",
+                    "originalPov": {}
                 }
+
             ],
             "transition": function () {
                 statusModel.setMissionCompletionRate(13 / numStates);
@@ -446,8 +458,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 4628,
-                "imageY": -800,
+                "imageX": 4800,
+                "imageY": -810,
                 "tolerance": 300
             },
             "message": {
@@ -459,12 +471,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 4628,
-                    "y": -800,
+                    "x": 4800,
+                    "y": -810,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "yellow"
+                    "fill": "yellow",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -533,12 +546,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3770,
-                    "y": -750,
+                    "x": 3820,
+                    "y": -800,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "white"
+                    "fill": "white",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -552,8 +566,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 3770,
-                "imageY": -750,
+                "imageX": 3820,
+                "imageY": -800,
                 "tolerance": 300
             },
             "message": {
@@ -565,12 +579,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3770,
-                    "y": -750,
+                    "x": 3820,
+                    "y": -800,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "yellow"
+                    "fill": "yellow",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -642,11 +657,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 {
                     "type": "arrow",
                     "x": 3066,
-                    "y": -650,
+                    "y": -700,
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "white"
+                    "fill": "white",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -662,7 +678,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "Other",
                 "subcategory": "NoSidewalk",
                 "imageX": 3066,
-                "imageY": -650,
+                "imageY": -700,
                 "tolerance": 300
             },
             "message": {
@@ -675,7 +691,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 {
                     "type": "arrow",
                     "x": 3066,
-                    "y": -650,
+                    "y": -700,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -713,7 +729,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "walk-1": {
             "properties": {
                 "action": "WalkTowards",
-                "panoId": "bdmGHJkiSgmO7_80SnbzXw"
+                "panoId": afterWalkPanoId
             },
             "message": {
                 "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. ' +
@@ -731,13 +747,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "white"
+                    "fill": "white",
+                    "originalPov": {}
                 },
                 {
                     "type": "double-click",
                     "x": -241,
                     "y": -703,
-                    "width": 100
+                    "width": 100,
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -759,7 +777,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": [
                 {
                     "type": "arrow",
@@ -768,7 +786,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "white"
+                    "fill": "white",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -791,7 +810,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": [
                 {
                     "type": "arrow",
@@ -800,7 +819,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                     "length": 50,
                     "angle": 0,
                     "text": null,
-                    "fill": "yellow"
+                    "fill": "yellow",
+                    "originalPov": {}
                 }
             ],
             "transition": function () {
@@ -824,7 +844,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(25 / numStates);
@@ -849,7 +869,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
@@ -870,7 +890,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(26 / numStates);
@@ -890,7 +910,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(27 / numStates);
@@ -917,7 +937,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(28 / numStates);
@@ -938,7 +958,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(29 / numStates);
@@ -959,7 +979,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(30 / numStates);
@@ -981,7 +1001,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(31 / numStates);
@@ -1009,7 +1029,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "background": true
             },
             "okButton": false,
-            "panoId": "bdmGHJkiSgmO7_80SnbzXw",
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 statusModel.setMissionCompletionRate(32 / numStates);

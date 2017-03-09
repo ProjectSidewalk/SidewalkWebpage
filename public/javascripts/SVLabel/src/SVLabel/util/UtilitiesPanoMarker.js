@@ -28,9 +28,7 @@ function sgn(x) {
 
 /**
  * This method returns the pov of a point on the canvas based on panorama's POV
- * @returns {{heading: Number, pitch: Number, zoom: Number}}
- */
-/**
+ * and the canvas coordinate
  *
  * @param canvasX
  * @param canvasY
@@ -89,6 +87,31 @@ function calculatePointPov (canvasX, canvasY, pov) {
     };
 }
 util.panomarker.calculatePointPov = calculatePointPov;
+
+/**
+ * Calculate POV
+ * This method returns the pov of this label based on panorama's POV using
+ * panorama image coordinates
+ *
+ * @param imageX
+ * @param imageY
+ * @param pov
+ * @returns {{heading: Number, pitch: Number, zoom: Number}}
+ */
+function calculatePointPovFromImageCoordinate (imageX, imageY, pov) {
+    var heading, pitch = parseInt(pov.pitch, 10),
+        zoom = parseInt(pov.zoom, 10);
+
+    heading = parseInt((imageX / svl.svImageWidth) * 360, 10) % 360;
+    pitch = parseInt((imageY / (svl.svImageHeight/2)) * 90 , 10);
+
+    return {
+        heading: parseInt(heading, 10),
+        pitch: parseInt(pitch, 10),
+        zoom: zoom
+    };
+}
+util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImageCoordinate;
 
 /***
  * Get canvas coordinates of points from the POV
@@ -202,8 +225,12 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
  */
 function getCanvasCoordinate (canvasCoord, origPov, pov) {
 
-    var povChange = svl.map.getPovChangeStatus();
-    var povChangeStatus = povChange["status"];
+    var povChange = svl.map.getPovChangeStatus(),
+        povChangeStatus = povChange["status"];
+
+    if (canvasCoord == undefined){
+        canvasCoord = {x: undefined, y: undefined};
+    }
 
     if (povChangeStatus){
         var currentPov = pov,
