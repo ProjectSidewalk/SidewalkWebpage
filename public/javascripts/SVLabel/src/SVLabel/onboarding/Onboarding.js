@@ -310,11 +310,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             imY = state.annotations[i].y;
             origPointPov = state.annotations[i].originalPov;
 
-
-            console.log("For annotation: " + state.message["message"]);
-            console.log("Panorama POV: " + JSON.stringify(currentPov));
-            console.log("Original POV: " + JSON.stringify(origPointPov));
-
             // 280 is the initial heading of the onoboarding. Refer to OnboardingStates
             // for the value
             // This avoids applying the first arrow if the heading is not set correctly
@@ -337,17 +332,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                         imX += svl.svImageWidth;
                     }
                 }
-                // canvasCoordinate = util.misc.imageCoordinateToCanvasCoordinate(imX, imY, currentPov);
-                // console.log("Canvas Coordinate: " + canvasCoordinate.x + "," + canvasCoordinate.y);
 
                 origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-                console.log("SX,SY: " + imX + "," + imY + " CalPOV: " + JSON.stringify(origPointPov));
                 state.annotations[i].originalPov = origPointPov;
 
             }
             canvasCoordinate = util.panomarker.getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
-            console.log("New Canvas Coordinate: " + canvasCoordinate.x + "," + canvasCoordinate.y);
-
 
             if (state.annotations[i].type == "arrow") {
                 lineLength = state.annotations[i].length;
