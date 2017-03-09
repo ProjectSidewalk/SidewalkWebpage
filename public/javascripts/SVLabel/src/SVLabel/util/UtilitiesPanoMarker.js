@@ -102,8 +102,14 @@ function calculatePointPovFromImageCoordinate (imageX, imageY, pov) {
     var heading, pitch = parseInt(pov.pitch, 10),
         zoom = parseInt(pov.zoom, 10);
 
-    heading = parseInt((imageX / svl.svImageWidth) * 360, 10) % 360;
-    pitch = parseInt((imageY / (svl.svImageHeight/2)) * 90 , 10);
+    var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
+    var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
+
+    imageX = imageX * svl.zoomFactor[zoom];
+    imageY = imageY * svl.zoomFactor[zoom];
+
+    heading = parseInt((imageX / svImageWidth) * 360, 10) % 360;
+    pitch = parseInt((imageY / (svImageHeight/2)) * 90 , 10);
 
     return {
         heading: parseInt(heading, 10),
