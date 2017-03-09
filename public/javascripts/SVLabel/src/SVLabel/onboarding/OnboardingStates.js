@@ -427,8 +427,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 4800,
-                    "y": -810,
+                    "x": 4900,
+                    "y": -750,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -437,8 +437,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 },
                 {
                     "type": "arrow",
-                    "x": 3820,
-                    "y": -800,
+                    "x": 3850,
+                    "y": -860,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -458,8 +458,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 4800,
-                "imageY": -810,
+                "imageX": 4900,
+                "imageY": -750,
                 "tolerance": 300
             },
             "message": {
@@ -471,8 +471,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 4800,
-                    "y": -810,
+                    "x": 4900,
+                    "y": -750,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -546,8 +546,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3820,
-                    "y": -800,
+                    "x": 3850,
+                    "y": -860,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -566,8 +566,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 3820,
-                "imageY": -800,
+                "imageX": 3850,
+                "imageY": -860,
                 "tolerance": 300
             },
             "message": {
@@ -579,8 +579,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3820,
-                    "y": -800,
+                    "x": 3850,
+                    "y": -860,
                     "length": 50,
                     "angle": 0,
                     "text": null,
