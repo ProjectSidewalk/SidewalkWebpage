@@ -438,6 +438,11 @@ function Admin (_, $, c3, turf) {
             if (feature.properties && feature.properties.type) {
                 layer.bindPopup(feature.properties.type);
             }
+            layer.on({
+                'add': function(){
+                    layer.bringToBack()
+                }
+            })
         }
 
         $.getJSON("/contribution/streets/all", function (data) {
@@ -679,6 +684,15 @@ function Admin (_, $, c3, turf) {
             }
     }
 
+    function toggleAuditedStreetLayer() {
+        if (document.getElementById('auditedstreet').checked) {
+            map.addLayer(self.auditedStreetLayer);
+        } else {
+            map.removeLayer(self.auditedStreetLayer);
+        }
+    }
+
+    /*
     function updateVisibleMarkers() {
         self.visibleMarkers = {}
         if (document.getElementById("curbramp").checked) {
@@ -713,7 +727,7 @@ function Admin (_, $, c3, turf) {
         }
 
     }
-
+    */
 
     // A helper method to make an histogram of an array.
     function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
@@ -754,7 +768,8 @@ function Admin (_, $, c3, turf) {
     self.redrawLabels = redrawLabels;
     self.clearAuditedStreetLayer = clearAuditedStreetLayer;
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
-    self.updateVisibleMarkers = updateVisibleMarkers;
+    //self.updateVisibleMarkers = updateVisibleMarkers;
     self.toggleLayers = toggleLayers;
+    self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
     return self;
 }
