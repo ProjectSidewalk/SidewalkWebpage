@@ -8,11 +8,25 @@
 @import models.audit.AuditTaskCommentTable
 @import java.util.UUID
 
-@(title: String, user: Option[User] = None)
 
+@(title: String, user: Option[User] = None)
 @main(title) {
     @navbar(user)
 
+<style>
+    .no-js #loader { display: none;  }
+    .js #loader { display: block; position: absolute; left: 100px; top: 0; }
+    .loader {
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('/assets/images/loader.gif') center no-repeat #fff ;
+    }
+</style>
+<div class="loader"></div>
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
@@ -378,6 +392,9 @@
     <link href='@routes.Assets.at("stylesheets/ekko-lightbox.min.css")' rel="stylesheet"/>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
 
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.2/modernizr.js"></script>
+
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
@@ -440,7 +457,8 @@
             $('#anonUserTable').dataTable();
 
         });
-
-
+        $(window).load(function() {
+            $(".loader").fadeOut("slow");
+        })
     </script>
 }
