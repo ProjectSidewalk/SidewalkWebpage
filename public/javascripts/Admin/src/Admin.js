@@ -27,15 +27,6 @@ function Admin (_, $, c3, turf) {
     };
 
     self.auditedStreetLayer = null;
-    self.visibleMarkers = {
-        "CurbRamp": [1, 2, 3, 4, 5],
-        "NoCurbRamp": [1, 2, 3, 4, 5],
-        "Obstacle": [1, 2, 3, 4, 5],
-        "SurfaceProblem": [1, 2, 3, 4, 5],
-        "Occlusion": [1, 2, 3, 4, 5],
-        "NoSidewalk": [1, 2, 3, 4, 5],
-        "Other": [1, 2, 3, 4, 5]
-    };
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -501,62 +492,9 @@ function Admin (_, $, c3, turf) {
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
-            // Render submitted labels
-            /*  self.markerLayer = L.geoJson(data, {
-             pointToLayer: function (feature, latlng) {
-             var style = $.extend(true, {}, geojsonMarkerOptions);
-             style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-             style.color = colorMapping[feature.properties.label_type].strokeStyle;
-             return L.circleMarker(latlng, style);
-             },
-             filter: function (feature, layer) {
-             return ($.inArray(feature.properties.label_type, Object.keys(self.visibleMarkers)) > - 1
-             && $.inArray(feature.properties.severity, self.visibleMarkers[feature.properties.label_type]) > -1);
-
-             },
-             onEachFeature: onEachLabelFeature
-             })
-             .addTo(map);*/
-
-            /*self.curbRampLayer1 = L.geoJson(data, {
-             pointToLayer: function (feature, latlng) {
-             var style = $.extend(true, {}, geojsonMarkerOptions);
-             style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-             style.color = colorMapping[feature.properties.label_type].strokeStyle;
-             return L.circleMarker(latlng, style);
-             },
-             filter: function (feature, layer) {
-             return (feature.properties.label_type == "CurbRamp" && feature.properties.severity == 5);
-
-             },
-             onEachFeature: onEachLabelFeature
-             })
-             .addTo(map);*/
-
-            /* self.curbRampLayers[0] = initializeLayer(data, "CurbRamp", 1).addTo(map);
-             self.curbRampLayers[1] = initializeLayer(data, "CurbRamp", 2).addTo(map);
-             self.curbRampLayers[2]= initializeLayer(data, "CurbRamp", 3).addTo(map);
-             self.curbRampLayers[3] = initializeLayer(data, "CurbRamp", 4).addTo(map);
-             self.curbRampLayers[4] = initializeLayer(data, "CurbRamp", 5).addTo(map);
-             */
+            // Create layers for each of the 35 different label-severity combinations
             initializeAllLayers(data);
         });
-
-        function initializeLayer(data, type, severity) {
-            return L.geoJson(data, {
-                pointToLayer: function (feature, latlng) {
-                    var style = $.extend(true, {}, geojsonMarkerOptions);
-                    style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                    style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                    return L.circleMarker(latlng, style);
-                },
-                filter: function (feature, layer) {
-                    return (feature.properties.label_type == type && feature.properties.severity == severity);
-
-                },
-                onEachFeature: onEachLabelFeature
-            })
-        }
     }
 
 
@@ -638,31 +576,6 @@ function Admin (_, $, c3, turf) {
         initializeSubmittedLabels(map);
     }
 
-    function updateMarkerSeverity(label, severity) {
-        switch (severity) {
-            case 0: // Slider has value '1'
-                self.visibleMarkers[label] = [1];
-                break;
-            case 1: // Slider has value '2'
-                self.visibleMarkers[label] = [2];
-                break;
-            case 2: // Slider has value '3'
-                self.visibleMarkers[label] = [3];
-                break;
-            case 3: // Slider has value '4'
-                self.visibleMarkers[label] = [4];
-                break;
-            case 4: // Slider has value '5'
-                self.visibleMarkers[label] = [5];
-                break;
-            case 5: // Slider has value 'All'
-                self.visibleMarkers[label] = [1, 2, 3, 4, 5];
-                break;
-            default:
-                break;
-        }
-    }
-
     function toggleLayers(label, checkboxId, sliderId) {
             if (document.getElementById(checkboxId).checked) {
                 for (i = 0; i < self.allLayers[label].length; i++) {
@@ -691,43 +604,6 @@ function Admin (_, $, c3, turf) {
             map.removeLayer(self.auditedStreetLayer);
         }
     }
-
-    /*
-    function updateVisibleMarkers() {
-        self.visibleMarkers = {}
-        if (document.getElementById("curbramp").checked) {
-            updateMarkerSeverity("CurbRamp", $('#curb-ramp-slider').slider("option", "value"));
-        }
-        if (document.getElementById("missingcurbramp").checked) {
-            updateMarkerSeverity("NoCurbRamp", $('#missing-curb-ramp-slider').slider("option", "value"));
-        }
-        if (document.getElementById("obstacle").checked) {
-            updateMarkerSeverity("Obstacle", $('#obstacle-slider').slider("option", "value"));
-        }
-        if (document.getElementById("surfaceprob").checked) {
-            updateMarkerSeverity("SurfaceProblem", $('#surface-problem-slider').slider("option", "value"));
-        }
-        if (document.getElementById("occlusion").checked) {
-            updateMarkerSeverity("Occlusion", $('#occlusion-slider').slider("option", "value"));
-        }
-        if (document.getElementById("nosidewalk").checked) {
-            updateMarkerSeverity("NoSidewalk", $('#no-sidewalk-slider').slider("option", "value"));
-        }
-        if (document.getElementById("other").checked) {
-            updateMarkerSeverity("Other", $('#other-slider').slider("option", "value"));
-        }
-
-
-        admin.clearMap();
-        admin.clearAuditedStreetLayer();
-        admin.redrawLabels();
-
-        if (document.getElementById("auditedstreet").checked) {
-            admin.redrawAuditedStreetLayer();
-        }
-
-    }
-    */
 
     // A helper method to make an histogram of an array.
     function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
@@ -768,7 +644,6 @@ function Admin (_, $, c3, turf) {
     self.redrawLabels = redrawLabels;
     self.clearAuditedStreetLayer = clearAuditedStreetLayer;
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
-    //self.updateVisibleMarkers = updateVisibleMarkers;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
     return self;
