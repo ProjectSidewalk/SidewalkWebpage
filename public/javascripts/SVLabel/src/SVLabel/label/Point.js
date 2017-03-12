@@ -41,22 +41,6 @@ function Point (svl, x, y, pov, params) {
     };
 
     function _init (x, y, pov, params) {
-        // Convert a canvas coordinate (x, y) into a sv image coordinate
-        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
-        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-        
-        // Adjust the zoom level
-        var zoom = pov.zoom;
-        var zoomFactor = svl.zoomFactor[zoom];
-        var svImageHeight = svl.svImageHeight;
-        var svImageWidth = svl.svImageWidth;
-        self.svImageCoordinate = {};
-        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
-        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
-        // svImageCoordinate.x could be negative, so adjust it.
-        if (self.svImageCoordinate.x < 0) {
-            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
-        }
 
         // Keep the original canvas coordinate and
         // canvas pov just in case.
@@ -69,6 +53,7 @@ function Point (svl, x, y, pov, params) {
             y : y
         };
 
+        // Calculate the POV of the label
         var pointPOV;
         if (!jQuery.isEmptyObject(pov)){
             pointPOV = calculatePointPov(x, y, pov);
@@ -82,11 +67,39 @@ function Point (svl, x, y, pov, params) {
             pitch : pointPOV.pitch,
             zoom : pointPOV.zoom
         };
+
         self.originalPov = {
-            heading : pointPOV.heading,
-            pitch : pointPOV.pitch,
-            zoom : pointPOV.zoom
+            heading: pointPOV.heading,
+            pitch: pointPOV.pitch,
+            zoom: pointPOV.zoom
         };
+
+        // Convert a canvas coordinate (x, y) into a sv image coordinate
+        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
+        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
+
+        // Adjust the zoom level
+        var zoom = pov.zoom;
+        var zoomFactor = svl.zoomFactor[zoom];
+        var svImageHeight = svl.svImageHeight;
+        var svImageWidth = svl.svImageWidth;
+        self.svImageCoordinate = {};
+        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
+        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
+        // svImageCoordinate.x could be negative, so adjust it.
+        if (self.svImageCoordinate.x < 0) {
+            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
+        }
+
+        var svImageCoord = calculateImageCoordinateFromPointPov(self.originalPov);
+
+        if (svImageCoord.x < 0) {
+            svImageCoord.x = svImageCoord.x + svImageWidth;
+        }
+
+        console.log("OldCalc: " + JSON.stringify(self.svImageCoordinate));
+        console.log("NewCalc: " + JSON.stringify(svImageCoord));
+
 
         // Set properties
         for (var propName in properties) {
