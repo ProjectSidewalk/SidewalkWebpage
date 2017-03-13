@@ -78,11 +78,13 @@ function Point (svl, x, y, pov, params) {
         // Note, svImageCoordinate.x varies from 0 to svImageWidth and
         // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
 
+        var svImageWidth = svl.svImageWidth;
+        // var svImageHeight = svl.svImageHeight;
+
         // Adjust the zoom level
+        /* old calculation
         var zoom = pov.zoom;
         var zoomFactor = svl.zoomFactor[zoom];
-        var svImageHeight = svl.svImageHeight;
-        var svImageWidth = svl.svImageWidth;
         self.svImageCoordinate = {};
         self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
         self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
@@ -90,16 +92,14 @@ function Point (svl, x, y, pov, params) {
         if (self.svImageCoordinate.x < 0) {
             self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
         }
+        */
 
         var svImageCoord = calculateImageCoordinateFromPointPov(self.originalPov);
 
         if (svImageCoord.x < 0) {
             svImageCoord.x = svImageCoord.x + svImageWidth;
         }
-
-        console.log("PointPOV: " + JSON.stringify(self.originalPov));
-        console.log("OldCalc = " + JSON.stringify(self.svImageCoordinate) +
-                    "\nNewCalc = " + JSON.stringify(svImageCoord));
+        self.svImageCoordinate = svImageCoord;
 
         // Set properties
         for (var propName in properties) {

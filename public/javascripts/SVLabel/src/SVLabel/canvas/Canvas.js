@@ -326,8 +326,7 @@ function Canvas (ribbon) {
                 cursorUrl = 'default';
             }
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
-            // $(this).css('cursor', cursorUrl);
-            $(this).css('cursor', 'default');
+            $(this).css('cursor', cursorUrl);
         }
 
 
