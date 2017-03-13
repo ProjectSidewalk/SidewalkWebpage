@@ -97,9 +97,9 @@ function Point (svl, x, y, pov, params) {
             svImageCoord.x = svImageCoord.x + svImageWidth;
         }
 
-        console.log("OldCalc: " + JSON.stringify(self.svImageCoordinate));
-        console.log("NewCalc: " + JSON.stringify(svImageCoord));
-
+        console.log("PointPOV: " + JSON.stringify(self.originalPov));
+        console.log("OldCalc = " + JSON.stringify(self.svImageCoordinate) +
+                    "\nNewCalc = " + JSON.stringify(svImageCoord));
 
         // Set properties
         for (var propName in properties) {

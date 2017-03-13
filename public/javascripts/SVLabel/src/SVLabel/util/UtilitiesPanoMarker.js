@@ -138,7 +138,11 @@ function calculateImageCoordinateFromPointPov (pov) {
     var svImageHeight = svl.svImageHeight * zoomFactor;
 
     imageX = (svImageWidth * (heading / 360) + ((svImageWidth / 360) / 2)) / zoomFactor;
-    imageY = ((svImageHeight / 2) * (pitch / 90)) / zoomFactor;
+    imageY = ((svImageHeight / 2) * (pitch / 90) - ((svImageHeight / 2) / 180)) / zoomFactor;
+
+    console.log("+ve factor: " + ((svImageHeight / 2) * (pitch / 90) + ((svImageHeight / 2) / 180)) / zoomFactor);
+    console.log("-ve factor: " + ((svImageHeight / 2) * (pitch / 90) - ((svImageHeight / 2) / 180)) / zoomFactor);
+    console.log("no factor: " + ((svImageHeight / 2) * (pitch / 90)) / zoomFactor);
 
     return {
         x: imageX,
