@@ -103,8 +103,8 @@ function AdminPanorama(svHolder) {
      * @returns {renderLabel}
      */
     function renderLabel (label) {
-        var x = label.canvasX / label.originalCanvasWidth * self.drawingCanvas.width;
-        var y = label.canvasY / label.originalCanvasHeight * self.drawingCanvas.height;
+        var x = (label.canvasX / label.originalCanvasWidth) * self.drawingCanvas.width;
+        var y = (label.canvasY / label.originalCanvasHeight) * self.drawingCanvas.height;
 
         var colorScheme = util.misc.getLabelColors();
         var fillColor = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
