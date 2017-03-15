@@ -296,8 +296,6 @@ function UtilitiesMisc (JSON) {
         x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
     }
 
-    self.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
-    self.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
     self.getHeadingEstimate = getHeadingEstimate;
     self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
