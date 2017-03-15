@@ -19,7 +19,8 @@ function Point (svl, x, y, pov, params) {
             canvasCoordinate : undefined,
             originalCanvasCoordinate : undefined,
             pov : undefined,
-            originalPov : undefined
+            originalPov : undefined,
+            panoramaPov : undefined
         };
     var belongsTo;
     var properties = {
@@ -51,6 +52,11 @@ function Point (svl, x, y, pov, params) {
         self.originalCanvasCoordinate = {
             x : x,
             y : y
+        };
+        self.panoramaPov = {
+            heading: pov.heading,
+            pitch: pov.pitch,
+            zoom: pov.zoom
         };
 
         // Calculate the POV of the label
@@ -93,6 +99,9 @@ function Point (svl, x, y, pov, params) {
             self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
         }
         */
+        console.log("X,Y " + x + "," + y);
+        console.log("Panorama POV: " + JSON.stringify(self.panoramaPov));
+        console.log("Original POV: " + JSON.stringify(self.originalPov));
 
         var svImageCoord = util.panomarker.calculateImageCoordinateFromPointPov(self.originalPov);
 
