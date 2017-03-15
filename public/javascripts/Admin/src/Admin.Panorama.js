@@ -63,6 +63,7 @@ function AdminPanorama(svHolder) {
             self.panorama.set('keyboardShortcuts', false);
             self.panorama.set('motionTracking', false);
             self.panorama.set('motionTrackingControl', false);
+            self.panorama.set('showRoadLabels', false);
         }
 
         return this;
