@@ -345,20 +345,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     });
 
     /**
-     * This function maps canvas coordinate to image coordinate
-     * @param canvasX
-     * @param canvasY
-     * @param pov
-     * @returns {{x: number, y: number}}
-     */
-    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        var zoomFactor = svl.zoomFactor[pov.zoom];
-        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-        return { x: x, y: y };
-    }
-
-    /**
      * This method disables zooming by double click.
      */
     function disableClickZoom () {
@@ -868,7 +854,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
                 // then jump to the scene
                 if (!status.disableWalking) {
-                    var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
+                    var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
                         latlng = getPosition(),
                         newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                     if (newLatlng) {

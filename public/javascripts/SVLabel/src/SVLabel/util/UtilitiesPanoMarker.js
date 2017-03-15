@@ -99,14 +99,15 @@ util.panomarker.calculatePointPov = calculatePointPov;
  * @returns {{heading: Number, pitch: Number, zoom: Number}}
  */
 function calculatePointPovFromImageCoordinate (imageX, imageY, pov) {
-    var heading, pitch = parseInt(pov.pitch, 10),
+    var heading, pitch,
         zoom = parseInt(pov.zoom, 10);
 
-    var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
-    var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
+    var zoomFactor = svl.zoomFactor[zoom];
+    var svImageWidth = svl.svImageWidth * zoomFactor;
+    var svImageHeight = svl.svImageHeight * zoomFactor;
 
-    imageX = imageX * svl.zoomFactor[zoom];
-    imageY = imageY * svl.zoomFactor[zoom];
+    imageX = imageX * zoomFactor;
+    imageY = imageY * zoomFactor;
 
     heading = parseInt((imageX / svImageWidth) * 360, 10) % 360;
     pitch = parseInt((imageY / (svImageHeight/2)) * 90 , 10);
@@ -146,6 +147,58 @@ function calculateImageCoordinateFromPointPov (pov) {
     };
 }
 util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateFromPointPov;
+
+/**
+ * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
+ *
+ * @param ix
+ * @param iy
+ * @param pov
+ * @param zoomFactor
+ * @returns {{x: number, y: number}}
+ */
+function imageCoordinateToCanvasCoordinate(imageX, imageY, currentPov) {
+
+    // var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
+    // var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
+
+    var povChange = svl.map.getPovChangeStatus();
+    povChange["status"] = true;
+
+    var canvasCoordinate;
+    var origPointPov = calculatePointPovFromImageCoordinate(imageX, imageY, currentPov);
+    canvasCoordinate = getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
+    povChange["status"] = false;
+
+    return {x: canvasCoordinate.x, y: canvasCoordinate.y};
+}
+util.panomarker.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
+
+/**
+ * This function maps canvas coordinate to image coordinate
+ * @param canvasX
+ * @param canvasY
+ * @param pov
+ * @returns {{x: number, y: number}}
+ */
+function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
+
+    // Old calculation
+    // var zoomFactor = svl.zoomFactor[pov.zoom];
+    // var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
+    // var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+
+    var svImageWidth = svl.svImageWidth;
+    var pointPOV = calculatePointPov(canvasX, canvasY, pov);
+    var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV);
+
+    if (svImageCoord.x < 0) {
+        svImageCoord.x = svImageCoord.x + svImageWidth;
+    }
+
+    return { x: svImageCoord.x, y: svImageCoord.y };
+}
+util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
 
 /***
  * Get canvas coordinates of points from the POV
@@ -253,7 +306,9 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
 }
 
 /**
- * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point.
+ * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point
+ * when the pov is changed.
+ * If the pov is not changed, then the passed canvas Coordinate is returned
  * @param pov
  * @returns {{x, y}}
  */

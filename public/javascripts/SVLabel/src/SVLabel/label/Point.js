@@ -94,7 +94,7 @@ function Point (svl, x, y, pov, params) {
         }
         */
 
-        var svImageCoord = calculateImageCoordinateFromPointPov(self.originalPov);
+        var svImageCoord = util.panomarker.calculateImageCoordinateFromPointPov(self.originalPov);
 
         if (svImageCoord.x < 0) {
             svImageCoord.x = svImageCoord.x + svImageWidth;

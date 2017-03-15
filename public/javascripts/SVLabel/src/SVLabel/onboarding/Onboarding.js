@@ -293,7 +293,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             x2,
             y1,
             y2,
-            pointPov,
             origPointPov,
             canvasCoordinate;
 
@@ -618,7 +617,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 pov = mapService.getPov(),
                 canvasX = clickCoordinate.x,
                 canvasY = clickCoordinate.y,
-                imageCoordinate = util.misc.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
+                imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
                 distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
