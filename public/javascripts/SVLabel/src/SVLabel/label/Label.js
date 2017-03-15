@@ -447,6 +447,7 @@ function Label (svl, pathIn, params) {
                 path.render2(ctx, pov);
 
             } else if (false) {
+                // TAG: OLD IMAGE COORDINATE USED
                 // Render labels that are not in the current panorama but are close enough.
                 // Get the label'svar latLng = toLatLng();
                 var currLat = svl.panorama.location.latLng.lat(),
@@ -466,7 +467,7 @@ function Label (svl, pathIn, params) {
                     var iy = (idx / 3 - ix) / 512;
                     var imageCoordinateX = ix * 26;
                     var imageCoordinateY = 3328 - iy * 26;
-                    var canvasPoint = util.misc.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
+                    var canvasPoint = util.panomarker.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
 
                     console.log(canvasPoint);
                     ctx.save();
