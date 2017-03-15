@@ -803,7 +803,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "imageX": 1492,
                 "imageY": -783,
-                "tolerance": 300
+                "tolerance": 200
             },
             "message": {
                 "message": '<span class="bold">Click on the curb ramp (below the yellow arrow) to label it.</span>',
