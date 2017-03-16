@@ -516,9 +516,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var panoramaPosition = svl.panorama.getPosition();
             map.setCenter(panoramaPosition);
 
+            var povChange = svl.map.getPovChangeStatus();
+            povChange["status"] = true;
+
             _canvas.clear();
             _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
             _canvas.render2();
+            povChange["status"] = false;
 
 
             // Attach listeners to svl.pointCloud

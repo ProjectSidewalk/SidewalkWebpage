@@ -99,9 +99,6 @@ function Point (svl, x, y, pov, params) {
             self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
         }
         */
-        console.log("X,Y " + x + "," + y);
-        console.log("Panorama POV: " + JSON.stringify(self.panoramaPov));
-        console.log("Original POV: " + JSON.stringify(self.originalPov));
 
         var svImageCoord = util.panomarker.calculateImageCoordinateFromPointPov(self.originalPov);
 

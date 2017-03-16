@@ -884,6 +884,9 @@ function Canvas (ribbon) {
         var pov = svl.map.getPov();
 
         var povChange = svl.map.getPovChangeStatus();
+        // For the condition, when the interface loads for the first time
+        // The pov is changed. Prevents the conversion function to be called
+        // for the initial rendering pipeline
         if (labels.length == 0 && povChange["status"]){
             povChange["status"] = false;
         }
