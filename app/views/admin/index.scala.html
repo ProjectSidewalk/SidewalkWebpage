@@ -20,16 +20,17 @@
                     <div id="admin-map"></div>
                     <div id="map-label-legend">
                         <table class="table filter">
-                            <tr>
+                            <tr style="border-bottom: 1px solid; border-bottom-color: lightgray">
                                 <td></td>
-                                <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
+                                <td colspan="1" align="left" style="font-weight:bold">Label Type</td>
+                                <td width="12px" align="center" ><input type="checkbox" id="check_all" checked="true" onclick="admin.toggleAll();"></td>
                                 <td colspan="2" align="left" style="font-weight:bold">Severity</td>
                             </tr>
                             <tr>
                                 <td id="map-legend-curb-ramp" width="12px"></td>
                                 <td width="190px">Curb Ramp</td>
                                 <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td>
-                                <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
+                                <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:4px"></div></td>
                                 <td width="60px" align= "center" ><span id="curb-ramp-severity-label">All</span></td>
 
                             </tr>
