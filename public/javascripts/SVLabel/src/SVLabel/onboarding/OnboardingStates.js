@@ -656,8 +656,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3066,
-                    "y": -700,
+                    "x": 2766,
+                    "y": -550,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -677,8 +677,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "Other",
                 "subcategory": "NoSidewalk",
-                "imageX": 3066,
-                "imageY": -700,
+                "imageX": 2766,
+                "imageY": -550,
                 "tolerance": 300
             },
             "message": {
@@ -690,8 +690,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 3066,
-                    "y": -700,
+                    "x": 2766,
+                    "y": -550,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -732,8 +732,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId
             },
             "message": {
-                "message": 'Notice the arrow is pointing to another curb ramp, but the image is a bit washed out. ' +
-                '<span class="bold">Let’s take a step</span> to see if we can get a better look. To take a step, ' +
+                "message": '<span class="bold">Let’s learn to take a step</span> and label' +
+                ' the curb ramp that is pointed by the arrow. To take a step, ' +
                 'double click on the circle below.',
                 "position": "top-right",
                 "parameters": null
@@ -772,7 +772,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp"
             },
             "message": {
-                "message": 'Good, you just took a step! There is a curb ramp. ' +
+                "message": 'Good, you just took a step! Let us label the curb ramp now. ' +
                 '<span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
                 "position": "top-right",
                 "parameters": null
