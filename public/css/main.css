@@ -26,11 +26,9 @@
 
 html,
 body {
+    padding-top: 80px;
+
     overflow-x: hidden; /* Prevent scroll on narrow devices */
-}
-body {
-    padding-top: 100px;
-    overflow: hidden;
 }
 footer {
     padding: 30px 0;
@@ -157,7 +155,7 @@ video#bgvid {
 #vidbanner {
     position:relative;
     overflow:hidden;
-    top: -10px;
+    top: -70px;
     width: 100%;
     display:flex;
     justify-content: center;
@@ -167,7 +165,7 @@ video#bgvid {
 
 #graybar {
     position: relative;
-    top: -10px;
+    top: -70px;
     height: 50px;
     background-color: #2d2a3f;
     font-family: adelle-regular;
@@ -253,6 +251,7 @@ video#bgvid {
     top: -11px;
     background-color: #fff;
     max-width:70%;
+    max-height:90px;
 }
 
 .im-centered {
@@ -550,7 +549,7 @@ float: center;
     -webkit-box-shadow: 0 8px 6px -6px #999;
     -moz-box-shadow: 0 8px 6px -6px #999;
     box-shadow: 0 8px 6px -6px #999;
-    max-height: 110px;
+    max-height: 90px;
 
 
 }
@@ -600,6 +599,7 @@ float: center;
     line-height:1.8em;
     text-align:center;
     position:relative;
+    cursor: pointer;
     left: -30px;
 }
 

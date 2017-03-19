@@ -54,7 +54,7 @@
                     </p>
                     <button class="myButton2" onclick="location.href='@routes.AuditController.audit';">Start Mapping</button>
                     <br><br>
-                    <p id="exploremaplink">Explore what we've mapped</p>
+                    <p id="exploremaplink" onclick="location.href='@routes.ApplicationController.results';">Explore what we've mapped</p>
                 </div>
             </div>
         </div>
@@ -140,7 +140,7 @@
             <div class="row" id="content-text">
                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed eu felis urna. Ut cursus arcu sit amet dolor pharetra, at sagittis diam finibus. Integer sed</p>
             </div>
-            <button id="exploreButton" >Explore our work so far</button>
+            <button id="exploreButton" onclick="location.href='@routes.ApplicationController.results';">Explore our work so far</button>
         </div>
     </div>
     <div class="container" id="count-container">
