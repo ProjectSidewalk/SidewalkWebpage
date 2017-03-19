@@ -18,7 +18,17 @@
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
-                <li class="active"><button class="myButton" onclick="location.href='@routes.AuditController.audit';">Start Mapping</button></li>
+                @if(url.isDefined && url.get != "/audit") {
+
+                    <li class="active"><button class="myButton" onclick="location.href='@routes.AuditController.audit';">Start Mapping</button></li>
+
+                } else {
+                    
+                    <li>
+                        <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
+                    </li>
+                }
+
 
 
                 @if(user) {
