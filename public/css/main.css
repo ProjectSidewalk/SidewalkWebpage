@@ -1,0 +1,609 @@
+/*
+* Style tweaks
+* --------------------------------------------------
+*/
+
+/* General styles */
+@font-face {
+	font-family: adelle-semibold;
+	src: url(../fonts/Adelle/adelle_semibold-webfont.ttf);
+}
+
+@font-face {
+	font-family: adelle-regular;
+	src: url(../fonts/Adelle/adelle_reg-webfont.ttf);
+}
+
+@font-face {
+	font-family: adelle-light;
+	src: url(../fonts/Adelle/adelle_light-webfont.ttf);
+}
+
+@font-face {
+	font-family: adelle-heavy;
+	src: url(../fonts/Adelle/adelle_heavy-webfont.ttf);
+}
+
+html,
+body {
+    overflow-x: hidden; /* Prevent scroll on narrow devices */
+}
+body {
+    padding-top: 100px;
+    overflow: hidden;
+}
+footer {
+    padding: 30px 0;
+}
+
+/*
+ * Custom styles
+ */
+.navbar-brand {
+    font-size: 24px;
+
+}
+
+.navbar-container {
+    padding: 20px 0 20px 0;
+}
+
+.navbar.navbar-fixed-top.fixed-theme {
+    background-color: #fff;
+    /* border-color: #080808; */
+    /* box-shadow: 0 0 5px rgba(0,0,0,.8); */
+}
+
+
+
+.navbar-brand.fixed-theme {
+    font-size: 18px;
+   ;
+}
+
+.navbar-container.fixed-theme {
+    top: -30px;
+    padding: 0;
+}
+
+.navbar-right.fixed-theme{
+    position: relative;
+    top: -15px;
+}
+
+.navbar-brand.fixed-theme,
+.navbar-container.fixed-theme,
+.navbar.navbar-fixed-top.fixed-theme,
+.navbar-brand,
+.navbar-container{
+    transition: 0.8s;
+    -webkit-transition:  0.8s;
+}
+.navbar-nav {
+
+}
+.navbar.fixed-theme {
+    -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px #999;
+
+    /* the rest of your styling */
+}
+#navbar {
+    margin-top: 30px;
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.myButton {
+	background-color:#ffffff;
+	-moz-border-radius:15px;
+	-webkit-border-radius:15px;
+	border-radius:15px;
+	border:1px solid #2D2A3F;
+	display:inline-block;
+	cursor:pointer;
+	color:#2D2A3F;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+	font-family: 'Raleway', sans-serif;
+	font-size:14px;
+	padding:5px 25px;
+	text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.myButton:hover {
+	background-color:#eb734d;
+    border:1px solid #eb734d;
+    color: #ffffff;
+    text-shadow: none;
+}
+.myButton:active {
+	position:relative;
+	top:1px;
+}
+
+
+
+
+.logintext {
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+	font-family: 'Raleway', sans-serif;
+	font-size:14px;
+    padding: 5px 20px;
+    letter-spacing: 0.1em;
+    display: table-cell;
+    vertical-align: middle;
+
+}
+
+
+video#bgvid {
+    position: absolute;
+
+    min-width:100%;
+
+    background-size: cover;
+    left: 0px;
+}
+
+#vidbanner {
+    position:relative;
+    overflow:hidden;
+    top: -10px;
+    width: 100%;
+    display:flex;
+    justify-content: center;
+    min-height:500px;
+
+}
+
+#graybar {
+    position: relative;
+    top: -10px;
+    height: 50px;
+    background-color: #2d2a3f;
+    font-family: adelle-regular;
+
+}
+
+#bartext {
+    position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    vertical-align: middle;
+    color: #fff;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+
+}
+
+#computerimage {
+    margin-top: 0px;
+    max-width: 500px;
+    min-width: 500px;
+    margin-left: 30px;
+    text-align: left;
+}
+
+.tagline {
+
+    font-family: Raleway;
+	font-size: 45px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;
+	line-height: 58px;
+    color: #fbd78b;
+}
+
+
+
+#text {
+    padding-top:70px;
+}
+
+#description {
+    font-family: adelle-regular;
+	font-size: 14px;
+    line-height: 1.8em;
+    letter-spacing: 0.1em;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+
+    color: #fff;
+}
+
+
+
+#compgif {
+    padding-top: 60px;
+}
+
+#bannertext {
+    min-width:200px;
+    max-width:400px;
+}
+
+
+
+#biglogo {
+    position: relative;
+    top: -5px;
+}
+
+#smalllogo {
+    position: relative;
+    top: -5px;
+}
+
+#header-container {
+    position: relative;
+    top: -11px;
+    background-color: #fff;
+    max-width:800px;
+}
+
+.im-centered {
+     margin: auto; max-width: 400px;
+    text-align: center;
+    padding-top: 50px;
+    font-family: Raleway;
+	font-size: 45px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;
+	line-height: 50px;
+    color: #2D2A3F;
+
+}
+
+
+
+
+
+#steps1 {
+    padding-top: 100px;
+
+}
+
+.stepnumber {
+    font-family: Raleway;
+	font-size: 45px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;
+	line-height: 58px;
+    color: #EB734D;
+}
+
+.stepword {
+    padding-left: 25px;
+    font-family: Raleway;
+	font-size: 30px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;
+	line-height: 58px;
+    color: #2D2A3F;
+
+}
+
+
+
+
+
+#step2right {
+
+float: center;
+
+}
+
+#content-text {
+    font-family: adelle-regular;
+	font-size: 14px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	line-height: 1.8em;
+    letter-spacing: 0.1em;
+
+
+}
+
+#algdessc {
+    font-family: Raleway;
+	font-size: 12px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	line-height: 15px;
+}
+
+#aidesc {
+    position:relative;
+    top:-60px;
+    font-family: Raleway;
+	font-size: 14px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	line-height: 10px;
+}
+
+.im-centered2 {
+
+     margin: auto; max-width: 350px;
+    text-align: center;
+    padding-top: 50px;
+    font-family: Raleway;
+	font-size: 45px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;
+	line-height: 20px;
+    color: #2D2A3F;
+
+
+}
+
+#diffdesc {
+    position:relative;
+    top:-40px;
+    font-family: Raleway;
+	font-size: 14px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	line-height: 12px;
+}
+
+
+
+.compimage {
+
+    float:left;
+
+}
+
+#exploreButton {
+    background-color:#ffffff;
+	-moz-border-radius:15px;
+	-webkit-border-radius:15px;
+	border-radius:15px;
+	border:1px solid #2D2A3F;
+	display:inline-block;
+	cursor:pointer;
+	color:#2D2A3F;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+	font-family: 'Raleway', sans-serif;
+	font-size:14px;
+	padding:15px 105px;
+	text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+#exploreButton:hover {
+    background-color:#eb734d;
+    border:1px solid #eb734d;
+    color: #ffffff;
+    text-shadow: none;
+}
+#exploreButton:active {
+    position:relative;
+	top:1px;
+}
+
+#count-container {
+
+    position: relative;
+    top: 50px;
+    background-image: url(../assets/orange-map.PNG);
+    width:100%;
+    position:relative;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+
+}
+
+.numbers-largefont {
+    font-family: raleway, sans-serif;
+    font-size: 100px;
+    font-weight: normal;
+}
+
+.numbers-smallfont {
+    font-size:12px;
+    letter-spacing: 0.1em;
+    font-weight: normal;
+    font-style: normal;
+}
+
+#press-container {
+    position: relative;
+    top: 60px;
+    height: 800px;
+}
+
+
+
+#press-container2 {
+    position: relative;
+    max-width: 900px;
+    top: -20px;
+    background-color:#eee;
+    min-height: 400px;
+}
+
+#press-list-header {
+    font-size: 30px;
+    color: #eb734d;
+    line-height: 1em;
+    text-align: center;
+    letter-spacing: 0.05em;
+    word-wrap: break-word;
+    font-weight: bold;
+}
+
+.newslink {
+    font-family: Raleway;
+	font-size: 14px;
+	font-style: italic;
+	font-variant: normal;
+    text-decoration: underline;
+	font-weight: bold;
+	line-height: 20px;
+
+    color: #2d2a3f;
+}
+
+.quotebox {
+    width: 430px;
+    height: 250px;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-shadow: 5px 5px 30px #bbb;
+    background-image: url(../assets/quote.PNG);
+    background-size: 430px 230px;
+    background-repeat: no-repeat;
+    text-align: center;
+    font-size: 25px;
+    color: #2d2a3f;
+    display: table-cell;
+    vertical-align: middle;
+  line-height: normal;
+    font-family: adelle-regular;
+    word-wrap: break-word;
+
+}
+
+.quoteauthor {
+    font-family: Raleway;
+    font-weight: bold;
+    font-style: italic;
+    letter-spacing: 0.05em;
+    color: #eb734d;
+    font-size: 12px;
+    line-height: 1.9em;
+
+}
+
+#footer-container {
+    position: relative;
+    width: 100%;
+    min-height: 300px;
+    background-image: url(../assets/footer-image.webp);
+    background-size: cover;
+     display: flex; justify-content: center;
+    color: #ccc;
+    font-size: 12px;
+    line-height: 1.8em;
+    font-family: raleway;
+
+
+}
+
+.footerheader {
+    font-family: raleway;
+    color: #848383;
+    font-size: 12px;
+    line-height: 2.1em;
+    letter-spacing: 0.05em;
+
+}
+
+#info-footer {
+    width: 100%;
+    height: 90px;
+    padding-top: 30px;
+    background-color: rgba(120, 201, 171, 1);
+    text-align: center;
+    font-family: raleway;
+    font-size: 12px;
+    color: #2d2a3f;
+    line-height: 1.6em;
+
+}
+
+#banner {
+    width:100%;
+    height:100%;
+    max-width: 1000px;
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#header {
+    background-color: #fff;
+    -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px #999;
+    max-height: 110px;
+
+
+}
+
+#topbuttons {
+    position: relative;
+    top: -10px;
+}
+
+.verticalbar {
+    color: #FBD78B;
+}
+
+.myButton2 {
+    background-color:rgba(0, 0, 0, 0.0);
+	-moz-border-radius:15px;
+	-webkit-border-radius:15px;
+	border-radius:15px;
+	border:1px solid #fbd78b;
+	display:inline-block;
+	cursor:pointer;
+	color:#fbd78b;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+	font-family: 'Raleway', sans-serif;
+	font-size:14px;
+	padding:15px 105px;
+
+	text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.myButton2:hover {
+    background-color:#eb734d;
+    border:1px solid #eb734d;
+    color: #ffffff;
+    text-shadow: none;
+}
+.myButton2:active{
+    position:relative;
+	top:1px;
+}
+
+#exploremaplink {
+    color: #fff;
+    text-decoration:underline;
+    font-family: raleway;
+    font-size: 10px;
+    line-height:1.8em;
+    text-align:center;
+    position:relative;
+    left: -30px;
+}
+
+#menubutton {
+    position: relative;
+    top: 15px;
+}
+
+.stepdescription {
+    font-family: adelle-regular;
+    line-height: 1.9em;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+}
