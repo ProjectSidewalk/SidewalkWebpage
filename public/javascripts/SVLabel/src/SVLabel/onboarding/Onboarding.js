@@ -37,7 +37,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     var ctx;
     var canvasWidth = 720;
     var canvasHeight = 480;
-    var panoId = "stxXyCKAbd73DmkM2vsIHA";
     var properties = {};
     var status = {
         state: 0,
