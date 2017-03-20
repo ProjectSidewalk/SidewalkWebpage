@@ -756,7 +756,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function handlerPovChange () {
         // This is a callback function that is fired when pov is changed
+        var povChange = svl.map.getPovChangeStatus();
+        povChange["status"] = true;
         updateCanvas();
+        povChange["status"] = false;
+
         if ("compass" in svl) { svl.compass.update(); }
         svl.tracker.push("POV_Changed");
     }
