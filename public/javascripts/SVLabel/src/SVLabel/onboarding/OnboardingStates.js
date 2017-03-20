@@ -394,7 +394,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-2": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 105,
+                "heading": 115,
                 "tolerance": 20
             },
             "message": {
@@ -732,24 +732,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId
             },
             "message": {
-                "message": '<span class="bold">Let’s learn to take a step</span> and label' +
-                ' the curb ramp that is pointed by the arrow. To take a step, ' +
+                "message": '<span class="bold">Let’s learn to take a step</span>. To take a step, ' +
                 'double click on the circle below.',
                 "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
             "annotations": [
-                {
-                    "type": "arrow",
-                    "x": 700,
-                    "y": -650,
-                    "length": 50,
-                    "angle": 0,
-                    "text": null,
-                    "fill": "white",
-                    "originalPov": {}
-                },
                 {
                     "type": "double-click",
                     "x": -241,
@@ -803,7 +792,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "imageX": 1492,
                 "imageY": -783,
-                "tolerance": 200
+                "tolerance": 250
             },
             "message": {
                 "message": '<span class="bold">Click on the curb ramp (below the yellow arrow) to label it.</span>',
