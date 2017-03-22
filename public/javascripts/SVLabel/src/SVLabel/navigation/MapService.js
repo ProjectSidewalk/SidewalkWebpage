@@ -270,9 +270,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (status.labelBeforeJumpListenerSet) {
             setLabelBeforeJumpListenerStatus(false);
             resetBeforeJumpLocationAndListener();
-            console.log("Jumped to street: " + task.getStreetEdgeId());
-        } else {
-            console.log("Moved to street: " + task.getStreetEdgeId());
+            //console.log("Jumped to street: " + task.getStreetEdgeId());
         }
         // } else {
         //     console.log("Moved to street: " + task.getStreetEdgeId());
@@ -571,7 +569,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
-            console.log("Current street: " + task.getStreetEdgeId());
+            //console.log("Current street: " + task.getStreetEdgeId());
 
             // Get a new task and check if its disconnected from the current task
             // If yes, then finish the current task after the user has labeling the
