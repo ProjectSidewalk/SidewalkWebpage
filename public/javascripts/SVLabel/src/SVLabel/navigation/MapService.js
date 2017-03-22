@@ -59,6 +59,20 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         STREETVIEW_MAX_DISTANCE = 50,
         googleMapsPaneBlinkInterval;
 
+    var povChange = {
+        "currPov": {
+            heading: 0,
+            pitch: 0,
+            zoom: 1
+        },
+
+        "prevPov": {
+            heading: 0,
+            pitch: 0,
+            zoom: 1
+        },
+        "status": false
+    };
     // Mouse status and mouse event callback functions
     var mouseStatus = {
             currX:0,
@@ -160,14 +174,20 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 mode : 'html4',
                 // position: fenway,
                 pov: properties.panoramaPov,
-                pano: params.taskPanoId
+                pano: params.taskPanoId,
+                showRoadLabels: false,
+                motionTracking: false,
+                motionTrackingControl: false
             };
         } else if (params.Lat && params.Lng) {
             fenway = new google.maps.LatLng(params.Lat, params.Lng);
             panoramaOptions = {
                 mode : 'html4',
                 position: fenway,
-                pov: properties.panoramaPov
+                pov: properties.panoramaPov,
+                showRoadLabels: false,
+                motionTracking: false,
+                motionTrackingControl: false
             };
 
         } else {
@@ -247,13 +267,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function moveToTheTaskLocation(task) {
 
         // Reset all jump parameters
-        if (status.labelBeforeJumpListenerSet){
+        if (status.labelBeforeJumpListenerSet) {
             setLabelBeforeJumpListenerStatus(false);
             resetBeforeJumpLocationAndListener();
-            //console.log("Jumped to street: " + task.getStreetEdgeId());
+            console.log("Jumped to street: " + task.getStreetEdgeId());
         } else {
-            //console.log("Moved to street: " + task.getStreetEdgeId());
+            console.log("Moved to street: " + task.getStreetEdgeId());
         }
+        // } else {
+        //     console.log("Moved to street: " + task.getStreetEdgeId());
+        // }
 
         var geometry = task.getGeometry();
         var callback = function (data, status) {
@@ -322,20 +345,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
         destroyMaps();
     });
-
-    /**
-     * This function maps canvas coordinate to image coordinate
-     * @param canvasX
-     * @param canvasY
-     * @param pov
-     * @returns {{x: number, y: number}}
-     */
-    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        var zoomFactor = svl.zoomFactor[pov.zoom];
-        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-        return { x: x, y: y };
-    }
 
     /**
      * This method disables zooming by double click.
@@ -509,9 +518,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var panoramaPosition = svl.panorama.getPosition();
             map.setCenter(panoramaPosition);
 
+            var povChange = svl.map.getPovChangeStatus();
+            povChange["status"] = true;
+
             _canvas.clear();
             _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
             _canvas.render2();
+            povChange["status"] = false;
 
 
             // Attach listeners to svl.pointCloud
@@ -557,7 +570,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function _endTheCurrentTask(task, mission, neighborhood) {
 
         if (!status.labelBeforeJumpListenerSet) {
-            //console.log("Current street: " + task.getStreetEdgeId());
+
+            console.log("Current street: " + task.getStreetEdgeId());
 
             // Get a new task and check if its disconnected from the current task
             // If yes, then finish the current task after the user has labeling the
@@ -746,7 +760,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function handlerPovChange () {
         // This is a callback function that is fired when pov is changed
+        var povChange = svl.map.getPovChangeStatus();
+        povChange["status"] = true;
         updateCanvas();
+        povChange["status"] = false;
+
         if ("compass" in svl) { svl.compass.update(); }
         svl.tracker.push("POV_Changed");
     }
@@ -848,7 +866,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
                 // then jump to the scene
                 if (!status.disableWalking) {
-                    var imageCoordinate = canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
+                    var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
                         latlng = getPosition(),
                         newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
                     if (newLatlng) {
@@ -906,31 +924,34 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         // Show label delete menu
-            var item = _canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-            if (item && item.className === "Point") {
-                var path = item.belongsTo();
-                var selectedLabel = path.belongsTo();
+        var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        if (item && item.className === "Point") {
+            // console.log("On a point");
+            var path = item.belongsTo();
+            var selectedLabel = path.belongsTo();
 
-                _canvas.setCurrentLabel(selectedLabel);
-                _canvas.showLabelTag(selectedLabel);
-                _canvas.clear();
-                _canvas.render2();
-            } else if (item && item.className === "Label") {
-                var selectedLabel = item;
-                _canvas.setCurrentLabel(selectedLabel);
-                _canvas.showLabelTag(selectedLabel);
-            } else if (item && item.className === "Path") {
-                var label = item.belongsTo();
-                _canvas.clear();
-                _canvas.render2();
-                _canvas.showLabelTag(label);
-            }
-            else {
-                // canvas.hideDeleteLabel();
-                _canvas.showLabelTag(undefined);
-                _canvas.setCurrentLabel(undefined);
-            }
-
+            _canvas.setCurrentLabel(selectedLabel);
+            _canvas.showLabelTag(selectedLabel);
+            _canvas.clear();
+            _canvas.render2();
+        } else if (item && item.className === "Label") {
+            console.log("On a label");
+            var selectedLabel = item;
+            _canvas.setCurrentLabel(selectedLabel);
+            _canvas.showLabelTag(selectedLabel);
+        } else if (item && item.className === "Path") {
+            console.log("On a Path");
+            var label = item.belongsTo();
+            _canvas.clear();
+            _canvas.render2();
+            _canvas.showLabelTag(label);
+        }
+        else {
+            // console.log("On nothing");
+            // canvas.hideDeleteLabel();
+            _canvas.showLabelTag(undefined);
+            _canvas.setCurrentLabel(undefined);
+        }
 
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
@@ -1214,6 +1235,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         $(".gmnoprint path").css('pointer-events', 'all');
     }
 
+    /*
+     * Gets the pov change tracking variable
+     */
+    function getPovChangeStatus(){
+        return povChange;
+    }
+
     /**
      * Update POV of Street View as a user drag a mouse cursor.
      * @param dx
@@ -1223,6 +1251,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
+            povChange["prevPov"] = $.extend(true, {}, pov);
 
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
@@ -1254,6 +1283,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             }
+
+            // Update the status of pov change
+            povChange["currPov"] = pov;
+            povChange["status"] = true;
 
             //
             // Set the property this object. Then update the Street View image
@@ -1482,6 +1515,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.getProperty = getProperty;
     self.getPosition = getPosition;
     self.getPov = getPov;
+    self.getPovChangeStatus = getPovChangeStatus;
     self.hideLinks = hideLinks;
     self.load = load;
     self.lockDisablePanning = lockDisablePanning;
@@ -1491,6 +1525,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.modeSwitchWalkClick = modeSwitchWalkClick;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
     self.plotMarkers = plotMarkers;
+    // self.povToCanvasCoordinate = povToCanvasCoordinate;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
     self.save = save;
     self.setBeforeJumpLocation = setBeforeJumpLocation;

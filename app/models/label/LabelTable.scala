@@ -28,7 +28,17 @@ case class LabelLocation(labelId: Int,
                          gsvPanoramaId: String,
                          labelType: String,
                          lat: Float,
-                         lng: Float)
+                         lng: Float
+                         )
+
+case class LabelLocationWithSeverity(labelId: Int,
+                                     auditTaskId: Int,
+                                     gsvPanoramaId: String,
+                                     labelType: String,
+                                     severity: Int,
+                                     lat: Float,
+                                     lng: Float
+                                    )
 
 /**
  *
@@ -65,6 +75,7 @@ object LabelTable {
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
+  val severities = TableQuery[ProblemSeverityTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -81,8 +92,10 @@ object LabelTable {
                            temporary: Boolean, description: Option[String])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
-    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat)
-  )
+    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
+
+  implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
 
   /**
     * Find a label
@@ -341,6 +354,28 @@ object LabelTable {
     } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
     val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
+    labelLocationList
+  }
+
+  /**
+    * This method returns all the submitted labels with their severities included.
+    *
+    * @return
+    */
+  def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+    val _labels = for {
+      (_labels, _labelTypes) <- labelsWithoutDeleted.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
+    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
+
+    val _slabels = for {
+      (l, s) <- _labels.innerJoin(severities).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, s.severity)
+
+    val _points = for {
+      (l, p) <- _slabels.innerJoin(labelPoints).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
+
+    val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))
     labelLocationList
   }
 
