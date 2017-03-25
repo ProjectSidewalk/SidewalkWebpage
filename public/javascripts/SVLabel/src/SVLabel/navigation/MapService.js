@@ -60,17 +60,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         googleMapsPaneBlinkInterval;
 
     var povChange = {
-        "currPov": {
-            heading: 0,
-            pitch: 0,
-            zoom: 1
-        },
-
-        "prevPov": {
-            heading: 0,
-            pitch: 0,
-            zoom: 1
-        },
         "status": false
     };
     // Mouse status and mouse event callback functions
@@ -169,6 +158,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // http://blog.mridey.com/2010/05/controls-in-maps-javascript-api-v3.html
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
+        console.log("Params: " + JSON.stringify(params));
         if (params.taskPanoId) {
             panoramaOptions = {
                 mode : 'html4',
@@ -272,13 +262,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             resetBeforeJumpLocationAndListener();
             //console.log("Jumped to street: " + task.getStreetEdgeId());
         }
-        // } else {
-        //     console.log("Moved to street: " + task.getStreetEdgeId());
-        // }
 
-        var geometry = task.getGeometry();
         var callback = function (data, status) {
-            if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+            if (status !== google.maps.StreetViewStatus.OK) {
+            // if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
                 util.misc.reportNoStreetView(task.getStreetEdgeId());
                 svl.taskContainer.endTask(task);
 
@@ -287,8 +274,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.taskContainer.setCurrentTask(task);
                 moveToTheTaskLocation(task);
             }
-
         };
+
+        var geometry = task.getGeometry();
         // Jump to the new location if it's really far away.
         var lat = geometry.coordinates[0][1],
             lng = geometry.coordinates[0][0],
@@ -508,40 +496,147 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     };
 
     /**
+     * This function takes a step in the given direction
+     * https://developers.google.com/maps/documentation/javascript/geometry#Navigation
+     *
+     * @param currentPosition
+     * @param heading
+     * @returns {*}
+     */
+    function takeAStep(currentPosition, heading) {
+        var oneStepInM = 6.35;
+        var newPosition = google.maps.geometry.spherical.computeOffset(currentPosition, oneStepInM, heading);
+        return newPosition;
+    }
+
+    function checkPanoramaImageryExistsById(panoId) {
+        if (svl.streetViewService) {
+            svl.streetViewService.getPanorama({pano: panoId},
+                function (data, status) {
+                    console.error("ID:Status: " + status);
+                    return status === google.maps.StreetViewStatus.OK;
+                });
+        }
+    }
+
+    function checkPanoramaImageryExistsByLocation(position) {
+        if (svl.streetViewService) {
+            svl.streetViewService.getPanoramaByLocation(position, STREETVIEW_MAX_DISTANCE,
+                function (data, status) {
+                    console.error("LOC:Status: " + status);
+                    return status === google.maps.StreetViewStatus.OK;
+                });
+        }
+    }
+
+    function findPanoramaWhereImageryExists(currentPosition, heading, round){
+        // Loop through 3 steps from the current position
+        // and find if panorama exists. If no panorama found,
+        // then skip to a random location within the neighborhood
+        if (round === undefined) round = 1;
+
+        console.log("Current Position: " + currentPosition);
+        console.log("Heading: " + heading);
+
+        // Check for the next step
+        var newLatLng = takeAStep(currentPosition, heading);
+
+        // Calculation from http://www.movable-type.co.uk/scripts/latlong.html
+        // For final bearing, simply take the initial bearing from the end point
+        // to the start point and reverse it with (brng+180)%360.
+        var newHeading = google.maps.geometry.spherical.computeHeading(newLatLng, currentPosition);
+        newHeading = (newHeading + 180) % 360; // New Heading
+
+        console.log("NewLatLng:" + JSON.stringify(newLatLng));
+
+        if (svl.streetViewService) {
+            svl.streetViewService.getPanoramaByLocation(newLatLng, STREETVIEW_MAX_DISTANCE,
+                function (data, status) {
+                    console.error("Round:" + round + " LOC:Status: " + status);
+
+                    if (status === google.maps.StreetViewStatus.OK) {
+                        // Move to that location
+                        console.error("Panorama found at location: " + JSON.stringify(newLatLng));
+                        self.setPosition(newLatLng.lat(), newLatLng.lng());
+                        svl.tracker.push("PanoId_Changed");
+                    }
+                    else {
+                        console.error("Panorama not found at location: " + JSON.stringify(newLatLng));
+                        svl.tracker.push("PanoId_NotFound");
+
+                        if (round < 3){
+                            findPanoramaWhereImageryExists(newLatLng, newHeading, round + 1);
+                        } else {
+                            console.error("Need to jump!");
+                            // var currentTask = svl.taskContainer.getCurrentTask();
+                            // svl.taskContainer.endTask(currentTask);
+                            //
+                            // //TODO: Show a message before you jump
+                            //
+                            // // Get a new task and repeat
+                            // var task = svl.taskContainer.nextTask(currentTask);
+                            // svl.taskContainer.setCurrentTask(task);
+                            // moveToTheTaskLocation(task);
+                            svl.tracker.push("PanoId_Changed");
+                        }
+                    }
+                });
+        }
+    }
+
+
+    /**
      * Callback for pano_changed event (https://developers.google.com/maps/documentation/javascript/streetview).
      * Update the map pane, and also query data for the new panorama.
      */
     function handlerPanoramaChange () {
         if (svl.panorama) {
+            var panoId = getPanoId();
             var panoramaPosition = svl.panorama.getPosition();
-            map.setCenter(panoramaPosition);
 
-            var povChange = svl.map.getPovChangeStatus();
-            povChange["status"] = true;
+            console.log(panoId + "\n" + JSON.stringify(panoramaPosition)
+                + "\n" + JSON.stringify(getPov()));
 
-            _canvas.clear();
-            _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
-            _canvas.render2();
-            povChange["status"] = false;
+            // Check if panorama exists
+            if (svl.streetViewService) {
+                svl.streetViewService.getPanorama({pano: panoId},
+                    function (data, status) {
+                        console.error("IniPanoStatus: " + status);
+                        if (status === google.maps.StreetViewStatus.OK) {
 
+                            map.setCenter(panoramaPosition);
 
-            // Attach listeners to svl.pointCloud
-            if ('pointCloud' in svl && svl.pointCloud) {
-                var panoId = getPanoId();
-                var pointCloud = svl.pointCloud.getPointCloud(panoId);
-                if (!pointCloud) {
-                    svl.pointCloud.createPointCloud(getPanoId());
-                    // svl.pointCloud.ready(panoId, function () {
-                        // console.log(svl.pointCloud.getPointCloud(panoId));
-                    //});
-                }
+                            povChange["status"] = true;
+
+                            _canvas.clear();
+                            _canvas.setVisibilityBasedOnLocation('visible', panoId);
+                            _canvas.render2();
+
+                            povChange["status"] = false;
+
+                            // Attach listeners to svl.pointCloud
+                            if ('pointCloud' in svl && svl.pointCloud) {
+                                var pointCloud = svl.pointCloud.getPointCloud(panoId);
+                                if (!pointCloud) {
+                                    svl.pointCloud.createPointCloud(panoId);
+                                    // svl.pointCloud.ready(panoId, function () {
+                                    // console.log(svl.pointCloud.getPointCloud(panoId));
+                                    //});
+                                }
+                            }
+                            svl.tracker.push("PanoId_Changed");
+                        }
+                        else {
+                            var pov = getPov();
+                            findPanoramaWhereImageryExists(panoramaPosition, pov.heading);
+                        }
+                    });
             }
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
 
         if ('compass' in svl) { svl.compass.update(); }
-        svl.tracker.push("PanoId_Changed");
     }
 
     // missions greater than 3000 feet are measured in miles
@@ -624,7 +719,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Callback for to track when user moves away from his current location
+     * Callback to track when user moves away from his current location
      */
 
     function trackBeforeJumpActions() {
@@ -758,7 +853,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function handlerPovChange () {
         // This is a callback function that is fired when pov is changed
-        var povChange = svl.map.getPovChangeStatus();
         povChange["status"] = true;
         updateCanvas();
         povChange["status"] = false;
@@ -870,8 +964,24 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     if (newLatlng) {
                         var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                         if (distance < STREETVIEW_MAX_DISTANCE) {
-                            svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng), STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                                if (status === google.maps.StreetViewStatus.OK) self.setPano(streetViewPanoramaData.location.pano);
+                            svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
+                                STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                                if (status === google.maps.StreetViewStatus.OK) {
+                                    self.setPano(streetViewPanoramaData.location.pano);
+                                }
+                                else{
+                                    // Add the check here
+                                    console.error("No street view found:" + JSON.stringify(status));
+
+                                    // Move to a new location
+                                    // util.misc.reportNoStreetView(task.getStreetEdgeId());
+                                    // svl.taskContainer.endTask(task);
+
+                                    // Get a new task and repeat
+                                    // task = svl.taskContainer.nextTask(task);
+                                    // svl.taskContainer.setCurrentTask(task);
+                                    // moveToTheTaskLocation(task);
+                                }
                             });
                         }
                     }
@@ -1156,18 +1266,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
 
-            svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    self.enableWalking();
-                    self.setPano(streetViewPanoramaData.location.pano);
-                    map.setCenter(gLatLng);
-                    self.disableWalking();
-                    window.setTimeout(function () { self.enableWalking(); }, 1000);
-                } else {
-                    console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
-                }
-                if (callback) callback(streetViewPanoramaData, status);
-            });
+            svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
+                function (streetViewPanoramaData, status) {
+                    if (status === google.maps.StreetViewStatus.OK) {
+                        self.enableWalking();
+                        self.setPano(streetViewPanoramaData.location.pano);
+                        map.setCenter(gLatLng);
+                        self.disableWalking();
+                        window.setTimeout(function () {
+                            self.enableWalking();
+                        }, 1000);
+                    } else {
+                        console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
+                    }
+                    if (callback) callback(streetViewPanoramaData, status);
+                });
         }
 
         return this;
@@ -1249,7 +1362,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
-            povChange["prevPov"] = $.extend(true, {}, pov);
 
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
@@ -1283,7 +1395,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
 
             // Update the status of pov change
-            povChange["currPov"] = pov;
             povChange["status"] = true;
 
             //
