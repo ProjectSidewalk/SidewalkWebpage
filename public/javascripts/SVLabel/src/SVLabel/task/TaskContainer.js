@@ -54,21 +54,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         navigationModel.disableWalking();
 
         if (streetViewService) {
-            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
-                navigationModel.enableWalking();
-                if (status === google.maps.StreetViewStatus.OK) {
-                    lat = streetViewPanoramaData.location.latLng.lat();
-                    lng = streetViewPanoramaData.location.latLng.lng();
-                    self.setCurrentTask(nextTaskIn);
-                    navigationModel.setPosition(lat, lng);
-                } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
-                    nextTaskIn.complete();
-                    // no street view available in this range.
-                    self.getFinishedAndInitNextTask(nextTaskIn);
-                } else {
-                    throw "Error loading Street View imagery.";
-                }
-            });
+            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE,
+                function (streetViewPanoramaData, status) {
+                    navigationModel.enableWalking();
+                    if (status === google.maps.StreetViewStatus.OK) {
+                        lat = streetViewPanoramaData.location.latLng.lat();
+                        lng = streetViewPanoramaData.location.latLng.lng();
+                        self.setCurrentTask(nextTaskIn);
+                        navigationModel.setPosition(lat, lng);
+                    } else {
+                        console.log("Error loading Street View imagery");
+                        nextTaskIn.complete();
+                        // no street view available in this range.
+                        self.getFinishedAndInitNextTask(nextTaskIn);
+                    }
+                });
         }
     };
 

@@ -49,6 +49,9 @@ function PanoramaContainer (streetViewService) {
                 add(data.location.pano, new Panorama(data))
             }
         }
+        else {
+            console.error("Error retrieving Panoramas: " + status);
+        }
     }
 
     /**
