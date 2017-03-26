@@ -649,11 +649,12 @@
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
-                } else if (status === google.maps.StreetViewStatus.ZERO_RESULTS) {
+                }
+                else {
                     // no street view available in this range.
+                    console.error("Error loading Street View imagery" + status);
+//                  throw "Error loading Street View imagery.";
                     location.reload();  // Todo. I need a better solution than this one.
-                } else {
-                    throw "Error loading Street View imagery.";
                 }
             });
         }
@@ -698,7 +699,10 @@
         function init() {
             var mainParam = {},
                     formParam = {},
-                    initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
+                    initialLocation = {"lat": 38.923241, "lng": -77.047347}; // Debugging #537
+//                    initialLocation = {"lat": 38.94625244272621, "lng": -77.0676402615089}; // Debugging #537
+
+//                    initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.hitId = '';
             formParam.assignmentId = '';

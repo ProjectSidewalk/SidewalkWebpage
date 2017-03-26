@@ -552,7 +552,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.streetViewService) {
             svl.streetViewService.getPanoramaByLocation(newLatLng, STREETVIEW_MAX_DISTANCE,
                 function (data, status) {
-                    console.error("Round:" + round + " LOC:Status: " + status);
+                    console.error("Pano:" + getPanoId() + " Round:" + round + " LOC:Status: " + status);
 
                     if (status === google.maps.StreetViewStatus.OK) {
                         // Move to that location
@@ -568,20 +568,31 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             findPanoramaWhereImageryExists(newLatLng, newHeading, round + 1);
                         } else {
                             console.error("Need to jump!");
-                            // var currentTask = svl.taskContainer.getCurrentTask();
-                            // svl.taskContainer.endTask(currentTask);
-                            //
-                            // //TODO: Show a message before you jump
-                            //
-                            // // Get a new task and repeat
-                            // var task = svl.taskContainer.nextTask(currentTask);
-                            // svl.taskContainer.setCurrentTask(task);
-                            // moveToTheTaskLocation(task);
+                            var currentTask = svl.taskContainer.getCurrentTask();
+                            svl.taskContainer.endTask(currentTask);
+
+                            //TODO: Show a message before you jump
+
+                            // Get a new task and repeat
+                            var task = svl.taskContainer.nextTask(currentTask);
+                            svl.taskContainer.setCurrentTask(task);
+                            moveToTheTaskLocation(task);
                             svl.tracker.push("PanoId_Changed");
                         }
                     }
                 });
         }
+    }
+
+    function makeid()
+    {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        for( var i=0; i < 5; i++ )
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+        return text;
     }
 
 
@@ -593,15 +604,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var panoId = getPanoId();
             var panoramaPosition = svl.panorama.getPosition();
+            var rId = makeid();
 
-            console.log(panoId + "\n" + JSON.stringify(panoramaPosition)
+            console.error("[" + rId + "]\n" + panoId + "\n" + JSON.stringify(panoramaPosition)
                 + "\n" + JSON.stringify(getPov()));
 
             // Check if panorama exists
-            if (svl.streetViewService) {
+            if (svl.streetViewService && panoId.length > 10) {
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, status) {
-                        console.error("IniPanoStatus: " + status);
+                        console.error("[" + rId + "]\n" + "Pano: " + panoId + " Status: " + status);
                         if (status === google.maps.StreetViewStatus.OK) {
 
                             map.setCenter(panoramaPosition);
@@ -1265,10 +1277,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
+            console.error("Pano " + getPanoId() + " Debugging: " + lat + " " + lng);
 
             svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
                 function (streetViewPanoramaData, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
+                        console.error("Pano " + getPanoId() + " InsideDebugging: " + lat + " " + lng);
+                        console.error("New Pano:" + streetViewPanoramaData.location.pano);
                         self.enableWalking();
                         self.setPano(streetViewPanoramaData.location.pano);
                         map.setCenter(gLatLng);
