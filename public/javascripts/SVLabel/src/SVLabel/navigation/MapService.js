@@ -67,12 +67,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     var panoChange = {
         status: false,
-        newPano: undefined,
         initialPos: {
+            pano: undefined,
             location: undefined,
             resolved: false
         },
         newPos: {
+            pano: undefined,
             location: undefined,
             applied: false
         }
@@ -518,30 +519,35 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param heading
      * @returns {*}
      */
-    function takeAStep(currentPosition, heading) {
+    function _takeAStep(currentPosition, heading) {
         var newPosition = google.maps.geometry.spherical.computeOffset(currentPosition,
             ONE_STEP_DISTANCE_IN_M, heading);
         return newPosition;
     }
 
-    function checkPanoramaImageryExistsById(panoId) {
-        if (svl.streetViewService) {
-            svl.streetViewService.getPanorama({pano: panoId},
-                function (data, status) {
-                    console.error("ID:Status: " + status);
-                    return status === google.maps.StreetViewStatus.OK;
-                });
-        }
+    function _jumpToNewTask(task) {
+        svl.taskContainer.setCurrentTask(task);
+        moveToTheTaskLocation(task);
     }
 
-    function checkPanoramaImageryExistsByLocation(position) {
-        if (svl.streetViewService) {
-            svl.streetViewService.getPanoramaByLocation(position, STREETVIEW_MAX_DISTANCE,
-                function (data, status) {
-                    console.error("LOC:Status: " + status);
-                    return status === google.maps.StreetViewStatus.OK;
-                });
+    function _jumpToNewLocation() {
+        console.error("Need to jump!");
+
+        // Finish the current task
+        finishCurrentTaskBeforeJumping();
+
+        //TODO: Show a message before you jump
+
+        // Get a new task and jump to the new task location
+        var currentTask = svl.taskContainer.getCurrentTask();
+        var newTask = svl.taskContainer.nextTask(currentTask);
+        if (newTask) {
+            _jumpToNewTask(newTask);
+        } else {
+            // Complete current neighborhood if no new task available
+            finishNeighborhood();
         }
+
     }
 
     function findPanoramaWhereImageryExists(currentPosition, heading, round){
@@ -550,11 +556,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // then skip to a random location within the neighborhood
         if (round === undefined) round = 1;
 
-        console.log("Current Position: " + currentPosition);
-        console.log("Heading: " + heading);
+        var rId = makeid();
+
+        console.log("[" + rId + "]\n Pano: " + getPanoId() + "\nCurrent Position: " + currentPosition +
+                    "\nHeading: " + heading);
 
         // Check for the next step
-        var newLatLng = takeAStep(currentPosition, heading);
+        var newLatLng = _takeAStep(currentPosition, heading);
 
         // Calculation from http://www.movable-type.co.uk/scripts/latlong.html
         // For final bearing, simply take the initial bearing from the end point
@@ -562,44 +570,32 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var newHeading = google.maps.geometry.spherical.computeHeading(newLatLng, currentPosition);
         newHeading = (newHeading + 180) % 360; // New Heading
 
-        console.log("NewLatLng:" + JSON.stringify(newLatLng));
+        console.log("[" + rId + "]\n Pano: " + getPanoId() + "\nNewLatLng:" + JSON.stringify(newLatLng));
 
         if (svl.streetViewService) {
             svl.streetViewService.getPanoramaByLocation(newLatLng, STREETVIEW_MAX_DISTANCE,
                 function (data, status) {
-                    console.error("Pano:" + getPanoId() + " Round:" + round + " LOC:Status: " + status);
+                    console.error("[" + rId + "]\nPano:" + getPanoId() + " Round:" + round + " LOC:Status: " + status);
 
                     if (status === google.maps.StreetViewStatus.OK) {
                         // Move to that location
-                        console.error("Panorama found at location: " + JSON.stringify(newLatLng));
-                        self.setPosition(newLatLng.lat(), newLatLng.lng());
-
-                        // setPanoChangeStatus(false);
-                        svl.tracker.push("PanoId_Changed");
+                        console.error("[" + rId + "]\nPano: " + getPanoId() + " Panorama found at location: " + JSON.stringify(newLatLng));
+                        var lat = newLatLng.lat(), lng = newLatLng.lng();
+                        self.setPosition(lat, lng);
                     }
                     else {
-                        console.error("Panorama not found at location: " + JSON.stringify(newLatLng));
+                        console.error("[" + rId + "]\nPano:" + getPanoId() + " Panorama not found at location: " + JSON.stringify(newLatLng));
                         svl.tracker.push("PanoId_NotFound");
 
                         if (round < 3){
                             findPanoramaWhereImageryExists(newLatLng, newHeading, round + 1);
                         } else {
-                            console.error("Need to jump!");
-                            var currentTask = svl.taskContainer.getCurrentTask();
-                            svl.taskContainer.endTask(currentTask);
-
-                            //TODO: Show a message before you jump
-
-                            // Get a new task and jump to the new task location
-                            var task = svl.taskContainer.nextTask(currentTask);
-                            svl.taskContainer.setCurrentTask(task);
-                            moveToTheTaskLocation(task);
-
-                            // setPanoChangeStatus(false);
-                            svl.tracker.push("PanoId_Changed");
+                            _jumpToNewLocation();
+                            console.error("[" + rId + "]\nPano: " + getPanoId() + " Position Updated");
                         }
                     }
-                });
+                }
+            );
         }
     }
 
@@ -619,9 +615,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         return text;
     }
-
-
-
 
     /**
      * Callback for pano_changed event (https://developers.google.com/maps/documentation/javascript/streetview).
@@ -644,48 +637,52 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Decides whether to run the main body based on requests identified
             var flag = false;
             var initPanoPosition = panoChangeStatus["initialPos"]["location"];
+            var newPano;
 
-            var currentPosition = svl.panorama.getPosition();
             if (initPanoPosition === undefined) {
                 // Indicates the first time this method is called when no previous pano
                 // requests have been made
-                setPanoChangeInitialLocation(currentPosition);
+                console.error("[" + rId + "]\n" + panoId + "\n" + "Init undefined.");
                 flag = true;
-                console.error("[" + rId + "]\n" + panoId + "\n" + "Init undefined. InitPos set to: " +
-                    JSON.stringify(panoChangeStatus["initialPos"]["location"]));
+                setPanoChangeInitialLocation(panoramaPosition, panoId);
             } else {
 
                 // Intermediate requests while walking will have initialPos set from the previous requests
                 console.error("[" + rId + "]\n" + panoId + "\n" + "Init POS: " + JSON.stringify(initPanoPosition) +
-                    "\n" + "CurrentPos: " + JSON.stringify(currentPosition));
+                    "\n" + "CurrentPos: " + JSON.stringify(panoramaPosition));
 
                 var distance = google.maps.geometry.spherical.computeDistanceBetween(initPanoPosition,
-                    currentPosition);
+                    panoramaPosition);
                 console.error("[" + rId + "]\n Distance: " + distance);
 
+                newPano = panoChangeStatus["newPos"]["pano"];
                 if (distance < ONE_STEP_DISTANCE_IN_M) {
                     // Requests are from an existing request thread
                     // Run only if its for a newly found pano
-                    console.error("[" + rId + "]\n NewPanoCheck:" + JSON.stringify(panoChangeStatus["newPano"]));
-                    if (panoChangeStatus["newPano"] && panoId === panoChangeStatus["newPano"]) {
+                    console.error("[" + rId + "]\n NewPanoCheck:" + JSON.stringify(newPano));
+
+                    // If the new pano and initial pano are same then jump to a new location
+                    if ((panoChangeStatus["initialPos"]["pano"] == newPano) && !panoChangeStatus["status"]){
+                        _jumpToNewLocation();
+                        console.error("[" + rId + "]\nPano: " + getPanoId() + " Jumped!");
+                    }
+                    else if ((newPano && panoId === newPano) && !panoChangeStatus["status"]) {
                         flag = true;
                     }
                 }
                 else {
-                    // Request is for a new panorama request since the coordinates are different
-                    // Should reset the panochange tracking variable and run the code
-                    console.error("[" + rId + "]\n HDistance: " +
-                        util.math.haversine(initPanoPosition.lat(), initPanoPosition.lng(),
-                            panoramaPosition.lat(), panoramaPosition.lng()));
+                    // New panorama request since the coordinates are different
+                    // Reset the panochange tracking variable
                     resetPanoChange();
-                    setPanoChangeInitialLocation(panoramaPosition);
+                    setPanoChangeInitialLocation(panoramaPosition, panoId);
                     flag = true;
                 }
             }
 
-            // Run the main body based on request identified
+            // Main body executed for all requests except type 2
             if (flag) {
-                console.error("[" + rId + "]\n" + panoId + "\n" + JSON.stringify(panoramaPosition)
+                console.error("[" + rId + "]\n" + panoId + " Length:" + panoId.length
+                    + "\n" + JSON.stringify(panoramaPosition)
                     + "\n" + JSON.stringify(getPov()));
 
                 // Check if panorama exists
@@ -695,55 +692,66 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             console.error("[" + rId + "]\n" + "Pano: " + panoId + " Status: " + status);
                             if (status === google.maps.StreetViewStatus.OK) {
 
-                                // Update map center only if it has not been set by self.setPosition()
-                                var panoChangeNewLocation = getPanoChangeNewPosition();
-                                if (!panoChangeNewLocation["applied"]) {
-                                    map.setCenter(svl.panorama.getPosition());
-                                    console.error("[" + rId + "]\n" + panoId + "\n MapCenter set to: "
-                                        + JSON.stringify(panoramaPosition));
-                                }
-                                else{
-                                    // map.setCenter(panoChangeNewLocation["location"]);
-                                    console.error("[" + rId + "]\n" + panoId +
-                                        "\n Pos: " + JSON.stringify(panoChangeNewLocation["location"]) +
-                                        "\n Already applied at: "
-                                        + JSON.stringify(map.getCenter()));
-                                }
-
-                                povChange["status"] = true;
-
-                                _canvas.clear();
-                                _canvas.setVisibilityBasedOnLocation('visible', panoId);
-                                _canvas.render2();
-                                console.log("Pano1: " + getPanoId() + " Pos: " + JSON.stringify(getPosition()));
-
-                                povChange["status"] = false;
-
-                                // Attach listeners to svl.pointCloud
-                                if ('pointCloud' in svl && svl.pointCloud) {
-                                    var pointCloud = svl.pointCloud.getPointCloud(panoId);
-                                    if (!pointCloud) {
-                                        svl.pointCloud.createPointCloud(panoId);
-                                        // svl.pointCloud.ready(panoId, function () {
-                                        // console.log(svl.pointCloud.getPointCloud(panoId));
-                                        //});
-                                        console.log("Pano2: " + getPanoId() + " Pos: " + JSON.stringify(getPosition()));
+                                if (!panoChangeStatus["status"]) {
+                                    // Update map center only if it has not been set by self.setPosition()
+                                    var panoChangeNewLocation = getPanoChangeNewPosition();
+                                    if (!panoChangeNewLocation["applied"]) {
+                                        var curPos = svl.panorama.getPosition();
+                                        map.setCenter(curPos);
+                                        console.error("[" + rId + "]\n" + panoId + "\n MapCenter set to: "
+                                            + JSON.stringify(curPos));
                                     }
+                                    else {
+                                        console.error("[" + rId + "]\n" + panoId +
+                                            "\n Pos: " + JSON.stringify(panoChangeNewLocation["location"]) +
+                                            "\n Already applied at: "
+                                            + JSON.stringify(map.getCenter()));
+                                    }
+
+                                    povChange["status"] = true;
+
+                                    _canvas.clear();
+                                    _canvas.setVisibilityBasedOnLocation('visible', panoId);
+                                    _canvas.render2();
+                                    console.log("Pano1: " + getPanoId() + " Pos: " + JSON.stringify(getPosition()));
+
+                                    povChange["status"] = false;
+
+                                    // Attach listeners to svl.pointCloud
+                                    if ('pointCloud' in svl && svl.pointCloud) {
+                                        var pointCloud = svl.pointCloud.getPointCloud(panoId);
+                                        if (!pointCloud) {
+                                            svl.pointCloud.createPointCloud(panoId);
+                                            // svl.pointCloud.ready(panoId, function () {
+                                            // console.log(svl.pointCloud.getPointCloud(panoId));
+                                            //});
+                                            console.log("Pano2: " + getPanoId() + " Pos: " + JSON.stringify(getPosition()));
+                                        }
+                                    }
+                                    svl.tracker.push("PanoId_Changed");
                                 }
-                                svl.tracker.push("PanoId_Changed");
                             }
                             else {
+                                console.error("[" + rId + "]\n" + panoId +"::FindPanorama");
                                 svl.tracker.push("PanoId_NotFound");
                                 var pov = getPov();
                                 findPanoramaWhereImageryExists(panoramaPosition, pov.heading);
                             }
-                        });
+                        }
+                    );
                 }
             }
             else{
                 // Extraneous requests 
                 console.error("[" + rId + "]\n EXTRANEOUS: " + panoId + " Status False"+ "\n" + 
                     JSON.stringify(panoramaPosition));
+
+                // If the newly found pano had been applied, then set it again
+                newPano = panoChangeStatus["newPos"]["pano"];
+                if (panoChangeStatus && newPano){
+                    svl.panorama.setPano(newPano);
+                    console.error("[" + rId + "]\n Forced apply: " + newPano + "\nCurrentPano: "+ getPanoId());
+                }
             }
             if ('compass' in svl) { svl.compass.update(); }
         } else {
@@ -765,11 +773,20 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    function finishCurrentTaskBeforeJumping(){
+    function finishNeighborhood() {
+        var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+        svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+    }
+
+    function finishCurrentTaskBeforeJumping(mission){
+        if (mission === undefined) {
+            mission = missionJump;
+        }
         // Finish the current task
         var currentTask = svl.taskContainer.getCurrentTask();
         svl.taskContainer.endTask(currentTask);
-        missionJump.pushATaskToTheRoute(currentTask);
+        mission.pushATaskToTheRoute(currentTask);
     }
 
     function _endTheCurrentTask(task, mission, neighborhood) {
@@ -814,7 +831,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
             else {
                 // Finish a task
-                finishCurrentTaskBeforeJumping();
+                finishCurrentTaskBeforeJumping(missionJump);
 
                 // Move to the new task if the neighborhood has not finished
                 if (nextTask) {
@@ -823,9 +840,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             }
             if (!nextTask) {
-                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+                finishNeighborhood();
             }
         }
     }
@@ -879,8 +894,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                 // Jump to the new task
                 var newTask = svl.taskContainer.getBeforeJumpNewTask();
-                svl.taskContainer.setCurrentTask(newTask);
-                moveToTheTaskLocation(newTask);
+                _jumpToNewTask(newTask);
                 svl.jumpModel.triggerTooFarFromJumpLocation();
             }
         }
@@ -1365,7 +1379,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.disableWalking || force == true) {
             svl.panorama.setPano(panoramaId);
+            setPanoApplied();
             console.error("Panochanged: " + panoramaId);
+        }
+        else {
+            console.error("Walking Disabled");
+        }
+        return this;
+    };
+
+    self.updatePosition = function (gLatLng, force) {
+        if (force == undefined) force = false;
+
+        if (!status.disableWalking || force == true) {
+            svl.panorama.setPosition(gLatLng);
+            console.error("PanoPosChanged: " + JSON.stringify(gLatLng));
         }
         return this;
     };
@@ -1394,11 +1422,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         var newPano = streetViewPanoramaData.location.pano;
 
                         console.error("[" + rId + "]\n" + "Pano " + getPanoId() + " InsideDebugging: " + lat + " " + lng);
-                        console.error("[" + rId + "]\n" + "New Pano:" + newPano);
+                        console.error("[" + rId + "]\n" + "New Pano: " + newPano);
 
                         map.setCenter(gLatLng);
                         setPanoChangeNewPosition(gLatLng, newPano);
                         self.setPano(newPano);
+                        // self.updatePosition(gLatLng);
 
                         console.error("[" + rId + "]\n" + "SetPano:" + newPano +
                         " " + getPanoId() +  " " + JSON.stringify(map.getCenter()) + " " +
@@ -1512,12 +1541,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         console.error("PanoStatus reset");
         panoChange = {
             status: false,
-            newPano: undefined,
             initialPos: {
+                pano: undefined,
                 location: undefined,
                 resolved: false
             },
             newPos: {
+                pano: undefined,
                 location: undefined,
                 applied: false
             }
@@ -1528,6 +1558,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return panoChange["newPos"];
     }
 
+    function isNewPanoApplied(){
+        return panoChange["newPos"]["applied"];
+    }
+
+    function setPanoApplied(){
+        panoChange["newPos"]["applied"] = true;
+    }
+
     /**
      * Sets the new location when the pano changed happens
      * and sets the appropriate tracking flags to indicate the change
@@ -1535,18 +1573,23 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param newPano
      */
     function setPanoChangeNewPosition(gLatLng, newPano) {
-        panoChange["newPano"] = newPano;
+
         panoChange["initialPos"]["resolved"] = true;
+
         panoChange["newPos"]["location"] = gLatLng;
-        panoChange["newPos"]["applied"] = true;
+        panoChange["newPos"]["pano"] = newPano;
+
+        console.log("NewPanoChange: " + JSON.stringify(panoChange));
     }
 
     /**
      * Sets the initial location before the pano change happens
      * @param gLatLng
      */
-    function setPanoChangeInitialLocation(gLatLng) {
+    function setPanoChangeInitialLocation(gLatLng, panoId) {
+        panoChange["initialPos"]["pano"] = panoId;
         panoChange["initialPos"]["location"] = gLatLng;
+        console.error("InitPos set to: " + JSON.stringify(gLatLng));
     }
 
     /****
@@ -1825,8 +1868,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.getPosition = getPosition;
     self.getPov = getPov;
     self.getPovChangeStatus = getPovChangeStatus;
-    self.getPanoChangeStatus = getPanoChange;
-    self.resetPanoChangeStatus = resetPanoChange();
+    self.getPanoChange = getPanoChange;
+    self.resetPanoChange = resetPanoChange();
     self.setPanoChangeStatus = setPanoChangeStatus;
     self.hideLinks = hideLinks;
     self.load = load;

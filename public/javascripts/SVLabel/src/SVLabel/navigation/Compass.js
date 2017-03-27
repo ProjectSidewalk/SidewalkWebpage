@@ -88,7 +88,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         var task = taskContainer.getCurrentTask();
         var coordinate = task.getStartCoordinate();
         mapService.setPosition(coordinate.lat, coordinate.lng);
-        mapService.resetPanoChangeStatus();
+        mapService.resetPanoChange();
     }
 
     function _makeTheMessageBoxClickable() {
