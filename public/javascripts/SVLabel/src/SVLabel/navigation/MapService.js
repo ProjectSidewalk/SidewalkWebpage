@@ -525,33 +525,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return newPosition;
     }
 
-    function _jumpToNewTask(task) {
-        svl.taskContainer.setCurrentTask(task);
-        moveToTheTaskLocation(task);
-    }
-
-    function _jumpToNewLocation() {
-        console.error("Need to jump!");
-
-        // Finish the current task
-        var currentMission = svl.missionContainer.getCurrentMission();
-        if (currentMission) {
-            finishCurrentTaskBeforeJumping(currentMission);
-
-            // Get a new task and jump to the new task location
-            var currentTask = svl.taskContainer.getCurrentTask();
-            var newTask = svl.taskContainer.nextTask(currentTask);
-            if (newTask) {
-                _jumpToNewTask(newTask);
-            } else {
-                // Complete current neighborhood if no new task available
-                finishNeighborhood();
-            }
-        } else {
-            console.error("Mission is not set!");
-        }
-    }
-
     /**
      * Find a pano location where there is imagery available
      *
@@ -597,7 +570,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                     else {
                         console.error("[" + rId + "]\nPano:" + getPanoId() + " Panorama not found at location: " + JSON.stringify(newLatLng));
-                        svl.tracker.push("PanoId_NotFound");
+                        svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(newLatLng)});
 
                         if (round < 3){
                             findPanoramaWhereImageryExists(newLatLng, newHeading, round + 1);
@@ -608,6 +581,33 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             );
+        }
+    }
+
+    function _jumpToNewTask(task) {
+        svl.taskContainer.setCurrentTask(task);
+        moveToTheTaskLocation(task);
+    }
+
+    function _jumpToNewLocation() {
+        console.error("Need to jump!");
+
+        // Finish the current task
+        var currentMission = svl.missionContainer.getCurrentMission();
+        if (currentMission) {
+            finishCurrentTaskBeforeJumping(currentMission);
+
+            // Get a new task and jump to the new task location
+            var currentTask = svl.taskContainer.getCurrentTask();
+            var newTask = svl.taskContainer.nextTask(currentTask);
+            if (newTask) {
+                _jumpToNewTask(newTask);
+            } else {
+                // Complete current neighborhood if no new task available
+                finishNeighborhood();
+            }
+        } else {
+            console.error("Mission is not set!");
         }
     }
 
@@ -641,71 +641,48 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function handlerPanoramaChange () {
         if (svl.panorama) {
             var panoId = getPanoId();
-            var panoramaPosition = svl.panorama.getPosition(); // Current Position
+
             var rId = util.generateAlphaNumId();
+            console.log("[" + rId + "]\n" + panoId + " Length:" + panoId.length);
 
-            console.error("[" + rId + "]\n" + panoId + "\n" + "CurrentPos: " + JSON.stringify(panoramaPosition));
-
-            // This will deal with async requests happening for multiple panos at once
-            // 3 requests types:
-            // 1. New request 2. Newly found pano request 3. Extraneous pano requests
-            // Only allow for type 1 and 2 and ignore type 3
-            var panoChangeStatus = getPanoChange();
-
-            // Main body executed for all requests except type 2
-            console.error("[" + rId + "]\n" + panoId + " Length:" + panoId.length
-                + "\n" + JSON.stringify(panoramaPosition)
-                + "\n" + JSON.stringify(getPov()));
-
-            // Check if panorama exists
             if (svl.streetViewService && panoId.length > 10) {
+
+                // Check if panorama exists
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, status) {
                         console.error("[" + rId + "]\n" + "Pano: " + panoId + " Status: " + status);
                         if (status === google.maps.StreetViewStatus.OK) {
 
-                            if (!panoChangeStatus["status"]) {
-                                // Update map center only if it has not been set by self.setPosition()
-                                var panoChangeNewLocation = getPanoChangeNewPosition();
-                                if (!panoChangeNewLocation["applied"]) {
-                                    var curPos = svl.panorama.getPosition();
-                                    map.setCenter(curPos);
-                                    console.error("[" + rId + "]\n" + panoId + "\n MapCenter set to: "
-                                        + JSON.stringify(curPos));
+                            var panoramaPosition = svl.panorama.getPosition(); // Current Position
+                            map.setCenter(panoramaPosition);
+
+                            console.error("[" + rId + "]\n" + panoId + "\n MapCenter set to: "
+                                + JSON.stringify(panoramaPosition));
+
+                            povChange["status"] = true;
+
+                            _canvas.clear();
+                            _canvas.setVisibilityBasedOnLocation('visible', panoId);
+                            _canvas.render2();
+
+                            povChange["status"] = false;
+
+                            // Attach listeners to svl.pointCloud
+                            if ('pointCloud' in svl && svl.pointCloud) {
+                                var pointCloud = svl.pointCloud.getPointCloud(panoId);
+                                if (!pointCloud) {
+                                    svl.pointCloud.createPointCloud(panoId);
+                                    // svl.pointCloud.ready(panoId, function () {
+                                    // console.log(svl.pointCloud.getPointCloud(panoId));
+                                    //});
+                                    console.log("Depth forPano: " + getPanoId() + " Retrieved at : " + JSON.stringify(getPosition()));
                                 }
-                                else {
-                                    console.error("[" + rId + "]\n" + panoId +
-                                        "\n Pos: " + JSON.stringify(panoChangeNewLocation["location"]) +
-                                        "\n Already applied at: "
-                                        + JSON.stringify(map.getCenter()));
-                                }
-
-                                povChange["status"] = true;
-
-                                _canvas.clear();
-                                _canvas.setVisibilityBasedOnLocation('visible', panoId);
-                                _canvas.render2();
-                                console.log("Pano1: " + getPanoId() + " Pos: " + JSON.stringify(getPosition()));
-
-                                povChange["status"] = false;
-
-                                // Attach listeners to svl.pointCloud
-                                if ('pointCloud' in svl && svl.pointCloud) {
-                                    var pointCloud = svl.pointCloud.getPointCloud(panoId);
-                                    if (!pointCloud) {
-                                        svl.pointCloud.createPointCloud(panoId);
-                                        // svl.pointCloud.ready(panoId, function () {
-                                        // console.log(svl.pointCloud.getPointCloud(panoId));
-                                        //});
-                                        console.log("Pano2: " + getPanoId() + " Pos: " + JSON.stringify(getPosition()));
-                                    }
-                                }
-                                svl.tracker.push("PanoId_Changed");
                             }
+                            svl.tracker.push("PanoId_Changed");
                         }
                         else {
                             console.error("[" + rId + "]\n" + panoId + "::Jump to New Location");
-                            svl.tracker.push("PanoId_NotFound");
+                            svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoId});
                             jumpImageryNotFound();
                             console.error("[" + rId + "]\nPano: " + getPanoId() + " Position Updated");
 
@@ -714,12 +691,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         }
                     }
                 );
-                if ('compass' in svl) { svl.compass.update(); }
             }
-            else {
-                // For blank pano ids
-                console.error("[" + rId + "]\n" + panoId + ":: visible:: " + svl.panorama.getVisible());
-            }
+            if ('compass' in svl) { svl.compass.update(); }
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
@@ -759,11 +732,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
-            //console.log("Current street: " + task.getStreetEdgeId());
-
             // Get a new task and check if its disconnected from the current task
             // If yes, then finish the current task after the user has labeling the
             // the current location before jumping to the new location
+
+            //console.log("Current street: " + task.getStreetEdgeId());
             //console.log("Task ID:" + task.getAuditTaskId());
 
             // Set mission
@@ -777,7 +750,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // label the location before proceeding.
 
             if (nextTask && !task.isConnectedTo(nextTask)) {
-
 
                 // Set the newTask before jumping
                 svl.taskContainer.setBeforeJumpNewTask(nextTask);
@@ -905,6 +877,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
+
+        // Takes care of position_changed happening after the map has already been set
+        map.setCenter(position);
         console.error("PositionUpdateCalled" + JSON.stringify(position) + " for pano: " + getPanoId());
 
         updateCanvas();
@@ -1064,17 +1039,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                     self.setPano(streetViewPanoramaData.location.pano);
                                 }
                                 else{
-                                    // Add the check here
-                                    console.error("No street view found:" + JSON.stringify(status));
-
+                                    svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(newLatlng)});
+                                    console.error("No street view found at this location:" + JSON.stringify(status));
                                     // Move to a new location
-                                    // util.misc.reportNoStreetView(task.getStreetEdgeId());
-                                    // svl.taskContainer.endTask(task);
+                                    jumpImageryNotFound();
 
-                                    // Get a new task and repeat
-                                    // task = svl.taskContainer.nextTask(task);
-                                    // svl.taskContainer.setCurrentTask(task);
-                                    // moveToTheTaskLocation(task);
                                 }
                             });
                         }
@@ -1345,21 +1314,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.disableWalking || force == true) {
             svl.panorama.setPano(panoramaId);
-            setPanoApplied();
             console.error("Panochanged: " + panoramaId);
-        }
-        else {
-            console.error("Walking Disabled");
-        }
-        return this;
-    };
-
-    self.updatePosition = function (gLatLng, force) {
-        if (force == undefined) force = false;
-
-        if (!status.disableWalking || force == true) {
-            svl.panorama.setPosition(gLatLng);
-            console.error("PanoPosChanged: " + JSON.stringify(gLatLng));
         }
         return this;
     };
@@ -1372,10 +1327,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     self.setPosition = function (lat, lng, callback) {
         if (!status.disableWalking) {
-            var rId = util.generateAlphaNumId();
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
 
+            var rId = util.generateAlphaNumId();
             console.error("[" + rId + "]\n" + "Pano " + getPanoId() + " Debugging: " + lat + " " + lng);
 
             svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
@@ -1390,19 +1345,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         console.error("[" + rId + "]\n" + "Pano " + getPanoId() + " InsideDebugging: " + lat + " " + lng);
                         console.error("[" + rId + "]\n" + "New Pano: " + newPano);
 
-                        map.setCenter(gLatLng);
-                        setPanoChangeNewPosition(gLatLng, newPano);
                         self.setPano(newPano);
-                        // self.updatePosition(gLatLng);
+                        map.setCenter(gLatLng);
 
                         console.error("[" + rId + "]\n" + "SetPano:" + newPano +
                         " " + getPanoId() +  " " + JSON.stringify(map.getCenter()) + " " +
                         "NewPanPos: " + JSON.stringify(getPosition()));
 
                         self.disableWalking();
-                        window.setTimeout(function () {
-                            self.enableWalking();
-                        }, 1000);
+                        window.setTimeout(function() { self.enableWalking(); }, 1000);
                     } else {
                         console.error("Street View does not exist at (lat, lng) = (" + lat + ", " + lng + ")");
                     }

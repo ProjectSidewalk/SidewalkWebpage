@@ -57,8 +57,20 @@ function PanoramaContainer (streetViewService) {
     /**
      * Request the panorama meta data.
      */
-    function fetchPanoramaMetaData (panoramaId) {
-        streetViewService.getPanorama({ pano: panoramaId }, processSVData);
+    function fetchPanoramaMetaData(panoramaId) {
+        // streetViewService.getPanorama({ pano: panoramaId }, processSVData);
+        streetViewService.getPanorama({pano: panoramaId},
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    if ("location" in data && "pano" in data.location) {
+                        add(data.location.pano, new Panorama(data))
+                    }
+                }
+                else {
+                    console.error("Error retrieving Panoramas: " + status);
+                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                }
+            });
     }
 
     self.getPanorama = getPanorama;

@@ -63,7 +63,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                         self.setCurrentTask(nextTaskIn);
                         navigationModel.setPosition(lat, lng);
                     } else {
-                        console.log("Error loading Street View imagery");
+                        console.error("Error loading Street View imagery");
+                        svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(latLng)});
                         nextTaskIn.complete();
                         // no street view available in this range.
                         self.getFinishedAndInitNextTask(nextTaskIn);
