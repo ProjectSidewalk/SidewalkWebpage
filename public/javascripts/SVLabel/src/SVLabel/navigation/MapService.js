@@ -1869,7 +1869,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.getPov = getPov;
     self.getPovChangeStatus = getPovChangeStatus;
     self.getPanoChange = getPanoChange;
-    self.resetPanoChange = resetPanoChange();
+    self.resetPanoChange = resetPanoChange;
     self.setPanoChangeStatus = setPanoChangeStatus;
     self.hideLinks = hideLinks;
     self.load = load;
