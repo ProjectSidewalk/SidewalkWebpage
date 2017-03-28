@@ -27,6 +27,7 @@
 html,
 body {
     padding-top: 60px;
+    font-family:'Open Sans', 'Noto Sans', sans-serif;
 
     overflow-x: hidden; /* Prevent scroll on narrow devices */
 }
@@ -561,7 +562,7 @@ float: center;
 
 #topbuttons {
     position: relative;
-    top: -20px;
+    top: -25px;
 }
 
 .verticalbar {
