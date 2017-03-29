@@ -655,7 +655,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var beforeJumpStatus = status.jumpImageryNotFoundStatus;
             _jumpToNewLocation();
             var afterJumpStatus = status.jumpImageryNotFoundStatus;
-            console.error("Before: " + beforeJumpStatus +  "After: " + afterJumpStatus);
+            console.error("Before: " + beforeJumpStatus +  " After: " + afterJumpStatus);
             if (!afterJumpStatus){
                 // Find another location
                 // callback();
@@ -663,7 +663,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // This might not work when the city is close to completion
                 // when there are no more tasks left to move to
                 // -- true for all jump actions -- TODO:New issue
-                _jumpToNewLocation();
+                _jumpToNewLocation();// Reset variable after the jump
+                status.jumpImageryNotFoundStatus = undefined;
             }
             else{
                 // Reset variable after the jump
@@ -1373,7 +1374,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var gLatLng = new google.maps.LatLng(lat, lng);
 
             var rId = util.generateAlphaNumId();
-            console.error("[" + rId + "]\n" + "Pano " + getPanoId() + " Debugging: " + lat + " " + lng);
+            // console.error("[" + rId + "]\n" + "Pano " + getPanoId() + " Debugging: " + lat + " " + lng);
 
             svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
                 function (streetViewPanoramaData, status) {
@@ -1390,9 +1391,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         self.setPano(newPano);
                         map.setCenter(gLatLng);
 
-                        console.error("[" + rId + "]\n" + "SetPano:" + newPano +
-                        " " + getPanoId() +  " " + JSON.stringify(map.getCenter()) + " " +
-                        "NewPanPos: " + JSON.stringify(getPosition()));
+                        // console.error("[" + rId + "]\n" + "SetPano:" + newPano +
+                        // " " + getPanoId() +  " " + JSON.stringify(map.getCenter()) + " " +
+                        // "NewPanPos: " + JSON.stringify(getPosition()));
 
                         self.disableWalking();
                         window.setTimeout(function() { self.enableWalking(); }, 1000);
