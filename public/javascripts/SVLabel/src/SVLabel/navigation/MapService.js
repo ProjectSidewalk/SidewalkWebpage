@@ -46,7 +46,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             panoLinkListenerSet: false,
             svLinkArrowsLoaded : false,
             labelBeforeJumpListenerSet: false,
-            jumpMsgShown: false
+            jumpMsgShown: false,
+            jumpImageryNotFoundStatus: undefined
         },
         listeners = {
             beforeJumpListenerHandle: undefined
@@ -201,6 +202,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
 
+        console.error("PanoramaOptions:" + JSON.stringify(panoramaOptions));
+
         var panoCanvas = document.getElementById('pano');
         svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
         if (svl.panorama) {
@@ -212,6 +215,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('panControl', false);
             svl.panorama.set('zoomControl', false);
             svl.panorama.set('keyboardShortcuts', true);
+        }
+        else {
+            console.error("Panorama not set");
         }
 
 
@@ -269,9 +275,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * A helper function to move a user to the task location
      * @param task
+     * @param caller
      * @private
      */
-    function moveToTheTaskLocation(task) {
+    function moveToTheTaskLocation(task, caller) {
 
         // Reset all jump parameters
         if (status.labelBeforeJumpListenerSet) {
@@ -288,7 +295,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Get a new task and repeat
                 task = svl.taskContainer.nextTask(task);
                 svl.taskContainer.setCurrentTask(task);
-                moveToTheTaskLocation(task);
+                if (caller !== undefined) {
+                    moveToTheTaskLocation(task, caller);
+                }
+                else {
+                    moveToTheTaskLocation(task);
+                }
             }
         };
 
@@ -302,6 +314,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
         if (distance > 0.1) {
             self.setPosition(lat, lng, callback);
+
+            if(caller === "jumpImageryNotFound"){
+                status.jumpImageryNotFoundStatus = true;
+            }
+        } else {
+            if(caller === "jumpImageryNotFound"){
+                status.jumpImageryNotFoundStatus = false;
+            }
         }
 
         /*
@@ -584,9 +604,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    function _jumpToNewTask(task) {
+    function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
-        moveToTheTaskLocation(task);
+        if (caller === undefined){
+            moveToTheTaskLocation(task);
+        }
+        else {
+            moveToTheTaskLocation(task, caller);
+        }
     }
 
     function _jumpToNewLocation() {
@@ -601,7 +626,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var currentTask = svl.taskContainer.getCurrentTask();
             var newTask = svl.taskContainer.nextTask(currentTask);
             if (newTask) {
-                _jumpToNewTask(newTask);
+                _jumpToNewTask(newTask, "jumpImageryNotFound");
+
             } else {
                 // Complete current neighborhood if no new task available
                 finishNeighborhood();
@@ -626,7 +652,23 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             "This is not your fault, but we will need to move you to another location in the " +
             currentNeighborhoodName + " neighborhood. Keep up the good work!";
         var callback = function () {
+            var beforeJumpStatus = status.jumpImageryNotFoundStatus;
             _jumpToNewLocation();
+            var afterJumpStatus = status.jumpImageryNotFoundStatus;
+            console.error("Before: " + beforeJumpStatus +  "After: " + afterJumpStatus);
+            if (!afterJumpStatus){
+                // Find another location
+                // callback();
+                console.error("Jump too close. Calling function again");
+                // This might not work when the city is close to completion
+                // when there are no more tasks left to move to
+                // -- true for all jump actions -- TODO:New issue
+                _jumpToNewLocation();
+            }
+            else{
+                // Reset variable after the jump
+                status.jumpImageryNotFoundStatus = undefined;
+            }
             svl.panorama.setVisible(true);
         };
 
