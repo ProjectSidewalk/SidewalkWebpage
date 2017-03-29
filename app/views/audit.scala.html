@@ -645,6 +645,7 @@
             // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
+                    console.error("InitialPano:" + streetViewPanoramaData.location.pano);
                     // Ok
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
@@ -652,10 +653,12 @@
                 }
                 else {
                     // no street view available in this range.
-                    console.error("Error loading Street View imagery" + status);
-                    svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(latLng)});
+                    console.error("Error loading Street View imagery: " + status);
+                    svl.tracker.push("PanoId_NotFound_Onload", {'Location': JSON.stringify(latLng)});
+                    // Reload page (May need a better solution than this one)
+                    window.location.href = window.location.origin + "/audit";
 //                  throw "Error loading Street View imagery.";
-                    location.reload();  // Todo. I need a better solution than this one.
+
                 }
             });
         }
