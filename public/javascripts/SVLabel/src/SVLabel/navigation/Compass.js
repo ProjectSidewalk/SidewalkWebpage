@@ -84,7 +84,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function _jumpBackToTheRoute() {
-        console.log("Jumped");
         var task = taskContainer.getCurrentTask();
         var coordinate = task.getStartCoordinate();
         mapService.setPosition(coordinate.lat, coordinate.lng);

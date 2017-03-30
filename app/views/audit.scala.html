@@ -645,7 +645,6 @@
             // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    console.error("InitialPano:" + streetViewPanoramaData.location.pano);
                     // Ok
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
@@ -703,8 +702,8 @@
         function init() {
             var mainParam = {},
                     formParam = {},
-                    //initialLocation = {"lat": 38.923241, "lng": -77.047347}; // Debugging #537
                     //initialLocation = {"lat": 38.94625244272621, "lng": -77.0676402615089}; // Debugging #537
+                    //initialLocation = {"lat":38.94640056919943,"lng":-77.06592334274092}; // Debugging #537
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.hitId = '';
