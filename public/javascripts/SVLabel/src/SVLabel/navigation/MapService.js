@@ -673,12 +673,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /***
      * Initiate imagery not found mechanism
      */
-    function handleImageryNotFound() {
+    function handleImageryNotFound(panoId, panoStatus) {
         // Imagery not found
         var currentTask = svl.taskContainer.getCurrentTask();
         if (currentTask) {
             util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
-            console.error("Error Type:" + JSON.stringify(panoStatus) +
+            console.error("Error Type: " + JSON.stringify(panoStatus) +
                 "\nNo street view found at this location: " + panoId + " street " +
                 currentTask.getStreetEdgeId() +
                 "\nNeed to move to a new location.");
@@ -736,13 +736,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             svl.tracker.push("PanoId_Changed");
                         }
                         else {
-                            handleImageryNotFound();
+                            handleImageryNotFound(panoId, panoStatus);
                         }
                     }
                 );
             }
             else {
-                handleImageryNotFound();
+                handleImageryNotFound(panoId);
             }
             if ('compass' in svl) { svl.compass.update(); }
         } else {
