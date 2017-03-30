@@ -315,7 +315,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         } else {
             if(caller === "jumpImageryNotFound"){
                 status.jumpImageryNotFoundStatus = false;
-                console.log("jumpImageryNotFound Too close");
             }
         }
 
@@ -697,8 +696,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var panoId = getPanoId();
             //console.log("Pano: " + panoId);
-
-            var rId = util.generateAlphaNumId();
 
             if (svl.streetViewService && panoId.length > 0) {
 
