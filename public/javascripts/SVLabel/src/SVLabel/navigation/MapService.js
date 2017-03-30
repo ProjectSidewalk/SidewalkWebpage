@@ -200,7 +200,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         } else {
             console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
-        
+
         var panoCanvas = document.getElementById('pano');
         svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
         if (svl.panorama) {
@@ -212,9 +212,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('panControl', false);
             svl.panorama.set('zoomControl', false);
             svl.panorama.set('keyboardShortcuts', true);
-        }
-        else {
-            console.error("Panorama not set");
         }
 
 
@@ -1385,9 +1382,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
-
-            var rId = util.generateAlphaNumId();
-
+            
             svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
                 function (streetViewPanoramaData, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
