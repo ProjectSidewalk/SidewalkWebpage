@@ -200,9 +200,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         } else {
             console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
-
-        //console.error("PanoramaOptions:" + JSON.stringify(panoramaOptions));
-
+        
         var panoCanvas = document.getElementById('pano');
         svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
         if (svl.panorama) {
