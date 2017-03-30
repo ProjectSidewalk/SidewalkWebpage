@@ -93,7 +93,7 @@ function haversine(lat1, lon1, lat2, lon2) {
     lon1 = toRadians(lon1);
     lat2 = toRadians(lat2);
     lon2 = toRadians(lon2);
-    var R = 6372800; // m
+    var R = 6372800; // earth radius in m
     var dLat = lat2 - lat1;
     var dLon = lon2 - lon1;
     var a = Math.sin(dLat / 2) * Math.sin(dLat /2) + Math.sin(dLon / 2) * Math.sin(dLon /2) * Math.cos(lat1) * Math.cos(lat2);
@@ -101,6 +101,47 @@ function haversine(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 util.math.haversine = haversine;
+
+/**
+ * This function takes a pair of latlng position, a bearing (heading), and distance
+ * and returns latlng position
+ * http://stackoverflow.com/questions/2637023/how-to-calculate-the-latlng-of-a-point-a-certain-distance-away-from-another
+ *
+ * Concepts:
+ * http://www.movable-type.co.uk/scripts/latlong.html
+ *
+ * @param currentLat
+ * @param currentLng
+ * @param heading
+ * @param distance
+ * @returns {*}
+ */
+function reverseHaversine(currentLat, currentLng, heading, distance) {
+
+    //Convert to radians
+    currentLat = toRadians(currentLat);
+    currentLng = toRadians(currentLng);
+
+    var bearing = toRadians(heading);
+
+    var newLat, newLng;
+    var R = 6372800; // earth radius in m
+
+    var angDist = distance / R;
+
+    var a = Math.sin(currentLat) * Math.cos(angDist);
+    var b = Math.cos(currentLat) * Math.sin(angDist) * Math.cos(bearing);
+    newLat = toDegrees(Math.asin(a + b));
+
+    var x = Math.sin(bearing) * Math.sin(angDist) * Math.cos(currentLat);
+    var y = Math.cos(angDist) - Math.sin(currentLat) * Math.sin(newLat);
+    newLng = toDegrees(currentLng + Math.atan2(x, y));
+
+    if (isNaN(newLat) || isNaN(newLng)) return null;
+
+    return new google.maps.LatLng(newLat, newLng);
+}
+util.math.reverseHaversine = reverseHaversine;
 
 function distance3d(a, b) {
     var dx = a.x - b.x;
