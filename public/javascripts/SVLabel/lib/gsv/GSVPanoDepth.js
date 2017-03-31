@@ -39,7 +39,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
                     self.onDepthLoad();
                 }
             })
-    }
+    };
 
     this.decode = function(rawDepthMap) {
         var self = this,
@@ -65,7 +65,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         for(i=0; i<decompressedDepthMap.length; ++i)
             depthMap[i] = decompressedDepthMap.charCodeAt(i);
         return depthMap;
-    }
+    };
 
     this.parseHeader = function(depthMap) {
         return {
@@ -75,7 +75,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
             height: depthMap.getUint16(5, true),
             offset: depthMap.getUint16(7, true)
         };
-    }
+    };
 
     this.parsePlanes = function(header, depthMap) {
         var planes = [],
@@ -102,7 +102,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         }
 
         return { planes: planes, indices: indices };
-    }
+    };
 
     this.computeDepthMap = function(header, indices, planes) {
         var depthMap = null,
@@ -157,7 +157,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
             height: h,
             depthMap: depthMap
         };
-    }
+    };
 
     this.parse = function(depthMap) {
         var self = this,
@@ -172,7 +172,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         depthMap = self.computeDepthMap(header, data.indices, data.planes);
 
         return depthMap;
-    }
+    };
 
     this.createEmptyDepthMap = function() {
         var depthMap = {
@@ -183,5 +183,5 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         for(var i=0; i<512*256; ++i)
             depthMap.depthMap[i] = 9999999999999999999.;
         return depthMap;
-    }
+    };
 };
