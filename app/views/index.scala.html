@@ -41,6 +41,7 @@
         <div id="overlay-top" style="width: 100%;
             height: 100%;
             position: absolute;
+            top: 0px;
             background-color: rgba(192, 190, 207, 0.4);
             left: 0px;">
         </div>
@@ -69,9 +70,13 @@
         <div class="container" id="banner2" style="width: 100%;
             position: relative;">
             <div class="im-centered">
-                <div class="row">Using the tool</div>
+                <div class="row">How you can help</div>
+                <br>
                 <div class="row" id="content-text-1">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed eu felis urna. Ut cursus arcu sit amet dolor pharetra, at sagittis diam finibus. Integer sed </div>
+                    Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
+                    <br>
+                    <img id="instructiongif" src="@routes.Assets.at("assets/anim-small.gif")" height="500" />
+                </div>
             </div>
             <!--<div class="row" id="steps1">
                 <div class="col-sm-2">
@@ -130,29 +135,16 @@
             </div>-->
         </div>
 
-        <div class="container">
-            <div class="im-centered">
-                <div class="row">Your work is amplified
-                    <br><span id="algdessc">We mix our secret algorithm sauce to:</span>
+        <div class="container" id="vidembed">
+            <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width:100%;" onclick="playVideo();">
+            <div id="videooverlay">
+                <div id="videotext">
+                    <span>What is project sidewalk?</span>
+                    <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration:underline; cursor:pointer;" onclick="playVideo()">Play video</span></span>
                 </div>
             </div>
         </div>
-        <div class="container" style="background-image: url(@routes.Assets.at("assets/steps.png"));
-            width: 100%;
-            height: 400px;
-            position: relative;">
-            <div class="im-centered2">
-                <div class="row">
-                    <img src='@routes.Assets.at("assets/mixing.gif")' alt="Mixing bowl"/>
-                    <br>
-                    <span id="aidesc">
-                        <span style="color: #fff;">Make our machine smarter</span>
-                        . We use the information to program our machine learning algorithm to find problems automatically. This means one label is not just one label.
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="container">
+        <div class="container" id="difference-container">
             <div class="im-centered">
                 <div class="row" >Your work is making a difference</div>
                 <div class="row" id="content-text-2">
@@ -185,21 +177,15 @@
             </div>
         </div>
         <div class="container" id="press-container">
-            <div class="im-centered">
+            <div class="im-centered3">
                 <div class="row" >Press</div>
-                <br>
-                <div class="row" id="content-text-3">
-                    <p>We have been able to be covered by several news outlets. If you need a better picture of the kind of impact you are making check out the video below. </p>
-                </div>
+
+
             </div>
-            <div style="text-align: center;">
-                <iframe width="900" height="506" src="https://www.youtube.com/embed/_GBLqZDXB_0" frameborder="0" allowfullscreen></iframe>
-            </div>
+
         </div>
         <div class="container" id="press-container2">
-            <div class="im-centered">
-                <div class="row" id="press-list-header">We've been covered by</div>
-            </div>
+
             <div class="row" style=" padding-top: 50px;
                 width: 100%;
                 text-align: center;
@@ -251,7 +237,7 @@
 
         <div class="container" style="min-height: 500px;
             max-width: 900px;">
-            <div class="im-centered">
+            <div class="im-centered3">
                 <div class="row" id="press-list-header-2">What people are saying</div>
             </div>
             <div class="row" style="padding-top: 40px;">
