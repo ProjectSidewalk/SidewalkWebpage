@@ -3,6 +3,7 @@ function Admin (_, $, c3, turf) {
     var severityList = [1,2,3,4,5];
     self.markerLayer = null;
     self.graphsLoaded = false;
+    self.mapLoaded = false;
     self.auditedStreetLayer = null;
     self.visibleMarkers = {"CurbRamp" : severityList, "NoCurbRamp" : severityList, "Obstacle" : severityList,
         "SurfaceProblem" : severityList, "Occlusion" : severityList, "NoSidewalk" : severityList, "Other" : severityList};
@@ -333,7 +334,16 @@ function Admin (_, $, c3, turf) {
     }
 
     $('.nav-pills').on('click', function(e){
-      if (e.target.id == "analytics" && self.graphsLoaded == false) {
+        if( e.target.id == "visualization" && self.mapLoaded == false) {
+            initializeOverlayPolygon(map);
+            initializeNeighborhoodPolygons(map);
+            initializeAuditedStreets(map);
+            initializeSubmittedLabels(map);
+            initializeAdminGSVLabelView();
+            setTimeout(function(){ map.invalidateSize(false); }, 1);
+            self.mapLoaded = true;
+        }
+      else if (e.target.id == "analytics" && self.graphsLoaded == false) {
             // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
                 function cmp (a, b) {
@@ -591,11 +601,6 @@ function Admin (_, $, c3, turf) {
        }
     });
 
-    initializeOverlayPolygon(map);
-    initializeNeighborhoodPolygons(map);
-    initializeAuditedStreets(map);
-    initializeSubmittedLabels(map);
-    initializeAdminGSVLabelView();
     initializeLabelTable();
 
     self.clearMap = clearMap;
