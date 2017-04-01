@@ -82,6 +82,8 @@ function Path (svl, points, params) {
         } else {
             xMin = canvasCoords[0].x;
             yMin = canvasCoords[0].y;
+            // xMin = points[0].getCanvasCoordinate(pov);
+            // yMin = points[0].getCanvasCoordinate(pov);
             width = 0;
             height = 0;
         }
@@ -97,50 +99,84 @@ function Path (svl, points, params) {
         return properties.fillStyle;
     }
 
+    /***
+     * Get canvas coordinates of points from the POV
+     */
+    function povToCanvasCoordinate() {
+        return svl.map.povToCanvasCoordinate();
+    }
+
     /**
-     * Get canvas coordinates of points that constitute the path.
+     * Get canvas coordinates of points that constitute the path
+     * using the new label rendering algorithm
      * @param pov
      * @returns {Array}
      */
-    function getCanvasCoordinates (pov) {
-        var imCoords = getImageCoordinates();
+
+    function getCanvasCoordinates(pov) {
+        var points = getPoints();
         var i;
-        var len = imCoords.length;
+        var len = points.length;
         var canvasCoord;
         var canvasCoords = [];
-        var min = 10000000;
-        var max = -1;
 
         for (i = 0; i < len; i += 1) {
-            if (min > imCoords[i].x) {
-                min = imCoords[i].x;
-            }
-            if (max < imCoords[i].x) {
-                max = imCoords[i].x;
-            }
-        }
-        // Note canvasWidthInGSVImage is approximately equals to the image width of GSV image that fits in one canvas view
-        var canvasWidthInGSVImage = 3328;
-        for (i = 0; i < len; i += 1) {
-            if (pov.heading < 180) {
-                if (max > svl.svImageWidth - canvasWidthInGSVImage) {
-                    if (imCoords[i].x > canvasWidthInGSVImage) {
-                        imCoords[i].x -= svl.svImageWidth;
-                    }
-                }
-            } else {
-                if (min < canvasWidthInGSVImage) {
-                    if (imCoords[i].x < svl.svImageWidth - canvasWidthInGSVImage) {
-                        imCoords[i].x += svl.svImageWidth;
-                    }
-                }
-            }
-            canvasCoord = svl.gsvImageCoordinate2CanvasCoordinate(imCoords[i].x, imCoords[i].y, pov);
+            canvasCoord = points[i].calculateCanvasCoordinate(pov);
             canvasCoords.push(canvasCoord);
         }
 
         return canvasCoords;
     }
+
+    /**
+     * OLD
+     * Mar 5, 2017: Due to updates to the POV based coordinate calculation
+     * This function needs to be updated
+     * gsvImageCoordinate2CanvasCoordinate() wouldn't be called
+     *
+     * Get canvas coordinates of points that constitute the path.
+     * @param pov
+     * @returns {Array}
+     */
+    // function getCanvasCoordinates (pov) {
+    //     var imCoords = getImageCoordinates();
+    //     var i;
+    //     var len = imCoords.length;
+    //     var canvasCoord;
+    //     var canvasCoords = [];
+    //     var min = 10000000;
+    //     var max = -1;
+    //
+    //     for (i = 0; i < len; i += 1) {
+    //         if (min > imCoords[i].x) {
+    //             min = imCoords[i].x;
+    //         }
+    //         if (max < imCoords[i].x) {
+    //             max = imCoords[i].x;
+    //         }
+    //     }
+    //     // Note canvasWidthInGSVImage is approximately equals to the image width of GSV image that fits in one canvas view
+    //     var canvasWidthInGSVImage = 3328;
+    //     for (i = 0; i < len; i += 1) {
+    //         if (pov.heading < 180) {
+    //             if (max > svl.svImageWidth - canvasWidthInGSVImage) {
+    //                 if (imCoords[i].x > canvasWidthInGSVImage) {
+    //                     imCoords[i].x -= svl.svImageWidth;
+    //                 }
+    //             }
+    //         } else {
+    //             if (min < canvasWidthInGSVImage) {
+    //                 if (imCoords[i].x < svl.svImageWidth - canvasWidthInGSVImage) {
+    //                     imCoords[i].x += svl.svImageWidth;
+    //                 }
+    //             }
+    //         }
+    //         canvasCoord = svl.gsvImageCoordinate2CanvasCoordinate(imCoords[i].x, imCoords[i].y, pov);
+    //         canvasCoords.push(canvasCoord);
+    //     }
+    //
+    //     return canvasCoords;
+    // }
 
     /**
      * This method returns an array of image coordinates of points
@@ -434,11 +470,17 @@ function Path (svl, points, params) {
                 ctx.restore();
             }
 
+            /**
+             * This is the main part for the current sidewalk.umiacs.umd.edu
+             * interface
+             */
+            // Start
             // Render points
             for (j = 0; j < pathLen; j += 1) {
                 point = self.points[j];
                 point.render(pov, ctx);
             }
+            // End of the main part
 
             if (pathLen > 1) {
                 // Render segments
