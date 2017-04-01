@@ -146,22 +146,35 @@ footer {
 
 
 video#bgvid {
-    position: absolute;
 
     min-width:100%;
-
     background-size: cover;
     left: 0px;
+    backface-visibility:hidden;
+    background:url('/assets/images/psmockup.png') no-repeat scroll 0 0 #000;
+    background-size:cover;
+    bottom:0;
+    top: 70px;
+    height:auto;
+    perspective:1000;
+    position:fixed;
+    right:0;
+    width:auto;
+    z-index:-1;
 }
 
 #vidbanner {
     position:relative;
     overflow:hidden;
-    top: -70px;
+    top: -50px;
     width: 100%;
     display:flex;
     justify-content: center;
-    min-height:500px;
+    max-height:700px;
+
+    height:700px;
+    left:0;
+    transition:background-color 300ms ease;
 
 }
 
@@ -199,15 +212,22 @@ video#bgvid {
 .tagline {
 
     font-family: Raleway;
-	font-size: 45px;
+	font-size: 50px;
+    letter-spacing: 0.05em;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: bold;
-	line-height: 58px;
-    color: #fbd78b;
+	line-height: 1em;
+    color: #fff;
 }
 
+#bigtext{
 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height:100%;
+}
 
 #text {
     padding-top:70px;
@@ -233,7 +253,8 @@ video#bgvid {
 
 #bannertext {
     min-width:200px;
-    max-width:400px;
+    max-width:800px;
+    text-align: center;
 }
 
 
@@ -311,7 +332,7 @@ float: center;
 
 }
 
-#content-text {
+#content-text-1 {
     font-family: adelle-regular;
 	font-size: 14px;
 	font-style: normal;
@@ -321,6 +342,34 @@ float: center;
     letter-spacing: 0.1em;
 
 
+}
+#content-text-2 {
+    font-family: adelle-regular;
+    font-size: 14px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    line-height: 1.8em;
+    letter-spacing: 0.1em;
+
+
+}
+#content-text-3 {
+    font-family: adelle-regular;
+    font-size: 14px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    line-height: 1.8em;
+    letter-spacing: 0.1em;
+
+
+}
+
+#content{
+    position:relative;
+    top:-50px;
+    background-color:#fff;
 }
 
 #algdessc {
@@ -456,7 +505,15 @@ float: center;
     word-wrap: break-word;
     font-weight: bold;
 }
-
+#press-list-header-2 {
+    font-size: 30px;
+    color: #eb734d;
+    line-height: 1em;
+    text-align: center;
+    letter-spacing: 0.05em;
+    word-wrap: break-word;
+    font-weight: bold;
+}
 .newslink {
     font-family: Raleway;
 	font-size: 14px;
@@ -545,6 +602,7 @@ float: center;
     width:100%;
     height:100%;
     max-width: 1000px;
+
     position: relative;
     margin-left: auto;
     margin-right: auto;
@@ -570,26 +628,26 @@ float: center;
 }
 
 .myButton2 {
-    background-color:rgba(0, 0, 0, 0.0);
+    background-color:rgba(251, 215, 139, 1);
 	-moz-border-radius:15px;
 	-webkit-border-radius:15px;
 	border-radius:15px;
-	border:1px solid #fbd78b;
+	border:0px solid #fbd78b;
 	display:inline-block;
 	cursor:pointer;
-	color:#fbd78b;
+	color:#2d2a3f;
     font: normal normal normal 14px/1.4em raleway,sans-serif;
 	font-family: 'Raleway', sans-serif;
 	font-size:14px;
-	padding:15px 105px;
+	padding:10px 75px;
 
 	text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 .myButton2:hover {
-    background-color:#eb734d;
-    border:1px solid #eb734d;
-    color: #ffffff;
+    background-color:#FCECBE;
+    border:0px solid #eb734d;
+    color:#2d2a3f;
     text-shadow: none;
 }
 .myButton2:active{
