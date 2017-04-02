@@ -194,265 +194,7 @@ function Admin (_, $, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
-        // Draw an onboarding interaction chart
-    $.getJSON("/adminapi/onboardingInteractions", function (data) {
-        function cmp (a, b) {
-            return a.timestamp - b.timestamp;
-        }
 
-        // Group the audit task interaction records by audit_task_id, then go through each group and compute
-        // the duration between the first time stamp and the last time stamp.
-        var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
-        var completionDurationArray = [];
-        var record1;
-        var record2;
-        var duration;
-        for (var auditTaskId in grouped) {
-            grouped[auditTaskId].sort(cmp);
-            record1 = grouped[auditTaskId][0];
-            record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-            duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
-            completionDurationArray.push(duration);
-        }
-        completionDurationArray.sort(function (a, b) { return a - b; });
-
-        // Bounce rate
-        var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
-        var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
-
-        // Histogram of duration
-        completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
-        var numberOfBins = 10;
-        var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-        // console.log(histogram);
-        var counts = histogram.histogram;
-        counts.unshift("Count");
-        var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize / 60).toFixed(1) + " - " + ((i + 1) * histogram.stepSize / 60).toFixed(1); });
-
-        $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
-
-        var chart = c3.generate({
-            bindto: '#onboarding-completion-duration-histogram',
-            data: {
-                columns: [
-                    counts
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    label: {
-                        text: 'Tutorial Completion Time (min)',
-                        position: 'outer-center'
-                    },
-                    type: 'category',
-                    categories: bins
-                },
-                y: {
-                    label: {
-                        text: 'Count',
-                        position: 'outer-middle'
-                    },
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-        var i,
-            len = data.length;
-
-        // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-        var missions = {};
-        var printedMissionName;
-        for (i = 0; i < len; i++) {
-            // Set the printed mission name
-            if (data[i].label == "initial-mission") {
-                printedMissionName = "Initial Mission (1000 ft)";
-            } else if (data[i].label == "distance-mission") {
-                if (data[i].level <= 2) {
-                    printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                } else {
-                    printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
-                }
-            } else {
-                printedMissionName = "Tutorial";
-            }
-
-            // Create a counter for the printedMissionName if it does not exist yet.
-            if (!(printedMissionName in missions)) {
-                missions[printedMissionName] = {
-                    label: data[i].label,
-                    level: data[i].level,
-                    printedMissionName: printedMissionName,
-                    count: 0
-                };
-            }
-            missions[printedMissionName].count += 1;
-        }
-        var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
-        arrayOfMissions.sort(function (a, b) {
-            if (a.count < b.count) { return 1; }
-            else if (a.count > b.count) { return -1; }
-            else { return 0; }
-        });
-
-        var missionCountArray = ["Mission Counts"];
-        var missionNames = [];
-        for (i = 0; i < arrayOfMissions.length; i++) {
-            console.log(arrayOfMissions[i]);
-            missionCountArray.push(arrayOfMissions[i].count);
-            var rawMissionName = arrayOfMissions[i].printedMissionName;
-            if(rawMissionName.includes("Distance")) {
-                var missionDist = rawMissionName.substring(rawMissionName.indexOf("(") + 1, rawMissionName.length - 1);
-
-                if(missionDist.includes("mi")) {
-                    //miles to feet
-                    missionDist = parseInt(missionDist.substring(0, missionDist.indexOf(" "))) * 5280 + " ft";
-                }
-
-                missionNames.push(missionDist);
-            } else {
-                missionNames.push(rawMissionName);
-            }
-
-        }
-
-        var chart = c3.generate({
-            bindto: '#completed-mission-histogram',
-            data: {
-                columns: [
-                    missionCountArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    label: {
-                        text: 'Mission Distance',
-                        position: 'outer-center'
-                    },
-                    type: 'category',
-                    categories: missionNames
-                },
-                y: {
-                    label: {
-                        text: 'Users',
-                        position: 'outer-middle'
-                    },
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-        var i,
-            len = data.length,
-            completionRate,
-            row,
-            rows = "";
-        var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
-        var coverageDistanceArray = ["Neighborhood Coverage (m)"];
-        var neighborhoodNames = [];
-        for (i = 0; i < len; i++) {
-            completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
-            //console.log(data[i].name);
-            //console.log(completionRate);
-            coverageRateColumn.push(completionRate);
-            coverageDistanceArray.push(data[i].completed_distance_m);
-
-            neighborhoodNames.push(data[i].name);
-            // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
-            // rows += row;
-        }
-
-        coverageRateColumn.sort(function(a, b) {
-            return b - a;
-        });
-        coverageDistanceArray.sort(function(a, b) {
-            return b - a;
-        });
-
-        var coverageChart = c3.generate({
-            bindto: '#neighborhood-completion-rate',
-            size: {
-                // hardcoded value
-                height: 4000,
-            },
-            data: {
-                columns: [
-                    coverageRateColumn
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: neighborhoodNames
-                },
-                y: {
-                    label: {
-                        text: 'Coverage Rate (%)',
-                        position: 'outer-middle'
-                    },
-                    min: 0,
-                    max: 100,
-                    padding: { top: 50, bottom: 10 },
-                },
-                rotated: true
-            },
-            legend: {
-                show: false
-            }
-        });
-
-        var coverageDistanceChart = c3.generate({
-            bindto: '#neighborhood-completed-distance',
-            size: {
-                // hardcoded value
-                height: 4000
-            },
-            data: {
-                columns: [
-                    coverageDistanceArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    // label: {
-                    //     text: 'Neighborhood',
-                    //     position: 'outer-center'
-                    // },
-                    type: 'category',
-                    categories: neighborhoodNames
-                },
-                y: {
-                    label: {
-                        text: 'Coverage Distance (m)',
-                        position: 'outer-middle'
-                    },
-                    min: 0,
-                    padding: { top: 50, bottom: 10 }
-                },
-                rotated: true
-            },
-            legend: {
-                show: false
-            }
-        });
-
-    });
 
     $.getJSON("/contribution/auditCounts/all", function (data) {
         var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
@@ -802,204 +544,464 @@ function Admin (_, $, c3, turf) {
 
     $('.nav-pills').on('click', function(e){
       if (e.target.id == "analytics" && self.graphsLoaded == false) {
-            // Draw an onboarding interaction chart
-            $.getJSON("/adminapi/onboardingInteractions", function (data) {
-                function cmp (a, b) {
-                    return a.timestamp - b.timestamp;
-                }
+          // Draw an onboarding interaction chart
+          $.getJSON("/adminapi/onboardingInteractions", function (data) {
+              function cmp (a, b) {
+                  return a.timestamp - b.timestamp;
+              }
 
-                // Group the audit task interaction records by audit_task_id, then go through each group and compute
-                // the duration between the first time stamp and the last time stamp.
-                var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
-                var completionDurationArray = [];
-                var record1;
-                var record2;
-                var duration;
-                for (var auditTaskId in grouped) {
-                    grouped[auditTaskId].sort(cmp);
-                    record1 = grouped[auditTaskId][0];
-                    record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-                    duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
-                    completionDurationArray.push(duration);
-                }
-                completionDurationArray.sort(function (a, b) { return a - b; });
+              // Group the audit task interaction records by audit_task_id, then go through each group and compute
+              // the duration between the first time stamp and the last time stamp.
+              var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
+              var completionDurationArray = [];
+              var record1;
+              var record2;
+              var duration;
+              for (var auditTaskId in grouped) {
+                  grouped[auditTaskId].sort(cmp);
+                  record1 = grouped[auditTaskId][0];
+                  record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
+                  duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
+                  completionDurationArray.push(duration);
+              }
+              completionDurationArray.sort(function (a, b) { return a - b; });
 
-                // Bounce rate
-                var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
-                var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
+              // Bounce rate
+              var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
+              var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
 
-                // Histogram of duration
-                completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
-                var numberOfBins = 10;
-                var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-                // console.log(histogram);
-                var counts = histogram.histogram;
-                counts.unshift("Count");
-                var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
+              // Histogram of duration
+              completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
+              var numberOfBins = 10;
+              var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
+              // console.log(histogram);
+              var counts = histogram.histogram;
+              counts.unshift("Count");
+              var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize / 60).toFixed(1) + " - " + ((i + 1) * histogram.stepSize / 60).toFixed(1); });
 
-                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
+              $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
-                var chart = c3.generate({
-                    bindto: '#onboarding-completion-duration-histogram',
-                    data: {
-                        columns: [
-                            counts
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            label: "Onboarding Completion Time (s)",
-                            type: 'category',
-                            categories: bins
-                        },
-                        y: {
-                            label: "Count",
-                            min: 0,
-                            padding: { top: 50, bottom: 10 }
-                        }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
-            });
-            $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-                var i,
-                    len = data.length;
+              var chart = c3.generate({
+                  bindto: '#onboarding-completion-duration-histogram',
+                  data: {
+                      columns: [
+                          counts
+                      ],
+                      type: 'bar'
+                  },
+                  axis: {
+                      x: {
+                          label: {
+                              text: 'Tutorial Completion Time (min)',
+                              position: 'outer-center'
+                          },
+                          type: 'category',
+                          categories: bins
+                      },
+                      y: {
+                          label: {
+                              text: 'Count',
+                              position: 'outer-middle'
+                          },
+                          min: 0,
+                          padding: { top: 50, bottom: 10 }
+                      }
+                  },
+                  legend: {
+                      show: false
+                  }
+              });
+          });
 
-                // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-                var missions = {};
-                var printedMissionName;
-                for (i = 0; i < len; i++) {
-                    // Set the printed mission name
-                    if (data[i].label == "initial-mission") {
-                        printedMissionName = "Initial Mission (1000 ft)";
-                    } else if (data[i].label == "distance-mission") {
-                        if (data[i].level <= 2) {
-                            printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                        } else {
-                            printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
-                        }
-                    } else {
-                        printedMissionName = "Onboarding";
-                    }
+          $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
+              var i,
+                  len = data.length;
 
-                    // Create a counter for the printedMissionName if it does not exist yet.
-                    if (!(printedMissionName in missions)) {
-                        missions[printedMissionName] = {
-                            label: data[i].label,
-                            level: data[i].level,
-                            printedMissionName: printedMissionName,
-                            count: 0
-                        };
-                    }
-                    missions[printedMissionName].count += 1;
-                }
-                var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
-                arrayOfMissions.sort(function (a, b) {
-                    if (a.count < b.count) { return 1; }
-                    else if (a.count > b.count) { return -1; }
-                    else { return 0; }
-                });
+              // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
+              var missions = {};
+              var printedMissionName;
+              for (i = 0; i < len; i++) {
+                  // Set the printed mission name
+                  if (data[i].label == "initial-mission") {
+                      printedMissionName = "Initial Mission (1000 ft)";
+                  } else if (data[i].label == "distance-mission") {
+                      if (data[i].level <= 2) {
+                          printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
+                      } else {
+                          printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
+                      }
+                  } else {
+                      printedMissionName = "Tutorial";
+                  }
 
-                var missionCountArray = ["Mission Counts"];
-                var missionNames = [];
-                for (i = 0; i < arrayOfMissions.length; i++) {
-                    missionCountArray.push(arrayOfMissions[i].count);
-                    missionNames.push(arrayOfMissions[i].printedMissionName);
-                }
-                var chart = c3.generate({
-                    bindto: '#completed-mission-histogram',
-                    data: {
-                        columns: [
-                            missionCountArray
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: missionNames
-                        },
-                        y: {
-                            label: "# Users Completed the Mission",
-                            min: 0,
-                            padding: { top: 50, bottom: 10 }
-                        }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
-            });
-            $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                var i,
-                    len = data.length,
-                    completionRate,
-                    row,
-                    rows = "";
-                var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
-                var coverageDistanceArray = ["Neighborhood Coverage (m)"];
-                var neighborhoodNames = [];
-                for (i = 0; i < len; i++) {
-                    completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
-                    coverageRateColumn.push(completionRate);
-                    coverageDistanceArray.push(data[i].completed_distance_m);
+                  // Create a counter for the printedMissionName if it does not exist yet.
+                  if (!(printedMissionName in missions)) {
+                      missions[printedMissionName] = {
+                          label: data[i].label,
+                          level: data[i].level,
+                          printedMissionName: printedMissionName,
+                          count: 0
+                      };
+                  }
+                  missions[printedMissionName].count += 1;
+              }
+              var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
+              arrayOfMissions.sort(function (a, b) {
+                  if (a.count < b.count) { return 1; }
+                  else if (a.count > b.count) { return -1; }
+                  else { return 0; }
+              });
 
-                    neighborhoodNames.push(data[i].name);
-                    // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
-                    // rows += row;
-                }
+              var missionCountArray = ["Mission Counts"];
+              var missionNames = [];
+              for (i = 0; i < arrayOfMissions.length; i++) {
+                  console.log(arrayOfMissions[i]);
+                  missionCountArray.push(arrayOfMissions[i].count);
+                  var rawMissionName = arrayOfMissions[i].printedMissionName;
+                  if(rawMissionName.includes("Distance")) {
+                      var missionDist = rawMissionName.substring(rawMissionName.indexOf("(") + 1, rawMissionName.length - 1);
 
-                var coverageChart = c3.generate({
-                    bindto: '#neighborhood-completion-rate',
-                    data: {
-                        columns: [
-                            coverageRateColumn
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: neighborhoodNames
-                        },
-                        y: {
-                            label: "Neighborhood Coverage Rate (%)",
-                            min: 0,
-                            max: 100,
-                            padding: { top: 50, bottom: 10 }
-                        }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
+                      if(missionDist.includes("mi")) {
+                          //miles to feet
+                          missionDist = parseInt(missionDist.substring(0, missionDist.indexOf(" "))) * 5280 + " ft";
+                      }
 
-                var coverageDistanceChart = c3.generate({
-                    bindto: '#neighborhood-completed-distance',
-                    data: {
-                        columns: [
-                            coverageDistanceArray
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: neighborhoodNames
-                        },
-                        y: {
-                            label: "Coverage Distance (m)",
-                            min: 0,
-                            padding: { top: 50, bottom: 10 }
-                        }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
+                      missionNames.push(missionDist);
+                  } else {
+                      missionNames.push(rawMissionName);
+                  }
+
+              }
+
+              var chart = c3.generate({
+                  bindto: '#completed-mission-histogram',
+                  data: {
+                      columns: [
+                          missionCountArray
+                      ],
+                      type: 'bar'
+                  },
+                  axis: {
+                      x: {
+                          label: {
+                              text: 'Mission Distance',
+                              position: 'outer-center'
+                          },
+                          type: 'category',
+                          categories: missionNames
+                      },
+                      y: {
+                          label: {
+                              text: 'Users',
+                              position: 'outer-middle'
+                          },
+                          min: 0,
+                          padding: { top: 50, bottom: 10 }
+                      }
+                  },
+                  legend: {
+                      show: false
+                  }
+              });
+          });
+
+          $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+              var i,
+                  len = data.length,
+                  completionRate,
+                  row,
+                  rows = "";
+              var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
+              var coverageDistanceArray = ["Neighborhood Coverage (m)"];
+              var neighborhoodNames = [];
+              for (i = 0; i < len; i++) {
+                  completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
+                  //console.log(data[i].name);
+                  //console.log(completionRate);
+                  coverageRateColumn.push(completionRate);
+                  coverageDistanceArray.push(data[i].completed_distance_m);
+
+                  neighborhoodNames.push(data[i].name);
+                  // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
+                  // rows += row;
+              }
+
+              coverageRateColumn.sort(function(a, b) {
+                  return b - a;
+              });
+              coverageDistanceArray.sort(function(a, b) {
+                  return b - a;
+              });
+
+              var coverageChart = c3.generate({
+                  bindto: '#neighborhood-completion-rate',
+                  size: {
+                      // hardcoded value
+                      height: 4000,
+                  },
+                  data: {
+                      columns: [
+                          coverageRateColumn
+                      ],
+                      type: 'bar'
+                  },
+                  axis: {
+                      x: {
+                          type: 'category',
+                          categories: neighborhoodNames
+                      },
+                      y: {
+                          label: {
+                              text: 'Coverage Rate (%)',
+                              position: 'outer-middle'
+                          },
+                          min: 0,
+                          max: 100,
+                          padding: { top: 50, bottom: 10 },
+                      },
+                      rotated: true
+                  },
+                  legend: {
+                      show: false
+                  }
+              });
+
+              var coverageDistanceChart = c3.generate({
+                  bindto: '#neighborhood-completed-distance',
+                  size: {
+                      // hardcoded value
+                      height: 4000
+                  },
+                  data: {
+                      columns: [
+                          coverageDistanceArray
+                      ],
+                      type: 'bar'
+                  },
+                  axis: {
+                      x: {
+                          // label: {
+                          //     text: 'Neighborhood',
+                          //     position: 'outer-center'
+                          // },
+                          type: 'category',
+                          categories: neighborhoodNames
+                      },
+                      y: {
+                          label: {
+                              text: 'Coverage Distance (m)',
+                              position: 'outer-middle'
+                          },
+                          min: 0,
+                          padding: { top: 50, bottom: 10 }
+                      },
+                      rotated: true
+                  },
+                  legend: {
+                      show: false
+                  }
+              });
+
+
+
+            // // Draw an onboarding interaction chart
+            // $.getJSON("/adminapi/onboardingInteractions", function (data) {
+            //     function cmp (a, b) {
+            //         return a.timestamp - b.timestamp;
+            //     }
+            //
+            //     // Group the audit task interaction records by audit_task_id, then go through each group and compute
+            //     // the duration between the first time stamp and the last time stamp.
+            //     var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
+            //     var completionDurationArray = [];
+            //     var record1;
+            //     var record2;
+            //     var duration;
+            //     for (var auditTaskId in grouped) {
+            //         grouped[auditTaskId].sort(cmp);
+            //         record1 = grouped[auditTaskId][0];
+            //         record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
+            //         duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
+            //         completionDurationArray.push(duration);
+            //     }
+            //     completionDurationArray.sort(function (a, b) { return a - b; });
+            //
+            //     // Bounce rate
+            //     var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
+            //     var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
+            //
+            //     // Histogram of duration
+            //     completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
+            //     var numberOfBins = 10;
+            //     var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
+            //     // console.log(histogram);
+            //     var counts = histogram.histogram;
+            //     counts.unshift("Count");
+            //     var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
+            //
+            //     $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
+            //
+            //     var chart = c3.generate({
+            //         bindto: '#onboarding-completion-duration-histogram',
+            //         data: {
+            //             columns: [
+            //                 counts
+            //             ],
+            //             type: 'bar'
+            //         },
+            //         axis: {
+            //             x: {
+            //                 label: "Onboarding Completion Time (s)",
+            //                 type: 'category',
+            //                 categories: bins
+            //             },
+            //             y: {
+            //                 label: "Count",
+            //                 min: 0,
+            //                 padding: { top: 50, bottom: 10 }
+            //             }
+            //         },
+            //         legend: {
+            //             show: false
+            //         }
+            //     });
+            // });
+            // $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
+            //     var i,
+            //         len = data.length;
+            //
+            //     // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
+            //     var missions = {};
+            //     var printedMissionName;
+            //     for (i = 0; i < len; i++) {
+            //         // Set the printed mission name
+            //         if (data[i].label == "initial-mission") {
+            //             printedMissionName = "Initial Mission (1000 ft)";
+            //         } else if (data[i].label == "distance-mission") {
+            //             if (data[i].level <= 2) {
+            //                 printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
+            //             } else {
+            //                 printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
+            //             }
+            //         } else {
+            //             printedMissionName = "Onboarding";
+            //         }
+            //
+            //         // Create a counter for the printedMissionName if it does not exist yet.
+            //         if (!(printedMissionName in missions)) {
+            //             missions[printedMissionName] = {
+            //                 label: data[i].label,
+            //                 level: data[i].level,
+            //                 printedMissionName: printedMissionName,
+            //                 count: 0
+            //             };
+            //         }
+            //         missions[printedMissionName].count += 1;
+            //     }
+            //     var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
+            //     arrayOfMissions.sort(function (a, b) {
+            //         if (a.count < b.count) { return 1; }
+            //         else if (a.count > b.count) { return -1; }
+            //         else { return 0; }
+            //     });
+            //
+            //     var missionCountArray = ["Mission Counts"];
+            //     var missionNames = [];
+            //     for (i = 0; i < arrayOfMissions.length; i++) {
+            //         missionCountArray.push(arrayOfMissions[i].count);
+            //         missionNames.push(arrayOfMissions[i].printedMissionName);
+            //     }
+            //     var chart = c3.generate({
+            //         bindto: '#completed-mission-histogram',
+            //         data: {
+            //             columns: [
+            //                 missionCountArray
+            //             ],
+            //             type: 'bar'
+            //         },
+            //         axis: {
+            //             x: {
+            //                 type: 'category',
+            //                 categories: missionNames
+            //             },
+            //             y: {
+            //                 label: "# Users Completed the Mission",
+            //                 min: 0,
+            //                 padding: { top: 50, bottom: 10 }
+            //             }
+            //         },
+            //         legend: {
+            //             show: false
+            //         }
+            //     });
+            // });
+            // $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+            //     var i,
+            //         len = data.length,
+            //         completionRate,
+            //         row,
+            //         rows = "";
+            //     var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
+            //     var coverageDistanceArray = ["Neighborhood Coverage (m)"];
+            //     var neighborhoodNames = [];
+            //     for (i = 0; i < len; i++) {
+            //         completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
+            //         coverageRateColumn.push(completionRate);
+            //         coverageDistanceArray.push(data[i].completed_distance_m);
+            //
+            //         neighborhoodNames.push(data[i].name);
+            //         // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
+            //         // rows += row;
+            //     }
+            //
+            //     var coverageChart = c3.generate({
+            //         bindto: '#neighborhood-completion-rate',
+            //         data: {
+            //             columns: [
+            //                 coverageRateColumn
+            //             ],
+            //             type: 'bar'
+            //         },
+            //         axis: {
+            //             x: {
+            //                 type: 'category',
+            //                 categories: neighborhoodNames
+            //             },
+            //             y: {
+            //                 label: "Neighborhood Coverage Rate (%)",
+            //                 min: 0,
+            //                 max: 100,
+            //                 padding: { top: 50, bottom: 10 }
+            //             }
+            //         },
+            //         legend: {
+            //             show: false
+            //         }
+            //     });
+            //
+            //     var coverageDistanceChart = c3.generate({
+            //         bindto: '#neighborhood-completed-distance',
+            //         data: {
+            //             columns: [
+            //                 coverageDistanceArray
+            //             ],
+            //             type: 'bar'
+            //         },
+            //         axis: {
+            //             x: {
+            //                 type: 'category',
+            //                 categories: neighborhoodNames
+            //             },
+            //             y: {
+            //                 label: "Coverage Distance (m)",
+            //                 min: 0,
+            //                 padding: { top: 50, bottom: 10 }
+            //             }
+            //         },
+            //         legend: {
+            //             show: false
+            //         }
+            //     });
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
