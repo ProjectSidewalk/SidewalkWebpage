@@ -10,3 +10,22 @@ $( window ).resize(function() {
     var vidheight = $('#youtubeframe').height();
     $('#vidembed').height(vidheight);
 });
+
+function isScrolledIntoView(elem) {
+    var docViewTop = $(window).scrollTop();
+    var docViewBottom = docViewTop + $(window).height();
+
+    var elemTop = $(elem).offset().top;
+    var elemBottom = elemTop + $(elem).height();
+
+    return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
+}
+
+$(window).scroll(numbersInView);
+
+function numbersInView(){
+    if (isScrolledIntoView($("#percentage"))){
+        percentageAnim.start();
+        labelsAnim.start();
+    }
+}

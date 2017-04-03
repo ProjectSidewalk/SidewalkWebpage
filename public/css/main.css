@@ -618,17 +618,28 @@ float: center;
     font-weight: bold;
 }
 .newslink {
-    font-family: Raleway;
+    font-family: adelle-regular, sans-serif;
+    letter-spacing: 0.1em;
 	font-size: 14px;
-	font-style: italic;
+	font-style: normal;
 	font-variant: normal;
     text-decoration: underline;
 	font-weight: bold;
-	line-height: 20px;
+	line-height: 1.8em;
 
     color: #2d2a3f;
 }
 
+#anim-numbers{
+    font-size: 80px;
+}
+#anim-labels{
+    font-size: 30px;
+}
+#numberholder{
+    position:relative;
+    left: -30px;
+}
 .quotebox {
     width: 430px;
     height: 260px;

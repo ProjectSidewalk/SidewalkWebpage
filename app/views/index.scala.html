@@ -34,6 +34,11 @@
     @*</div>*@
     @*</div>*@
     @* '@routes.Assets.at("assets/index.js")' *@
+    <script language="javascript">
+        var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)));
+        var labelsAnim = new CountUp("numlabels", 0, 34474);
+
+    </script>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
@@ -152,6 +157,21 @@
                 </div>
                 <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
                     Explore our work so far</button>
+                <br><br>
+                <div id="numberholder">
+                    <div class="row" id="anim-numbers">
+                        <div class="col-sm-6"><span id="percentage">45</span></div>
+                        <div class="col-sm-6"><span id="numlabels">36,583</span></div>
+
+                    </div>
+                    <br>
+                    <div class="row" id="anim-labels">
+                        <div class="col-sm-6">% of DC mapped</div>
+                        <div class="col-sm-6">labels</div>
+
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -200,22 +220,22 @@
         ">
             <div class="col-sm-4">
                 <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
-                    <img src='@routes.Assets.at("assets/technically.png")' width="250" alt="Technically Logo">
+                    <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
                 </a>
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
-                    <img src='@routes.Assets.at("assets/curbed.png")' width="250" alt="Curbed DC Logo">
+                    <img src='@routes.Assets.at("assets/curbed.jpg")' height="70" alt="Curbed DC Logo">
 
                 </a>
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
-                    <img src='@routes.Assets.at("assets/diamondback.png")' width="250" alt="Diamondback Logo">
+                    <img src='@routes.Assets.at("assets/diamondback.png")' height="70" alt="Diamondback Logo">
                 </a>
             </div>
         </div>
-        <div class="row" style=" padding-top: 50px;
+        <div class="row" style=" padding-top: 20px;
             width: 100%;
             text-align: center;
         ">
