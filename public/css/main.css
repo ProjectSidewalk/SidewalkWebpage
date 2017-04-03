@@ -331,7 +331,7 @@ video#bgvid {
 .im-centered {
     position: relative;
     top: 0px;
-     margin: auto; max-width: 400px;
+     margin: auto; max-width: 500px;
     text-align: center;
     padding-top: 50px;
     font-family: raleway, sans-serif;
@@ -415,7 +415,7 @@ float: center;
 
 #content-text-1 {
     font-family: adelle-regular, sans-serif;
-	font-size: 16px;
+	font-size: 14px;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: normal;
@@ -424,20 +424,42 @@ float: center;
 
 
 }
+
+#quotebox-container{
+    position: relative;
+    top: 50px;
+    width: 100%;
+    background-image: url("/assets/assets/orange-background.jpg");
+    min-height: 100%;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+
+}
+#quotearea{
+    max-width: 900px;
+    margin: 0 auto;
+
+}
 #content-text-2 {
+
     font-family: adelle-regular, sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
     line-height: 1.8em;
     letter-spacing: 0.1em;
+    min-width: 500px;
+    margin: 0 auto;
 
 
 }
 #content-text-3 {
     font-family: adelle-regular, sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
@@ -609,19 +631,20 @@ float: center;
 
 .quotebox {
     width: 430px;
-    height: 250px;
+    height: 260px;
     padding-left: 20px;
     padding-right: 20px;
-    box-shadow: 5px 5px 30px #bbb;
-    background-image: url(../assets/quote.PNG);
-    background-size: 430px 230px;
+    box-shadow: 0px 0px 10px #bbb;
+    background-image: url(../assets/quote.png);
+    background-size: 90px 90px;
+    background-color:#fff;
     background-repeat: no-repeat;
     text-align: center;
     font-size: 25px;
     color: #2d2a3f;
     display: table-cell;
     vertical-align: middle;
-  line-height: normal;
+    line-height: normal;
     font-family: adelle-regular;
     word-wrap: break-word;
 
@@ -644,21 +667,33 @@ float: center;
 
     top: 0;
     width: 100%;
-    min-height: 350px;
-    background-image: url(../assets/footer-image.webp);
+
+    background-image: url(../assets/footer.jpg);
+
+    min-height: 300px;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
     background-size: cover;
+
+
+
      display: flex; justify-content: center;
-    color: #ccc;
+    color: #2D2A3F;
     font-size: 12px;
     line-height: 1.8em;
-    font-family: raleway;
+    font-family: raleway, sans-serif;
 
 
 }
+.footerlink{
+    color:#2D2A3F;
+}
 
 .footerheader {
-    font-family: raleway;
-    color: #848383;
+    font-family: raleway, sans-serif;
+    font-weight: bold;
+    color: #2D2A3F;
     font-size: 12px;
     line-height: 2.1em;
     letter-spacing: 0.05em;
@@ -668,15 +703,26 @@ float: center;
 #info-footer {
     position: relative;
     width: 100%;
-    height: 90px;
+    height: 250px;
     padding-top: 30px;
-    background-color: rgba(120, 201, 171, 1);
+    background-color: rgba(45, 42, 63, 1);
     text-align: center;
     font-family: raleway;
     font-size: 12px;
-    color: #2d2a3f;
+    color: #fff;
     line-height: 1.6em;
 
+}
+#info-footer a{
+    color:#fff;
+    text-decoration:underline;
+}
+#awardnum{
+    font-size:10px;
+    color:#c0becf;
+}
+#funding-title{
+    font-weight: bold;
 }
 
 #banner {
