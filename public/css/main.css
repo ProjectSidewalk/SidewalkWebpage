@@ -257,7 +257,7 @@ video#bgvid {
     background-size: cover;
     left: 0px;
     backface-visibility:hidden;
-    background:url('/assets/images/psmockup.png') no-repeat scroll 0 0 #000;
+    background:url('../assets/psmockup.png') no-repeat scroll 0 0 #000;
     background-size:cover;
     bottom:0;
     top: 70px;

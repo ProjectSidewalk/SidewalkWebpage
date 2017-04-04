@@ -35,11 +35,7 @@
     @*</div>*@
     @*</div>*@
     @* '@routes.Assets.at("assets/index.js")' *@
-    <script language="javascript">
-            var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
-            var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
 
-    </script>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
@@ -200,6 +196,10 @@
                 </div>
 
             </div>
+            <script language="javascript">
+                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
+                    var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
+            </script>
         </div>
     </div>
 
