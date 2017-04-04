@@ -672,7 +672,7 @@ float: center;
     max-width: 900px;
     top: -20px;
 
-    min-height: 400px;
+    min-height: 450px;
 }
 
 #press-list-header {
@@ -752,7 +752,7 @@ float: center;
 
     position: relative;
 
-    top: 0;
+    top: 00px;
     width: 100%;
 
     background-image: url(../assets/footer.jpg);
