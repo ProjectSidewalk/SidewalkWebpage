@@ -1,6 +1,7 @@
 @import models.daos.slick.DBTableDefinitions.UserTable
 @import models.user.User
 @import models.daos._
+@import models.label._
 @import models.street.StreetEdgeTable
 @(title: String, user: Option[User] = None)
 
@@ -35,8 +36,8 @@
     @*</div>*@
     @* '@routes.Assets.at("assets/index.js")' *@
     <script language="javascript">
-        var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)));
-        var labelsAnim = new CountUp("numlabels", 0, 34475);
+            var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
+            var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
 
     </script>
     <div id="vidbanner">
@@ -79,11 +80,29 @@
                 <br>
                 <div class="row" id="content-text-1">
                     Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
-                    <br>
-                    <img id="instructiongif" src="@routes.Assets.at("assets/anim-small.gif")" height="500" />
+                    <br><br>
+                    <div class="row" id="numbersrow">
+                        <div class="col-sm-4" onclick="switchToVideo(1)">
+                            <span class="stepnumber">01</span><br><span id="word1" class="stepword">EXPLORE</span>
+                        </div>
+
+                        <div class="col-sm-4" onclick="switchToVideo(2)">
+                            <span class="stepnumber">02</span><br><span id="word2" class="stepword">FIND PROBLEMS</span>
+                        </div>
+                        <div class="col-sm-4" onclick="switchToVideo(3)">
+                            <span class="stepnumber">03</span><br><span id="word3" class="stepword">ASSESS SEVERITY</span>
+                        </div>
+                    </div>
+                        <div id="instructionvideo">
+                            <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
+                            <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
+                            <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
+
+                        </div>
+
                 </div>
             </div>
-            <!--<div class="row" id="steps1">
+                <!--<div class="row" id="steps1">
                 <div class="col-sm-2">
                 </div>
                 <div class="col-sm-4 gauche">
@@ -95,90 +114,98 @@
                 </div>
                 <div class="col-sm-4 corps hidden-xs">
                     <img src='@routes.Assets.at("assets/computer-1.png")' style="position: relative;
-                        top: -80px;
-                        height: 350px;"/>
-                </div>
-                <div class="col-sm-2">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-2">
-                </div>
-                <div class="col-sm-5 corps hidden-xs compimage">
-                    <img src='@routes.Assets.at("assets/computer-2.png")' style="position: relative;
-                        top: -80px;
-                        height: 350px;
-                        left: -100px;"/>
-                </div>
-                <div class="col-sm-4 gauche" id=step2right>
-                    <span class="stepnumber">02</span><span class="stepword">CATEGORIZE</span>
-                    <br>
-                    <span class="stepdescription">
-                        Once you have found an issue, we will need to know what kind of issues it is. There are various types of issues to choose from.
-                    </span>
-                </div>
-                <div class="col-sm-1">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-2">
-                </div>
-                <div class="col-sm-4 gauche" >
-                    <span class="stepnumber">03</span><span class="stepword">ASSESS</span>
-                    <br>
-                    <span class="stepdescription">
-                        You rate the problem between one and five. Five means that the sidewalk is not passable due to erosion or no curb available at all.
-                    </span>
-                </div>
-                <div class="col-sm-4 corps hidden-xs">
-                    <img src='@routes.Assets.at("assets/computer-3.png")' style="position: relative;
-                        top: -80px;
-                        height: 350px;"/>
-                </div>
-                <div class="col-sm-2">
-                </div>
-            </div>-->
+                top: -80px;
+                height: 350px;"/>
         </div>
-
-        <div class="container" id="vidembed">
-            <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width:100%;" onclick="playVideo();">
-            <div id="videooverlay">
-                <div id="videotext">
-                    <span>What is project sidewalk?</span>
-                    <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration:underline; cursor:pointer;" onclick="playVideo()">Play video</span></span>
-                </div>
-            </div>
+        <div class="col-sm-2">
         </div>
-        <div class="container" id="difference-container">
-            <div class="im-centered">
-                <div class="row" >Your work is making a difference</div>
-                <div class="row" id="content-text-2">
-                    <p>Users like you have already mapped the accessibility of nearly half of Washington DC. That's 450miles—more than the distance from DC to Boston"</p>
-                </div>
-                <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
-                    Explore our work so far</button>
-                <br><br>
-                <div id="numberholder">
-                    <div class="row" id="anim-numbers">
-                        <div class="col-sm-6"><span id="percentage">45</span></div>
-                        <div class="col-sm-6"><span id="numlabels">36,583</span></div>
+    </div>
+    <div class="row">
+        <div class="col-sm-2">
+        </div>
+        <div class="col-sm-5 corps hidden-xs compimage">
+            <img src='@routes.Assets.at("assets/computer-2.png")' style="position : relative ;
+            top : -80px ;
+            height : 350px ;
+            left : -100px ;
+            "/>
+        </div>
+        <div class="col-sm-4 gauche" id=step2right>
+            <span class="stepnumber">02</span><span class="stepword">CATEGORIZE</span>
+            <br>
+            <span class="stepdescription">
+                Once you have found an issue, we will need to know what kind of issues it is. There are various types of issues to choose from.
+            </span>
+        </div>
+        <div class="col-sm-1">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-2">
+        </div>
+        <div class="col-sm-4 gauche" >
+            <span class="stepnumber">03</span><span class="stepword">ASSESS</span>
+            <br>
+            <span class="stepdescription">
+                You rate the problem between one and five. Five means that the sidewalk is not passable due to erosion or no curb available at all.
+            </span>
+        </div>
+        <div class="col-sm-4 corps hidden-xs">
+            <img src='@routes.Assets.at("assets/computer-3.png")' style="position : relative ;
+            top : -80px ;
+            height : 350px ;
+            "/>
+        </div>
+        <div class="col-sm-2">
+        </div>
+    </div>-->
+    </div>
 
-                    </div>
-                    <br>
-                    <div class="row" id="anim-labels">
-                        <div class="col-sm-6">% of DC mapped</div>
-                        <div class="col-sm-6">labels</div>
-
-                    </div>
-
-                </div>
+    <div class="container" id="vidembed">
+        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
+        <div id="videooverlay">
+            <div id="videotext">
+                <span>What is project sidewalk?</span>
+                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
+                cursor: pointer;" onclick="playVideo()">Play video</span></span>
             </div>
         </div>
+    </div>
+    <div class="container" id="difference-container">
+        <div id="dcanim-div">
+            <video style="width:100%;" preload="preload" id="video" autoplay="autoplay" loop="loop">
+
+                <source src="@routes.Assets.at("assets/dc-animation.mp4")" type="video/mp4"></source>
+            </video>
+        </div>
+        <div class="im-centered">
+            <div class="row" >Your work is making a difference</div>
+            <div class="row" id="content-text-2">
+                <p>Users like you have already mapped the accessibility of nearly half of Washington DC. That's 450miles—more than the distance from DC to Boston"</p>
+            </div>
+            <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
+                See results</button>
+            <br><br><br>
+            <div id="numberholder">
+                <div class="row" id="anim-numbers">
+                    <div class="col-sm-6"><span id="percentage">45</span></div>
+                    <div class="col-sm-6"><span id="numlabels">36,583</span></div>
+
+                </div>
+                <br>
+                <div class="row" id="anim-labels">
+                    <div class="col-sm-6">of DC mapped</div>
+                    <div class="col-sm-6">labels</div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
 
 
-
-        <div class="container" id="quotebox-container" style="min-height: 500px;">
-            <div id="quotearea">
+    <div class="container" id="quotebox-container" style="min-height: 500px;">
+        <div id="quotearea">
             <div class="im-centered3">
                 <div class="row" id="press-list-header-2">What people are saying</div>
             </div>
@@ -200,8 +227,8 @@
                     </div>
                 </div>
             </div>
-            </div>
         </div>
+    </div>
     <div class="container" id="press-container">
         <div class="im-centered3">
             <div class="row" >Press</div>

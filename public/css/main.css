@@ -24,9 +24,32 @@
 	src: url(../fonts/Adelle/adelle_heavy-webfont.ttf);
 }
 
+
+@font-face {
+    font-family: raleway;
+    src: url(../fonts/Raleway/Raleway-Regular.ttf);
+}
+
+@font-face {
+    font-family: raleway-regular;
+    src: url(../fonts/Raleway/Raleway-Regular.ttf);
+}
+
+
+@font-face {
+    font-family: raleway-bold;
+    src: url(../fonts/Raleway/Raleway-Bold.ttf);
+}
+
+@font-face {
+    font-family: raleway-black;
+    src: url(../fonts/Raleway/Raleway-Black.ttf);
+}
+
+
 html,
 body {
-    padding-top: 30px;
+    padding-top: 35px;
     font-family:'Open Sans', 'Noto Sans', sans-serif;
 
     overflow-x: hidden; /* Prevent scroll on narrow devices */
@@ -376,23 +399,41 @@ video#bgvid {
 }
 
 .stepnumber {
-    font-family: Raleway;
-	font-size: 45px;
+    font-family: Raleway-black,sans-serif;
+	font-size: 90px;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: bold;
 	line-height: 58px;
-    color: #EB734D;
+    color: #fbd78b;
 }
-
+#instructionvideo{
+    position:relative;
+    left: -150px;
+    top: 3px;
+    max-width: 300px;
+}
+#numbersrow{
+    position: relative;
+    left:-20px;
+    cursor: pointer;
+    width:600px;
+}
+#dcanim-div{
+    width: 100%; height: auto; position: absolute; top: 0; left: 0;
+    background-size: cover;
+}
 .stepword {
+    position: relative;
+    top: -10px;
+    left: -10px;
     padding-left: 25px;
     font-family: Raleway;
-	font-size: 30px;
+	font-size: 14px;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: bold;
-	line-height: 58px;
+	line-height: 10px;
     color: #2D2A3F;
 
 }
@@ -532,7 +573,7 @@ float: center;
 }
 
 #exploreButton {
-    background-color:#ffffff;
+    background-color:transparent;
 	-moz-border-radius:15px;
 	-webkit-border-radius:15px;
 	border-radius:15px;
@@ -543,7 +584,7 @@ float: center;
     font: normal normal normal 14px/1.4em raleway,sans-serif;
 	font-family: 'Raleway', sans-serif;
 	font-size:14px;
-	padding:15px 105px;
+	padding:10px 45px;
 	text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
