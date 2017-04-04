@@ -128,7 +128,7 @@ footer {
 	background-color:#ffffff;
 	-moz-border-radius:15px;
 	-webkit-border-radius:15px;
-	border-radius:15px;
+	border-radius:10px;
 	border:1px solid #2D2A3F;
 	display:inline-block;
     position: relative;
@@ -143,9 +143,9 @@ footer {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 .myButton:hover {
-	background-color:#eb734d;
-    border:1px solid #eb734d;
-    color: #ffffff;
+	background-color:#FCECBE;
+    border:1px solid #FCECBE;
+    color: #2D2A3F;
     text-shadow: none;
 }
 .myButton:active {
@@ -153,6 +153,37 @@ footer {
 	top:1px;
 }
 
+
+.grayButton {
+    position: relative;
+    left: 20px;
+    background-color: #eee;
+    -moz-border-radius:15px;
+    -webkit-border-radius:15px;
+    border-radius:10px;
+    border:1px solid #eee;
+    display:inline-block;
+    position: relative;
+    top:8px;
+    cursor:pointer;
+    color:#2D2A3F;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size:14px;
+    padding:5px 25px;
+    text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.grayButton:hover {
+    background-color:#fff;
+    border:1px solid #fff;
+    color: #2D2A3F;
+    text-shadow: none;
+}
+.gray:active {
+    position:relative;
+    top:1px;
+}
 
 
 
@@ -389,6 +420,9 @@ video#bgvid {
     top: 200px;
 }
 
+.grayButton{
+    position: relative;
+}
 
 
 
@@ -409,7 +443,7 @@ video#bgvid {
 }
 #instructionvideo{
     position:relative;
-    left: -150px;
+    left: -130px;
     top: 3px;
     max-width: 300px;
 }
@@ -811,7 +845,7 @@ float: center;
     background-color:rgba(251, 215, 139, 1);
 	-moz-border-radius:15px;
 	-webkit-border-radius:15px;
-	border-radius:15px;
+	border-radius:10px;
 	border:0px solid #fbd78b;
 	display:inline-block;
 	cursor:pointer;
