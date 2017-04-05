@@ -142,8 +142,11 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (tracker)  tracker.push('Click_ZoomIn');
 
         if (!status.disableZoomIn) {
+            var povChange = mapService.getPovChangeStatus();
+
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            povChange["status"] = true;
             canvas.clear();
             canvas.render2();
         }
@@ -156,12 +159,54 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (tracker) tracker.push('Click_ZoomOut');
 
         if (!status.disableZoomOut) {
+            var povChange = mapService.getPovChangeStatus();
+
             var pov = mapService.getPov();
             setZoom(pov.zoom - 1);
+            povChange["status"] = true;
             canvas.clear();
             canvas.render2();
         }
     }
+
+    /**
+     * These functions are called when the keyboard shortcut for zoomIn/Out is used.
+     */
+
+    /** Zoom in */
+    function zoomIn () {
+        if (!status.disableZoomIn) {
+            var povChange = mapService.getPovChangeStatus();
+
+            var pov = mapService.getPov();
+            setZoom(pov.zoom + 1);
+            povChange["status"] = true;
+            canvas.clear();
+            canvas.render2();
+            return this;
+        } else {
+            return false;
+        }
+    }
+
+    /** Zoom out */
+    function zoomOut () {
+        // This method is called from outside this class to zoom out from a GSV image.
+        if (!status.disableZoomOut) {
+            var povChange = mapService.getPovChangeStatus();
+
+            // ViewControl_ZoomOut
+            var pov = mapService.getPov();
+            setZoom(pov.zoom - 1);
+            povChange["status"] = true;
+            canvas.clear();
+            canvas.render2();
+            return this;
+        } else {
+            return false;
+        }
+    }
+
 
     /**
      * This method takes a (x, y) canvas point and zoom in to that point.
@@ -291,33 +336,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (status.disableZoomIn) { uiZoomControl.zoomIn.css('opacity', 0.5); }
         if (status.disableZoomOut) { uiZoomControl.zoomOut.css('opacity', 0.5); }
         return this;
-    }
-
-    /** Zoom in */
-    function zoomIn () {
-        if (!status.disableZoomIn) {
-            var pov = mapService.getPov();
-            setZoom(pov.zoom + 1);
-            canvas.clear().render2();
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    /** Zoom out */
-    function zoomOut () {
-        // This method is called from outside this class to zoom out from a GSV image.
-        if (!status.disableZoomOut) {
-            // ViewControl_ZoomOut
-            var pov = mapService.getPov();
-            setZoom(pov.zoom - 1);
-            canvas.clear();
-            canvas.render2();
-            return this;
-        } else {
-            return false;
-        }
     }
 
     self.blink = blink;

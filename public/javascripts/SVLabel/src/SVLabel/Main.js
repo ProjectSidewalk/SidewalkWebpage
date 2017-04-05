@@ -227,7 +227,7 @@ function Main (params) {
         });
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 }
-        })
+        });
     }
 
     function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {

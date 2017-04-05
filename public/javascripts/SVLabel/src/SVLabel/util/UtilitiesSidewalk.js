@@ -4,34 +4,6 @@ util.misc = util.misc || {};
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
-    /**
-     *
-     * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
-
-     * Note: I realized I wrote the same function in Point.js. (gsvImageCoordinate2CanvasCoordinate()).
-     * @param ix
-     * @param iy
-     * @param pov
-     * @param zoomFactor
-     * @returns {{x: number, y: number}}
-     */
-    function imageCoordinateToCanvasCoordinate(ix, iy, pov, zoomFactor) {
-        if (!zoomFactor) {
-            zoomFactor = 1;
-        }
-
-        var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
-        var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
-        return {x: canvasX, y: canvasY};
-    }
-
-    function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
-        var zoomFactor = svl.zoomFactor[pov.zoom];
-        var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-        var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
-        return { x: x, y: y };
-    }
-
     function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
         // This function takes a pair of lat/lng coordinates.
         //
@@ -324,8 +296,6 @@ function UtilitiesMisc (JSON) {
         x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
     }
 
-    self.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
-    self.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
     self.getHeadingEstimate = getHeadingEstimate;
     self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
