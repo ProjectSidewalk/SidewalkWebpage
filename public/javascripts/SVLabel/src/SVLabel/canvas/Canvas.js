@@ -75,7 +75,6 @@ function Canvas (ribbon) {
     var systemLabels = [];
     var labels = [];
 
-
     // Initialization
     function _init () {
         var el = document.getElementById("label-canvas");
@@ -113,9 +112,9 @@ function Canvas (ribbon) {
      */
     function closeLabelPath() {
 
-        var labelType = ribbon.getStatus('selectedLabelType'),
-            labelColor = util.misc.getLabelColors()[labelType],
-            labelDescription = util.misc.getLabelDescriptions(ribbon.getStatus('selectedLabelType')),
+        var labelType = ribbon.getStatus('selectedLabelType');
+        var labelColor = util.misc.getLabelColors()[labelType],
+            labelDescription = util.misc.getLabelDescriptions(labelType),
             iconImagePath = util.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
@@ -123,8 +122,7 @@ function Canvas (ribbon) {
         pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
-        var points = [],
-            pov = svl.map.getPov();
+        var points = [], pov = svl.map.getPov();
 
         for (var i = 0, pathLen = tempPath.length; i < pathLen; i++) {
             points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
@@ -249,7 +247,9 @@ function Canvas (ribbon) {
             if (properties.drawingMode == "point") {
                 tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
                 closeLabelPath();
-            } else if (properties.drawingMode == "path") {
+            }
+            // NOT being used now in this tool
+            else if (properties.drawingMode == "path") {
                 // Path labeling.
 
                 // Define point parameters to draw
@@ -284,7 +284,9 @@ function Canvas (ribbon) {
             clear();
             setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
             render2();
-        } else if (currTime - mouseStatus.prevMouseUpTime < 400) {
+        }
+        // NOT being used now in this tool
+        else if (currTime - mouseStatus.prevMouseUpTime < 400) {
             if (properties.drawingMode == "path") {
                 // This part is executed for a double click event
                 // If the current status.drawing = true, then close the current path.
@@ -326,7 +328,6 @@ function Canvas (ribbon) {
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }
-
 
 
         if (!status.drawing) {
@@ -882,9 +883,17 @@ function Canvas (ribbon) {
         status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
+        var povChange = svl.map.getPovChangeStatus();
+        // For the condition, when the interface loads for the first time
+        // The pov is changed. Prevents the conversion function to be called
+        // for the initial rendering pipeline
+        if (labels.length == 0 && povChange["status"]){
+            povChange["status"] = false;
+        }
 
         var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;
-        // The image coordinates of the points in system labels shift as the projection parameters (i.e., heading and pitch) that
+        // The image coordinates of the points in system labels shift as the projection parameters
+        // (i.e., heading and pitch) that
         // you can get from Street View API change. So adjust the image coordinate
         // Note that this adjustment happens only once
         if (!status.svImageCoordinatesAdjusted) {
@@ -957,6 +966,7 @@ function Canvas (ribbon) {
                 label.render(ctx, pov);
             }
         }
+        povChange["status"] = false;
 
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) { renderTempPath(); }
@@ -970,7 +980,7 @@ function Canvas (ribbon) {
         // Update the opacity of Zoom In and Zoom Out buttons.
         if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
 
-        // This like of code checks if the golden insertion code is running or not.
+        // This line of code checks if the golden insertion code is running or not.
         if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
 
         return this;

@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "2.0"
+version := "2.1.2"
 
 scalaVersion := "2.10.4"
 
@@ -66,6 +66,8 @@ scalacOptions ++= Seq(
 )
 
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+
+javaOptions ++= Seq("-Xmx3072M", "-Xms2048M", "-XX:MaxPermSize=3072M")
 
 javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
 
