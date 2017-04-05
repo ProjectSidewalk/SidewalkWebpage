@@ -1,5 +1,8 @@
+@import models.user.User
 @(title: String)(content: Html)
 
+
+@import views.html.bootstrap._
 @import com.mohiva.play.silhouette.impl.providers._
 @import views.html.bootstrap._
 @import forms.SignInForm
@@ -48,7 +51,7 @@
     @*TODO: url should not be hardcoded*@
     <meta name="twitter:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
 </head>
-<body>
+<body >
     <!--<div id="wrap">-->
         @content
     <!--</div>-->
@@ -128,6 +131,7 @@
         </div>
     </div>
     <div class="container" id="info-footer">
+        <br>
         <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
         <div class="row" style="max-width: 340px; margin: 0 auto;">
 
