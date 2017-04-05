@@ -20,7 +20,9 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(url.isDefined && url.get != "/audit") {
 
-                    <li class="active"><button class="myButton" onclick="location.href='@routes.AuditController.audit';">Start Mapping</button></li>
+                    <li class="active">
+                        <button class="myButton" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
+                    </li>
 
                 } else {
                     

@@ -798,9 +798,7 @@ float: center;
     background-repeat: no-repeat;
     background-size: cover;
 
-
-
-     display: flex; justify-content: center;
+    display: flex; justify-content: center;
     color: #2D2A3F;
     font-size: 12px;
     line-height: 1.8em;

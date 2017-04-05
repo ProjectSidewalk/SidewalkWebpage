@@ -36,7 +36,7 @@ function switchToVideo(vidnum){
 
 
     if(vidnum === 1) {
-        console.log("Switching to video 1");
+        // console.log("Switching to video 1");
         document.getElementById("vid1").style.display = "block";
         document.getElementById("vid2").style.display = "none";
         document.getElementById("vid3").style.display = "none";
@@ -52,7 +52,7 @@ function switchToVideo(vidnum){
 
     }
     else if(vidnum === 2) {
-        console.log("Switching to video 2");
+        // console.log("Switching to video 2");
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "block";
         document.getElementById("vid3").style.display = "none";
@@ -65,7 +65,7 @@ function switchToVideo(vidnum){
         document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
     }
     else if(vidnum === 3) {
-        console.log("Switching to video 3");
+        // console.log("Switching to video 3");
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "none";
         document.getElementById("vid3").style.display = "block";
@@ -102,6 +102,6 @@ function switchToVideo(vidnum){
 }
 
 $( document ).ready(function() {
-    console.log( "ready!" );
+    // console.log( "ready!" );
     switchToVideo(1);
 });
