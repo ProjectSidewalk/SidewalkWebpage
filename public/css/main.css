@@ -358,8 +358,8 @@ video#bgvid {
 }
 
 #bannertext {
-    min-width:200px;
-    max-width:800px;
+    min-width:700px;
+
     text-align: center;
 }
 
@@ -517,7 +517,7 @@ float: center;
 
 #content-text-1 {
     font-family: adelle-regular, sans-serif;
-	font-size: 14px;
+	font-size: 15px;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: normal;
@@ -548,7 +548,7 @@ float: center;
 #content-text-2 {
 
     font-family: adelle-regular, sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
@@ -561,7 +561,7 @@ float: center;
 }
 #content-text-3 {
     font-family: adelle-regular, sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
