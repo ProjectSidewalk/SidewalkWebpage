@@ -796,6 +796,11 @@ float: center;
 
 }
 
+.quotebox a{
+    color: #2d2a3f;
+    text-decoration: underline;
+}
+
 .quoteauthor {
     font-family: Raleway;
     font-weight: bold;
