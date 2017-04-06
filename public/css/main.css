@@ -200,7 +200,7 @@ footer {
 
 #vidembed{
     position: relative;
-    top: 180px;
+
     background-color:#ccc;
     max-height: 600px;
     overflow:hidden;
@@ -400,6 +400,25 @@ video#bgvid {
     color: #2D2A3F;
 
 }
+
+.im-centered5 {
+    position: relative;
+    top: 0px;
+    margin: auto; max-width: 100%;
+    text-align: center;
+    padding-top: 50px;
+    font-family: raleway, sans-serif;
+    letter-spacing: 0em;
+    font-size: 45px;
+    font-style: normal;
+    font-variant: normal;
+    height: 500px;
+    min-height:700px;
+    line-height: 1.1em;
+    color: #2D2A3F;
+
+}
+
 .im-centered3 {
     position: relative;
     top: 0px;
@@ -417,7 +436,7 @@ video#bgvid {
 }
 #difference-container{
     position:relative;
-    top: 200px;
+    width: 100%;
 }
 
 .grayButton{
@@ -454,12 +473,15 @@ video#bgvid {
     width:600px;
 }
 #dcanim-div{
-    width: 100%; height: auto; position: absolute; top: 40px; left: 0;
+    width: 100%; height: auto; position: absolute; top: 40px; left: -50px;
+    min-width: 1500px;
     background-size: cover;
+    text-align: center;
+
 }
 #anim-labels{
     position: relative;
-    top: -20px;
+    top: -30px;
 }
 .stepword {
     position: relative;
@@ -507,7 +529,7 @@ float: center;
 
 #quotebox-container{
     position: relative;
-    top: 100px;
+
     width: 100%;
     background-image: url("/assets/assets/orange-background.jpg");
     min-height: 100%;
@@ -532,7 +554,7 @@ float: center;
     font-weight: normal;
     line-height: 1.8em;
     letter-spacing: 0.1em;
-    min-width: 500px;
+    max-width: 500px;
     margin: 0 auto;
 
 
@@ -696,7 +718,7 @@ float: center;
 
 #press-container {
     position: relative;
-    top: 60px;
+
     height: 200px;
 }
 
@@ -707,7 +729,7 @@ float: center;
     max-width: 900px;
     top: -20px;
 
-    min-height: 350px;
+    min-height: 300px;
 }
 
 #press-list-header {
@@ -749,7 +771,9 @@ float: center;
 }
 #numberholder{
     position:relative;
-    left: -30px;
+    min-width: 800px;
+
+
 }
 .quotebox {
     width: 430px;
@@ -806,6 +830,11 @@ float: center;
 
 
 }
+
+#footer-container a{
+    color:#2d2a3f;
+    cursor: pointer;
+}
 .footerlink{
     color:#2D2A3F;
 }
@@ -854,7 +883,9 @@ float: center;
     margin-left: auto;
     margin-right: auto;
 }
-
+#banner2{
+    min-height: 900px;
+}
 #header {
     background-color: #fff;
     -webkit-box-shadow: 0 8px 6px -6px #999;

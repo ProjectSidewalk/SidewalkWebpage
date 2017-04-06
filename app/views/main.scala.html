@@ -17,7 +17,14 @@
     <link rel="icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
-
+    <script>
+        function checkIfPaddingNeeded(){
+            if(window.location.pathname !== "/"){
+                console.log("Adding padding");
+                document.body.style.paddingTop = "60px";
+            }
+        }
+    </script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
@@ -51,7 +58,7 @@
     @*TODO: url should not be hardcoded*@
     <meta name="twitter:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
 </head>
-<body>
+<body onload="checkIfPaddingNeeded()">
     <div id="wrap">
         @content
 
@@ -59,23 +66,23 @@
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
     <div class="container" id="footer-container">
-        <div class="row" style="padding-top: 50px; width: 900px;">
-            <div class="col-sm-3 footerlink">
+        <div class="row" style="padding-top: 50px; width: 900px; position:relative; left:50px;">
+            <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
                 <a href='@routes.ApplicationController.about'>About Us</a> <br/>
                 <a href='@routes.ApplicationController.terms'>Terms of Use</a> <br/>
                 <a href='@routes.ApplicationController.faq'>FAQ</a> <br/>
             </div>
-            <div class="col-sm-3 footerlink">
+            <div class="col-sm-4 footerlink">
                 <span class="footerheader">DEVELOPERS</span><br/>
                 <a href='@routes.ApplicationController.developer'>Sidewalk API </a><br/>
             </div>
-            <div class="col-sm-3 footerlink">
+            <div class="col-sm-4 footerlink">
                 <span class="footerheader">CONNECT</span><br/>
-                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">Github</a> <br/>
-                <a href="https://twitter.com/umd_sidewalk">Twitter</a><br/>
-                <a href="mailto:sidewalk@@umiacs.umd.edu">Email Us</a><br/>
+                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>Github</a> <br/>
+                <a target="_blank" href="https://twitter.com/umd_sidewalk"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>Twitter</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu"><img width="15" src='@routes.Assets.at("assets/email.png")'>Email Us</a><br/>
             </div>
         </div>
     </div>

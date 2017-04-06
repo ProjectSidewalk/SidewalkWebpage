@@ -169,29 +169,29 @@
     </div>
     <div class="container" id="difference-container">
         <div id="dcanim-div">
-            <video style="width:100%;" preload="preload" id="video" autoplay="autoplay" loop="loop">
+            <video style="width:100%; max-width: 1500px;" preload="preload" id="video" autoplay="autoplay" loop="loop">
 
                 <source src="@routes.Assets.at("assets/dc-animation.mp4")" type="video/mp4"></source>
             </video>
         </div>
-        <div class="im-centered">
+        <div class="im-centered5">
             <div class="row" >Your work is making a difference</div>
             <div class="row" id="content-text-2">
                 <p>Users like you have already mapped the accessibility of nearly half of Washington DC. That's 450miles—more than the distance from DC to Boston"</p>
             </div>
             <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
                 See results</button>
-            <br><br><br><br>
+            <br><br><br><br><br><br><br><br>
             <div id="numberholder">
                 <div class="row" id="anim-numbers">
-                    <div class="col-xs-6"><span id="percentage">45</span></div>
-                    <div class="col-xs-6"><span id="numlabels">36,583</span></div>
+                    <div class="col-sm-6 hidden-xs"><span id="percentage">45</span></div>
+                    <div class="col-sm-6 hidden-xs"><span id="numlabels">36,583</span></div>
 
                 </div>
                 <br>
                 <div class="row" id="anim-labels">
-                    <div class="col-xs-6">of DC mapped</div>
-                    <div class="col-xs-6">labels</div>
+                    <div class="col-sm-6 hidden-xs">of DC mapped</div>
+                    <div class="col-sm-6 hidden-xs">labels</div>
 
                 </div>
 
@@ -231,7 +231,7 @@
     </div>
     <div class="container" id="press-container">
         <div class="im-centered3">
-            <div class="row" >Press</div>
+            <div class="row" ><br>Press<br></div>
 
 
         </div>
