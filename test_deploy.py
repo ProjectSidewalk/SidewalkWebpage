@@ -1,3 +1,13 @@
+'''
+Script to create a binary (inside the git directory)
+of a new version of Sidewalk on the server and deploys it to port 9005
+
+Usage: change into the git:SidewalkWebpage directory
+    run python deploy.py
+
+If only the application needs to run, use
+    python deploy.py run
+'''
 import os
 import shutil
 import inspect
@@ -31,11 +41,14 @@ def stop_existing_application():
     p2 = subprocess.Popen(["grep", "9005"], stdin=p1.stdout, stdout=subprocess.PIPE)
     p3 = subprocess.Popen(["awk", "{print $7}"], stdin=p2.stdout, stdout=subprocess.PIPE)
     p4 = subprocess.Popen(["cut", "-d", "/", "-f", "1"], stdin=p3.stdout, stdout=subprocess.PIPE)
+
+    stdout, stderr = p4.communicate()
+    play_pid = stdout.strip('\n')
+
     p1.stdout.close()
     p2.stdout.close()
     p3.stdout.close()
-    stdout, stderr = p4.communicate()
-    play_pid = stdout.strip('\n')
+    p4.stdout.close()
 
     if play_pid != '':
         print "Running process has pid: " + play_pid
@@ -127,20 +140,31 @@ def remove_previous_application():
         print "Directory `_sidewalk-webpage` does not exist"
 
 # Functions to add timestamp to the deployed version
-def add_timestamp_to_the_footer():
+def add_version_to_the_footer():
+
+    p1 = subprocess.Popen(["grep", "-e", "version :=", "build.sbt"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p2 = subprocess.Popen(["cut", "-d", "\"", "-f", "2"], stdin=p1.stdout, stdout=subprocess.PIPE)
+    stdout, stderr = p2.communicate()
+    version = stdout.strip('\n')
+
+    p1.stdout.close()
+    p2.stdout.close()
+
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
+    version_string = "Version %s | Last Updated: %s" % (version, timestamp)
 
     with file("./app/views/main.scala.html", "r+") as f:
         file_contents = f.read()
 
         timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
-                                   """<span id="application-version">Last updated: """ + timestamp + """</span>""",
+                                   """<span id="application-version">""" + version_string + """</span>""",
                                    file_contents)
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
 
-def remove_timestamp_from_the_footer():
+def remove_version_from_the_footer():
     with file("./app/views/main.scala.html", "r+") as f:
         file_contents = f.read()
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
@@ -157,11 +181,11 @@ def call_activator_dist():
 
 def create_distribution():
     print "Adding timestamp to the footer"
-    add_timestamp_to_the_footer()
+    add_version_to_the_footer()
 
     print "Started zipping up files"
     call_activator_dist()
-    remove_timestamp_from_the_footer()
+    remove_version_from_the_footer()
 
 def prepare_local_repo():
     # Update repo
