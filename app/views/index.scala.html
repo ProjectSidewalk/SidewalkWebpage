@@ -7,34 +7,6 @@
 
 @main(title) {
     @navbar(user)
-    @*<div id="video-holder">*@
-    @*<video loop muted alt="Background video showing how the image labeling tool works" id="background-video">*@
-    @*<source src="@routes.Assets.at("videos/SVLabelDemo.mp4")" type="video/mp4">*@
-    @*</video>*@
-    @*<div id="video-foreground" class="container">*@
-    @*<div class="row">*@
-    @*<div class="col-lg-12 spacer-30-percent"></div>*@
-    @*<div class="col-lg-12">*@
-    @*<h1 class="text-center">*@
-    @*Help us make sidewalks more accessible for everyone*@
-    @*<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/people.svg")' alt="Icons of wheelchair user, cane user, scooter user, and a person with a stroller" class="header-icon" align="">*@
-    @*</h1>*@
-    @*</div>*@
-    @*</div>*@
-    @*<div class="row">*@
-    @*<div class="col-lg-12">*@
-    @*<p class="text-center"><a href='@routes.AuditController.audit' class="btn" id="participate-button">Participate</a></p>*@
-    @*</div>*@
-    @*</div>*@
-    @*<div class="col-lg-12 spacer-20-pixel"></div>*@
-    @*<div class="row">*@
-    @*<div class="col-lg-12">*@
-    @*<p class="text-center"><a data-scroll href="#how-it-works" style="color: #333">How does it work?</a></p>*@
-    @*</div>*@
-    @*</div>*@
-    @*</div>*@
-    @*</div>*@
-    @* '@routes.Assets.at("assets/index.js")' *@
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
@@ -163,7 +135,7 @@
             <div id="videotext">
                 <span>What is Project Sidewalk?</span>
                 <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
-                cursor: pointer;" onclick="playVideo()">Play video</span></span>
+                cursor: pointer;" onclick="playVideo()">Watch Now</span></span>
             </div>
         </div>
     </div>
@@ -177,7 +149,8 @@
         <div class="im-centered5">
             <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
             <div class="row" id="content-text-2">
-                <p>Users like you have already mapped the accessibility of nearly half of Washington DC. That's 450miles—more than the distance from DC to Boston"</p>
+                <p>Users like you have already mapped the accessibility of nearly half of Washington DC.
+                    That's 450miles—more than the distance from DC to Boston</p>
             </div>
             <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
                 See results</button>
