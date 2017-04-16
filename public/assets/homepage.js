@@ -1,6 +1,8 @@
 /**
  * Created by anthony on 4/1/17.
  */
+
+var autoAdvanceLaptop = true;
 function playVideo(){
     document.getElementById("vidembed").innerHTML = '<div class="video-container"><iframe id="youtubeframe" width="853" height="480" src="https://www.youtube.com/embed/wAdGXqRunQs?autoplay=1" frameborder="0" allowfullscreen</iframe</div>';
     var vidheight = $('#youtubeframe').height();
@@ -28,6 +30,7 @@ function numbersInView(){
         if(percentageAnim && labelsAnim) {
             percentageAnim.start();
             labelsAnim.start();
+            milesAnim.start();
         }
     }
 }
@@ -48,6 +51,13 @@ function switchToVideo(vidnum){
         document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
         document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
 
+        document.getElementById("firstnumbox").style.backgroundColor = "#58CEAB";
+        document.getElementById("secondnumbox").style.backgroundColor = "#F1F1F1";
+        document.getElementById("thirdnumbox").style.backgroundColor = "#F1F1F1";
+
+        document.getElementById("number1").style.color = "#fff";
+        document.getElementById("number2").style.color = "#C0BEBF";
+        document.getElementById("number3").style.color = "#C0BEBF";
 
 
     }
@@ -63,6 +73,14 @@ function switchToVideo(vidnum){
         document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
         document.getElementById("word2").style.fontFamily = "Raleway-bold,sans-serif";
         document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
+
+        document.getElementById("firstnumbox").style.backgroundColor = "#F1F1F1";
+        document.getElementById("secondnumbox").style.backgroundColor = "#58CEAB";
+        document.getElementById("thirdnumbox").style.backgroundColor = "#F1F1F1";
+
+        document.getElementById("number1").style.color = "#C0BEBF";
+        document.getElementById("number2").style.color = "#fff";
+        document.getElementById("number3").style.color = "#C0BEBF";
     }
     else if(vidnum === 3) {
         // console.log("Switching to video 3");
@@ -76,6 +94,14 @@ function switchToVideo(vidnum){
         document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
         document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
         document.getElementById("word3").style.fontFamily = "Raleway-bold,sans-serif";
+
+        document.getElementById("firstnumbox").style.backgroundColor = "#F1F1F1";
+        document.getElementById("secondnumbox").style.backgroundColor = "#F1F1F1";
+        document.getElementById("thirdnumbox").style.backgroundColor = "#58CEAB";
+
+        document.getElementById("number1").style.color = "#C0BEBF";
+        document.getElementById("number2").style.color = "#C0BEBF";
+        document.getElementById("number3").style.color = "#fff";
     }
     /*
     var e = document.getElementById("vid"+vidnum);
@@ -103,5 +129,23 @@ function switchToVideo(vidnum){
 
 $( document ).ready(function() {
     // console.log( "ready!" );
-    switchToVideo(1);
+    switchToVideo(1)
+    function autoAdvanceLaptopVideos(){
+        if (autoAdvanceLaptop) switchToVideo(1);
+        setTimeout(function () {
+            if (autoAdvanceLaptop) switchToVideo(2);
+            setTimeout(function () {
+                if (autoAdvanceLaptop) switchToVideo(3);
+                setTimeout(function () {
+                    autoAdvanceLaptopVideos()
+
+                }, 7000);
+
+            }, 4000);
+        }, 10000);
+    }
+    autoAdvanceLaptopVideos();
+
+
+
 });

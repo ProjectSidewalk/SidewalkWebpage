@@ -41,20 +41,31 @@
                 <div class="row">How you can help</div>
                 <br>
                 <div class="row" id="content-text-1">
+                    <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
                     Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
-                    <br><br>
+                    </div>
+                        <br><br>
                     <div class="row" id="numbersrow">
-                        <div class="col-sm-4" onclick="switchToVideo(1)">
-                            <span class="stepnumber">01</span><br><span id="word1" class="stepword">EXPLORE</span>
+                        <div class="col-sm-4" onclick="switchToVideo(1); autoAdvanceLaptop = false;">
+                            <div id="firstnumbox">
+                            <span class="stepnumber" id="number1">01</span><br><span id="word1" class="stepword">EXPLORE</span>
+                            </div>
                         </div>
 
-                        <div class="col-sm-4" onclick="switchToVideo(2)">
-                            <span class="stepnumber">02</span><br><span id="word2" class="stepword">FIND PROBLEMS</span>
-                        </div>
-                        <div class="col-sm-4" onclick="switchToVideo(3)">
-                            <span class="stepnumber">03</span><br><span id="word3" class="stepword">ASSESS SEVERITY</span>
-                        </div>
+                        <div class="col-sm-4" onclick="switchToVideo(2); autoAdvanceLaptop = false;">
+                            <div id="secondnumbox">
+                            <span class="stepnumber" id="number2">02</span><br><span id="word2" class="stepword">FIND PROBLEMS</span>
+                            </div>
+                            </div>
+                        <div class="col-sm-4" onclick="switchToVideo(3); autoAdvanceLaptop = false;">
+                            <div id="thirdnumbox">
+                            <span class="stepnumber" id="number3">03</span><br><span id="word3" class="stepword">ASSESS SEVERITY</span>
+                            </div>
+                            </div>
                     </div>
+                        <div class="hidden-xs" id="greenbar">
+
+                        </div>
                         <div id="instructionvideo">
                             <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
                             <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
@@ -151,14 +162,16 @@
             <br><br><br><br><br><br><br><br>
             <div id="numberholder">
                 <div class="row" id="anim-numbers">
-                    <div class="col-sm-6 hidden-xs"><span id="percentage">45</span></div>
-                    <div class="col-sm-6 hidden-xs"><span id="numlabels">36,583</span></div>
+                    <div class="col-sm-4 hidden-xs"><span id="percentage">45</span></div>
+                    <div class="col-sm-4 hidden-xs"><span id="nummiles">45</span></div>
+                    <div class="col-sm-4 hidden-xs"><span id="numlabels">36,583</span></div>
 
                 </div>
                 <br>
                 <div class="row" id="anim-labels">
-                    <div class="col-sm-6 hidden-xs">of DC mapped</div>
-                    <div class="col-sm-6 hidden-xs">labels</div>
+                    <div class="col-sm-4 hidden-xs">of DC mapped</div>
+                    <div class="col-sm-4 hidden-xs">miles covered</div>
+                    <div class="col-sm-4 hidden-xs">labels</div>
 
                 </div>
 
@@ -166,6 +179,7 @@
             <script language="javascript">
                     var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
+                    var milesAnim = new CountUp("nummiles", 0, @("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))),0,2.5,{suffix:''});
             </script>
         </div>
     </div>
@@ -219,7 +233,7 @@
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
-                    <img style="position: relative; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
+                    <img style="position: relative; left:10px; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
 
                 </a>
             </div>
