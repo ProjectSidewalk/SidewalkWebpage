@@ -158,11 +158,9 @@ def add_version_to_the_footer():
     with file("./app/views/main.scala.html", "r+") as f:
         file_contents = f.read()
 
-        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
         new_file_contents = re.sub(r"""<span id="application-version">.*</span>""",
-                                   """<span id="application-version">Last updated: """ + timestamp + """</span>""",
+                                   """<span id="application-version">""" + version_string + """</span>""",
                                    file_contents)
-
         f.seek(0)
         f.write(new_file_contents)
         f.truncate()
