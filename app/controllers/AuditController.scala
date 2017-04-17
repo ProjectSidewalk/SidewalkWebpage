@@ -44,13 +44,18 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
-    val queryString = request.queryString.map { case (k,v) => k.mkString -> v.mkString } // Map  with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
-    //At the end of the mission we need to create a POST request to queryString("turkSubmitTo") with queryString("assignmentId") in the body
-    //POST request using the scala ws API. Insert this at the end of the code for a successful mission
-    //ws.url(queryString("turkSubmitTo")).post(Map("assignmentId" -> queryString("assignmentId"))) // May require other parameters (hitId,workerId). Not sure
+
+    // Map  with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
+    val queryString = request.queryString.map { case (k,v) => k.mkString -> v.mkString }
+
+    // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
+    // with queryString("assignmentId") in the body
+    // POST request using the scala ws API. Insert this at the end of the code for a successful mission
+    // ws.url(queryString("turkSubmitTo")).post(Map("assignmentId" -> queryString("assignmentId")))
+    // May require other parameters (hitId,workerId). Not sure
 
 
-    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
 
     request.identity match {
       case Some(user) =>
