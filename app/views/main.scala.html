@@ -19,8 +19,8 @@
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
     <script>
         function checkIfPaddingNeeded(){
-            if(window.location.pathname !== "/"){
-                console.log("Adding padding");
+            if(window.location.pathname === "/faq" || window.location.pathname === "/admin"){
+               
                 document.body.style.paddingTop = "60px";
             }
         }
