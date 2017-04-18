@@ -34,7 +34,7 @@ external_question = '<ExternalQuestion xmlns="http://mechanicalturk.amazonaws.co
 
 mturk.create_hit(
     Title = title,
-    LifetimeInSeconds = 3600,
+    LifetimeInSeconds = 3600, 
     AssignmentDurationInSeconds = 3600,
     MaxAssignments = 10,
     Description = description,
