@@ -322,7 +322,7 @@ video#bgvid {
 
 .tagline {
 
-    font-family: Raleway;
+    font-family: raleway-bold, sans-serif;
 	font-size: 50px;
     letter-spacing: 0.05em;
 	font-style: normal;
@@ -475,21 +475,21 @@ video#bgvid {
 
     position: relative;
     left: -20px;
-    box-shadow: -2px 2px 5px #ccc;
+    /*box-shadow: -2px 2px 5px #ccc;*/
 }
 #firstnumbox{
     background-color: #58CEAB;
-    box-shadow: -2px -2px 5px #ccc;
+    /*box-shadow: -2px -2px 5px #ccc;*/
 
 }
 #secondnumbox{
     background-color: #58CEAB;
-    box-shadow: -2px -2px 5px #ccc;
+    /*box-shadow: -2px -2px 5px #ccc;*/
 
 }
 #thirdnumbox{
     background-color: #58CEAB;
-    box-shadow: -2px -2px 5px #ccc;
+    /*box-shadow: -2px -2px 5px #ccc;*/
 
 }
 #instructionvideo{
@@ -505,7 +505,7 @@ video#bgvid {
     width:630px;
 }
 #dcanim-div{
-    width: 100%; height: auto; position: absolute; top: 100px; left: -50px;
+    width: 100%; height: auto; position: absolute; top: 100px; left: -10px;
     min-width: 1500px;
     background-size: cover;
     text-align: center;
@@ -695,6 +695,10 @@ float: center;
 	top:1px;
 }
 
+#exploredesc{
+    position: relative;
+    top: -10px;
+}
 #count-container {
 
     position: relative;
@@ -801,14 +805,19 @@ float: center;
 
 #anim-numbers{
     font-size: 80px;
+    max-width: 1400px;
+    margin: 0 auto;
     font-family: raleway-extrabold, sans-serif;
 }
 #anim-labels{
     font-size: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 #numberholder{
     position:relative;
     min-width: 800px;
+
 
 
 }
