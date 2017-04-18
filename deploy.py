@@ -214,7 +214,10 @@ if __name__ == '__main__':
         zip_file_path = os.path.join(current_file_path, "target/universal/")
         file_list = glob.glob(zip_file_path + "sidewalk-webpage-*.zip")
         file_list = sorted(file_list)
-        zip_file_path = file_list[-1]
+        if len(file_list) > 1:
+            zip_file_path = file_list[-1]
+        else:
+            zip_file_path = file_list[0]
         print "File to be deployed: " + zip_file_path
 
         stop_existing_application()
