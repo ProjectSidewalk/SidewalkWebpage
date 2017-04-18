@@ -44,6 +44,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
+    println("Called Audit")
 
     // Map  with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val queryString = request.queryString.map { case (k,v) => k.mkString -> v.mkString }

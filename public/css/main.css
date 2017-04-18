@@ -853,8 +853,7 @@ float: center;
     position: relative;
     width: 100%;
     min-height: 50px;
-    /*padding-top: 10px;*/
-    padding-bottom: 10px;
+    padding-top: 10px;
     background-color: rgba(45, 42, 63, 1);
     text-align: center;
     font-family: raleway;

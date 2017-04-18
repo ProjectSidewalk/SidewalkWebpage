@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.util
 import java.util.{Calendar, TimeZone}
 import javax.inject.Inject
 
@@ -36,9 +37,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
 
     // Get mTurk parameters
-    // Map with keys ["assignmentId","hitId","turkSubmitTo","wo rkerId"]
-    val queryString = request.queryString.map { case (k,v) => k.mkString -> v.mkString }
+    // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
+    val qString = request.queryString.map { case (k,v) => k.mkString -> v.mkString }
+    println(qString)
 
+    if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
+      // User clicked the ACCEPT HIT button
+      // Redirect to the audit page
+      println(qString("assignmentId"))
+      WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+      Redirect(routes.AuditController.audit())
+    }
+    else {
+      println("Preview Screen")
+    }
 
     request.identity match {
       case Some(user) =>
@@ -46,6 +58,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+        println("Did not redirect")
         Future.successful(Ok(views.html.index("Project Sidewalk")))
     }
   }
