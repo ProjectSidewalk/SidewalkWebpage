@@ -35,6 +35,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
+    // Get mTurk parameters
+    // Map with keys ["assignmentId","hitId","turkSubmitTo","wo rkerId"]
+    val queryString = request.queryString.map { case (k,v) => k.mkString -> v.mkString }
+
+
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
