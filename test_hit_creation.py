@@ -15,7 +15,7 @@ mturk = boto3.client('mturk',
 
 print mturk.get_account_balance()['AvailableBalance'] # Sample line of code to get account balance [$10,000.00]
 
-url = 'https://sidewalk.umiacs.umd.edu/audit?' #'https://httpbin.org/response-headers?'
+url = 'http://sidewalk-mturk.umiacs.umd.edu' #'https://httpbin.org/response-headers?'
 title = "A test hit"
 description = "Description"
 keywords = "yes,no,test,why"
