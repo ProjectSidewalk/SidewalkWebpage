@@ -97,7 +97,7 @@ object StreetEdgeAssignmentCountTable {
     * @param auditCount Minimum number of audit counts needs to be considered as completed
     * @return
     */
-  def computeNeighborhoodComplationRate(auditCount: Int): List[CompletionRate] = {
+  def computeNeighborhoodCompletionRate(auditCount: Int): List[CompletionRate] = {
     val completionCount = selectCompletionCount
     val grouped = completionCount.groupBy(_.regionId)
     val completed = completionCount.filter(_.completionCount >= auditCount)

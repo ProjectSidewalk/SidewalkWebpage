@@ -23,6 +23,7 @@ def test_send_info():
 			query_string = query_string + "&" + k + "=" + v
 		else:
 			query_string = query_string + k + "=" + v
+		count = count+1
 
 	return redirect(external_url+query_string) #"?assignmentId=ASSIGNMENT_ID_NOT_AVAILABLE&hitId=Some_HIT&turkSubmitTo=localhost:5000/post&workerId=Teja"
 
