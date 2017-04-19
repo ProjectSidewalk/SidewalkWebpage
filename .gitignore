@@ -101,3 +101,7 @@ public/javascripts/SVLabel/build/SVLabel.js
 # sidewalk-webpage-binary directory
 sidewalk-webpage/
 nohup.out
+
+#mturk specific files
+test_hit_creation.py
+rootkey.csv
