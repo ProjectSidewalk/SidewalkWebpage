@@ -3,7 +3,7 @@
 @import models.daos._
 @import models.label._
 @import models.street.StreetEdgeTable
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
 
 @main(title) {
     @navbar(user)
@@ -16,13 +16,14 @@
             HIT, you need to do the following:
         </p>
         <ul>
-            <li>Go through a short tutorial to learn about the interface</li>
+            <li>Go through a short tutorial to learn about the interface. You only need to do it once if you decide to another HIT.</li>
             <li>Complete a "mission" of x distance and find features within a neighborhood</li>
             <li>Submit the labels using the interface at the end of the mission to get paid</li>
         </ul>
         <p>
             Please press the ACCEPT HIT button to get started.
         </p>
+
         </div>
     </div>
 }

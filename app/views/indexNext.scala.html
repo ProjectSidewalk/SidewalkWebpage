@@ -1,0 +1,33 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
+@import models.user.User
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
+
+@main(title) {
+    @navbar(user)
+    <div id="content">
+        <div class="container">
+            <h2>Welcome!</h2>
+            <p>
+                We are looking for workers who can label streets of Washington D.C. for us. We have a fun interface for you that allows
+                you to walk <i>virtually</i>
+                walk through the neighborhoods of DC in Google Street View. To complete this
+                HIT, you need to do the following:
+            </p>
+            <ul>
+                <li>Go through a short tutorial to learn about the interface. You only need to do it once if you decide to another HIT.</li>
+                <li>Complete a "mission" of x distance and find features within a neighborhood</li>
+                <li>Submit the labels using the interface at the end of the mission to get paid</li>
+            </ul>
+        </div>
+
+        <div class="container">
+            <p>
+                Please press the Proceed button to start the tutorial. <br/>
+                <button class="myButton" onclick="location.href = '@routes.AuditController.audit'">Proceed</button>
+            </p>
+        </div>
+    </div>
+}
