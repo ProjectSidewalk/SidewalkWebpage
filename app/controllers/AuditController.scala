@@ -86,7 +86,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
           case "blank" =>
-            println("No Query String")
             Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
         }
     }
