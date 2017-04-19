@@ -1,0 +1,20 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
+@import models.user.User
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
+
+@main(title) {
+  @navbar(user)
+  <div id="content">
+    <div class="container">
+      <h2>Welcome!</h2>
+      <p>
+        You've reached the Amazon Mechanical Turk (mTurk) website for <a href="http://projectsidewalk.io">Project Sidewalk</a>.
+            This site is accessible only through the mTurk site. Visit
+        <a href="https://worker.mturk.com/">Amazon's Worker Site</a> to take part in the crowdsourcing study.
+      </p>
+    </div>
+  </div>
+}
