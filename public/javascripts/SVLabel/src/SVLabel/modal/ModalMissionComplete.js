@@ -13,6 +13,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                                uiModalMissionComplete, modalModel, statusModel, onboardingModel) {
     var self = this;
     var _modalModel = modalModel;
+    //var _mturkModel = mturkModel;
     var nextMission;
 
     this._properties = {
@@ -47,7 +48,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var neighborhood = svl.neighborhoodContainer.get(parameters.completedRegionId);
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
-        uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+        // uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
     });
 
     this._handleBackgroundClick = function (e) {
@@ -124,8 +125,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
     };
 
-    uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
-    uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
+    //uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
+    //uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
     this.hide();
 }
 

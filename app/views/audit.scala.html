@@ -401,7 +401,11 @@
                                 </tr>
                             </table>
 
-                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Submit HIT</button>
+                            <form action="" method="post" id="submitHITForm">
+                                <input type="hidden" name="assignmentId" id="myAssignmentId" value="" />
+                                <button class="btn blue-btn" id="modal-mission-complete-close-button">Submit HIT</button>
+                            </form>
+
                         </div>
                     </div>
                 </div>
@@ -704,10 +708,22 @@
             var mainParam = {},
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
+
+            // Mturk specific parameters
+            formParam.hitId = util.getURLParameter('hitId');
+            formParam.assignmentId = util.getURLParameter('assignmentId');
+            formParam.turkerId = util.getURLParameter('workerId');
+            formParam.turkerSubmitTo = util.getURLParameter('turkerSubmitTo');
+            formParam.turkURL = formParam.turkerSubmitTo + "/mturk/externalSubmit";
+
+            // Setting POST request params for Submit HIT operation
+            var submitHITForm = document.getElementById('submitHITForm');
+            submitHITForm.action = formParam.turkURL;
+
+            var assignmentId = document.getElementById('myAssignmentId');
+            assignment_id_field.value = formParam.assignmentId;
+
             formParam.dataStoreUrl = '@routes.TaskController.post';
-            formParam.hitId = '';
-            formParam.assignmentId = '';
-            formParam.turkerId = '';
             formParam.onboarding = false;
             formParam.taskPanoramaId = "";
             formParam.taskDescription = "";
