@@ -39,7 +39,7 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
     // Get mTurk parameters
     // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(qString)
+
     // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
     // with queryString("assignmentId") in the body
     // POST request using the scala ws API. Insert this at the end of the code for a successful mission
@@ -52,16 +52,13 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
       if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
         // User clicked the ACCEPT HIT button
         // Redirect to the audit page
-        println(qString("assignmentId"))
         screenStatus = "Assigned"
       }
       else {
-        println("Preview Screen")
         screenStatus = "Preview"
       }
     }
     else {
-      println("No Query String")
       screenStatus = "Blank"
     }
     WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
@@ -77,7 +74,6 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
           case "Preview" =>
             Future.successful(Ok(views.html.index("Project Sidewalk")))
           case "Blank" =>
-            println("No Query String")
             Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
         }
     }
