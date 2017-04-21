@@ -48,7 +48,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     // Get mTurk parameters
     // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(qString)
+    println(timestamp + " " + qString)
 
     // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
     // with queryString("assignmentId") in the body
