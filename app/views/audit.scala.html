@@ -714,16 +714,17 @@
             formParam.assignmentId = util.getURLParameter('assignmentId');
             formParam.turkerId = util.getURLParameter('workerId');
             formParam.turkSubmitTo = util.getURLParameter('turkSubmitTo');
-            formParam.turkURL = formParam.turkSubmitTo + "/mturk/externalSubmit";
+            formParam.turkURL = formParam.turkSubmitTo + "/mturk/externalSubmit" + '?assignmentId=' + formParam.assignmentId;
 
             console.log(JSON.stringify(formParam));
 
             // Setting POST request params for Submit HIT operation
+            var assignmentId = document.getElementById('assignmentId');
+            assignmentId.value = formParam.assignmentId;
+
             var submitHITForm = document.getElementById('submitHITForm');
             submitHITForm.action = formParam.turkURL;
 
-            var assignmentId = document.getElementById('assignmentId');
-            assignmentId.value = formParam.assignmentId;
 
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.onboarding = false;
