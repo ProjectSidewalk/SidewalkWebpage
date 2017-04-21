@@ -48,6 +48,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     // Get mTurk parameters
     // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+    println(qString)
 
     // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
     // with queryString("assignmentId") in the body
@@ -69,7 +70,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     else {
       screenStatus = "Blank"
     }
-    WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
 
 
     val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
@@ -94,16 +94,18 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val task: NewTask = if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user) else AuditTaskTable.selectANewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         screenStatus match {
           case "Assigned" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
             val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
             val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
           case "Preview" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
             Future.successful(Ok(views.html.index("Project Sidewalk")))
           case "Blank" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Blank", timestamp))
             Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
         }
     }
