@@ -45,15 +45,32 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
-    // Map  with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
-    val queryString = request.queryString.map { case (k,v) => k.mkString -> v.mkString }
-    var status: String = null
-    if (!queryString.isEmpty) {
-      status = "mturk"
+    // Get mTurk parameters
+    // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
+    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+
+    // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
+    // with queryString("assignmentId") in the body
+    // POST request using the scala ws API. Insert this at the end of the code for a successful mission
+    // ws.url(queryString("turkSubmitTo")).post(Map("assignmentId" -> queryString("assignmentId")))
+    // May require other parameters (hitId,workerId). Not sure
+
+    var screenStatus: String = null
+    if (qString.nonEmpty) {
+      if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
+        // User clicked the ACCEPT HIT button
+        // Redirect to the audit page
+        screenStatus = "Assigned"
+      }
+      else {
+        screenStatus = "Preview"
+      }
     }
     else {
-      status = "blank"
+      screenStatus = "Blank"
     }
+    WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+
 
     val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
 
@@ -79,13 +96,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-        status match {
-          case "mturk" =>
+        screenStatus match {
+          case "Assigned" =>
             val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
             val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
-
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
-          case "blank" =>
+          case "Preview" =>
+            Future.successful(Ok(views.html.index("Project Sidewalk")))
+          case "Blank" =>
             Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
         }
     }
