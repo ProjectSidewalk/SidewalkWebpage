@@ -36,34 +36,6 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
-    // Get mTurk parameters
-    // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
-    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(qString)
-    // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
-    // with queryString("assignmentId") in the body
-    // POST request using the scala ws API. Insert this at the end of the code for a successful mission
-    // ws.url(queryString("turkSubmitTo")).post(Map("assignmentId" -> queryString("assignmentId")))
-    // May require other parameters (hitId,workerId). Not sure
-
-
-    var screenStatus: String = null
-    if (!qString.isEmpty) {
-      if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
-        // User clicked the ACCEPT HIT button
-        // Redirect to the audit page
-        println(qString("assignmentId"))
-        screenStatus = "Assigned"
-      }
-      else {
-        println("Preview Screen")
-        screenStatus = "Preview"
-      }
-    }
-    else {
-      println("No Query String")
-      screenStatus = "Blank"
-    }
     WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
 
     request.identity match {
@@ -71,15 +43,7 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
         Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
       case None =>
-        screenStatus match {
-          case "Assigned" =>
-            Future.successful(Ok(views.html.indexNext("Project Sidewalk")))
-          case "Preview" =>
-            Future.successful(Ok(views.html.index("Project Sidewalk")))
-          case "Blank" =>
-            println("No Query String")
-            Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
-        }
+        Future.successful(Ok(views.html.index("Project Sidewalk")))
     }
   }
 
