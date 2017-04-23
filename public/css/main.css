@@ -494,7 +494,7 @@ video#bgvid {
 }
 #instructionvideo{
     position:relative;
-    left: -117px;
+    left: -122px;
     top: 3px;
     max-width: 300px;
 }
@@ -711,6 +711,17 @@ float: center;
     align-items: center;
 
 }
+
+#undo-button small{
+    position: relative;
+    top: -5px;
+}
+
+#redo-button small{
+    position: relative;
+    top: -5px;
+}
+
 #wrap {
     min-height: 100%;
     height: auto;

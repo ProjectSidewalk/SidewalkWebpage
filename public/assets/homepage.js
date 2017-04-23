@@ -56,6 +56,9 @@ function switchToVideo(vidnum){
         document.getElementById("number2").style.color = "#C0BEBF";
         document.getElementById("number3").style.color = "#C0BEBF";
 
+        document.getElementById("vid1").currentTime = 0;
+        document.getElementById("vid1").play();
+
 
     }
     else if(vidnum === 2) {
@@ -78,6 +81,9 @@ function switchToVideo(vidnum){
         document.getElementById("number1").style.color = "#C0BEBF";
         document.getElementById("number2").style.color = "#fff";
         document.getElementById("number3").style.color = "#C0BEBF";
+
+        document.getElementById("vid2").currentTime = 0;
+        document.getElementById("vid2").play();
     }
     else if(vidnum === 3) {
 
@@ -99,6 +105,9 @@ function switchToVideo(vidnum){
         document.getElementById("number1").style.color = "#C0BEBF";
         document.getElementById("number2").style.color = "#C0BEBF";
         document.getElementById("number3").style.color = "#fff";
+
+        document.getElementById("vid3").currentTime = 0;
+        document.getElementById("vid3").play();
     }
 
 }
@@ -115,10 +124,10 @@ $( document ).ready(function() {
                 setTimeout(function () {
                     autoAdvanceLaptopVideos()
 
-                }, 7000);
+                }, 9000);
 
-            }, 4000);
-        }, 10000);
+            }, 11000);
+        }, 9660);
     }
     autoAdvanceLaptopVideos();
 
