@@ -40,9 +40,7 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").style.display = "block";
         document.getElementById("vid2").style.display = "none";
         document.getElementById("vid3").style.display = "none";
-        document.getElementById("word1").style.textDecoration = "underline";
-        document.getElementById("word2").style.textDecoration = "none";
-        document.getElementById("word3").style.textDecoration = "none";
+
 
         document.getElementById("word1").style.fontFamily = "Raleway-bold,sans-serif";
         document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
@@ -66,9 +64,7 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "block";
         document.getElementById("vid3").style.display = "none";
-        document.getElementById("word1").style.textDecoration = "none";
-        document.getElementById("word2").style.textDecoration = "underline";
-        document.getElementById("word3").style.textDecoration = "none";
+
 
         document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
         document.getElementById("word2").style.fontFamily = "Raleway-bold,sans-serif";
@@ -90,9 +86,7 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "none";
         document.getElementById("vid3").style.display = "block";
-        document.getElementById("word1").style.textDecoration = "none";
-        document.getElementById("word2").style.textDecoration = "none";
-        document.getElementById("word3").style.textDecoration = "underline";
+
 
         document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
         document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
