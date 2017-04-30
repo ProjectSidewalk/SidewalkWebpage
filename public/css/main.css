@@ -1031,3 +1031,32 @@ kbd {
     font-size: small;
     padding: 2px 6px;
 }
+
+.page-alert-holder {
+    z-index: 3;
+    width: 75%;
+    text-align: center;
+    position: fixed;
+    font-size: 9pt;
+    left: 50%;
+    margin-left: -37.5%;
+}
+
+.page-alert {
+    background-color: rgb(255, 246, 192);
+    border: 1px solid #ecdfb0;
+    border-radius: 2px;
+    color: black;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+    padding: 6px 10px;
+}
+
+.page-alert-holder a {
+    color: black;
+}
+
+.page-alert-dont-show {
+    text-decoration: underline;
+    margin: 0 10px 0 30px;
+}
