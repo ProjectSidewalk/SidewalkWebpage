@@ -402,6 +402,8 @@
                             </table>
 
                             <form action="" method="post" id="submitHITForm">
+                                <input type="hidden" name="assignmentId" id="assignmentId" value="" />
+                                <!--<input type="hidden" name="randomString" id="randomString" value="randomString" />-->
                                 <button class="btn blue-btn" id="modal-mission-complete-close-button" type="submit">Submit HIT</button>
                             </form>
 
@@ -715,9 +717,11 @@
             formParam.turkSubmitTo = util.getURLParameter('turkSubmitTo');
             formParam.turkURL = formParam.turkSubmitTo + "/mturk/externalSubmit" + '?assignmentId=' + formParam.assignmentId;
 
-//            // Setting POST request params for Submit HIT operation
-//            var assignmentId = document.getElementById('assignmentId');
-//            assignmentId.value = formParam.assignmentId;
+            // Setting POST request params for Submit HIT operation
+            var assignmentId = document.getElementById('assignmentId');
+            assignmentId.value = formParam.assignmentId;
+
+            console.log("AssignmentID: " + document.getElementById('assignmentId').value);
 
             var submitHITForm = document.getElementById('submitHITForm');
             submitHITForm.action = formParam.turkURL;

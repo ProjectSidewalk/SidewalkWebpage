@@ -57,7 +57,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     // May require other parameters (hitId,workerId). Not sure
 
     var screenStatus: String = null
-    if (qString.nonEmpty) {
+    if (qString.nonEmpty && qString.keySet.exists(_ == "assignmentId")) {
       if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
         // User clicked the ACCEPT HIT button
         // Redirect to the audit page
