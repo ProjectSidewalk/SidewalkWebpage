@@ -92,11 +92,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
 
+        /*
+        // Commented out signin prompt for mturk
         if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
             getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
             !svl.popUpMessage.haveAskedToSignIn())) {
             svl.popUpMessage.promptSignIn();
         }
+        */
 
         // Submit the data.
         var data = svl.form.compileSubmissionData(task),
