@@ -48,16 +48,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     // Get mTurk parameters
     // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(timestamp + " " + qString)
-
-    // At the end of the mission we need to create a POST request to queryString("turkSubmitTo")
-    // with queryString("assignmentId") in the body
-    // POST request using the scala ws API. Insert this at the end of the code for a successful mission
-    // ws.url(queryString("turkSubmitTo")).post(Map("assignmentId" -> queryString("assignmentId")))
-    // May require other parameters (hitId,workerId). Not sure
+    //println(timestamp + " " + qString)
 
     var screenStatus: String = null
-    if (qString.nonEmpty) {
+    if (qString.nonEmpty && qString.contains("assignmentId")) {
       if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
         // User clicked the ACCEPT HIT button
         // Redirect to the audit page
@@ -70,7 +64,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     else {
       screenStatus = "Blank"
     }
-
 
     val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
 
