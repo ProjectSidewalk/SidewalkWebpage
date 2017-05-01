@@ -9,21 +9,31 @@
     @navbar(user)
     <div id="content">
         <div class="container">
-        <h2>Welcome!</h2>
-        <p>
-            We are looking for workers who can label streets of Washington D.C. for us. We have a fun interface for you that allows
-            you to walk <i>virtually</i> through the neighborhoods of DC in Google Street View. To complete this
-            HIT, you need to do the following:
-        </p>
-        <ul>
-            <li>Step 1: Go through a short tutorial to learn about the interface. You only need to do it once for the HIT in this group.</li>
-            <li>Step 2: Complete a "mission" of a certain distance by walking and finding accessibility features and problems within a neighborhood.</li>
-            <li>Step 3: When you finish the "mission", we will show a complete mission dialog where you click the SUBMIT HIT button. Note, the submit button
-                shows up only when you complete the mission.</li>
-        </ul>
-        <p>
-            Please press the ACCEPT HIT button to get started.
-        </p>
+            <h2>Welcome!</h2>
+            <img src='@routes.Assets.at("images/interface.png")' class="img-responsive"
+            alt="Audit Interface" style="float: right; height: 40%; width: 40%;"/>
+            <p>
+                We are looking for workers who can label the streets of Washington D.C. for us. We are particularly
+                interested in identifying: </p>
+            <ul>
+                <li>accessibility features like Curb Ramps at intersections and the absence of them ("Missing Curb Ramp");</li>
+                <li> problems such as degraded sidewalk ("Surface Problem"),
+                    trash bins, light poles and others in the middle of a sidewalk ("Obstacle in Path") and absence of sidewalk
+                    ("No Sidewalk").</li>
+            </ul>
+
+            <p>We have a fun interface (see the image) that allows you to walk <i>virtually</i>
+                through the neighborhoods of DC in Google Street View to find and label. To complete this HIT, you need to do the following:</p>
+            <ul>
+                <li><b>Step 1</b>: Go through a short tutorial to learn how to use the interface. You only need to do it once for the HIT in this group.</li>
+                <li><b>Step 2</b>: Complete a "mission" of walking and finding accessibility features and problems within a neighborhood.</li>
+                <li><b>Step 3</b>: When you finish the "mission", we will show a complete mission dialog where you click the SUBMIT HIT button. Note, the submit button
+                    shows up only when you complete the mission.</li>
+            </ul>
+
+            <p>
+                Please press the <b>ACCEPT HIT</b> button to get started.
+            </p>
 
         </div>
     </div>
