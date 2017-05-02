@@ -447,6 +447,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
+    var pre_dis = 0;
     function _visitAdjustHeadingAngle (state, listener) {
         var $target;
         var interval;
@@ -459,23 +460,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var callback = function () {
             var pov = mapService.getPov();
             // console.log("state.properties.heading: " + state.properties.heading);
-            // console.log("pov.heading: " + pov.heading);
-            // console.log("state.properties.tolerance: " + state.properties.tolerance);
+            //console.log("previous distance: " + pre_dis);
+            //console.log("pov.heading: " + pov.heading);
+
             var dis = pov.heading - original_pov_heading;
-
-            if (dis > 0 && pov.heading < (dis_tolerance + original_pov_heading)) {
-                // drag to the wrong direction but allow panning within tolerance
-
-            }
-            else if (dis > 0 && pov.heading >= (dis_tolerance + original_pov_heading)) {
-                // drag to the wrong direction and stop panning
-                // show the warning (arrow + labeling)
-                console.log("warning with an arrow!");
-                drawArrow(70, 350, 30, 350, { "fill": 'rgba(255,255,255,1)' });
-
-            }
-            else {
-
+            if (dis < 0){
+                // normal drag
                 if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                     if (typeof google != "undefined") google.maps.event.removeListener($target);
                     if (listener) google.maps.event.removeListener(listener);
@@ -483,6 +473,38 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     next(state.transition);
                 }
             }
+            else if (dis > 0 && pre_dis > 0 && dis <= pre_dis) {
+                // normal drag, 0->360
+                if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+                    if (typeof google != "undefined") google.maps.event.removeListener($target);
+                    if (listener) google.maps.event.removeListener(listener);
+                    handAnimation.hideGrabAndDragAnimation(interval);
+                    next(state.transition);
+                }
+            }
+            else if (dis > 0 && pre_dis > 0 && dis > pre_dis) {
+                if (dis < dis_tolerance) {
+                    // drag to the wrong direction but allow panning within tolerance
+
+                }
+                else if (pov.heading%360 >= (dis_tolerance + original_pov_heading)) {
+                    // drag to the wrong direction and stop panning
+                    // show the warning (arrow + labeling)
+                    console.log("warning with an arrow!");
+                    drawArrow(70, 350, 30, 350, { "fill": 'rgba(255,255,255,1)' });
+
+                }
+            }
+            else if (dis >0 && pre_dis <= 0) {
+                if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+                    if (typeof google != "undefined") google.maps.event.removeListener($target);
+                    if (listener) google.maps.event.removeListener(listener);
+                    handAnimation.hideGrabAndDragAnimation(interval);
+                    next(state.transition);
+                }
+            }
+            pre_dis = dis;
+
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
