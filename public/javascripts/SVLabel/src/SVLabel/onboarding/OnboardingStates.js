@@ -155,7 +155,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Great! Let’s adjust the view to look at another corner of the intersection on the left. ' +
-                '<span class="bold">Grab and drag the Street View image.</span>',
+                '<span class="bold">Grab and drag the Street View image to the right.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -399,7 +399,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Great! We need to investigate all of the corners on this intersection, ' +
-                'so let’s adjust our view.  <span class="bold">Grab and drag the Street View image.</span>',
+                'so let’s adjust our view.  <span class="bold">Grab and drag the Street View image to the right.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -713,7 +713,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Awesome! We’re almost done with the training. Let’s learn how to walk. First, ' +
-                '<span class="bold">grab and drag the Street View image.</span>',
+                '<span class="bold">grab and drag the Street View image to the right.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -875,7 +875,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": '<span class="bold">Ok, it\'s almost done!</span> Let’s adjust the view to ' +
                 'look at the final corner in this intersection. ' +
-                '<span class="bold">Grab and drag the Street View image.</span>',
+                '<span class="bold">Grab and drag the Street View image to the right.</span>',
                 "position": "top-right",
                 "parameters": null
             },

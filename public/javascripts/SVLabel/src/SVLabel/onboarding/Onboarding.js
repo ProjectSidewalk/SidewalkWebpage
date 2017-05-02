@@ -450,14 +450,38 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     function _visitAdjustHeadingAngle (state, listener) {
         var $target;
         var interval;
+        // get the original pov heading
+        var original_pov = mapService.getPov();
+        var original_pov_heading = original_pov.heading;
+        var dis_tolerance = 20;
+
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
         var callback = function () {
             var pov = mapService.getPov();
-            if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                if (typeof google != "undefined") google.maps.event.removeListener($target);
-                if (listener) google.maps.event.removeListener(listener);
-                handAnimation.hideGrabAndDragAnimation(interval);
-                next(state.transition);
+            // console.log("state.properties.heading: " + state.properties.heading);
+            // console.log("pov.heading: " + pov.heading);
+            // console.log("state.properties.tolerance: " + state.properties.tolerance);
+            var dis = pov.heading - original_pov_heading;
+
+            if (dis > 0 && pov.heading < (dis_tolerance + original_pov_heading)) {
+                // drag to the wrong direction but allow panning within tolerance
+
+            }
+            else if (dis > 0 && pov.heading >= (dis_tolerance + original_pov_heading)) {
+                // drag to the wrong direction and stop panning
+                // show the warning (arrow + labeling)
+                console.log("warning with an arrow!");
+                drawArrow(70, 350, 30, 350, { "fill": 'rgba(255,255,255,1)' });
+
+            }
+            else {
+
+                if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+                    if (typeof google != "undefined") google.maps.event.removeListener($target);
+                    if (listener) google.maps.event.removeListener(listener);
+                    handAnimation.hideGrabAndDragAnimation(interval);
+                    next(state.transition);
+                }
             }
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
