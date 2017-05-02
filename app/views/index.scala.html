@@ -9,31 +9,35 @@
     @navbar(user)
     <div id="content">
         <div class="container">
-            <h2>Welcome!</h2>
+            <h3>Help us improve the accessibility of city streets for wheelchair users!</h3>
             <img src='@routes.Assets.at("images/interface.png")' class="img-responsive"
             alt="Audit Interface" style="float: right; height: 40%; width: 40%;"/>
-            <p>
-                We are looking for workers who can label the streets of Washington D.C. for us. We are particularly
-                interested in identifying: </p>
-            <ul>
-                <li>accessibility features like Curb Ramps at intersections and the absence of them ("Missing Curb Ramp");</li>
-                <li> problems such as degraded sidewalk ("Surface Problem"),
-                    trash bins, light poles and others in the middle of a sidewalk ("Obstacle in Path") and absence of sidewalk
-                    ("No Sidewalk").</li>
-            </ul>
-
-            <p>We have a fun interface (see the image) that allows you to walk <i>virtually</i>
-                through the neighborhoods of DC in Google Street View to find and label. To complete this HIT, you need to do the following:</p>
-            <ul>
-                <li><b>Step 1</b>: Go through a short tutorial to learn how to use the interface. You only need to do it once for the HIT in this group.</li>
-                <li><b>Step 2</b>: Complete a "mission" of walking and finding accessibility features and problems within a neighborhood.</li>
-                <li><b>Step 3</b>: When you finish the "mission", we will show a complete mission dialog where you click the SUBMIT HIT button. Note, the submit button
-                    shows up only when you complete the mission.</li>
-            </ul>
 
             <p>
-                Please press the <b>ACCEPT HIT</b> button to get started.
+                In this HIT, you will <i>virtually</i> walk through city streets in Washington DC to find and label
+                accessibility features (<i>e.g.,</i> curb ramps) and problems (<i>e.g.,</i>  degraded sidewalks,
+                missing curb ramps) using our custom tool called Project Sidewalk (see adjacent image).
             </p>
+            <p>
+
+                <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")'
+                id="onboarding-example-image-1" style="height: 55%;
+                    width: 55%;
+                    align: center"
+                alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
+                <br/>
+
+            </p>
+            <p>
+                The HIT will consist of completing simple game-like mission where you are routed along an assigned 1,000
+                feet street segment. Once you find and label all accessibility features and problems in this segment,
+                the Submit HIT button will appear allowing you to submit your work. <br/> <b>Note</b>: The first time you
+                accept a HIT in this group, you will have to complete a brief tutorial before the actual task.
+            </p>
+
+                <!--<p>This is a research project at the University of Maryland. We are studying scalable methods for how
+                remote crowd workers can find and label accessibility problems using online map imagery.
+            </p>-->
 
         </div>
     </div>

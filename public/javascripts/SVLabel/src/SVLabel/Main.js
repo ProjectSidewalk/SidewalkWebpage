@@ -141,6 +141,7 @@ function Main (params) {
         svl.completionMessage = new CompletionMessage(svl.gameEffectModel, svl.ui.task);
 
 
+        // Neighborhood
         var neighborhood;
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
