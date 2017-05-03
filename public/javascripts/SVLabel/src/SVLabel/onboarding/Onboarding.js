@@ -110,6 +110,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     }
 
     var myTimer;
+    var iswrong = false;
 
     /**
      * Draw an arrow on the onboarding canvas
@@ -121,49 +122,97 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
      * @returns {drawArrow}
      */
     function drawArrowAnimate (x1, y1, x2, y2, parameters) {
-        if (ctx) {
-            var lineWidth = 1,
-                fill = 'rgba(255,255,255,1)',
-                lineCap = 'round',
-                arrowWidth = 6,
-                strokeStyle  = 'rgba(0, 0, 0, 1)',
-                dx, dy, theta;
+        console.log("iswrong: " + iswrong);
+        if(iswrong) {
+            if (ctx) {
+                var lineWidth = 1,
+                    fill = 'rgba(255,255,255,1)',
+                    lineCap = 'round',
+                    arrowWidth = 6,
+                    strokeStyle  = 'rgba(0, 0, 0, 1)',
+                    dx, dy, theta;
 
-            if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+                if ("fill" in parameters && parameters.fill) fill = parameters.fill;
 
-            dx = x2 - x1;
-            dy = y2 - y1;
-            theta = Math.atan2(dy, dx);
+                dx = x2 - x1;
+                dy = y2 - y1;
+                theta = Math.atan2(dy, dx);
 
-            ctx.save();
-            ctx.fillStyle = fill;
-            ctx.strokeStyle = strokeStyle;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = lineCap;
+                ctx.save();
+                ctx.fillStyle = fill;
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = lineCap;
 
-            ctx.translate(x1, y1);
-            ctx.beginPath();
-            ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
-            ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+                ctx.translate(x1, y1);
+                ctx.beginPath();
+                ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
 
-            // Draw an arrow head
-            ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
-            ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
-            ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+                // Draw an arrow head
+                ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+                ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
 
-            ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
-            ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+                ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
 
-            ctx.moveTo(1 , -7);
-            ctx.lineTo(1 , 7);
+                ctx.moveTo(1 , -7);
+                ctx.lineTo(1 , 7);
 
-            ctx.fill();
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+                ctx.restore();
+            }
         }
-        //ctx.css('visibility', item.css('visibility') === 'hidden' ? 'visible' : 'hidden');
-        return this;
+        else {
+            iswrong = false;
+
+            if (ctx) {
+                var lineWidth = 1,
+                    fill = 'rgba(255,255,255,1)',
+                    lineCap = 'round',
+                    arrowWidth = 6,
+                    strokeStyle  = 'rgba(0, 0, 0, 1)',
+                    dx, dy, theta;
+
+                if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+
+                dx = x2 - x1;
+                dy = y2 - y1;
+                theta = Math.atan2(dy, dx);
+
+                ctx.save();
+                ctx.fillStyle = fill;
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = lineCap;
+
+                ctx.translate(x1, y1);
+                ctx.beginPath();
+                ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+
+                // Draw an arrow head
+                ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+                ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+
+                ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+                ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+
+                ctx.moveTo(1 , -7);
+                ctx.lineTo(1 , 7);
+
+                //ctx.fill();
+                //ctx.stroke();
+                ctx.closePath();
+                ctx.restore();
+            }
+        }
+
+
     }
 
     /**
@@ -442,7 +491,10 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 });
             }
         }
-
+        if (myTimer) {
+            console.log("hi");
+            clearInterval(myTimer);
+        }
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.action == "Introduction") {
@@ -514,7 +566,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var dis_tolerance = 20;
 
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
+        myTimer=setInterval(drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' }),50);
         var callback = function () {
+
             var pov = mapService.getPov();
             // console.log("state.properties.heading: " + state.properties.heading);
             //console.log("previous distance: " + pre_dis);
@@ -548,10 +602,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     // drag to the wrong direction and stop panning
                     // show the warning (arrow + labeling)
                     console.log("warning with an arrow!");
-                    //myTimer=setInterval(drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' }),2000);
-                    drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' })
-                    //drawArrow(70, 350, 30, 350, { "fill": 'rgba(255,255,255,1)' });
-
+                    iswrong = true;
                 }
             }
             else if (dis >0 && pre_dis <= 0) {
