@@ -109,6 +109,63 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         return this;
     }
 
+    var myTimer;
+
+    /**
+     * Draw an arrow on the onboarding canvas
+     * @param x1 {number} Starting x coordinate
+     * @param y1 {number} Starting y coordinate
+     * @param x2 {number} Ending x coordinate
+     * @param y2 {number} Ending y coordinate
+     * @param parameters {object} parameters
+     * @returns {drawArrow}
+     */
+    function drawArrowAnimate (x1, y1, x2, y2, parameters) {
+        if (ctx) {
+            var lineWidth = 1,
+                fill = 'rgba(255,255,255,1)',
+                lineCap = 'round',
+                arrowWidth = 6,
+                strokeStyle  = 'rgba(0, 0, 0, 1)',
+                dx, dy, theta;
+
+            if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+
+            dx = x2 - x1;
+            dy = y2 - y1;
+            theta = Math.atan2(dy, dx);
+
+            ctx.save();
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = strokeStyle;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = lineCap;
+
+            ctx.translate(x1, y1);
+            ctx.beginPath();
+            ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+            ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+
+            // Draw an arrow head
+            ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+            ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+            ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+
+            ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+            ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+
+            ctx.moveTo(1 , -7);
+            ctx.lineTo(1 , 7);
+
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+            ctx.restore();
+        }
+        //ctx.css('visibility', item.css('visibility') === 'hidden' ? 'visible' : 'hidden');
+        return this;
+    }
+
     /**
      * Draw an arrow on the onboarding canvas
      * @param x1 {number} Starting x coordinate
@@ -491,7 +548,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     // drag to the wrong direction and stop panning
                     // show the warning (arrow + labeling)
                     console.log("warning with an arrow!");
-                    drawArrow(70, 350, 30, 350, { "fill": 'rgba(255,255,255,1)' });
+                    //myTimer=setInterval(drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' }),2000);
+                    drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' })
+                    //drawArrow(70, 350, 30, 350, { "fill": 'rgba(255,255,255,1)' });
 
                 }
             }
