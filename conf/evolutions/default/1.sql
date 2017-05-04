@@ -15,11 +15,10 @@ CREATE TABLE amt_condition
   PRIMARY KEY (condition_id)
 );
 
-
 ALTER TABLE amt_assignment
   ADD turker_id TEXT NOT NULL,
   ADD condition_id INTEGER NOT NULL,
-  ADD route_id INTEGER,
+  ADD route_id INTEGER NOT NULL,
   ADD completed boolean;
 
 
