@@ -7,14 +7,7 @@ CREATE TABLE turker
   PRIMARY KEY (turker_id)
 );
 
-CREATE TABLE mturk_hit
-(
-  hit_id TEXT NOT NULL,
-  cost REAL,
-  PRIMARY KEY (hit_id)
-);
-
-CREATE TABLE mturk_hit_condition
+CREATE TABLE amt_condition
 (
   condition_id BIGSERIAL NOT NULL,
   description text,
@@ -22,22 +15,20 @@ CREATE TABLE mturk_hit_condition
   PRIMARY KEY (condition_id)
 );
 
-CREATE TABLE mturk_hit_assignment
-(
-  id BIGSERIAL,
-  turker_id TEXT NOT NULL,
-  condition_id INTEGER  NOT NULL,
-  hit_id TEXT NOT NULL,
-  assignment_id TEXT NOT NULL,
-  start_time TIMESTAMP,
-  end_time TIMESTAMP,
-  route_id INTEGER,
-  PRIMARY KEY (id)
-);
+
+ALTER TABLE amt_assignment
+  ADD turker_id TEXT NOT NULL,
+  ADD condition_id INTEGER NOT NULL,
+  ADD route_id INTEGER,
+  ADD completed boolean;
+
 
 # --- !Downs
 
 DROP TABLE turker;
-DROP TABLE mturk_hit;
-DROP TABLE condition;
-DROP TABLE mturk_hit_assignment;
+DROP TABLE amt_condition;
+ALTER TABLE amt_assignment
+  DROP turker_id,
+  DROP condition_id,
+  DROP completed,
+  DROP route_id;
