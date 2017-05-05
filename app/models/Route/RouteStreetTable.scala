@@ -29,10 +29,7 @@ class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"
   def source = column[Int]("source", O.NotNull)
   def target = column[Int]("target", O.NotNull)
 
-
-  def mean_street_length_mi = column[Double]("mean_street_length_mi", O.NotNull)
-  def std_street_length_mi = column[Double]("std_street_length_mi", O.NotNull)
-
+  
   def * = (routeStreetId, length, routeId, regionId,
     current_street_edge_id, next_street_edge_id, route_start_edge, route_end_edge,
     source, target) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
