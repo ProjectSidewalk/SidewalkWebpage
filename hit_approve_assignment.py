@@ -14,6 +14,6 @@ https://boto3.readthedocs.io/en/latest/reference/services/mturk.html
 '''
 hits_to_review = mturk.list_reviewable_hits()
 for hit in hits_to_review['HITs']:
-    asmts_to_review = mturk.list_assignments_for_hit(HITId=hit['HITId'])
+    asmts_to_review = mturk.list_assignments_for_hit(hit['HITId'])
     for asmt in asmts_to_review['Assignments']:
-        mturk.approve_assignment(AssignmentId=asmt['AssignmentId'])
+        mturk.approve_assignment(asmt['AssignmentID'])
