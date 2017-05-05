@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class StreetEdgeStreetNode(streetEdgeStreetNodeId: Int, streetEdgeId: Int, streetNodeId: Int)
 
-class StreetEdgeStreetNodeTable(tag: Tag) extends Table[StreetEdgeStreetNode](tag, Some("sidewalk"),  "street_edge_parent_edge") {
+class StreetEdgeStreetNodeTable(tag: Tag) extends Table[StreetEdgeStreetNode](tag, Some("sidewalk"),  "street_edge_street_node") {
   def streetEdgeStreetNodeId = column[Int]("street_edge_street_node_id", O.PrimaryKey)
   def streetEdgeId = column[Int]("street_edge_id")
   def streetNodeId = column[Int]("street_node_id")

@@ -13,6 +13,7 @@ import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
+import models.route._
 import models.region._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
@@ -48,13 +49,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     // Get mTurk parameters
     // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    //println(timestamp + " " + qString)
+    println(timestamp + " " + qString)
 
     var screenStatus: String = null
     if (qString.nonEmpty && qString.contains("assignmentId")) {
       if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
         // User clicked the ACCEPT HIT button
-        // Redirect to the audit page
         screenStatus = "Assigned"
       }
       else {
@@ -91,8 +91,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         screenStatus match {
           case "Assigned" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
+            // Assuming we use the procedure that HITs are associated with routes at the time of HIT creation
+            // Then we'd retrieve the route based on HIT ID
+            //val route: Route
+
+            // TODO: Replace the following two with route selection and load the first task from the selected route
             val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
             val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
+
+            // TODO: Store the turker assignment information - all ids related to mturk, assigned route id
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
