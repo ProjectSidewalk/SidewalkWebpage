@@ -93,7 +93,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
             // Assuming we use the procedure that HITs are associated with routes at the time of HIT creation
             // Then we'd retrieve the route based on HIT ID
-            val route:
+
             // TODO: Replace the following two with route selection and load the first task from the selected route
             val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
             val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
