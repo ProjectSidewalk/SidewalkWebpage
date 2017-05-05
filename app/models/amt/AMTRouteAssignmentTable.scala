@@ -16,7 +16,7 @@ case class AMTRouteAssignment(routeAssignmentId: Int, hitId: String, routeId: In
   *
   */
 class AMTRouteAssignmentTable(tag: Tag) extends Table[AMTRouteAssignment](tag, Some("sidewalk"), "amt_route_assignment") {
-  def routeAssignmentId = column[Int]("amt_route_assignment_id", O.PrimaryKey, O.AutoInc)
+  def routeAssignmentId = column[Int]("amt_route_assignment_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def hitId = column[String]("hit_id", O.NotNull)
   def routeId = column[Int]("route_id", O.NotNull)
 
@@ -28,7 +28,7 @@ class AMTRouteAssignmentTable(tag: Tag) extends Table[AMTRouteAssignment](tag, S
   }
 
 /**
-  * Data access object for the AMTAssignment table
+  * Data access object for the AMTRouteAssignment table
   */
 object AMTRouteAssignmentTable {
   val db = play.api.db.slick.DB
