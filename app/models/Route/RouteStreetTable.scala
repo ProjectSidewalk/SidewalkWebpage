@@ -17,7 +17,7 @@ case class RouteStreet(routeStreetId: Int, length: Double,
 /**
   *
   */
-class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"), "route") {
+class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"), "route_street") {
   def routeStreetId = column[Int]("route_street_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def length = column[Double]("length", O.NotNull)
   def routeId = column[Int]("route_id", O.NotNull)
