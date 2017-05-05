@@ -29,10 +29,13 @@ class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"
   def source = column[Int]("source", O.NotNull)
   def target = column[Int]("target", O.NotNull)
 
-  
+
   def * = (routeStreetId, length, routeId, regionId,
     current_street_edge_id, next_street_edge_id, route_start_edge, route_end_edge,
     source, target) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
+
+  def route: ForeignKeyQuery[RouteTable, Route] =
+    foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
 
   def region: ForeignKeyQuery[RegionTable, Region] =
     foreignKey("route_street_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
