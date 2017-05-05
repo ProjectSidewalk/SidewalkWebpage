@@ -3,7 +3,7 @@ package models.amt
 import java.sql.Timestamp
 
 import models.route.{Route, RouteTable}
-import models.condition.{Condition, ConditionTable}
+import models.condition.Condition
 import models.turker.{Turker, TurkerTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -34,8 +34,8 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def route: ForeignKeyQuery[RouteTable, Route] =
     foreignKey("amt_assignment_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
 
-  def condition: ForeignKeyQuery[ConditionTable, Condition] =
-    foreignKey("amt_assignment_condition_id_fkey", conditionId, TableQuery[ConditionTable])(_.amtConditionId)
+  def condition: ForeignKeyQuery[AMTConditionTable, AMTCondition] =
+    foreignKey("amt_assignment_condition_id_fkey", conditionId, TableQuery[AMTConditionTable])(_.amtConditionId)
 
   def turker: ForeignKeyQuery[TurkerTable, Turker] =
     foreignKey("amt_assignment_turker_id_fkey", turkerId, TableQuery[TurkerTable])(_.turkerId)
