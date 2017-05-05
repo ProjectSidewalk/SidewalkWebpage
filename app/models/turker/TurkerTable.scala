@@ -7,13 +7,13 @@ package models.turker
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class Turker(turkerId: Int, routesAudited: Array[Int])
+case class Turker(turkerId: String, routesAudited: String)
 /**
   *
   */
 class TurkerTable(tag: Tag) extends Table[Turker](tag, Some("sidewalk"), "turker") {
   def turkerId = column[String]("turker_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def routesAudited = column[Array[Int]]("routes_audited", O.Nullable)
+  def routesAudited = column[String]("routes_audited", O.Nullable)
 
   def * = (turkerId, routesAudited) <> ((Turker.apply _).tupled, Turker.unapply)
 
