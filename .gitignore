@@ -105,6 +105,7 @@ sidewalk-webpage/
 
 # mturk specific files
 rootkey.csv
+mturk_results
 
 # Python .pyc files
 *.pyc
