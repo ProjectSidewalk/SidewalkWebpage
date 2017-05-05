@@ -9,7 +9,7 @@ CREATE TABLE turker
 
 CREATE TABLE amt_condition
 (
-  condition_id BIGSERIAL NOT NULL,
+  amt_condition_id BIGSERIAL NOT NULL,
   description text,
   parameters JSON,
   PRIMARY KEY (condition_id)
