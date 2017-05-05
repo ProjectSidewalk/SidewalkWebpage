@@ -41,6 +41,7 @@ mturk.create_hit(
     Keywords=keywords,
     Question=external_question,
     Reward='0.1',
+    RequesterAnnotation='12345'
 )
 
 # TODO: Get the list of HITs created, assign routes to HITs
