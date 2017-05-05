@@ -1,4 +1,4 @@
-package models.Route
+package models.route
 
 /**
   * Created by manaswi on 5/5/17.
