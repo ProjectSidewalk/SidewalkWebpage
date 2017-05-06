@@ -53,6 +53,7 @@ GET     /tasks                                  @controllers.TaskController.getT
 POST    /task                                   @controllers.TaskController.post
 
 # Missions
+GET     /missionturk                            @controllers.MissionController.getMTurkMission
 GET     /mission                                @controllers.MissionController.getMissions
 POST    /mission                                @controllers.MissionController.post
 

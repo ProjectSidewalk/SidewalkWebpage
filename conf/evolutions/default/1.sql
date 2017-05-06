@@ -22,7 +22,7 @@ CREATE TABLE route
   route_length_mi DOUBLE PRECISION NOT NULL,
   street_count INTEGER NOT NULL,
   mean_street_length_mi DOUBLE PRECISION NOT NULL,
-  std_street_length_mi DOUBLE PRECISION NOT NULL,
+  std_street_length_mi DOUBLE PRECISION,
   PRIMARY KEY (route_id),
   FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
@@ -40,8 +40,7 @@ CREATE TABLE route_street
   PRIMARY KEY (route_street_id),
   FOREIGN KEY (route_id) REFERENCES route(route_id),
   FOREIGN KEY (region_id) REFERENCES region(region_id),
-  FOREIGN KEY (current_street_edge_id) REFERENCES street_edge(street_edge_id),
-  FOREIGN KEY (next_street_edge_id) REFERENCES street_edge(street_edge_id)
+  FOREIGN KEY (current_street_edge_id) REFERENCES street_edge(street_edge_id)
 );
 
 CREATE TABLE amt_route_assignment(

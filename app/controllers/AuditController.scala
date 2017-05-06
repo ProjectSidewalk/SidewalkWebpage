@@ -49,7 +49,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     // Get mTurk parameters
     // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(timestamp + " " + qString)
+    //println(timestamp + " " + qString)
 
     var screenStatus: String = null
     if (qString.nonEmpty && qString.contains("assignmentId")) {
@@ -79,7 +79,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
-        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) || !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
+        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) ||
+          !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
           UserCurrentRegionTable.assignNextRegion(user.userId)
           region = RegionTable.selectTheCurrentNamedRegion(user.userId)
         }
