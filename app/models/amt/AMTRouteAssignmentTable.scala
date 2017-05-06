@@ -35,6 +35,14 @@ object AMTRouteAssignmentTable {
   val db = play.api.db.slick.DB
   val amtAssignments = TableQuery[AMTRouteAssignmentTable]
 
+  def findRouteByHITId(hitId: String): Option[Int] = db.withTransaction { implicit session =>
+    val routeAsg = amtAssignments.filter(_.hitId === hitId).list.headOption
+    routeAsg match {
+      case Some(route) => Some(route.routeId)
+      case _ => None
+    }
+  }
+
   def save(asg: AMTRouteAssignment): Int = db.withTransaction { implicit session =>
     val asgId: Int =
       (amtAssignments returning amtAssignments.map(_.routeAssignmentId)) += asg

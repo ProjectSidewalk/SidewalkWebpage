@@ -39,9 +39,14 @@ object RouteTable{
   val db = play.api.db.slick.DB
   val routes = TableQuery[RouteTable]
 
-  def save(routeId: Route): Int = db.withTransaction { implicit session =>
+  def getRoute(routeId: Option[Int]): Option[Route] = db.withSession { implicit session =>
+    val route = routes.filter(_.routeId === routeId).list
+    route.headOption
+  }
+
+  def save(route: Route): Int = db.withTransaction { implicit session =>
     val rId: Int =
-      (routes returning routes.map(_.routeId)) += routeId
+      (routes returning routes.map(_.routeId)) += route
     rId
   }
 }

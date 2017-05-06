@@ -10,12 +10,14 @@ import controllers.headers.ProvidesHeader
 import formats.json.IssueFormats._
 import formats.json.TaskSubmissionFormats._
 import formats.json.CommentSubmissionFormats._
+import models.amt.{AMTAssignment, AMTAssignmentTable, AMTRouteAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
 import models.route._
 import models.region._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable}
+import models.turker.{Turker, TurkerTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -52,9 +54,17 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     //println(timestamp + " " + qString)
 
     var screenStatus: String = null
+    var hitId: String = null
+    var assignmentId: String = null
+    var workerId: String = null
     if (qString.nonEmpty && qString.contains("assignmentId")) {
+
+      assignmentId = qString("assignmentId")
+
       if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
         // User clicked the ACCEPT HIT button
+        hitId = qString("hitId")
+        workerId = qString("workerId")
         screenStatus = "Assigned"
       }
       else {
@@ -69,6 +79,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     request.identity match {
       case Some(user) =>
+        // This code block doesn't work route by route
+        // Future TODO: Make mission-route mechanism for users
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Check and make sure that the user has been assigned to a region
@@ -92,15 +105,27 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         screenStatus match {
           case "Assigned" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
-            // Assuming we use the procedure that HITs are associated with routes at the time of HIT creation
-            // Then we'd retrieve the route based on HIT ID
-            //val route: Route
 
-            // TODO: Replace the following two with route selection and load the first task from the selected route
-            val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
-            val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
+            // HITs are associated with routes at the time of HIT creation
+            // Retrieve the route based on HIT ID
+            val routeId: Option[Int] = AMTRouteAssignmentTable.findRouteByHITId(hitId)
+            val route: Option[Route] = RouteTable.getRoute(routeId)
 
-            // TODO: Store the turker assignment information - all ids related to mturk, assigned route id
+            // Load the first task from the selected route
+            val regionId = route.get.regionId
+            val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
+            val task: NewTask = AuditTaskTable.selectANewTaskInARegion(regionId)
+
+            // Save Turker details
+            //val turker: Turker = Turker(workerId, "routeId")
+            // TODO: Fix bug: turker id is taken as null
+            //TODO: Find how to append new routes to existing turker
+            //TurkerTable.save(turker)
+
+            // Save HIT assignment details
+            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, 1, routeId, false)
+            AMTAssignmentTable.save(asg)
+
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))

@@ -403,7 +403,7 @@ object AuditTaskTable {
   }
 
   /**
-   * et a task that is in a given region
+   * Get a task that is in a given region
    *
    * @param regionId region id
    * @param user User object. Todo. Change this to user id.
