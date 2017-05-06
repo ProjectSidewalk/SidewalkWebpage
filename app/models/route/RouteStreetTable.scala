@@ -44,10 +44,6 @@ class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"
   def currentStreetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("route_street_current_street_edge_id_fkey", current_street_edge_id, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 
-  def nextStreetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
-    foreignKey("route_street_next_street_edge_id_fkey", next_street_edge_id, TableQuery[StreetEdgeTable])(_.streetEdgeId)
-
-
 }
 
 /**

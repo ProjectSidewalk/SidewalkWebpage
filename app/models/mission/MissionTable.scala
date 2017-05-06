@@ -201,10 +201,18 @@ object MissionTable {
   /**
     * Returns all the missions
     *
-    * @return A list of SidewalkEdge objects.
+    * @return A list of Mission objects.
     */
   def selectMissions: List[Mission] = db.withSession { implicit session =>
     missionsWithoutDeleted.list
+  }
+
+  /**
+    * Returns mturk mission
+    */
+
+  def selectMTurkMission: List[Mission] = db.withSession { implicit session =>
+    missionsWithoutDeleted.filter(_.label === "mturk-mission").list
   }
 
   /**
