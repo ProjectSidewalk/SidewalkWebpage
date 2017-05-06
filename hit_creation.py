@@ -5,6 +5,7 @@ import psycopg2.extras
 from sqlalchemy import create_engine
 
 from datetime import datetime
+from datetime import timedelta
 import pandas as pd
 from pprint import pprint
 
@@ -16,22 +17,36 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
 
     hit_route_map = []
 
-    # TODO: Problem: Retrieve all HITs currently -- only 10 hits are being received
-    all_hits = mturk.list_hits()['HITs']
+    # Returns a page of 100 HITs. Seem to be in chronological order.
+    response = mturk.list_hits(MaxResults=100)
+    all_hits = response['HITs']
+    if('NextToken' in response):
+        next_token = response['NextToken']
+        num_results = response['NumResults']
+        while(int(num_results)>0):
+            #Use the pagination token NextToken to get the next 100 HITs till there are no more.
+            response = mturk.list_hits(MaxResults=100,NextToken=next_token)
+            num_results = response['NumResults']
+            for hit in response['HITs']:
+                all_hits.append(hit)
+            if('NextToken' in response):
+                next_token = response['NextToken']
+
     print "Total HITs:", len(all_hits)
 
     for hit in all_hits:
         pprint(hit)
         print hit['CreationTime']
         print t_before_creation
-        # TODO: Fix correction of comparing time
-        # Check for Hits created in the last half hour
-        # The following code doesn't work since both time formats are different
-        # if hit['CreationTime'] > t_before_creation:
-        if 'RequesterAnnotation' in hit:
-            route_id = int(hit['RequesterAnnotation'])
-            if route_id in routes:
-                hit_route_map.append({'hit_id': hit['HITId'], 'route_id': route_id})
+        # Fixed: hit creation time provided by the mturk API has local time info. t_before_creation doesnt. 
+        # Check for Hits created after t_before_creation
+        # You dont want HITs created a half an hour back if they also have route ids.
+        # Even if the incorrect ones get overwritten. I've still given you the option to set that (currently at 1 minute).
+        if hit['CreationTime'].replace(tzinfo=None) > (t_before_creation - timedelta(minutes=1)):
+            if 'RequesterAnnotation' in hit:
+                route_id = int(hit['RequesterAnnotation'])
+                if route_id in routes:
+                    hit_route_map.append({'hit_id': hit['HITId'], 'route_id': route_id})
 
     hit_route_df = pd.DataFrame(hit_route_map)
     hit_route_df.to_sql('amt_route_assignment', engine, if_exists='append', index=False)
