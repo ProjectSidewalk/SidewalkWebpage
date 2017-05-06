@@ -35,15 +35,13 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
     print "Total HITs:", len(all_hits)
 
     for hit in all_hits:
-        pprint(hit)
-        print hit['CreationTime']
-        print t_before_creation
-        # Fixed: hit creation time provided by the mturk API has local time info. t_before_creation doesnt. 
+        # Fixed: hit creation time provided by the mturk API has local time info. t_before_creation doesnt.
         # Check for Hits created after t_before_creation
         # You dont want HITs created a half an hour back if they also have route ids.
         # Even if the incorrect ones get overwritten. I've still given you the option to set that (currently at 1 minute).
         if hit['CreationTime'].replace(tzinfo=None) > (t_before_creation - timedelta(minutes=1)):
             if 'RequesterAnnotation' in hit:
+                pprint(hit)
                 route_id = int(hit['RequesterAnnotation'])
                 if route_id in routes:
                     hit_route_map.append({'hit_id': hit['HITId'], 'route_id': route_id})
