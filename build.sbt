@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "3.0.0"
+version := "3.1.3"
 
 scalaVersion := "2.10.4"
 
@@ -25,6 +25,7 @@ libraryDependencies ++= Seq(
   jdbc,
   anorm,
   cache,
+  ws,
   "com.vividsolutions" % "jts" % "1.13",
   "com.typesafe.slick" %% "slick" % "2.1.0",
   "com.typesafe.play" %% "play-slick" % "0.8.0",

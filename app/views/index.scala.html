@@ -3,263 +3,42 @@
 @import models.daos._
 @import models.label._
 @import models.street.StreetEdgeTable
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
 
 @main(title) {
     @navbar(user)
-    <script src='@routes.Assets.at("assets/homepage.js")'></script>
-    <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
-            <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
-        </video>
-        <div id="overlay-top" style="width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0px;
-            background-color: rgba(192, 190, 207, 0.4);
-            left: 0px;">
-        </div>
-        <div class="container" id="banner">
-            <div class="row" id="bigtext">
-
-
-                <div class="col-sm-3"></div>
-                <div class="col-sm-6" id="bannertext">
-                    <p id="text">
-                        <span class="tagline">Let's create a path for everyone</span>
-                    </p>
-                    <br>
-                    <button class="myButton2" onclick="location.href = '@routes.AuditController.audit';">Start Mapping</button>
-                    <br><br>
-
-                </div>
-                <div class="col-sm-3"></div>
-            </div>
-        </div>
-    </div>
-
     <div id="content">
+        <div class="container">
+            <h3>Help us improve the accessibility of city streets for wheelchair users!</h3>
+            <img src='@routes.Assets.at("images/interface.png")' class="img-responsive"
+            alt="Audit Interface" style="float: right; height: 40%; width: 40%;"/>
 
+            <p>
+                In this HIT, you will <i>virtually</i> walk through city streets in Washington DC to find and label
+                accessibility features (<i>e.g.,</i> curb ramps) and problems (<i>e.g.,</i>  degraded sidewalks,
+                missing curb ramps) using our custom tool called Project Sidewalk (see adjacent image).
+            </p>
+            <p>
 
-        <div class="container" id="banner2" style="width: 100%;
-            position: relative;">
-            <div class="im-centered">
-                <div class="row">How you can help</div>
-                <br>
-                <div class="row" id="content-text-1">
-                    Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
-                    <br><br>
-                    <div class="row" id="numbersrow">
-                        <div class="col-sm-4" onclick="switchToVideo(1)">
-                            <span class="stepnumber">01</span><br><span id="word1" class="stepword">EXPLORE</span>
-                        </div>
+                <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")'
+                id="onboarding-example-image-1" style="height: 55%;
+                    width: 55%;
+                    align: center"
+                alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
+                <br/>
 
-                        <div class="col-sm-4" onclick="switchToVideo(2)">
-                            <span class="stepnumber">02</span><br><span id="word2" class="stepword">FIND PROBLEMS</span>
-                        </div>
-                        <div class="col-sm-4" onclick="switchToVideo(3)">
-                            <span class="stepnumber">03</span><br><span id="word3" class="stepword">ASSESS SEVERITY</span>
-                        </div>
-                    </div>
-                        <div id="instructionvideo">
-                            <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
-                            <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
-                            <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
+            </p>
+            <p>
+                The HIT will consist of completing simple game-like mission where you are routed along an assigned 1,000
+                feet street segment. Once you find and label all accessibility features and problems in this segment,
+                the Submit HIT button will appear allowing you to submit your work. <br/> <b>Note</b>: The first time you
+                accept a HIT in this group, you will have to complete a brief tutorial before the actual task.
+            </p>
 
-                        </div>
+                <!--<p>This is a research project at the University of Maryland. We are studying scalable methods for how
+                remote crowd workers can find and label accessibility problems using online map imagery.
+            </p>-->
 
-                </div>
-            </div>
-                <!--<div class="row" id="steps1">
-                <div class="col-sm-2">
-                </div>
-                <div class="col-sm-4 gauche">
-                    <span class="stepnumber">01</span><span class="stepword">EXPLORE</span>
-                    <br>
-                    <span class="stepdescription">
-                        Walk through your city's neighborhood from the comfort of your home and discover various accessibility problems that are in your town.
-                    </span>
-                </div>
-                <div class="col-sm-4 corps hidden-xs">
-                    <img src='@routes.Assets.at("assets/computer-1.png")' style="position: relative;
-                top: -80px;
-                height: 350px;"/>
-        </div>
-        <div class="col-sm-2">
         </div>
     </div>
-    <div class="row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-5 corps hidden-xs compimage">
-            <img src='@routes.Assets.at("assets/computer-2.png")' style="position : relative ;
-            top : -80px ;
-            height : 350px ;
-            left : -100px ;
-            "/>
-        </div>
-        <div class="col-sm-4 gauche" id=step2right>
-            <span class="stepnumber">02</span><span class="stepword">CATEGORIZE</span>
-            <br>
-            <span class="stepdescription">
-                Once you have found an issue, we will need to know what kind of issues it is. There are various types of issues to choose from.
-            </span>
-        </div>
-        <div class="col-sm-1">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-4 gauche" >
-            <span class="stepnumber">03</span><span class="stepword">ASSESS</span>
-            <br>
-            <span class="stepdescription">
-                You rate the problem between one and five. Five means that the sidewalk is not passable due to erosion or no curb available at all.
-            </span>
-        </div>
-        <div class="col-sm-4 corps hidden-xs">
-            <img src='@routes.Assets.at("assets/computer-3.png")' style="position : relative ;
-            top : -80px ;
-            height : 350px ;
-            "/>
-        </div>
-        <div class="col-sm-2">
-        </div>
-    </div>-->
-    </div>
-
-    <div class="container" id="vidembed">
-        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
-        <div id="videooverlay">
-            <div id="videotext">
-                <span>What is Project Sidewalk?</span>
-                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
-                cursor: pointer;" onclick="playVideo()">Watch Now</span></span>
-            </div>
-        </div>
-    </div>
-    <div class="container" id="difference-container">
-        <div id="dcanim-div">
-            <video poster='@routes.Assets.at("assets/dc-animation.jpg")' style="width:100%; max-width: 1500px;" preload="preload" id="video" autoplay="autoplay" loop="loop">
-
-                <source src="@routes.Assets.at("assets/dc-animation.mp4")" type="video/mp4"></source>
-            </video>
-        </div>
-        <div class="im-centered5">
-            <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
-            <div class="row" id="content-text-2">
-                <p>Users like you have already mapped the accessibility of nearly half of Washington DC.
-                    That's 450miles—more than the distance from DC to Boston</p>
-            </div>
-            <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
-                See results</button>
-            <br><br><br><br><br><br><br><br>
-            <div id="numberholder">
-                <div class="row" id="anim-numbers">
-                    <div class="col-sm-6 hidden-xs"><span id="percentage">45</span></div>
-                    <div class="col-sm-6 hidden-xs"><span id="numlabels">36,583</span></div>
-
-                </div>
-                <br>
-                <div class="row" id="anim-labels">
-                    <div class="col-sm-6 hidden-xs">of DC mapped</div>
-                    <div class="col-sm-6 hidden-xs">labels</div>
-
-                </div>
-
-            </div>
-            <script language="javascript">
-                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
-                    var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
-            </script>
-        </div>
-    </div>
-
-
-    <div class="container" id="quotebox-container" style="min-height: 500px;">
-        <div id="quotearea">
-            <div class="im-centered3">
-                <div class="row">What people <br>are saying</div>
-            </div>
-            <div class="row" style="padding-top: 40px;">
-                <div class="col-sm-6">
-                    <div class="quotebox">
-                        Using machine learning, big data, & civic kindness, umd_sidewalk is making D.C. more accessible one mile at a time
-                        <br>
-                        <span class="quoteauthor">@@microsoftdesign</span>
-
-
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="quotebox">
-                        umd_sidewalk is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
-                        <br>
-                        <span class="quoteauthor">@@kpkindc</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="container" id="press-container">
-        <div class="im-centered3">
-            <div class="row" ><br>Press<br></div>
-
-
-        </div>
-
-    </div>
-    <div class="container" id="press-container2">
-
-        <div class="row" style=" padding-top: 50px;
-            width: 100%;
-            text-align: center;
-            display: inline-block;
-            vertical-align: middle;
-        ">
-            <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
-                    <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
-                    <img style="position: relative; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
-
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
-                    <img src='@routes.Assets.at("assets/diamondback.png")' height="70" alt="Diamondback Logo">
-                </a>
-            </div>
-        </div>
-        <div class="row" style=" padding-top: 20px;
-            width: 100%;
-            text-align: center;
-        ">
-            <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
-
-                    How Project Sidewalk is making DC more accessible
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
-
-                    Make D.C.'s sidewalks more accessible with this crowd-sourced map
-
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
-
-                    A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
-                </a>
-            </div>
-        </div>
-    </div>
-    </div>
-
 }

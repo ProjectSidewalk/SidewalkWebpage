@@ -3,10 +3,10 @@
 # ~~~~
 
 # Home page
-GET     /                                       @controllers.ApplicationController.index
+GET     /                                       @controllers.AuditController.audit
 POST    /                                       controllers.TeaserController.teaserPost
 
-GET     /home                                   @controllers.ApplicationController.index
+GET     /home                                   @controllers.AuditController.audit
 GET     /about                                  @controllers.ApplicationController.about
 GET     /developer                              @controllers.ApplicationController.developer
 GET     /terms                                  @controllers.ApplicationController.terms
@@ -14,6 +14,13 @@ GET     /demo                                   @controllers.ApplicationControll
 GET     /results                                @controllers.ApplicationController.results
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
+
+# Auditing tasks
+GET     /audit                                  @controllers.AuditController.audit
+GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
+GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
+POST    /audit/comment                          @controllers.AuditController.postComment
+POST    /audit/nostreetview                     @controllers.AuditController.postNoStreetView
 
 # User authentication
 GET     /signIn                                 @controllers.UserController.signIn(url: String ?= "/")
@@ -39,21 +46,14 @@ GET     /adminapi/labels/all                    @controllers.AdminController.get
 GET     /adminapi/labels/panoid                 @controllers.AdminController.getAllPanoIds
 GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
 
-# Auditing tasks
-GET     /audit                                  @controllers.AuditController.audit
-GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
-GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
-POST    /audit/comment                          @controllers.AuditController.postComment
-POST    /audit/nostreetview                     @controllers.AuditController.postNoStreetView
-
 # Task API.
 GET     /task                                   @controllers.TaskController.getTask
 GET     /task/street/:id                        @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                  @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                   @controllers.TaskController.post
 
-
 # Missions
+GET     /missionturk                            @controllers.MissionController.getMTurkMission
 GET     /mission                                @controllers.MissionController.getMissions
 POST    /mission                                @controllers.MissionController.post
 

@@ -400,7 +400,13 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
+
+                            <form action="" method="post" id="submitHITForm">
+                                <input type="hidden" name="assignmentId" id="assignmentId" value="" />
+                                <input type="hidden" name="randomString" id="randomString" value="randomResultString" />
+                                <button class="btn blue-btn" id="modal-mission-complete-close-button" type="submit">Submit HIT</button>
+                            </form>
+
                         </div>
                     </div>
                 </div>
@@ -703,10 +709,23 @@
             var mainParam = {},
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
+
+            // Mturk specific parameters
+            formParam.hitId = util.getURLParameter('hitId');
+            formParam.assignmentId = util.getURLParameter('assignmentId');
+            formParam.turkerId = util.getURLParameter('workerId');
+            formParam.turkSubmitTo = util.getURLParameter('turkSubmitTo');
+            formParam.turkURL = formParam.turkSubmitTo + "/mturk/externalSubmit" + '?assignmentId=' + formParam.assignmentId;
+
+            // Setting POST request params for Submit HIT operation
+            var assignmentId = document.getElementById('assignmentId');
+            assignmentId.value = formParam.assignmentId;
+
+            var submitHITForm = document.getElementById('submitHITForm');
+            submitHITForm.action = formParam.turkURL;
+
+
             formParam.dataStoreUrl = '@routes.TaskController.post';
-            formParam.hitId = '';
-            formParam.assignmentId = '';
-            formParam.turkerId = '';
             formParam.onboarding = false;
             formParam.taskPanoramaId = "";
             formParam.taskDescription = "";

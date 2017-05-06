@@ -90,14 +90,22 @@ project/.sbtserver.lock
 
 # JavaScript and Node
 node_modules
-public/javascripts/SVLabel/build/*
-public/javascripts/Admin/build/*
-public/javascripts/FAQ/build/*
+logs/
+project/project/
+public/javascripts/Admin/build/
+public/javascripts/FAQ/build/
+public/javascripts/SVLabel/build/
+tmp/
+
 public/javascripts/Admin/Progress/*
 download
 
-public/javascripts/SVLabel/build/SVLabel.js
-
 # sidewalk-webpage-binary directory
 sidewalk-webpage/
-nohup.out
+
+# mturk specific files
+rootkey.csv
+mturk_results
+
+# Python .pyc files
+*.pyc

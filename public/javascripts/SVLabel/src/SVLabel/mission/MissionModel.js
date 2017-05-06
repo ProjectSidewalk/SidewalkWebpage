@@ -61,9 +61,14 @@ function MissionModel () {
         }
 
         if (callback) {
-            $.when($.ajax("/mission")).done(_onFetch).done(_onLoad).done(callback);
+            // TODO: Add a check if mturk mode is enabled
+            //$.when($.ajax("/mission")).done(_onFetch).done(_onLoad).done(callback);
+            $.when($.ajax("/missionturk")).done(_onFetch).done(_onLoad).done(callback);
+
         } else {
-            $.when($.ajax("/mission")).done(_onFetch).done(_onLoad);
+            //$.when($.ajax("/mission")).done(_onFetch).done(_onLoad);
+            $.when($.ajax("/missionturk")).done(_onFetch).done(_onLoad);
+
         }
     };
 

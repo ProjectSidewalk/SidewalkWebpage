@@ -13,12 +13,14 @@ import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
+import models.route._
 import models.region._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.ws._
 import play.api.mvc._
 import play.api.Play.current
 import play.extras.geojson
@@ -44,7 +46,26 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
-    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
+    // Get mTurk parameters
+    // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
+    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+    //println(timestamp + " " + qString)
+
+    var screenStatus: String = null
+    if (qString.nonEmpty && qString.contains("assignmentId")) {
+      if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
+        // User clicked the ACCEPT HIT button
+        screenStatus = "Assigned"
+      }
+      else {
+        screenStatus = "Preview"
+      }
+    }
+    else {
+      screenStatus = "Blank"
+    }
+
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
 
     request.identity match {
       case Some(user) =>
@@ -58,7 +79,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
 
         // Check if a user still has tasks available in this region.
-        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) || !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
+        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) ||
+          !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
           UserCurrentRegionTable.assignNextRegion(user.userId)
           region = RegionTable.selectTheCurrentNamedRegion(user.userId)
         }
@@ -66,11 +88,27 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val task: NewTask = if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user) else AuditTaskTable.selectANewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
-        // val region: Option[Region] = RegionTable.getRegion
-        val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
-        val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+
+        screenStatus match {
+          case "Assigned" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
+            // Assuming we use the procedure that HITs are associated with routes at the time of HIT creation
+            // Then we'd retrieve the route based on HIT ID
+            //val route: Route
+
+            // TODO: Replace the following two with route selection and load the first task from the selected route
+            val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
+            val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
+
+            // TODO: Store the turker assignment information - all ids related to mturk, assigned route id
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+          case "Preview" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+            Future.successful(Ok(views.html.index("Project Sidewalk")))
+          case "Blank" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Blank", timestamp))
+            Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
+        }
     }
   }
 

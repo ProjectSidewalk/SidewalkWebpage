@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.util
 import java.util.{Calendar, TimeZone}
 import javax.inject.Inject
 
@@ -20,35 +21,37 @@ import play.api.{Logger, Play}
 
 import scala.concurrent.Future
 
-class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
+class ApplicationController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   /**
-   * Returns an index page.
+    * Returns an index page.
     *
     * @return
-   */
+    */
   def index = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
+
+    WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
 
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
         Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
         Future.successful(Ok(views.html.index("Project Sidewalk")))
     }
   }
 
   /**
-   * Returns an about page
-   * @return
-   */
+    * Returns an about page
+    *
+    * @return
+    */
   def about = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
@@ -82,6 +85,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns a developer page
+    *
     * @return
     */
   def developer = UserAwareAction.async { implicit request =>
@@ -101,6 +105,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns an FAQ page
+    *
     * @return
     */
   def faq = UserAwareAction.async { implicit request =>
@@ -120,6 +125,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns the terms page
+    *
     * @return
     */
   def terms = UserAwareAction.async { implicit request =>
