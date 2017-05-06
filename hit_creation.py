@@ -6,20 +6,27 @@ from sqlalchemy import create_engine
 
 from datetime import datetime
 import pandas as pd
+from pprint import pprint
 
-
-def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
-    '''
+'''
     Assign routes to the newly created HITs.
     The RequesterAnnotation attribute of the HIT stores the associated route_id
-    '''
+'''
+def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
 
     hit_route_map = []
+
+    # TODO: Problem: Retrieve all HITs currently -- only 10 hits are being received
     all_hits = mturk.list_hits()['HITs']
+    print "Total HITs:", len(all_hits)
+
     for hit in all_hits:
+        pprint(hit)
         print hit['CreationTime']
         print t_before_creation
         # TODO: Fix correction of comparing time
+        # Check for Hits created in the last half hour
+        # The following code doesn't work since both time formats are different
         # if hit['CreationTime'] > t_before_creation:
         if 'RequesterAnnotation' in hit:
             route_id = int(hit['RequesterAnnotation'])
@@ -53,9 +60,9 @@ if __name__ == '__main__':
     # Variable passed to the external url are workerid, assignmentid, hitid, ...
     # Once the task is successfully completed the external server needs to
     # perform a POST operation to an mturk url
-    external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd"> ' + \
-                        ' <ExternalURL> ' + url + ' </ExternalURL> <FrameHeight> ' + \
-                        str(frame_height) + ' </FrameHeight></ExternalQuestion>'
+    external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
+                        '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
+                        str(frame_height) + '</FrameHeight></ExternalQuestion>'
 
     # Get mturk client
     mturk = connect_to_mturk()
@@ -93,9 +100,9 @@ if __name__ == '__main__':
                 Reward='0.1',
                 RequesterAnnotation=str(route)
             )
-            print "HIT for", route, "created"
+            print "HIT for route", route, "created"
 
         # Get the list of HITs created, assign routes to HITs
-        # assign_routes_to_hits(mturk, engine, routes, t_before_creation)
+        assign_routes_to_hits(mturk, engine, routes, t_before_creation)
     except Exception as e:
         print "Error: ", e
