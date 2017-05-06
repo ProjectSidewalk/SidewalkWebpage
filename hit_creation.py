@@ -1,13 +1,49 @@
 from connect_to_mturk import connect_to_mturk
 
+import psycopg2
+import psycopg2.extras
+
+from datetime import datetime
+
+import pandas as pd
+
 mturk = connect_to_mturk()
 
-# TODO:
+
+#Connect to Postgresql database
+db_port = '5000'
+try:
+    conn = psycopg2.connect("dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port + " password='sidewalk'")
+    engine = create_engine('postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
+except:
+    print "I am unable to connect to the database"
+
+cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+#Get all the current route_id s in  sidewalk.route
+cur.execute("""SELECT route_id from sidewalk.route""")
+rows = cur.fetchall()
+routes = map(lambda x:x["route_id"],rows)
+
+
 '''
-Assign routes to the newly created HITs
+Assign routes to the newly created HITs. The RequesterAnnotation attribute of the HIT stores the associated route_id
 '''
-def assign_routes_to_hits():
-    pass
+def assign_routes_to_hits(mturk,engine,routes,t_before_creation):
+    
+    hit_route_map = []
+    all_hits = mturk.list_hits()['HITs']
+    for hit in all_hits:
+        if hit['CreationTime']>t_before_creation:
+            route_id = int(hit['RequesterAnnotation']
+            if route_id in routes:
+                hit_route_map.append({'hit_id':hit['HITId'],'route_id':route_id})
+
+    hit_route_df = pd.DataFrame(hit_route_map)
+    hit_route_df.to_sql('amt_route_assignment', engine, if_exists='append',index=False)
+
+
+
 
 url = 'https://sidewalk-mturk.umiacs.umd.edu'
 title = "[TESTHIT] University of Maryland: Help make our sidewalks more accessible for wheelchair users with Google Maps"
@@ -30,19 +66,25 @@ external_question = '<ExternalQuestion xmlns="http://mechanicalturk.amazonaws.co
     '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
     str(frame_height) + '</FrameHeight></ExternalQuestion>'
 
-# Create a sample HIT that expires after an 'LifetimeInSeconds'
 
-mturk.create_hit(
-    Title=title,
-    LifetimeInSeconds=600,
-    AssignmentDurationInSeconds=3600,
-    MaxAssignments=10,
-    Description=description,
-    Keywords=keywords,
-    Question=external_question,
-    Reward='0.1',
-    RequesterAnnotation='12345'
-)
+t_before_creation = datetime.now()
+number_of_routes = 30
+
+for route in routes[0:min(number_of_routes,len(routes))]:
+
+    # Create a sample HIT that expires after an 'LifetimeInSeconds'
+
+    mturk.create_hit(
+        Title=title,
+        LifetimeInSeconds=600,
+        AssignmentDurationInSeconds=3600,
+        MaxAssignments=10,
+        Description=description,
+        Keywords=keywords,
+        Question=external_question,
+        Reward='0.1',
+        RequesterAnnotation=str(int(route))
+    )
 
 # TODO: Get the list of HITs created, assign routes to HITs
-assign_routes_to_hits()
+assign_routes_to_hits(mturk,engine,routes,t_before_creation)
