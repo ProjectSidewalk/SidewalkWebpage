@@ -110,16 +110,25 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // Retrieve the route based on HIT ID
             val routeId: Option[Int] = AMTRouteAssignmentTable.findRouteByHITId(hitId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
+            println(route)
+            val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
+            println(routeStreetId.getOrElse(0))
+
 
             // Load the first task from the selected route
             val regionId = route.get.regionId
             val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
-            val task: NewTask = AuditTaskTable.selectANewTaskInARegion(regionId)
+            val regionName = region.get.name
+            println(f"RegionName: $regionName%s")
+            val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0))
+            print("Task: ")
+            println(task)
+
 
             // Save Turker details
             //val turker: Turker = Turker(workerId, "routeId")
             // TODO: Fix bug: turker id is taken as null
-            //TODO: Find how to append new routes to existing turker
+            // TODO: Find how to append new routes to existing turker
             //TurkerTable.save(turker)
 
             // Save HIT assignment details

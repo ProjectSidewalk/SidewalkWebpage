@@ -368,7 +368,6 @@ object AuditTaskTable {
     assert(edges.nonEmpty)
 
     val e: StreetEdge = edges.head
-
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
     NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
