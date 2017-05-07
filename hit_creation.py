@@ -13,6 +13,8 @@ from pprint import pprint
     Assign routes to the newly created HITs.
     The RequesterAnnotation attribute of the HIT stores the associated route_id
 '''
+
+
 def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
 
     hit_route_map = []
@@ -23,9 +25,10 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
     if('NextToken' in response):
         next_token = response['NextToken']
         num_results = response['NumResults']
-        while(int(num_results)>0):
-            #Use the pagination token NextToken to get the next 100 HITs till there are no more.
-            response = mturk.list_hits(MaxResults=100,NextToken=next_token)
+        while(int(num_results) > 0):
+            # Use the pagination token NextToken to get the next 100 HITs till there
+            # are no more.
+            response = mturk.list_hits(MaxResults=100, NextToken=next_token)
             num_results = response['NumResults']
             for hit in response['HITs']:
                 all_hits.append(hit)
@@ -35,13 +38,18 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
     print "Total HITs:", len(all_hits)
 
     for hit in all_hits:
-        # Fixed: hit creation time provided by the mturk API has local time info. t_before_creation doesnt.
+        # Fixed: hit creation time provided by the mturk API has local time info.
+        # t_before_creation doesnt.
         # Check for Hits created after t_before_creation
         # You dont want HITs created a half an hour back if they also have route ids.
-        # Even if the incorrect ones get overwritten. I've still given you the option to set that (currently at 1 minute).
+        # Even if the incorrect ones get overwritten. I've still given you the
+        # option to set that (currently at 1 minute).
         if hit['CreationTime'].replace(tzinfo=None) > (t_before_creation - timedelta(minutes=1)):
             if 'RequesterAnnotation' in hit:
                 pprint(hit)
+                # print "HIT Creation Time: ", hit['CreationTime'], "Time Difference",
+                # t_before_creation - timedelta(minutes=1)
+                print "HIT with route", hit['RequesterAnnotation'], "retrieved"
                 route_id = int(hit['RequesterAnnotation'])
                 if route_id in routes:
                     hit_route_map.append({'hit_id': hit['HITId'], 'route_id': route_id})
@@ -92,7 +100,7 @@ if __name__ == '__main__':
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         # Get all the current route_id s in  sidewalk.route
-        cur.execute("""SELECT route_id from sidewalk.route""")
+        cur.execute("""SELECT route_id from sidewalk.route order by street_count desc""")
         rows = cur.fetchall()
         routes = map(lambda x: x["route_id"], rows)
 
