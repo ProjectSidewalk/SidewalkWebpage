@@ -1,5 +1,6 @@
 from connect_to_mturk import connect_to_mturk
 
+import sys
 import psycopg2
 import psycopg2.extras
 from sqlalchemy import create_engine
@@ -8,6 +9,43 @@ from datetime import datetime
 from datetime import timedelta
 import pandas as pd
 from pprint import pprint
+
+
+'''
+Create missions for the assigned routes if it doesn't exist
+'''
+
+
+def create_missions_for_routes(engine, cursor, route_rows):
+
+    # Get all the current route_id in  sidewalk.route
+    cursor.execute("""SELECT * from sidewalk.mission where label = 'mturk-mission'""")
+    mturk_mission_rows = cursor.fetchall()
+    db_region_id_list = map(lambda x: x["region_id"], mturk_mission_rows)
+    route_region_id_list = map(lambda x: x["region_id"], route_rows)
+
+    mission_rows_to_insert = []
+    db_inserted_region_id_list = []
+    for region_id in route_region_id_list:
+        if (region_id not in db_region_id_list and
+                region_id not in db_inserted_region_id_list):
+            # Insert into mission table
+            mission_rows_to_insert.append({
+                'region_id': region_id,
+                'label': 'mturk-mission',
+                'level': 1,
+                'deleted': False,
+                'coverage': None,
+                'distance': 304.8,
+                'distance_ft': 1000,
+                'distance_mi': 0.189394
+            })
+            db_inserted_region_id_list.append(region_id)
+            print "Mission created for region", region_id
+
+    mission_table_df = pd.DataFrame(mission_rows_to_insert)
+    mission_table_df.to_sql('mission', engine, if_exists='append', index=False)
+
 
 '''
     Assign routes to the newly created HITs.
@@ -55,7 +93,8 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
                     hit_route_map.append({'hit_id': hit['HITId'], 'route_id': route_id})
 
     hit_route_df = pd.DataFrame(hit_route_map)
-    hit_route_df.to_sql('amt_route_assignment', engine, if_exists='append', index=False)
+    hit_route_df.to_sql('amt_route_assignment', engine,
+                        if_exists='append', index=False)
 
 
 if __name__ == '__main__':
@@ -82,8 +121,8 @@ if __name__ == '__main__':
     # Once the task is successfully completed the external server needs to
     # perform a POST operation to an mturk url
     external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
-                        '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
-                        str(frame_height) + '</FrameHeight></ExternalQuestion>'
+        '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
+        str(frame_height) + '</FrameHeight></ExternalQuestion>'
 
     # Get mturk client
     mturk = connect_to_mturk()
@@ -99,10 +138,11 @@ if __name__ == '__main__':
 
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Get all the current route_id s in  sidewalk.route
-        cur.execute("""SELECT route_id from sidewalk.route order by street_count desc""")
-        rows = cur.fetchall()
-        routes = map(lambda x: x["route_id"], rows)
+        # Get all the current route_ids in  sidewalk.route
+        cur.execute(
+            """SELECT route_id, region_id from sidewalk.route order by street_count desc""")
+        route_rows = cur.fetchall()
+        routes = map(lambda x: x["route_id"], route_rows)
 
         t_before_creation = datetime.now()
         number_of_routes = 5
@@ -112,7 +152,7 @@ if __name__ == '__main__':
 
             mturk.create_hit(
                 Title=title,
-                LifetimeInSeconds=600,
+                LifetimeInSeconds=30,
                 AssignmentDurationInSeconds=3600,
                 MaxAssignments=5,
                 Description=description,
@@ -125,5 +165,8 @@ if __name__ == '__main__':
 
         # Get the list of HITs created, assign routes to HITs
         assign_routes_to_hits(mturk, engine, routes, t_before_creation)
+
+        # Insert into Mission Table - create new mission for a route (if it doesn't exist)
+        create_missions_for_routes(engine, cur, route_rows)
     except Exception as e:
         print "Error: ", e
