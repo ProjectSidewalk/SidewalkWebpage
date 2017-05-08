@@ -212,7 +212,7 @@ object MissionTable {
     */
 
   def selectMTurkMission: List[Mission] = db.withSession { implicit session =>
-    missionsWithoutDeleted.filter(_.label === "mturk-mission").list
+    missionsWithoutDeleted.filter(l => l.label === "mturk-mission" || l.label ===  "onboarding").list
   }
 
   /**

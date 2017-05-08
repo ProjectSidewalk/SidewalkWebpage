@@ -1,6 +1,5 @@
 from connect_to_mturk import connect_to_mturk
 
-import sys
 import psycopg2
 import psycopg2.extras
 from sqlalchemy import create_engine
@@ -152,7 +151,7 @@ if __name__ == '__main__':
 
             mturk.create_hit(
                 Title=title,
-                LifetimeInSeconds=30,
+                LifetimeInSeconds=600,
                 AssignmentDurationInSeconds=3600,
                 MaxAssignments=5,
                 Description=description,
