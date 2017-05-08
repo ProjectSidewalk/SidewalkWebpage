@@ -129,7 +129,7 @@ footer {
     max-height: 30px;
 }
 
-.myButton {
+.navbarStartBtn {
     background-color:#ffffff;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -147,13 +147,13 @@ footer {
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
-.myButton:hover {
+.navbarStartBtn:hover {
     background-color:#FCECBE;
     border:1px solid #FCECBE;
     color: #2D2A3F;
     text-shadow: none;
 }
-.myButton:active {
+.navbarStartBtn:active {
     position:relative;
     top:1px;
 }
@@ -983,7 +983,7 @@ video#bgvid {
     color: #FBD78B;
 }
 
-.myButton2 {
+.bodyStartBtn {
     background-color:rgba(251, 215, 139, 1);
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -1000,13 +1000,13 @@ video#bgvid {
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
-.myButton2:hover {
+.bodyStartBtn:hover {
     background-color:#FCECBE;
     border:0px solid #eb734d;
     color:#2d2a3f;
     text-shadow: none;
 }
-.myButton2:active{
+.bodyStartBtn:active{
     position:relative;
     top:1px;
 }
