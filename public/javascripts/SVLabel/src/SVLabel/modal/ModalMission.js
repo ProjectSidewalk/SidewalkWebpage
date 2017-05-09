@@ -103,7 +103,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
 
 
-        if (label == "distance-mission") {
+        if (label == "distance-mission" || label == "mturk-mission") {
             var auditDistance,
                 distanceString;
             templateHTML = distanceMissionHTML;
