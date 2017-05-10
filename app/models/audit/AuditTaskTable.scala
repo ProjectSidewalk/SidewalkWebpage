@@ -11,10 +11,12 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
+import models.route.RouteStreet
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.util.Random
@@ -448,6 +450,28 @@ object AuditTaskTable {
   }
 
   /**
+    * Get tasks on a route
+    *
+    * @param routeId
+    * @param routeStreets
+    * @return
+    */
+  def selectTasksOnARoute(routeId: Int, routeStreets: List[RouteStreet]): List[NewTask] = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
+    val streets = ArrayBuffer[Int]()
+    for (rst <- routeStreets) {
+      streets.append(rst.current_street_edge_id)
+    }
+
+    val newTasks = streetEdges.filter(_.streetEdgeId inSet streets).list
+
+    newTasks.map(task =>
+      NewTask(task.streetEdgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, false)
+    )
+  }
+
+  /**
     * Get tasks in the region
     *
     * @param regionId Region id
@@ -529,7 +553,7 @@ object AuditTaskTable {
         |       street.y2,
         |       street.timestamp,
         |       audit_task.completed
-        |  FROM sidewalk.region
+        |  FROM sidewalk.regione
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task

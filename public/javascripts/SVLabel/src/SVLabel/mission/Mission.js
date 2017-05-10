@@ -39,7 +39,6 @@ function Mission(parameters) {
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
 
         if ("label" in parameters) {
-            console.log(JSON.stringify(parameters));
             var instruction, completionMessage, badgeURL;
             setProperty("label", parameters.label);
             self.label = parameters.label;  // For debugging. You don't actually need this.

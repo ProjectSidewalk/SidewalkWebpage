@@ -48,6 +48,11 @@ object RouteStreetTable{
   val db = play.api.db.slick.DB
   val routesStreets = TableQuery[RouteStreetTable]
 
+  def getRouteStreets(routeId: Int): List[RouteStreet] = db.withSession { implicit session =>
+    val routeStreet = routesStreets.filter(_.routeId === routeId).list
+    routeStreet
+  }
+
   def getFirstRouteStreetId(routeId: Int): Option[Int] = db.withSession { implicit session =>
     val routeStreet = routesStreets.filter(_.routeId === routeId).filter(_.route_start_edge === true).list.headOption
     routeStreet match {

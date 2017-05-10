@@ -18,6 +18,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
+import models.route.RouteStreetTable
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
@@ -71,6 +72,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(Ok(JsArray(tasks)))
       case None =>
         val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+    }
+  }
+
+  def getTasksOnARoute(routeId: Int) = UserAwareAction.async { implicit request =>
+
+    val routeStreets = RouteStreetTable.getRouteStreets(routeId)
+    request.identity match {
+      case Some(user) =>
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksOnARoute(routeId, routeStreets).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+      case None =>
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksOnARoute(routeId, routeStreets).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
     }
   }

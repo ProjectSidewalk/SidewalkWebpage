@@ -49,6 +49,7 @@ GET     /adminapi/label/:labelId                @controllers.AdminController.get
 # Task API.
 GET     /task                                   @controllers.TaskController.getTask
 GET     /task/street/:id                        @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
+GET     /tasks/route/:id                        @controllers.TaskController.getTasksOnARoute(id: Int)
 GET     /tasks                                  @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                   @controllers.TaskController.post
 
