@@ -16,7 +16,7 @@ import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.util.Random
