@@ -6,33 +6,6 @@ function RouteModel () {
     var self = this;
     this._routeContainer = null;
     this.isRouteCompleted = false;
-
-    /*
-     * NOT in USE methods - Start
-     * Maybe for the future
-     */
-    this._handleFetchComplete = function (geojson) {
-        var geojsonLayer = L.geoJson(geojson);
-        var leafletLayers = geojsonLayer.getLayers();
-        var layer, routeId, regionName;
-        for (var i = 0, len = leafletLayers.length; i < len; i++) {
-            layer =leafletLayers[i];
-            routeId = layer.feature.properties.route_id;
-            regionName = layer.feature.properties.region_name;
-            self.create(routeId, layer, regionName);
-        }
-    };
-
-    this.fetchRoutes = function (callback) {
-        if (callback) {
-            $.when($.ajax("/routes")).done(self._handleFetchComplete).done(callback);
-        } else {
-            $.when($.ajax("/routes")).done(self._handleFetchComplete)
-        }
-    };
-    /*
-     * NOT in USE methods - End
-     */
 }
 _.extend(RouteModel.prototype, Backbone.Events);
 
