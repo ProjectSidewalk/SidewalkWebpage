@@ -163,11 +163,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // Update the currently assigned region for the user
         UserCurrentRegionTable.update(user.userId, regionId)
 
+        val route = None
         val task: NewTask = AuditTaskTable.selectANewTaskInARegion(regionId, user)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None =>
+        val route = None
         val task: NewTask = AuditTaskTable.selectANewTask
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
     }
   }
 
@@ -187,10 +189,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case _: Throwable => None
     }
 
+    val route = None
     val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
     request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
     }
   }
 
