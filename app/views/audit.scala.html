@@ -1,8 +1,9 @@
 @import models.user.User
+@import models.route.Route
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], route: Option[Route], user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))
@@ -636,11 +637,14 @@
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
+            var taskId = @Html(task.get.edgeId.toString);
+            console.log("TaskId:" + taskId);
 
             var geojson = @Html(task.get.toJSON.toString);
             var lat1 = geojson.features[0].geometry.coordinates[0][1];
             var lng1 = geojson.features[0].geometry.coordinates[0][0];
             var latLng = new google.maps.LatLng(lat1, lng1);
+            console.log("LatLng" + latLng);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
             if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
@@ -710,6 +714,8 @@
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
 
+            console.log(initialLocation);
+
             // Mturk specific parameters
             formParam.hitId = util.getURLParameter('hitId');
             formParam.assignmentId = util.getURLParameter('assignmentId');
@@ -740,6 +746,18 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
+            @if(route) {
+                mainParam.routeId = @route.get.routeId;
+                mainParam.regionId = @route.get.regionId;
+                mainParam.lengthMi = @route.get.route_length_mi;
+                mainParam.streetCount = '@route.get.streetCount';
+            } else {
+                mainParam.routeId = 1;
+                mainParam.regionId = 1;
+                mainParam.lengthMi = 0.2;
+                mainParam.streetCount = 0;
+            }
+
             @if(region) {
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
@@ -749,6 +767,7 @@
                 mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
+            console.log(mainParam);
             svl.main = new Main(mainParam);
         }
     </script>

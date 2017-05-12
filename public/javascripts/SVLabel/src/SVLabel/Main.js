@@ -89,6 +89,7 @@ function Main (params) {
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+        if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -152,13 +153,23 @@ function Main (params) {
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
 
+        //Route
+        var route;
+        svl.routeContainer = new RouteContainer(svl.routeModel);
+        svl.routeModel._routeContainer = svl.routeContainer;
+
+        svl.routeFactory = new RouteFactory(svl.routeModel);
+        route = svl.routeFactory.create(params.routeId, params.regionId, params.lengthMi, params.streetCount);
+        svl.routeContainer.add(route);
+        svl.routeContainer.setCurrentRoute(route);
+
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel, svl.taskModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
@@ -239,8 +250,10 @@ function Main (params) {
             handleDataLoadComplete();
         });
 
-        // Fetch tasks in the onboarding region.
-        taskContainer.fetchTasksInARegion(neighborhood.getProperty("regionId"), function () {
+        // Fetch tasks for the route
+        var routeId = 65;
+        // neighborhood.getProperty("regionId"),
+        taskContainer.fetchTasksOnARoute(routeId, function () {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         });
@@ -387,6 +400,7 @@ function Main (params) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
+            console.log("Current Neighborhood: " + currentNeighborhood);
             var mission;
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
@@ -437,6 +451,7 @@ function Main (params) {
 
     function selectTheMission(currentNeighborhood) {
         var regionId = currentNeighborhood.getProperty("regionId");
+        console.log("RegionId: " + regionId);
         var availableMissions = svl.missionContainer.getIncompleteMissionsByRegionId(regionId);
         var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
 

@@ -98,8 +98,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           region = RegionTable.selectTheCurrentNamedRegion(user.userId)
         }
 
+        val route = None
+
         val task: NewTask = if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user) else AuditTaskTable.selectANewTask(user.username)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None =>
 
         screenStatus match {
@@ -132,10 +134,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             //TurkerTable.save(turker)
 
             // Save HIT assignment details
-            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, 1, routeId, false)
+            val conditionId = 1
+            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
             AMTAssignmentTable.save(asg)
 
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
             Future.successful(Ok(views.html.index("Project Sidewalk")))

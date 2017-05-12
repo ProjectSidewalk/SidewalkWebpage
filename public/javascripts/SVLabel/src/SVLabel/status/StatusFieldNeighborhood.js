@@ -1,6 +1,6 @@
 function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiStatus) {
     var self = this;
-    this._neighborhoodModel = neighborhoodModel;
+    this._routeModel = neighborhoodModel;
     this._statusModel = statusModel;
     this._userModel = userModel;
 
@@ -8,7 +8,7 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
         self.setHref(href);
     });
 
-    this._neighborhoodModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
+    this._routeModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
         var newNeighborhood = parameters.newNeighborhood;
         self.setNeighborhoodName(newNeighborhood.getProperty("name"));
 

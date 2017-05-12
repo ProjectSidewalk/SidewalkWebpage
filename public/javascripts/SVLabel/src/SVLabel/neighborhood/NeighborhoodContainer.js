@@ -7,7 +7,7 @@
  */
 function NeighborhoodContainer (neighborhoodModel, statusModel, userModel) {
     var self = this;
-    this._neighborhoodModel = neighborhoodModel;
+    this._routeModel = neighborhoodModel;
     this._statusModel = statusModel;
     this._userModel = userModel;
 
@@ -16,7 +16,7 @@ function NeighborhoodContainer (neighborhoodModel, statusModel, userModel) {
         currentNeighborhood: null
     };
 
-    this._neighborhoodModel.on("NeighborhoodContainer:add", function (neighborhood) {
+    this._routeModel.on("NeighborhoodContainer:add", function (neighborhood) {
         self.add(neighborhood);
     });
 }
@@ -59,7 +59,7 @@ NeighborhoodContainer.prototype.setCurrentNeighborhood = function (newNeighborho
     var parameters = { oldNeighborhood: oldNeighborhood, newNeighborhood: newNeighborhood };
     this.setStatus('currentNeighborhood', newNeighborhood);
 
-    this._neighborhoodModel.trigger("NeighborhoodContainer:neighborhoodChanged", parameters);
+    this._routeModel.trigger("NeighborhoodContainer:neighborhoodChanged", parameters);
 };
 
 NeighborhoodContainer.prototype.setStatus = function (key, value) {

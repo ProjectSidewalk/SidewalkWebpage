@@ -6,11 +6,11 @@
  */
 function NeighborhoodFactory (neighborhoodModel) {
     var self = this;
-    this._neighborhoodModel = neighborhoodModel;
+    this._routeModel = neighborhoodModel;
 
-    this._neighborhoodModel.on("NeighborhoodFactory:create", function (parameters) {
+    this._routeModel.on("NeighborhoodFactory:create", function (parameters) {
         var neighborhood = self.create(parameters.regionId, parameters.layer, parameters.name);
-        self._neighborhoodModel.add(neighborhood);
+        self._routeModel.add(neighborhood);
     });
 }
 
