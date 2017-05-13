@@ -437,25 +437,27 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
          */
 
         // NEW CODE: Retrieve task from the _taskStoreByRouteIds
-        var route = routeModel.currentRoute();
-        var currentRouteId = route.getProperty("routeId");
-        var routeTasks = this.getTasksOnRoute(currentRouteId);
+        if (finishedTask) {
+            var route = routeModel.currentRoute();
+            var currentRouteId = route.getProperty("routeId");
+            var routeTasks = this.getTasksOnRoute(currentRouteId);
 
-        var finishedStreetId = finishedTask.getStreetEdgeId();
+            var finishedStreetId = finishedTask.getStreetEdgeId();
 
-        var nextStreetId = routeTasks[finishedStreetId]["next"];
-        if(nextStreetId != -1) {
-            newTask = routeTasks[nextStreetId]["task"];
-            console.log("NewTaskStreetId:" + nextStreetId);
+            var nextStreetId = routeTasks[finishedStreetId]["next"];
+            if(nextStreetId != -1) {
+                newTask = routeTasks[nextStreetId]["task"];
+                console.log("NewTaskStreetId:" + nextStreetId);
 
-            if (finishedTask) {
-                var coordinate = finishedTask.getLastCoordinate();
-                newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+                if (finishedTask) {
+                    var coordinate = finishedTask.getLastCoordinate();
+                    newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+                }
             }
-        }
-        else {
-            // End of route
-            console.log("Reached End of Route");
+            else {
+                // End of route
+                console.log("Reached End of Route");
+            }
         }
 
         return newTask;
