@@ -89,7 +89,7 @@ function Main (params) {
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
-        if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
+        //if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -155,6 +155,7 @@ function Main (params) {
 
         //Route
         var route;
+        svl.routeModel = new RouteModel();
         svl.routeContainer = new RouteContainer(svl.routeModel);
         svl.routeModel._routeContainer = svl.routeContainer;
 
@@ -193,7 +194,7 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
-        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        loadData(route, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -242,7 +243,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (route, taskContainer, missionModel, neighborhoodModel) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -251,9 +252,8 @@ function Main (params) {
         });
 
         // Fetch tasks for the route
-        var routeId = 65;
-        // neighborhood.getProperty("regionId"),
-        taskContainer.fetchTasksOnARoute(routeId, function () {
+        //var routeId = 65;
+        taskContainer.fetchTasksOnARoute(route.getProperty("routeId"), function () {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         });

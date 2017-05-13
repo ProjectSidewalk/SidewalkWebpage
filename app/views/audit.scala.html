@@ -748,12 +748,10 @@
 
             @if(route) {
                 mainParam.routeId = @route.get.routeId;
-                mainParam.regionId = @route.get.regionId;
                 mainParam.lengthMi = @route.get.route_length_mi;
                 mainParam.streetCount = '@route.get.streetCount';
             } else {
                 mainParam.routeId = 1;
-                mainParam.regionId = 1;
                 mainParam.lengthMi = 0.2;
                 mainParam.streetCount = 0;
             }

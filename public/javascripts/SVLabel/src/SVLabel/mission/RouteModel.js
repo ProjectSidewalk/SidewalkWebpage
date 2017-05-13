@@ -1,7 +1,6 @@
 /**
  * Created by manaswi on 5/12/17.
  */
-
 function RouteModel () {
     var self = this;
     this._routeContainer = null;

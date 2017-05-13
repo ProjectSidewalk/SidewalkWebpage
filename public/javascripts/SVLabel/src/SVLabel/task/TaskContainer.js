@@ -18,6 +18,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._taskStoreByRegionId = {};
+    self._taskStoreByRouteId = {};
 
     self._handleTaskFetchCompleted = function () {
         var nextTask = self.nextTask();
@@ -82,6 +83,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
+        console.log(neighborhood.getProperty("regionId"));
         var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
@@ -193,6 +195,45 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             console.error("regionId should be an integer value");
         }
     };
+
+    /**
+     * Request the server to populate tasks for a route
+     *
+     * @param routeId {number} Route id
+     * @param callback A callback function
+     * @param async {boolean}
+     */
+    self.fetchTasksOnARoute = function (routeId, callback, async) {
+        if (typeof async == "undefined") async = true;
+
+        if (typeof routeId == "number") {
+            $.ajax({
+                url: "/routes/" + routeId,
+                async: async,
+                type: 'get',
+                success: function (result) {
+                    var keys = Object.keys(result);
+                    for (var key_i = 0; key_i < keys.length; key_i++) {
+                        var streetId = keys[key_i];
+                        var routeRecord = result[streetId];
+                        var task = svl.taskFactory.create(routeRecord["task"]);
+                        if ((routeRecord["task"].features[0].properties.completed)) task.complete();
+                        routeRecord["task"] = task;
+                        storeRouteTask(routeId, streetId, routeRecord);
+                    }
+
+                    if (callback) callback();
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        } else {
+            console.error("routeId should be an integer value");
+        }
+    };
+
+
 
     /**
      * Find tasks (i.e., street edges) in the region that are connected to the given task.
@@ -435,7 +476,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      *
+     * Store a task into taskStoreByRouteId
+     * @param routeId {number} Route id
+     * @param streetId {number} Route Street Id
+     * @param routeJson {json} Route street json
+     */
+    function storeRouteTask(routeId, streetId, routeJson) {
+        if (!(routeId in self._taskStoreByRouteId)) self._taskStoreByRouteId[routeId] = {};
+        if (!(streetId in self._taskStoreByRouteId[routeId])) self._taskStoreByRouteId[routeId][streetId] = {};
+        self._taskStoreByRouteId[routeId][streetId] = routeJson;
+    }
+
+    /**
+     *
      * @param regionId
+     * @param unit
      */
     function totalLineDistanceInARegion(regionId, unit) {
         if (!unit) unit = "kilometers";
