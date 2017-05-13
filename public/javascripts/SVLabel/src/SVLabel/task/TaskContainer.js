@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -79,15 +79,29 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     self.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
-        var neighborhood = neighborhoodModel.currentNeighborhood();
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
-        console.log(neighborhood.getProperty("regionId"));
+        /* Old Code: Dynamic task generation
+        var neighborhood = neighborhoodModel.currentNeighborhood();
         var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
+            }
+        }*/
+
+        /* New Code: Route based task generation */
+        var route = routeModel.currentRoute();
+        var currentRoute = route.getProperty("routeId");
+        var routeTasks = self.getTasksOnRoute(currentRoute);
+        var routeStreets = Object.keys(routeTasks);
+        for (var i = 0, len = routeStreets.length;  i < len; i++) {
+            var streetId = routeStreets[i];
+            var t = routeTasks[streetId]["task"];
+            if (task.getStreetEdgeId() == t.getStreetEdgeId()) {
+                t.complete();
+                break;
             }
         }
 
@@ -221,6 +235,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                         routeRecord["task"] = task;
                         storeRouteTask(routeId, streetId, routeRecord);
                     }
+                    console.log(self._taskStoreByRouteId);
 
                     if (callback) callback();
                 },
@@ -372,6 +387,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return regionId in self._taskStoreByRegionId ? self._taskStoreByRegionId[regionId] : null;
     };
 
+    this.getTasksOnRoute = function (routeId) {
+        return routeId in self._taskStoreByRouteId ? self._taskStoreByRouteId[routeId] : null;
+    };
+
     /**
      * Check if the current task is the first task in this session
      * @returns {boolean}
@@ -395,10 +414,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.nextTask = function (finishedTask) {
         var newTask;
-        var neighborhood = neighborhoodModel.currentNeighborhood();
-        var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
-        // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
+        /*
+        // OLD CODE: for dynamic task creation
+
+         var neighborhood = neighborhoodModel.currentNeighborhood();
+         var currentNeighborhoodId = neighborhood.getProperty("regionId");
+
+         // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
         // If there aren't any connected tasks that are incomplete, randomly select a task from
         // any of the incomplete tasks in the neighborhood. If that is empty, return null.
         var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
@@ -409,12 +432,30 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             });
             if (candidateTasks.length == 0) return null;
         }
-
         // Return the new task. Change the starting point of the new task accordingly.
         newTask = _.shuffle(candidateTasks)[0];
-        if (finishedTask) {
-            var coordinate = finishedTask.getLastCoordinate();
-            newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+         */
+
+        // NEW CODE: Retrieve task from the _taskStoreByRouteIds
+        var route = routeModel.currentRoute();
+        var currentRouteId = route.getProperty("routeId");
+        var routeTasks = this.getTasksOnRoute(currentRouteId);
+
+        var finishedStreetId = finishedTask.getStreetEdgeId();
+
+        var nextStreetId = routeTasks[finishedStreetId]["next"];
+        if(nextStreetId != -1) {
+            newTask = routeTasks[nextStreetId]["task"];
+            console.log("NewTaskStreetId:" + nextStreetId);
+
+            if (finishedTask) {
+                var coordinate = finishedTask.getLastCoordinate();
+                newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+            }
+        }
+        else {
+            // End of route
+            console.log("Reached End of Route");
         }
 
         return newTask;
@@ -522,7 +563,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
-     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
+     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance
+     * traveled in the current neighborhood.
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {

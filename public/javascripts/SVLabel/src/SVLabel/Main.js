@@ -89,7 +89,7 @@ function Main (params) {
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
-        //if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
+        if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -155,7 +155,6 @@ function Main (params) {
 
         //Route
         var route;
-        svl.routeModel = new RouteModel();
         svl.routeContainer = new RouteContainer(svl.routeModel);
         svl.routeModel._routeContainer = svl.routeContainer;
 
@@ -163,10 +162,11 @@ function Main (params) {
         route = svl.routeFactory.create(params.routeId, params.regionId, params.lengthMi, params.streetCount);
         svl.routeContainer.add(route);
         svl.routeContainer.setCurrentRoute(route);
-
+        
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.routeModel, svl.navigationModel, svl.neighborhoodModel,
+                svl.streetViewService, svl, svl.taskModel, svl.tracker);
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
