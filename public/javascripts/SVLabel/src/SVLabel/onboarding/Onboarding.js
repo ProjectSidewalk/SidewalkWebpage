@@ -122,52 +122,66 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
      * @param parameters {object} parameters
      * @returns {drawArrow}
      */
-    function drawArrowAnimate (x1, y1, x2, y2, parameters) {
-            // Yellow Arrow
-            console.log("hello");
+    function drawArrowAnimate () {
+        if(!flag) {
+            // clear the arrow
             if (ctx) {
+                ctx.save();
+                ctx.clearRect(0, 200, 400, 400);
+                ctx.restore();
+            }
+            flag = !flag;
+        }
+        else {
+            // draw the arrow
+            if (ctx) {
+                var x1 = 70;
+                var y1 = 350;
+                var x2 = 30;
+                var y2 = 350;
                 var lineWidth = 1,
-                    fill = 'rgba(255,255,255,1)',
+                    fill = 'rgba(255,255,0,0.8)',
                     lineCap = 'round',
                     arrowWidth = 6,
                     strokeStyle  = 'rgba(0, 0, 0, 1)',
                     dx, dy, theta;
 
-                if ("fill" in parameters && parameters.fill) fill = parameters.fill;
 
                 dx = x2 - x1;
                 dy = y2 - y1;
                 theta = Math.atan2(dy, dx);
 
                 ctx.save();
-                // ctx.fillStyle = fill;
-                // ctx.strokeStyle = strokeStyle;
-                // ctx.lineWidth = lineWidth;
-                // ctx.lineCap = lineCap;
-                //
-                // ctx.translate(x1, y1);
-                // ctx.beginPath();
-                // ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
-                // ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
-                //
-                // // Draw an arrow head
-                // ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
-                // ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
-                // ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
-                //
-                // ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
-                // ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
-                //
-                // ctx.moveTo(1 , -7);
-                // ctx.lineTo(1 , 7);
+                ctx.fillStyle = fill;
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = lineCap;
+
+                ctx.translate(x1, y1);
+                ctx.beginPath();
+                ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+
+                // Draw an arrow head
+                ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+                ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+
+                ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+                ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+
+                ctx.moveTo(1 , -7);
+                ctx.lineTo(1 , 7);
 
                 ctx.fill();
                 ctx.stroke();
                 ctx.closePath();
                 ctx.restore();
             }
-            return this.drawArrowAnimate;
+            flag = !flag;
+        }
 
+        //return this.drawArrowAnimate;
     }
 
     /**
@@ -457,10 +471,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 });
             }
         }
-        if (myTimer) {
-            console.log("hi");
-            clearInterval(myTimer);
-        }
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.action == "Introduction") {
@@ -533,21 +543,22 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var dis_tolerance = 20;
 
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
-        //myTimer=setInterval(drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' }),500);
-        var arrowColor = 'rgba(255,255,0,0.8)';
 
         var callback = function () {
 
             var pov = mapService.getPov();
-            // console.log("state.properties.heading: " + state.properties.heading);
-            //console.log("previous distance: " + pre_dis);
-            //console.log("pov.heading: " + pov.heading);
 
             var dis = pov.heading - original_pov_heading;
             if (dis < 0){
                 if(pre_dis<=0){
                     clearArrow(70,350,30,350);
                     iswrong = false;
+
+                    if (myTimer) {
+                        console.log("hi");
+                        clearInterval(myTimer);
+                        myTimer = null;
+                    }
                 }
                 // normal drag
                 if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
@@ -555,19 +566,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     if (listener) google.maps.event.removeListener(listener);
                     handAnimation.hideGrabAndDragAnimation(interval);
                     next(state.transition);
-                }
-                if(iswrong) {
-                    // arrowColor = (arrowColor === 'rgba(255,255,0,0.8)')?'rgba(255,0,0,0.8)':'rgba(255,255,0,0.8)';
-                    // console.log("arrow color:" + arrowColor);
-                    // drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                    if(!flag){
-                        drawArrowAnimate(70,350,30,350,{ "fill": 'rgba(255,0,0,0.8)' });
-                        flag = !flag;
-                    }
-                    else {
-                        drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                        flag = !flag;
-                    }
                 }
             }
             else if (dis > 0 && pre_dis > 0 && dis <= pre_dis) {
@@ -578,45 +576,21 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     handAnimation.hideGrabAndDragAnimation(interval);
                     next(state.transition);
                 }
-                if(iswrong) {
-                    // arrowColor = (arrowColor === 'rgba(255,255,0,0.8)')?'rgba(255,0,0,0.8)':'rgba(255,255,0,0.8)';
-                    // console.log("arrow color:" + arrowColor);
-                    // drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                    if(!flag){
-                        drawArrowAnimate(70,350,30,350,{ "fill": 'rgba(255,0,0,0.8)' });
-                        flag = !flag;
-                    }
-                    else {
-                        drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                        flag = !flag;
-                    }
-                }
-
             }
             else if (dis > 0 && pre_dis > 0 && dis > pre_dis) {
                 if (dis < dis_tolerance) {
                     // drag to the wrong direction but allow panning within tolerance
-                    if(iswrong) {
-                        // arrowColor = (arrowColor === 'rgba(255,255,0,0.8)')?'rgba(255,0,0,0.8)':'rgba(255,255,0,0.8)';
-                        // console.log("arrow color:" + arrowColor);
-                        // drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                        if(!flag){
-                            drawArrowAnimate(70,350,30,350,{ "fill": 'rgba(255,0,0,0.8)' });
-                            flag = !flag;
-                        }
-                        else {
-                            drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                            flag = !flag;
-                        }
-                    }
+
                 }
                 else if (pov.heading%360 >= (dis_tolerance + original_pov_heading)) {
                     // drag to the wrong direction and stop panning
                     // show the warning (arrow + labeling)
-                    console.log("warning with an arrow!");
-                    //myTimer=setInterval(drawArrowAnimate(70, 350, 30, 350, { "fill": 'rgba(255,255,0,0.8)' }),50);
-                    iswrong = true;
-                    drawArrow(70, 350, 30, 350, { "fill": arrowColor });
+
+                    if(!iswrong) {
+                        // set a timer to anmiate the arrow
+                        myTimer=setInterval(drawArrowAnimate,500);
+                        iswrong = true;
+                    }
                 }
             }
             else if (dis >0 && pre_dis <= 0) {
@@ -625,19 +599,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     if (listener) google.maps.event.removeListener(listener);
                     handAnimation.hideGrabAndDragAnimation(interval);
                     next(state.transition);
-                }
-                if(iswrong) {
-                    // arrowColor = (arrowColor === 'rgba(255,255,0,0.8)')?'rgba(255,0,0,0.8)':'rgba(255,255,0,0.8)';
-                    // console.log("arrow color:" + arrowColor);
-                    // drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                    if(!flag){
-                        drawArrowAnimate(70,350,30,350,{ "fill": 'rgba(255,0,0,0.8)' });
-                        flag = !flag;
-                    }
-                    else {
-                        drawArrow(70, 350, 30, 350, { "fill": arrowColor });
-                        flag = !flag;
-                    }
                 }
             }
             pre_dis = dis;
