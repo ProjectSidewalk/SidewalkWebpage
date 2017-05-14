@@ -25,13 +25,22 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
         self.initNextTask(nextTask);
     };
 
-    self.getFinishedAndInitNextTask = function (finished) {
-        var newTask = self.nextTask(finished);
-        if (!newTask) {
-            var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+    self.getFinishedAndInitNextTask = function (finished, label) {
+        if (label === undefined) label = 'mission';
+
+        var newTask;
+        if (label != 'onboarding') {
+            newTask = self.nextTask(finished);
+            if (!newTask) {
+                console.log("Finished task:" + finished.getStreetEdgeId());
+                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            } else {
+                svl.taskContainer.initNextTask(newTask);
+            }
         } else {
+            newTask = finished;
             svl.taskContainer.initNextTask(newTask);
         }
         return newTask;
@@ -82,22 +91,22 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
-        /* Old Code: Dynamic task generation
+        // Old Code: Dynamic task generation
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
             }
-        }*/
+        }
 
         /* New Code: Route based task generation */
         var route = routeModel.currentRoute();
         var currentRoute = route.getProperty("routeId");
         var routeTasks = self.getTasksOnRoute(currentRoute);
         var routeStreets = Object.keys(routeTasks);
-        for (var i = 0, len = routeStreets.length;  i < len; i++) {
-            var streetId = routeStreets[i];
+        for (var j = 0, len1 = routeStreets.length;  j < len1; j++) {
+            var streetId = routeStreets[j];
             var t = routeTasks[streetId]["task"];
             if (task.getStreetEdgeId() == t.getStreetEdgeId()) {
                 t.complete();

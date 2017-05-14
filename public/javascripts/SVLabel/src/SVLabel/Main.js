@@ -162,7 +162,7 @@ function Main (params) {
         route = svl.routeFactory.create(params.routeId, params.regionId, params.lengthMi, params.streetCount);
         svl.routeContainer.add(route);
         svl.routeContainer.setCurrentRoute(route);
-        
+
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
             svl.taskContainer = new TaskContainer(svl.routeModel, svl.navigationModel, svl.neighborhoodModel,
@@ -194,7 +194,7 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
-        loadData(route, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        loadData(neighborhood, route, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -243,7 +243,7 @@ function Main (params) {
         });
     }
 
-    function loadData (route, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (neighborhood, route, taskContainer, missionModel, neighborhoodModel) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -251,8 +251,13 @@ function Main (params) {
             handleDataLoadComplete();
         });
 
+        // Fetch tasks for the region
+        taskContainer.fetchTasksInARegion(neighborhood.getProperty("regionId"), function () {
+            loadingTasksCompleted = true;
+            handleDataLoadComplete();
+        });
+
         // Fetch tasks for the route
-        //var routeId = 65;
         taskContainer.fetchTasksOnARoute(route.getProperty("routeId"), function () {
             loadingTasksCompleted = true;
             handleDataLoadComplete();

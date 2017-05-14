@@ -76,6 +76,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+    *
+    * @param routeId
+    * @return
+    */
   def getTasksOnARoute(routeId: Int) = UserAwareAction.async { implicit request =>
 
     val routeStreets = RouteStreetTable.getRouteStreets(routeId)
