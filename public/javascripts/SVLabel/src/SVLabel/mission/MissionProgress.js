@@ -70,7 +70,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         this._completeTheCurrentMission(mission, neighborhood);
         this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
-        this._updateTheCurrentMission(mission, neighborhood);
+        if(mission.getProperty("label") != "mturk-mission") {
+            this._updateTheCurrentMission(mission, neighborhood);
+        }
 
         // While the mission complete modal is open, after the **neighborhood** is 100% audited,
         // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
@@ -90,6 +92,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         tracker.push(
             "MissionComplete",
             {
+                missionId: mission.getProperty("missionId"),
                 missionLabel: mission.getProperty("label"),
                 missionDistance: mission.getProperty("distance"),
                 neighborhoodId: neighborhood.getProperty("regionId")
