@@ -50,10 +50,12 @@ RouteModel.prototype.getRoute = function (routeId) {
     return this._routeContainer.get(routeId);
 };
 
-RouteModel.prototype.routeCompleted = function (currentRouteId) {
+RouteModel.prototype.routeCompleted = function (currentRouteId, mission, neighborhood) {
     if (!this._routeContainer) return;
     this.trigger("Route:completed", {
-        completedRouteId: currentRouteId
+        completedRouteId: currentRouteId,
+        mission: mission,
+        neighborhood: neighborhood
     });
     this.isRouteCompleted = true;
 };

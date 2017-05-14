@@ -91,7 +91,8 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
-        // Old Code: Dynamic task generation
+
+        /* Old Code: Dynamic task generation */
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {

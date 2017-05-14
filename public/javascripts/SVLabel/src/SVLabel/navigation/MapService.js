@@ -7,7 +7,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function MapService (canvas, neighborhoodModel, uiMap, params) {
+function MapService (canvas, neighborhoodModel, routeModel, uiMap, params) {
     var self = { className: 'Map' },
         _canvas = canvas,
         mapIconInterval,
@@ -762,6 +762,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
     }
 
+    function finishRoute(mission, neighborhood) {
+        var currentRoute = svl.routeContainer.getCurrentRoute();
+        routeModel.routeCompleted(currentRoute.getProperty("routeId"), mission, neighborhood);
+    }
+
     function finishCurrentTaskBeforeJumping(mission){
         if (mission === undefined) {
             mission = missionJump;
@@ -822,7 +827,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             }
             if (!nextTask) {
-                finishNeighborhood();
+                // OLD
+                //finishNeighborhood();
+
+                //NEW
+                finishRoute(mission, neighborhood);
             }
         }
     }

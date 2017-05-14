@@ -16,6 +16,7 @@ function Main (params) {
     // Initialize things that needs data loading.
     var loadingAnOboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
+    var loadingRoutesCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
 
@@ -113,7 +114,7 @@ function Main (params) {
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
+        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.routeModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
@@ -173,7 +174,7 @@ function Main (params) {
         // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel, svl.taskModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
+            svl.neighborhoodModel, svl.routeModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
             svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
@@ -259,7 +260,7 @@ function Main (params) {
 
         // Fetch tasks for the route
         taskContainer.fetchTasksOnARoute(route.getProperty("routeId"), function () {
-            loadingTasksCompleted = true;
+            loadingRoutesCompleted = true;
             handleDataLoadComplete();
         });
 
@@ -399,7 +400,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted &&
+        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingRoutesCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
