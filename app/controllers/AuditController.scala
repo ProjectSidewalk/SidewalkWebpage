@@ -100,7 +100,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         val route = None
 
-        val task: NewTask = if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user) else AuditTaskTable.selectANewTask(user.username)
+        val task: NewTask = if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user)
+        else AuditTaskTable.selectANewTask(user.username)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None =>
 
@@ -116,13 +117,18 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
             println(routeStreetId.getOrElse(0))
 
+            // Save HIT assignment details
+            val conditionId = 1
+            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+            val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+
 
             // Load the first task from the selected route
             val regionId = route.get.regionId
             val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
             val regionName = region.get.name
             println(f"RegionName: $regionName%s")
-            val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0))
+            val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
             print("Task: ")
             println(task)
 
@@ -133,10 +139,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // TODO: Find how to append new routes to existing turker
             //TurkerTable.save(turker)
 
-            // Save HIT assignment details
-            val conditionId = 1
-            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
-            AMTAssignmentTable.save(asg)
 
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
           case "Preview" =>
@@ -190,7 +192,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     val route = None
-    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Option(0))
     request.identity match {
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))

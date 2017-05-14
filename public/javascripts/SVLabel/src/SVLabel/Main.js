@@ -86,6 +86,8 @@ function Main (params) {
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
+        // AMT Assignment Id
+        svl.amtAssignmentId = params.amtAssignmentId;
 
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();

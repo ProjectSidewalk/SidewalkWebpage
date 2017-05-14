@@ -56,7 +56,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId, Option(0))
     Future.successful(Ok(task.toJSON))
   }
 
@@ -150,15 +150,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-//          // Insert assignment (if any)
-//          val amtAssignmentId: Option[Int] = data.assignment match {
-//            case Some(asg) =>
-//              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart),
-//                None, '', 0, '', false)
-//              Some(AMTAssignmentTable.save(newAsg))
-//            case _ => None
-//          }
-          val amtAssignmentId = None
+          // Insert assignment (if any)
+          val amtAssignmentId: Option[Int] = data.assignment match {
+            case Some(asg) =>
+              val newAsg = Option(asg.assignmentId)
+              newAsg
+            case _ => None
+          }
+          //val asgRecord: Option[AMTAssignmentSubmission] = data.assignment
+          //val amtAssignmentId: Option[Int] = Option(asgRecord.get.assignmentId)
+          println(amtAssignmentId)
 
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count

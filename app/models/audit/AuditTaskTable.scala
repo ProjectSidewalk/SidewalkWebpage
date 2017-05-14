@@ -22,7 +22,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
-case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)  {
+case class NewTask(edgeId: Int, amtAssignmentId: Option[Int], geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)  {
   /**
     * This method converts the data into the GeoJSON format
     * @return
@@ -33,6 +33,7 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
     val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
     val properties = Json.obj(
       "street_edge_id" -> edgeId,
+      "assignment_id" -> amtAssignmentId,
       "x1" -> x1,
       "y1" -> y1,
       "x2" -> x2,
@@ -88,7 +89,7 @@ object AuditTaskTable {
     val y2 = r.nextFloat
     val taskStart = r.nextTimestamp
     val completed = r.nextBooleanOption.getOrElse(false)
-    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completed)
+    NewTask(edgeId, Option(0), geom, x1, y1, x2, y2, taskStart, completed)
   })
 
   val db = play.api.db.slick.DB
@@ -331,7 +332,7 @@ object AuditTaskTable {
     // Increment the assignment count and return the task
     val e: StreetEdge = Random.shuffle(edges).head
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
+    NewTask(e.streetEdgeId, Option(0), e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
 
   /**
@@ -351,16 +352,17 @@ object AuditTaskTable {
     val e: StreetEdge = Random.shuffle(edges).head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
+    NewTask(e.streetEdgeId, Option(0), e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
 
   /**
     * Get a new task specified by the street edge id.
     *
     * @param streetEdgeId Street edge id
+    * @param amtAssignmentId AssignmentID from mTurk - Temp addition
     * @return
     */
-  def selectANewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int, amtAssignmentId: Option[Int]): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val edges = (for {
@@ -371,7 +373,7 @@ object AuditTaskTable {
 
     val e: StreetEdge = edges.head
     StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-    NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
+    NewTask(e.streetEdgeId, amtAssignmentId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
   }
 
 
@@ -398,7 +400,7 @@ object AuditTaskTable {
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
+        NewTask(e.streetEdgeId, Option(0), e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
       case _ => selectANewTask // The list is empty for whatever the reason
     }
   }
@@ -443,7 +445,7 @@ object AuditTaskTable {
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
+        NewTask(e.streetEdgeId, Option(0), e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
       case _ =>
         selectANewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
     }
@@ -467,7 +469,7 @@ object AuditTaskTable {
     val newTasks = streetEdges.filter(_.streetEdgeId inSet streets).list
 
     newTasks.map(task =>
-      NewTask(task.streetEdgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, false)
+      NewTask(task.streetEdgeId, Option(0), task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, false)
     )
   }
 
@@ -505,7 +507,7 @@ object AuditTaskTable {
     val uniqueTasks = for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield tasks.head
 
     uniqueTasks.toList.map(task =>
-      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+      NewTask(task.edgeId, Option(0), task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
     )
   }
 
@@ -530,7 +532,7 @@ object AuditTaskTable {
     val newTasks = selectTaskQuery(regionId).list
 
     newTasks.map(task =>
-      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+      NewTask(task.edgeId, Option(0), task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
     )
   }
 
@@ -574,7 +576,7 @@ object AuditTaskTable {
     }
 
     uniqueTasks.toList.map(task =>
-      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
+      NewTask(task.edgeId, Option(0), task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completed)
     )
   }
 

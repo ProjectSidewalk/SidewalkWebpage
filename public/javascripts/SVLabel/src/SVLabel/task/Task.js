@@ -19,7 +19,8 @@ function Task (geojson, currentLat, currentLng) {
     };
     var properties = {
         auditTaskId: null,
-        streetEdgeId: null
+        streetEdgeId: null,
+        assignmentId: null
     };
 
     /**
@@ -31,6 +32,7 @@ function Task (geojson, currentLat, currentLng) {
     this.initialize = function (geojson, currentLat, currentLng) {
         _geojson = geojson;
 
+        self.setProperty("assignmentId", _geojson.features[0].properties.assignment_id);
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
 
         if (_geojson.features[0].properties.completed) {
@@ -273,6 +275,10 @@ function Task (geojson, currentLat, currentLng) {
 
     this.getAuditTaskId = function () {
         return properties.auditTaskId;
+    };
+
+    this.getAssignmentId = function () {
+        return properties.assignmentId;
     };
 
     /**

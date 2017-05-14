@@ -750,6 +750,10 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
+            @if(task) {
+                mainParam.amtAssignmentId = @task.get.amtAssignmentId;
+            }
+
             @if(route) {
                 mainParam.routeId = @route.get.routeId;
                 mainParam.lengthMi = @route.get.route_length_mi;

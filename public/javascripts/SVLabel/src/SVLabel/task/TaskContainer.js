@@ -204,6 +204,8 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
                 success: function (result) {
                     var task;
                     for (var i = 0; i < result.length; i++) {
+                        result[i].features[0].properties.assignment_id = svl.amtAssignmentId;
+                        console.log(result[i]);
                         task = svl.taskFactory.create(result[i]);
                         if ((result[i].features[0].properties.completed)) task.complete();
                         storeTask(regionId, task);
@@ -240,6 +242,7 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
                     for (var key_i = 0; key_i < keys.length; key_i++) {
                         var streetId = keys[key_i];
                         var routeRecord = result[streetId];
+                        routeRecord["task"].features[0].properties.assignment_id = svl.amtAssignmentId;
                         var task = svl.taskFactory.create(routeRecord["task"]);
                         if ((routeRecord["task"].features[0].properties.completed)) task.complete();
                         routeRecord["task"] = task;
