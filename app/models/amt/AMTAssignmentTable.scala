@@ -36,8 +36,8 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def condition: ForeignKeyQuery[AMTConditionTable, AMTCondition] =
     foreignKey("amt_assignment_condition_id_fkey", conditionId, TableQuery[AMTConditionTable])(_.amtConditionId)
 
-  def turker: ForeignKeyQuery[TurkerTable, Turker] =
-    foreignKey("amt_assignment_turker_id_fkey", turkerId, TableQuery[TurkerTable])(_.turkerId)
+//  def turker: ForeignKeyQuery[TurkerTable, Turker] =
+//    foreignKey("amt_assignment_turker_id_fkey", turkerId, TableQuery[TurkerTable])(_.turkerId)
 }
 
 /**

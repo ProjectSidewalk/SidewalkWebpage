@@ -198,7 +198,7 @@ if False:
 
 # In[ ]:
 
-def find_path(seed_edge, adjacency_list, adjacency_list_region, adjacency_list_streetedge, d_m=0.19, d_del_low=0.01, d_del_high=0.01):
+def find_path(seed_edge, adjacency_list, adjacency_list_region, adjacency_list_streetedge, d_m=0.19, d_del_low=0.01, d_del_high=0.0):
 
     # d_m is the mission distance. By default it is 0.19 miles or 1000 ft
     # d_del is the allowed deviated from the mission distance for a path in miles
