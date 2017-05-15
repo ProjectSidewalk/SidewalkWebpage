@@ -96,13 +96,12 @@ if __name__ == '__main__':
 
     # HIT Parameters
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
-    title = "[TESTHIT_R0] University of Maryland: Help make our sidewalks more"
-    " accessible for wheelchair users with Google Maps"
+    title = "[TEST] Help make our sidewalks more accessible for wheelchair users with Google Maps"
 
-    description = "Please help us improve the accessibility of our cities for "
-    "wheelchair users. In this task, you will virtually walk through city streets "
-    "in Washington DC to find and label accessibility features (e.g., "
-    "curb ramps) and problems (e.g., degraded sidewalks, missing curb ramps) "
+    description = "Please help us improve the accessibility of our cities for " + \
+    "wheelchair users. In this task, you will virtually walk through city streets " + \
+    "in Washington DC to find and label accessibility features (e.g., " + \
+    "curb ramps) and problems (e.g., degraded sidewalks, missing curb ramps) " + \
     "using our custom tool called Project Sidewalk."
 
     keywords = "Accessibility, Americans with Disabilities, Wheelchairs, Image Labeling,"
@@ -136,7 +135,8 @@ if __name__ == '__main__':
 
         t_before_creation = datetime.now()
 
-        specific_routes = [55, 94, 164, 220, 253, 342]
+        specific_routes = [55, 164, 220, 253, 342]
+        specific_routes = [55]
         # specific_routes = routes[0: min(number_of_routes, len(routes))]
         number_of_routes =  len(specific_routes)
         for route in specific_routes:
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                 Title=title,
                 LifetimeInSeconds=7200,
                 AssignmentDurationInSeconds=3600,
-                MaxAssignments=5,
+                MaxAssignments=1,
                 Description=description,
                 Keywords=keywords,
                 Question=external_question,
