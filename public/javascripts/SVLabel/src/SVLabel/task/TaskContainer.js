@@ -8,7 +8,7 @@
  * @constructor
  * @memberof svl
  */
-function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -18,19 +18,28 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._taskStoreByRegionId = {};
+    self._taskStoreByRouteId = {};
 
     self._handleTaskFetchCompleted = function () {
         var nextTask = self.nextTask();
         self.initNextTask(nextTask);
     };
 
-    self.getFinishedAndInitNextTask = function (finished) {
-        var newTask = self.nextTask(finished);
-        if (!newTask) {
-            var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+    self.getFinishedAndInitNextTask = function (finished, label) {
+        if (label === undefined) label = 'mission';
+
+        var newTask;
+        if (label != 'onboarding') {
+            newTask = self.nextTask(finished);
+            if (!newTask) {
+                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            } else {
+                svl.taskContainer.initNextTask(newTask);
+            }
         } else {
+            newTask = finished;
             svl.taskContainer.initNextTask(newTask);
         }
         return newTask;
@@ -78,14 +87,30 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     self.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
-        var neighborhood = neighborhoodModel.currentNeighborhood();
 
         task.complete();
         // Go through the tasks and mark the completed task as isCompleted=true
+
+        /* Old Code: Dynamic task generation */
+        var neighborhood = neighborhoodModel.currentNeighborhood();
         var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
+            }
+        }
+
+        /* New Code: Route based task generation */
+        var route = routeModel.currentRoute();
+        var currentRoute = route.getProperty("routeId");
+        var routeTasks = self.getTasksOnRoute(currentRoute);
+        var routeStreets = Object.keys(routeTasks);
+        for (var j = 0, len1 = routeStreets.length;  j < len1; j++) {
+            var streetId = routeStreets[j];
+            var t = routeTasks[streetId]["task"];
+            if (task.getStreetEdgeId() == t.getStreetEdgeId()) {
+                t.complete();
+                break;
             }
         }
 
@@ -178,6 +203,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 success: function (result) {
                     var task;
                     for (var i = 0; i < result.length; i++) {
+                        result[i].features[0].properties.assignment_id = svl.amtAssignmentId;
                         task = svl.taskFactory.create(result[i]);
                         if ((result[i].features[0].properties.completed)) task.complete();
                         storeTask(regionId, task);
@@ -193,6 +219,46 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             console.error("regionId should be an integer value");
         }
     };
+
+    /**
+     * Request the server to populate tasks for a route
+     *
+     * @param routeId {number} Route id
+     * @param callback A callback function
+     * @param async {boolean}
+     */
+    self.fetchTasksOnARoute = function (routeId, callback, async) {
+        if (typeof async == "undefined") async = true;
+
+        if (typeof routeId == "number") {
+            $.ajax({
+                url: "/routes/" + routeId,
+                async: async,
+                type: 'get',
+                success: function (result) {
+                    var keys = Object.keys(result);
+                    for (var key_i = 0; key_i < keys.length; key_i++) {
+                        var streetId = keys[key_i];
+                        var routeRecord = result[streetId];
+                        routeRecord["task"].features[0].properties.assignment_id = svl.amtAssignmentId;
+                        var task = svl.taskFactory.create(routeRecord["task"]);
+                        if ((routeRecord["task"].features[0].properties.completed)) task.complete();
+                        routeRecord["task"] = task;
+                        storeRouteTask(routeId, streetId, routeRecord);
+                    }
+
+                    if (callback) callback();
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        } else {
+            console.error("routeId should be an integer value");
+        }
+    };
+
+
 
     /**
      * Find tasks (i.e., street edges) in the region that are connected to the given task.
@@ -331,6 +397,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return regionId in self._taskStoreByRegionId ? self._taskStoreByRegionId[regionId] : null;
     };
 
+    this.getTasksOnRoute = function (routeId) {
+        return routeId in self._taskStoreByRouteId ? self._taskStoreByRouteId[routeId] : null;
+    };
+
     /**
      * Check if the current task is the first task in this session
      * @returns {boolean}
@@ -354,10 +424,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.nextTask = function (finishedTask) {
         var newTask;
-        var neighborhood = neighborhoodModel.currentNeighborhood();
-        var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
-        // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
+        /*
+        // OLD CODE: for dynamic task creation
+
+         var neighborhood = neighborhoodModel.currentNeighborhood();
+         var currentNeighborhoodId = neighborhood.getProperty("regionId");
+
+         // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
         // If there aren't any connected tasks that are incomplete, randomly select a task from
         // any of the incomplete tasks in the neighborhood. If that is empty, return null.
         var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
@@ -368,12 +442,27 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             });
             if (candidateTasks.length == 0) return null;
         }
-
         // Return the new task. Change the starting point of the new task accordingly.
         newTask = _.shuffle(candidateTasks)[0];
+         */
+
+        // NEW CODE: Retrieve task from the _taskStoreByRouteIds
         if (finishedTask) {
-            var coordinate = finishedTask.getLastCoordinate();
-            newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+            var route = routeModel.currentRoute();
+            var currentRouteId = route.getProperty("routeId");
+            var routeTasks = this.getTasksOnRoute(currentRouteId);
+
+            var finishedStreetId = finishedTask.getStreetEdgeId();
+
+            var nextStreetId = routeTasks[finishedStreetId]["next"];
+            if(nextStreetId != -1) {
+                newTask = routeTasks[nextStreetId]["task"];
+
+                if (finishedTask) {
+                    var coordinate = finishedTask.getLastCoordinate();
+                    newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+                }
+            }
         }
 
         return newTask;
@@ -435,7 +524,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      *
+     * Store a task into taskStoreByRouteId
+     * @param routeId {number} Route id
+     * @param streetId {number} Route Street Id
+     * @param routeJson {json} Route street json
+     */
+    function storeRouteTask(routeId, streetId, routeJson) {
+        if (!(routeId in self._taskStoreByRouteId)) self._taskStoreByRouteId[routeId] = {};
+        if (!(streetId in self._taskStoreByRouteId[routeId])) self._taskStoreByRouteId[routeId][streetId] = {};
+        self._taskStoreByRouteId[routeId][streetId] = routeJson;
+    }
+
+    /**
+     *
      * @param regionId
+     * @param unit
      */
     function totalLineDistanceInARegion(regionId, unit) {
         if (!unit) unit = "kilometers";
@@ -467,7 +570,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
-     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
+     * Todo. Fix this. The function name should be clear that this updates the global distance rather than the distance
+     * traveled in the current neighborhood.
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {

@@ -1,8 +1,9 @@
 @import models.user.User
+@import models.route.Route
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], route: Option[Route], user: Option[User] = None)
 
 @main(title) {
     @navbar(user, Some("/audit"))
@@ -22,10 +23,12 @@
                         Sound
                     </div>
                     <div class="spacer10"></div>
+                    <!--
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
                         Jump
                     </div>
+                    -->
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
@@ -636,6 +639,7 @@
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
+            var taskId = @Html(task.get.edgeId.toString);
 
             var geojson = @Html(task.get.toJSON.toString);
             var lat1 = geojson.features[0].geometry.coordinates[0][1];
@@ -644,9 +648,12 @@
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
             if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+            if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
+
             svl.taskModel = new TaskModel();
             svl.taskFactory = new TaskFactory(svl.taskModel);
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.routeModel, svl.navigationModel, svl.neighborhoodModel,
+                    streetViewService, svl, svl.taskModel, svl.tracker);
 
             // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
@@ -710,6 +717,11 @@
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
 
+            @if(task) {
+                mainParam.amtAssignmentId = @task.get.amtAssignmentId;
+                formParam.amtAssignmentId = @task.get.amtAssignmentId;
+            }
+
             // Mturk specific parameters
             formParam.hitId = util.getURLParameter('hitId');
             formParam.assignmentId = util.getURLParameter('assignmentId');
@@ -739,6 +751,16 @@
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
+
+            @if(route) {
+                mainParam.routeId = @route.get.routeId;
+                mainParam.lengthMi = @route.get.route_length_mi;
+                mainParam.streetCount = '@route.get.streetCount';
+            } else {
+                mainParam.routeId = 1;
+                mainParam.lengthMi = 0.2;
+                mainParam.streetCount = 0;
+            }
 
             @if(region) {
                 mainParam.regionId = @region.get.regionId;

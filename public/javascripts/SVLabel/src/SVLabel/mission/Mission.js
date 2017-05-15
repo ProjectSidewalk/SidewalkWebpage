@@ -50,7 +50,7 @@ function Mission(parameters) {
                 completionMessage = "Good job! You have completed the first mission. " +
                     "Keep making the city more accessible!";
                 badgeURL = svl.rootDirectory + "/img/misc/BadgeInitialMission.png";
-            } else if (parameters.label == "distance-mission") {
+            } else if (parameters.label == "distance-mission" || parameters.label == "mturk-mission") {
                 var distance = parameters.distance;
                 var distanceString = imperialDistance();
 

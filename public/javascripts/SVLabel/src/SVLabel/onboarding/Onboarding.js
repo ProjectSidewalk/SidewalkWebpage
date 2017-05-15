@@ -272,7 +272,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         modalMission.setMissionMessage(mission, neighborhood);
         modalMission.show();
 
-        taskContainer.getFinishedAndInitNextTask();
+        // Change to task location and then initialize task
+        mapService.setPosition(task.getStartCoordinate());
+        taskContainer.getFinishedAndInitNextTask(task, "onboarding");
     }
 
     function _onboardingStateAnnotationExists (state) {

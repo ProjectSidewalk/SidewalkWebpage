@@ -87,7 +87,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     * Return the completed missions in a JSON array
     * @return
     */
-  def getMTurkMission = UserAwareAction.async { implicit request =>
+  def getMTurkMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case _ =>
         val mission = MissionTable.selectMTurkMission

@@ -26,9 +26,9 @@ object TurkerTable{
   val db = play.api.db.slick.DB
   val turkers = TableQuery[TurkerTable]
 
-  def save(turkId: Turker): String = db.withTransaction { implicit session =>
+  def save(turker: Turker): String = db.withTransaction { implicit session =>
     val turkerId: String =
-      (turkers returning turkers.map(_.turkerId)) += turkId
+      (turkers returning turkers.map(_.turkerId)) += turker
     turkerId
   }
 }

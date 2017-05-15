@@ -16,6 +16,7 @@ function Main (params) {
     // Initialize things that needs data loading.
     var loadingAnOboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
+    var loadingRoutesCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
 
@@ -85,10 +86,13 @@ function Main (params) {
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
+        // AMT Assignment Id
+        svl.amtAssignmentId = params.amtAssignmentId;
 
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+        if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -112,7 +116,7 @@ function Main (params) {
 
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
-        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
+        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.routeModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
@@ -121,7 +125,8 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
+            svl.routeModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -152,16 +157,27 @@ function Main (params) {
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
         svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
 
+        //Route
+        var route;
+        svl.routeContainer = new RouteContainer(svl.routeModel);
+        svl.routeModel._routeContainer = svl.routeContainer;
+
+        svl.routeFactory = new RouteFactory(svl.routeModel);
+        route = svl.routeFactory.create(params.routeId, params.regionId, params.lengthMi, params.streetCount);
+        svl.routeContainer.add(route);
+        svl.routeContainer.setCurrentRoute(route);
+
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.routeModel, svl.navigationModel, svl.neighborhoodModel,
+                svl.streetViewService, svl, svl.taskModel, svl.tracker);
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel, svl.taskModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
+            svl.neighborhoodModel, svl.routeModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
             svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
@@ -182,7 +198,7 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
-        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        loadData(neighborhood, route, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -231,7 +247,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (neighborhood, route, taskContainer, missionModel, neighborhoodModel) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -239,9 +255,15 @@ function Main (params) {
             handleDataLoadComplete();
         });
 
-        // Fetch tasks in the onboarding region.
+        // Fetch tasks for the region
         taskContainer.fetchTasksInARegion(neighborhood.getProperty("regionId"), function () {
             loadingTasksCompleted = true;
+            handleDataLoadComplete();
+        });
+
+        // Fetch tasks for the route
+        taskContainer.fetchTasksOnARoute(route.getProperty("routeId"), function () {
+            loadingRoutesCompleted = true;
             handleDataLoadComplete();
         });
 
@@ -377,12 +399,11 @@ function Main (params) {
         var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
 
-
     }
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted &&
+        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingRoutesCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();

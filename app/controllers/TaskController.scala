@@ -18,6 +18,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
+import models.route.RouteStreetTable
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
@@ -55,7 +56,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId, Option(0))
     Future.successful(Ok(task.toJSON))
   }
 
@@ -71,6 +72,24 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(Ok(JsArray(tasks)))
       case None =>
         val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+    }
+  }
+
+  /**
+    *
+    * @param routeId
+    * @return
+    */
+  def getTasksOnARoute(routeId: Int) = UserAwareAction.async { implicit request =>
+
+    val routeStreets = RouteStreetTable.getRouteStreets(routeId)
+    request.identity match {
+      case Some(user) =>
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksOnARoute(routeId, routeStreets).map(_.toJSON)
+        Future.successful(Ok(JsArray(tasks)))
+      case None =>
+        val tasks: List[JsObject] = AuditTaskTable.selectTasksOnARoute(routeId, routeStreets).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
     }
   }
@@ -131,15 +150,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-//          // Insert assignment (if any)
-//          val amtAssignmentId: Option[Int] = data.assignment match {
-//            case Some(asg) =>
-//              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart),
-//                None, '', 0, '', false)
-//              Some(AMTAssignmentTable.save(newAsg))
-//            case _ => None
-//          }
-          val amtAssignmentId = None
+          // Insert assignment (if any)
+          val amtAssignmentId: Option[Int] = data.assignment match {
+            case Some(asg) =>
+              val newAsg = Option(asg.assignmentId)
+              // Update the assignment Id to be complete
+              newAsg
+            case _ => None
+          }
 
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count

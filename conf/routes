@@ -49,11 +49,16 @@ GET     /adminapi/label/:labelId                @controllers.AdminController.get
 # Task API.
 GET     /task                                   @controllers.TaskController.getTask
 GET     /task/street/:id                        @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
+GET     /tasks/route/:id                        @controllers.TaskController.getTasksOnARoute(id: Int)
 GET     /tasks                                  @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                   @controllers.TaskController.post
 
+# Route API
+POST    /route                                  @controllers.RouteController.post
+GET     /routes/:id                             @controllers.RouteController.getStreetsOnARoute(id: Int)
+
 # Missions
-GET     /missionturk                            @controllers.MissionController.getMTurkMission
+GET     /missionturk                            @controllers.MissionController.getMTurkMissions
 GET     /mission                                @controllers.MissionController.getMissions
 POST    /mission                                @controllers.MissionController.post
 

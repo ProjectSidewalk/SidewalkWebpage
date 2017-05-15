@@ -12,7 +12,8 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
+function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, routeModel,
+               panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     var properties = {
         dataStoreUrl : undefined
@@ -24,12 +25,42 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
         self.submit(data, task);
     });
 
+    routeModel.on("Route:completed", function (parameters) {
+        var route = routeModel._routeContainer.getCurrentRoute();
+
+        // Assignment Completion Data
+        var data = {
+            amt_assignment_id: params.amtAssignmentId,
+            completed: true
+        };
+
+        // Submit to the server
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/route",
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                console.log(result)
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    });
+
     /**
      * This method gathers all the data needed for submission.
      * @returns {{}}
      */
     this.compileSubmissionData = function (task) {
         var data = {};
+
+        data.assignment = {
+            amt_assignment_id: task.getAssignmentId()
+        };
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
@@ -106,7 +137,8 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             data.labels.push(temp)
         }
 
-        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
+        // Keep Street View meta data. This is particularly important to keep track of the date when the images were
+        // taken (i.e., the date of the accessibilty attributes).
         data.gsv_panoramas = [];
 
         var temp;

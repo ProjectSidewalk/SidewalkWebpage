@@ -13,8 +13,7 @@ import scala.slick.lifted.ForeignKeyQuery
 case class RouteStreet(routeStreetId: Int, length: Double,
                        routeId: Int, regionId: Int,
                        current_street_edge_id : Int, next_street_edge_id: Int,
-                       route_start_edge: Boolean, route_end_edge: Boolean,
-                       source: Int, target: Int)
+                       isStartEdge: Boolean, isEndEdge: Boolean)
 /**
   *
   */
@@ -25,15 +24,11 @@ class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"
   def regionId = column[Int]("region_id", O.NotNull)
   def current_street_edge_id = column[Int]("current_street_edge_id", O.NotNull)
   def next_street_edge_id = column[Int]("next_street_edge_id", O.NotNull)
-  def route_start_edge = column[Boolean]("route_start_edge", O.NotNull)
-  def route_end_edge = column[Boolean]("route_end_edge", O.NotNull)
-  def start_street_node = column[Int]("start_street_node", O.NotNull)
-  def end_street_node = column[Int]("end_street_node", O.NotNull)
-
+  def isStartEdge = column[Boolean]("route_start_edge", O.NotNull)
+  def isEndEdge = column[Boolean]("route_end_edge", O.NotNull)
 
   def * = (routeStreetId, length, routeId, regionId,
-    current_street_edge_id, next_street_edge_id, route_start_edge, route_end_edge,
-    start_street_node, end_street_node) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
+    current_street_edge_id, next_street_edge_id, isStartEdge, isEndEdge) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] =
     foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
@@ -51,11 +46,24 @@ class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"
   */
 object RouteStreetTable{
   val db = play.api.db.slick.DB
-  val routes = TableQuery[RouteStreetTable]
+  val routesStreets = TableQuery[RouteStreetTable]
+
+  def getRouteStreets(routeId: Int): List[RouteStreet] = db.withSession { implicit session =>
+    val routeStreet = routesStreets.filter(_.routeId === routeId).list
+    routeStreet
+  }
+
+  def getFirstRouteStreetId(routeId: Int): Option[Int] = db.withSession { implicit session =>
+    val routeStreet = routesStreets.filter(_.routeId === routeId).filter(_.isStartEdge === true).list.headOption
+    routeStreet match {
+      case Some(route) => Some(route.current_street_edge_id)
+      case _ => None
+    }
+  }
 
   def save(routeStreetId: RouteStreet): Int = db.withTransaction { implicit session =>
     val rId: Int =
-      (routes returning routes.map(_.routeId)) += routeStreetId
+      (routesStreets returning routesStreets.map(_.routeId)) += routeStreetId
     rId
   }
 }

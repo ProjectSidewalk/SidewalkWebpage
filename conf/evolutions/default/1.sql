@@ -59,8 +59,6 @@ ALTER TABLE amt_assignment
   ADD completed boolean;
 
 ALTER TABLE amt_assignment
-  ADD CONSTRAINT amt_assignment_turker_id_fkey
-    FOREIGN KEY (turker_id) REFERENCES turker(turker_id),
   ADD CONSTRAINT amt_assignment_condition_id_fkey
     FOREIGN KEY (condition_id) REFERENCES amt_condition(amt_condition_id),
   ADD CONSTRAINT amt_assignment_route_id_fkey

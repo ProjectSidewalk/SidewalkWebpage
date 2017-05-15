@@ -10,7 +10,8 @@ object TaskSubmissionFormats {
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
   case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryProblem: Option[JsBoolean], description: Option[String], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int])
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean])
-  case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
+  case class AMTAssignmentSubmission(assignmentId: Int, hitId: Option[String], assignmentEnd: Option[String])
+  case class AMTRouteAssignmentSubmission(assignmentId: Int, completed: Option[Boolean])
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
@@ -86,10 +87,15 @@ object TaskSubmissionFormats {
     )(TaskSubmission.apply _)
 
   implicit val amtAssignmentReads: Reads[AMTAssignmentSubmission] = (
-      (JsPath \ "amazon_hit_id").read[String] and
-      (JsPath \ "amazon_assignment_id").read[String] and
-      (JsPath \ "assignment_start").read[String]
+    (JsPath \ "amt_assignment_id").read[Int] and
+      (JsPath \ "hit_id").readNullable[String] and
+      (JsPath \ "assignment_end").readNullable[String]
     )(AMTAssignmentSubmission.apply _)
+
+  implicit val amtRouteAssignmentReads: Reads[AMTRouteAssignmentSubmission] = (
+    (JsPath \ "amt_assignment_id").read[Int] and
+      (JsPath \ "completed").readNullable[Boolean]
+    )(AMTRouteAssignmentSubmission.apply _)
 
   implicit val gsvLinkSubmissionReads: Reads[GSVLinkSubmission] = (
     (JsPath \ "target_gsv_panorama_id").read[String] and

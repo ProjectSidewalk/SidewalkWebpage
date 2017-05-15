@@ -11,7 +11,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
                          assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
-                         turkerId: String, conditionId: Int, routeId: Int, completed: Boolean)
+                         turkerId: String, conditionId: Int, routeId: Option[Int], completed: Boolean)
 
 /**
  *
@@ -24,7 +24,7 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def assignmentEnd = column[Option[Timestamp]]("assignment_end", O.Nullable)
   def turkerId = column[String]("turker_id", O.NotNull)
   def conditionId = column[Int]("condition_id", O.NotNull)
-  def routeId = column[Int]("route_id", O.NotNull)
+  def routeId = column[Option[Int]]("route_id", O.NotNull)
   def completed = column[Boolean]("completed", O.NotNull)
 
   def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, turkerId, conditionId, routeId,
@@ -36,8 +36,8 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def condition: ForeignKeyQuery[AMTConditionTable, AMTCondition] =
     foreignKey("amt_assignment_condition_id_fkey", conditionId, TableQuery[AMTConditionTable])(_.amtConditionId)
 
-  def turker: ForeignKeyQuery[TurkerTable, Turker] =
-    foreignKey("amt_assignment_turker_id_fkey", turkerId, TableQuery[TurkerTable])(_.turkerId)
+//  def turker: ForeignKeyQuery[TurkerTable, Turker] =
+//    foreignKey("amt_assignment_turker_id_fkey", turkerId, TableQuery[TurkerTable])(_.turkerId)
 }
 
 /**
@@ -51,6 +51,31 @@ object AMTAssignmentTable {
     val asgId: Int =
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
     asgId
+  }
+
+  /**
+    * Update the `completed` column of the specified assignment row.
+    * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
+    *
+    * @param amtAssignmentId AMT Assignment id
+    * @param completed A completed flag
+    * @return
+    */
+  def updateCompleted(amtAssignmentId: Int, completed: Boolean) = db.withTransaction { implicit session =>
+    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
+    q.update(completed)
+  }
+
+  /**
+    * Update the `assignment_end` column of the specified assignment row
+    *
+    * @param amtAssignmentId
+    * @param timestamp
+    * @return
+    */
+  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
+    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
+    q.update(Some(timestamp))
   }
 }
 

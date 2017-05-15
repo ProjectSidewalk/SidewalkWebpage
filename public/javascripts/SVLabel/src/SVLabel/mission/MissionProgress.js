@@ -6,18 +6,46 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel,
+function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, routeModel, statusModel,
                           missionContainer, neighborhoodContainer, taskContainer, tracker) {
     var self = this;
     var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
     var _modalModel = modalModel;
     var _neighborhoodModel = neighborhoodModel;
+    var _routeModel = routeModel;
 
     _missionModel.on("MissionProgress:update", function (parameters) {
         var mission = parameters.mission;
         var neighborhood = parameters.neighborhood;
         self.update(mission, neighborhood);
+    });
+
+    _routeModel.on("Route:completed", function (parameters) {
+
+        var mission = parameters.mission, neighborhood = parameters.neighborhood;
+        var completionRate = mission.getMissionCompletionRate();
+        if (completionRate < 0.99) {
+            completionRate = 1.0;
+        }
+
+        statusModel.setMissionCompletionRate(completionRate);
+        statusModel.setProgressBar(completionRate);
+        //self.finishMission(mission, neighborhood);
+
+        self._completeTheCurrentMission(mission, neighborhood);
+        self._completeMissionsWithSatisfiedCriteria(neighborhood);
+
+        //self._updateTheCurrentMission(mission, neighborhood);
+
+        // While the mission complete modal is open, after the **neighborhood** is 100% audited,
+        // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
+        // and it changes the modal's neighborhood information while it is open.
+        if (svl.modalMissionComplete.isOpen())
+            return;
+
+        _modalModel.updateModalMissionComplete(mission, neighborhood);
+        _modalModel.showModalMissionComplete();
     });
 
     _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
@@ -32,7 +60,29 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         _modalModel.showModalMissionComplete();
     });
 
+    this._checkMissionComplete = function (mission, neighborhood) {
+        if (mission.getMissionCompletionRate() > 0.999) {
+            this.finishMission(mission, neighborhood);
+        }
+    };
 
+    this.finishMission = function (mission, neighborhood) {
+        this._completeTheCurrentMission(mission, neighborhood);
+        this._completeMissionsWithSatisfiedCriteria(neighborhood);
+
+        if(mission.getProperty("label") != "mturk-mission") {
+            this._updateTheCurrentMission(mission, neighborhood);
+        }
+
+        // While the mission complete modal is open, after the **neighborhood** is 100% audited,
+        // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
+        // and it changes the modal's neighborhood information while it is open.
+        if (svl.modalMissionComplete.isOpen())
+            return;
+
+        _modalModel.updateModalMissionComplete(mission, neighborhood);
+        _modalModel.showModalMissionComplete();
+    };
 
     /**
      * Finish the mission.
@@ -42,6 +92,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         tracker.push(
             "MissionComplete",
             {
+                missionId: mission.getProperty("missionId"),
                 missionLabel: mission.getProperty("label"),
                 missionDistance: mission.getProperty("distance"),
                 neighborhoodId: neighborhood.getProperty("regionId")
@@ -72,24 +123,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                 missions[i].complete();
                 _missionModel.completeMission(missions[i]);
             }
-        }
-    };
-
-    this._checkMissionComplete = function (mission, neighborhood) {
-        if (mission.getMissionCompletionRate() > 0.999) {
-            this._completeTheCurrentMission(mission, neighborhood);
-            this._completeMissionsWithSatisfiedCriteria(neighborhood);
-
-            this._updateTheCurrentMission(mission, neighborhood);
-
-            // While the mission complete modal is open, after the **neighborhood** is 100% audited,
-            // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
-            // and it changes the modal's neighborhood information while it is open.
-            if (svl.modalMissionComplete.isOpen())
-                return;
-
-            _modalModel.updateModalMissionComplete(mission, neighborhood);
-            _modalModel.showModalMissionComplete();
         }
     };
 

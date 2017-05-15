@@ -154,6 +154,7 @@ object RegionTable {
         (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
         if _properties.key === "Neighborhood Name"
       } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
+
       val namedRegionsList = _regions.list.map(x => NamedRegion.tupled(x))
       namedRegionsList.headOption
     } catch {
