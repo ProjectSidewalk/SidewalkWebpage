@@ -56,17 +56,17 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
     # Returns a page of 100 HITs. Seem to be in chronological order.
     response = mturk.list_hits(MaxResults=100)
     all_hits = response['HITs']
-    if('NextToken' in response):
+    if 'NextToken' in response:
         next_token = response['NextToken']
         num_results = response['NumResults']
-        while(int(num_results) > 0):
+        while int(num_results) > 0:
             # Use the pagination token NextToken to get the next 100 HITs till there
             # are no more.
             response = mturk.list_hits(MaxResults=100, NextToken=next_token)
             num_results = response['NumResults']
             for hit in response['HITs']:
                 all_hits.append(hit)
-            if('NextToken' in response):
+            if 'NextToken' in response:
                 next_token = response['NextToken']
 
     print "Total HITs:", len(all_hits)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # HIT Parameters
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
-    title = "[TESTHIT] University of Maryland: Help make our sidewalks more"
+    title = "[TESTHIT_R2] University of Maryland: Help make our sidewalks more"
     " accessible for wheelchair users with Google Maps"
 
     description = "Please help us improve the accessibility of our cities for "
@@ -135,9 +135,11 @@ if __name__ == '__main__':
         routes = map(lambda x: x["route_id"], route_rows)
 
         t_before_creation = datetime.now()
-        number_of_routes = 10
 
-        for route in routes[0: min(number_of_routes, len(routes))]:
+        specific_routes = [206, 346, 253]
+        # specific_routes = routes[0: min(number_of_routes, len(routes))]
+        number_of_routes =  len(specific_routes)
+        for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
             mturk.create_hit(
@@ -154,9 +156,9 @@ if __name__ == '__main__':
             print "HIT for route", route, "created"
 
         # Get the list of HITs created, assign routes to HITs
-        assign_routes_to_hits(mturk, engine, routes, t_before_creation)
+        assign_routes_to_hits(mturk, engine, specific_routes, t_before_creation)
 
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
-        create_missions_for_routes(engine, cur, route_rows)
+        # create_missions_for_routes(engine, cur, route_rows)
     except Exception as e:
         print "Error: ", e
