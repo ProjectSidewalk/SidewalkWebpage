@@ -108,7 +108,7 @@ if __name__ == '__main__':
     keywords = "Accessibility, Americans with Disabilities, Wheelchairs, Image Labeling,"
     " Games, Mobility Impairments, Smart Cities"
     frame_height = 800  # the height of the iframe holding the external hit
-    amount = 0.0
+    amount = '0.0'
 
     # The external question object allows you to view an external url inside an iframe
     # mTurk automatically appends worker and hit variables to the external url
@@ -142,13 +142,13 @@ if __name__ == '__main__':
 
             mturk.create_hit(
                 Title=title,
-                LifetimeInSeconds=600,
+                LifetimeInSeconds=7200,
                 AssignmentDurationInSeconds=3600,
                 MaxAssignments=5,
                 Description=description,
                 Keywords=keywords,
                 Question=external_question,
-                Reward='0.1',
+                Reward=amount,
                 RequesterAnnotation=str(route)
             )
             print "HIT for route", route, "created"
