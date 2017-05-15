@@ -53,11 +53,15 @@ def connect_to_db():
         dbuser = arr[3]
         dbpass = arr[4]
 
+        dburl = os.environ['DATABASE_URL']
+        connection_str = dburl.split(":", 1)[1]
+
         conn = psycopg2.connect("dbname=" + dbname +
                                 " user=" + dbuser +
                                 " host=" + dbhost +
                                 " port=" + dbport +
                                 " password=" + dbpass + "")
-        engine = create_engine(os.environ['DATABASE_URL'])
+
+        engine = create_engine(connection_str)
 
         return conn, engine
