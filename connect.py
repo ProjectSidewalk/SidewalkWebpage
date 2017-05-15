@@ -38,7 +38,6 @@ def connect_to_db():
 
     home = expanduser("~")
     file_path = home + "/.pgpass"
-    print file_path
     with open(file_path) as filename:
 
         arr = []
@@ -53,15 +52,15 @@ def connect_to_db():
         dbuser = arr[3]
         dbpass = arr[4]
 
-        dburl = os.environ['DATABASE_URL']
-        connection_str = dburl.split(":", 1)[1]
-
+        # Format of the connection string: dialect+driver://username:password@host:port/database
+        connection_str = ('postgresql://' + dbuser + ':' + dbpass +
+                          '@' + dbhost + ':' + dbport + '/' + dbname)
+        print connection_str
+        engine = create_engine(connection_str)
         conn = psycopg2.connect("dbname=" + dbname +
                                 " user=" + dbuser +
                                 " host=" + dbhost +
                                 " port=" + dbport +
                                 " password=" + dbpass + "")
-
-        engine = create_engine(connection_str)
 
         return conn, engine
