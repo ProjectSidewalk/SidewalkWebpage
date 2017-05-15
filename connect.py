@@ -34,10 +34,25 @@ def connect_to_mturk():
     return mturk
 
 def connect_to_db():
-    conn = psycopg2.connect("dbname='sidewalkturk'" +
-                            "user='" + os.environ['DATABASE_USER'] +
-                            "' host='jdbc:postgresql://sidewalk-devdb' port='5432'" +
-                            " password='" + os.environ['DATABASE_PASSWORD'] +"'")
-    engine = create_engine(os.environ['DATABASE_URL'])
 
-    return conn, engine
+    with open("~/.pgpass") as filename:
+
+        arr = []
+        for line in filename:
+            l = line.strip()
+            arr = l.split(":")
+
+        dbhost = arr[0]
+        dbport = arr[1]
+        dbname = arr[2]
+        dbuser = arr[3]
+        dbpass = arr[4]
+
+        conn = psycopg2.connect("dbname=" + dbname +
+                                " user='" + dbuser +
+                                " host=" + dbhost +
+                                " port=" + dbport +
+                                " password=" + dbpass + "")
+        engine = create_engine(os.environ['DATABASE_URL'])
+
+        return conn, engine
