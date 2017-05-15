@@ -1,4 +1,5 @@
 import os
+from os.path import expanduser
 import boto3
 import psycopg2
 import psycopg2.extras
@@ -35,12 +36,16 @@ def connect_to_mturk():
 
 def connect_to_db():
 
-    with open("~/.pgpass") as filename:
+    home = expanduser("~")
+    file_path = home + "/.pgpass"
+    print file_path
+    with open(file_path) as filename:
 
         arr = []
         for line in filename:
             l = line.strip()
-            arr = l.split(":")
+            if l[0] != '#':
+                arr = l.split(":")
 
         dbhost = arr[0]
         dbport = arr[1]
@@ -49,7 +54,7 @@ def connect_to_db():
         dbpass = arr[4]
 
         conn = psycopg2.connect("dbname=" + dbname +
-                                " user='" + dbuser +
+                                " user=" + dbuser +
                                 " host=" + dbhost +
                                 " port=" + dbport +
                                 " password=" + dbpass + "")
