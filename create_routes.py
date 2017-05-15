@@ -40,17 +40,13 @@
 # Note: Change database connection details where necessary. My dbserver
 # was running on localhost:5000
 
-# In[ ]:
+
 
 import collections
 
+from connect import *
 
-# In[ ]:
-
-import psycopg2
 import psycopg2.extras
-
-from sqlalchemy import create_engine
 
 import geopy
 from geopy.distance import vincenty
@@ -64,29 +60,13 @@ import seaborn as sns
 
 
 # Connect to the database and get the edge list representation of the map.
-
-# In[ ]:
-
-db_port = '5432'
 try:
-    conn = psycopg2.connect(
-        "dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port + " password='sidewalk'")
+    # Connect to PostgreSQL database
+    conn, engine = connect_to_db()
 except:
     print "I am unable to connect to the database"
 
-
-# In[ ]:
-
-engine = create_engine(
-    'postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
-
-
-# In[ ]:
-
 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-
-# In[ ]:
 
 # Query that returns all edges along with their region_id
 # Note: Region_id should be from the entries that are not marked deleted

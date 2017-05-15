@@ -1,4 +1,9 @@
+import os
 import boto3
+import psycopg2
+import psycopg2.extras
+from sqlalchemy import create_engine
+
 
 def connect_to_mturk():
     # Get key from an external file
@@ -27,3 +32,12 @@ def connect_to_mturk():
     print mturk.get_account_balance()['AvailableBalance']
 
     return mturk
+
+def connect_to_db():
+    conn = psycopg2.connect("dbname='sidewalkturk'" +
+                            "user='" + os.environ['DATABASE_USER'] +
+                            "' host='jdbc:postgresql://sidewalk-devdb' port='5432'" +
+                            " password='" + os.environ['DATABASE_PASSWORD'] +"'")
+    engine = create_engine(os.environ['DATABASE_URL'])
+
+    return conn, engine

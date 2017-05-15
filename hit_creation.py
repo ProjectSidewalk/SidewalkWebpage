@@ -1,9 +1,6 @@
-from connect_to_mturk import connect_to_mturk
+from connect import *
 
-import psycopg2
 import psycopg2.extras
-from sqlalchemy import create_engine
-
 from datetime import datetime
 from datetime import timedelta
 import pandas as pd
@@ -83,7 +80,6 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
         # option to set that (currently at 1 minute).
         if hit['CreationTime'].replace(tzinfo=None) > (t_before_creation - timedelta(minutes=1)):
             if 'RequesterAnnotation' in hit:
-                pprint(hit)
                 # print "HIT Creation Time: ", hit['CreationTime'], "Time Difference",
                 # t_before_creation - timedelta(minutes=1)
                 print "HIT with route", hit['RequesterAnnotation'], "retrieved"
@@ -126,14 +122,9 @@ if __name__ == '__main__':
     # Get mturk client
     mturk = connect_to_mturk()
 
-    # Connect to PostgreSQL database
-    db_port = '5432'
     try:
-        conn = psycopg2.connect(
-            "dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port +
-            " password='sidewalk'")
-        engine = create_engine(
-            'postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
+        # Connect to PostgreSQL database
+        conn, engine = connect_to_db()
 
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -144,7 +135,7 @@ if __name__ == '__main__':
         routes = map(lambda x: x["route_id"], route_rows)
 
         t_before_creation = datetime.now()
-        number_of_routes = 5
+        number_of_routes = 10
 
         for route in routes[0: min(number_of_routes, len(routes))]:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'

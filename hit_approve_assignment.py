@@ -1,4 +1,4 @@
-from connect_to_mturk import connect_to_mturk
+from connect import connect_to_mturk
 from pprint import pprint
 import time
 import pandas as pd
