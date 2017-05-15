@@ -1,12 +1,16 @@
 from connect import connect_to_mturk
-from pprint import pprint
+
+import os
 import time
 import pandas as pd
+from pprint import pprint
 
 mturk = connect_to_mturk()
 
-# all newly approved assignments will be added to this dataframe, then written out to a csv
-csv_cols = ['HITId','AssignmentId','WorkerId','AssignmentStatus','AcceptTime','SubmitTime']
+# all newly approved assignments will be added to this dataframe, then
+# written out to a csv
+csv_cols = ['HITId', 'AssignmentId', 'WorkerId',
+            'AssignmentStatus', 'AcceptTime', 'SubmitTime']
 new_approvals = pd.DataFrame(columns=csv_cols)
 i = 0
 
@@ -23,17 +27,25 @@ https://boto3.readthedocs.io/en/latest/reference/services/mturk.html
 hits_to_review = mturk.list_reviewable_hits()
 
 for hit in hits_to_review['HITs']:
-    asmts_to_review = mturk.list_assignments_for_hit(HITId=hit['HITId'], AssignmentStatuses=['Submitted'])
+    asmts_to_review = mturk.list_assignments_for_hit(
+        HITId=hit['HITId'], AssignmentStatuses=['Submitted'])
     for asmt in asmts_to_review['Assignments']:
-    	print 'Approving the following assignment:'
-    	pprint(asmt); print
+        print 'Approving the following assignment:'
+        pprint(asmt)
+        print
         mturk.approve_assignment(AssignmentId=asmt['AssignmentId'])
 
         # add approved assignment info to a CSV
-        new_row = [asmt['HITId'], asmt['AssignmentId'], asmt['WorkerId'], asmt['AssignmentStatus'],
-        		   str(asmt['AcceptTime']), str(asmt['SubmitTime'])]
-    	new_approvals.loc[i] = new_row
-    	i += 1
+        new_row = [asmt['HITId'], asmt['AssignmentId'], asmt['WorkerId'],
+                   asmt['AssignmentStatus'], str(asmt['AcceptTime']),
+                   str(asmt['SubmitTime'])]
+        new_approvals.loc[i] = new_row
+        i += 1
 
-# write to a CSV 
-new_approvals.to_csv('mturk_results/' + time.strftime("results_%d-%m-%Y_%H:%M:%S") + '.csv', index=False)
+directory = 'mturk_results/'
+if not os.path.exists(directory):
+    os.makedirs(directory)
+
+# write to a CSV
+new_approvals.to_csv(
+    directory + time.strftime("results_%d-%m-%Y_%H:%M:%S") + '.csv', index=False)
