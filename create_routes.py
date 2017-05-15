@@ -40,17 +40,12 @@
 # Note: Change database connection details where necessary. My dbserver
 # was running on localhost:5000
 
-# In[ ]:
 
 import collections
 
+from connect import *
 
-# In[ ]:
-
-import psycopg2
 import psycopg2.extras
-
-from sqlalchemy import create_engine
 
 import geopy
 from geopy.distance import vincenty
@@ -64,29 +59,14 @@ import seaborn as sns
 
 
 # Connect to the database and get the edge list representation of the map.
-
-# In[ ]:
-
-db_port = '5432'
 try:
-    conn = psycopg2.connect(
-        "dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port + " password='sidewalk'")
-except:
+    # Connect to PostgreSQL database
+    conn, engine = connect_to_db()
+except Exception as e:
     print "I am unable to connect to the database"
-
-
-# In[ ]:
-
-engine = create_engine(
-    'postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
-
-
-# In[ ]:
+    print "Error: ", e
 
 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-
-# In[ ]:
 
 # Query that returns all edges along with their region_id
 # Note: Region_id should be from the entries that are not marked deleted
@@ -198,7 +178,8 @@ if False:
 
 # In[ ]:
 
-def find_path(seed_edge, adjacency_list, adjacency_list_region, adjacency_list_streetedge, d_m=0.19, d_del_low=0.01, d_del_high=0.0):
+def find_path(seed_edge, adjacency_list, adjacency_list_region,
+              adjacency_list_streetedge, d_m=0.19, d_del_low=0.01, d_del_high=0.0):
 
     # d_m is the mission distance. By default it is 0.19 miles or 1000 ft
     # d_del is the allowed deviated from the mission distance for a path in miles
@@ -294,7 +275,10 @@ def find_path(seed_edge, adjacency_list, adjacency_list_region, adjacency_list_s
 # deviation from the mission distance
 if False:
     print adjacency_list_streetedge[13103][13077]
-    print find_path({'street_edge_id': 11326, 'source': 13103, 'target': 13077, 'length': 0.10199468383820903, 'region_id': 219}, adjacency_list, adjacency_list_region, adjacency_list_streetedge, d_m=1.0, d_del_high=0.04)
+    print find_path({'street_edge_id': 11326, 'source': 13103, 'target': 13077,
+                     'length': 0.10199468383820903, 'region_id': 219}, adjacency_list,
+                    adjacency_list_region, adjacency_list_streetedge, d_m=1.0,
+                    d_del_high=0.04)
 
 
 # Generate a random sample of N unique starting edges and find N paths
@@ -316,7 +300,8 @@ valid_paths = list()
 valid_path_count = 0
 for index, seed_edge in edges_sample.iterrows():
     path, path_exists, path_length = find_path(
-        seed_edge, adjacency_list, adjacency_list_region, adjacency_list_streetedge, d_del_low=0.01, d_del_high=0.01)
+        seed_edge, adjacency_list, adjacency_list_region,
+        adjacency_list_streetedge, d_del_low=0.01, d_del_high=0.0)
     if(path_exists):
         # Add a route_id, and route_start_edge,route_end_edge boolean indicators
         # to each edge in the valid path

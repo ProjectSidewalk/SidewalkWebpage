@@ -1,9 +1,6 @@
-from connect_to_mturk import connect_to_mturk
+from connect import *
 
-import psycopg2
 import psycopg2.extras
-from sqlalchemy import create_engine
-
 from datetime import datetime
 from datetime import timedelta
 import pandas as pd
@@ -59,17 +56,17 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
     # Returns a page of 100 HITs. Seem to be in chronological order.
     response = mturk.list_hits(MaxResults=100)
     all_hits = response['HITs']
-    if('NextToken' in response):
+    if 'NextToken' in response:
         next_token = response['NextToken']
         num_results = response['NumResults']
-        while(int(num_results) > 0):
+        while int(num_results) > 0:
             # Use the pagination token NextToken to get the next 100 HITs till there
             # are no more.
             response = mturk.list_hits(MaxResults=100, NextToken=next_token)
             num_results = response['NumResults']
             for hit in response['HITs']:
                 all_hits.append(hit)
-            if('NextToken' in response):
+            if 'NextToken' in response:
                 next_token = response['NextToken']
 
     print "Total HITs:", len(all_hits)
@@ -83,7 +80,6 @@ def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
         # option to set that (currently at 1 minute).
         if hit['CreationTime'].replace(tzinfo=None) > (t_before_creation - timedelta(minutes=1)):
             if 'RequesterAnnotation' in hit:
-                pprint(hit)
                 # print "HIT Creation Time: ", hit['CreationTime'], "Time Difference",
                 # t_before_creation - timedelta(minutes=1)
                 print "HIT with route", hit['RequesterAnnotation'], "retrieved"
@@ -100,7 +96,7 @@ if __name__ == '__main__':
 
     # HIT Parameters
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
-    title = "[TESTHIT] University of Maryland: Help make our sidewalks more"
+    title = "[TESTHIT_R0] University of Maryland: Help make our sidewalks more"
     " accessible for wheelchair users with Google Maps"
 
     description = "Please help us improve the accessibility of our cities for "
@@ -112,7 +108,7 @@ if __name__ == '__main__':
     keywords = "Accessibility, Americans with Disabilities, Wheelchairs, Image Labeling,"
     " Games, Mobility Impairments, Smart Cities"
     frame_height = 800  # the height of the iframe holding the external hit
-    amount = 0.0
+    amount = '0.0'
 
     # The external question object allows you to view an external url inside an iframe
     # mTurk automatically appends worker and hit variables to the external url
@@ -126,14 +122,9 @@ if __name__ == '__main__':
     # Get mturk client
     mturk = connect_to_mturk()
 
-    # Connect to PostgreSQL database
-    db_port = '5432'
     try:
-        conn = psycopg2.connect(
-            "dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port +
-            " password='sidewalk'")
-        engine = create_engine(
-            'postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
+        # Connect to PostgreSQL database
+        conn, engine = connect_to_db()
 
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -144,28 +135,30 @@ if __name__ == '__main__':
         routes = map(lambda x: x["route_id"], route_rows)
 
         t_before_creation = datetime.now()
-        number_of_routes = 5
 
-        for route in routes[0: min(number_of_routes, len(routes))]:
+        specific_routes = [55, 94, 164, 220, 253, 342]
+        # specific_routes = routes[0: min(number_of_routes, len(routes))]
+        number_of_routes =  len(specific_routes)
+        for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
             mturk.create_hit(
                 Title=title,
-                LifetimeInSeconds=600,
+                LifetimeInSeconds=7200,
                 AssignmentDurationInSeconds=3600,
                 MaxAssignments=5,
                 Description=description,
                 Keywords=keywords,
                 Question=external_question,
-                Reward='0.1',
+                Reward=amount,
                 RequesterAnnotation=str(route)
             )
             print "HIT for route", route, "created"
 
         # Get the list of HITs created, assign routes to HITs
-        assign_routes_to_hits(mturk, engine, routes, t_before_creation)
+        assign_routes_to_hits(mturk, engine, specific_routes, t_before_creation)
 
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
-        create_missions_for_routes(engine, cur, route_rows)
+        # create_missions_for_routes(engine, cur, route_rows)
     except Exception as e:
         print "Error: ", e
