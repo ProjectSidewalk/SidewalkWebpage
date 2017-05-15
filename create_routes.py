@@ -63,8 +63,9 @@ import seaborn as sns
 try:
     # Connect to PostgreSQL database
     conn, engine = connect_to_db()
-except:
+except Exception as e:
     print "I am unable to connect to the database"
+    print "Error: ", e
 
 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
