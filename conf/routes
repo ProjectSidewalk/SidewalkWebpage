@@ -53,7 +53,8 @@ GET     /tasks/route/:id                        @controllers.TaskController.getT
 GET     /tasks                                  @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                   @controllers.TaskController.post
 
-#Route API
+# Route API
+POST    /route                                  @controllers.RouteController.post
 GET     /routes/:id                             @controllers.RouteController.getStreetsOnARoute(id: Int)
 
 # Missions

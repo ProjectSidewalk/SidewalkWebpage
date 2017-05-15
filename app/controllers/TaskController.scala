@@ -154,12 +154,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
               val newAsg = Option(asg.assignmentId)
+              // Update the assignment Id to be complete
               newAsg
             case _ => None
           }
-          //val asgRecord: Option[AMTAssignmentSubmission] = data.assignment
-          //val amtAssignmentId: Option[Int] = Option(asgRecord.get.assignmentId)
-          println(amtAssignmentId)
 
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count

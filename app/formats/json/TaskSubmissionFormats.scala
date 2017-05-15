@@ -11,6 +11,7 @@ object TaskSubmissionFormats {
   case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryProblem: Option[JsBoolean], description: Option[String], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int])
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean])
   case class AMTAssignmentSubmission(assignmentId: Int, hitId: Option[String], assignmentEnd: Option[String])
+  case class AMTRouteAssignmentSubmission(assignmentId: Int, completed: Option[Boolean])
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
@@ -90,6 +91,11 @@ object TaskSubmissionFormats {
       (JsPath \ "hit_id").readNullable[String] and
       (JsPath \ "assignment_end").readNullable[String]
     )(AMTAssignmentSubmission.apply _)
+
+  implicit val amtRouteAssignmentReads: Reads[AMTRouteAssignmentSubmission] = (
+    (JsPath \ "amt_assignment_id").read[Int] and
+      (JsPath \ "completed").readNullable[Boolean]
+    )(AMTRouteAssignmentSubmission.apply _)
 
   implicit val gsvLinkSubmissionReads: Reads[GSVLinkSubmission] = (
     (JsPath \ "target_gsv_panorama_id").read[String] and

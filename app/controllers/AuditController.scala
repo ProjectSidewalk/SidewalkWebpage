@@ -113,25 +113,18 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // Retrieve the route based on HIT ID
             val routeId: Option[Int] = AMTRouteAssignmentTable.findRouteByHITId(hitId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
-            println(route)
             val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
-            println(routeStreetId.getOrElse(0))
 
             // Save HIT assignment details
             val conditionId = 1
             val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
             val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
-
             // Load the first task from the selected route
             val regionId = route.get.regionId
             val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
             val regionName = region.get.name
-            println(f"RegionName: $regionName%s")
             val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
-            print("Task: ")
-            println(task)
-
 
             // Save Turker details
             //val turker: Turker = Turker(workerId, "routeId")

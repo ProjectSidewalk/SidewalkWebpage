@@ -32,7 +32,6 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
         if (label != 'onboarding') {
             newTask = self.nextTask(finished);
             if (!newTask) {
-                console.log("Finished task:" + finished.getStreetEdgeId());
                 var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
                 var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
                 svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
@@ -205,7 +204,6 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
                     var task;
                     for (var i = 0; i < result.length; i++) {
                         result[i].features[0].properties.assignment_id = svl.amtAssignmentId;
-                        console.log(result[i]);
                         task = svl.taskFactory.create(result[i]);
                         if ((result[i].features[0].properties.completed)) task.complete();
                         storeTask(regionId, task);
@@ -248,7 +246,6 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
                         routeRecord["task"] = task;
                         storeRouteTask(routeId, streetId, routeRecord);
                     }
-                    console.log(self._taskStoreByRouteId);
 
                     if (callback) callback();
                 },
@@ -460,16 +457,11 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
             var nextStreetId = routeTasks[finishedStreetId]["next"];
             if(nextStreetId != -1) {
                 newTask = routeTasks[nextStreetId]["task"];
-                console.log("NewTaskStreetId:" + nextStreetId);
 
                 if (finishedTask) {
                     var coordinate = finishedTask.getLastCoordinate();
                     newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
                 }
-            }
-            else {
-                // End of route
-                console.log("Reached End of Route");
             }
         }
 

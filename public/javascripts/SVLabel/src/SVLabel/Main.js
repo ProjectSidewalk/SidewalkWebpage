@@ -125,7 +125,8 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
+            svl.routeModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -407,7 +408,6 @@ function Main (params) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
-            console.log("Current Neighborhood: " + currentNeighborhood);
             var mission;
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
@@ -458,7 +458,6 @@ function Main (params) {
 
     function selectTheMission(currentNeighborhood) {
         var regionId = currentNeighborhood.getProperty("regionId");
-        console.log("RegionId: " + regionId);
         var availableMissions = svl.missionContainer.getIncompleteMissionsByRegionId(regionId);
         var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
 

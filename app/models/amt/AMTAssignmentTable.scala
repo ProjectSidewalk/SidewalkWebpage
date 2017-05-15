@@ -52,5 +52,30 @@ object AMTAssignmentTable {
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
     asgId
   }
+
+  /**
+    * Update the `completed` column of the specified assignment row.
+    * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
+    *
+    * @param amtAssignmentId AMT Assignment id
+    * @param completed A completed flag
+    * @return
+    */
+  def updateCompleted(amtAssignmentId: Int, completed: Boolean) = db.withTransaction { implicit session =>
+    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
+    q.update(completed)
+  }
+
+  /**
+    * Update the `assignment_end` column of the specified assignment row
+    *
+    * @param amtAssignmentId
+    * @param timestamp
+    * @return
+    */
+  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
+    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
+    q.update(Some(timestamp))
+  }
 }
 

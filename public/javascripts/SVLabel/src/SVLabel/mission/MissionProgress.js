@@ -173,7 +173,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     this.update = function (currentMission, currentRegion) {
         if (svl.isOnboarding()) return;
         var completionRate = currentMission.getMissionCompletionRate();
-        console.log("completion rate: " + completionRate);
         statusModel.setMissionCompletionRate(completionRate);
         statusModel.setProgressBar(completionRate);
         // svl.statusFieldMission.printCompletionRate(completionRate);

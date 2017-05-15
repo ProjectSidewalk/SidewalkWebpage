@@ -13,11 +13,19 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import models.audit.AuditTaskTable
+import formats.json.TaskSubmissionFormats.{AMTRouteAssignmentSubmission, AuditTaskSubmission, EnvironmentSubmission, IncompleteTaskSubmission, TaskSubmission}
+import models.amt.AMTAssignmentTable
+import models.audit._
+import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
+import models.label._
+import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
 import models.route.{RouteStreet, RouteStreetTable}
+import models.street.StreetEdgeAssignmentCountTable
 import models.user.User
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
+import play.api.mvc.BodyParsers
 import play.extras.geojson
 
 import scala.util.control.Breaks._
@@ -28,6 +36,8 @@ import scala.concurrent.Future
   */
 class RouteController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
 
 
   /**
@@ -70,5 +80,40 @@ class RouteController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     Future.successful(Ok(rStreetsJsonObj))
+  }
+
+  def updateRouteAssignmentCompleteness(amtAssignmentId: Option[Int], routeAssignment: AMTRouteAssignmentSubmission): Unit = {
+    val id = routeAssignment.assignmentId
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    AMTAssignmentTable.updateAssignmentEnd(id, timestamp)
+
+    if (routeAssignment.completed.isDefined && routeAssignment.completed.get) {
+      AMTAssignmentTable.updateCompleted(id, completed=true)
+    }
+  }
+
+  /**
+    * Parse the submitted data and insert them into tables.
+    *
+    * @return
+    */
+  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+
+    val submission = request.body.validate[AMTRouteAssignmentSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val amtAssignmentId: Option[Int] = Option(submission.assignmentId)
+
+        // Update the AMTAssignmentTable
+        updateRouteAssignmentCompleteness(amtAssignmentId, submission)
+        Future.successful(Ok(Json.obj("success" -> true)))
+      }
+    )
   }
 }

@@ -646,9 +646,6 @@
             var lng1 = geojson.features[0].geometry.coordinates[0][0];
             var latLng = new google.maps.LatLng(lat1, lng1);
 
-        console.log("TaskId:" + taskId);
-        console.log("LatLng" + latLng);
-
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
             if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
             if (!("routeModel" in svl)) svl.routeModel = new RouteModel();
@@ -720,6 +717,11 @@
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
 
+            @if(task) {
+                mainParam.amtAssignmentId = @task.get.amtAssignmentId;
+                formParam.amtAssignmentId = @task.get.amtAssignmentId;
+            }
+
             // Mturk specific parameters
             formParam.hitId = util.getURLParameter('hitId');
             formParam.assignmentId = util.getURLParameter('assignmentId');
@@ -750,10 +752,6 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
-            @if(task) {
-                mainParam.amtAssignmentId = @task.get.amtAssignmentId;
-            }
-
             @if(route) {
                 mainParam.routeId = @route.get.routeId;
                 mainParam.lengthMi = @route.get.route_length_mi;
@@ -773,7 +771,6 @@
                 mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
-            console.log(mainParam);
             svl.main = new Main(mainParam);
         }
     </script>
