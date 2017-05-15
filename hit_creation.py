@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # HIT Parameters
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
-    title = "[TESTHIT_R2] University of Maryland: Help make our sidewalks more"
+    title = "[TESTHIT_R0] University of Maryland: Help make our sidewalks more"
     " accessible for wheelchair users with Google Maps"
 
     description = "Please help us improve the accessibility of our cities for "
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
         t_before_creation = datetime.now()
 
-        specific_routes = [206, 346, 253]
+        specific_routes = [55, 94, 164, 253]
         # specific_routes = routes[0: min(number_of_routes, len(routes))]
         number_of_routes =  len(specific_routes)
         for route in specific_routes:
