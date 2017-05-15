@@ -98,8 +98,7 @@ if __name__ == '__main__':
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
     title = "[TEST] Help make our sidewalks more accessible for wheelchair users with Google Maps"
 
-    description = "Please help us improve the accessibility of our cities for " + \
-    "wheelchair users. In this task, you will virtually walk through city streets " + \
+    description = "In this task, you will virtually walk through city streets " + \
     "in Washington DC to find and label accessibility features (e.g., " + \
     "curb ramps) and problems (e.g., degraded sidewalks, missing curb ramps) " + \
     "using our custom tool called Project Sidewalk."
@@ -135,10 +134,15 @@ if __name__ == '__main__':
 
         t_before_creation = datetime.now()
 
-        specific_routes = [55, 164, 220, 253, 342]
-        specific_routes = [55]
-        # specific_routes = routes[0: min(number_of_routes, len(routes))]
-        number_of_routes =  len(specific_routes)
+        final_specific_routes = [55, 164, 220, 253, 342]
+        ignored_routes = [374, 206, 94, 346, 293]
+        specific_routes = []
+        for route_id in routes:
+            if route_id not in final_specific_routes + ignored_routes:
+                specific_routes.append(route_id)
+
+        number_of_routes = 10
+        specific_routes = specific_routes[0: min(number_of_routes, len(routes))]
         for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
@@ -159,6 +163,6 @@ if __name__ == '__main__':
         assign_routes_to_hits(mturk, engine, specific_routes, t_before_creation)
 
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
-        # create_missions_for_routes(engine, cur, route_rows)
+        create_missions_for_routes(engine, cur, route_rows)
     except Exception as e:
         print "Error: ", e
