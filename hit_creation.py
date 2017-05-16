@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # HIT Parameters
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
-    title = "[TEST] Help make our sidewalks more accessible for wheelchair users with Google Maps"
+    title = "[GT] Help make our sidewalks more accessible for wheelchair users with Google Maps"
 
     description = "In this task, you will virtually walk through city streets " + \
     "in Washington DC to find and label accessibility features (e.g., " + \
@@ -147,16 +147,14 @@ if __name__ == '__main__':
         # specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
 
         specific_routes = routes_for_gt
-        # Temp
-        specific_routes = [38]
         for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
             mturk.create_hit(
-                Title=str(route) + ' :: ' + title,
-                LifetimeInSeconds=7200,
+                Title=title,
+                LifetimeInSeconds=43200,
                 AssignmentDurationInSeconds=3600,
-                MaxAssignments=1,
+                MaxAssignments=5,
                 Description=description,
                 Keywords=keywords,
                 Question=external_question,
