@@ -147,7 +147,6 @@ if __name__ == '__main__':
         # specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
 
         specific_routes = final_specific_routes
-        specific_routes = [220]
         for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
