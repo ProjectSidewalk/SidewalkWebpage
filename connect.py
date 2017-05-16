@@ -17,7 +17,7 @@ def connect_to_mturk():
 
     # Setup mTurk parameters
     # host = 'https://mturk-requester-sandbox.us-east-1.amazonaws.com/'
-    host = 'https://mechanicalturk.amazonaws.com'
+    host = 'mturk-requester.us-east-1.amazonaws.com'
     region_name = 'us-east-1'
     aws_access_key_id = secret_key["AWSAccessKeyId"]
     aws_secret_access_key = secret_key["AWSSecretKey"]
@@ -30,7 +30,7 @@ def connect_to_mturk():
                          )
 
     # Sample line of code to get account balance [$10,000.00]
-    #print mturk.get_account_balance()['AvailableBalance']
+    print mturk.get_account_balance()['AvailableBalance']
 
     return mturk
 
