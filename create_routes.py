@@ -47,9 +47,6 @@ from connect import *
 
 import psycopg2.extras
 
-import psycopg2
-from sqlalchemy import create_engine
-
 import geopy
 from geopy.distance import vincenty
 from geopy.distance import great_circle
@@ -64,12 +61,7 @@ import seaborn as sns
 # Connect to the database and get the edge list representation of the map.
 try:
     # Connect to PostgreSQL database
-    # conn, engine = connect_to_db()
-    db_port = '5432'
-    conn = psycopg2.connect(
-        "dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port + " password='sidewalk'")
-    engine = create_engine(
-        'postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
+    conn, engine = connect_to_db()
 except Exception as e:
     print "I am unable to connect to the database"
     print "Error: ", e
