@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # HIT Parameters
     url = 'https://sidewalk-mturk.umiacs.umd.edu'
-    title = "[GT] Help make our sidewalks more accessible for wheelchair users with Google Maps"
+    title = "Help make our sidewalks more accessible for wheelchair users with Google Maps"
 
     description = "In this task, you will virtually walk through city streets " + \
     "in Washington DC to find and label accessibility features (e.g., " + \
