@@ -47,6 +47,9 @@ from connect import *
 
 import psycopg2.extras
 
+import psycopg2
+from sqlalchemy import create_engine
+
 import geopy
 from geopy.distance import vincenty
 from geopy.distance import great_circle
@@ -61,7 +64,12 @@ import seaborn as sns
 # Connect to the database and get the edge list representation of the map.
 try:
     # Connect to PostgreSQL database
-    conn, engine = connect_to_db()
+    # conn, engine = connect_to_db()
+    db_port = '5432'
+    conn = psycopg2.connect(
+        "dbname='sidewalk' user='sidewalk' host='localhost' port=" + db_port + " password='sidewalk'")
+    engine = create_engine(
+        'postgresql://sidewalk:sidewalk@localhost:' + db_port + '/sidewalk')
 except Exception as e:
     print "I am unable to connect to the database"
     print "Error: ", e
@@ -444,9 +452,6 @@ for column in delete_column_names:
 
 
 # Clean duplicate ids entries that already exist in the table
-# clean_df_db_dups
-# Connect to PostgreSQL database
-
 # Get all the current route_ids in  sidewalk.route
 cur.execute("""SELECT route_id, region_id from sidewalk.route order by street_count desc""")
 route_rows = cur.fetchall()
@@ -454,7 +459,7 @@ routes = map(lambda x: x["route_id"], route_rows)
 
 rows_to_add = []
 for idx in route_table.index:
-    r_id = route_table.ix[idx]['route_id']
+    r_id = idx[0]
     if r_id in routes:
         rows_to_add.append(route_table.ix[idx])
 
@@ -462,7 +467,5 @@ new_route_table_df = pd.concat(rows_to_add)
 
 
 # Write route_table and route_street_table to postgres sidewalk database
-
-# In[ ]:
 new_route_table_df.to_sql('route', engine, if_exists='append')
-route_street_table.to_sql('route_street', engine, if_exists='append', index=True)
+#route_street_table.to_sql('route_street', engine, if_exists='append', index=True)
