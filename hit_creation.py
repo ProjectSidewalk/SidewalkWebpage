@@ -106,7 +106,7 @@ if __name__ == '__main__':
     keywords = "Accessibility, Americans with Disabilities, Wheelchairs, Image Labeling,"
     " Games, Mobility Impairments, Smart Cities"
     frame_height = 800  # the height of the iframe holding the external hit
-    amount = '0.0'
+    amount = '0.85'
 
     # The external question object allows you to view an external url inside an iframe
     # mTurk automatically appends worker and hit variables to the external url
@@ -134,9 +134,9 @@ if __name__ == '__main__':
 
         t_before_creation = datetime.now()
 
-        final_specific_routes = [55, 164, 220, 253, 342, 460]
-        ignored_routes = [374, 206, 94, 346, 293, 139, 38, 53, 6, 225]
-        routes_for_gt = [38, 460, 441, 411]
+        final_specific_routes = [55, 164, 220, 253, 342, 38, 460, 441, 411]
+        # ignored_routes = [374, 206, 94, 346, 293, 139, 38, 53, 6, 225]
+        # routes_for_gt = [38, 460, 441, 411]
 
         # For new route selection
         # specific_routes = []
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         # number_of_routes = 10
         # specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
 
-        specific_routes = routes_for_gt
+        specific_routes = final_specific_routes
         for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
