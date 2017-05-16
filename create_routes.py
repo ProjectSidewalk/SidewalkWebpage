@@ -457,13 +457,7 @@ cur.execute("""SELECT route_id, region_id from sidewalk.route order by street_co
 route_rows = cur.fetchall()
 routes = map(lambda x: x["route_id"], route_rows)
 
-rows_to_add = []
-for idx in route_table.index:
-    r_id = idx[0]
-    if r_id in routes:
-        rows_to_add.append(route_table.ix[idx])
-
-new_route_table_df = pd.concat(rows_to_add)
+new_route_table_df = route_table[route_table.index.map(lambda x: x[0] not in routes)]
 
 
 # Write route_table and route_street_table to postgres sidewalk database
