@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
             mturk.create_hit(
                 Title=title,
-                LifetimeInSeconds=43200,
+                LifetimeInSeconds=86400,
                 AssignmentDurationInSeconds=3600,
                 MaxAssignments=5,
                 Description=description,
