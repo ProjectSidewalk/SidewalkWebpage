@@ -462,4 +462,4 @@ new_route_table_df = route_table[route_table.index.map(lambda x: x[0] not in rou
 
 # Write route_table and route_street_table to postgres sidewalk database
 new_route_table_df.to_sql('route', engine, if_exists='append')
-#route_street_table.to_sql('route_street', engine, if_exists='append', index=True)
+route_street_table.to_sql('route_street', engine, if_exists='append', index=True)
