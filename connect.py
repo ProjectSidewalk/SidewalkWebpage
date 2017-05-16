@@ -30,7 +30,7 @@ def connect_to_mturk():
                          )
 
     # Sample line of code to get account balance [$10,000.00]
-    print mturk.get_account_balance()['AvailableBalance']
+    #print mturk.get_account_balance()['AvailableBalance']
 
     return mturk
 
