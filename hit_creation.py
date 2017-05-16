@@ -147,14 +147,14 @@ if __name__ == '__main__':
         # specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
 
         specific_routes = final_specific_routes
-        for route in specific_routes:
+        for route in specific_routes[0:1]:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
             mturk.create_hit(
                 Title=title,
                 LifetimeInSeconds=86400,
                 AssignmentDurationInSeconds=3600,
-                MaxAssignments=5,
+                MaxAssignments=1,
                 Description=description,
                 Keywords=keywords,
                 Question=external_question,
