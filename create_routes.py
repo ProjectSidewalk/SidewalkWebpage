@@ -443,8 +443,26 @@ for column in delete_column_names:
     del route_street_table[column]
 
 
+# Clean duplicate ids entries that already exist in the table
+# clean_df_db_dups
+# Connect to PostgreSQL database
+
+# Get all the current route_ids in  sidewalk.route
+cur.execute("""SELECT route_id, region_id from sidewalk.route order by street_count desc""")
+route_rows = cur.fetchall()
+routes = map(lambda x: x["route_id"], route_rows)
+
+rows_to_add = []
+for idx in route_table.index:
+    r_id = route_table.ix[idx]['route_id']
+    if r_id in routes:
+        rows_to_add.append(route_table.ix[idx])
+
+new_route_table_df = pd.concat(rows_to_add)
+
+
 # Write route_table and route_street_table to postgres sidewalk database
 
 # In[ ]:
-route_table.to_sql('route', engine, if_exists='append')
+new_route_table_df.to_sql('route', engine, if_exists='append')
 route_street_table.to_sql('route_street', engine, if_exists='append', index=True)
