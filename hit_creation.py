@@ -136,13 +136,19 @@ if __name__ == '__main__':
 
         final_specific_routes = [55, 164, 220, 253, 342, 460]
         ignored_routes = [374, 206, 94, 346, 293, 139, 38, 53, 6, 225]
-        specific_routes = []
-        for route_id in routes:
-            if route_id not in final_specific_routes + ignored_routes:
-                specific_routes.append(route_id)
+        routes_for_gt = [38, 460, 441, 411]
 
-        number_of_routes = 10
-        specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
+        # For new route selection
+        # specific_routes = []
+        # for route_id in routes:
+        #     if route_id not in final_specific_routes + ignored_routes:
+        #         specific_routes.append(route_id)
+        # number_of_routes = 10
+        # specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
+
+        specific_routes = routes_for_gt
+        # Temp
+        specific_routes = [38]
         for route in specific_routes:
             # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
