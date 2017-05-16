@@ -17,7 +17,7 @@ def connect_to_mturk():
 
     # Setup mTurk parameters
     # host = 'https://mturk-requester-sandbox.us-east-1.amazonaws.com/'
-    host = 'mturk-requester.us-east-1.amazonaws.com'
+    host = 'https://mturk-requester.us-east-1.amazonaws.com'
     region_name = 'us-east-1'
     aws_access_key_id = secret_key["AWSAccessKeyId"]
     aws_secret_access_key = secret_key["AWSSecretKey"]
