@@ -17,14 +17,7 @@
     <link rel="icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
-    <script>
-        function checkIfPaddingNeeded(){
-            if(window.location.pathname === "/faq" || window.location.pathname === "/admin"){
 
-                document.body.style.paddingTop = "60px";
-            }
-        }
-    </script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
@@ -49,6 +42,7 @@
     <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
     <script src='@routes.Assets.at("assets/countUp.js")'></script>
     <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
+    <script src='@routes.Assets.at("assets/pagetop-padding.js")'></script>
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">

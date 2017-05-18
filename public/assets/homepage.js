@@ -1,5 +1,8 @@
 
 var autoAdvanceLaptop = true;
+
+
+
 function playVideo(){
     document.getElementById("vidembed").innerHTML = '<div class="video-container"><iframe id="youtubeframe" width="853" height="480" src="https://www.youtube.com/embed/wAdGXqRunQs?autoplay=1" frameborder="0" allowfullscreen</iframe</div>';
     var vidheight = $('#youtubeframe').height();
@@ -42,20 +45,23 @@ function switchToVideo(vidnum){
         document.getElementById("vid3").style.display = "none";
 
 
-        document.getElementById("word1").style.fontFamily = "Raleway-bold,sans-serif";
-        document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
+        $( "#word1" ).addClass( "tab-word activetab" );
+        $( "#word2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word3" ).addClass( "tab-word" ).removeClass("activetab");
 
-        document.getElementById("firstnumbox").style.backgroundColor = "#58CEAB";
-        document.getElementById("secondnumbox").style.backgroundColor = "#F1F1F1";
-        document.getElementById("thirdnumbox").style.backgroundColor = "#F1F1F1";
+        $( "#firstnumbox" ).addClass( "tab-word activetab" );
+        $( "#secondnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#thirdnumbox" ).addClass( "tab-word" ).removeClass("activetab");
 
-        document.getElementById("number1").style.color = "#fff";
-        document.getElementById("number2").style.color = "#C0BEBF";
-        document.getElementById("number3").style.color = "#C0BEBF";
+        $( "#number1" ).addClass( "tab-word activetab" );
+        $( "#number2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number3" ).addClass( "tab-word" ).removeClass("activetab");
 
         document.getElementById("vid1").currentTime = 0;
         document.getElementById("vid1").play();
+
+        document.getElementById("vid2").pause();
+        document.getElementById("vid3").pause();
 
 
     }
@@ -66,20 +72,23 @@ function switchToVideo(vidnum){
         document.getElementById("vid3").style.display = "none";
 
 
-        document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word2").style.fontFamily = "Raleway-bold,sans-serif";
-        document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
+        $( "#word1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word2" ).addClass( "tab-word activetab" );
+        $( "#word3" ).addClass( "tab-word" ).removeClass("activetab");
 
-        document.getElementById("firstnumbox").style.backgroundColor = "#F1F1F1";
-        document.getElementById("secondnumbox").style.backgroundColor = "#58CEAB";
-        document.getElementById("thirdnumbox").style.backgroundColor = "#F1F1F1";
+        $( "#firstnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#secondnumbox" ).addClass( "tab-word activetab" );
+        $( "#thirdnumbox" ).addClass( "tab-word" ).removeClass("activetab");
 
-        document.getElementById("number1").style.color = "#C0BEBF";
-        document.getElementById("number2").style.color = "#fff";
-        document.getElementById("number3").style.color = "#C0BEBF";
+        $( "#number1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number2" ).addClass( "tab-word activetab" );
+        $( "#number3" ).addClass( "tab-word" ).removeClass("activetab");
 
         document.getElementById("vid2").currentTime = 0;
         document.getElementById("vid2").play();
+
+        document.getElementById("vid1").pause();
+        document.getElementById("vid3").pause();
     }
     else if(vidnum === 3) {
 
@@ -88,20 +97,23 @@ function switchToVideo(vidnum){
         document.getElementById("vid3").style.display = "block";
 
 
-        document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word3").style.fontFamily = "Raleway-bold,sans-serif";
+        $( "#word1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word3" ).addClass( "tab-word activetab" );
 
-        document.getElementById("firstnumbox").style.backgroundColor = "#F1F1F1";
-        document.getElementById("secondnumbox").style.backgroundColor = "#F1F1F1";
-        document.getElementById("thirdnumbox").style.backgroundColor = "#58CEAB";
+        $( "#firstnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#secondnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#thirdnumbox" ).addClass( "tab-word activetab" );
 
-        document.getElementById("number1").style.color = "#C0BEBF";
-        document.getElementById("number2").style.color = "#C0BEBF";
-        document.getElementById("number3").style.color = "#fff";
+        $( "#number1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number3" ).addClass( "tab-word activetab" );
 
         document.getElementById("vid3").currentTime = 0;
         document.getElementById("vid3").play();
+
+        document.getElementById("vid2").pause();
+        document.getElementById("vid1").pause();
     }
 
 }

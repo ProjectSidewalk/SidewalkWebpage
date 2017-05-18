@@ -9,6 +9,7 @@
     @navbar(user)
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
+        
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
@@ -29,7 +30,7 @@
                         <span class="tagline">Let's create a path for everyone</span>
                     </p>
                     <br>
-                    <button class="myButton2" onclick="location.href = '@routes.AuditController.audit';">Start Mapping</button>
+                    <button class="bodyStartBtn" onclick="location.href = '@routes.AuditController.audit';">Start Mapping</button>
                     <br><br>
 
                 </div>
@@ -73,6 +74,7 @@
 
                         </div>
                         <div id="instructionvideo">
+
                             <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
                             <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
                             <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
@@ -152,10 +154,7 @@
     </div>
     <div class="container" id="difference-container">
         <div id="dcanim-div">
-            <video poster='@routes.Assets.at("assets/dc-animation.jpg")' style="width:100%; max-width: 1500px;" preload="preload" id="video" autoplay="autoplay" loop="loop">
-
-                <source src="@routes.Assets.at("assets/dc-animation.mp4")" type="video/mp4"></source>
-            </video>
+            <img src="@routes.Assets.at("assets/dc_graphic.png")" width="1400" style="position:relative;">
         </div>
         <div class="im-centered5">
             <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
@@ -189,6 +188,22 @@
             </script>
         </div>
     </div>
+
+
+    <div class="container" id="machinelearning-container">
+
+            <div class="im-centered3">
+                <div class="row" style="width: 450px;">What we do with your labels</div>
+                <div class="row" id="content-text-4">
+                    <p>Your contributions help train machine learning algorithms to identify accessibility issues automatically.</p>
+                </div>
+                <br>
+                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" >
+            </div>
+
+
+    </div>
+
 
 
     <div class="container" id="quotebox-container" style="min-height: 500px;">
