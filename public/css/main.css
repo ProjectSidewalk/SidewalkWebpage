@@ -1089,6 +1089,9 @@ kbd {
     overflow: hidden;
 
 }
+.activetab #word3{
+    background-color:transparent;
+}
 .activetab.stepnumber{
     font-family: Raleway-black,sans-serif;
     font-size: 90px;
