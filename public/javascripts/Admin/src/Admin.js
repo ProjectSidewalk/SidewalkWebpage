@@ -602,6 +602,7 @@ function Admin (_, $, c3, turf) {
     });
 
     initializeLabelTable();
+    initializeAdminGSVLabelView();
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;
