@@ -28,6 +28,7 @@ svg {
     border-top: 0;
 }
 
+
 .leaflet-overlay-pane svg g:first-child path {
     fill: #fff !important;
     fill-opacity: 0.4 !important;

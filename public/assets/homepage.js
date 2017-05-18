@@ -1,6 +1,8 @@
-/**
- * Created by anthony on 4/1/17.
- */
+
+var autoAdvanceLaptop = true;
+
+
+
 function playVideo(){
     document.getElementById("vidembed").innerHTML = '<div class="video-container"><iframe id="youtubeframe" width="853" height="480" src="https://www.youtube.com/embed/wAdGXqRunQs?autoplay=1" frameborder="0" allowfullscreen</iframe</div>';
     var vidheight = $('#youtubeframe').height();
@@ -28,6 +30,7 @@ function numbersInView(){
         if(percentageAnim && labelsAnim) {
             percentageAnim.start();
             labelsAnim.start();
+            milesAnim.start();
         }
     }
 }
@@ -36,72 +39,104 @@ function switchToVideo(vidnum){
 
 
     if(vidnum === 1) {
-        // console.log("Switching to video 1");
+
         document.getElementById("vid1").style.display = "block";
         document.getElementById("vid2").style.display = "none";
         document.getElementById("vid3").style.display = "none";
-        document.getElementById("word1").style.textDecoration = "underline";
-        document.getElementById("word2").style.textDecoration = "none";
-        document.getElementById("word3").style.textDecoration = "none";
 
-        document.getElementById("word1").style.fontFamily = "Raleway-bold,sans-serif";
-        document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
 
+        $( "#word1" ).addClass( "tab-word activetab" );
+        $( "#word2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word3" ).addClass( "tab-word" ).removeClass("activetab");
+
+        $( "#firstnumbox" ).addClass( "tab-word activetab" );
+        $( "#secondnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#thirdnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+
+        $( "#number1" ).addClass( "tab-word activetab" );
+        $( "#number2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number3" ).addClass( "tab-word" ).removeClass("activetab");
+
+        document.getElementById("vid1").currentTime = 0;
+        document.getElementById("vid1").play();
+
+        document.getElementById("vid2").pause();
+        document.getElementById("vid3").pause();
 
 
     }
     else if(vidnum === 2) {
-        // console.log("Switching to video 2");
+
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "block";
         document.getElementById("vid3").style.display = "none";
-        document.getElementById("word1").style.textDecoration = "none";
-        document.getElementById("word2").style.textDecoration = "underline";
-        document.getElementById("word3").style.textDecoration = "none";
 
-        document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word2").style.fontFamily = "Raleway-bold,sans-serif";
-        document.getElementById("word3").style.fontFamily = "Raleway,sans-serif";
+
+        $( "#word1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word2" ).addClass( "tab-word activetab" );
+        $( "#word3" ).addClass( "tab-word" ).removeClass("activetab");
+
+        $( "#firstnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#secondnumbox" ).addClass( "tab-word activetab" );
+        $( "#thirdnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+
+        $( "#number1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number2" ).addClass( "tab-word activetab" );
+        $( "#number3" ).addClass( "tab-word" ).removeClass("activetab");
+
+        document.getElementById("vid2").currentTime = 0;
+        document.getElementById("vid2").play();
+
+        document.getElementById("vid1").pause();
+        document.getElementById("vid3").pause();
     }
     else if(vidnum === 3) {
-        // console.log("Switching to video 3");
+
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "none";
         document.getElementById("vid3").style.display = "block";
-        document.getElementById("word1").style.textDecoration = "none";
-        document.getElementById("word2").style.textDecoration = "none";
-        document.getElementById("word3").style.textDecoration = "underline";
 
-        document.getElementById("word1").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word2").style.fontFamily = "Raleway,sans-serif";
-        document.getElementById("word3").style.fontFamily = "Raleway-bold,sans-serif";
+
+        $( "#word1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#word3" ).addClass( "tab-word activetab" );
+
+        $( "#firstnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#secondnumbox" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#thirdnumbox" ).addClass( "tab-word activetab" );
+
+        $( "#number1" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number2" ).addClass( "tab-word" ).removeClass("activetab");
+        $( "#number3" ).addClass( "tab-word activetab" );
+
+        document.getElementById("vid3").currentTime = 0;
+        document.getElementById("vid3").play();
+
+        document.getElementById("vid2").pause();
+        document.getElementById("vid1").pause();
     }
-    /*
-    var e = document.getElementById("vid"+vidnum);
-    e.style.opacity = 0;
 
-    var vid = document.getElementById("vid"+vidnum);
-    vid.oncanplaythrough = function() {
-        setTimeout(function() {
-            var e = document.getElementById("vid"+vidnum);
-            fade(e);
-        }, 10);
-    };
-
-    function fade(element) {
-        var op = 0;
-        var timer = setInterval(function() {
-            if (op >= 1) clearInterval(timer);
-            element.style.opacity = op;
-            element.style.filter = 'alpha(opacity=' + op * 100 + ")";
-            op += op * 0.1 || 0.1;
-        }, 10);
-    }
-    */
 }
 
 $( document ).ready(function() {
-    // console.log( "ready!" );
-    switchToVideo(1);
+
+    switchToVideo(1)
+    function autoAdvanceLaptopVideos(){
+        if (autoAdvanceLaptop) switchToVideo(1);
+        setTimeout(function () {
+            if (autoAdvanceLaptop) switchToVideo(2);
+            setTimeout(function () {
+                if (autoAdvanceLaptop) switchToVideo(3);
+                setTimeout(function () {
+                    autoAdvanceLaptopVideos()
+
+                }, 9000);
+
+            }, 11000);
+        }, 9660);
+    }
+    autoAdvanceLaptopVideos();
+
+
+
 });
