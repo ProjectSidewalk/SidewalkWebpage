@@ -15,7 +15,7 @@ function ContextMenu (uiContextMenu) {
 
     var context_menu_el = document.getElementById('context-menu-holder');
     document.addEventListener('mousedown', function(event){
-        event.stopPropagation();
+        //event.stopPropagation();
         var clicked_out = !(context_menu_el.contains(event.target));
         if (clicked_out && isOpen()){
             _handleSeverityPopup();
