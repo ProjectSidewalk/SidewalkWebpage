@@ -13,8 +13,20 @@ function ContextMenu (uiContextMenu) {
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
 
+    var context_menu_el = document.getElementById('context-menu-holder');
+    document.addEventListener('mousedown', function(event){
+        event.stopPropagation();
+        var clicked_out = !(context_menu_el.contains(event.target));
+        if (clicked_out && isOpen()){
+            _handleSeverityPopup();
+        }
+        hide();
+    }); //handles clicking outside of context menu holder
+    //document.addEventListener("mousedown", hide);
 
-    document.addEventListener("mousedown", hide);
+
+
+
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
     $radioButtons.on('change', _handleRadioChange);
     $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
@@ -54,7 +66,6 @@ function ContextMenu (uiContextMenu) {
      */
     function handleMenuWindowMouseDown (e) {
         e.stopPropagation();
-        _handleSeverityPopup();
     }
 
     function handleDescriptionTextBoxChange(e) {
@@ -93,11 +104,15 @@ function ContextMenu (uiContextMenu) {
 
     function _handleSeverityPopup (){
         var labels = svl.labelContainer.getCurrentLabels();
-        var pre_labels = svl.labelContainer.getPreviousLabels();
-        if (labels.length == 0) {labels=pre_labels;}
-        var last_label = labels[labels.length - 1];
-        var prop = last_label.getProperties();
-        svl.ratingReminderAlert.ratingClicked(prop.severity);
+        var prev_labels = svl.labelContainer.getPreviousLabels();
+        if (labels.length == 0){
+            labels = prev_labels;
+        }
+        if (labels.length > 0) {
+            var last_label = labels[labels.length - 1];
+            var prop = last_label.getProperties();
+            svl.ratingReminderAlert.ratingClicked(prop.severity);
+        }
     }
 
     /**
