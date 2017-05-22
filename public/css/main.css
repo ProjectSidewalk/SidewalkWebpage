@@ -708,7 +708,7 @@ video#bgvid {
 }
 #exploreButton:active {
     position:relative;
-    top:1px;
+    top:25px;
 }
 
 #exploredesc{
