@@ -278,7 +278,7 @@ $(document).ready(function () {
       }
 
       function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
+        // If a key is given, update the dot plot for that specific data.
         // Otherwise update all.
         if (key) {
           _update(key)
@@ -379,7 +379,7 @@ $(document).ready(function () {
     //  }, 1500);
 
       return {
-        udpate: update,
+        update: update,
         increment: increment
       }
     };
