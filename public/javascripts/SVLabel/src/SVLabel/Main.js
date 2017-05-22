@@ -116,7 +116,9 @@ function Main (params) {
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
+        svl.alert2 = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
+        svl.ratingReminderAlert = new RatingReminderAlert(svl.alert2);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;

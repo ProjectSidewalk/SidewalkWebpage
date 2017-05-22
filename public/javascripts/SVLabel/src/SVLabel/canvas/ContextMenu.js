@@ -54,6 +54,7 @@ function ContextMenu (uiContextMenu) {
      */
     function handleMenuWindowMouseDown (e) {
         e.stopPropagation();
+        _handleSeverityPopup();
     }
 
     function handleDescriptionTextBoxChange(e) {
@@ -77,13 +78,26 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
+
         svl.tracker.push('ContextMenu_CloseButtonClick');
+        _handleSeverityPopup();
         hide();
     }
 
     function _handleOKButtonClick () {
+
         svl.tracker.push('ContextMenu_OKButtonClick');
+        _handleSeverityPopup();
         hide();
+    }
+
+    function _handleSeverityPopup (){
+        var labels = svl.labelContainer.getCurrentLabels();
+        var pre_labels = svl.labelContainer.getPreviousLabels();
+        if (labels.length == 0) {labels=pre_labels;}
+        var last_label = labels[labels.length - 1];
+        var prop = last_label.getProperties();
+        svl.ratingReminderAlert.ratingClicked(prop.severity);
     }
 
     /**
