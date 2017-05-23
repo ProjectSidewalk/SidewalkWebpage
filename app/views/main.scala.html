@@ -1,5 +1,8 @@
-@(title: String)(content: Html)
+@import models.user.User
+@(title: String, url: Option[String] = Some("/"))(content: Html)
 
+
+@import views.html.bootstrap._
 @import com.mohiva.play.silhouette.impl.providers._
 @import views.html.bootstrap._
 @import forms.SignInForm
@@ -7,7 +10,7 @@
 @import play.api.Play
 @import play.api.Play.current
 
-<html>
+<!DOCTYPE html>
 <head>
     <meta charset="utf-8" />
     <title>@title</title>
@@ -28,12 +31,18 @@
     <script src='@routes.Assets.at("javascripts/lib/mapbox.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
-    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.25&key=AIzaSyDzYR4m-3upEQ-bIQam35ixN1BgxnPsY7k"></script>
-
+    <script type="text/javascript"
+        src="https://maps.googleapis.com/maps/api/js?v=3.27&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+    </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
-    <link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>
+    <!--<link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>-->
+    <link rel="stylesheet" href='@routes.Assets.at("css/main.css")'>
 
+    <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
+    <script src='@routes.Assets.at("assets/countUp.js")'></script>
+    <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
+    <script src='@routes.Assets.at("assets/pagetop-padding.js")'></script>
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -44,23 +53,65 @@
     @*TODO: url should not be hardcoded*@
     <meta name="twitter:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
 </head>
-<body>
+<body onload="checkIfPaddingNeeded()">
     <div id="wrap">
         @content
+
     </div>
-    <footer class="footer">
-        <div class="container">
-            <p class="text-muted footer-text">
-                Project Sidewalk is designed and operated by the <a href="https://makeabilitylab.umiacs.umd.edu/">Makeabilty Lab</a> at the <a href="http://www.umd.edu/">University of Maryland</a>
-            </p>
-            <p class="text-muted footer-text">
-                <a href='@routes.ApplicationController.about'>About</a>&nbsp;|
-                <a href='@routes.ApplicationController.developer'>Developer</a>&nbsp;|
-                <a href="@routes.ApplicationController.terms">Terms of Use</a>&nbsp;|
-                <span id="application-version"></span>
-            </p>
+    <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
+
+    <div class="container" id="footer-container">
+        <div class="row" style="padding-top: 50px; width: 900px; position:relative; left:80px;">
+            <div class="col-sm-4 footerlink">
+                <span class="footerheader">PROJECT SIDEWALK</span><br/>
+                <!-- Back to top<br>-->
+                <a href='@routes.ApplicationController.about'>About Us</a> <br/>
+                <a href='@routes.ApplicationController.terms'>Terms of Use</a> <br/>
+                <a href='@routes.ApplicationController.faq'>FAQ</a> <br/>
+            </div>
+            <div class="col-sm-4 footerlink">
+                <span class="footerheader">DEVELOPER</span><br/>
+                <a href='@routes.ApplicationController.developer'>Sidewalk API </a><br/>
+            </div>
+            <div class="col-sm-4 footerlink">
+                <span class="footerheader">CONNECT</span><br/>
+                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
+                <a target="_blank" href="https://twitter.com/umd_sidewalk"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
+            </div>
         </div>
-    </footer>
+    </div>
+    <div class="container" id="info-footer">
+        <br>
+        <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
+        <div class="row" style="max-width: 340px; margin: 0 auto;">
+
+            <div class="col-sm-6">
+                <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">
+                    <img src="@routes.Assets.at("assets/nsf.png")">
+                </a>
+            </div>
+            <div class="col-sm-6">
+                <a href="http://www.google.com/"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
+            </div>
+
+        </div>
+        <div class="row" style="max-width: 340px; margin: 0 auto;">
+
+            <div class="col-sm-6" id="awardnum">
+                Award #1302338
+            </div>
+            <div class="col-sm-6">
+
+            </div>
+
+        </div>
+
+        Project Sidewalk is designed and operated by the
+        <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
+        <a href="http://www.umd.edu/">University of Maryland</a><br>
+        <span id="application-version"></span>
+    </div>
     <script>
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
                         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -72,4 +123,4 @@
 
     </script>
 </body>
-</html>
+

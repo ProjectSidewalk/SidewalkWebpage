@@ -19,7 +19,8 @@ function Point (svl, x, y, pov, params) {
             canvasCoordinate : undefined,
             originalCanvasCoordinate : undefined,
             pov : undefined,
-            originalPov : undefined
+            originalPov : undefined,
+            panoramaPov : undefined
         };
     var belongsTo;
     var properties = {
@@ -41,22 +42,7 @@ function Point (svl, x, y, pov, params) {
     };
 
     function _init (x, y, pov, params) {
-        // Convert a canvas coordinate (x, y) into a sv image coordinate
-        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
-        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-        
-        // Adjust the zoom level
-        var zoom = pov.zoom;
-        var zoomFactor = svl.zoomFactor[zoom];
-        var svImageHeight = svl.svImageHeight;
-        var svImageWidth = svl.svImageWidth;
-        self.svImageCoordinate = {};
-        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
-        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
-        // svImageCoordinate.x could be negative, so adjust it.
-        if (self.svImageCoordinate.x < 0) {
-            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
-        }
+
         // Keep the original canvas coordinate and
         // canvas pov just in case.
         self.canvasCoordinate = {
@@ -67,16 +53,59 @@ function Point (svl, x, y, pov, params) {
             x : x,
             y : y
         };
+        self.panoramaPov = {
+            heading: pov.heading,
+            pitch: pov.pitch,
+            zoom: pov.zoom
+        };
+
+        // Calculate the POV of the label
+        var pointPOV;
+        if (!jQuery.isEmptyObject(pov)){
+            pointPOV = calculatePointPov(x, y, pov);
+        }
+        else {
+            pointPOV = pov;
+        }
+
         self.pov = {
-            heading : pov.heading,
-            pitch : pov.pitch,
-            zoom : pov.zoom
+            heading : pointPOV.heading,
+            pitch : pointPOV.pitch,
+            zoom : pointPOV.zoom
         };
+
         self.originalPov = {
-            heading : pov.heading,
-            pitch : pov.pitch,
-            zoom : pov.zoom
+            heading: pointPOV.heading,
+            pitch: pointPOV.pitch,
+            zoom: pointPOV.zoom
         };
+
+        // Convert a canvas coordinate (x, y) into a sv image coordinate
+        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
+        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
+
+        var svImageWidth = svl.svImageWidth;
+        // var svImageHeight = svl.svImageHeight;
+
+        // Adjust the zoom level
+        /* old calculation
+        var zoom = pov.zoom;
+        var zoomFactor = svl.zoomFactor[zoom];
+        self.svImageCoordinate = {};
+        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
+        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
+        // svImageCoordinate.x could be negative, so adjust it.
+        if (self.svImageCoordinate.x < 0) {
+            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
+        }
+        */
+
+        var svImageCoord = util.panomarker.calculateImageCoordinateFromPointPov(self.originalPov);
+
+        if (svImageCoord.x < 0) {
+            svImageCoord.x = svImageCoord.x + svImageWidth;
+        }
+        self.svImageCoordinate = svImageCoord;
 
         // Set properties
         for (var propName in properties) {
@@ -117,28 +146,30 @@ function Point (svl, x, y, pov, params) {
     /** return the fill color of this point */
     function getFill () { return properties.fillStyleInnerCircle; }
 
-    /** Get POV */
-    function getPOV () { return pov; }
+    /** Get POV
+     * This method returns the pov of this label
+     * @returns {{heading: Number, pitch: Number, zoom: Number}}
+     */
+
+    function getPOV () {
+        return $.extend(true, {}, self.pov);
+    }
+
+    /** Get the initial pov */
+    function getOriginalPov(){
+        return $.extend(true, {}, self.originalPov);
+    }
 
     /** Returns an object directly above this object. */
     function getParent () { return belongsTo ? belongsTo : null; }
-
-
-    /**
-     * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point.
-     * @param pov
-     * @returns {{x, y}}
-     */
-    function getCanvasCoordinate (pov) {
-        self.canvasCoordinate = svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-        return svl.gsvImageCoordinate2CanvasCoordinate(self.svImageCoordinate.x, self.svImageCoordinate.y, pov);
-    }
 
     /**
      * Get the fill style.
      * @returns {*}
      */
     function getFillStyle () { return  getFill(); }
+
+    function getCanvasCoordinate () { return $.extend(true, {}, self.canvasCoordinate); }
 
     function getGSVImageCoordinate () { return $.extend(true, {}, self.svImageCoordinate); }
 
@@ -158,6 +189,17 @@ function Point (svl, x, y, pov, params) {
         }
     }
 
+    function calculateCanvasCoordinate(pov){
+        var canvasCoord = getCanvasCoordinate();
+        var origPov = getOriginalPov();
+        self.canvasCoordinate =  util.panomarker.getCanvasCoordinate(canvasCoord, origPov, pov);
+        return self.canvasCoordinate;
+    }
+
+    function calculatePointPov(x, y, pov){
+        return util.panomarker.calculatePointPov(x, y, pov);
+    }
+
     /**
      * Renders this point
      * @param pov
@@ -165,10 +207,18 @@ function Point (svl, x, y, pov, params) {
      */
     function render (pov, ctx) {
         if (status.visibility === 'visible') {
-            var coord = self.getCanvasCoordinate(pov),
+            var coord = calculateCanvasCoordinate(pov),
                 x = coord.x,
                 y = coord.y,
                 r = properties.radiusInnerCircle;
+
+            // Update the new pov of the label
+            if (coord.x < 0){
+                self.pov = {};
+            }
+            else {
+                self.pov = calculatePointPov(coord.x, coord.y, pov);
+            }
 
             ctx.save();
             ctx.strokeStyle = properties.strokeStyleOuterCircle;
@@ -319,10 +369,11 @@ function Point (svl, x, y, pov, params) {
     }
 
     self.belongsTo = getParent;
-    self.getPOV = getPOV;
-    self.getCanvasCoordinate = getCanvasCoordinate;
+    self.calculateCanvasCoordinate = calculateCanvasCoordinate;
     self.getCanvasX = getCanvasX;
     self.getCanvasY = getCanvasY;
+    self.getCanvasCoordinate = getCanvasCoordinate;
+    self.getPOV = getPOV;
     self.getFill = getFill;
     self.getFillStyle = getFillStyle;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
