@@ -1,6 +1,6 @@
-function Admin (_, $, c3, turf) {
+function Admin(_, $, c3, turf) {
     var self = {};
-    var severityList = [1,2,3,4,5];
+    var severityList = [1, 2, 3, 4, 5];
     self.markerLayer = null;
     self.curbRampLayers = [];
     self.missingCurbRampLayers = [];
@@ -26,7 +26,7 @@ function Admin (_, $, c3, turf) {
         "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
     };
 
-    self.auditedStreetLayer = null;   
+    self.auditedStreetLayer = null;
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -430,7 +430,7 @@ function Admin (_, $, c3, turf) {
                 layer.bindPopup(feature.properties.type);
             }
             layer.on({
-                'add': function(){
+                'add': function () {
                     layer.bringToBack()
                 }
             })
@@ -577,24 +577,25 @@ function Admin (_, $, c3, turf) {
     }
 
     function toggleLayers(label, checkboxId, sliderId) {
-            if (document.getElementById(checkboxId).checked) {
-                for (i = 0; i < self.allLayers[label].length; i++) {
-                    if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "value") == i ||
-                        $(sliderId).slider("option", "value") == 5 )) {
-                        map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "value") != 5
-                        && $(sliderId).slider("option", "value") != i) {
-                        map.removeLayer(self.allLayers[label][i]);
-                    }
-                }
-            } else {
-                for (i = 0; i < self.allLayers[label].length; i++) {
-                    if (map.hasLayer(self.allLayers[label][i])) {
-                        map.removeLayer(self.allLayers[label][i]);
-                    }
+        if (document.getElementById(checkboxId).checked) {
+            for (i = 0; i < self.allLayers[label].length; i++) {
+                if (!map.hasLayer(self.allLayers[label][i])
+                    && ($(sliderId).slider("option", "value") == i ||
+                    $(sliderId).slider("option", "value") == 5 )) {
+                    map.addLayer(self.allLayers[label][i]);
+                } else if ($(sliderId).slider("option", "value") != 5
+                    && $(sliderId).slider("option", "value") != i) {
+                    map.removeLayer(self.allLayers[label][i]);
                 }
             }
+        } else {
+            for (i = 0; i < self.allLayers[label].length; i++) {
+                if (map.hasLayer(self.allLayers[label][i])) {
+                    map.removeLayer(self.allLayers[label][i]);
+                }
+            }
+        }
+    }
 
     function toggleAuditedStreetLayer() {
         if (document.getElementById('auditedstreet').checked) {
@@ -606,10 +607,14 @@ function Admin (_, $, c3, turf) {
 
     // A helper method to make an histogram of an array.
     function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
-        arrayOfNumbers.sort(function (a, b) { return a - b; });
+        arrayOfNumbers.sort(function (a, b) {
+            return a - b;
+        });
         var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
-        var dividedArray = arrayOfNumbers.map(function (x) { return x / stepSize; });
-        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf,0);
+        var dividedArray = arrayOfNumbers.map(function (x) {
+            return x / stepSize;
+        });
+        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf, 0);
         for (var i = 0; i < dividedArray.length; i++) {
             var binIndex = Math.floor(dividedArray[i] - 0.0000001);
             histogram[binIndex] += 1;
@@ -632,26 +637,30 @@ function Admin (_, $, c3, turf) {
         });
     }
 
-    $('.nav-pills').on('click', function(e){
-        if( e.target.id == "visualization" && self.mapLoaded == false) {
+    $('.nav-pills').on('click', function (e) {
+        if (e.target.id == "visualization" && self.mapLoaded == false) {
             initializeOverlayPolygon(map);
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
             initializeSubmittedLabels(map);
             initializeAdminGSVLabelView();
-            setTimeout(function(){ map.invalidateSize(false); }, 1);
+            setTimeout(function () {
+                map.invalidateSize(false);
+            }, 1);
             self.mapLoaded = true;
         }
-      else if (e.target.id == "analytics" && self.graphsLoaded == false) {
+        else if (e.target.id == "analytics" && self.graphsLoaded == false) {
             // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
-                function cmp (a, b) {
+                function cmp(a, b) {
                     return a.timestamp - b.timestamp;
                 }
 
                 // Group the audit task interaction records by audit_task_id, then go through each group and compute
                 // the duration between the first time stamp and the last time stamp.
-                var grouped = _.groupBy(data, function (x) { return x.audit_task_id; });
+                var grouped = _.groupBy(data, function (x) {
+                    return x.audit_task_id;
+                });
                 var completionDurationArray = [];
                 var record1;
                 var record2;
@@ -663,20 +672,28 @@ function Admin (_, $, c3, turf) {
                     duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
                     completionDurationArray.push(duration);
                 }
-                completionDurationArray.sort(function (a, b) { return a - b; });
+                completionDurationArray.sort(function (a, b) {
+                    return a - b;
+                });
 
                 // Bounce rate
-                var zeros = _.countBy(completionDurationArray, function (x) { return x == 0; });
+                var zeros = _.countBy(completionDurationArray, function (x) {
+                    return x == 0;
+                });
                 var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
 
                 // Histogram of duration
-                completionDurationArray = completionDurationArray.filter(function (x) { return x != 0; });  // Remove zeros
+                completionDurationArray = completionDurationArray.filter(function (x) {
+                    return x != 0;
+                });  // Remove zeros
                 var numberOfBins = 10;
                 var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
                 // console.log(histogram);
                 var counts = histogram.histogram;
                 counts.unshift("Count");
-                var bins = histogram.histogram.map(function (x, i) { return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1); });
+                var bins = histogram.histogram.map(function (x, i) {
+                    return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1);
+                });
 
                 $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
@@ -697,7 +714,7 @@ function Admin (_, $, c3, turf) {
                         y: {
                             label: "Count",
                             min: 0,
-                            padding: { top: 50, bottom: 10 }
+                            padding: {top: 50, bottom: 10}
                         }
                     },
                     legend: {
@@ -737,11 +754,19 @@ function Admin (_, $, c3, turf) {
                     }
                     missions[printedMissionName].count += 1;
                 }
-                var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
+                var arrayOfMissions = Object.keys(missions).map(function (key) {
+                    return missions[key];
+                });
                 arrayOfMissions.sort(function (a, b) {
-                    if (a.count < b.count) { return 1; }
-                    else if (a.count > b.count) { return -1; }
-                    else { return 0; }
+                    if (a.count < b.count) {
+                        return 1;
+                    }
+                    else if (a.count > b.count) {
+                        return -1;
+                    }
+                    else {
+                        return 0;
+                    }
                 });
 
                 var missionCountArray = ["Mission Counts"];
@@ -766,7 +791,7 @@ function Admin (_, $, c3, turf) {
                         y: {
                             label: "# Users Completed the Mission",
                             min: 0,
-                            padding: { top: 50, bottom: 10 }
+                            padding: {top: 50, bottom: 10}
                         }
                     },
                     legend: {
@@ -810,7 +835,7 @@ function Admin (_, $, c3, turf) {
                             label: "Neighborhood Coverage Rate (%)",
                             min: 0,
                             max: 100,
-                            padding: { top: 50, bottom: 10 }
+                            padding: {top: 50, bottom: 10}
                         }
                     },
                     legend: {
@@ -834,7 +859,7 @@ function Admin (_, $, c3, turf) {
                         y: {
                             label: "Coverage Distance (m)",
                             min: 0,
-                            padding: { top: 50, bottom: 10 }
+                            padding: {top: 50, bottom: 10}
                         }
                     },
                     legend: {
@@ -844,24 +869,28 @@ function Admin (_, $, c3, turf) {
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-                    counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
+                var dates = ['Date'].concat(data[0].map(function (x) {
+                        return x.date;
+                    })),
+                    counts = ['Audit Count'].concat(data[0].map(function (x) {
+                        return x.count;
+                    }));
                 var chart = c3.generate({
                     bindto: "#audit-count-chart",
                     data: {
                         x: 'Date',
-                        columns: [ dates, counts ],
-                        types: { 'Audit Count': 'line' }
+                        columns: [dates, counts],
+                        types: {'Audit Count': 'line'}
                     },
                     axis: {
                         x: {
                             type: 'timeseries',
-                            tick: { format: '%Y-%m-%d' }
+                            tick: {format: '%Y-%m-%d'}
                         },
                         y: {
                             label: "Street Audit Count",
                             min: 0,
-                            padding: { top: 50, bottom: 10 }
+                            padding: {top: 50, bottom: 10}
                         }
                     },
                     legend: {
@@ -871,24 +900,28 @@ function Admin (_, $, c3, turf) {
             });
 
             $.getJSON("/userapi/labelCounts/all", function (data) {
-                var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-                    counts = ['Label Count'].concat(data[0].map(function (x) { return x.count; }));
+                var dates = ['Date'].concat(data[0].map(function (x) {
+                        return x.date;
+                    })),
+                    counts = ['Label Count'].concat(data[0].map(function (x) {
+                        return x.count;
+                    }));
                 var chart = c3.generate({
                     bindto: "#label-count-chart",
                     data: {
                         x: 'Date',
-                        columns: [ dates, counts ],
-                        types: { 'Audit Count': 'line' }
+                        columns: [dates, counts],
+                        types: {'Audit Count': 'line'}
                     },
                     axis: {
                         x: {
                             type: 'timeseries',
-                            tick: { format: '%Y-%m-%d' }
+                            tick: {format: '%Y-%m-%d'}
                         },
                         y: {
                             label: "Label Count",
                             min: 0,
-                            padding: { top: 50, bottom: 10 }
+                            padding: {top: 50, bottom: 10}
                         }
                     },
                     legend: {
@@ -897,7 +930,7 @@ function Admin (_, $, c3, turf) {
                 });
             });
             self.graphsLoaded = true;
-       }
+        }
     });
 
     initializeLabelTable();
