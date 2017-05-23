@@ -1048,13 +1048,13 @@ kbd {
     padding: 2px 6px;
 }
 
-
 .page-alert-holder {
     z-index: 3;
     width: 75%;
     text-align: center;
     position: fixed;
-    font-size: 9pt;
+    font-size: 10pt;
+
     left: 50%;
     margin-left: -37.5%;
 }
@@ -1076,9 +1076,8 @@ kbd {
 .page-alert-dont-show {
     text-decoration: underline;
     margin: 0 10px 0 30px;
+
 }
-
-
 
 .tab-word.div{
     background-color: #F1F1F1;
@@ -1100,3 +1099,4 @@ kbd {
     font-weight: bold;
     color: #fff;
 }
+
