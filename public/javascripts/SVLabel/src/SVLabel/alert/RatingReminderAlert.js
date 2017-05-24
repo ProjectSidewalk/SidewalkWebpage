@@ -15,7 +15,7 @@ function RatingReminderAlert(alertHandler) {
         if (self['ratingCount'] >= MINIMUM_NO_RATING_BEFORE_ALERT
             && (svl.onboarding == null || svl.onboarding.isOnboarding() == false)){
 
-            alertHandler.showAlert('Please remember to rate the area severity by clicking or pressing keyboard numbers (1,2,3,4,5)!', 'reminderMessage', true);
+            alertHandler.showAlert('Press keys <kbd>'+1+'</kbd> through <kbd>'+5+'</kbd> to rate the location accessibility for each label you place.', 'reminderMessage', true);
             self['ratingCount']=0;
 
         }//not in tutorial screen
