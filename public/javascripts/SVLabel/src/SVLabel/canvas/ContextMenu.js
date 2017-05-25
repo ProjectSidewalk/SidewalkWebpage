@@ -23,7 +23,13 @@ function ContextMenu (uiContextMenu) {
         hide();
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
-
+    document.onkeypress= function(e){
+        e= e || window.event;
+        var key_pressed = e.which || e.keyCode;
+        if (key_pressed == 13 && isOpen()){
+            _handleSeverityPopup();
+        }
+    };//handles pressing enter key to exit ContextMenu
 
 
 
