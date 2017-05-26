@@ -695,56 +695,54 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function handlerPanoramaChange () {
         if (svl.panorama) {
             var panoId = getPanoId();
-            console.log(" Pano ID: " + panoId);
+            //console.log(" Pano ID: " + panoId);
             if (typeof panoId === "undefined") {
                 return;
             }
-                //console.log("Pano: " + panoId);
 
-                if (svl.streetViewService && panoId.length > 0) {
+            if (svl.streetViewService && panoId.length > 0) {
+                // Check if panorama exists
+                svl.streetViewService.getPanorama({pano: panoId},
+                    function (data, panoStatus) {
+                        //console.log("Google API Panorama: ID:" + panoId + " Status: " + panoStatus);
+                        if (panoStatus === google.maps.StreetViewStatus.OK) {
 
-                    // Check if panorama exists
-                    svl.streetViewService.getPanorama({pano: panoId},
-                        function (data, panoStatus) {
-                            console.log("Google API Panorama: ID:" + panoId + " Status: " + panoStatus);
-                            if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            var panoramaPosition = svl.panorama.getPosition(); // Current Position
+                            map.setCenter(panoramaPosition);
 
-                                var panoramaPosition = svl.panorama.getPosition(); // Current Position
-                                map.setCenter(panoramaPosition);
+                            povChange["status"] = true;
 
-                                povChange["status"] = true;
+                            _canvas.clear();
+                            _canvas.setVisibilityBasedOnLocation('visible', panoId);
+                            _canvas.render2();
 
-                                _canvas.clear();
-                                _canvas.setVisibilityBasedOnLocation('visible', panoId);
-                                _canvas.render2();
+                            povChange["status"] = false;
 
-                                povChange["status"] = false;
-
-                                // Attach listeners to svl.pointCloud
-                                if ('pointCloud' in svl && svl.pointCloud) {
-                                    var pointCloud = svl.pointCloud.getPointCloud(panoId);
-                                    if (!pointCloud) {
-                                        svl.pointCloud.createPointCloud(panoId);
-                                        // svl.pointCloud.ready(panoId, function () {
-                                        // console.log(svl.pointCloud.getPointCloud(panoId));
-                                        //});
-                                    }
+                            // Attach listeners to svl.pointCloud
+                            if ('pointCloud' in svl && svl.pointCloud) {
+                                var pointCloud = svl.pointCloud.getPointCloud(panoId);
+                                if (!pointCloud) {
+                                    svl.pointCloud.createPointCloud(panoId);
+                                    // svl.pointCloud.ready(panoId, function () {
+                                    // console.log(svl.pointCloud.getPointCloud(panoId));
+                                    //});
                                 }
-                                svl.tracker.push("PanoId_Changed");
                             }
-                            else {
-                                handleImageryNotFound(panoId, panoStatus);
-                            }
+                            svl.tracker.push("PanoId_Changed");
                         }
-                    );
-                }
-                else {
+                        else {
+                            handleImageryNotFound(panoId, panoStatus);
+                        }
+                    }
+                );
+            }
+            else {
 
-                    handleImageryNotFound(panoId);
-                }
-                if ('compass' in svl) {
-                    svl.compass.update();
-                }
+                handleImageryNotFound(panoId);
+            }
+            if ('compass' in svl) {
+                svl.compass.update();
+            }
             } else {
                 throw self.className + ' handlerPanoramaChange(): panorama not defined.';
             }
