@@ -30,10 +30,11 @@ function AdminPanorama(svHolder) {
             width: self.svHolder.width(),
             height: self.svHolder.height()
         }).css({
+            /*
             'z-index': 2,
             'position': 'absolute',
             'top': 0,
-            'left': 0,
+            'left': 0,*/
             'width': self.svHolder.width(),
             'height': self.svHolder.height()
         })[0];

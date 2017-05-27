@@ -39,16 +39,19 @@ svg {
 }
 
 #svholder {
+    margin-top: 5px;
     width:360px;
     height:240px;
     position: absolute;
+
     top: 15px;
     right: 30px;
 }
 
 #eventsholder {
     width: 360px;
-    position: absolute;
+    /*position: absolute;*/
+    /*
     right: 30px;
     bottom: 50px;
     top: 285px; /* 240 + 15 + 15 */
@@ -57,7 +60,10 @@ svg {
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
     font-size: 12px;
     overflow: scroll;
-    padding: 0 10px;
+    padding: 0px 10px;
+    margin: 10px 0px;
+    max-height: 600px;
+    min-height: 300px;
 }
 
 #eventsholder .event {
@@ -70,9 +76,10 @@ svg {
 }
 
 #timeline {
-    position: absolute;
+    margin: 5px 0px;
+    /*position: absolute;
     right: 30px;
-    top: 265px;
+    top: 265px;*/
     width: 360px;
     height: 10px;
     background-color: rgba(0, 0, 0, 0.6);
@@ -80,10 +87,10 @@ svg {
 }
 
 #timeline #timeline-handle {
-    position: absolute;
-    left: 0;
+    /*position: absolute;
+    left: 0;*/
     margin-left: -7px;
-    top: -3px;
+    /*top: -3px;*/
     width: 15px;
     height: 15px;
     border-radius: 50%;
@@ -92,10 +99,10 @@ svg {
 }
 
 #timeline #timeline-active {
-    position: absolute;
+    /*position: absolute;
     top:0;
     bottom: 0;
-    left: 0;
+    left: 0;*/
     width: 0;
     background-color: #249dff;
     border-radius: 5px;
