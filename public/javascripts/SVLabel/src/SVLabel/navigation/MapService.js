@@ -696,19 +696,24 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var panoId = getPanoId();
             //console.log(" Pano ID: " + panoId);
+            /*
             for(var i=0; i<2; i++){
                 if (typeof panoId === "undefined") {
                     panoId = getPanoId();
                 }else{
                     break;
                 }
-            }//checks twice
+            }//checks twice*/
 
 
-            /*
+
             if (typeof panoId === "undefined" || panoId.length == 0) {
-                handleImageryNotFound(panoId);
-            }//third time, should try taking a step here*/
+                //handleImageryNotFound(panoId);
+                if ('compass' in svl) {
+                    svl.compass.update();
+                }
+                return;
+            }
 
             if (svl.streetViewService && panoId.length > 0) {
                 // Check if panorama exists
@@ -748,10 +753,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
             if ('compass' in svl) {
                 svl.compass.update();
-            } else {
-                throw self.className + ' handlerPanoramaChange(): panorama not defined.';
             }
+        } else {
+            throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
+
     }
 
     // missions greater than 3000 feet are measured in miles
