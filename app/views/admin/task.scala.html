@@ -6,14 +6,26 @@
     @navbar(admin)
     <div class="container">
         <div class="row">
-            <div class="col-lg-8">
-                <div id="map" style="position: absolute;"></div>
+            <div class="col-md-8">
+                <div id="map" style="position: fixed; max-width: 900px;"></div> <!--style="position: relative; width: 100%;"-->
             </div>
-            <div class="col-lg-4">
+            <div class="col-md-4">
                 <div id="svholder"></div>
                 <div id="timeline">
+                    <input id="tslide" data-slider-id='taskSlider' type="text" data-slider-min="0" data-slider-max="20" data-slider-step="1" data-slider-value="0"/>
+                    <!--
+                    <input class="slider"
+                    type="text"
+                    id="task-slide"
+                    data-slider-id="slide-task"
+                    data-provide="slider"
+                    data-slider-min="1"
+                    data-slider-max="15"
+                    data-slider-value="1"
+                    data-slider-tooltip="">-->
+                    <!--
                     <div id="timeline-active"></div>
-                    <div id="timeline-handle"></div>
+                    <div id="timeline-handle"></div>-->
                 </div>
                 <div id="eventsholder"></div>
             </div>
@@ -29,8 +41,18 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/bootstrap-3.3.5/js/bootstrap-slider.min.js")'></script>
+    <link href='@routes.Assets.at("javascripts/lib/bootstrap-3.3.5/css/bootstrap-slider.min.css")' rel="stylesheet"/>
     <script>
             $(document).ready(function () {
+
+                $('.slider').slider();
+                var slider = new Slider('#tslide', {
+	                formatter: function(value) {
+		            return 'Current value: ' + value;
+	            }
+                });
+
                 var auditTaskId = @task.auditTaskId;
                 window.admin = AdminTask({auditTaskId: auditTaskId});
             });

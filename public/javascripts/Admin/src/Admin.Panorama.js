@@ -19,6 +19,8 @@ function AdminPanorama(svHolder) {
         if(self.svHolder.css('position') != "absolute" && self.svHolder.css('position') != "relative")
             self.svHolder.css('position', 'relative');
 
+
+
         // GSV will be added to panoCanvas
         self.panoCanvas = $("<div id='pano'>").css({
             width: self.svHolder.width(),
@@ -30,11 +32,12 @@ function AdminPanorama(svHolder) {
             width: self.svHolder.width(),
             height: self.svHolder.height()
         }).css({
-            /*
+
             'z-index': 2,
             'position': 'absolute',
             'top': 0,
-            'left': 0,*/
+            'left': 0,
+            'display': 'inline-block',
             'width': self.svHolder.width(),
             'height': self.svHolder.height()
         })[0];
