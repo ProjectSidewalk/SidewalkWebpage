@@ -246,6 +246,12 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 break;
             case 27:
                 // "Escape"
+                
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                }
+
                 if (canvas.getStatus('drawing')) {
                     canvas.cancelDrawing();
                     svl.tracker.push("KeyboardShortcut_CancelDrawing");
