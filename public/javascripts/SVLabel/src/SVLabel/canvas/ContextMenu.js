@@ -26,6 +26,16 @@ function ContextMenu (uiContextMenu) {
     $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
 
+    var map = {};
+    onkeydown = onkeyup = function(e){
+        e = e || event; // to deal with IE
+        map[e.keyCode] = e.type == 'keydown';
+        if (map[17] && map[65] && isOpen()){
+            //handleDescriptionTextBoxFocus();//focus
+            $descriptionTextBox.select();
+        }//ctrl+A while context menu open
+    }
+
     function checkRadioButton (value) {
         uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
     }
