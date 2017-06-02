@@ -692,8 +692,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoId});
 
-
-
         // Move to a new location
         jumpImageryNotFound();
 
@@ -707,27 +705,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Update the map pane, and also query data for the new panorama.
      */
     function handlerPanoramaChange () {
-        //console.log("I am called");
         if (svl.panorama) {
             var panoId = getPanoId();
-            //console.log(" Pano ID: " + panoId);
-            /*
-            for(var i=0; i<2; i++){
-                if (typeof panoId === "undefined") {
-                    panoId = getPanoId();
-                }else{
-                    break;
-                }
-            }//checks twice*/
-
-
 
             if (typeof panoId === "undefined" || panoId.length == 0) {
-                //handleImageryNotFound(panoId);
                 if ('compass' in svl) {
                     svl.compass.update();
                 }
-                //console.log("ID was not valid");
                 return;
             }
 
@@ -735,7 +719,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Check if panorama exists
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
-                        //console.log("Getting Panorama: ID:" + panoId );
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
 
                             var panoramaPosition = svl.panorama.getPosition(); // Current Position
