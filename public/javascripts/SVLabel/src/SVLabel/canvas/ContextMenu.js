@@ -26,15 +26,18 @@ function ContextMenu (uiContextMenu) {
     $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
 
-    var map = {};
+    var down = {};
     onkeydown = onkeyup = function(e){
         e = e || event; // to deal with IE
-        map[e.keyCode] = e.type == 'keydown';
-        if (map[17] && map[65] && isOpen()){
+        var cmd_held = e.metaKey; //boolean of cmd/window key held
+        var isMac = navigator.platform.indexOf('Mac') > -1;
+        down[e.keyCode] = e.type == 'keydown';
+        if ((down[17] || (cmd_held && isMac))&& down[65] && isOpen()){
             //handleDescriptionTextBoxFocus();//focus
             $descriptionTextBox.select();
         }//ctrl+A while context menu open
-    }
+        //or command key + Mac OS
+    }//handles both key down and key up events
 
     function checkRadioButton (value) {
         uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
