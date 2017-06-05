@@ -59,8 +59,8 @@ function Progress (_, $, c3, L) {
             completedInitializingAuditedStreets &&
             completedInitializingSubmittedLabels &&
             completedInitializingAuditCountChart &&
-            completedInitializingAuditedTasks &&
-            completedInitializingInteractions
+            completedInitializingAuditedTasks //&&
+            //completedInitializingInteractions
         ) {
 
             // Search for a region id in the query string. If you find one, focus on that region.
@@ -377,7 +377,7 @@ function Progress (_, $, c3, L) {
     initializeSubmittedLabels(map);
     initializeAuditCountChart(c3, map);
     initializeSubmittedTasks(map);
-    initializeInteractions(map);
+    //initializeInteractions(map);
 
     self.data = _data;
     return self;
