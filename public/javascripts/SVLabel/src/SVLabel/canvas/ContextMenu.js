@@ -17,16 +17,17 @@ function ContextMenu (uiContextMenu) {
     document.addEventListener('mousedown', function(event){
         //event.stopPropagation();
         var clicked_out = !(context_menu_el.contains(event.target));
-        if (clicked_out && isOpen()){
-            _handleSeverityPopup();
+        if (isOpen()){
+            hide();
+            if (clicked_out) _handleSeverityPopup();
         }
-        hide();
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
     document.onkeypress= function(e){
         e= e || window.event;
         var key_pressed = e.which || e.keyCode;
         if (key_pressed == 13 && isOpen()){
+            hide();
             _handleSeverityPopup();
         }
     };//handles pressing enter key to exit ContextMenu
@@ -97,15 +98,17 @@ function ContextMenu (uiContextMenu) {
     function handleCloseButtonClick () {
 
         svl.tracker.push('ContextMenu_CloseButtonClick');
-        _handleSeverityPopup();
         hide();
+        _handleSeverityPopup();
+
     }
 
     function _handleOKButtonClick () {
 
         svl.tracker.push('ContextMenu_OKButtonClick');
-        _handleSeverityPopup();
         hide();
+        _handleSeverityPopup();
+
     }
 
     function _handleSeverityPopup (){
