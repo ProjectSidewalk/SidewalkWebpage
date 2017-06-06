@@ -51,7 +51,6 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this._pollLookingAroundHasFinished = function () {
         var currentHeadingAngle = mapService.getPov().heading;
-
         var transformedCurrent = self._transformAngle(currentHeadingAngle);
         var direction;
         var EPS = 30; //the smaller it is the higher the speed of calling this function should be
