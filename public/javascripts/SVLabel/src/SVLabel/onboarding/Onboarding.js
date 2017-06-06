@@ -140,7 +140,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 var x2 = 30;
                 var y2 = 350;
                 var lineWidth = 1,
-                    fill = 'rgba(255,255,0,0.8)',
+                    fill = 'rgba(255,255,0,1)',
                     lineCap = 'round',
                     arrowWidth = 6,
                     strokeStyle  = 'rgba(0, 0, 0, 1)',
