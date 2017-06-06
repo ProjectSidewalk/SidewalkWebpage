@@ -98,6 +98,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 "accessibility problems at this intersection.");
 
             initialHeading = mapService.getPov().heading;
+            console.log("Initial heading:" + initialHeading);
             lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
             initialPanoId = mapService.getPanoId();
             lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);

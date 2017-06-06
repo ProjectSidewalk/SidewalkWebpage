@@ -949,6 +949,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var pov = svl.panorama.getPov(),
                 compassAngle = svl.compass.getCompassAngle();
             pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
+            console.log("Start heading: "+ pov.heading +" pitch:" + pov.pitch);
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
@@ -1597,6 +1598,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             //
             // Set the property this object. Then update the Street View image
             properties.panoramaPov = pov;
+            console.log("Update heading: "+ pov.heading +" pitch:" + pov.pitch);
             svl.panorama.setPov(pov);
         } else {
             throw self.className + ' updatePov(): panorama not defined!';
@@ -1707,6 +1709,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
                         currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
+                        console.log("Start heading: "+ pov.heading +" pitch:" + pov.pitch);
                         svl.panorama.setPov(currentPov);
                     } else {
                         // Set the pov to adjust the zoom level. Then clear the interval.
