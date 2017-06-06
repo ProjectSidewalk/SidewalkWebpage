@@ -27,16 +27,29 @@ function ContextMenu (uiContextMenu) {
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
 
     var down = {};
+    var lastKeyPressed = 0;
+    var lastKeyCmd = false;
     onkeydown = onkeyup = function(e){
         e = e || event; // to deal with IE
-        var cmd_held = e.metaKey; //boolean of cmd/window key held
         var isMac = navigator.platform.indexOf('Mac') > -1;
         down[e.keyCode] = e.type == 'keydown';
-        if ((down[17] || (cmd_held && isMac))&& down[65] && isOpen()){
-            //handleDescriptionTextBoxFocus();//focus
-            $descriptionTextBox.select();
-        }//ctrl+A while context menu open
-        //or command key + Mac OS
+        if (isMac){
+            if (lastKeyCmd && isOpen() && down[65]){
+                $descriptionTextBox.select();
+            }//A key, menu shown
+        }//mac
+        else{
+            if (lastKeyPressed == 17 && isOpen() && down[65]){
+                $descriptionTextBox.select();
+            }//ctrl+A while context menu open
+        }//windows
+        if (e.type == 'keydown'){
+            lastKeyPressed = e.keyCode;
+            lastKeyCmd = e.metaKey;
+        }else{
+            lastKeyPressed = 0;
+            lastKeyCmd = false;
+        }
     }//handles both key down and key up events
 
     function checkRadioButton (value) {
