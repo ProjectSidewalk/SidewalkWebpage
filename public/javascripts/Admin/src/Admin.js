@@ -361,7 +361,7 @@ function Admin (_, $, c3, turf) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
                     record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-                    duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
+                    duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
                     completionDurationArray.push(duration);
                 }
                 completionDurationArray.sort(function (a, b) { return a - b; });
@@ -391,7 +391,7 @@ function Admin (_, $, c3, turf) {
                     },
                     axis: {
                         x: {
-                            label: "Onboarding Completion Time (s)",
+                            label: "Onboarding Completion Time (minutes)",
                             type: 'category',
                             categories: bins
                         },
