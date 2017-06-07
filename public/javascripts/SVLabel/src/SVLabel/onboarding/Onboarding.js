@@ -37,6 +37,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     var ctx;
     var canvasWidth = 720;
     var canvasHeight = 480;
+    var blink_timer = 0;
+    var blink_function_identifier=[];
     var properties = {};
     var status = {
         state: 0,
@@ -159,6 +161,29 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
         return this;
     }
+    function drawBlinkingArrow(x1, y1, x2, y2, parameters){
+        var max_frequency = 60;
+        var blink_period = 0.5;
+        function helperBlinkingArrow(){
+            var par;
+            blink_timer = (blink_timer+1)%max_frequency;
+            if(blink_timer<blink_period*max_frequency)
+            {
+                par = parameters
+            }
+            else
+            {
+                par = {"fill": null};
+            }
+            drawArrow (x1, y1, x2, y2, par);
+            //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
+            //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
+            var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
+            blink_function_identifier.push(function_identifier);
+        }
+        helperBlinkingArrow();
+    }
+
 
     /**
      * Get a state
@@ -344,7 +369,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 y2 = canvasCoordinate.y;
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
-                drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
+                //The color of the arrow will by default alternate between white and the fill specified in annotation
+                drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"})
+
             } else if (state.annotations[i].type == "double-click") {
                 drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
             }
@@ -363,6 +390,11 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             annotationListener;
 
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
+        if(blink_function_identifier.length!=0){
+            while(blink_function_identifier.length!=0) {
+                window.cancelAnimationFrame(blink_function_identifier.pop());
+            }
+        }
         hideMessage();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
@@ -381,6 +413,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             _drawAnnotations(state);
             if (typeof google != "undefined")  {
                 annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
+                    //Stop the animation for the blinking arrows
+                    if(blink_function_identifier.length!=0){
+                        while(blink_function_identifier.length!=0) {
+                            window.cancelAnimationFrame(blink_function_identifier.pop());
+                        }
+                    }
                     _drawAnnotations(state);
                 });
             }
