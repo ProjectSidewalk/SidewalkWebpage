@@ -35,6 +35,26 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     /**
+     * Blink the zoom in button
+     */
+    function blinkZoomIn () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiZoomControl.zoomIn.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
+     * Blink the zoom out button
+     */
+    function blinkZoomOut () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiZoomControl.zoomOut.toggleClass("highlight-50");
+        }, 500);
+    }
+
+    /**
      * Disables zooming in
      * @method
      * @returns {self}
@@ -339,6 +359,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     self.blink = blink;
+    self.blinkZoomIn = blinkZoomIn;
+    self.blinkZoomOut = blinkZoomOut;
     self.disableZoomIn = disableZoomIn;
     self.disableZoomOut = disableZoomOut;
     self.enableZoomIn = enableZoomIn;

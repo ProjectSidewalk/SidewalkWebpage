@@ -649,7 +649,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 var completedRate = 19 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
-                statusModel.(completedRate);
+                statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
                 return "rate-severity-5";
             }

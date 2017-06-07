@@ -394,7 +394,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 _visitSelectLabelTypeState(state, annotationListener);
             } else if (state.properties.action == "LabelAccessibilityAttribute") {
                 _visitLabelAccessibilityAttributeState(state, annotationListener);
-            } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
+            } else if (state.properties.action == "Zoom") {
+                _visitZoomState(state, annotationListener);
+            }else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                 _visitRateSeverity(state, annotationListener);
             } else if (state.properties.action == "AdjustHeadingAngle") {
                 _visitAdjustHeadingAngle(state, annotationListener);
@@ -597,6 +599,40 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         };
 
         $(document).on('ModeSwitch_' + event, callback);
+    }
+
+    /**
+     * Tell the user to zoom in/out.
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitZoomState(state, listener) {
+        var zoomType = state.properties.type;
+        var event;
+
+        if (zoomType == "in") {
+            zoomControl.blinkZoomIn();
+            zoomControl.unlockDisableZoomIn();
+            zoomControl.enableZoomIn();
+            zoomControl.lockDisableZoomIn();
+            zoomControl.zoomIn();
+        } else {
+            zoomControl.blinkZoomOut();
+            zoomControl.unlockDisableZoomOut();
+            zoomControl.enableZoomOut();
+            zoomControl.lockDisableZoomOut();
+            zoomControl.zoomOut();
+        }
+
+        var callback = function () {
+            zoomControl.stopBlinking();
+            $(document).off('ModeSwitch_' + event, callback);
+            if (listener) google.maps.event.removeListener(listener);
+            next(state.transition);
+        };
+
+
     }
 
     /**
