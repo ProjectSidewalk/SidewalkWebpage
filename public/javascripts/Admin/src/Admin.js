@@ -9,6 +9,8 @@ function Admin(_, $, c3, turf) {
     self.cantSeeSidewalkLayers = [];
     self.noSidewalkLayers = [];
     self.otherLayers = [];
+    self.mapLoaded = false;
+    self.graphsLoaded = false;
 
     for (i = 0; i < 5; i++) {
         self.curbRampLayers[i] = [];
