@@ -209,8 +209,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 8100,
-                    "y": -250,
+                    "x": 8140,
+                    "y": -300,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -230,8 +230,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 8100,
-                "imageY": -250,
+                "imageX": 8140,
+                "imageY": -300,
                 "tolerance": 300
             },
             "message": {
@@ -243,8 +243,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 8100,
-                    "y": -250,
+                    "x": 8140,
+                    "y": -300,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -322,8 +322,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 7860,
-                    "y": -250,
+                    "x": 7800,
+                    "y": -300,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -343,8 +343,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
-                "imageX": 7860,
-                "imageY": -250,
+                "imageX": 7800,
+                "imageY": -300,
                 "tolerance": 300
             },
             "message": {
@@ -356,8 +356,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 7860,
-                    "y": -250,
+                    "x": 7800,
+                    "y": -300,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -451,8 +451,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 20
             },
             "message": {
-                "message": 'Great! We need to investigate all of the corners on this intersection, ' +
-                'so let’s adjust our view.  <span class="bold">Grab and drag the Street View image.</span>',
+                "message": '<span class="bold">Grab and drag the Street View image.</span>',
                 "position": "top-right",
                 "parameters": null
             },

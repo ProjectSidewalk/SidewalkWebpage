@@ -644,7 +644,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 zoomControl.lockDisableZoomOut();
             }
             $target.off("click", callback);
-            
+
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
