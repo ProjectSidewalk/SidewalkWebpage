@@ -538,9 +538,11 @@ function Admin(_, $, c3, turf) {
     }
 
     function initializeAllLayers(data) {
-
         for (i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
+            if(labelType == "Occlusion" || labelType == "NoSidewalk"){
+                //console.log(data.features[i]);
+            }
             if (data.features[i].properties.severity == 1) {
                 self.allLayers[labelType][0].push(data.features[i]);
             } else if (data.features[i].properties.severity == 2) {
@@ -580,14 +582,23 @@ function Admin(_, $, c3, turf) {
 
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
-            for (i = 0; i < self.allLayers[label].length; i++) {
-                if (!map.hasLayer(self.allLayers[label][i])
-                    && ($(sliderId).slider("option", "value") == i ||
-                    $(sliderId).slider("option", "value") == 5 )) {
-                    map.addLayer(self.allLayers[label][i]);
-                } else if ($(sliderId).slider("option", "value") != 5
-                    && $(sliderId).slider("option", "value") != i) {
-                    map.removeLayer(self.allLayers[label][i]);
+            if(checkboxId == "occlusion" || checkboxId == "nosidewalk"){
+                for (i = 0; i < self.allLayers[label].length; i++) {
+                    if (!map.hasLayer(self.allLayers[label][i])) {
+                        map.addLayer(self.allLayers[label][i]);
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < self.allLayers[label].length; i++) {
+                    if (!map.hasLayer(self.allLayers[label][i])
+                        && ($(sliderId).slider("option", "value") == i ||
+                        $(sliderId).slider("option", "value") == 5 )) {
+                        map.addLayer(self.allLayers[label][i]);
+                    } else if ($(sliderId).slider("option", "value") != 5
+                        && $(sliderId).slider("option", "value") != i) {
+                        map.removeLayer(self.allLayers[label][i]);
+                    }
                 }
             }
         } else {
