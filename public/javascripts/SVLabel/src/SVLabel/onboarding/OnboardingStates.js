@@ -154,7 +154,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-1": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 240,
+                "heading": 230,
                 "tolerance": 20
             },
             "message": {
