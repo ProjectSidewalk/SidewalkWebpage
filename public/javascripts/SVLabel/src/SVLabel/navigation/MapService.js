@@ -949,7 +949,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var pov = svl.panorama.getPov(),
                 compassAngle = svl.compass.getCompassAngle();
             pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
-            console.log("Start heading: "+ pov.heading +" pitch:" + pov.pitch);
             svl.panorama.setPov(pov);
             initialPositionUpdate = false;
         }
@@ -1135,17 +1134,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // If a mouse is being dragged on the control layer, move the sv image.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
-            console.log("Og dx: "+ dx);
             var pov = getPov();
             var zoom = Math.round(pov.zoom);
             var zoomLevel = svl.zoomFactor[zoom];
-            console.log("Zooooom level: "+ zoomLevel);
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
-            console.log("Changed dx: "+ dx);
             dx *= 1.5;
             dy *= 1.5;
-            console.log("I called from here");
             updatePov(dx, dy);
         }
 
@@ -1563,11 +1558,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
-            console.log("Very first:" + pov.heading + " pitch: " + pov.pitch);
-            console.log("dx: "+dx +" dy: "+dy);
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-            console.log("2:" + pov.heading + " pitch: " + pov.pitch);
             // View port restriction.
             // Do not allow users to look up the sky or down the ground.
             // If specified, do not allow users to turn around too much by restricting the heading angle.
@@ -1576,7 +1568,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             } else if (pov.pitch < properties.minPitch) {
                 pov.pitch = properties.minPitch;
             }
-            console.log("3:" + pov.heading + " pitch: " + pov.pitch);
             if (properties.minHeading && properties.maxHeading) {
                 if (properties.minHeading <= properties.maxHeading) {
                     if (pov.heading > properties.maxHeading) {
@@ -1595,14 +1586,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             }
-            console.log("4:" + pov.heading + " pitch: " + pov.pitch);
             // Update the status of pov change
             povChange["status"] = true;
 
             //
             // Set the property this object. Then update the Street View image
             properties.panoramaPov = pov;
-            console.log("Update heading: "+ pov.heading +" pitch:" + pov.pitch);
             svl.panorama.setPov(pov);
         } else {
             throw self.className + ' updatePov(): panorama not defined!';
@@ -1713,7 +1702,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
                         currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
-                        console.log("Start heading: "+ pov.heading +" pitch:" + pov.pitch);
                         svl.panorama.setPov(currentPov);
                     } else {
                         // Set the pov to adjust the zoom level. Then clear the interval.
