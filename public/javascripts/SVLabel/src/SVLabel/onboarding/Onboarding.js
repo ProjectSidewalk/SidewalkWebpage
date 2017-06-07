@@ -486,6 +486,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
 
             $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
+            $(".onboarding-transition-trigger").css({
+                'cursor': 'pointer'
+            });
             function callback () {
                 if (listener) google.maps.event.removeListener(listener);
                 $target.off("click", callback);
