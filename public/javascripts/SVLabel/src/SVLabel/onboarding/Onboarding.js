@@ -612,7 +612,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var $target;
 
         if (zoomType == "in") {
-            console.log("zoom-in");
             $target = zoomControl.getZoomInUI();
             zoomControl.blinkZoomIn();
             zoomControl.unlockDisableZoomIn();

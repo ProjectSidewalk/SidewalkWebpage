@@ -54,7 +54,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function blinkZoomIn () {
         stopBlinking();
         blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomIn.toggleClass("highlight-50");
+            uiZoomControl.zoomIn.toggleClass("highlight-100");
         }, 500);
     }
 
@@ -64,7 +64,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function blinkZoomOut () {
         stopBlinking();
         blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomOut.toggleClass("highlight-50");
+            uiZoomControl.zoomOut.toggleClass("highlight-100");
         }, 500);
     }
 
@@ -313,6 +313,9 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (uiZoomControl) {
             uiZoomControl.zoomIn.removeClass("highlight-50");
             uiZoomControl.zoomOut.removeClass("highlight-50");
+
+            uiZoomControl.zoomIn.removeClass("highlight-100");
+            uiZoomControl.zoomOut.removeClass("highlight-100");
         }
     }
 
