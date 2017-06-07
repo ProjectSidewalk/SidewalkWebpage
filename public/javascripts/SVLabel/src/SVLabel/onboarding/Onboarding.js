@@ -396,7 +396,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 _visitLabelAccessibilityAttributeState(state, annotationListener);
             } else if (state.properties.action == "Zoom") {
                 _visitZoomState(state, annotationListener);
-            }else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
+            } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                 _visitRateSeverity(state, annotationListener);
             } else if (state.properties.action == "AdjustHeadingAngle") {
                 _visitAdjustHeadingAngle(state, annotationListener);
