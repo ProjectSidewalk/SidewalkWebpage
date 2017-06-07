@@ -429,7 +429,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "type": "out"
             },
             "message": {
-                "message": 'Let’s zoom out and look at the next intersection corner. ' +
+                "message": 'Now, let’s zoom out and look at the next intersection corner. ' +
                 '<span class="bold">Click the “Zoom Out” button</span>.',
                 "position": "top-right",
                 "parameters": null

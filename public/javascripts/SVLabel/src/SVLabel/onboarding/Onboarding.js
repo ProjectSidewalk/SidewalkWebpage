@@ -609,29 +609,31 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
      */
     function _visitZoomState(state, listener) {
         var zoomType = state.properties.type;
-        var event;
+        var $target;
 
         if (zoomType == "in") {
+            $target = zoomControl.getZoomInUI();
             zoomControl.blinkZoomIn();
             zoomControl.unlockDisableZoomIn();
             zoomControl.enableZoomIn();
-            zoomControl.lockDisableZoomIn();
-            zoomControl.zoomIn();
-        } else {
-            zoomControl.blinkZoomOut();
+            //zoomControl.lockDisableZoomIn();
+
+            // Enable zoom-out
             zoomControl.unlockDisableZoomOut();
             zoomControl.enableZoomOut();
-            zoomControl.lockDisableZoomOut();
-            zoomControl.zoomOut();
+            //zoomControl.lockDisableZoomOut();
+        } else {
+            $target = zoomControl.getZoomOutUI();
+            zoomControl.blinkZoomOut();
         }
 
         var callback = function () {
             zoomControl.stopBlinking();
-            $(document).off('ModeSwitch_' + event, callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
 
+        $target.on("click", callback);
 
     }
 

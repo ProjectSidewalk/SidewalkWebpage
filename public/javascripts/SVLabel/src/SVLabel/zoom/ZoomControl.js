@@ -24,6 +24,20 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
 
     /**
+     * Get the zoom in UI control
+     */
+    function getZoomInUI () {
+        return uiZoomControl.zoomIn;
+    }
+
+    /**
+     * Get the zoom out UI control
+     */
+    function getZoomOutUI () {
+        return uiZoomControl.zoomOut;
+    }
+
+    /**
      * Blink the zoom in and zoom-out buttons
      */
     function blink () {
@@ -368,6 +382,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     self.getLock = getLock;
     self.getStatus = getStatus;
     self.getProperties = getProperty; // Todo. Change getProperties to getProperty.
+    self.getZoomInUI = getZoomInUI;
+    self.getZoomOutUI = getZoomOutUI;
     self.lockDisableZoomIn = lockDisableZoomIn;
     self.lockDisableZoomOut = lockDisableZoomOut;
     self.stopBlinking = stopBlinking;
