@@ -394,6 +394,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 _visitSelectLabelTypeState(state, annotationListener);
             } else if (state.properties.action == "LabelAccessibilityAttribute") {
                 _visitLabelAccessibilityAttributeState(state, annotationListener);
+            } else if (state.properties.action == "Zoom") {
+                _visitZoomState(state, annotationListener);
             } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                 _visitRateSeverity(state, annotationListener);
             } else if (state.properties.action == "AdjustHeadingAngle") {
@@ -597,6 +599,57 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         };
 
         $(document).on('ModeSwitch_' + event, callback);
+    }
+
+    /**
+     * Tell the user to zoom in/out.
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitZoomState(state, listener) {
+        var zoomType = state.properties.type;
+        var $target;
+
+        if (zoomType == "in") {
+            $target = zoomControl.getZoomInUI();
+            zoomControl.blinkZoomIn();
+            zoomControl.unlockDisableZoomIn();
+            zoomControl.enableZoomIn();
+            zoomControl.lockDisableZoomIn();
+
+        } else {
+            $target = zoomControl.getZoomOutUI();
+            zoomControl.blinkZoomOut();
+
+            // Enable zoom-out
+            zoomControl.unlockDisableZoomOut();
+            zoomControl.enableZoomOut();
+            zoomControl.lockDisableZoomOut();
+        }
+
+        var callback = function () {
+            zoomControl.stopBlinking();
+            if (zoomType == "in") {
+                // Disable zoom-in
+                zoomControl.unlockDisableZoomIn();
+                zoomControl.disableZoomIn();
+                zoomControl.lockDisableZoomIn();
+            }
+            else {
+                // Disable zoom-out
+                zoomControl.unlockDisableZoomOut();
+                zoomControl.disableZoomOut();
+                zoomControl.lockDisableZoomOut();
+            }
+            $target.off("click", callback);
+
+            if (listener) google.maps.event.removeListener(listener);
+            next(state.transition);
+        };
+
+        $target.on("click", callback);
+
     }
 
     /**
