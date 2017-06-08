@@ -437,7 +437,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             } else if (state.properties.action == "SelectLabelType") {
                 _visitSelectLabelTypeState(state, annotationListener);
             } else if (state.properties.action == "LabelAccessibilityAttribute") {
-                _visitLabelAccessibilityAttributeState(state, annotationListener);
+                if(Object.prototype.toString.call( state.properties ) === '[object Array]' ){
+                    _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
+                }
+                else{
+                    _visitLabelAccessibilityAttributeState(state, annotationListener);
+                }
             } else if (state.properties.action == "Zoom") {
                 _visitZoomState(state, annotationListener);
             } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
@@ -726,6 +731,40 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         $target.on("click", callback);
     }
 
+    /**
+     * Tell the user to label the multiple target attributes.
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitLabelMultipleAccessibilityAttributeState(state, listener) {
+
+        var $target = uiCanvas.drawingLayer;
+
+        var callback = function (e) {
+
+            for (var i = 0; i < state.properties.length; i=i+1){
+                var imageX = state.properties.imageX[i];
+                var imageY = state.properties.imageY[i];
+                var tolerance = state.properties.tolerance[i];
+
+                var clickCoordinate = mouseposition(e, this),
+                    pov = mapService.getPov(),
+                    canvasX = clickCoordinate.x,
+                    canvasY = clickCoordinate.y,
+                    imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
+                    distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
+                        (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
+
+                if (distance < tolerance * tolerance) {
+                    $target.off("click", callback);
+                    if (listener) google.maps.event.removeListener(listener);
+                    next(state.transition[i]);
+                }
+            }
+        };
+        $target.on("click", callback);
+    }
 
 
     /**
