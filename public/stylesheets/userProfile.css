@@ -15,13 +15,14 @@ svg {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
     left: 15px;
-    width: 220px;
+    width: 300px;
     bottom: 30px;
     border: solid 1px #ccc;
 }
 
 #map-label-legend .table {
     margin-bottom: 0;
+    margin-left: 2;
 }
 
 #map-label-legend table td {
