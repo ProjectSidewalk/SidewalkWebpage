@@ -645,7 +645,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var message = "Uh-oh, something went wrong with Google Street View. " +
             "This is not your fault, but we will need to move you to another location in the " +
             currentNeighborhoodName + " neighborhood. Keep up the good work!";
+        svl.panorama.set('linksControl', false);//disable arrows
+        disableWalking(); //disable walking
+        disablePanning(); //disable panning
+        svl.canvas.disableLabeling(); //disable labeling
+
         var callback = function () {
+            enableWalking(); //enable walking
+            enablePanning(); //panning
+            svl.canvas.enableLabeling();
+
             _jumpToNewLocation();
             var afterJumpStatus = status.jumpImageryNotFoundStatus;
 
@@ -658,10 +667,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Reset variable after the jump
                 status.jumpImageryNotFoundStatus = undefined;
             }
+            svl.panorama.set('linksControl', true); //enable arrows
             svl.panorama.setVisible(true);
+            //handlerPanoramaChange();//refresh pano ID, etc
         };
 
         svl.popUpMessage.notify(title, message, callback);
+
     }
 
     /***
@@ -695,10 +707,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function handlerPanoramaChange () {
         if (svl.panorama) {
             var panoId = getPanoId();
-            //console.log("Pano: " + panoId);
+
+            if (typeof panoId === "undefined" || panoId.length == 0) {
+                if ('compass' in svl) {
+                    svl.compass.update();
+                }
+                return;
+            }
 
             if (svl.streetViewService && panoId.length > 0) {
-
                 // Check if panorama exists
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
@@ -733,13 +750,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 );
             }
-            else {
-                handleImageryNotFound(panoId);
+            if ('compass' in svl) {
+                svl.compass.update();
             }
-            if ('compass' in svl) { svl.compass.update(); }
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
+
     }
 
     // missions greater than 3000 feet are measured in miles
