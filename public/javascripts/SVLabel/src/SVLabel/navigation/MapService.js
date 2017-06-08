@@ -1431,7 +1431,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
-                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
+                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/ZoomOut.png) 4 4, move");
                 break;
             case 'OpenHand':
                 uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
