@@ -101,3 +101,5 @@ public/javascripts/SVLabel/build/SVLabel.js
 # sidewalk-webpage-binary directory
 sidewalk-webpage/
 nohup.out
+package-lock.json
+project/play-fork-run.sbt

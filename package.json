@@ -2,15 +2,15 @@
   "name": "SidewalkWebpage",
   "version": "0.1.0",
   "devDependencies": {
-    "grunt": "*",
-    "grunt-concat-css": "*",
-    "grunt-contrib-concat": "*",
-    "grunt-contrib-jasmine": "*",
+    "grunt": "^1.0.1",
+    "grunt-concat-css": "^0.3.2",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-jasmine": "^1.1.0",
     "grunt-contrib-jshint": "*",
     "grunt-contrib-nodeunit": "*",
-    "grunt-contrib-uglify": "*",
-    "grunt-contrib-watch": "*",
-    "grunt-jsdoc": "*"
+    "grunt-contrib-uglify": "^3.0.1",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-jsdoc": "^2.1.0"
   },
   "scripts": {
     "build": "npm install && grunt",
