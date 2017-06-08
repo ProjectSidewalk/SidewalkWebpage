@@ -202,6 +202,7 @@ function Progress (_, $, c3, L) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            document.getElementById("total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);
@@ -243,6 +244,11 @@ function Progress (_, $, c3, L) {
             document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
             document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
             document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+
+            document.getElementById("curb-ramps").innerHTML = labelCounter["CurbRamp"];
+            document.getElementById("missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
+            document.getElementById("obstacles").innerHTML = labelCounter["Obstacle"];
+            document.getElementById("surface-problems").innerHTML = labelCounter["SurfaceProblem"];
 
             document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";

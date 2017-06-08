@@ -5,21 +5,22 @@
 @main(title) {
     @navbar(user)
     <div class="container">
-        <div class="row" id="maprow">
-            <div class="col-lg-12" id="mapcolumn">
-                <div id="map-holder">
-                    <div id="map"></div>
-                    <div id="map-label-legend">
-                        <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
-                        </table>
-                    </div>
-                </div>
+      <div class="row" id="maprow">
+        <div class="col-lg-12" id="mapcolumn">
+          <div id="map-holder">
+            <div id="map"></div>
+            <div id="map-label-legend">
+              <table class="table", width = "100%", cellspacing = "80", >
+                <table>
+                  <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td><td style = "padding-right: 20px"><td id="curb-ramps"></td></tr>
+                  <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td><td style = "padding-right: 20px"><td id="missing-curb-ramps"></td></tr>
+                  <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td><td style = "padding-right: 20px"><td id="obstacles"></td></tr>
+                  <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td><td style = "padding-right: 20px"><td id="surface-problems"></td></tr>
+                  <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td style = "padding-right: 20px"><td id="total-distance-audited"></td></tr>
+                </table>
+              </div>
             </div>
+          </div>
         </div>
         <div class="row"><div class="spacer10"></div></div>
         <div class="row">
