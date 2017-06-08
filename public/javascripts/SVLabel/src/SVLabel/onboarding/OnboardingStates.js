@@ -859,7 +859,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 250
             },
             "message": {
-                "message": '<span class="bold">Click on the curb ramp (below the yellow arrow) to label it.</span>',
+                "message": '<span class="bold">Click on the curb ramp (below the flashing yellow arrow) to label it.</span>',
                 "position": "top-right",
                 "parameters": null
             },
