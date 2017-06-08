@@ -5,21 +5,22 @@ function RatingReminderAlert(alertHandler) {
     var MINIMUM_NO_RATING_BEFORE_ALERT = 4; //consecutive
 
     function ratingClicked(severity) {
-        if (severity == null){
-            if (self['ratingCount'] > 0){
+        if (severity == null) {
+            if (self['ratingCount'] > 0) {
                 self['ratingCount']++;
-            }else{
-                self['ratingCount']=1;
+            } else {
+                self['ratingCount'] = 1;
             }
         }//check if user picked a severity
-        else{
+        else {
             self['ratingCount'] = 0;
         }//reset counter if user labels once
         if (self['ratingCount'] >= MINIMUM_NO_RATING_BEFORE_ALERT
-            && (svl.onboarding == null || svl.onboarding.isOnboarding() == false)){
+            && (svl.onboarding == null || svl.onboarding.isOnboarding() == false)) {
 
-            alertHandler.showAlert('Please provide severity ratings for each label by pressing keys <kbd>'+1+'</kbd> through <kbd>'+5+'</kbd>', 'reminderMessage', true);
-            self['ratingCount']=0;
+            alertHandler.showAlert('Please provide severity ratings for each label by pressing' +
+                ' keys <kbd>' + 1 + '</kbd> through <kbd>' + 5 + '</kbd>', 'reminderMessage', true);
+            self['ratingCount'] = 0;
 
         }//not in tutorial screen
 
