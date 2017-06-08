@@ -75,7 +75,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Good! Now, <span class="bold">click the curb ramp</span> ' +
-                'beneath the yellow arrow to label it.',
+                'beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -318,7 +318,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             },
             "message": {
-                "message": 'Now click beneath the yellow arrow to <span class="bold">label the missing curb ramp.</span>',
+                "message": 'Now click beneath the flashing yellow arrow to <span class="bold">label the missing curb ramp.</span>',
                 "position": "top-right",
                 "parameters": null
             },

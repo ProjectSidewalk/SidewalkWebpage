@@ -370,7 +370,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
                 //The color of the arrow will by default alternate between white and the fill specified in annotation
-                drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"})
+                if(state.annotations[i].fill==null || state.annotations[i].fill=="white"){
+                    drawArrow(x1,y1,x2,y2,{"fill":state.annotations[i].fill});
+                }
+                else{
+                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"});
+                }
 
             } else if (state.annotations[i].type == "double-click") {
                 drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
