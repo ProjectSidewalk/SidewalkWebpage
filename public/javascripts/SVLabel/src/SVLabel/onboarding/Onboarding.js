@@ -161,26 +161,27 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
         return this;
     }
-    function drawBlinkingArrow(x1, y1, x2, y2, parameters){
+
+    function drawBlinkingArrow(x1, y1, x2, y2, parameters) {
         var max_frequency = 60;
         var blink_period = 0.5;
-        function helperBlinkingArrow(){
+
+        function helperBlinkingArrow() {
             var par;
-            blink_timer = (blink_timer+1)%max_frequency;
-            if(blink_timer<blink_period*max_frequency)
-            {
+            blink_timer = (blink_timer + 1) % max_frequency;
+            if (blink_timer < blink_period * max_frequency) {
                 par = parameters
             }
-            else
-            {
+            else {
                 par = {"fill": null};
             }
-            drawArrow (x1, y1, x2, y2, par);
+            drawArrow(x1, y1, x2, y2, par);
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
             //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
             var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
             blink_function_identifier.push(function_identifier);
         }
+
         helperBlinkingArrow();
     }
 
