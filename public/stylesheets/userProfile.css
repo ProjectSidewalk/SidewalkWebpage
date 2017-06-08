@@ -29,6 +29,9 @@ svg {
     border-top: 0;
 }
 
+.table-hover tbody tr:hover td, .table-hover tbody tr:hover th {
+  background-color: rgba(200, 200, 200, 0.55);
+}
 
 .leaflet-overlay-pane svg g:first-child path {
     fill: #fff !important;
