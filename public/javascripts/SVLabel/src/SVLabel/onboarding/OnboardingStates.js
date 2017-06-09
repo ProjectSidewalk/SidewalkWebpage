@@ -570,7 +570,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp"
             },
             "message": {
-                "message": '<span class="bold">Click the "Curb Ramp" button.</span>',
+                "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
                 "position": "top-right",
                 "parameters": null
             },

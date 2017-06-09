@@ -432,28 +432,32 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         // Change behavior based on the current state.
         if ("properties" in state) {
-            if (state.properties.action == "Introduction") {
-                _visitIntroduction(state, annotationListener);
-            } else if (state.properties.action == "SelectLabelType") {
-                _visitSelectLabelTypeState(state, annotationListener);
-            } else if (state.properties.action == "LabelAccessibilityAttribute") {
-                if(Object.prototype.toString.call( state.properties ) === '[object Array]' ){
-                    _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
-                }
-                else{
-                    _visitLabelAccessibilityAttributeState(state, annotationListener);
-                }
-            } else if (state.properties.action == "Zoom") {
-                _visitZoomState(state, annotationListener);
-            } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
-                _visitRateSeverity(state, annotationListener);
-            } else if (state.properties.action == "AdjustHeadingAngle") {
-                _visitAdjustHeadingAngle(state, annotationListener);
-            } else if (state.properties.action == "WalkTowards") {
-                _visitWalkTowards(state, annotationListener);
-            } else if (state.properties.action == "Instruction") {
-                _visitInstruction(state, annotationListener);
+            if(state.properties.constructor == Array){
+                // Ideally we need a for loop that goes through every element of the property array
+                // and calls the corresponding action's handler.
+                // Not just the label accessibility attribute's handler
+                _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
             }
+            else{
+                if (state.properties.action == "Introduction") {
+                    _visitIntroduction(state, annotationListener);
+                } else if (state.properties.action == "SelectLabelType") {
+                    _visitSelectLabelTypeState(state, annotationListener);
+                } else if (state.properties.action == "LabelAccessibilityAttribute") {
+                    _visitLabelAccessibilityAttributeState(state, annotationListener);
+                } else if (state.properties.action == "Zoom") {
+                    _visitZoomState(state, annotationListener);
+                } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
+                    _visitRateSeverity(state, annotationListener);
+                } else if (state.properties.action == "AdjustHeadingAngle") {
+                    _visitAdjustHeadingAngle(state, annotationListener);
+                } else if (state.properties.action == "WalkTowards") {
+                    _visitWalkTowards(state, annotationListener);
+                } else if (state.properties.action == "Instruction") {
+                    _visitInstruction(state, annotationListener);
+                }
+            }
+
         }
     }
 
@@ -743,10 +747,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         var callback = function (e) {
 
-            for (var i = 0; i < state.properties.length; i=i+1){
-                var imageX = state.properties.imageX[i];
-                var imageY = state.properties.imageY[i];
-                var tolerance = state.properties.tolerance[i];
+            var st = state;
+            var i = 0;
+
+            while(i < st.properties.length){
+                var imageX = st.properties[i].imageX;
+                var imageY = st.properties[i].imageY;
+                var tolerance = st.properties[i].tolerance;
 
                 var clickCoordinate = mouseposition(e, this),
                     pov = mapService.getPov(),
@@ -759,8 +766,10 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 if (distance < tolerance * tolerance) {
                     $target.off("click", callback);
                     if (listener) google.maps.event.removeListener(listener);
-                    next(state.transition[i]);
+                    next(st.transition[i]);
+                    break;
                 }
+                i=i+1;
             }
         };
         $target.on("click", callback);
