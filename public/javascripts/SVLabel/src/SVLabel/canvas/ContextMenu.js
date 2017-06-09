@@ -13,8 +13,27 @@ function ContextMenu (uiContextMenu) {
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
 
+    var context_menu_el = document.getElementById('context-menu-holder');
+    document.addEventListener('mousedown', function(event){
+        //event.stopPropagation();
+        var clicked_out = !(context_menu_el.contains(event.target));
+        if (isOpen()){
+            hide();
+            if (clicked_out) _handleSeverityPopup();
+        }
+    }); //handles clicking outside of context menu holder
+    //document.addEventListener("mousedown", hide);
+    document.onkeypress= function(e){
+        e= e || window.event;
+        var key_pressed = e.which || e.keyCode;
+        if (key_pressed == 13 && isOpen()){
+            hide();
+            _handleSeverityPopup();
+        }
+    };//handles pressing enter key to exit ContextMenu
 
-    document.addEventListener("mousedown", hide);
+
+
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
     $radioButtons.on('change', _handleRadioChange);
     $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
@@ -77,13 +96,32 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
+
         svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
+        _handleSeverityPopup();
+
     }
 
     function _handleOKButtonClick () {
+
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
+        _handleSeverityPopup();
+
+    }
+
+    function _handleSeverityPopup (){
+        var labels = svl.labelContainer.getCurrentLabels();
+        var prev_labels = svl.labelContainer.getPreviousLabels();
+        if (labels.length == 0){
+            labels = prev_labels;
+        }
+        if (labels.length > 0) {
+            var last_label = labels[labels.length - 1];
+            var prop = last_label.getProperties();
+            svl.ratingReminderAlert.ratingClicked(prop.severity);
+        }
     }
 
     /**
