@@ -34,7 +34,7 @@ function ContextMenu (uiContextMenu) {
         var isMac = navigator.platform.indexOf('Mac') > -1;
         down[e.keyCode] = e.type == 'keydown';
         if (isMac){
-            if (lastKeyCmd && isOpen() && down[65]){
+            if (lastKeyCmd && down[91] && isOpen() && down[65]){
                 $descriptionTextBox.select();
             }//A key, menu shown
         }//mac
