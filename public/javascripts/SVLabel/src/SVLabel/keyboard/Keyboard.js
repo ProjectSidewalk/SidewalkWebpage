@@ -62,6 +62,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
         if (contextMenu.isOpen()) {
+            }//only permits shift key value change when ctxt menu open
+            //kept separate from switch statement in elseif
             return;
         } else if (!status.focusOnTextField) {
             // lock scrolling in response to key pressing
@@ -216,6 +218,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
+                    if (contextMenu.isOpen()){
+                        contextMenu.hide();
+                    }
                     if (status.shiftDown) {
                         // Zoom out
                         zoomControl.zoomOut();
