@@ -110,6 +110,7 @@ function Main (params) {
         svl.canvas = new Canvas(svl.ribbon);
 
 
+
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
@@ -132,6 +133,12 @@ function Main (params) {
         svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
+        $(".gmnoprint").css(
+            {"display": "none"}
+        );
+        $(".visible").css(
+            {"visibility": "hidden"}
+        );
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
@@ -387,6 +394,15 @@ function Main (params) {
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
             var mission;
+            $(".webpageUI").css(
+                {"visibility": "visible"}
+            );
+            $(".gmnoprint").css(
+                {"display": "inline"}
+            );
+            $(".visible").css(
+                {"visibility": "visible"}
+            );
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
             } else {
@@ -477,6 +493,9 @@ function Main (params) {
      * @private
      */
     function _initUI () {
+        $(".webpageUI").css(
+            {"visibility": "hidden"}
+        );
         svl.ui = {};
         svl.ui.actionStack = {};
         svl.ui.actionStack.holder = $("#action-stack-control-holder");

@@ -15,7 +15,7 @@
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-    <div class="container">
+    <div class="container webpageUI">
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -622,7 +622,6 @@
         if (!("tracker" in svl)) {
             svl.tracker = new Tracker();
         }
-
         svl.userModel = new UserModel();
         @if(user) {
             var userParam = {
@@ -676,7 +675,15 @@
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
-
+             $(".container.webpageUI").css(
+            {"visibility": "hidden"}
+            );
+            $(".gmnoprint").css(
+            {"display": "none"}
+            );
+            $(".visible").css(
+              {"visibility": "hidden"}
+            );
             enableTouchSupport();
         });
 
@@ -741,6 +748,7 @@
                 mainParam.regionLayer = null;
             }
             svl.main = new Main(mainParam);
+
         }
     </script>
 
