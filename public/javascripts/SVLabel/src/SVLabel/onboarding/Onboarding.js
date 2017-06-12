@@ -268,6 +268,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         form.submit(data, task);
         uiOnboarding.background.css("visibility", "hidden");
 
+        //Reset the label counts to zero after the onboarding
+        svl.labelCounter.reset();
+
         $("#toolbar-onboarding-link").css("visibility", "visible");
 
         mapService.unlockDisableWalking();
