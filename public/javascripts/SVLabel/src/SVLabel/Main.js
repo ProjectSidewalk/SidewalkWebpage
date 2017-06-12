@@ -133,12 +133,6 @@ function Main (params) {
         svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
-        $(".gmnoprint").css(
-            {"display": "none"}
-        );
-        $(".visible").css(
-            {"visibility": "hidden"}
-        );
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
@@ -189,7 +183,6 @@ function Main (params) {
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
-
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -394,15 +387,8 @@ function Main (params) {
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
             var mission;
-            $(".webpageUI").css(
-                {"visibility": "visible"}
-            );
-            $(".gmnoprint").css(
-                {"display": "inline"}
-            );
-            $(".visible").css(
-                {"visibility": "visible"}
-            );
+            $(".webpageUI").css({"visibility": "visible"});
+            $(".visible").css({"visibility": "visible"});
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
             } else {
@@ -493,9 +479,6 @@ function Main (params) {
      * @private
      */
     function _initUI () {
-        $(".webpageUI").css(
-            {"visibility": "hidden"}
-        );
         svl.ui = {};
         svl.ui.actionStack = {};
         svl.ui.actionStack.holder = $("#action-stack-control-holder");
