@@ -296,6 +296,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     moveToTheTaskLocation(task);
                 }
             }
+            initialPositionUpdate = true;
         };
 
         var geometry = task.getGeometry();
