@@ -637,7 +637,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      *  Issue #537
      */
     function jumpImageryNotFound() {
-
+        initialPositionUpdate = true;
         var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodName = currentNeighborhood.getProperty("name");
 
@@ -946,10 +946,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         // Set the heading angle when the user is dropped to the new position
         if (initialPositionUpdate && 'compass' in svl) {
-            var pov = svl.panorama.getPov(),
-                compassAngle = svl.compass.getCompassAngle();
-            pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
-            svl.panorama.setPov(pov);
+            setPovToRouteDirection();
             initialPositionUpdate = false;
         }
 
@@ -1803,6 +1800,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.panorama.setZoom(zoomLevel);
     }
 
+    function setPovToRouteDirection(){
+        var pov = svl.panorama.getPov(),
+            compassAngle = svl.compass.getCompassAngle();
+        pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
+        svl.panorama.setPov(pov);
+    }
+
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
@@ -1849,7 +1853,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
-
+    self.setPovToRouteDirection = setPovToRouteDirection;
 
     _init(params);
     return self;
