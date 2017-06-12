@@ -92,7 +92,7 @@ function AdminUser(params) {
     });
 
     // Visualize user interactions
-    $.getJSON("/adminapi/interactions/" + self.username, function (data) {
+    /*$.getJSON("/adminapi/interactions/" + self.username, function (data) {
         var grouped = _.groupBy(data, function (d) { return d.audit_task_id; });
         _data.interactions = data;
         var keys = Object.keys(grouped);
@@ -243,7 +243,7 @@ function AdminUser(params) {
 
         }
 
-    });
+    });*/
     
     $.getJSON("/adminapi/tasks/" + self.username, function (data) {
         _data.tasks = data;
