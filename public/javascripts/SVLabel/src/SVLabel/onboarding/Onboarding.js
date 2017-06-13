@@ -600,12 +600,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
             var currentHeading = mapService.getPov().heading;
             var distanceFromCurrentHeading = currentHeading - originalHeading;
-            console.log("Current Heading::" + currentHeading);
+            console.log("\n\nCurrent Heading::" + currentHeading);
             console.log("Distance from OriginalHeading::" + distanceFromCurrentHeading);
 
             if (distanceFromCurrentHeading <= 0) {
+                console.log("Previous Distance" + prevDistance);
                 if (prevDistance <= 0) {
-                    console.log("Previous Distance" + prevDistance);
                     clearArrow();
                     isWrong = false;
 
