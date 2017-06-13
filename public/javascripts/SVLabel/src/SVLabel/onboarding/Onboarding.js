@@ -436,7 +436,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 // Ideally we need a for loop that goes through every element of the property array
                 // and calls the corresponding action's handler.
                 // Not just the label accessibility attribute's handler
-                _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
+                if (state.properties[0].action == "LabelAccessibilityAttribute"){
+                    _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
+                }
             }
             else{
                 if (state.properties.action == "Introduction") {
