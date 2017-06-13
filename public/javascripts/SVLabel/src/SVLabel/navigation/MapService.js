@@ -1847,6 +1847,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.lockDisablePanning = lockDisablePanning;
     self.lockDisableWalking = lockDisableWalking;
     self.lockRenderLabels = lockRenderLabels;
+    self.makeLinksClickable = makeLinksClickable;
     self.modeSwitchLabelClick = modeSwitchLabelClick;
     self.modeSwitchWalkClick = modeSwitchWalkClick;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
@@ -1863,6 +1864,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.setPov = setPov;
     self.setStatus = setStatus;
     self.setZoom = setZoom;
+    self.showLinks = showLinks;
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;

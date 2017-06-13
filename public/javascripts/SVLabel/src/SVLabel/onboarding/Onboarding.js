@@ -457,6 +457,25 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
     function _visitWalkTowards (state, listener) {
         mapService.unlockDisableWalking();
+        mapService.showLinks();
+        mapService.makeLinksClickable();
+
+        var $target;
+        var callback = function () {
+            var panoId = mapService.getPanoId();
+            console.log("Next Pano:" + panoId);
+            if (state.properties.panoId == panoId) {
+                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                if (listener) google.maps.event.removeListener(listener);
+                next(state.transition);
+            }
+        };
+
+        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+    }
+
+    function _visitWalkTowardsOld (state, listener) {
+        mapService.unlockDisableWalking();
         mapService.lockDisableWalking();
 
         var $target;
