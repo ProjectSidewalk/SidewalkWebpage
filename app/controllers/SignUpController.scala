@@ -18,6 +18,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Action
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 
 import scala.concurrent.Future
 
@@ -45,21 +46,27 @@ class SignUpController @Inject() (
    */
   def signUp(url: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
+    val anonymousUser: DBUser = UserTable.find("anonymous").get
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
 
       data => {
         // Check presence of user by username
-        import models.daos.slick.DBTableDefinitions.UserTable
         UserTable.find(data.username) match {
           case Some(user) =>
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
+                val now = new DateTime(DateTimeZone.UTC)
+                val timestamp: Timestamp = new Timestamp(now.getMillis)
+                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
               case None =>
                 val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)

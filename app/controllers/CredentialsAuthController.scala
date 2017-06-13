@@ -15,6 +15,7 @@ import controllers.headers.ProvidesHeader
 import forms.SignInForm
 import models.services.UserService
 import models.user._
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.i18n.Messages
@@ -23,6 +24,8 @@ import play.api.mvc.Action
 import play.api.{Logger, Play}
 
 import scala.concurrent.Future
+
+
 
 /**
   * The credentials auth controller that is responsible for user log in.
@@ -47,7 +50,7 @@ class CredentialsAuthController @Inject() (
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
-        case _ => Future.failed(new ConfigurationException(s"Cannot find credentials provider"))
+        case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
 
         val result = Future.successful(Redirect(url))
@@ -81,6 +84,10 @@ class CredentialsAuthController @Inject() (
         }
       }.recover {
         case e: ProviderException =>
+          val anonymousUser: DBUser = UserTable.find("anonymous").get
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Invalid_Credentials_Error", timestamp))
           Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("invalid.credentials"))
       }
     )
