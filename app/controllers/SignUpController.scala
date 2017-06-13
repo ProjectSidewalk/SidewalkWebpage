@@ -55,39 +55,46 @@ class SignUpController @Inject() (
           case Some(user) =>
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
-            val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
-            val authInfo = passwordHasher.hash(data.password)
-            val user = User(
-              userId = UUID.randomUUID(),
-              loginInfo = loginInfo,
-              username = data.username,
-              email = data.email,
-              roles = None
-            )
+
+            // Check presence of user by email
+            UserTable.findEmail(data.email) match {
+              case Some(user) =>
+                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
+              case None =>
+                val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
+                val authInfo = passwordHasher.hash(data.password)
+                val user = User(
+                  userId = UUID.randomUUID(),
+                  loginInfo = loginInfo,
+                  username = data.username,
+                  email = data.email,
+                  roles = None
+                )
 
 
-            for {
-              user <- userService.save(user)
-              authInfo <- authInfoService.save(loginInfo, authInfo)
-              authenticator <- env.authenticatorService.create(user.loginInfo)
-              value <- env.authenticatorService.init(authenticator)
-              result <- env.authenticatorService.embed(value, Future.successful(
-                Redirect(url)
-              ))
-            } yield {
-              // Set the user role and assign the neighborhood to audit.
-              UserRoleTable.addUserRole(user.userId)
-              UserCurrentRegionTable.assignRandomly(user.userId)
+                for {
+                  user <- userService.save(user)
+                  authInfo <- authInfoService.save(loginInfo, authInfo)
+                  authenticator <- env.authenticatorService.create(user.loginInfo)
+                  value <- env.authenticatorService.init(authenticator)
+                  result <- env.authenticatorService.embed(value, Future.successful(
+                    Redirect(url)
+                  ))
+                } yield {
+                  // Set the user role and assign the neighborhood to audit.
+                  UserRoleTable.addUserRole(user.userId)
+                  UserCurrentRegionTable.assignRandomly(user.userId)
 
-              // Add Timestamp
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+                  // Add Timestamp
+                  val now = new DateTime(DateTimeZone.UTC)
+                  val timestamp: Timestamp = new Timestamp(now.getMillis)
+                  WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+                  WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-              env.eventBus.publish(SignUpEvent(user, request, request2lang))
-              env.eventBus.publish(LoginEvent(user, request, request2lang))
-              result
+                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
+                  env.eventBus.publish(LoginEvent(user, request, request2lang))
+                  result
+                }
             }
         }
       }
