@@ -19,7 +19,7 @@
  * @param taskContainer
  * @param tracker
  * @param uiCanvas
- * @param uiContextMenu
+ * @param contextMenu
  * @param uiMap
  * @param uiOnboarding
  * @param uiRibbon
@@ -32,7 +32,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                      missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
                      neighborhoodModel, onboardingModel, onboardingStates,
                      ribbon, statusField, statusModel, storage, taskContainer,
-                     tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
+                     tracker, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
     var canvasWidth = 720;
@@ -267,6 +267,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var data = form.compileSubmissionData(task);
         form.submit(data, task);
         uiOnboarding.background.css("visibility", "hidden");
+
+        //Reset the label counts to zero after the onboarding
+        svl.labelCounter.reset();
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
 
@@ -558,10 +561,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     }
 
     function _visitRateSeverity (state, listener) {
-        var $target = uiContextMenu.radioButtons;
+
+        if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
+        var $target = contextMenu.getContextMenuUI().radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
+            contextMenu.hide();
             next.call(this, state.transition);
         };
         $target.on("click", callback);

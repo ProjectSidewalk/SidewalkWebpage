@@ -13,6 +13,8 @@ function ContextMenu (uiContextMenu) {
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
 
+    var lastShownLabelColor;
+
     var context_menu_el = document.getElementById('context-menu-holder');
     document.addEventListener('mousedown', function(event){
         //event.stopPropagation();
@@ -47,6 +49,10 @@ function ContextMenu (uiContextMenu) {
 
     function checkRadioButton (value) {
         uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
+    }
+
+    function getContextMenuUI(){
+        return uiContextMenu;
     }
 
     /**
@@ -204,6 +210,19 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Unhide the context menu
+     * @returns {hide}
+     */
+    function unhide () {
+        $menuWindow.css('visibility', 'visible');
+        if (lastShownLabelColor) {
+            setBorderColor(lastShownLabelColor);
+        }
+        setStatus('visibility', 'visible');
+        return this;
+    }
+
+    /**
      * Checks if the menu is open or not
      * @returns {boolean}
      */
@@ -255,7 +274,10 @@ function ContextMenu (uiContextMenu) {
                 });
 
                 if (param) {
-                    if ('targetLabelColor' in param) { setBorderColor(param.targetLabelColor); }
+                    if ('targetLabelColor' in param) {
+                        setBorderColor(param.targetLabelColor);
+                        lastShownLabelColor = param.targetLabelColor;
+                    }
                 }
                 setStatus('visibility', 'visible');
 
@@ -293,9 +315,11 @@ function ContextMenu (uiContextMenu) {
         self.updateRadioButtonImages();
     }
 
+    self.getContextMenuUI = getContextMenuUI;
     self.checkRadioButton = checkRadioButton;
     self.getTargetLabel = getTargetLabel;
     self.hide = hide;
+    self.unhide = unhide;
     self.isOpen = isOpen;
     self.show = show;
     return self;
