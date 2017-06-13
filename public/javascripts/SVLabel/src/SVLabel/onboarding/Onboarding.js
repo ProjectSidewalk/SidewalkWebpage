@@ -448,8 +448,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     _visitIntroduction(state, annotationListener);
                 } else if (state.properties.action == "SelectLabelType") {
                     _visitSelectLabelTypeState(state, annotationListener);
-                } else if (state.properties.action == "LabelAccessibilityAttribute") {
-                    _visitLabelAccessibilityAttributeState(state, annotationListener);
                 } else if (state.properties.action == "Zoom") {
                     _visitZoomState(state, annotationListener);
                 } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
@@ -714,37 +712,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     }
 
     /**
-     * Tell the user to label the target attribute.
-     * @param state
-     * @param listener
-     * @private
-     */
-    function _visitLabelAccessibilityAttributeState(state, listener) {
-        var imageX = state.properties.imageX;
-        var imageY = state.properties.imageY;
-        var tolerance = state.properties.tolerance;
-        var $target = uiCanvas.drawingLayer;
-
-        var callback = function (e) {
-            var clickCoordinate = mouseposition(e, this),
-                pov = mapService.getPov(),
-                canvasX = clickCoordinate.x,
-                canvasY = clickCoordinate.y,
-                imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
-                distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
-                    (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
-
-            if (distance < tolerance * tolerance) {
-                $target.off("click", callback);
-                if (listener) google.maps.event.removeListener(listener);
-                next(state.transition);
-            }
-        };
-        $target.on("click", callback);
-    }
-
-    /**
-     * Tell the user to label the multiple target attributes.
+     * Tell the user to label the multiple possible target attributes.
      * @param state
      * @param listener
      * @private
@@ -752,16 +720,17 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     function _visitLabelMultipleAccessibilityAttributeState(state, listener) {
 
         var $target = uiCanvas.drawingLayer;
+        var properties = state.properties;
+        var transition = state.transition;
 
         var callback = function (e) {
 
-            var st = state;
             var i = 0;
 
-            while(i < st.properties.length){
-                var imageX = st.properties[i].imageX;
-                var imageY = st.properties[i].imageY;
-                var tolerance = st.properties[i].tolerance;
+            while(i < properties.length){
+                var imageX = properties[i].imageX;
+                var imageY = properties[i].imageY;
+                var tolerance = properties[i].tolerance;
 
                 var clickCoordinate = mouseposition(e, this),
                     pov = mapService.getPov(),
@@ -774,7 +743,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 if (distance < tolerance * tolerance) {
                     $target.off("click", callback);
                     if (listener) google.maps.event.removeListener(listener);
-                    next(st.transition[i]);
+                    next(transition[i]);
                     break;
                 }
                 i=i+1;
