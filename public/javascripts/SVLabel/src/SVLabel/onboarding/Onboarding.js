@@ -162,8 +162,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         return this;
     }
 
-    function drawBlinkingArrow(x1, y1, x2, y2, parameters) {
-        var max_frequency = 60;
+    function drawBlinkingArrow(x1, y1, x2, y2,parameters,blink_frequency_modifier) {
+        var max_frequency = 60*blink_frequency_modifier;
         var blink_period = 0.5;
 
         function helperBlinkingArrow() {
@@ -332,6 +332,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         clear();
 
+        var blink_frequency_modifier = 0;
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            if (state.annotations[i].type == "arrow"){
+                blink_frequency_modifier = blink_frequency_modifier+1;
+            }
+        }
+
         for (var i = 0, len = state.annotations.length; i < len; i++) {
             imX = state.annotations[i].x;
             imY = state.annotations[i].y;
@@ -378,7 +385,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     drawArrow(x1,y1,x2,y2,{"fill":state.annotations[i].fill});
                 }
                 else{
-                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"});
+                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"},blink_frequency_modifier);
                 }
 
             } else if (state.annotations[i].type == "double-click") {
