@@ -48,8 +48,9 @@ class SignUpController @Inject() (
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
+
       data => {
-        // Check presenc of user by username
+        // Check presence of user by username
         import models.daos.slick.DBTableDefinitions.UserTable
         UserTable.find(data.username) match {
           case Some(user) =>
@@ -100,4 +101,5 @@ class SignUpController @Inject() (
       }
     )
   }
+
 }
