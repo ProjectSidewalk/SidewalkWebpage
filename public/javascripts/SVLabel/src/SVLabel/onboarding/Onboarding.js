@@ -534,28 +534,29 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
     var pre_dis = 0;
     var flag = false;
-    function _visitAdjustHeadingAngle (state, listener) {
+
+    function _visitAdjustHeadingAngle(state, listener) {
         var $target;
         var interval;
+        interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
+
         // get the original pov heading
         var original_pov = mapService.getPov();
         var original_pov_heading = original_pov.heading;
         var dis_tolerance = 20;
-
-        interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
 
         var callback = function () {
 
             var pov = mapService.getPov();
 
             var dis = pov.heading - original_pov_heading;
-            if (dis < 0){
-                if(pre_dis<=0){
-                    clearArrow(70,350,30,350);
+            if (dis < 0) {
+                if (pre_dis <= 0) {
+                    clearArrow(70, 350, 30, 350);
                     iswrong = false;
 
                     if (myTimer) {
-                        console.log("hi");
+                        console.log("Clearing Timer");
                         clearInterval(myTimer);
                         myTimer = null;
                     }
@@ -582,18 +583,19 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     // drag to the wrong direction but allow panning within tolerance
 
                 }
-                else if (pov.heading%360 >= (dis_tolerance + original_pov_heading)) {
+                else if (pov.heading % 360 >= (dis_tolerance + original_pov_heading)) {
                     // drag to the wrong direction and stop panning
                     // show the warning (arrow + labeling)
 
-                    if(!iswrong) {
-                        // set a timer to anmiate the arrow
-                        myTimer=setInterval(drawArrowAnimate,500);
+                    if (!iswrong) {
+                        // set a timer to animate the arrow every 500ms
+                        console.log("Activating timer")
+                        myTimer = setInterval(drawArrowAnimate, 500);
                         iswrong = true;
                     }
                 }
             }
-            else if (dis >0 && pre_dis <= 0) {
+            else if (dis > 0 && pre_dis <= 0) {
                 if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                     if (typeof google != "undefined") google.maps.event.removeListener($target);
                     if (listener) google.maps.event.removeListener(listener);
