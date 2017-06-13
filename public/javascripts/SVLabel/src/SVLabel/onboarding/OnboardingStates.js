@@ -130,7 +130,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-1": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1
             },
@@ -235,7 +235,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             },
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -286,7 +286,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-2": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1
             },
@@ -402,7 +402,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-3": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "NoCurbRamp",
                 "severity": 3
             },
@@ -451,7 +451,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 20
             },
             "message": {
-                "message": '<span class="bold">Grab and drag the Street View image.</span>',
+                "message": 'Look to the left by <span class="bold">grabbing and dragging the Street View image.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -517,7 +517,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             },
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -568,7 +568,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-4": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1
             },
@@ -628,7 +628,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             },
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp to label it.</span>',
+                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -660,7 +660,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "severity": null
             },
             "message": {
-                "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
@@ -679,7 +679,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-5": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1
             },
@@ -707,7 +707,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Notice that the sidewalk suddenly ends here. Let’s label this. ' +
-                '<span class="bold">Click the "Other" button then "No Sidewalk" to label it.</span>',
+                '<span class="bold">Click the "Other" button then "No Sidewalk"</span> to label it.',
                 "position": "top-left",
                 "parameters": null
             },
@@ -825,7 +825,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Good, you just took a step! Let us label the curb ramp now. ' +
-                '<span class="bold">Click the "Curb Ramp" button on the menu to label it!</span>',
+                '<span class="bold">Click the "Curb Ramp" button</span> on the menu to label it!',
                 "position": "top-right",
                 "parameters": null
             },
@@ -859,7 +859,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 250
             },
             "message": {
-                "message": '<span class="bold">Click on the curb ramp (below the flashing yellow arrow) to label it.</span>',
+                "message": '<span class="bold">Click on the curb ramp</span> (below the flashing yellow arrow) to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -891,7 +891,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "severity": null
             },
             "message": {
-                "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
@@ -911,7 +911,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-7": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1
             },
@@ -1029,11 +1029,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "instruction-4": {
             "properties": {
                 "action": "Instruction",
-                "blinks": ["zoom", "action-stack"]
+                "blinks": ["action-stack"]
             },
             "message": {
                 "message": 'Other interface features include: <br>' +
-                '<span class="bold">Zooming:</span> Zoom in or out of the Street View image<br> ' +
                 '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
                 "position": "top-right",
                 "parameters": null
