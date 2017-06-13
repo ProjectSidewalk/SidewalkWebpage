@@ -114,6 +114,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     var myTimer;
     var isWrong = false;
 
+    var labelArrowParam = {
+        lineWidth: 1,
+        fill: 'rgba(255,255,255,1)',
+        lineCap: 'round',
+        arrowWidth: 6,
+        strokeStyle: 'rgba(96, 96, 96, 1)'
+    };
+
     /**
      * Draw an arrow on the onboarding canvas
      * @param x1 {number} Starting x coordinate
@@ -125,11 +133,11 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
      */
     function drawArrow (x1, y1, x2, y2, parameters) {
         if (ctx) {
-            var lineWidth = 1,
-                fill = 'rgba(255,255,255,1)',
-                lineCap = 'round',
-                arrowWidth = 6,
-                strokeStyle  = 'rgba(96, 96, 96, 1)',
+            var lineWidth = labelArrowParam.lineWidth,
+                fill = labelArrowParam.fill,
+                lineCap = labelArrowParam.lineCap,
+                arrowWidth = labelArrowParam.arrowWidth,
+                strokeStyle  = labelArrowParam.strokeStyle,
                 dx, dy, theta;
 
             if ("fill" in parameters && parameters.fill) fill = parameters.fill;
@@ -592,11 +600,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
             var currentHeading = mapService.getPov().heading;
             var distanceFromCurrentHeading = currentHeading - originalHeading;
+            console.log("Current Heading::" + currentHeading);
             console.log("Distance from OriginalHeading::" + distanceFromCurrentHeading);
 
-            if (distanceFromCurrentHeading < 0) {
+            if (distanceFromCurrentHeading <= 0) {
                 if (prevDistance <= 0) {
-                    console.error("Clearing Arrow");
+                    console.log("Previous Distance" + prevDistance);
                     clearArrow();
                     isWrong = false;
 
@@ -610,20 +619,16 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 console.log("Normal Drag");
                 _checkToHideGrabAndDragAnimation(currentHeading)
             }
-            else if (distanceFromCurrentHeading > 0) {
+            else {
                 if(prevDistance > 0) {
                     if(distanceFromCurrentHeading <= prevDistance) {
                         // normal drag, 0->360
                         console.log("Normal Drag 0 -> 360");
                         _checkToHideGrabAndDragAnimation(currentHeading)
                     }
-                    else if (distanceFromCurrentHeading > prevDistance) {
+                    else {
                         // Indicates user dragging in the wrong direction
-                        if (distanceFromCurrentHeading < tolerance) {
-                            // Allow panning if within tolerance
-                            console.log("Wrong Direction Within Tolerance:: Do Nothing");
-                        }
-                        else if (currentHeading % 360 >= (tolerance + originalHeading)) {
+                        if (currentHeading % 360 >= (tolerance + originalHeading)) {
                             // Stop panning and show the warning (arrow + labeling)
 
                             if (!isWrong) {
