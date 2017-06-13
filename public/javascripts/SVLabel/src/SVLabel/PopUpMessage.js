@@ -87,6 +87,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         self._setMessage("Do you want to create an account to keep track of your progress?");
         self._appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
             // Store the data in LocalStorage.
+            tracker.push('PopUpMessage_SignUpClickYes');
             var task = taskContainer.getCurrentTask();
             var data = form.compileSubmissionData(task),
                 staged = storage.get("staged");
@@ -99,13 +100,17 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         });
         self._appendButton('<button id="pop-up-message-cancel-button" class="float">No</button>', function () {
 
+            tracker.push('PopUpMessage_SignUpClickNo');
             user.setProperty('firstTask', false);
             // Submit the data as an anonymous user.
             var task = taskContainer.getCurrentTask();
             var data = form.compileSubmissionData(task);
             form.submit(data, task);
         });
-        appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in"><small><span style="text-decoration: underline;">I do have an account! Let me sign in.</span></small></a></p>', function () {
+        appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in">' +
+            '<small><span style="text-decoration: underline;">I do have an account! Let me sign in.</span></small>' +
+            '</a></p>', function () {
+            tracker.push('PopUpMessage_SignInClick');
             var task = taskContainer.getCurrentTask();
             var data = form.compileSubmissionData(task),
                 staged = storage.get("staged");
