@@ -253,15 +253,15 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var blink_period = 0.5;
 
         function helperBlinkingArrow() {
-            var par;
+            var param;
             blink_timer = (blink_timer + 1) % max_frequency;
             if (blink_timer < blink_period * max_frequency) {
-                par = parameters
+                param = parameters
             }
             else {
-                par = {"fill": null};
+                param = {"fill": null};
             }
-            drawArrow(x1, y1, x2, y2, par);
+            drawArrow(x1, y1, x2, y2, param);
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
             //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
             var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
@@ -411,7 +411,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             canvasCoordinate;
 
         var currentPov = mapService.getPov();
-
         var povChange = svl.map.getPovChangeStatus();
 
         povChange["status"] = true;
@@ -581,7 +580,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
-    var pre_dis = 0;
+    var prevDistance = 0;
     var flag = false;
 
     function _visitAdjustHeadingAngle(state, listener) {
@@ -590,17 +589,26 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
 
         // get the original pov heading
-        var original_pov = mapService.getPov();
-        var original_pov_heading = original_pov.heading;
-        var dis_tolerance = 20;
+        var originalPov = mapService.getPov();
+        var originalPOVHeading = originalPov.heading;
+        var disTolerance = 20;
+
+        var _checkToHideGrabAndDragAnimation = function (pov) {
+            if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                if (listener) google.maps.event.removeListener(listener);
+                handAnimation.hideGrabAndDragAnimation(interval);
+                next(state.transition);
+            }
+        };
 
         var callback = function () {
 
             var pov = mapService.getPov();
 
-            var dis = pov.heading - original_pov_heading;
+            var dis = pov.heading - originalPOVHeading;
             if (dis < 0) {
-                if (pre_dis <= 0) {
+                if (prevDistance <= 0) {
                     clearArrow(70, 350, 30, 350);
                     iswrong = false;
 
@@ -611,48 +619,33 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     }
                 }
                 // normal drag
-                if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                    if (typeof google != "undefined") google.maps.event.removeListener($target);
-                    if (listener) google.maps.event.removeListener(listener);
-                    handAnimation.hideGrabAndDragAnimation(interval);
-                    next(state.transition);
-                }
+                _checkToHideGrabAndDragAnimation(pov)
             }
-            else if (dis > 0 && pre_dis > 0 && dis <= pre_dis) {
+            else if (dis > 0 && prevDistance > 0 && dis <= prevDistance) {
                 // normal drag, 0->360
-                if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                    if (typeof google != "undefined") google.maps.event.removeListener($target);
-                    if (listener) google.maps.event.removeListener(listener);
-                    handAnimation.hideGrabAndDragAnimation(interval);
-                    next(state.transition);
-                }
+                _checkToHideGrabAndDragAnimation(pov)
             }
-            else if (dis > 0 && pre_dis > 0 && dis > pre_dis) {
-                if (dis < dis_tolerance) {
+            else if (dis > 0 && prevDistance > 0 && dis > prevDistance) {
+                if (dis < disTolerance) {
                     // drag to the wrong direction but allow panning within tolerance
 
                 }
-                else if (pov.heading % 360 >= (dis_tolerance + original_pov_heading)) {
+                else if (pov.heading % 360 >= (disTolerance + originalPOVHeading)) {
                     // drag to the wrong direction and stop panning
                     // show the warning (arrow + labeling)
 
                     if (!iswrong) {
                         // set a timer to animate the arrow every 500ms
-                        console.log("Activating timer")
+                        console.log("Activating timer");
                         myTimer = setInterval(drawArrowAnimate, 500);
                         iswrong = true;
                     }
                 }
             }
-            else if (dis > 0 && pre_dis <= 0) {
-                if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                    if (typeof google != "undefined") google.maps.event.removeListener($target);
-                    if (listener) google.maps.event.removeListener(listener);
-                    handAnimation.hideGrabAndDragAnimation(interval);
-                    next(state.transition);
-                }
+            else if (dis > 0 && prevDistance <= 0) {
+                _checkToHideGrabAndDragAnimation(pov)
             }
-            pre_dis = dis;
+            prevDistance = dis;
 
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
