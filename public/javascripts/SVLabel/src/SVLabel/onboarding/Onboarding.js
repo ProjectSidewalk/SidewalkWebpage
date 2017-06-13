@@ -112,90 +112,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     }
 
     var myTimer;
-    var iswrong = false;
-
-
-    /**
-     * Draw an arrow on the onboarding canvas
-     * @param x1 {number} Starting x coordinate
-     * @param y1 {number} Starting y coordinate
-     * @param x2 {number} Ending x coordinate
-     * @param y2 {number} Ending y coordinate
-     * @param parameters {object} parameters
-     * @returns {drawArrow}
-     */
-    function drawArrowAnimate () {
-        if(!flag) {
-            // clear the arrow
-            if (ctx) {
-                ctx.save();
-                ctx.clearRect(0, 200, 400, 400);
-                ctx.restore();
-            }
-            flag = !flag;
-        }
-        else {
-            // draw the arrow
-            if (ctx) {
-                var x1 = 70;
-                var y1 = 350;
-                var x2 = 30;
-                var y2 = 350;
-                var lineWidth = 1,
-                    fill = 'rgba(255,255,0,1)',
-                    lineCap = 'round',
-                    arrowWidth = 6,
-                    strokeStyle  = 'rgba(0, 0, 0, 1)',
-                    dx, dy, theta;
-
-
-                dx = x2 - x1;
-                dy = y2 - y1;
-                theta = Math.atan2(dy, dx);
-
-                ctx.save();
-                ctx.fillStyle = fill;
-                ctx.strokeStyle = strokeStyle;
-                ctx.lineWidth = lineWidth;
-                ctx.lineCap = lineCap;
-
-                ctx.translate(x1, y1);
-                ctx.beginPath();
-                ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
-                ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
-
-                // Draw an arrow head
-                ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
-                ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
-                ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
-
-                ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
-                ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
-
-                ctx.moveTo(1 , -7);
-                ctx.lineTo(1 , 7);
-
-                ctx.fill();
-                ctx.stroke();
-                ctx.closePath();
-                ctx.restore();
-            }
-            flag = !flag;
-        }
-
-        //return this.drawArrowAnimate;
-    }
-
-    /**
-     * Clear the arrow
-     */
-    function clearArrow(x1, y1, x2, y2){
-        if (ctx) {
-            ctx.save();
-            ctx.clearRect(0,200,400,400);
-            ctx.restore();
-        }
-    }
+    var isWrong = false;
 
     /**
      * Draw an arrow on the onboarding canvas
@@ -246,6 +163,75 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             ctx.restore();
         }
         return this;
+    }
+
+    /**
+     * Clear the arrow
+     */
+    function clearArrow(){
+        if (ctx) {
+            ctx.save();
+            ctx.clearRect(0,200,400,400);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * Draw an animated arrow on the onboarding canvas
+     */
+    function drawArrowAnimate () {
+        if(!flag) {
+            // clear the arrow
+            clearArrow();
+            flag = !flag;
+        }
+        else {
+            // draw the arrow
+            if (ctx) {
+                var x1 = 70;
+                var y1 = 300;
+                var x2 = 30;
+                var y2 = 300;
+                var lineWidth = 1,
+                    fill = 'rgba(255,255,0,1)',
+                    lineCap = 'round',
+                    arrowWidth = 8,
+                    strokeStyle  = 'rgba(0, 0, 0, 1)',
+                    dx, dy, theta;
+
+                dx = x2 - x1;
+                dy = y2 - y1;
+                theta = Math.atan2(dy, dx);
+
+                ctx.save();
+                ctx.fillStyle = fill;
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = lineCap;
+
+                ctx.translate(x1, y1);
+                ctx.beginPath();
+                ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
+
+                // Draw an arrow head
+                ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
+                ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
+                ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
+
+                ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
+                ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
+
+                ctx.moveTo(1 , -7);
+                ctx.lineTo(1 , 7);
+
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+                ctx.restore();
+            }
+            flag = !flag;
+        }
     }
 
     function drawBlinkingArrow(x1, y1, x2, y2, parameters) {
@@ -589,12 +575,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
 
         // get the original pov heading
-        var originalPov = mapService.getPov();
-        var originalPOVHeading = originalPov.heading;
-        var disTolerance = 20;
+        var originalHeading = mapService.getPov().heading;
+        console.log("OrigPOVHeading::" + originalHeading);
+        var tolerance = 20;
 
-        var _checkToHideGrabAndDragAnimation = function (pov) {
-            if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+        var _checkToHideGrabAndDragAnimation = function (currentHeading) {
+            if ((360 + state.properties.heading - currentHeading) % 360 < state.properties.tolerance) {
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 handAnimation.hideGrabAndDragAnimation(interval);
@@ -604,48 +590,56 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         var callback = function () {
 
-            var pov = mapService.getPov();
+            var currentHeading = mapService.getPov().heading;
+            var distanceFromCurrentHeading = currentHeading - originalHeading;
+            console.log("Distance from OriginalHeading::" + distanceFromCurrentHeading);
 
-            var dis = pov.heading - originalPOVHeading;
-            if (dis < 0) {
+            if (distanceFromCurrentHeading < 0) {
                 if (prevDistance <= 0) {
-                    clearArrow(70, 350, 30, 350);
-                    iswrong = false;
+                    console.error("Clearing Arrow");
+                    clearArrow();
+                    isWrong = false;
 
                     if (myTimer) {
-                        console.log("Clearing Timer");
+                        console.error("Clearing Timer");
                         clearInterval(myTimer);
                         myTimer = null;
                     }
                 }
                 // normal drag
-                _checkToHideGrabAndDragAnimation(pov)
+                console.log("Normal Drag");
+                _checkToHideGrabAndDragAnimation(currentHeading)
             }
-            else if (dis > 0 && prevDistance > 0 && dis <= prevDistance) {
-                // normal drag, 0->360
-                _checkToHideGrabAndDragAnimation(pov)
-            }
-            else if (dis > 0 && prevDistance > 0 && dis > prevDistance) {
-                if (dis < disTolerance) {
-                    // drag to the wrong direction but allow panning within tolerance
+            else if (distanceFromCurrentHeading > 0) {
+                if(prevDistance > 0) {
+                    if(distanceFromCurrentHeading <= prevDistance) {
+                        // normal drag, 0->360
+                        console.log("Normal Drag 0 -> 360");
+                        _checkToHideGrabAndDragAnimation(currentHeading)
+                    }
+                    else if (distanceFromCurrentHeading > prevDistance) {
+                        // Indicates user dragging in the wrong direction
+                        if (distanceFromCurrentHeading < tolerance) {
+                            // Allow panning if within tolerance
+                            console.log("Wrong Direction Within Tolerance:: Do Nothing");
+                        }
+                        else if (currentHeading % 360 >= (tolerance + originalHeading)) {
+                            // Stop panning and show the warning (arrow + labeling)
 
-                }
-                else if (pov.heading % 360 >= (disTolerance + originalPOVHeading)) {
-                    // drag to the wrong direction and stop panning
-                    // show the warning (arrow + labeling)
-
-                    if (!iswrong) {
-                        // set a timer to animate the arrow every 500ms
-                        console.log("Activating timer");
-                        myTimer = setInterval(drawArrowAnimate, 500);
-                        iswrong = true;
+                            if (!isWrong) {
+                                // set a timer to animate the arrow every 500ms
+                                console.error("Activating timer");
+                                myTimer = setInterval(drawArrowAnimate, 500);
+                                isWrong = true;
+                            }
+                        }
                     }
                 }
+                else if (prevDistance <= 0) {
+                    _checkToHideGrabAndDragAnimation(currentHeading)
+                }
             }
-            else if (dis > 0 && prevDistance <= 0) {
-                _checkToHideGrabAndDragAnimation(pov)
-            }
-            prevDistance = dis;
+            prevDistance = distanceFromCurrentHeading;
 
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
