@@ -997,7 +997,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "blinks": null
             },
             "message": {
-                "message": 'Your previous labels are back on the interface! Since all the corners of this intersection' +
+                "message": 'Your previous labels are back on the interface! Since all the corners of this intersection ' +
                 'are now labeled, <span class="bold">you do not need to label it again!</span>',
                 "position": "top-right",
                 "parameters": null

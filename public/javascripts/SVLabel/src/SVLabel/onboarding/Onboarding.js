@@ -462,7 +462,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var $target;
         var callback = function () {
             var panoId = mapService.getPanoId();
-            console.log("Next Pano:" + panoId);
             if (state.properties.panoId == panoId) {
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
