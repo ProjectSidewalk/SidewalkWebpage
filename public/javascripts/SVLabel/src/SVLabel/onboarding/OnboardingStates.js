@@ -772,11 +772,11 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-3": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 41,
+                "heading": 45,
                 "tolerance": 20
             },
             "message": {
-                "message": 'Awesome! We’re almost done with the training. Let’s finish labeling the final corner.' +
+                "message": 'Awesome! Let’s finish labeling the final corner. ' +
                 'First, <span class="bold">grab and drag the Street View image.</span>',
                 "position": "top-right",
                 "parameters": null
@@ -797,7 +797,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp"
             },
             "message": {
-                "message": 'Good! Let us label the curb ramp now. ' +
+                "message": 'Good! Now, let us label the curb ramp. ' +
                 '<span class="bold">Click the "Curb Ramp" button</span> on the menu to label it.',
                 "position": "top-right",
                 "parameters": null
@@ -806,7 +806,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 740,
+                    "x": 725,
                     "y": -735,
                     "length": 50,
                     "angle": 0,
@@ -840,7 +840,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 740,
+                    "x": 725,
                     "y": -735,
                     "length": 50,
                     "angle": 0,
@@ -911,7 +911,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId1
             },
             "message": {
-                "message": 'Let’s learn to walk. To take a step, ' +
+                "message": 'Almost done! Final step is learning to walk. To take a step, ' +
                 '<span class="bold">click on the highlighted navigation arrow</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -934,7 +934,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 20
             },
             "message": {
-                "message": 'Let\'s turn around to see the intersection. <span class="bold"></span>.',
+                "message": 'Great! Now, let\'s turn around to see the intersection. <span class="bold">Grab and drag ' +
+                'the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -951,22 +952,42 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "gsv-labels-disappear": {
             "properties": {
                 "action": "Instruction",
-                "blinks": ["google-maps"],
-                "panoId": panoId
+                "blinks": ["google-maps"]
             },
             "message": {
-                "message": 'Looks like the labels disappeared from the interface. ' +
+                "message": 'Hmm, looks like the labels disappeared from the interface. ' +
                 'Worry not, your labels are safe! You can track them using this <span class="bold">mini-map</span>. ',
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": afterWalkPanoId2,
+            "panoId": afterWalkPanoId1,
             "annotations": null,
             "transition": function () {
                 var completedRate = 29 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "gsv-labels-disappear"});
+                return "walk-2";
+            }
+        },
+        "walk-2": {
+            "properties": {
+                "action": "WalkTowards",
+                "panoId": panoId
+            },
+            "message": {
+                "message": 'Now, let\'s take a step back into the intersection where you originally placed the labels. ' +
+                '<span class="bold"> Click on the highlighted navigation arrow</span> to take a step.',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": afterWalkPanoId1,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 30 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
                 return "instruction-1";
             }
         },
@@ -976,30 +997,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "blinks": null
             },
             "message": {
-                "message": 'Now, let\'s take a step back into the intersection where you originally placed the labels. ' +
-                '<span class="bold"> Click on the highlighted navigation arrow</span> to take a step.',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var completedRate = 30 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
-                compass.showMessage();
-                return "instruction-2";
-            }
-        },
-        "instruction-2": {
-            "properties": {
-                "action": "Instruction",
-                "blinks": null
-            },
-            "message": {
-                "message": 'Your previous labels are back on the interface! Since, you have already labeled the curb ' +
-                'ramp at this corner, <span class="bold">you do not need to label it again!</span>',
+                "message": 'Your previous labels are back on the interface! Since all the corners of this intersection' +
+                'are now labeled, <span class="bold">you do not need to label it again!</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1011,10 +1010,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
                 compass.showMessage();
-                return "instruction-3";
+                return "instruction-2";
             }
         },
-        "instruction-3": {
+        "instruction-2": {
             "properties": {
                 "action": "Instruction",
                 "blinks": ["google-maps", "compass"]
@@ -1038,10 +1037,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
-                return "instruction-4";
+                return "instruction-3";
             }
         },
-        "instruction-4": {
+        "instruction-3": {
             "properties": {
                 "action": "Instruction",
                 "blinks": ["status-field"]
@@ -1060,10 +1059,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
-                return "instruction-5";
+                return "instruction-4";
             }
         },
-        "instruction-5": {
+        "instruction-4": {
             "properties": {
                 "action": "Instruction",
                 "blinks": ["action-stack"]
@@ -1081,10 +1080,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
-                return "instruction-6";
+                return "instruction-5";
             }
         },
-        "instruction-6": {
+        "instruction-5": {
             "properties": {
                 "action": "Instruction",
                 "blinks": ["sound", "jump", "feedback"]

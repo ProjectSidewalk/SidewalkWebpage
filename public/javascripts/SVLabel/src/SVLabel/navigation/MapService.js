@@ -1750,7 +1750,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This funciton sets the current status of the instantiated object
+     * This function sets the current status of the instantiated object
      * @param key
      * @param value
      * @returns {*}
@@ -1847,7 +1847,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.lockDisablePanning = lockDisablePanning;
     self.lockDisableWalking = lockDisableWalking;
     self.lockRenderLabels = lockRenderLabels;
-    self.makeLinksClickable = makeLinksClickable;
     self.modeSwitchLabelClick = modeSwitchLabelClick;
     self.modeSwitchWalkClick = modeSwitchWalkClick;
     self.moveToTheTaskLocation = moveToTheTaskLocation;

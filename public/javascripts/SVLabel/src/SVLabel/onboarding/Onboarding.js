@@ -457,8 +457,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
     function _visitWalkTowards (state, listener) {
         mapService.unlockDisableWalking();
-        mapService.showLinks();
-        mapService.makeLinksClickable();
+        mapService.enableWalking();
 
         var $target;
         var callback = function () {
@@ -468,6 +467,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
+            }
+            else {
+                console.error("Pano mismatch. Shouldn't reach here");
             }
         };
 
