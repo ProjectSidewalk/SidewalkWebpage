@@ -102,6 +102,18 @@ object StreetEdgeTable {
   }
 
   /**
+    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
+    *
+    * @param auditCount
+    * @return Float between 0 and 1
+    */
+  def streetDistanceCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistance(auditCount)
+    val totalDistance = totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /**
     * Get the total distance in miles
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
     *

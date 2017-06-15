@@ -182,7 +182,7 @@
 
             </div>
             <script language="javascript">
-                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
+                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
                     var milesAnim = new CountUp("nummiles", 0, @("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))),0,2.5,{suffix:''});
             </script>
