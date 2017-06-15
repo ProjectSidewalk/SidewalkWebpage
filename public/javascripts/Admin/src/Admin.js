@@ -476,72 +476,53 @@ function Admin (_, $, c3, turf) {
                 });
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                var i,
-                    len = data.length,
-                    completionRate,
-                    row,
-                    rows = "";
-                var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
-                var coverageDistanceArray = ["Neighborhood Coverage (m)"];
-                var neighborhoodNames = [];
-                for (i = 0; i < len; i++) {
-                    completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
-                    coverageRateColumn.push(completionRate);
-                    coverageDistanceArray.push(data[i].completed_distance_m);
 
-                    neighborhoodNames.push(data[i].name);
-                    // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
-                    // rows += row;
-                }
-
-                var coverageChart = c3.generate({
-                    bindto: '#neighborhood-completion-rate',
-                    data: {
-                        columns: [
-                            coverageRateColumn
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: neighborhoodNames
-                        },
-                        y: {
-                            label: "Neighborhood Coverage Rate (%)",
-                            min: 0,
-                            max: 100,
-                            padding: { top: 50, bottom: 10 }
-                        }
-                    },
-                    legend: {
-                        show: false
+                var coverageRateChart = {
+                    "width": 500,
+                    "height": 500,
+                    "data": {"values": data, "format": {"type": "json"}},
+                    "transform": [{"calculate": "100.0 * datum.completed_distance_m / datum.total_distance_m",
+                                   "as": "rate"}],
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {"field": "rate", "type": "quantitative",
+                              "axis": {"title": "Neighborhood Completion Percentage"}},
+                        "y": {"field": "name", "type": "ordinal", "axis": {"title": "Neighborhood Name"}}
                     }
-                });
+                };
+                var opt = {
+                    "mode": "vega-lite"
+                };
+                vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
 
-                var coverageDistanceChart = c3.generate({
-                    bindto: '#neighborhood-completed-distance',
-                    data: {
-                        columns: [
-                            coverageDistanceArray
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: neighborhoodNames
+                var coverageRateHist = {
+                    "width": 500,
+                    "height": 500,
+                    "data": {"values": data, "format": {"type": "json"}},
+                    "transform": [{"calculate": "min(99.9999, 100.0 * datum.completed_distance_m / datum.total_distance_m)",
+                                   "as": "rate"}],
+                    "layer": [
+                        {
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"bin": {"maxbins": 10}, "field": "rate", "type": "quantitative",
+                                    "axis": {"title": "Neighborhood Completion Percentage"}},
+                                "y": {"aggregate": "count", "field": "*", "type": "quantitative",
+                                    "axis": {"title": "Counts"}}
+                            }
                         },
-                        y: {
-                            label: "Coverage Distance (m)",
-                            min: 0,
-                            padding: { top: 50, bottom: 10 }
+                        { // creates red line marking mean completion rate
+                            "mark": "rule",
+                            "encoding": {
+                                "x": {"aggregate": "mean", "field": "rate", "type": "quantitative"},
+                                "color": {"value": "red",
+                                    "legend": {"title": "Summary Stats"}},
+                                "size": {"value": 3}
+                            }
                         }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
+                    ]
+                };
+                vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
