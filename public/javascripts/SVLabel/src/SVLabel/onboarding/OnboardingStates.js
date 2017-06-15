@@ -1,5 +1,5 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
-    var numStates = 36;
+    var numStates = 35;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
 
     var afterWalkPanoId1 = "2fnXWF9rxQEphhHWKMQ4dQ";
@@ -450,7 +450,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-2": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 115,
+                "heading": 177,
                 "tolerance": 20
             },
             "message": {
@@ -465,6 +465,28 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
+                return "adjust-heading-angle-3";
+            }
+        },
+        "adjust-heading-angle-3": {
+            "properties": {
+                "action": "AdjustHeadingAngle",
+                "heading": 115,
+                "tolerance": 20
+            },
+            "message": {
+                "message": 'Look to the left by grabbing and dragging the Street View image. ' +
+                '<span class="bold">Keep going</span>.',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 14 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
                 return "select-label-type-4";
             }
         },
@@ -554,7 +576,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
                 'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -766,17 +789,17 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
-                return "adjust-heading-angle-3";
+                return "adjust-heading-angle-4";
             }
         },
-        "adjust-heading-angle-3": {
+        "adjust-heading-angle-4": {
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 45,
                 "tolerance": 20
             },
             "message": {
-                "message": 'Awesome! Let’s finish labeling the final corner. ' +
+                "message": 'Awesome! Let’s finish labeling the last curb ramp in the intersection. ' +
                 'First, <span class="bold">grab and drag the Street View image.</span>',
                 "position": "top-right",
                 "parameters": null
@@ -787,7 +810,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var completedRate = 23 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-3" });
+                tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-4" });
                 return "select-label-type-7";
             }
         },
@@ -797,7 +820,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp"
             },
             "message": {
-                "message": 'Good! Now, let us label the curb ramp. ' +
+                "message": 'Good! Now, let us label.c ' +
                 '<span class="bold">Click the "Curb Ramp" button</span> on the menu to label it.',
                 "position": "top-right",
                 "parameters": null
@@ -832,7 +855,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 250
             },
             "message": {
-                "message": '<span class="bold">Click on the curb ramp</span> (below the flashing yellow arrow) to label it.',
+                "message": '<span class="bold">Click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -911,7 +934,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId1
             },
             "message": {
-                "message": 'Almost done! Final step is learning to walk. To take a step, ' +
+                "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. To take a step, ' +
                 '<span class="bold">click on the highlighted navigation arrow</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -924,17 +947,17 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
                 //mapService.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
-                return "adjust-heading-angle-4";
+                return "adjust-heading-angle-5";
             }
         },
-        "adjust-heading-angle-4": {
+        "adjust-heading-angle-5": {
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 228,
                 "tolerance": 20
             },
             "message": {
-                "message": 'Great! Now, let\'s turn around to see the intersection. <span class="bold">Grab and drag ' +
+                "message": 'Great! Now, let\'s turn around to look back at the intersection. <span class="bold">Grab and drag ' +
                 'the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -945,7 +968,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var completedRate = 28 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
                 return "gsv-labels-disappear";
             }
         },
@@ -1065,11 +1088,11 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "instruction-4": {
             "properties": {
                 "action": "Instruction",
-                "blinks": ["action-stack"]
+                "blinks": ["jump"]
             },
             "message": {
-                "message": 'Other interface features include: <br>' +
-                '<span class="bold">Undo/Redo:</span> Undo or redo the labeling',
+                "message": 'Finally, if you get stuck while walking, you can use the ' +
+                '<span class="bold">Jump button</span> to move to a different location.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1077,29 +1100,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": null,
             "transition": function () {
                 var completedRate = 34 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
-                return "instruction-5";
-            }
-        },
-        "instruction-5": {
-            "properties": {
-                "action": "Instruction",
-                "blinks": ["sound", "jump", "feedback"]
-            },
-            "message": {
-                "message": 'Finally, you can also control: <br>' +
-                '<span class="bold">Sound:</span> turn on/off the sound effects <br> ' +
-                '<span class="bold">Jump:</span> jump to a different street <br>' +
-                '<span class="bold">Feedback:</span> provide comments about your mission or report bugs',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-5"});
@@ -1128,7 +1128,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 36 / numStates;
+                var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
