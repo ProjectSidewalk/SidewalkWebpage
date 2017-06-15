@@ -24,9 +24,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 NoCurbRamp: false,
                 Obstacle: false,
                 SurfaceProblem: false,
+                OuterOther: false,
                 Occlusion: false,
                 NoSidewalk: false,
-                Other: false
+                Other: false,
             },
             lockDisableMode: false,
             mode: 'Walk',
@@ -88,6 +89,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
      */
     function modeSwitch(mode) {
         var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
+        console.log("Mode: " + mode);
         tracker.push('ModeSwitch_' + labelType);
 
         if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
@@ -170,10 +172,15 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
     function handleModeSwitchMouseEnter() {
         var labelType = $(this).attr("val");
-        console.log("labeltype" + labelType);
-        console.log("status.disableMode[" + labelType + "] " + status.disableMode[labelType]);
-        console.log("status.disableModeSwitch " + status.disableModeSwitch);
-        if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
+
+        var modeDisabled;
+        if(svl.isOnboarding() && labelType === "Other") {
+            modeDisabled = status.disableMode["OuterOther"];
+        } else {
+            modeDisabled = status.disableMode[labelType];
+        }
+
+        if (status.disableModeSwitch === false || !modeDisabled) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
 
@@ -299,12 +306,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 NoCurbRamp: true,
                 Obstacle: true,
                 SurfaceProblem: true,
+                OuterOther: true,
                 Occlusion: true,
                 NoSidewalk: true,
                 Other: true
             };
             if (uiRibbonMenu) {
                 uiRibbonMenu.buttons.css('opacity', 0.5);
+                uiRibbonMenu.subcategories.css('opacity', 0.5);
             }
         }
         return this;
@@ -316,11 +325,18 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
      * @param subLabelType
      */
     function disableMode(labelType, subLabelType) {
+        console.log("Disabling Mode" + labelType + " sub: " + subLabelType);
         if (!status.lockDisableMode) {
             var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
                 dropdown;
 
-            status.disableMode[labelType] = true;
+            // So that outer category Other is disabled
+            if (labelType === "Other") {
+                status.disableMode["OuterOther"] = true;
+            } else {
+                status.disableMode[labelType] = true;
+            }
+
             if (subLabelType) {
                 status.disableMode[subLabelType] = true;
                 dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
@@ -368,12 +384,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 NoCurbRamp: false,
                 Obstacle: false,
                 SurfaceProblem: false,
+                OuterOther: false,
                 Occlusion: false,
                 NoSidewalk: false,
                 Other: false
             };
             if (uiRibbonMenu) {
                 uiRibbonMenu.buttons.css('opacity', 1);
+                uiRibbonMenu.subcategories.css('opacity', 1);
             }
         }
         return this;
@@ -389,7 +407,13 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
                 dropdown;
 
-            status.disableMode[labelType] = false;
+            // So that sub category Other is not enabled
+            if (labelType === "Other") {
+                status.disableMode["OuterOther"] = false;
+            } else {
+                status.disableMode[labelType] = false;
+            }
+
             if (subLabelType) {
                 status.disableMode[subLabelType] = false;
                 console.log(subLabelType + " Status" + JSON.stringify(status.disableMode));

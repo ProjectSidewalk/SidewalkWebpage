@@ -46,6 +46,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     };
     var states = onboardingStates.get();
 
+    var _mouseDownCanvasDrawingHandler;
+
     this._onboardingLabels = [];
 
     this._removeOnboardingLabels = function () {
@@ -651,9 +653,17 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             event = labelType
         }
 
-        var callback = function () {
+        // To handle when user presses ESC, the
+        _mouseDownCanvasDrawingHandler = function () {
+            console.log("Calling Onboarding Mouse down");
             ribbon.disableMode(labelType, subcategory);
+        };
+
+        var callback = function () {
             ribbon.enableMode("Walk");
+
+            // Disable only when the user places the label
+            uiCanvas.drawingLayer.on("mousedown", _mouseDownCanvasDrawingHandler);
 
             ribbon.stopBlinking();
             $(document).off('ModeSwitch_' + event, callback);
@@ -753,6 +763,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             if (distance < tolerance * tolerance) {
                 ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
                 ribbon.enableMode("Walk");
+                uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
                 $target.off("click", callback);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
