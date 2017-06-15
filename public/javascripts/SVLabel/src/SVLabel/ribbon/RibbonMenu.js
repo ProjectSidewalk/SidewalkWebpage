@@ -191,7 +191,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     }
 
     function handleModeSwitchMouseLeave() {
-        if (status.disableModeSwitch === false) {
+        // Always activate during onboarding as everything is disabled
+        // So will only be useful for 'Other' dropdown
+        if (status.disableModeSwitch === false || svl.isOnboarding()) {
             setModeSwitchBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
             hideSubcategories();
