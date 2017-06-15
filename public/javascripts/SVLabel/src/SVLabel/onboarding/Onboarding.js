@@ -78,6 +78,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         zoomControl.disableZoomOut();
         zoomControl.lockDisableZoomOut();
 
+        ribbon.unlockDisableModeSwitch();
+        ribbon.disableModeSwitch();
+        ribbon.lockDisableModeSwitch();
+
+        ribbon.unlockDisableMode();
+
         compass.hideMessage();
 
         status.state = getState("initialize");
@@ -281,6 +287,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         zoomControl.unlockDisableZoomOut();
         zoomControl.enableZoomOut();
+
+        ribbon.unlockDisableModeSwitch();
+        ribbon.enableModeSwitch();
 
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
@@ -633,6 +642,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
         var event;
 
+        ribbon.enableMode(labelType, subcategory);
         ribbon.startBlinking(labelType, subcategory);
 
         if (subcategory) {
@@ -642,6 +652,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
 
         var callback = function () {
+            ribbon.disableMode(labelType, subcategory);
+            ribbon.enableMode("Walk");
+
             ribbon.stopBlinking();
             $(document).off('ModeSwitch_' + event, callback);
             if (listener) google.maps.event.removeListener(listener);
@@ -692,6 +705,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 zoomControl.disableZoomOut();
                 zoomControl.lockDisableZoomOut();
             }
+            ribbon.enableMode("Walk");
             $target.off("click", callback);
 
             if (listener) google.maps.event.removeListener(listener);
@@ -724,6 +738,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
             if (distance < tolerance * tolerance) {
+                ribbon.enableMode("Walk");
                 $target.off("click", callback);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
