@@ -1099,3 +1099,6 @@ kbd {
     color: #fff;
 }
 
+.navbar-xs { min-height: 35px; height: 35px; }
+.navbar-xs .navbar-brand{ padding: 0px 15px;font-size: 16px;line-height: 28px; }
+.navbar-xs .navbar-nav > li > a {  padding-top: 0px; padding-bottom: 0px; line-height: 28px; }
