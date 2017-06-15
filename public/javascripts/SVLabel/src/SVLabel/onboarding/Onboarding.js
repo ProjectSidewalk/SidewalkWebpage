@@ -716,6 +716,19 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
     }
 
+    function _incorrectLabelApplication(state) {
+
+        hideMessage();
+
+        // TODO: for future
+        // Show animated arrow pointing down at the location to emphasise and complement the message
+
+        // Show error message
+        state.message.message = 'Oops! You labeled too far. <span class="bold">Click beneath ' +
+            'the flashing yellow arrow</span> to label it.';
+        showMessage(state.message);
+    }
+
     /**
      * Tell the user to label the target attribute.
      * @param state
@@ -744,6 +757,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             } else {
+                // Incorrect label application
+                _incorrectLabelApplication(state);
                 ribbon.enableMode(state.properties.labelType, state.properties.subcategory);
             }
         };
