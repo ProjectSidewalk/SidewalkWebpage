@@ -36,7 +36,9 @@ function ContextMenu (uiContextMenu) {
         if (isMac){
             if (lastKeyCmd && down[91] && isOpen() && down[65]){
                 $descriptionTextBox.select();
+                down[65] = false; //reset A key 
             }//A key, menu shown
+
         }//mac
         else{
             if (lastKeyPressed == 17 && isOpen() && down[65]){
