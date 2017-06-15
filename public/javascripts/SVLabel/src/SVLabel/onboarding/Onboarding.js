@@ -19,7 +19,7 @@
  * @param taskContainer
  * @param tracker
  * @param uiCanvas
- * @param uiContextMenu
+ * @param contextMenu
  * @param uiMap
  * @param uiOnboarding
  * @param uiRibbon
@@ -32,11 +32,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                      missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
                      neighborhoodModel, onboardingModel, onboardingStates,
                      ribbon, statusField, statusModel, storage, taskContainer,
-                     tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
+                     tracker, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
     var canvasWidth = 720;
     var canvasHeight = 480;
+    var blink_timer = 0;
+    var blink_function_identifier=[];
     var properties = {};
     var status = {
         state: 0,
@@ -160,6 +162,30 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         return this;
     }
 
+    function drawBlinkingArrow(x1, y1, x2, y2, parameters) {
+        var max_frequency = 60;
+        var blink_period = 0.5;
+
+        function helperBlinkingArrow() {
+            var par;
+            blink_timer = (blink_timer + 1) % max_frequency;
+            if (blink_timer < blink_period * max_frequency) {
+                par = parameters
+            }
+            else {
+                par = {"fill": null};
+            }
+            drawArrow(x1, y1, x2, y2, par);
+            //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
+            //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
+            var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
+            blink_function_identifier.push(function_identifier);
+        }
+
+        helperBlinkingArrow();
+    }
+
+
     /**
      * Get a state
      * @param stateIndex
@@ -241,6 +267,9 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var data = form.compileSubmissionData(task);
         form.submit(data, task);
         uiOnboarding.background.css("visibility", "hidden");
+
+        //Reset the label counts to zero after the onboarding
+        svl.labelCounter.reset();
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
 
@@ -344,7 +373,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 y2 = canvasCoordinate.y;
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
-                drawArrow(x1, y1, x2, y2, { "fill": state.annotations[i].fill });
+                //The color of the arrow will by default alternate between white and the fill specified in annotation
+                if(state.annotations[i].fill==null || state.annotations[i].fill=="white"){
+                    drawArrow(x1,y1,x2,y2,{"fill":state.annotations[i].fill});
+                }
+                else{
+                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"});
+                }
+
             } else if (state.annotations[i].type == "double-click") {
                 drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
             }
@@ -363,6 +399,11 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             annotationListener;
 
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
+        if(blink_function_identifier.length!=0){
+            while(blink_function_identifier.length!=0) {
+                window.cancelAnimationFrame(blink_function_identifier.pop());
+            }
+        }
         hideMessage();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
@@ -381,6 +422,12 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             _drawAnnotations(state);
             if (typeof google != "undefined")  {
                 annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
+                    //Stop the animation for the blinking arrows
+                    if(blink_function_identifier.length!=0){
+                        while(blink_function_identifier.length!=0) {
+                            window.cancelAnimationFrame(blink_function_identifier.pop());
+                        }
+                    }
                     _drawAnnotations(state);
                 });
             }
@@ -394,6 +441,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 _visitSelectLabelTypeState(state, annotationListener);
             } else if (state.properties.action == "LabelAccessibilityAttribute") {
                 _visitLabelAccessibilityAttributeState(state, annotationListener);
+            } else if (state.properties.action == "Zoom") {
+                _visitZoomState(state, annotationListener);
             } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                 _visitRateSeverity(state, annotationListener);
             } else if (state.properties.action == "AdjustHeadingAngle") {
@@ -501,10 +550,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     }
 
     function _visitRateSeverity (state, listener) {
-        var $target = uiContextMenu.radioButtons;
+
+        if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
+        var $target = contextMenu.getContextMenuUI().radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
+            contextMenu.hide();
             next.call(this, state.transition);
         };
         $target.on("click", callback);
@@ -597,6 +649,57 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         };
 
         $(document).on('ModeSwitch_' + event, callback);
+    }
+
+    /**
+     * Tell the user to zoom in/out.
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitZoomState(state, listener) {
+        var zoomType = state.properties.type;
+        var $target;
+
+        if (zoomType == "in") {
+            $target = zoomControl.getZoomInUI();
+            zoomControl.blinkZoomIn();
+            zoomControl.unlockDisableZoomIn();
+            zoomControl.enableZoomIn();
+            zoomControl.lockDisableZoomIn();
+
+        } else {
+            $target = zoomControl.getZoomOutUI();
+            zoomControl.blinkZoomOut();
+
+            // Enable zoom-out
+            zoomControl.unlockDisableZoomOut();
+            zoomControl.enableZoomOut();
+            zoomControl.lockDisableZoomOut();
+        }
+
+        var callback = function () {
+            zoomControl.stopBlinking();
+            if (zoomType == "in") {
+                // Disable zoom-in
+                zoomControl.unlockDisableZoomIn();
+                zoomControl.disableZoomIn();
+                zoomControl.lockDisableZoomIn();
+            }
+            else {
+                // Disable zoom-out
+                zoomControl.unlockDisableZoomOut();
+                zoomControl.disableZoomOut();
+                zoomControl.lockDisableZoomOut();
+            }
+            $target.off("click", callback);
+
+            if (listener) google.maps.event.removeListener(listener);
+            next(state.transition);
+        };
+
+        $target.on("click", callback);
+
     }
 
     /**
