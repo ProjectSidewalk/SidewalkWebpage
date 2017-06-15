@@ -170,6 +170,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
     function handleModeSwitchMouseEnter() {
         var labelType = $(this).attr("val");
+        console.log("labeltype" + labelType);
+        console.log("status.disableMode[" + labelType + "] " + status.disableMode[labelType]);
+        console.log("status.disableModeSwitch " + status.disableModeSwitch);
         if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
             // Change the background color and border color of menu buttons
             // But if there is no Bus Stop label, then do not change back ground colors.
@@ -315,11 +318,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
                 dropdown;
 
+            status.disableMode[labelType] = true;
             if (subLabelType) {
                 status.disableMode[subLabelType] = true;
                 dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
-            } else {
-                status.disableMode[labelType] = true;
             }
 
             if (button) {
@@ -385,11 +387,11 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
                 dropdown;
 
+            status.disableMode[labelType] = false;
             if (subLabelType) {
                 status.disableMode[subLabelType] = false;
+                console.log(subLabelType + " Status" + JSON.stringify(status.disableMode));
                 dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
-            } else {
-                status.disableMode[labelType] = false;
             }
 
             if (button) {
