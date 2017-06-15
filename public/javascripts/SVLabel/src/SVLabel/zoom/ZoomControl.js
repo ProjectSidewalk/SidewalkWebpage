@@ -177,12 +177,13 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         if (!status.disableZoomIn) {
             var povChange = mapService.getPovChangeStatus();
-
             var pov = mapService.getPov();
+
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
+            $(document).trigger('ZoomIn');
         }
     }
 
@@ -194,12 +195,13 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         if (!status.disableZoomOut) {
             var povChange = mapService.getPovChangeStatus();
-
             var pov = mapService.getPov();
+
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
+            $(document).trigger('ZoomOut');
         }
     }
 
@@ -210,13 +212,15 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     /** Zoom in */
     function zoomIn () {
         if (!status.disableZoomIn) {
-            var povChange = mapService.getPovChangeStatus();
 
+            var povChange = mapService.getPovChangeStatus();
             var pov = mapService.getPov();
+
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
+            $(document).trigger('ZoomIn');
             return this;
         } else {
             return false;
@@ -227,14 +231,15 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function zoomOut () {
         // This method is called from outside this class to zoom out from a GSV image.
         if (!status.disableZoomOut) {
-            var povChange = mapService.getPovChangeStatus();
 
-            // ViewControl_ZoomOut
+            var povChange = mapService.getPovChangeStatus();
             var pov = mapService.getPov();
+
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
+            $(document).trigger('ZoomOut');
             return this;
         } else {
             return false;

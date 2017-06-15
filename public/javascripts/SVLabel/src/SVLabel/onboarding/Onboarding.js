@@ -679,17 +679,17 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
      */
     function _visitZoomState(state, listener) {
         var zoomType = state.properties.type;
-        var $target;
+        var event;
 
         if (zoomType == "in") {
-            $target = zoomControl.getZoomInUI();
+            event = 'ZoomIn';
             zoomControl.blinkZoomIn();
             zoomControl.unlockDisableZoomIn();
             zoomControl.enableZoomIn();
             zoomControl.lockDisableZoomIn();
 
         } else {
-            $target = zoomControl.getZoomOutUI();
+            event = 'ZoomOut';
             zoomControl.blinkZoomOut();
 
             // Enable zoom-out
@@ -712,13 +712,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 zoomControl.disableZoomOut();
                 zoomControl.lockDisableZoomOut();
             }
-            $target.off("click", callback);
+            $(document).off(event, callback);
 
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
 
-        $target.on("click", callback);
+        $(document).on(event, callback);
 
     }
 
