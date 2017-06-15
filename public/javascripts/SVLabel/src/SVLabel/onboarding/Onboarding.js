@@ -738,10 +738,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
             if (distance < tolerance * tolerance) {
+                ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
                 ribbon.enableMode("Walk");
                 $target.off("click", callback);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
+            } else {
+                ribbon.enableMode(state.properties.labelType, state.properties.subcategory);
             }
         };
         $target.on("click", callback);
