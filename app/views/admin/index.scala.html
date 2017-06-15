@@ -118,25 +118,19 @@
                                 <th></th>
                                 <th>Coverage</th>
                                 <th>Total</th>
+                                <th>Rate</th>
                             </tr>
                             <tr>
                                 <th>Audited Streets</th>
                                 <td>@StreetEdgeTable.countAuditedStreets()</td>
                                 <td>@StreetEdgeTable.countTotalStreets()</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%</td>
                             </tr>
                             <tr>
                                 <th>Distance</th>
                                 <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
                                 <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
-                            </tr>
-                            <tr>
-                                <th>
-                                    Rate
-                                </th>
-                                <td>
-                                    @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%
-                                </td>
-                                <td></td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
                             </tr>
                         </table>
                     </div>
