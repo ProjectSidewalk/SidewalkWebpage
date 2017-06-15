@@ -34,25 +34,22 @@
                 @if(url.get == "/audit"){
                     <script type="text/javascript">
                          $("#biglogo").css("top", "0px");
-                         $("#header-container").css("top", "-25px");
                          $("#header").css("max-height", "60px");
                          $("#header-container").css("max-height", "60px");
-                         $("#navbar-container").css("padding-top", "10px");
-                         $("#navbar-container").css("padding-bottom", "10px");
-                         //$("#navbar").css("margin-top", "20px");
+                         $("#navbar").css("margin-top", "23px");
+                         $("#brand").css("padding-top", "0px");
+                         $("#brand").css("padding-bottom", "10px");
                     </script>
                 }else{
                     <script type="text/javascript">
                          $("#biglogo").css("top", "-11px");
-                         $("#header-container").css("top", "-11px");
                          $("#header").css("max-height", "70px");
                          $("#header-container").css("max-height", "70px");
-                         $("#navbar-container").css("padding", "0px");
                          $("#navbar").css("margin-top", "30px");
+                         $("#brand").css("padding", "15px");
                     </script>
                 }
-
-
+                
                 @if(user) {
                     <li>
                     <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
