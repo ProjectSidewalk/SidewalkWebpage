@@ -755,9 +755,7 @@ video#bgvid {
     height:100%;
 }
 #map{
-    width: 100%;
-    margin:0;
-    padding:0;
+    height: 100%;
 }
 #map-chart {
     background-color: white;
