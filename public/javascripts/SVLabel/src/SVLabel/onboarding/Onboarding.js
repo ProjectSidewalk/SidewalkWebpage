@@ -330,19 +330,16 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 //The color of the arrow will by default alternate between white and the fill specified in annotation
                 var parameters = {
                     lineWidth: 1,
-                    fill: 'rgba(255,255,255,1)',
+                    fill: state.annotations[i].fill,
                     lineCap: 'round',
                     arrowWidth: 6,
                     strokeStyle: 'rgba(96, 96, 96, 1)'
                 };
+
                 if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
-                    parameters["fill"] = state.annotations[i].fill;
-                    //drawArrow(x1, y1, x2, y2, {"fill": state.annotations[i].fill});
                     drawArrow(x1, y1, x2, y2, parameters);
                 }
                 else {
-                    parameters["fill"] = state.annotations[i].fill;
-                    // drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"}, blink_frequency_modifier);
                     drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
                 }
 
@@ -542,7 +539,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 // and calls the corresponding action's handler.
                 // Not just the label accessibility attribute's handler
                 if (state.properties[0].action == "LabelAccessibilityAttribute") {
-                    _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
+                    _visitLabelAccessibilityAttributeState(state, annotationListener);
                 }
             }
             else {
@@ -916,7 +913,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      * @param listener
      * @private
      */
-    function _visitLabelMultipleAccessibilityAttributeState(state, listener) {
+    function _visitLabelAccessibilityAttributeState(state, listener) {
 
         var $target = uiCanvas.drawingLayer;
         var properties = state.properties;
@@ -940,7 +937,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
                 if (distance < tolerance * tolerance) {
-                    ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
+                    ribbon.disableMode(state.properties[i].labelType, state.properties[i].subcategory);
                     ribbon.enableMode("Walk");
                     uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
                     $target.off("click", callback);
@@ -950,7 +947,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 } else {
                     // Incorrect label application
                     _incorrectLabelApplication(state);
-                    ribbon.enableMode(state.properties.labelType, state.properties.subcategory);
+                    ribbon.enableMode(state.properties[i].labelType, state.properties[i].subcategory);
                 }
                 i = i + 1;
             }
