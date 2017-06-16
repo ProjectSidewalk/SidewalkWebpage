@@ -159,7 +159,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Great! Let’s adjust the view to look at another corner of the intersection on the left. ' +
-                '<span class="bold">Grab and drag the Street View image.</span>',
+                '<span class="bold">Grab and drag the Street View image to the right.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -977,7 +977,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Awesome! Let’s finish labeling the last curb ramp in the intersection. ' +
-                'First, <span class="bold">grab and drag the Street View image.</span>',
+                'First, <span class="bold">grab and drag the Street View image to the right.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1114,7 +1114,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. ' +
-                '<span class="bold">Grab and drag the Street View image</span>.',
+                '<span class="bold">Grab and drag the Street View image to the right</span>.',
                 "position": "top-right",
                 "parameters": null
             },

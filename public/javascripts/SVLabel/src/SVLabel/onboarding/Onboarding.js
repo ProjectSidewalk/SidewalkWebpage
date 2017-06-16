@@ -47,6 +47,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
+    var disablePanningListener;
+    var currentState;
 
     this._onboardingLabels = [];
 
@@ -90,6 +92,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         compass.hideMessage();
 
+        disablePanningListener = google.maps.event.addListener(svl.panorama, "pov_changed", _disablePanningHandler);
+
         status.state = getState("initialize");
         _visit(status.state);
         handAnimation.initializeHandAnimation();
@@ -121,6 +125,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         return this;
     }
 
+    var myTimer;
+    var isWrong = false;
+
     /**
      * Draw an arrow on the onboarding canvas
      * @param x1 {number} Starting x coordinate
@@ -132,14 +139,21 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      */
     function drawArrow(x1, y1, x2, y2, parameters) {
         if (ctx) {
-            var lineWidth = 1,
-                fill = 'rgba(255,255,255,1)',
-                lineCap = 'round',
-                arrowWidth = 6,
-                strokeStyle = 'rgba(96, 96, 96, 1)',
+            // var lineWidth = 1,
+            //     fill = 'rgba(255,255,255,1)',
+            //     lineCap = 'round',
+            //     arrowWidth = 6,
+            //     strokeStyle = 'rgba(96, 96, 96, 1)',
+            var lineWidth = parameters.lineWidth,
+                fill = parameters.fill,
+                lineCap = parameters.lineCap,
+                arrowWidth = parameters.arrowWidth,
+                strokeStyle  = parameters.strokeStyle,
                 dx, dy, theta;
 
-            if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+            if (!parameters.fill) {
+                fill = 'rgba(255,255,255,1)';
+            }
 
             dx = x2 - x1;
             dy = y2 - y1;
@@ -167,9 +181,57 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             ctx.fill();
             ctx.stroke();
             ctx.closePath();
+
+            // Add text
+            if("text" in parameters && parameters.text){
+                console.log("Printing text" + parameters.text);
+                ctx.fillStyle = "black"; // font color to write the text with
+                ctx.textBaseline = "top";
+                ctx.fillText(parameters.text, x1, y1);
+            }
+
             ctx.restore();
         }
         return this;
+    }
+
+    /**
+     * Clear the arrow
+     */
+    function clearArrow(){
+        if (ctx) {
+            ctx.save();
+            ctx.clearRect(0,200,400,400);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * Draw an animated arrow on the onboarding canvas
+     */
+    function drawArrowAnimate () {
+        if(!flag) {
+            // clear the arrow
+            clearArrow();
+            flag = !flag;
+        }
+        else {
+            // draw the arrow
+            var x1 = 70;
+            var y1 = 300;
+            var x2 = 30;
+            var y2 = 300;
+            var parameters = {
+                lineWidth: 1,
+                fill: 'rgba(255,255,0,1)',
+                lineCap: 'round',
+                arrowWidth: 8,
+                strokeStyle: 'rgba(0, 0, 0, 1)',
+                text: "Oops! Pan this way instead"
+            };
+            drawArrow(x1, y1, x2, y2, parameters);
+            flag = !flag;
+        }
     }
 
     function drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
@@ -177,15 +239,17 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var blink_period = 0.5;
 
         function helperBlinkingArrow() {
-            var par;
             blink_timer = (blink_timer + 1) % max_frequency;
+            var param;
             if (blink_timer < blink_period * max_frequency) {
-                par = parameters
+                param = parameters;
+            } else {
+                parameters["fill"] = null;
+                param = parameters;
             }
-            else {
-                par = {"fill": null};
-            }
-            drawArrow(x1, y1, x2, y2, par);
+            console.log(JSON.stringify(param));
+            drawArrow(x1, y1, x2, y2, param);
+
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
             //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
             var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
@@ -193,6 +257,91 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
 
         helperBlinkingArrow();
+    }
+
+    function _drawAnnotations (state) {
+        var imX,
+            imY,
+            lineLength,
+            lineAngle,
+            x1,
+            x2,
+            y1,
+            y2,
+            origPointPov,
+            canvasCoordinate;
+
+        var currentPov = mapService.getPov();
+        var povChange = svl.map.getPovChangeStatus();
+
+        povChange["status"] = true;
+
+        clear();
+
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            imX = state.annotations[i].x;
+            imY = state.annotations[i].y;
+            origPointPov = state.annotations[i].originalPov;
+
+            // 280 is the initial heading of the onoboarding. Refer to OnboardingStates
+            // for the value
+            // This avoids applying the first arrow if the heading is not set correctly
+            // This will avoid incorrection POV calculation
+            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 280 &&
+                jQuery.isEmptyObject(origPointPov)) {
+                povChange["status"] = false;
+                return this;
+            }
+            // Setting the original Pov only once and
+            // mapping an image coordinate to a canvas coordinate
+            if (jQuery.isEmptyObject(origPointPov)){
+
+                if (currentPov.heading < 180) {
+                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                        imX -= svl.svImageWidth;
+                    }
+                } else {
+                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                        imX += svl.svImageWidth;
+                    }
+                }
+
+                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
+                state.annotations[i].originalPov = origPointPov;
+
+            }
+            canvasCoordinate = util.panomarker.getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
+
+            if (state.annotations[i].type == "arrow") {
+                lineLength = state.annotations[i].length;
+                lineAngle = state.annotations[i].angle;
+                x2 = canvasCoordinate.x;
+                y2 = canvasCoordinate.y;
+                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
+                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
+
+                var parameters = {
+                    lineWidth: 1,
+                    fill: 'rgba(255,255,255,1)',
+                    lineCap: 'round',
+                    arrowWidth: 6,
+                    strokeStyle: 'rgba(96, 96, 96, 1)'
+                };
+                //The color of the arrow will by default alternate between white and the fill specified in annotation
+                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
+                    if (state.annotations[i].fill) parameters["fill"] = state.annotations[i].fill;
+                    drawArrow(x1, y1, x2, y2, parameters);
+                }
+                else {
+                    parameters["fill"] = "yellow";
+                    drawBlinkingArrow(x1, y1, x2, y2, parameters);
+                }
+
+            } else if (state.annotations[i].type == "double-click") {
+                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
+            }
+        }
+        povChange["status"] = false;
     }
 
 
@@ -301,6 +450,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
+
+        if (typeof google != "undefined") google.maps.event.removeListener(disablePanningListener);
 
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
@@ -422,6 +573,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             callback,
             annotationListener;
 
+        currentState = state;
+
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         if (blink_function_identifier.length != 0) {
             while (blink_function_identifier.length != 0) {
@@ -456,7 +609,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 });
             }
         }
-
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.constructor == Array) {
@@ -510,6 +662,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             }
         };
 
+        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
 
         // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
@@ -532,18 +685,85 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
+    function _disablePanningHandler() {
+
+        var currentHeading = mapService.getPov().heading;
+
+
+    }
+
+    var prevDistance = 0;
+    var flag = false;
+
     function _visitAdjustHeadingAngle(state, listener) {
         var $target;
         var interval;
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
-        var callback = function () {
-            var pov = mapService.getPov();
-            if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+
+        // get the original pov heading
+        var originalHeading = mapService.getPov().heading;
+        console.log("OrigPOVHeading::" + originalHeading);
+        var tolerance = 20;
+
+        var _checkToHideGrabAndDragAnimation = function (currentHeading) {
+            if ((360 + state.properties.heading - currentHeading) % 360 < state.properties.tolerance) {
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 handAnimation.hideGrabAndDragAnimation(interval);
                 next(state.transition);
             }
+        };
+
+        var callback = function () {
+
+            var currentHeading = mapService.getPov().heading;
+            var distanceFromCurrentHeading = currentHeading - originalHeading;
+            console.log("\n\nCurrent Heading::" + currentHeading);
+            console.log("Distance from OriginalHeading::" + distanceFromCurrentHeading);
+
+            if (distanceFromCurrentHeading <= 0) {
+                console.log("Previous Distance" + prevDistance);
+                if (prevDistance <= 0) {
+                    clearArrow();
+                    isWrong = false;
+
+                    if (myTimer) {
+                        console.error("Clearing Timer");
+                        clearInterval(myTimer);
+                        myTimer = null;
+                    }
+                }
+                // normal drag
+                console.log("Normal Drag");
+                _checkToHideGrabAndDragAnimation(currentHeading)
+            }
+            else {
+                if(prevDistance > 0) {
+                    if(distanceFromCurrentHeading <= prevDistance) {
+                        // normal drag, 0->360
+                        console.log("Normal Drag 0 -> 360");
+                        _checkToHideGrabAndDragAnimation(currentHeading)
+                    }
+                    else {
+                        // Indicates user dragging in the wrong direction
+                        if (currentHeading % 360 >= (tolerance + originalHeading)) {
+                            // Stop panning and show the warning (arrow + labeling)
+
+                            if (!isWrong) {
+                                // set a timer to animate the arrow every 500ms
+                                console.error("Activating timer");
+                                myTimer = setInterval(drawArrowAnimate, 500);
+                                isWrong = true;
+                            }
+                        }
+                    }
+                }
+                else if (prevDistance <= 0) {
+                    _checkToHideGrabAndDragAnimation(currentHeading)
+                }
+            }
+            prevDistance = distanceFromCurrentHeading;
+
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
@@ -839,6 +1059,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     self._visit = _visit;
     self.clear = clear;
     self.drawArrow = drawArrow;
+    self.drawArrowAnimate = drawArrowAnimate;
     self.next = next;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;
