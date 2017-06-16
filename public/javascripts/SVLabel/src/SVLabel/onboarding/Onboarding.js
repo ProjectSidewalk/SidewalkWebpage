@@ -86,6 +86,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         ribbon.unlockDisableMode();
 
+        $("#left-column-jump-button").addClass('disabled');
+
         compass.hideMessage();
 
         status.state = getState("initialize");
@@ -292,6 +294,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         ribbon.unlockDisableModeSwitch();
         ribbon.enableModeSwitch();
+
+        $("#left-column-jump-button").removeClass('disabled');
 
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
@@ -655,7 +659,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         // To handle when user presses ESC, the
         _mouseDownCanvasDrawingHandler = function () {
-            console.log("Calling Onboarding Mouse down");
             ribbon.disableMode(labelType, subcategory);
         };
 

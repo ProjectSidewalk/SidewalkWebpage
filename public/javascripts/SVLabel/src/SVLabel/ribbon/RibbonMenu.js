@@ -89,7 +89,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
      */
     function modeSwitch(mode) {
         var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
-        console.log("Mode: " + mode);
         tracker.push('ModeSwitch_' + labelType);
 
         if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
@@ -325,7 +324,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
      * @param subLabelType
      */
     function disableMode(labelType, subLabelType) {
-        console.log("Disabling Mode" + labelType + " sub: " + subLabelType);
         if (!status.lockDisableMode) {
             var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
                 dropdown;
@@ -392,7 +390,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             if (uiRibbonMenu) {
                 uiRibbonMenu.buttons.css('opacity', 1);
                 uiRibbonMenu.subcategories.hover(function (e) {
-                    $(this).css("background-color", e.type === "mouseenter" ? '#eee' : 'transparent')
+                    $(this).css('background-color', e.type === 'mouseenter' ? '#eee' : 'transparent')
                 });
                 uiRibbonMenu.subcategories.css('opacity', 1);
             }
@@ -419,7 +417,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
             if (subLabelType) {
                 status.disableMode[subLabelType] = false;
-                console.log(subLabelType + " Status" + JSON.stringify(status.disableMode));
                 dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
             }
 
