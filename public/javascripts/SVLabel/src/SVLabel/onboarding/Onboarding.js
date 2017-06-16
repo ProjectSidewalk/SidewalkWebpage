@@ -259,7 +259,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         helperBlinkingArrow();
     }
 
-    function _drawAnnotations (state) {
+    function _drawAnnotations(state) {
         var imX,
             imY,
             lineLength,
@@ -278,6 +278,13 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         clear();
 
+        var blink_frequency_modifier = 0;
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            if (state.annotations[i].type == "arrow") {
+                blink_frequency_modifier = blink_frequency_modifier + 1;
+            }
+        }
+
         for (var i = 0, len = state.annotations.length; i < len; i++) {
             imX = state.annotations[i].x;
             imY = state.annotations[i].y;
@@ -294,7 +301,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             }
             // Setting the original Pov only once and
             // mapping an image coordinate to a canvas coordinate
-            if (jQuery.isEmptyObject(origPointPov)){
+            if (jQuery.isEmptyObject(origPointPov)) {
 
                 if (currentPov.heading < 180) {
                     if (imX > svl.svImageWidth - 3328 && imX > 3328) {
@@ -310,7 +317,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 state.annotations[i].originalPov = origPointPov;
 
             }
-            canvasCoordinate = util.panomarker.getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
+            canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
 
             if (state.annotations[i].type == "arrow") {
                 lineLength = state.annotations[i].length;
@@ -320,6 +327,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
 
+                //The color of the arrow will by default alternate between white and the fill specified in annotation
                 var parameters = {
                     lineWidth: 1,
                     fill: 'rgba(255,255,255,1)',
@@ -327,14 +335,15 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     arrowWidth: 6,
                     strokeStyle: 'rgba(96, 96, 96, 1)'
                 };
-                //The color of the arrow will by default alternate between white and the fill specified in annotation
                 if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
-                    if (state.annotations[i].fill) parameters["fill"] = state.annotations[i].fill;
+                    parameters["fill"] = state.annotations[i].fill;
+                    //drawArrow(x1, y1, x2, y2, {"fill": state.annotations[i].fill});
                     drawArrow(x1, y1, x2, y2, parameters);
                 }
                 else {
-                    parameters["fill"] = "yellow";
-                    drawBlinkingArrow(x1, y1, x2, y2, parameters);
+                    parameters["fill"] = state.annotations[i].fill;
+                    // drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"}, blink_frequency_modifier);
+                    drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
                 }
 
             } else if (state.annotations[i].type == "double-click") {
@@ -478,89 +487,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     function _onboardingStateMessageExists(state) {
         return "message" in state && state.message;
-    }
-
-    function _drawAnnotations(state) {
-        var imX,
-            imY,
-            lineLength,
-            lineAngle,
-            x1,
-            x2,
-            y1,
-            y2,
-            origPointPov,
-            canvasCoordinate;
-
-        var currentPov = mapService.getPov();
-
-        var povChange = svl.map.getPovChangeStatus();
-
-        povChange["status"] = true;
-
-        clear();
-
-        var blink_frequency_modifier = 0;
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
-            if (state.annotations[i].type == "arrow") {
-                blink_frequency_modifier = blink_frequency_modifier + 1;
-            }
-        }
-
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
-            imX = state.annotations[i].x;
-            imY = state.annotations[i].y;
-            origPointPov = state.annotations[i].originalPov;
-
-            // 280 is the initial heading of the onoboarding. Refer to OnboardingStates
-            // for the value
-            // This avoids applying the first arrow if the heading is not set correctly
-            // This will avoid incorrection POV calculation
-            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 280 &&
-                jQuery.isEmptyObject(origPointPov)) {
-                povChange["status"] = false;
-                return this;
-            }
-            // Setting the original Pov only once and
-            // mapping an image coordinate to a canvas coordinate
-            if (jQuery.isEmptyObject(origPointPov)) {
-
-                if (currentPov.heading < 180) {
-                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                        imX -= svl.svImageWidth;
-                    }
-                } else {
-                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                        imX += svl.svImageWidth;
-                    }
-                }
-
-                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-                state.annotations[i].originalPov = origPointPov;
-
-            }
-            canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
-
-            if (state.annotations[i].type == "arrow") {
-                lineLength = state.annotations[i].length;
-                lineAngle = state.annotations[i].angle;
-                x2 = canvasCoordinate.x;
-                y2 = canvasCoordinate.y;
-                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
-                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
-                //The color of the arrow will by default alternate between white and the fill specified in annotation
-                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
-                    drawArrow(x1, y1, x2, y2, {"fill": state.annotations[i].fill});
-                }
-                else {
-                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"}, blink_frequency_modifier);
-                }
-
-            } else if (state.annotations[i].type == "double-click") {
-                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
-            }
-        }
-        povChange["status"] = false;
     }
 
     /**
