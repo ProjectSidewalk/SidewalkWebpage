@@ -61,16 +61,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
-        if (contextMenu.isOpen()) {
-            if (e.keyCode == 16){
-                status.shiftDown = true;
-            }//only permits shift key value change when ctxt menu open
-            //kept separate from switch statement in elseif
-            if (e.keyCode == 187 || e.keyCode == 189){
-                svl.contextMenu.hide();
+        if (!status.focusOnTextField) {
+            if (contextMenu.isOpen()) {
+                if (e.keyCode == 16) {
+                    status.shiftDown = true;
+                }//only permits shift key value change when ctxt menu open
+                //kept separate from switch statement in elseif
+                if (e.keyCode == 187 || e.keyCode == 189) {
+                    svl.contextMenu.hide();
+                }
+                return;
             }
-            return;
-        } else if (!status.focusOnTextField) {
             // lock scrolling in response to key pressing
             switch (e.keyCode) {
                 case 16:  // "Shift"
