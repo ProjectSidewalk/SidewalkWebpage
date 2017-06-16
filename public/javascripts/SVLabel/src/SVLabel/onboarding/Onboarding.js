@@ -739,7 +739,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 zoomControl.lockDisableZoomOut();
             }
             ribbon.enableMode("Walk");
-            $target.off("click", callback);
+            $(document).off(event, callback);
 
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);

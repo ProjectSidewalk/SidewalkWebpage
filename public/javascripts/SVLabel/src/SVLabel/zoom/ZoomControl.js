@@ -91,7 +91,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             status.disableZoomOut = true;
             if (uiZoomControl) {
                 uiZoomControl.zoomOut.addClass('disabled');
-                //uiZoomControl.zoomOut.css('opacity', 0.5);
             }
         }
         return this;
@@ -105,7 +104,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             status.disableZoomIn = false;
             if (uiZoomControl) {
                 uiZoomControl.zoomIn.removeClass('disabled');
-                //css('opacity', 1);
             }
         }
         return this;
@@ -119,7 +117,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             status.disableZoomOut = false;
             if (uiZoomControl) {
                 uiZoomControl.zoomOut.removeClass('disabled');
-            //.css('opacity', 1);
             }
         }
         return this;
