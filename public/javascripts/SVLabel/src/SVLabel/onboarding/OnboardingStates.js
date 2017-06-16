@@ -32,7 +32,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                 var value = this.getAttribute("value");
-                return value == "OK" ? "walk-2" : null;
+                return value == "OK" ? "select-label-type-1" : null;
             }
         },
         "select-label-type-1": {
