@@ -66,6 +66,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 status.shiftDown = true;
             }//only permits shift key value change when ctxt menu open
             //kept separate from switch statement in elseif
+            if (e.keyCode == 187 || e.keyCode == 189){
+                svl.contextMenu.hide();
+            }
             return;
         } else if (!status.focusOnTextField) {
             // lock scrolling in response to key pressing

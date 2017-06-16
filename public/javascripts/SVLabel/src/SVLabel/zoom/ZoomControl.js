@@ -177,7 +177,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function zoomIn () {
         if (!status.disableZoomIn) {
             var povChange = mapService.getPovChangeStatus();
-
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
@@ -194,7 +193,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         // This method is called from outside this class to zoom out from a GSV image.
         if (!status.disableZoomOut) {
             var povChange = mapService.getPovChangeStatus();
-
             // ViewControl_ZoomOut
             var pov = mapService.getPov();
             setZoom(pov.zoom - 1);
@@ -218,7 +216,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!status.disableZoomIn) {
             // Cancel drawing when zooming in or out.
             canvas.cancelDrawing();
-
             var currentPov = mapService.getPov(),
                 currentZoomLevel = currentPov.zoom,
                 width = svl.canvasWidth, height = svl.canvasHeight,
@@ -260,8 +257,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
         zoomLevelIn = parseInt(zoomLevelIn);
-        if (zoomLevelIn < 1) {
-            zoomLevel = 1;
+        if (zoomLevelIn < properties.minZoomLevel) {
+            zoomLevel = properties.minZoomLevel;
         } else if (zoomLevelIn > properties.maxZoomLevel) {
             zoomLevel = properties.maxZoomLevel;
         } else {
