@@ -38,6 +38,9 @@
     width: 100%;
 }
 
+.callout-message {
+
+}
 .white-background {
     background: rgba(255, 255, 255, 1);
     -webkit-transition:background 0.5s;
@@ -54,6 +57,16 @@
     -ms-transition:background 0s;
     -o-transition:background 0s;
     transition:background 0s;
+}
+
+@-webkit-keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity:1 ;}
 }
 
 #onboarding-example-image-1, #onboarding-example-image-2 {

@@ -42,9 +42,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. ' +
-                'Click the flashing <span class="bold">"Curb Ramp"</span> button above.',
+                'Click the flashing <span class="bold">"Curb Ramp" button</span> above.',
                 "position": "top-right",
-                "parameters": null
+                "parameters": {
+                    "after": true,
+                    "top": 360,
+                    "left": 500
+                }
             },
             "panoId": panoId,
             "annotations": [
@@ -472,10 +476,11 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 20
             },
             "message": {
-                "message": 'Look to the left by grabbing and dragging the Street View image. ' +
-                '<span class="bold">Keep going</span>.',
+                "message": 'Keep going',
                 "position": "top-right",
-                "parameters": null
+                "parameters": {
+                    "width": 100
+                }
             },
             "panoId": panoId,
             "annotations": null,
@@ -997,8 +1002,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp"
             },
             "message": {
-                "message": 'Good! Now, let us label. ' +
-                '<span class="bold">Click the "Curb Ramp" button</span> on the menu to label it.',
+                "message": 'Good! Now <span class="bold">click the "Curb Ramp" button</span> on the menu to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1134,7 +1138,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId
             },
             "message": {
-                "message": 'Great! To take a step, <span class="bold">double click on the circle below</span>. ',
+                "message": 'Great! To take a step, <span class="bold">double click on the street</span> in the ' +
+                'direction you want to move. In this case, double click in the circle below.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1153,7 +1158,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
-                mapService.setPov({heading: 330, pitch: 0, zoom: 1})
+                mapService.setPov({heading: 330, pitch: 0, zoom: 1});
                 return "walk-2";
             }
         },
@@ -1210,16 +1215,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "blinks": ["google-maps", "compass"]
             },
             "message": {
-                "message": 'From here on, we\'ll guide you through your missions with the navigation message ' +
-                '(<img src="' + svl.rootDirectory + "img/onboarding/Compass.png" +
-                '" width="80px" alt="Navigation message: walk straight">) ' +
-                'and the red line on the map.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying ' +
-                'follow the red line on the Google Maps"> ' +
-                'See flashing yellow highlights.',
+                "message": 'From here on, we\'ll guide you through your missions with the <span class="bold">navigation' +
+                ' message</span> and the <span class="bold">red line</span> on the map. You can also track your labels ' +
+                'using this map.',
                 "position": "top-right",
-                "parameters": null
+                "parameters": {
+                    "top": 360,
+                    "left": 500
+                    //"padding": "100px 10px 100px 10px",
+                }
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -1238,8 +1242,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Your <span class="bold">progress will be tracked and shown</span> ' +
-                'on the right side of the interface. ' +
-                'Your overall goal is to label as many accessibility problems as you find—such as missing curb ramps.',
+                'on the right side of the interface. ',
                 "position": "top-right",
                 "parameters": null
             },

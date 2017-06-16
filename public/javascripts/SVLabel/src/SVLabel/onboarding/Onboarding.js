@@ -423,7 +423,21 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             if ("background" in parameters && parameters.background) {
                 uiOnboarding.background.css("visibility", "visible");
             }
+
+            if ("after" in parameters) {
+                uiOnboarding.messageHolder.css({
+                    content: "",
+                    position: 'absolute',
+                    top: '100%',
+                    left: '50%',
+                    'margin-left': -5,
+                    'border-width': 5,
+                    'border-style': 'solid',
+                    'border-color': '#555 transparent transparent transparent'
+                });
+            }
         }
+        uiOnboarding.messageHolder.addClass("show-message");
 
         uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
