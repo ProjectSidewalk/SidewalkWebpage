@@ -1099,12 +1099,27 @@ kbd {
     font-weight: bold;
     color: #fff;
 }
-#mobile-background{
-    background-image: url(/assets/assets/mobile-background.png);
+#mobile-content{
+    background-image: url(/assets/assets/lowered-monument.png);
     background-position: center center;
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-size: 100% 100%;
     height: 100vh;
     width: 100vw;
+    text-align: center;
+    padding: 2vh 10vw;
+    font-family: raleway, sans-serif;
+    color: #777;
+}
+#mobile-content img{
+    width: 100%;
+    margin-bottom: 7vh;
+}
+#mobile-thanks{
+    font-size: 77px;
+}
+#mobile-message{
+    font-size: 49px;
+    margin-top: 2vh;
 }

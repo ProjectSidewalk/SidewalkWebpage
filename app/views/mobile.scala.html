@@ -2,7 +2,27 @@
 @(title: String, user: Option[User] = None)
 
 @main(title) {
-    <div id="mobile-background">
-
+    <script>
+        $(document).ready(function() {
+            $('body').css('overflow', 'hidden');
+            $('.filler').css('display', 'none');
+            $('#footer-container').css('display', 'none');
+            $('#info-footer').css('display', 'none');
+        });
+    </script>
+    <div id="mobile-content">
+        <img src="/assets/assets/logo-high-res.png"/>
+        <br />
+        <div>
+            <p id="mobile-thanks">
+                Thanks for visiting!
+            </p>
+            <br /><br />
+            <p id="mobile-message">
+                Unfortunately, we do not currently support mobile devices.
+                Please visit us on your laptop or desktop.
+            </p>
+        </div>
+        <br />
     </div>
 }
