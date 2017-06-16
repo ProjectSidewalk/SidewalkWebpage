@@ -32,7 +32,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                 var value = this.getAttribute("value");
-                return value == "OK" ? "select-label-type-1" : null;
+                return value == "OK" ? "walk-2" : null;
             }
         },
         "select-label-type-1": {
@@ -983,8 +983,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'There is a crosswalk but no curb ramps beneath the flashing yellow arrows. ' +
                 'You would label them with a missing curb ramp label ' +
-                '(<img src="' + svl.rootDirectory + "/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png" +
-                '" alt="Missing Curb Ramp Label">). However, let\'s finish learning about ' +
+                '(<img src="' + svl.rootDirectory + "img/icons/Sidewalk/Icon_NoCurbRamp.svg" +
+                '" style="width: 35%; height:auto" alt="Missing Curb Ramp Label">). However, let\'s finish learning about ' +
                 'the <span class="bold">rest of the interface</span>.',
                 "position": "top-right",
                 "parameters": null
