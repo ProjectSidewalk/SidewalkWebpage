@@ -344,6 +344,77 @@ function Admin (_, $, c3, turf) {
             self.mapLoaded = true;
         }
       else if (e.target.id == "analytics" && self.graphsLoaded == false) {
+
+            $.getJSON("/adminapi/completionRateByDate", function (data) {
+                var chart = {
+                    "height": 800,
+                    "data": {"values": data[0], "format": {"type": "json"}},
+                    "vconcat": [
+                        {
+                            "width": 800,
+                            "height": 150,
+                            "mark": "area",
+                            "selection": {
+                                "brush": {
+                                    "type": "interval", "encodings": ["x"]
+                                }
+                            },
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "axis": {"title": "Date", "labelAngle": 0}
+                                },
+                                "y": {
+                                    "field": "completion",
+                                    "type": "quantitative", "scale": {
+                                        "domain": [0,100]
+                                    },
+                                    "axis": {
+                                        "title": "DC Coverage (%)"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "width": 800,
+                            "height": 400,
+                            "mark": "area",
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "scale": {
+                                        "domain": {
+                                            "selection": "brush", "encoding": "x"
+                                        }
+                                    },
+                                    "axis": {
+                                        "title": "", "labelAngle": 0
+                                    }
+                                },
+                                "y": {
+                                    "field": "completion","type": "quantitative", "scale": {
+                                        "domain": [0,100]
+                                    },
+                                    "axis": {
+                                        "title": "DC Coverage (%)"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                var opt = {
+                    "mode": "vega-lite"
+                };
+                vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
+            });
             // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
                 function cmp (a, b) {
@@ -478,16 +549,38 @@ function Admin (_, $, c3, turf) {
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
 
                 var coverageRateChart = {
-                    "width": 500,
-                    "height": 500,
-                    "data": {"values": data, "format": {"type": "json"}},
-                    "transform": [{"calculate": "100.0 * datum.completed_distance_m / datum.total_distance_m",
-                                   "as": "rate"}],
+                    "width": 600,
+                    "height": 800,
+                    "data": {
+                        "values": data, "format": {
+                            "type": "json"
+                        }
+                    },
+                    "transform": [
+                        {
+                            "calculate": "100.0 * datum.completed_distance_m / datum.total_distance_m", "as": "rate"
+                        }
+                    ],
                     "mark": "bar",
                     "encoding": {
-                        "x": {"field": "rate", "type": "quantitative",
-                              "axis": {"title": "Neighborhood Completion Percentage"}},
-                        "y": {"field": "name", "type": "ordinal", "axis": {"title": "Neighborhood Name"}}
+                        "x": {
+                            "field": "rate", "type": "quantitative", "axis": {
+                                "title": "Neighborhood Completion (%)"
+                            }
+                        },
+                        "y": {
+                            "field": "name", "type": "ordinal", "axis": {
+                                "title": "Neighborhood"
+                            }
+                        }
+                    },
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16, "labelFontSize": 8
+                        },
+                        "bar": {
+                            "binSpacing": 2
+                        }
                     }
                 };
                 var opt = {
@@ -498,29 +591,61 @@ function Admin (_, $, c3, turf) {
                 var coverageRateHist = {
                     "width": 500,
                     "height": 500,
-                    "data": {"values": data, "format": {"type": "json"}},
-                    "transform": [{"calculate": "min(99.9999, 100.0 * datum.completed_distance_m / datum.total_distance_m)",
-                                   "as": "rate"}],
+                    "data": {
+                        "values": data, "format": {
+                            "type": "json"
+                        }
+                    },
+                    "transform": [
+                        { // taking min fixes rounding problems
+                            "calculate": "min(99.9999, 100.0 * datum.completed_distance_m / datum.total_distance_m)",
+                            "as": "rate"
+                        }
+                    ],
                     "layer": [
                         {
                             "mark": "bar",
                             "encoding": {
-                                "x": {"bin": {"maxbins": 10}, "field": "rate", "type": "quantitative",
-                                    "axis": {"title": "Neighborhood Completion Percentage"}},
-                                "y": {"aggregate": "count", "field": "*", "type": "quantitative",
-                                    "axis": {"title": "Counts"}}
+                                "x": {
+                                    "bin": {
+                                        "maxbins": 10
+                                    },
+                                    "field": "rate", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Neighborhood Completion Percentage"
+                                    }
+                                },
+                                "y": {
+                                    "aggregate": "count", "field": "*", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
                             }
                         },
                         { // creates red line marking mean completion rate
                             "mark": "rule",
                             "encoding": {
-                                "x": {"aggregate": "mean", "field": "rate", "type": "quantitative"},
-                                "color": {"value": "red",
-                                    "legend": {"title": "Summary Stats"}},
-                                "size": {"value": 3}
+                                "x": {
+                                    "aggregate": "mean", "field": "rate", "type": "quantitative"
+                                },
+                                "color": {
+                                    "value": "red",
+                                    "legend": {
+                                        "title": "Summary Stats"
+                                    }
+                                },
+                                "size": {
+                                    "value": 3
+                                }
                             }
                         }
-                    ]
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
                 };
                 vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
 

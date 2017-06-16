@@ -130,6 +130,26 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+    * Returns DC coverage percentage by Date
+    *
+    * @return
+    */
+  def getCompletionRateByDate = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val streets: Seq[(String, Float)] = StreetEdgeTable.streetDistanceCompletionRateByDate(1)
+      val json = Json.arr(streets.map(x => {
+        Json.obj(
+          "date" -> x._1, "completion" -> x._2
+        )
+      }))
+
+      Future.successful(Ok(json))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
