@@ -38,7 +38,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     var canvasWidth = 720;
     var canvasHeight = 480;
     var blink_timer = 0;
-    var blink_function_identifier=[];
+    var blink_function_identifier = [];
     var properties = {};
     var status = {
         state: 0,
@@ -47,6 +47,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
+    var disablePanningListener;
+    var currentState;
 
     this._onboardingLabels = [];
 
@@ -89,6 +91,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         $("#left-column-jump-button").addClass('disabled');
 
         compass.hideMessage();
+
+        disablePanningListener = google.maps.event.addListener(svl.panorama, "pov_changed", _disablePanningHandler);
 
         status.state = getState("initialize");
         _visit(status.state);
@@ -145,7 +149,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             if (!parameters.fill) {
                 fill = 'rgba(255,255,255,1)';
             }
-            
+
             dx = x2 - x1;
             dy = y2 - y1;
             theta = Math.atan2(dy, dx);
@@ -172,6 +176,15 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             ctx.fill();
             ctx.stroke();
             ctx.closePath();
+
+            // Add text
+            if("text" in parameters && parameters.text){
+                console.log("Printing text" + parameters.text);
+                ctx.fillStyle = "black"; // font color to write the text with
+                ctx.textBaseline = "top";
+                ctx.fillText(parameters.text, x1, y1);
+            }
+
             ctx.restore();
         }
         return this;
@@ -208,7 +221,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 fill: 'rgba(255,255,0,1)',
                 lineCap: 'round',
                 arrowWidth: 8,
-                strokeStyle: 'rgba(0, 0, 0, 1)'
+                strokeStyle: 'rgba(0, 0, 0, 1)',
+                text: "Oops! Pan this way instead"
             };
             drawArrow(x1, y1, x2, y2, parameters);
             flag = !flag;
@@ -430,6 +444,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
 
+        if (typeof google != "undefined") google.maps.event.removeListener(disablePanningListener);
+
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
             onboardingMission.setProperty("isCompleted", true);
@@ -466,6 +482,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             len,
             callback,
             annotationListener;
+
+        currentState = state;
 
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         if(blink_function_identifier.length!=0){
@@ -540,7 +558,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             }
         };
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
 
         // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
@@ -562,6 +579,13 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             previousClick = currentClick;
         };
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
+    }
+
+    function _disablePanningHandler() {
+
+        var currentHeading = mapService.getPov().heading;
+
+
     }
 
     var prevDistance = 0;
