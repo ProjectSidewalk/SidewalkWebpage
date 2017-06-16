@@ -46,6 +46,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     };
     var states = onboardingStates.get();
 
+    var _mouseDownCanvasDrawingHandler;
+
     this._onboardingLabels = [];
 
     this._removeOnboardingLabels = function () {
@@ -77,6 +79,14 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         zoomControl.unlockDisableZoomOut();
         zoomControl.disableZoomOut();
         zoomControl.lockDisableZoomOut();
+
+        ribbon.unlockDisableModeSwitch();
+        ribbon.disableModeSwitch();
+        ribbon.lockDisableModeSwitch();
+
+        ribbon.unlockDisableMode();
+
+        $("#left-column-jump-button").addClass('disabled');
 
         compass.hideMessage();
 
@@ -268,7 +278,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         form.submit(data, task);
         uiOnboarding.background.css("visibility", "hidden");
 
-        //Reset the label counts to zero after the onboarding
+        //Reset the label counts to zero after onboarding
         svl.labelCounter.reset();
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
@@ -281,6 +291,11 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         zoomControl.unlockDisableZoomOut();
         zoomControl.enableZoomOut();
+
+        ribbon.unlockDisableModeSwitch();
+        ribbon.enableModeSwitch();
+
+        $("#left-column-jump-button").removeClass('disabled');
 
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
@@ -653,6 +668,7 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
         var event;
 
+        ribbon.enableMode(labelType, subcategory);
         ribbon.startBlinking(labelType, subcategory);
 
         if (subcategory) {
@@ -661,7 +677,17 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
             event = labelType
         }
 
+        // To handle when user presses ESC, the
+        _mouseDownCanvasDrawingHandler = function () {
+            ribbon.disableMode(labelType, subcategory);
+        };
+
         var callback = function () {
+            ribbon.enableMode("Walk");
+
+            // Disable only when the user places the label
+            uiCanvas.drawingLayer.on("mousedown", _mouseDownCanvasDrawingHandler);
+
             ribbon.stopBlinking();
             $(document).off('ModeSwitch_' + event, callback);
             if (listener) google.maps.event.removeListener(listener);
@@ -712,7 +738,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                 zoomControl.disableZoomOut();
                 zoomControl.lockDisableZoomOut();
             }
-            $(document).off(event, callback);
+            ribbon.enableMode("Walk");
+            $target.off("click", callback);
 
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
@@ -720,6 +747,19 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
         $(document).on(event, callback);
 
+    }
+
+    function _incorrectLabelApplication(state) {
+
+        hideMessage();
+
+        // TODO: for future
+        // Show animated arrow pointing down at the location to emphasise and complement the message
+
+        // Show error message
+        state.message.message = 'Oops! You labeled too far. <span class="bold">Click beneath ' +
+            'the flashing yellow arrow</span> to label it.';
+        showMessage(state.message);
     }
 
     /**
@@ -744,9 +784,16 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
             if (distance < tolerance * tolerance) {
+                ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
+                ribbon.enableMode("Walk");
+                uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
                 $target.off("click", callback);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
+            } else {
+                // Incorrect label application
+                _incorrectLabelApplication(state);
+                ribbon.enableMode(state.properties.labelType, state.properties.subcategory);
             }
         };
         $target.on("click", callback);
