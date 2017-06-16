@@ -237,17 +237,17 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     function drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
         var max_frequency = 60 * blink_frequency_modifier;
         var blink_period = 0.5;
+        var originalFillColor = parameters.fill;
 
         function helperBlinkingArrow() {
             blink_timer = (blink_timer + 1) % max_frequency;
             var param;
             if (blink_timer < blink_period * max_frequency) {
-                param = parameters;
+                parameters["fill"] = originalFillColor;
             } else {
-                parameters["fill"] = null;
-                param = parameters;
+                parameters["fill"] = "white";
             }
-            console.log(JSON.stringify(param));
+            param = parameters;
             drawArrow(x1, y1, x2, y2, param);
 
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
