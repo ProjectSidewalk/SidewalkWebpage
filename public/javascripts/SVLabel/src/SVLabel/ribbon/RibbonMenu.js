@@ -312,14 +312,17 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             };
             if (uiRibbonMenu) {
                 uiRibbonMenu.buttons.css('opacity', 0.5);
+                uiRibbonMenu.buttons.css('cursor', 'default');
+
                 uiRibbonMenu.subcategories.css('opacity', 0.5);
+                uiRibbonMenu.subcategories.css('cursor', 'default');
             }
         }
         return this;
     }
 
     /**
-     * This method enables a specific label type
+     * This method disables a specific label type
      * @param labelType
      * @param subLabelType
      */
@@ -342,8 +345,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
             if (button) {
                 $(button).css('opacity', 0.5);
+                $(button).css('cursor', 'default');
                 if (dropdown) {
                     $(dropdown).css('opacity', 0.5);
+                    $(dropdown).css('cursor', 'default');
                 }
             }
         }
@@ -389,10 +394,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             };
             if (uiRibbonMenu) {
                 uiRibbonMenu.buttons.css('opacity', 1);
+                uiRibbonMenu.buttons.css('cursor', 'pointer');
+
+                uiRibbonMenu.subcategories.css('opacity', 1);
+                uiRibbonMenu.subcategories.css('cursor', 'pointer');
                 uiRibbonMenu.subcategories.hover(function (e) {
                     $(this).css('background-color', e.type === 'mouseenter' ? '#eee' : 'transparent')
                 });
-                uiRibbonMenu.subcategories.css('opacity', 1);
+
             }
         }
         return this;
@@ -422,8 +431,11 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
             if (button) {
                 $(button).css('opacity', 1);
+                $(button).css('cursor', 'pointer');
+
                 if (dropdown) {
                     $(dropdown).css('opacity', 1);
+                    $(dropdown).css('cursor', 'pointer');
                 }
             }
         }
