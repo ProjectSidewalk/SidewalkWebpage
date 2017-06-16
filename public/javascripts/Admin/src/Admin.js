@@ -477,74 +477,34 @@ function Admin (_, $, c3, turf) {
                     }
                 });
             });
-            $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-                var i,
-                    len = data.length;
-
-                // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-                var missions = {};
-                var printedMissionName;
-                for (i = 0; i < len; i++) {
-                    // Set the printed mission name
-                    if (data[i].label == "initial-mission") {
-                        printedMissionName = "Initial Mission (1000 ft)";
-                    } else if (data[i].label == "distance-mission") {
-                        if (data[i].level <= 2) {
-                            printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                        } else {
-                            printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
+            $.getJSON('/adminapi/labels/all', function (data) {
+                var chart = {
+                    "data": {
+                        "values": data.features, "format": {
+                            "type": "json"
                         }
-                    } else {
-                        printedMissionName = "Onboarding";
-                    }
-
-                    // Create a counter for the printedMissionName if it does not exist yet.
-                    if (!(printedMissionName in missions)) {
-                        missions[printedMissionName] = {
-                            label: data[i].label,
-                            level: data[i].level,
-                            printedMissionName: printedMissionName,
-                            count: 0
-                        };
-                    }
-                    missions[printedMissionName].count += 1;
-                }
-                var arrayOfMissions = Object.keys(missions).map(function (key) { return missions[key]; });
-                arrayOfMissions.sort(function (a, b) {
-                    if (a.count < b.count) { return 1; }
-                    else if (a.count > b.count) { return -1; }
-                    else { return 0; }
-                });
-
-                var missionCountArray = ["Mission Counts"];
-                var missionNames = [];
-                for (i = 0; i < arrayOfMissions.length; i++) {
-                    missionCountArray.push(arrayOfMissions[i].count);
-                    missionNames.push(arrayOfMissions[i].printedMissionName);
-                }
-                var chart = c3.generate({
-                    bindto: '#completed-mission-histogram',
-                    data: {
-                        columns: [
-                            missionCountArray
-                        ],
-                        type: 'bar'
                     },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: missionNames
+                    "transform": [
+                        {"calculate": "datum.properties.severity", "as": "severity"},
+                        {"calculate": "datum.properties.label_type", "as": "label_type"}
+                    ],
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "field": "severity", "type": "ordinal"
                         },
-                        y: {
-                            label: "# Users Completed the Mission",
-                            min: 0,
-                            padding: { top: 50, bottom: 10 }
+                        "y": {
+                            "aggregate": "count", "type": "quantitative"
+                        },
+                        "row": {
+                            "field": "label_type", "type": "nominal"
                         }
-                    },
-                    legend: {
-                        show: false
                     }
-                });
+                };
+                var opt = {
+                    "mode": "vega-lite"
+                };
+                vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
 
