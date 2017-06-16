@@ -124,14 +124,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     var myTimer;
     var isWrong = false;
 
-    var labelArrowParam = {
-        lineWidth: 1,
-        fill: 'rgba(255,255,255,1)',
-        lineCap: 'round',
-        arrowWidth: 6,
-        strokeStyle: 'rgba(96, 96, 96, 1)'
-    };
-
     /**
      * Draw an arrow on the onboarding canvas
      * @param x1 {number} Starting x coordinate
@@ -143,11 +135,11 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
      */
     function drawArrow (x1, y1, x2, y2, parameters) {
         if (ctx) {
-            var lineWidth = labelArrowParam.lineWidth,
-                fill = labelArrowParam.fill,
-                lineCap = labelArrowParam.lineCap,
-                arrowWidth = labelArrowParam.arrowWidth,
-                strokeStyle  = labelArrowParam.strokeStyle,
+            var lineWidth = parameters.lineWidth,
+                fill = 'rgba(255,255,255,1)',
+                lineCap = parameters.lineCap,
+                arrowWidth = parameters.arrowWidth,
+                strokeStyle  = parameters.strokeStyle,
                 dx, dy, theta;
 
             if ("fill" in parameters && parameters.fill) fill = parameters.fill;
@@ -205,49 +197,18 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
         else {
             // draw the arrow
-            if (ctx) {
-                var x1 = 70;
-                var y1 = 300;
-                var x2 = 30;
-                var y2 = 300;
-                var lineWidth = 1,
-                    fill = 'rgba(255,255,0,1)',
-                    lineCap = 'round',
-                    arrowWidth = 8,
-                    strokeStyle  = 'rgba(0, 0, 0, 1)',
-                    dx, dy, theta;
-
-                dx = x2 - x1;
-                dy = y2 - y1;
-                theta = Math.atan2(dy, dx);
-
-                ctx.save();
-                ctx.fillStyle = fill;
-                ctx.strokeStyle = strokeStyle;
-                ctx.lineWidth = lineWidth;
-                ctx.lineCap = lineCap;
-
-                ctx.translate(x1, y1);
-                ctx.beginPath();
-                ctx.moveTo(arrowWidth * Math.sin(theta), - arrowWidth * Math.cos(theta));
-                ctx.lineTo(dx + arrowWidth * Math.sin(theta), dy - arrowWidth * Math.cos(theta));
-
-                // Draw an arrow head
-                ctx.lineTo(dx + 3 * arrowWidth * Math.sin(theta), dy - 3 * arrowWidth * Math.cos(theta));
-                ctx.lineTo(dx + 3 * arrowWidth * Math.cos(theta), dy + 3 * arrowWidth * Math.sin(theta));
-                ctx.lineTo(dx - 3 * arrowWidth * Math.sin(theta), dy + 3 * arrowWidth * Math.cos(theta));
-
-                ctx.lineTo(dx - arrowWidth * Math.sin(theta), dy + arrowWidth * Math.cos(theta));
-                ctx.lineTo(- arrowWidth * Math.sin(theta), + arrowWidth * Math.cos(theta));
-
-                ctx.moveTo(1 , -7);
-                ctx.lineTo(1 , 7);
-
-                ctx.fill();
-                ctx.stroke();
-                ctx.closePath();
-                ctx.restore();
-            }
+            var x1 = 70;
+            var y1 = 300;
+            var x2 = 30;
+            var y2 = 300;
+            var parameters = {
+                lineWidth: 1,
+                fill: 'rgba(255,255,0,1)',
+                lineCap: 'round',
+                arrowWidth: 8,
+                strokeStyle: 'rgba(0, 0, 0, 1)'
+            };
+            drawArrow(x1, y1, x2, y2, parameters);
             flag = !flag;
         }
     }
@@ -257,15 +218,17 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var blink_period = 0.5;
 
         function helperBlinkingArrow() {
-            var param;
             blink_timer = (blink_timer + 1) % max_frequency;
+            var param;
             if (blink_timer < blink_period * max_frequency) {
-                param = parameters
+                param = parameters;
+            } else {
+                parameters["fill"] = null;
+                param = parameters;
             }
-            else {
-                param = {"fill": null};
-            }
+            console.log(JSON.stringify(param));
             drawArrow(x1, y1, x2, y2, param);
+
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
             //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
             var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
@@ -273,6 +236,91 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
 
         helperBlinkingArrow();
+    }
+
+    function _drawAnnotations (state) {
+        var imX,
+            imY,
+            lineLength,
+            lineAngle,
+            x1,
+            x2,
+            y1,
+            y2,
+            origPointPov,
+            canvasCoordinate;
+
+        var currentPov = mapService.getPov();
+        var povChange = svl.map.getPovChangeStatus();
+
+        povChange["status"] = true;
+
+        clear();
+
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            imX = state.annotations[i].x;
+            imY = state.annotations[i].y;
+            origPointPov = state.annotations[i].originalPov;
+
+            // 280 is the initial heading of the onoboarding. Refer to OnboardingStates
+            // for the value
+            // This avoids applying the first arrow if the heading is not set correctly
+            // This will avoid incorrection POV calculation
+            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 280 &&
+                jQuery.isEmptyObject(origPointPov)) {
+                povChange["status"] = false;
+                return this;
+            }
+            // Setting the original Pov only once and
+            // mapping an image coordinate to a canvas coordinate
+            if (jQuery.isEmptyObject(origPointPov)){
+
+                if (currentPov.heading < 180) {
+                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                        imX -= svl.svImageWidth;
+                    }
+                } else {
+                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                        imX += svl.svImageWidth;
+                    }
+                }
+
+                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
+                state.annotations[i].originalPov = origPointPov;
+
+            }
+            canvasCoordinate = util.panomarker.getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
+
+            if (state.annotations[i].type == "arrow") {
+                lineLength = state.annotations[i].length;
+                lineAngle = state.annotations[i].angle;
+                x2 = canvasCoordinate.x;
+                y2 = canvasCoordinate.y;
+                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
+                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
+
+                var parameters = {
+                    lineWidth: 1,
+                    fill: 'rgba(255,255,255,1)',
+                    lineCap: 'round',
+                    arrowWidth: 6,
+                    strokeStyle: 'rgba(96, 96, 96, 1)'
+                };
+                //The color of the arrow will by default alternate between white and the fill specified in annotation
+                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
+                    if (state.annotations[i].fill) parameters["fill"] = state.annotations[i].fill;
+                    drawArrow(x1, y1, x2, y2, parameters);
+                }
+                else {
+                    parameters["fill"] = "yellow";
+                    drawBlinkingArrow(x1, y1, x2, y2, parameters);
+                }
+
+            } else if (state.annotations[i].type == "double-click") {
+                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
+            }
+        }
+        povChange["status"] = false;
     }
 
 
@@ -405,81 +453,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
 
     function _onboardingStateMessageExists (state) {
         return "message" in state && state.message;
-    }
-
-    function _drawAnnotations (state) {
-        var imX,
-            imY,
-            lineLength,
-            lineAngle,
-            x1,
-            x2,
-            y1,
-            y2,
-            origPointPov,
-            canvasCoordinate;
-
-        var currentPov = mapService.getPov();
-        var povChange = svl.map.getPovChangeStatus();
-
-        povChange["status"] = true;
-
-        clear();
-
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
-            imX = state.annotations[i].x;
-            imY = state.annotations[i].y;
-            origPointPov = state.annotations[i].originalPov;
-
-            // 280 is the initial heading of the onoboarding. Refer to OnboardingStates
-            // for the value
-            // This avoids applying the first arrow if the heading is not set correctly
-            // This will avoid incorrection POV calculation
-            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 280 &&
-                jQuery.isEmptyObject(origPointPov)) {
-                povChange["status"] = false;
-                return this;
-            }
-            // Setting the original Pov only once and
-            // mapping an image coordinate to a canvas coordinate
-            if (jQuery.isEmptyObject(origPointPov)){
-
-                if (currentPov.heading < 180) {
-                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                        imX -= svl.svImageWidth;
-                    }
-                } else {
-                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                        imX += svl.svImageWidth;
-                    }
-                }
-
-                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-                state.annotations[i].originalPov = origPointPov;
-
-            }
-            canvasCoordinate = util.panomarker.getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
-
-            if (state.annotations[i].type == "arrow") {
-                lineLength = state.annotations[i].length;
-                lineAngle = state.annotations[i].angle;
-                x2 = canvasCoordinate.x;
-                y2 = canvasCoordinate.y;
-                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
-                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
-                //The color of the arrow will by default alternate between white and the fill specified in annotation
-                if(state.annotations[i].fill==null || state.annotations[i].fill=="white"){
-                    drawArrow(x1,y1,x2,y2,{"fill":state.annotations[i].fill});
-                }
-                else{
-                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"});
-                }
-
-            } else if (state.annotations[i].type == "double-click") {
-                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
-            }
-        }
-        povChange["status"] = false;
     }
 
     /**
