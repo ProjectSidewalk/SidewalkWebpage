@@ -136,14 +136,16 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     function drawArrow (x1, y1, x2, y2, parameters) {
         if (ctx) {
             var lineWidth = parameters.lineWidth,
-                fill = 'rgba(255,255,255,1)',
+                fill = parameters.fill,
                 lineCap = parameters.lineCap,
                 arrowWidth = parameters.arrowWidth,
                 strokeStyle  = parameters.strokeStyle,
                 dx, dy, theta;
 
-            if ("fill" in parameters && parameters.fill) fill = parameters.fill;
-
+            if (!parameters.fill) {
+                fill = 'rgba(255,255,255,1)';
+            }
+            
             dx = x2 - x1;
             dy = y2 - y1;
             theta = Math.atan2(dy, dx);
