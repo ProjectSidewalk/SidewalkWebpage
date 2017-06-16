@@ -1,10 +1,7 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
     var numStates = 35;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
-
     var afterWalkPanoId1 = "2fnXWF9rxQEphhHWKMQ4dQ";
-    var afterWalkPanoId2 = "bdmGHJkiSgmO7_80SnbzXw";
-
     this.states = {
         "initialize": {
             "properties": {
@@ -820,7 +817,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp"
             },
             "message": {
-                "message": 'Good! Now, let us label.c ' +
+                "message": 'Good! Now, let us label. ' +
                 '<span class="bold">Click the "Curb Ramp" button</span> on the menu to label it.',
                 "position": "top-right",
                 "parameters": null
@@ -829,8 +826,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 725,
-                    "y": -735,
+                    // "x": 725,
+                    // "y": -735,
+                    "x": 730,
+                    "y": -690,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -850,8 +849,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 850,
-                "imageY": -735,
+                // "imageX": 850,
+                // "imageY": -735,
+                "imageX": 700,
+                "imageY": -690,
                 "tolerance": 250
             },
             "message": {
@@ -863,8 +864,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 725,
-                    "y": -735,
+                    // "x": 725,
+                    // "y": -735,
+                    "x": 730,
+                    "y": -690,
                     "length": 50,
                     "angle": 0,
                     "text": null,
