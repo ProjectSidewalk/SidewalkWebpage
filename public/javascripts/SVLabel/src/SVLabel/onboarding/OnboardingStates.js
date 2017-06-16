@@ -983,8 +983,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'There is a crosswalk but no curb ramps beneath the flashing yellow arrows. ' +
                 'You would label them with a missing curb ramp label ' +
-                '(<img src="' + svl.rootDirectory + "img/icons/Sidewalk/Icon_NoCurbRamp.svg" +
-                '" style="width: 35%; height:auto" alt="Missing Curb Ramp Label">). However, let\'s finish learning about ' +
+                '(<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
+                //"img/icons/Sidewalk/Icon_NoCurbRamp.svg" +
+                '" style="width: 10%; height:auto" alt="Missing Curb Ramp Label">). However, let\'s finish learning about ' +
                 'the <span class="bold">rest of the interface</span>.',
                 "position": "top-right",
                 "parameters": null
