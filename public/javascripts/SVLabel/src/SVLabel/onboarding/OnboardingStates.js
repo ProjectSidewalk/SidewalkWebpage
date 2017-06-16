@@ -972,7 +972,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
-                mapService.setPov({heading: 330, pitch: 0, zoom: 1}, 1000);
+                mapService.setPov({heading: 330, pitch: 0, zoom: 1})
                 return "walk-2";
             }
         },

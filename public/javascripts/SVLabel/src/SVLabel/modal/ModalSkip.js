@@ -94,7 +94,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this.blink = function () {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
-            uiLeftColumn.jump.toggleClass("highlight-50");
+            uiLeftColumn.jump.toggleClass("highlight-100");
         }, 500);
     };
 
