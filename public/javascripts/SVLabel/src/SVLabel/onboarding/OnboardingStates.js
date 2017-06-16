@@ -899,7 +899,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "walk-1" : "redo-rate-attribute-7";
+                return severity == 1 ? "adjust-heading-angle-5" : "redo-rate-attribute-7";
             }
         },
         "redo-rate-attribute-7": {
@@ -928,7 +928,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-5": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 348,
+                "heading": 346,
                 "tolerance": 20
             },
             "message": {
@@ -944,7 +944,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
-                //mapService.setPov({heading: 34, pitch: -13, zoom: 1}, 1000);
                 return "walk-1";
             }
         },
@@ -954,17 +953,26 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId
             },
             "message": {
-                "message": 'Great! To take a step, <span class="bold">double click on the circle</span>. ',
+                "message": 'Great! To take a step, <span class="bold">double click on the circle below</span>. ',
                 "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
-            "annotations": null,
+            "annotations": [
+                {
+                    "type": "double-click",
+                    "x": -600,
+                    "y": -403,
+                    "width": 100,
+                    "originalPov": {}
+                }
+            ],
             "transition": function () {
                 var completedRate = 28 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
+                mapService.setPov({heading: 330, pitch: 0, zoom: 1}, 1000);
                 return "walk-2";
             }
         },
@@ -973,8 +981,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Instruction"
             },
             "message": {
-                "message": 'There is a crosswalk but no curb ramps beneath the flashing yellow arrows.' +
-                'You would ideally label with a <icon picture> label. However, let\'s finish learning about ' +
+                "message": 'There is a crosswalk but no curb ramps beneath the flashing yellow arrows. ' +
+                'You would label them with a missing curb ramp label ' +
+                '(<img src="' + svl.rootDirectory + "/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png" +
+                '" alt="Missing Curb Ramp Label">). However, let\'s finish learning about ' +
                 'the <span class="bold">rest of the interface</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -983,8 +993,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 4900,
-                    "y": -750,
+                    "x": 200,
+                    "y": -580,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -993,8 +1003,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 },
                 {
                     "type": "arrow",
-                    "x": 3850,
-                    "y": -860,
+                    "x": -2510,
+                    "y": -320,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -1008,6 +1018,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
+                compass.showMessage();
                 return "instruction-1";
             }
          },
@@ -1028,7 +1039,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": panoId,
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 var completedRate = 30 / numStates;
@@ -1050,7 +1061,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": panoId,
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 var completedRate = 31 / numStates;
@@ -1071,7 +1082,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "parameters": null
             },
-            "panoId": panoId,
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 var completedRate = 32 / numStates;
@@ -1100,7 +1111,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "background": true
             },
             "okButton": false,
-            "panoId": panoId,
+            "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
                 var completedRate = 33 / numStates;

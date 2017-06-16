@@ -470,25 +470,8 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         }
     }
 
-    function _visitWalkTowards (state, listener) {
+    function _visitWalkTowards(state, listener) {
 
-        var $target;
-        var callback = function () {
-            var panoId = mapService.getPanoId();
-            if (state.properties.panoId == panoId) {
-                if (typeof google != "undefined") google.maps.event.removeListener($target);
-                if (listener) google.maps.event.removeListener(listener);
-                next(state.transition);
-            }
-            else {
-                console.error("Pano mismatch. Shouldn't reach here");
-            }
-        };
-
-        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
-    }
-
-    function _visitWalkTowardsOld (state, listener) {
         mapService.unlockDisableWalking();
         mapService.lockDisableWalking();
 
@@ -496,15 +479,18 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var callback = function () {
             var panoId = mapService.getPanoId();
             if (state.properties.panoId == panoId) {
-                window.setTimeout(function () { mapService.unlockDisableWalking().disableWalking().lockDisableWalking(); }, 1000);
+                window.setTimeout(function () {
+                    mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
+                }, 1000);
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             } else {
-                mapService.setPano(state.panoId, true); // Force the interface to go back to the previous position.
+                console.error("Pano mismatch. Shouldn't reach here");
+                // Force the interface to go back to the previous position.
+                mapService.setPano(state.panoId, true);
             }
         };
-        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
 
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
 
@@ -514,11 +500,10 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
         var mouseUpCallback = function (e) {
             currentClick = new Date().getTime();
 
-
             // Check if the user has double clicked
             if (previousClick && currentClick - previousClick < 300) {
                 //Previously, we checked if the user double-clicked on the correct location,
-                // it wasn't working correctly and we removed that. So it will jump them if they click anywhere
+                // it wasn't working correctly; we removed that. So it will jump them if they click anywhere
                 uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
                 mapService.setPano(state.properties.panoId, true);
                 mapService.disableWalking();
