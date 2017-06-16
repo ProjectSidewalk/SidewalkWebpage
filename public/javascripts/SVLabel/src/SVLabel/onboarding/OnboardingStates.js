@@ -1,7 +1,7 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
     var numStates = 34;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
-    var afterWalkPanoId = "bdmGHJkiSgmO7_80SnbzXw";
+    var afterWalkPanoId = "stxXyCKAbd73DmkM2vsIHA";
     this.states = {
         "initialize": {
             "properties": {
@@ -1013,8 +1013,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 1300,
-                    "y": -650,
+                    "x": 730,
+                    "y": -690,
                     "length": 50,
                     "angle": 0,
                     "text": null,
@@ -1034,8 +1034,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 1492,
-                "imageY": -783,
+                "imageX": 700,
+                "imageY": -690,
                 "tolerance": 250
             }],
             "message": {
@@ -1047,8 +1047,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": [
                 {
                     "type": "arrow",
-                    "x": 1300,
-                    "y": -650,
+                    "x": 730,
+                    "y": -690,
                     "length": 50,
                     "angle": 0,
                     "text": null,
