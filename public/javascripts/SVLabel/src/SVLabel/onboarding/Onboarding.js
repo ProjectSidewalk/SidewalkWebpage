@@ -471,8 +471,6 @@ function Onboarding (svl, actionStack, audioEffect, compass, form, handAnimation
     }
 
     function _visitWalkTowards (state, listener) {
-        mapService.unlockDisableWalking();
-        mapService.enableWalking();
 
         var $target;
         var callback = function () {
