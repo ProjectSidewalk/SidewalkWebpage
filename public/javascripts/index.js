@@ -243,7 +243,7 @@ $(document).ready(function () {
       var svg = d3.select('#map-chart')
                     .append('svg')
                     .attr('width', svgWidth)
-                    .attr('height', svgHeight)
+                    .attr('height', svgHeight);
 
 
       var chart = svg.append('g')
