@@ -90,7 +90,6 @@ footer {
 
 .navbar-brand.fixed-theme {
     font-size: 18px;
-;
 }
 
 .navbar-container.fixed-theme {
@@ -270,7 +269,6 @@ video#bgvid {
     perspective:1000;
     position:fixed;
     right:0;
-
     z-index:-1;
 }
 
