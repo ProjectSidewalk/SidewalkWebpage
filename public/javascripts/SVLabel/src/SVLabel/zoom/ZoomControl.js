@@ -14,7 +14,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         },
         status = {
             disableZoomIn: false,
-            disableZoomOut: false
+            disableZoomOut: true
         },
         lock = {
             disableZoomIn: false,
@@ -77,7 +77,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = true;
             if (uiZoomControl) {
-                uiZoomControl.zoomIn.css('opacity', 0.5);
+                uiZoomControl.zoomIn.addClass('disabled');
             }
         }
         return this;
@@ -90,7 +90,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = true;
             if (uiZoomControl) {
-                uiZoomControl.zoomOut.css('opacity', 0.5);
+                uiZoomControl.zoomOut.addClass('disabled');
+                //uiZoomControl.zoomOut.css('opacity', 0.5);
             }
         }
         return this;
@@ -103,7 +104,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = false;
             if (uiZoomControl) {
-                uiZoomControl.zoomIn.css('opacity', 1);
+                uiZoomControl.zoomIn.removeClass('disabled');
+                //css('opacity', 1);
             }
         }
         return this;
@@ -116,7 +118,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = false;
             if (uiZoomControl) {
-                uiZoomControl.zoomOut.css('opacity', 1);
+                uiZoomControl.zoomOut.removeClass('disabled');
+            //.css('opacity', 1);
             }
         }
         return this;
@@ -180,6 +183,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
@@ -214,6 +218,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();

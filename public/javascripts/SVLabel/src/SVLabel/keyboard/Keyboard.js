@@ -267,6 +267,38 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             }
             contextMenu.updateRadioButtonImages();
         }
+
+        /*
+         This is a callback method that is triggered when a keyUp
+         event occurs. It is not relevant to ContextMenu's textbox focus.
+         */
+        switch (e.keyCode) {
+            case 13:
+                // "Enter"
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                }
+                break;
+            case 27:
+                // "Escape"
+                
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                }
+
+                if (canvas.getStatus('drawing')) {
+                    canvas.cancelDrawing();
+                    svl.tracker.push("KeyboardShortcut_CancelDrawing");
+                } else {
+                    ribbon.backToWalk();
+                }
+                svl.modalExample.hide();
+                break;
+        }
+
+        contextMenu.updateRadioButtonImages();
     };
 
 
