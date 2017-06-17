@@ -14,7 +14,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         },
         status = {
             disableZoomIn: false,
-            disableZoomOut: false
+            disableZoomOut: true
         },
         lock = {
             disableZoomIn: false,
@@ -183,6 +183,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
@@ -217,6 +218,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
