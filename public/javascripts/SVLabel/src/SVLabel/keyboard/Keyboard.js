@@ -73,6 +73,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 //equal button || - button
                 return;
             }
+        } else if (!status.focusOnTextField) {
             // lock scrolling in response to key pressing
             switch (e.keyCode) {
                 case 16:  // "Shift"
