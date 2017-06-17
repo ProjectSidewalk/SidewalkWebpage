@@ -89,7 +89,6 @@ footer {
 
 .navbar-brand.fixed-theme {
     font-size: 18px;
-;
 }
 
 .navbar-container.fixed-theme {
@@ -1100,5 +1099,12 @@ kbd {
 }
 
 .navbar-xs { min-height: 35px; height: 35px; }
-.navbar-xs .navbar-brand{ padding: 0px 15px;font-size: 16px;line-height: 28px; }
-.navbar-xs .navbar-nav > li > a {  padding-top: 0px; padding-bottom: 0px; line-height: 28px; }
+.navbar-xs .navbar-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; }
+.navbar-xs .navbar-nav > li > a {
+    position: relative;
+    display: block;
+    padding-top: 13px;
+    padding-bottom: 9px;
+    line-height: 20px;
+
+}
