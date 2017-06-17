@@ -388,8 +388,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      * @param parameters
      */
     function showMessage(parameters) {
-        var message = parameters.message, position = parameters.position;
-        if (!position) position = "top-right";
+        var message = parameters.message;
 
         uiOnboarding.messageHolder.toggleClass("yellow-background");
         setTimeout(function () {
@@ -402,9 +401,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             width: 300
         });
 
+        uiOnboarding.messageHolder.removeClass("animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp");
+        uiOnboarding.messageHolder.removeClass("callout top bottom left right");
 
         if (!uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.show();
-
 
         uiOnboarding.background.css("visibility", "hidden");
         if (parameters) {
@@ -424,20 +424,15 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 uiOnboarding.background.css("visibility", "visible");
             }
 
-            if ("after" in parameters) {
-                uiOnboarding.messageHolder.css({
-                    content: "",
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    'margin-left': -5,
-                    'border-width': 5,
-                    'border-style': 'solid',
-                    'border-color': '#555 transparent transparent transparent'
-                });
+            if ("arrow" in parameters) {
+                uiOnboarding.messageHolder.addClass("callout " + parameters.arrow);
+                //uiOnboarding.messageHolder.addClass("animated fadeIn");
+            }
+
+            if ("fade-direction" in parameters) {
+                uiOnboarding.messageHolder.addClass("animated " + parameters["fade-direction"]);
             }
         }
-        uiOnboarding.messageHolder.addClass("show-message");
 
         uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
