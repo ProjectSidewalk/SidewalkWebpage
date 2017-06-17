@@ -782,7 +782,7 @@ function Admin(_, $, c3, turf) {
                 var chart = {
                     // "height": 800,
                     "height": 300,
-                    "width": 500,
+                    "width": 800,
                     "mark": "line",
                     "data": {"values": data[0], "format": {"type": "json"}},
                     "encoding": {
