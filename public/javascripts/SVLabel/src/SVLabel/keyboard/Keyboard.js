@@ -61,23 +61,19 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
+        //equal button || - button
+        if (e.keyCode == 187 || e.keyCode == 189) {
+            svl.contextMenu.hide();
+            return;
+        }
         if (!status.focusOnTextField) {
-            if (contextMenu.isOpen()) {
-                //only permits shift key value change when ctxt menu open
-                if (e.keyCode == 16) {
-                    status.shiftDown = true;
-                }
-                //equal button || - button
-                if (e.keyCode == 187 || e.keyCode == 189) {
-                    svl.contextMenu.hide();
-                }
 
-            }else {
+            if (e.keyCode == 16) { //shift key
+                status.shiftDown = true;
+            }
+            if (!svl.contextMenu.isOpen()){
                 // lock scrolling in response to key pressing
                 switch (e.keyCode) {
-                    case 16:  // "Shift"
-                        status.shiftDown = true;
-                        break;
                     case 37:  // "Left"
                         self._rotatePov(-2);
                         break;
