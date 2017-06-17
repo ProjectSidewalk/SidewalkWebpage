@@ -465,16 +465,33 @@ function Admin(_, $, c3, turf) {
                 regionName = feature.properties.region_name,
                 compRate = -1.0,
                 milesLeft = -1.0,
-                url = "/audit/region/" + regionId
+                url = "/audit/region/" + regionId,
+                popupContent = "???";
             for (var i=0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
-                    compRate = rates[i].rate;
-                    milesLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
+                    compRate = Math.round(rates[i].rate);
+                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!";
+                    }
+                    else if (milesLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
+                            "\% Complete<br>Less than a mile left! Do you want to explore this area to find accessibility issues? " +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                    }
+                    else if (milesLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " mile left! Do you want to explore this area to find accessibility issues? " +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                    }
+                    else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " miles left! Do you want to explore this area to find accessibility issues? " +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                    }
+                    break;
                 }
             }
-            var popupContent = "<strong>" + regionName + "</strong>: " + Math.round(compRate) + "\% Complete<br>Only " +
-                Math.round(milesLeft) + " miles left! Do you want to explore this area to find accessibility issues? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
             layer.bindPopup(popupContent);
             layers.push(layer);
 
