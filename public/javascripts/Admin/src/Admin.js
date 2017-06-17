@@ -960,7 +960,7 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": curbRamps},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal"},
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Curb Ramp Severity"}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
                             }
                         },
@@ -970,8 +970,8 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": noCurbRamps},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal"},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Missing Curb Ramp Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
@@ -980,8 +980,8 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": surfaceProblems},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal"},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Surface Problem Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
@@ -990,8 +990,8 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": obstacles},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal"},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Obstacle Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         }
                     ]
