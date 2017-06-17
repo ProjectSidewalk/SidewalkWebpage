@@ -387,7 +387,7 @@ function Main (params) {
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
             var mission;
-            $(".webpageUI").css({"visibility": "visible"});
+            $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
