@@ -390,6 +390,25 @@ function Admin(_, $, c3, turf) {
                                         p > 10 ? '#deebf7' :
                                             '#f7fbff';
     }
+    function getColor3(p) {
+        return p > 90 ? '#023858' :
+            p > 80 ? '#045a8d' :
+                p > 70 ? '#0570b0' :
+                    p > 60 ? '#3690c0' :
+                        p > 50 ? '#74a9cf' :
+                            p > 40 ? '#a6bddb' :
+                                p > 30 ? '#d0d1e6' :
+                                    p > 20 ? '#ece7f2' :
+                                        p > 10 ? '#fff7fb' :
+                                            '#ffffff';
+    }
+    function getColor4(p) {
+        return p > 80 ? '#045a8d' :
+            p > 60 ? '#2b8cbe' :
+                p > 40 ? '#74a9cf' :
+                    p > 20 ? '#bdc9e1' :
+                        '#f1eef6';
+    }
     function getOpacity(p) {
         return p > 90 ? 1.0 :
             p > 80 ? 0.9 :
@@ -428,9 +447,10 @@ function Admin(_, $, c3, turf) {
                         weight: 1,
                         opacity: 0.25,
                         // fillColor: getColor(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
-                        fillColor: '#3182bd',
+                        // fillColor: '#3182bd',
                         // fillColor: getColor2(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
                         // fillOpacity: rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]
+                        fillColor: getColor2(rates[i].rate),
                         // fillOpacity: 0.5
                         fillOpacity: getOpacity(rates[i].rate)
                     }
@@ -439,14 +459,23 @@ function Admin(_, $, c3, turf) {
             return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
         }
 
-        // TODO add some info on hover, e.g., the exact percentage, miles completed, miles remaining, etc.
         function onEachNeighborhoodFeature(feature, layer) {
 
-            // var regionId = feature.properties.region_id,
-            //     url = "/audit/region/" + regionId,
-            //     popupContent = "Do you want to explore this area to find accessibility issues? " +
-            //         "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
-            // layer.bindPopup(popupContent);
+            var regionId = feature.properties.region_id,
+                regionName = feature.properties.region_name,
+                compRate = -1.0,
+                milesLeft = -1.0,
+                url = "/audit/region/" + regionId
+            for (var i=0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    compRate = rates[i].rate;
+                    milesLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
+                }
+            }
+            var popupContent = "<strong>" + regionName + "</strong>: " + Math.round(compRate) + "\% Complete<br>Only " +
+                Math.round(milesLeft) + " miles left! Do you want to explore this area to find accessibility issues? " +
+                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            layer.bindPopup(popupContent);
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
@@ -460,16 +489,16 @@ function Admin(_, $, c3, turf) {
                 }
                 //this.setStyle(neighborhoodPolygonStyle);
             });
-            // layer.on('click', function (e) {
-            //     var center = turf.center(this.feature),
-            //         coordinates = center.geometry.coordinates,
-            //         latlng = L.latLng(coordinates[1], coordinates[0]),
-            //         zoom = map.getZoom();
-            //     zoom = zoom > 14 ? zoom : 14;
-            //
-            //     map.setView(latlng, zoom, {animate: true});
-            //     currentLayer = this;
-            // });
+            layer.on('click', function (e) {
+                var center = turf.center(this.feature),
+                    coordinates = center.geometry.coordinates,
+                    latlng = L.latLng(coordinates[1], coordinates[0]),
+                    zoom = map.getZoom();
+                zoom = zoom > 14 ? zoom : 14;
+
+                map.setView(latlng, zoom, {animate: true});
+                currentLayer = this;
+            });
         }
 
         // adds the neighborhood polygons to the map
@@ -951,14 +980,14 @@ function Admin(_, $, c3, turf) {
                     "width": 600,
                     "height": 800,
                     "data": {
-                        "values": sortedData, "format": {
+                        "values": data, "format": {
                             "type": "json"
                         }
                     },
                     "mark": "bar",
                     "encoding": {
                         "x": {
-                            "field": "rate", "type": "quantitative", "sort": "ascending", "axis": {
+                            "field": "rate", "type": "quantitative", "axis": {
                                 "title": "Neighborhood Completion (%)"
                             }
                         },
