@@ -645,7 +645,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var message = "Uh-oh, something went wrong with Google Street View. " +
             "This is not your fault, but we will need to move you to another location in the " +
             currentNeighborhoodName + " neighborhood. Keep up the good work!";
+        svl.panorama.set('linksControl', false);//disable arrows
+        disableWalking(); //disable walking
+        disablePanning(); //disable panning
+        svl.canvas.disableLabeling(); //disable labeling
+
         var callback = function () {
+            enableWalking(); //enable walking
+            enablePanning(); //panning
+            svl.canvas.enableLabeling();
+
             _jumpToNewLocation();
             var afterJumpStatus = status.jumpImageryNotFoundStatus;
 
@@ -658,10 +667,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Reset variable after the jump
                 status.jumpImageryNotFoundStatus = undefined;
             }
+            svl.panorama.set('linksControl', true); //enable arrows
             svl.panorama.setVisible(true);
+            //handlerPanoramaChange();//refresh pano ID, etc
         };
 
         svl.popUpMessage.notify(title, message, callback);
+
     }
 
     /***
@@ -695,10 +707,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function handlerPanoramaChange () {
         if (svl.panorama) {
             var panoId = getPanoId();
-            //console.log("Pano: " + panoId);
+
+            if (typeof panoId === "undefined" || panoId.length == 0) {
+                if ('compass' in svl) {
+                    svl.compass.update();
+                }
+                return;
+            }
 
             if (svl.streetViewService && panoId.length > 0) {
-
                 // Check if panorama exists
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
@@ -733,13 +750,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 );
             }
-            else {
-                handleImageryNotFound(panoId);
+            if ('compass' in svl) {
+                svl.compass.update();
             }
-            if ('compass' in svl) { svl.compass.update(); }
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
+
     }
 
     // missions greater than 3000 feet are measured in miles
@@ -1137,7 +1154,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var pov = getPov();
             var zoom = Math.round(pov.zoom);
             var zoomLevel = svl.zoomFactor[zoom];
-
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;
@@ -1431,7 +1447,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function setViewControlLayerCursor(type) {
         switch(type) {
             case 'ZoomOut':
-                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/Cursor_ZoomOut.png) 4 4, move");
+                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/ZoomOut.png) 4 4, move");
                 break;
             case 'OpenHand':
                 uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
@@ -1559,10 +1575,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
-
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-
             // View port restriction.
             // Do not allow users to look up the sky or down the ground.
             // If specified, do not allow users to turn around too much by restricting the heading angle.
@@ -1571,7 +1585,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             } else if (pov.pitch < properties.minPitch) {
                 pov.pitch = properties.minPitch;
             }
-
             if (properties.minHeading && properties.maxHeading) {
                 if (properties.minHeading <= properties.maxHeading) {
                     if (pov.heading > properties.maxHeading) {
@@ -1590,7 +1603,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             }
-
             // Update the status of pov change
             povChange["status"] = true;
 
