@@ -56,6 +56,12 @@ object DBTableDefinitions {
         case None => None
       }
     }
+    def findEmail(email: String): Option[DBUser] = db.withTransaction { implicit session =>
+      slickUsers.filter(_.email === email).firstOption match {
+        case Some(user) => Some(user)
+        case None => None
+      }
+    }
 
     def count: Int = db.withTransaction { implicit session =>
       val users = slickUsers.list
