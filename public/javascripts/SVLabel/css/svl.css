@@ -138,3 +138,9 @@ input[type="radio"] {
     -o-user-select: none;
     user-select: none;
 }
+
+.disabled {
+    pointer-events: none;
+    cursor: default;
+    opacity: 0.5;
+}

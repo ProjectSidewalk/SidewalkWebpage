@@ -269,7 +269,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         }
     };
 
-
+    
     /**
      * Get status
      * @param {string} key Field name
