@@ -120,6 +120,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         Json.obj("region_id" -> neighborhood.regionId,
           "total_distance_m" -> totalDistance,
           "completed_distance_m" -> completedDistance,
+          "rate" -> 100.0 * completedDistance / totalDistance,
           "name" -> neighborhood.name
         )
       }

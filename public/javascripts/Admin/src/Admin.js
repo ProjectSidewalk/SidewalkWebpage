@@ -373,16 +373,40 @@ function Admin(_, $, c3, turf) {
      */
     function getColor(p) {
         return p > 80 ? '#08519c' :
-               p > 60 ? '#3182bd' :
-               p > 40 ? '#6baed6' :
-               p > 20 ? '#bdd7e7' :
+            p > 60 ? '#3182bd' :
+                p > 40 ? '#6baed6' :
+                    p > 20 ? '#bdd7e7' :
                         '#eff3ff';
+    }
+    function getColor2(p) {
+        return p > 90 ? '#08306b' :
+            p > 80 ? '#08519c' :
+                p > 70 ? '#08719c' :
+                    p > 60 ? '#2171b5' :
+                        p > 50 ? '#4292c6' :
+                            p > 40 ? '#6baed6' :
+                                p > 30 ? '#9ecae1' :
+                                    p > 20 ? '#c6dbef' :
+                                        p > 10 ? '#deebf7' :
+                                            '#f7fbff';
+    }
+    function getOpacity(p) {
+        return p > 90 ? 1.0 :
+            p > 80 ? 0.9 :
+                p > 70 ? 0.8 :
+                    p > 60 ? 0.7 :
+                        p > 50 ? 0.6 :
+                            p > 40 ? 0.5 :
+                                p > 30 ? 0.4 :
+                                    p > 20 ? 0.3 :
+                                        p > 10 ? 0.2 :
+                                            0.1;
     }
 
     /**
      * render the neighborhood polygons, colored by completion percentage
      */
-    function initializeChoroplethNeighborhoodPolygons(map) {
+    function initializeChoroplethNeighborhoodPolygons(map, rates) {
         var neighborhoodPolygonStyle = { // default bright red, used to check if any regions are missing data
                 color: '#888',
                 weight: 1,
@@ -394,66 +418,67 @@ function Admin(_, $, c3, turf) {
             currentLayer;
 
         // get completion percentage for each neighborhood
-        // TODO modify this to share the data with the neighborhood completion histograms instead of querying twice
-        $.getJSON('/adminapi/neighborhoodCompletionRate', function (rates) {
 
-            // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
-            function style(feature) {
-                for (var i=0; i < rates.length; i++) {
-                    if (rates[i]["region_id"] === feature.properties.region_id) {
-                        return {
-                            color: '#888',
-                            weight: 1,
-                            opacity: 0.25,
-                            fillColor: getColor(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
-                            fillOpacity: 0.5
-                        }
+        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
+        function style(feature) {
+            for (var i=0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    return {
+                        color: '#888',
+                        weight: 1,
+                        opacity: 0.25,
+                        // fillColor: getColor(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
+                        fillColor: '#3182bd',
+                        // fillColor: getColor2(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
+                        // fillOpacity: rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]
+                        // fillOpacity: 0.5
+                        fillOpacity: getOpacity(rates[i].rate)
                     }
                 }
-                return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
             }
+            return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
+        }
 
-            // TODO add some info on hover, e.g., the exact percentage, miles completed, miles remaining, etc.
-            function onEachNeighborhoodFeature(feature, layer) {
+        // TODO add some info on hover, e.g., the exact percentage, miles completed, miles remaining, etc.
+        function onEachNeighborhoodFeature(feature, layer) {
 
-                // var regionId = feature.properties.region_id,
-                //     url = "/audit/region/" + regionId,
-                //     popupContent = "Do you want to explore this area to find accessibility issues? " +
-                //         "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
-                // layer.bindPopup(popupContent);
-                layers.push(layer);
+            // var regionId = feature.properties.region_id,
+            //     url = "/audit/region/" + regionId,
+            //     popupContent = "Do you want to explore this area to find accessibility issues? " +
+            //         "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            // layer.bindPopup(popupContent);
+            layers.push(layer);
 
-                layer.on('mouseover', function (e) {
-                    this.setStyle({opacity: 1.0, weight: 3});
+            layer.on('mouseover', function (e) {
+                this.setStyle({opacity: 1.0, weight: 3});
 
-                });
-                layer.on('mouseout', function (e) {
-                    for (var i = layers.length - 1; i >= 0; i--) {
-                        if (currentLayer !== layers[i])
-                            layers[i].setStyle({opacity: 0.25, weight: 1});
-                    }
-                    //this.setStyle(neighborhoodPolygonStyle);
-                });
-                // layer.on('click', function (e) {
-                //     var center = turf.center(this.feature),
-                //         coordinates = center.geometry.coordinates,
-                //         latlng = L.latLng(coordinates[1], coordinates[0]),
-                //         zoom = map.getZoom();
-                //     zoom = zoom > 14 ? zoom : 14;
-                //
-                //     map.setView(latlng, zoom, {animate: true});
-                //     currentLayer = this;
-                // });
-            }
-
-            // adds the neighborhood polygons to the map
-            $.getJSON("/neighborhoods", function (data) {
-                neighborhoodPolygonLayer = L.geoJson(data, {
-                    style: style,
-                    onEachFeature: onEachNeighborhoodFeature
-                })
-                    .addTo(map);
             });
+            layer.on('mouseout', function (e) {
+                for (var i = layers.length - 1; i >= 0; i--) {
+                    if (currentLayer !== layers[i])
+                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                }
+                //this.setStyle(neighborhoodPolygonStyle);
+            });
+            // layer.on('click', function (e) {
+            //     var center = turf.center(this.feature),
+            //         coordinates = center.geometry.coordinates,
+            //         latlng = L.latLng(coordinates[1], coordinates[0]),
+            //         zoom = map.getZoom();
+            //     zoom = zoom > 14 ? zoom : 14;
+            //
+            //     map.setView(latlng, zoom, {animate: true});
+            //     currentLayer = this;
+            // });
+        }
+
+        // adds the neighborhood polygons to the map
+        $.getJSON("/neighborhoods", function (data) {
+            neighborhoodPolygonLayer = L.geoJson(data, {
+                style: style,
+                onEachFeature: onEachNeighborhoodFeature
+            })
+                .addTo(map);
         });
     }
 
@@ -705,24 +730,6 @@ function Admin(_, $, c3, turf) {
         }
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
 
-            // make a choropleth of neighborhood completion percentages
-            initializeChoroplethNeighborhoodPolygons(choropleth);
-            var legend = L.control({position: 'bottomleft'});
-            legend.onAdd = function(map) {
-                var div = L.DomUtil.create('div', 'map-label-legend'),
-                    percentages = [0, 20, 40, 60, 80, 100],
-                    labels = [];
-                for (var i = 0; i < percentages.length - 1; i++) {
-                    div.innerHTML += '<i style="background:' + getColor(percentages[i] + 1) + '"></i> ' +
-                        percentages[i] + '&ndash;' + percentages[i + 1] + '<br>';
-                }
-                return div;
-            };
-            legend.addTo(choropleth);
-
-            setTimeout(function () {
-                choropleth.invalidateSize(false);
-            }, 1);
 
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
@@ -730,7 +737,7 @@ function Admin(_, $, c3, turf) {
                     // "height": 800,
                     "height": 300,
                     "width": 500,
-                    "mark": "area",
+                    "mark": "line",
                     "data": {"values": data[0], "format": {"type": "json"}},
                     "encoding": {
                         "x": {
@@ -918,28 +925,45 @@ function Admin(_, $, c3, turf) {
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
 
+                // make a choropleth of neighborhood completion percentages
+                initializeChoroplethNeighborhoodPolygons(choropleth, data);
+                var legend = L.control({position: 'bottomleft'});
+                legend.onAdd = function(map) {
+                    var div = L.DomUtil.create('div', 'map-label-legend'),
+                        percentages = [0, 20, 40, 60, 80, 100],
+                        labels = [];
+                    for (var i = 0; i < percentages.length - 1; i++) {
+                        div.innerHTML += '<i style="background:' + getColor(percentages[i] + 1) + '"></i> ' +
+                            percentages[i] + '&ndash;' + percentages[i + 1] + '<br>';
+                    }
+                    return div;
+                };
+                legend.addTo(choropleth);
+
+                setTimeout(function () {
+                    choropleth.invalidateSize(false);
+                }, 1);
+
+                // make charts showing neighborhood completion rate
+                data.sort(function(a, b) {return (a["rate"] > b["rate"]) ? 1 : ((b["rate"] > a["rate"]) ? -1 : 0);} );
+                console.log(data);
                 var coverageRateChart = {
                     "width": 600,
                     "height": 800,
                     "data": {
-                        "values": data, "format": {
+                        "values": sortedData, "format": {
                             "type": "json"
                         }
                     },
-                    "transform": [
-                        {
-                            "calculate": "100.0 * datum.completed_distance_m / datum.total_distance_m", "as": "rate"
-                        }
-                    ],
                     "mark": "bar",
                     "encoding": {
                         "x": {
-                            "field": "rate", "type": "quantitative", "axis": {
+                            "field": "rate", "type": "quantitative", "sort": "ascending", "axis": {
                                 "title": "Neighborhood Completion (%)"
                             }
                         },
                         "y": {
-                            "field": "name", "type": "ordinal", "axis": {
+                            "field": "name", "type": "nominal", "axis": {
                                 "title": "Neighborhood"
                             }
                         }
