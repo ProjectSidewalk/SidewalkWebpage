@@ -197,7 +197,7 @@ function AdminTask(params) {
                                 self.panorama.renderLabel(adminPanoramaLabel);
                                 // Update the chart as well
                                 // dotPlotVisualization.increment(label.label_type);
-                                // dotPlotVisualization.udpate();
+                                // dotPlotVisualization.update();
 
                             }
                         }

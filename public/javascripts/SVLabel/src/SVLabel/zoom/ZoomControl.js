@@ -14,7 +14,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         },
         status = {
             disableZoomIn: false,
-            disableZoomOut: false
+            disableZoomOut: true
         },
         lock = {
             disableZoomIn: false,
@@ -22,6 +22,20 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         },
         blinkInterval;
 
+
+    /**
+     * Get the zoom in UI control
+     */
+    function getZoomInUI () {
+        return uiZoomControl.zoomIn;
+    }
+
+    /**
+     * Get the zoom out UI control
+     */
+    function getZoomOutUI () {
+        return uiZoomControl.zoomOut;
+    }
 
     /**
      * Blink the zoom in and zoom-out buttons
@@ -35,6 +49,26 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     /**
+     * Blink the zoom in button
+     */
+    function blinkZoomIn () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiZoomControl.zoomIn.toggleClass("highlight-100");
+        }, 500);
+    }
+
+    /**
+     * Blink the zoom out button
+     */
+    function blinkZoomOut () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiZoomControl.zoomOut.toggleClass("highlight-100");
+        }, 500);
+    }
+
+    /**
      * Disables zooming in
      * @method
      * @returns {self}
@@ -43,7 +77,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = true;
             if (uiZoomControl) {
-                uiZoomControl.zoomIn.css('opacity', 0.5);
+                uiZoomControl.zoomIn.addClass('disabled');
             }
         }
         return this;
@@ -56,7 +90,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = true;
             if (uiZoomControl) {
-                uiZoomControl.zoomOut.css('opacity', 0.5);
+                uiZoomControl.zoomOut.addClass('disabled');
+                //uiZoomControl.zoomOut.css('opacity', 0.5);
             }
         }
         return this;
@@ -69,7 +104,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomIn) {
             status.disableZoomIn = false;
             if (uiZoomControl) {
-                uiZoomControl.zoomIn.css('opacity', 1);
+                uiZoomControl.zoomIn.removeClass('disabled');
+                //css('opacity', 1);
             }
         }
         return this;
@@ -82,7 +118,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!lock.disableZoomOut) {
             status.disableZoomOut = false;
             if (uiZoomControl) {
-                uiZoomControl.zoomOut.css('opacity', 1);
+                uiZoomControl.zoomOut.removeClass('disabled');
+            //.css('opacity', 1);
             }
         }
         return this;
@@ -146,6 +183,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
@@ -180,6 +218,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             var pov = mapService.getPov();
             setZoom(pov.zoom + 1);
+            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
@@ -279,6 +318,9 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (uiZoomControl) {
             uiZoomControl.zoomIn.removeClass("highlight-50");
             uiZoomControl.zoomOut.removeClass("highlight-50");
+
+            uiZoomControl.zoomIn.removeClass("highlight-100");
+            uiZoomControl.zoomOut.removeClass("highlight-100");
         }
     }
 
@@ -339,6 +381,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     self.blink = blink;
+    self.blinkZoomIn = blinkZoomIn;
+    self.blinkZoomOut = blinkZoomOut;
     self.disableZoomIn = disableZoomIn;
     self.disableZoomOut = disableZoomOut;
     self.enableZoomIn = enableZoomIn;
@@ -346,6 +390,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     self.getLock = getLock;
     self.getStatus = getStatus;
     self.getProperties = getProperty; // Todo. Change getProperties to getProperty.
+    self.getZoomInUI = getZoomInUI;
+    self.getZoomOutUI = getZoomOutUI;
     self.lockDisableZoomIn = lockDisableZoomIn;
     self.lockDisableZoomOut = lockDisableZoomOut;
     self.stopBlinking = stopBlinking;
