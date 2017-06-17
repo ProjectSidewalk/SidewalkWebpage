@@ -69,7 +69,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             if (e.keyCode == 187 || e.keyCode == 189){
                 svl.contextMenu.hide();
             }
-            return;
         } else if (!status.focusOnTextField) {
             // lock scrolling in response to key pressing
             switch (e.keyCode) {
