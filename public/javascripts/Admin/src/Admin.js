@@ -12,6 +12,8 @@ function Admin(_, $, c3, turf) {
     self.mapLoaded = false;
     self.graphsLoaded = false;
 
+    var neighborhoodPolygonLayer;
+
     for (i = 0; i < 5; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
@@ -32,7 +34,7 @@ function Admin(_, $, c3, turf) {
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
-    // Construct a bounding box for this map that the user cannot move out of
+    // Construct a bounding box for these maps that the user cannot move out of
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
     var southWest = L.latLng(38.761, -77.262),
         northEast = L.latLng(39.060, -76.830),
@@ -52,6 +54,22 @@ function Admin(_, $, c3, turf) {
             minZoom: 9
         })
         // .addLayer(mapboxTiles)
+            .fitBounds(bounds)
+            .setView([38.892, -77.038], 12),
+        // a grayscale tileLayer for the choropleth
+        bwTile = L.tileLayer('http://korona.geog.uni-heidelberg.de/tiles/roadsg/x={x}&y={y}&z={z}', {
+            maxZoom: 19,
+            attribution: 'Imagery from <a href="http://giscience.uni-hd.de/">GIScience Research Group @ University of Heidelberg</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }),
+        choropleth = L.mapbox.map('admin-choropleth', "kotarohara.8e0c6890", {
+            // set that bounding box as maxBounds to restrict moving the map
+            // see full maxBounds documentation:
+            // http://leafletjs.com/reference.html#map-maxbounds
+            maxBounds: bounds,
+            maxZoom: 19,
+            minZoom: 9
+        })
+            .addLayer(bwTile)
             .fitBounds(bounds)
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
@@ -336,7 +354,8 @@ function Admin(_, $, c3, turf) {
         }
 
         $.getJSON("/neighborhoods", function (data) {
-            L.geoJson(data, {
+            console.log(data);
+            neighborhoodPolygonLayer = L.geoJson(data, {
                 style: function (feature) {
                     return $.extend(true, {}, neighborhoodPolygonStyle);
                 },
@@ -347,7 +366,99 @@ function Admin(_, $, c3, turf) {
     }
 
     /**
-     * This function queries the streets that the user audited and visualize them as segmetns on the map.
+     * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
+     *
+     * @param p {float} represents a completion percentage, between 0 and 100
+     * @returns {string} color in hex
+     */
+    function getColor(p) {
+        return p > 80 ? '#08519c' :
+               p > 60 ? '#3182bd' :
+               p > 40 ? '#6baed6' :
+               p > 20 ? '#bdd7e7' :
+                        '#eff3ff';
+    }
+
+    /**
+     * render the neighborhood polygons, colored by completion percentage
+     */
+    function initializeChoroplethNeighborhoodPolygons(map) {
+        var neighborhoodPolygonStyle = { // default bright red, used to check if any regions are missing data
+                color: '#888',
+                weight: 1,
+                opacity: 0.25,
+                fillColor: "#f00",
+                fillOpacity: 1.0
+            },
+            layers = [],
+            currentLayer;
+
+        // get completion percentage for each neighborhood
+        // TODO modify this to share the data with the neighborhood completion histograms instead of querying twice
+        $.getJSON('/adminapi/neighborhoodCompletionRate', function (rates) {
+
+            // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
+            function style(feature) {
+                for (var i=0; i < rates.length; i++) {
+                    if (rates[i]["region_id"] === feature.properties.region_id) {
+                        return {
+                            color: '#888',
+                            weight: 1,
+                            opacity: 0.25,
+                            fillColor: getColor(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
+                            fillOpacity: 0.5
+                        }
+                    }
+                }
+                return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
+            }
+
+            // TODO add some info on hover, e.g., the exact percentage, miles completed, miles remaining, etc.
+            function onEachNeighborhoodFeature(feature, layer) {
+
+                // var regionId = feature.properties.region_id,
+                //     url = "/audit/region/" + regionId,
+                //     popupContent = "Do you want to explore this area to find accessibility issues? " +
+                //         "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                // layer.bindPopup(popupContent);
+                layers.push(layer);
+
+                layer.on('mouseover', function (e) {
+                    this.setStyle({opacity: 1.0, weight: 3});
+
+                });
+                layer.on('mouseout', function (e) {
+                    for (var i = layers.length - 1; i >= 0; i--) {
+                        if (currentLayer !== layers[i])
+                            layers[i].setStyle({opacity: 0.25, weight: 1});
+                    }
+                    //this.setStyle(neighborhoodPolygonStyle);
+                });
+                // layer.on('click', function (e) {
+                //     var center = turf.center(this.feature),
+                //         coordinates = center.geometry.coordinates,
+                //         latlng = L.latLng(coordinates[1], coordinates[0]),
+                //         zoom = map.getZoom();
+                //     zoom = zoom > 14 ? zoom : 14;
+                //
+                //     map.setView(latlng, zoom, {animate: true});
+                //     currentLayer = this;
+                // });
+            }
+
+            // adds the neighborhood polygons to the map
+            $.getJSON("/neighborhoods", function (data) {
+                neighborhoodPolygonLayer = L.geoJson(data, {
+                    style: style,
+                    onEachFeature: onEachNeighborhoodFeature
+                })
+                    .addTo(map);
+            });
+        });
+    }
+
+    /**
+     * This function queries the streets that the user audited and visualize them as segments on the map.
      */
     function initializeAuditedStreets(map) {
         var distanceAudited = 0,  // Distance audited in km
@@ -594,65 +705,105 @@ function Admin(_, $, c3, turf) {
         }
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
 
+            // make a choropleth of neighborhood completion percentages
+            initializeChoroplethNeighborhoodPolygons(choropleth);
+            var legend = L.control({position: 'bottomleft'});
+            legend.onAdd = function(map) {
+                var div = L.DomUtil.create('div', 'map-label-legend'),
+                    percentages = [0, 20, 40, 60, 80, 100],
+                    labels = [];
+                for (var i = 0; i < percentages.length - 1; i++) {
+                    div.innerHTML += '<i style="background:' + getColor(percentages[i] + 1) + '"></i> ' +
+                        percentages[i] + '&ndash;' + percentages[i + 1] + '<br>';
+                }
+                return div;
+            };
+            legend.addTo(choropleth);
+
+            setTimeout(function () {
+                choropleth.invalidateSize(false);
+            }, 1);
+
+
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    "height": 800,
+                    // "height": 800,
+                    "height": 300,
+                    "width": 500,
+                    "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
-                    "vconcat": [
-                        {
-                            "width": 800,
-                            "height": 150,
-                            "mark": "area",
-                            "selection": {
-                                "brush": {
-                                    "type": "interval", "encodings": ["x"]
-                                }
-                            },
-                            "encoding": {
-                                "x": {
-                                    "field": "date",
-                                    "type": "temporal",
-                                    "axis": {"title": "Date", "labelAngle": 0}
-                                },
-                                "y": {
-                                    "field": "completion",
-                                    "type": "quantitative", "scale": {
-                                        "domain": [0,100]
-                                    },
-                                    "axis": {
-                                        "title": "DC Coverage (%)"
-                                    }
-                                }
-                            }
+                    "encoding": {
+                        "x": {
+                            "field": "date",
+                            "type": "temporal",
+                            "axis": {"title": "Date", "labelAngle": 0}
                         },
-                        {
-                            "width": 800,
-                            "height": 400,
-                            "mark": "area",
-                            "encoding": {
-                                "x": {
-                                    "field": "date",
-                                    "type": "temporal",
-                                    "scale": {
-                                        "domain": {
-                                            "selection": "brush", "encoding": "x"
-                                        }
-                                    },
-                                    "axis": {
-                                        "title": "", "labelAngle": 0
-                                    }
-                                },
-                                "y": {
-                                    "field": "completion","type": "quantitative", "scale": {
-                                        "domain": [0,100]
-                                    },
-                                    "axis": {
-                                        "title": "DC Coverage (%)"
-                                    }
-                                }
+                        "y": {
+                            "field": "completion",
+                            "type": "quantitative", "scale": {
+                                "domain": [0,100]
+                            },
+                            "axis": {
+                                "title": "DC Coverage (%)"
                             }
                         }
-                    ],
+                    },
+                    // this is the slightly different code for the interactive version
+                    // "vconcat": [
+                    //     {
+                    //         "width": 800,
+                    //         "height": 150,
+                    //         "mark": "area",
+                    //         "selection": {
+                    //             "brush": {
+                    //                 "type": "interval", "encodings": ["x"]
+                    //             }
+                    //         },
+                    //         "encoding": {
+                    //             "x": {
+                    //                 "field": "date",
+                    //                 "type": "temporal",
+                    //                 "axis": {"title": "Date", "labelAngle": 0}
+                    //             },
+                    //             "y": {
+                    //                 "field": "completion",
+                    //                 "type": "quantitative", "scale": {
+                    //                     "domain": [0,100]
+                    //                 },
+                    //                 "axis": {
+                    //                     "title": "DC Coverage (%)"
+                    //                 }
+                    //             }
+                    //         }
+                    //     },
+                    //     {
+                    //         "width": 800,
+                    //         "height": 400,
+                    //         "mark": "area",
+                    //         "encoding": {
+                    //             "x": {
+                    //                 "field": "date",
+                    //                 "type": "temporal",
+                    //                 "scale": {
+                    //                     "domain": {
+                    //                         "selection": "brush", "encoding": "x"
+                    //                     }
+                    //                 },
+                    //                 "axis": {
+                    //                     "title": "", "labelAngle": 0
+                    //                 }
+                    //             },
+                    //             "y": {
+                    //                 "field": "completion","type": "quantitative", "scale": {
+                    //                     "domain": [0,100]
+                    //                 },
+                    //                 "axis": {
+                    //                     "title": "DC Coverage (%)"
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // ],
                     "config": {
                         "axis": {
                             "titleFontSize": 16

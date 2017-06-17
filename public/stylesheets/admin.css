@@ -19,6 +19,11 @@
     height: 800px;
 }
 
+#admin-choropleth {
+    width: 100%;
+    height: 800px;
+}
+
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
@@ -26,6 +31,14 @@
     width: 400px;
     bottom: 15px;
     border: solid 1px #ccc;
+}
+
+#map-label-legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
 }
 
 #map-label-legend .table {
