@@ -777,7 +777,6 @@ function Admin(_, $, c3, turf) {
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
 
 
-
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
                     // "height": 800,
@@ -950,8 +949,8 @@ function Admin(_, $, c3, turf) {
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
 
-                var subPlotHeight = 250;
-                var subPlotWidth = 150;
+                var subPlotHeight = 200;
+                var subPlotWidth = 175;
                 var chart = {
                     "hconcat": [
                         {
@@ -1001,6 +1000,7 @@ function Admin(_, $, c3, turf) {
                 };
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
+
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
 
                 // make a choropleth of neighborhood completion percentages
