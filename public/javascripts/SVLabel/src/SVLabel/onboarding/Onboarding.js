@@ -568,7 +568,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     _visitInstruction(state, annotationListener);
                 }
             }
-
         }
     }
 

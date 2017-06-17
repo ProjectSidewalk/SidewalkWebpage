@@ -120,7 +120,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
      */
     this.stopBlinking = function () {
         window.clearInterval(blinkInterval);
-        uiLeftColumn.jump.removeClass("highlight-50");
+        uiLeftColumn.jump.removeClass("highlight-100");
     };
 
     // Initialize
