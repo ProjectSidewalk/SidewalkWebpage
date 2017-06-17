@@ -6,7 +6,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "initialize": {
             "properties": {
                 "action": "Introduction",
-                "heading": 280,
+                "heading": 262,
                 "pitch": -6,
                 "zoom": 1,
                 "lat": 38.94042608,
