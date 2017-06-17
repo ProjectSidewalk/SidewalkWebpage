@@ -18,6 +18,10 @@ text {
     font-weight: bold;
 }
 
+.highlight-100 {
+    background: rgba(255, 255, 0, 1) !important;
+}
+
 .highlight-50 {
     background: rgba(255, 255, 0, 0.5) !important;
 }
@@ -133,4 +137,10 @@ input[type="radio"] {
     -ms-user-select: none;
     -o-user-select: none;
     user-select: none;
+}
+
+.disabled {
+    pointer-events: none;
+    cursor: default;
+    opacity: 0.5;
 }
