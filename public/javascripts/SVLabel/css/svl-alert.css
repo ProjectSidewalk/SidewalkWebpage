@@ -4,6 +4,7 @@
     text-align: center;
     position: relative;
     font-size: 9pt;
+    width: 730px;
 }
 
 #alert {
@@ -14,6 +15,7 @@
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
     display: inline-block;
     padding: 6px 10px;
+
 }
 
 #alert-holder a {
