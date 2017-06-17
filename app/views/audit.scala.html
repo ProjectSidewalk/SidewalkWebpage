@@ -676,7 +676,7 @@
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
-            $(document).bind('keydown', function (e){
+            /*$(document).bind('keydown', function (e){
                 // if you haven't already:
                 e = e || window.event;
                 // to cancel the event:
@@ -685,8 +685,8 @@
                     if( e.preventDefault) e.preventDefault();
                     return false;
                 }
-
-            });
+            });*/
+            //code attempt to disable +/- zoom, does not work
             enableTouchSupport();
         });
 
