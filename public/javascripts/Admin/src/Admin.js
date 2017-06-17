@@ -783,7 +783,7 @@ function Admin(_, $, c3, turf) {
                     // "height": 800,
                     "height": 300,
                     "width": 800,
-                    "mark": "line",
+                    "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
                     "encoding": {
                         "x": {
