@@ -941,28 +941,60 @@ function Admin(_, $, c3, turf) {
                 });
             });
             $.getJSON('/adminapi/labels/all', function (data) {
+                for (var i = 0; i < data.features.length; i++) {
+                    data.features[i].label_type = data.features[i].properties.label_type;
+                    data.features[i].severity = data.features[i].properties.severity;
+                }
+                var curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
+                var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
+                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
+                var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+
+                var subPlotHeight = 250;
+                var subPlotWidth = 150;
                 var chart = {
-                    "data": {
-                        "values": data.features, "format": {
-                            "type": "json"
-                        }
-                    },
-                    "transform": [
-                        {"calculate": "datum.properties.severity", "as": "severity"},
-                        {"calculate": "datum.properties.label_type", "as": "label_type"}
-                    ],
-                    "mark": "bar",
-                    "encoding": {
-                        "x": {
-                            "field": "severity", "type": "ordinal"
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": curbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal"},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
                         },
-                        "y": {
-                            "aggregate": "count", "type": "quantitative"
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noCurbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal"},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
                         },
-                        "row": {
-                            "field": "label_type", "type": "nominal"
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": surfaceProblems},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal"},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": obstacles},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal"},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
                         }
-                    }
+                    ]
                 };
                 var opt = {
                     "mode": "vega-lite"
