@@ -268,7 +268,6 @@ video#bgvid {
     perspective:1000;
     position:fixed;
     right:0;
-
     z-index:-1;
 }
 

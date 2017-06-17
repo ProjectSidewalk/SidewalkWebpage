@@ -1152,9 +1152,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();
-            var zoom = pov.zoom;
+            var zoom = Math.round(pov.zoom);
             var zoomLevel = svl.zoomFactor[zoom];
-
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;
@@ -1576,10 +1575,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
-
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-
             // View port restriction.
             // Do not allow users to look up the sky or down the ground.
             // If specified, do not allow users to turn around too much by restricting the heading angle.
@@ -1588,7 +1585,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             } else if (pov.pitch < properties.minPitch) {
                 pov.pitch = properties.minPitch;
             }
-
             if (properties.minHeading && properties.maxHeading) {
                 if (properties.minHeading <= properties.maxHeading) {
                     if (pov.heading > properties.maxHeading) {
@@ -1607,7 +1603,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             }
-
             // Update the status of pov change
             povChange["status"] = true;
 
