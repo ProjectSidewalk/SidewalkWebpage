@@ -1231,12 +1231,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "blinks": ["google-maps"]
             },
             "message": {
-                "message": 'Further, you can follow this <span class="bold">red line</span> on the map to find your route. ' +
+                "message": 'Further, you can follow the <span class="bold">red line</span> on the map to find your route. ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying ' +
+                'follow the red line on the Google Maps"> ' +
                 '<span class="bold">Your labels</span> can also be tracked using this map.',
                 "position": "top-right",
-                "arrow": "right",
+                "arrow": "lower-right",
                 "fade-direction": "fadeInLeft",
-                "top": 238,
+                "top": 154,
                 "left": 405
             },
             "panoId": afterWalkPanoId,

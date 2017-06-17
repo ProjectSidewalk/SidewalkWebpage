@@ -402,7 +402,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         });
 
         uiOnboarding.messageHolder.removeClass("animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp");
-        uiOnboarding.messageHolder.removeClass("callout top bottom left right");
+        uiOnboarding.messageHolder.removeClass("callout top bottom left right lower-right");
 
         if (!uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.show();
 
