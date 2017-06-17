@@ -63,38 +63,38 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         // The callback method that is triggered with a keyUp event.
         if (!status.focusOnTextField) {
             if (contextMenu.isOpen()) {
+                //only permits shift key value change when ctxt menu open
                 if (e.keyCode == 16) {
                     status.shiftDown = true;
-                }//only permits shift key value change when ctxt menu open
-                //kept separate from switch statement in elseif
+                }
+                //equal button || - button
                 if (e.keyCode == 187 || e.keyCode == 189) {
                     svl.contextMenu.hide();
                 }
-                //equal button || - button
-                return;
-            }
-        } else if (!status.focusOnTextField) {
-            // lock scrolling in response to key pressing
-            switch (e.keyCode) {
-                case 16:  // "Shift"
-                    status.shiftDown = true;
-                    break;
-                case 37:  // "Left"
-                    self._rotatePov(-2);
-                    break;
-                case 39:  // "Right"
-                    self._rotatePov(2);
-                    break;
-                case 38:
-                    self._moveForward();
-                    break;
-                case 40:  // "down"
-                    self._moveBackward();
-                    break;
-            }
 
-            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-                e.preventDefault();
+            }else {
+                // lock scrolling in response to key pressing
+                switch (e.keyCode) {
+                    case 16:  // "Shift"
+                        status.shiftDown = true;
+                        break;
+                    case 37:  // "Left"
+                        self._rotatePov(-2);
+                        break;
+                    case 39:  // "Right"
+                        self._rotatePov(2);
+                        break;
+                    case 38:
+                        self._moveForward();
+                        break;
+                    case 40:  // "down"
+                        self._moveBackward();
+                        break;
+                }
+
+                if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                    e.preventDefault();
+                }
             }
         }
     };
