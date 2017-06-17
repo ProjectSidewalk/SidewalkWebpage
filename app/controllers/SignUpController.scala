@@ -47,6 +47,8 @@ class SignUpController @Inject() (
   def signUp(url: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
@@ -55,8 +57,6 @@ class SignUpController @Inject() (
         // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
@@ -64,8 +64,6 @@ class SignUpController @Inject() (
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
-                val now = new DateTime(DateTimeZone.UTC)
-                val timestamp: Timestamp = new Timestamp(now.getMillis)
                 WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
               case None =>
@@ -78,7 +76,6 @@ class SignUpController @Inject() (
                   email = data.email,
                   roles = None
                 )
-
 
                 for {
                   user <- userService.save(user)
