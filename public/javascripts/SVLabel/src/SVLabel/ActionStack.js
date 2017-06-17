@@ -186,7 +186,6 @@ function ActionStack (tracker, uiActionStack) {
             if ('canvas' in svl) {
                 //svl.map.updatePov(0,0);
                 var pov = svl.panorama.getPov();
-                svl.map.setStatus("povChange", true);
                 svl.panorama.setPov(pov);
                 svl.canvas.clear().render2();
             }
@@ -234,7 +233,6 @@ function ActionStack (tracker, uiActionStack) {
             if ('canvas' in svl) {
                 //svl.map.updatePov(0,0);
                 var pov = svl.panorama.getPov();
-                svl.map.setStatus("povChange", true);
                 svl.panorama.setPov(pov);
                 svl.canvas.clear().render2();
             }

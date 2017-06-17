@@ -62,6 +62,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         googleMapsPaneBlinkInterval;
 
     // Used while calculation of canvas coordinates during rendering of labels
+    // TODO: Refactor it to be included in the status variable above so that we can use
+    // svl.map.setStatus("povChange", true); Instead of povChange["status"] = true;
     var povChange = {
         status: false
     };
