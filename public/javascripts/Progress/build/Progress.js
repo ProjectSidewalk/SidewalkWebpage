@@ -109,8 +109,9 @@ function Progress (_, $, c3, L) {
         function onEachNeighborhoodFeature(feature, layer) {
 
             var regionId = feature.properties.region_id,
+                regionName = feature.properties.region_name,
                 url = "/audit/region/" + regionId,
-                popupContent = "Do you want to explore this area to find accessibility issues? " + 
+                popupContent = "Do you want to find accessibility problems in " + regionName + "? " + 
                     "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
             layer.bindPopup(popupContent);
             layers.push(layer);
