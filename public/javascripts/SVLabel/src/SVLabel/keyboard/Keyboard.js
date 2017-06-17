@@ -54,7 +54,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @param degree
      */
     this._rotatePov = function (degree){
-        if (!svl.map.getStatus("lockDisablePanning") && !svl.map.getStatus("disablePanning")){
+        if (!svl.map.getStatus("disablePanning")){
             var heading =  svl.panorama.pov.heading;
             var pitch = svl.panorama.pov.pitch;
             var zoom = svl.panorama.pov.zoom;
