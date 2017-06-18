@@ -304,6 +304,16 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             zoomLevel = zoomLevelIn;
         }
         mapService.setZoom(zoomLevel);
+        var i,
+            labels = svl.labelContainer.getCanvasLabels(),
+            labelLen = labels.length;
+        for (i = 0; i < labelLen; i += 1) {
+            labels[i].setTagVisibility('hidden');
+            labels[i].resetTagCoordinate();
+        }
+        svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+        svl.canvas.clear();
+        svl.canvas.render2();
         return zoomLevel;
     }
 
