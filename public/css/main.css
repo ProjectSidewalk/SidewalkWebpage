@@ -1097,13 +1097,13 @@ kbd {
     color: #fff;
 }
 
-.navbar-xs { min-height: 35px; height: 35px; }
-.navbar-xs .navbar-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; }
+.navbar-xs { min-height: 45px; height: 45px; }
+.navbar-xs .navbar-xs-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; padding-bottom: 17px; padding-top: 0px; height: 38px; float: left; }
 .navbar-xs .navbar-nav > li > a {
     position: relative;
     display: block;
-    padding-top: 13px;
-    padding-bottom: 9px;
+    padding-top: 15px;
+    /*padding-bottom: 9px;*/
     line-height: 20px;
 
 }
