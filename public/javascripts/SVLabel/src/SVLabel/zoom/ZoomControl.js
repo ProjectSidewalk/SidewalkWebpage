@@ -259,7 +259,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!status.disableZoomIn) {
             // Cancel drawing when zooming in or out.
             canvas.cancelDrawing();
-
             var currentPov = mapService.getPov(),
                 currentZoomLevel = currentPov.zoom,
                 width = svl.canvasWidth, height = svl.canvasHeight,
@@ -301,14 +300,24 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
         zoomLevelIn = parseInt(zoomLevelIn);
-        if (zoomLevelIn < 1) {
-            zoomLevel = 1;
+        if (zoomLevelIn < properties.minZoomLevel) {
+            zoomLevel = properties.minZoomLevel;
         } else if (zoomLevelIn > properties.maxZoomLevel) {
             zoomLevel = properties.maxZoomLevel;
         } else {
             zoomLevel = zoomLevelIn;
         }
         mapService.setZoom(zoomLevel);
+        var i,
+            labels = svl.labelContainer.getCanvasLabels(),
+            labelLen = labels.length;
+        for (i = 0; i < labelLen; i += 1) {
+            labels[i].setTagVisibility('hidden');
+            labels[i].resetTagCoordinate();
+        }
+        svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+        svl.canvas.clear();
+        svl.canvas.render2();
         return zoomLevel;
     }
 
