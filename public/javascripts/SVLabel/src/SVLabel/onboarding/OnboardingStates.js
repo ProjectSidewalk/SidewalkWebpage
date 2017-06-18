@@ -4,9 +4,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
     var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
     var headingRanges = {
         "stage-1": [250, 262],
-        "stage-2": [200, 250],
-        "stage-3": [97, 220],
+        "stage-2-adjust": [200, 262],
+        "stage-2": [200, 245],
+        "stage-3-adjust": [97, 230],
+        "stage-3": [97, 180],
+        "stage-4-adjust": [7, 180],
         "stage-4": [7, 115],
+        "stage-5-adjust": [320, 115],
         "stage-5": [320, 36],
         "stage-6": [281, 14]
     };
@@ -172,12 +176,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "AdjustHeadingAngle",
                 "heading": 230,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "minHeading": headingRanges["stage-2-adjust"][0],
+                "maxHeading": headingRanges["stage-2-adjust"][1]
             },
             "message": {
-                "message": 'Great! Let’s adjust the view to look at another corner of the intersection on the left. ' +
-                '<span class="bold">Grab and drag the Street View image to the right.</span>',
+                "message": 'Great! Let’s adjust the view to look at another corner of the intersection. ' +
+                '<span class="bold">Grab and drag the Street View image to look left.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -380,7 +384,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": 'Now click beneath the flashing yellow arrow to <span class="bold">label the missing curb ramp.</span>',
+                "message": 'Now click beneath the flashing yellow arrow to <span class="bold">label the missing ' +
+                'curb ramp.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -487,8 +492,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "AdjustHeadingAngle",
                 "heading": 177,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-3-adjust"][0],
+                "maxHeading": headingRanges["stage-3-adjust"][1]
             },
             "message": {
                 "message": 'Look to the left by <span class="bold">grabbing and dragging the Street View image.</span>',
@@ -510,8 +515,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "AdjustHeadingAngle",
                 "heading": 115,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-3-adjust"][0],
+                "maxHeading": headingRanges["stage-3-adjust"][1]
             },
             "message": {
                 "message": 'Keep going <span class="bold">left</span>.',
@@ -1047,12 +1052,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "AdjustHeadingAngle",
                 "heading": 20,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "minHeading": headingRanges["stage-4-adjust"][0],
+                "maxHeading": headingRanges["stage-4-adjust"][1]
             },
             "message": {
                 "message": 'Awesome! Let’s finish labeling the last curb ramp in the intersection. ' +
-                'First, <span class="bold">grab and drag the Street View image to the right.</span>',
+                'First, <span class="bold">grab and drag the Street View image.</span>',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1110,7 +1115,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
-                "message": '<span class="bold">Click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": '<span class="bold">Click on the curb ramp</span> beneath the flashing yellow arrow to label.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1193,12 +1198,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "AdjustHeadingAngle",
                 "heading": 346,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-5"][0],
-                "maxHeading": headingRanges["stage-5"][1]
+                "minHeading": headingRanges["stage-5-adjust"][0],
+                "maxHeading": headingRanges["stage-5-adjust"][1]
             },
             "message": {
-                "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. ' +
-                '<span class="bold">Grab and drag the Street View image to the right</span>.',
+                "message": 'Great Job! We are almost done. Let\'s learn how to walk and find issues. ' +
+                '<span class="bold">Grab and drag the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1220,7 +1225,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": 'Great! To take a step, <span class="bold">double click on the street</span> in the ' +
+                "message": 'Good! To take a step, <span class="bold">double click on the street</span> in the ' +
                 'direction you want to move. In this case, double click in the circle below.',
                 "position": "top-right",
                 "parameters": null
@@ -1251,13 +1256,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'There is a crosswalk but no curb ramps beneath the flashing yellow arrows. ' +
-                'You would label them with a missing curb ramp label ' +
-                '(<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
-                '" style="width: 10%; height:auto" alt="Missing Curb Ramp Label">). However, let\'s finish learning about ' +
+                "message": 'You found some issues after walking here! There are <span class="bold">no curb ramps</span> ' +
+                'for this crosswalk. ' +
+                'You would label them with a Missing Curb Ramp ' +
+                '<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
+                '" style="width: 7%; height:auto" alt="Missing Curb Ramp Label">. However, let\'s finish learning about ' +
                 'the <span class="bold">rest of the interface</span>.',
                 "position": "top-right",
-                "parameters": null
+                "width": 400
             },
             "panoId": afterWalkPanoId,
             "annotations": [
@@ -1301,7 +1307,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'From here on, we\'ll guide you through your missions with <span class="bold">navigation' +
-                ' messages</span> shown here.',
+                ' messages</span> shown in this area.',
                 "position": "top-right",
                 "fade-direction": "fadeInDown",
                 "arrow": "bottom",
@@ -1355,7 +1361,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'Your <span class="bold">progress</span> will be tracked and shown here.',
+                "message": 'Your mission <span class="bold">progress</span> will be tracked and shown here.',
                 "position": "top-right",
                 "arrow": "right",
                 "fade-direction": "fadeInLeft",
