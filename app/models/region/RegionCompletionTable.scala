@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
-case class NamedRegionCompletion(regionId: Int, name: Option[String], geom: Polygon, totalDistance: Double, auditedDistance: Double)
+case class NamedRegionCompletion(regionId: Int, name: Option[String], totalDistance: Double, auditedDistance: Double)
 
 class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, Some("sidewalk"), "region_completion") {
   def regionId = column[Int]("region_id", O.PrimaryKey)
@@ -66,14 +66,14 @@ object RegionCompletionTable {
     * Returns a list of all neighborhoods with names
     * @return
     */
-//  def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
-//    val namedRegionCompletions = for {
-//      (_neighborhoodCompletions, (_neighborhoods, _regionProperties)) <- regionCompletions.innerJoin(neighborhoods).on(_.regionId === _regionID).leftJoin(regionProperties).on(_.regionId === _.regionId)
-//      if _regionProperties.key === "Neighborhood Name"
-//    } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom, _neighborhoodCompletions.total_distance, _neighborhoodCompletions.audited_distance)
-//
-//    namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))
-//  }
+  def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
+    val namedRegionCompletions = for {
+      (_neighborhoodCompletions, _regionProperties) <- regionCompletions.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      if _regionProperties.key === "Neighborhood Name"
+    } yield (_neighborhoodCompletions.regionId, _regionProperties.value.?, _neighborhoodCompletions.totalDistance, _neighborhoodCompletions.auditedDistance)
+
+    namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))
+  }
   /**
     *
     */

@@ -112,7 +112,6 @@ function Admin(_, $, c3, turf) {
         });  // Remove zeros
         var numberOfBins = 10;
         var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-        // console.log(histogram);
         var counts = histogram.histogram;
         counts.unshift("Count");
         var bins = histogram.histogram.map(function (x, i) {
@@ -354,7 +353,6 @@ function Admin(_, $, c3, turf) {
         }
 
         $.getJSON("/neighborhoods", function (data) {
-            console.log(data);
             neighborhoodPolygonLayer = L.geoJson(data, {
                 style: function (feature) {
                     return $.extend(true, {}, neighborhoodPolygonStyle);
@@ -869,7 +867,6 @@ function Admin(_, $, c3, turf) {
             });
             // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
-                console.log(data);
                 function cmp(a, b) {
                     return a.timestamp - b.timestamp;
                 }
@@ -1036,7 +1033,6 @@ function Admin(_, $, c3, turf) {
 
                 // make charts showing neighborhood completion rate
                 data.sort(function(a, b) {return (a["rate"] > b["rate"]) ? 1 : ((b["rate"] > a["rate"]) ? -1 : 0);} );
-                console.log(data);
                 var coverageRateChart = {
                     "width": 600,
                     "height": 800,

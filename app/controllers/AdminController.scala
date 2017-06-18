@@ -106,23 +106,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       RegionCompletionTable.initializeRegionCompletionTable()
 
-      // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
-      val CRSEpsg4326 = CRS.decode("epsg:4326")
-      val CRSEpsg26918 = CRS.decode("epsg:26918")
-      val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
-
-
-      val neighborhoods = RegionTable.selectAllNamedNeighborhoods
+      val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
       val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
-        val streets: List[StreetEdge] = StreetEdgeTable.selectStreetsByARegionId(neighborhood.regionId)
-        val auditedStreets: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsByARegionId(neighborhood.regionId)
-
-        val completedDistance = auditedStreets.map(s => JTS.transform(s.geom, transform).getLength).sum
-        val totalDistance = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
         Json.obj("region_id" -> neighborhood.regionId,
-          "total_distance_m" -> totalDistance,
-          "completed_distance_m" -> completedDistance,
-          "rate" -> 100.0 * completedDistance / totalDistance,
+          "total_distance_m" -> neighborhood.totalDistance,
+          "completed_distance_m" -> neighborhood.auditedDistance,
+          "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
           "name" -> neighborhood.name
         )
       }
