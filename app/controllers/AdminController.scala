@@ -13,13 +13,14 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable}
 import models.mission.MissionTable
-import models.region.RegionTable
+import models.region.{RegionCompletionTable, RegionTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.User
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.extras.geojson
+
 
 import scala.concurrent.Future
 
@@ -103,6 +104,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
+      RegionCompletionTable.initializeRegionCompletionTable()
 
       // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
       val CRSEpsg4326 = CRS.decode("epsg:4326")
