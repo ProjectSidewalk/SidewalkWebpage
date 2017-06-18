@@ -1160,28 +1160,36 @@ function Admin(_, $, c3, turf) {
                     counts = ['Label Count'].concat(data[0].map(function (x) {
                         return x.count;
                     }));
-                var chart = c3.generate({
-                    bindto: "#label-count-chart",
-                    data: {
-                        x: 'Date',
-                        columns: [dates, counts],
-                        types: {'Audit Count': 'line'}
-                    },
-                    axis: {
-                        x: {
-                            type: 'timeseries',
-                            tick: {format: '%Y-%m-%d'}
+                var chart = {
+                    // "height": 800,
+                    "height": 300,
+                    "width": 800,
+                    "mark": "area",
+                    "data": {"values": data[0], "format": {"type": "json"}},
+                    "encoding": {
+                        "x": {
+                            "field": "date",
+                            "type": "temporal",
+                            "axis": {"title": "Date", "labelAngle": 0}
                         },
-                        y: {
-                            label: "Label Count",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
+                        "y": {
+                            "field": "count",
+                            "type": "quantitative",
+                            "axis": {
+                                "title": "# Labels per Day"
+                            }
                         }
                     },
-                    legend: {
-                        show: false
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
                     }
-                });
+                };
+                var opt = {
+                    "mode": "vega-lite"
+                };
+                vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
             self.graphsLoaded = true;
         }
