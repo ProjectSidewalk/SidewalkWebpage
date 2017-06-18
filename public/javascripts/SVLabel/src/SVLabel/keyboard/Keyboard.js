@@ -61,30 +61,36 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
-        if (contextMenu.isOpen()) {
+        //equal button || - button
+        if (e.keyCode == 187 || e.keyCode == 189) {
+            svl.contextMenu.hide();
             return;
-        } else if (!status.focusOnTextField) {
-            // lock scrolling in response to key pressing
-            switch (e.keyCode) {
-                case 16:  // "Shift"
-                    status.shiftDown = true;
-                    break;
-                case 37:  // "Left"
-                    self._rotatePov(-2);
-                    break;
-                case 39:  // "Right"
-                    self._rotatePov(2);
-                    break;
-                case 38:
-                    self._moveForward();
-                    break;
-                case 40:  // "down"
-                    self._moveBackward();
-                    break;
-            }
+        }
+        if (!status.focusOnTextField) {
 
-            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-                e.preventDefault();
+            if (e.keyCode == 16) { //shift key
+                status.shiftDown = true;
+            }
+            if (!svl.contextMenu.isOpen()){
+                // lock scrolling in response to key pressing
+                switch (e.keyCode) {
+                    case 37:  // "Left"
+                        self._rotatePov(-2);
+                        break;
+                    case 39:  // "Right"
+                        self._rotatePov(2);
+                        break;
+                    case 38:
+                        self._moveForward();
+                        break;
+                    case 40:  // "down"
+                        self._moveBackward();
+                        break;
+                }
+
+                if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                    e.preventDefault();
+                }
             }
         }
     };
@@ -216,6 +222,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
+                    if (contextMenu.isOpen()){
+                        contextMenu.hide();
+                    }
                     if (status.shiftDown) {
                         // Zoom out
                         zoomControl.zoomOut();
