@@ -426,7 +426,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
             if ("arrow" in parameters) {
                 uiOnboarding.messageHolder.addClass("callout " + parameters.arrow);
-                //uiOnboarding.messageHolder.addClass("animated fadeIn");
             }
 
             if ("fade-direction" in parameters) {
@@ -544,6 +543,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.constructor == Array) {
+
+                //Restrict panning
+                mapService.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
+
                 // Ideally we need a for loop that goes through every element of the property array
                 // and calls the corresponding action's handler.
                 // Not just the label accessibility attribute's handler
@@ -552,6 +555,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 }
             }
             else {
+                //Restrict panning
+                mapService.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
+
                 if (state.properties.action == "Introduction") {
                     _visitIntroduction(state, annotationListener);
                 } else if (state.properties.action == "SelectLabelType") {
