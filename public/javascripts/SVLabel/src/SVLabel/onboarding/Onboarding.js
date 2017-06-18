@@ -639,7 +639,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         // get the original pov heading
         var originalHeading = mapService.getPov().heading;
-        console.log("OrigPOVHeading::" + originalHeading);
         var tolerance = 20;
 
         var _checkToHideGrabAndDragAnimation = function (currentHeading) {
@@ -655,23 +654,19 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
             var currentHeading = mapService.getPov().heading;
             var distanceFromCurrentHeading = currentHeading - originalHeading;
-            console.log("\n\nCurrent Heading::" + currentHeading);
-            console.log("Distance from OriginalHeading::" + distanceFromCurrentHeading);
 
             if (distanceFromCurrentHeading <= 0) {
-                console.log("Previous Distance" + prevDistance);
                 if (prevDistance <= 0) {
                     clearArrow();
                     isWrong = false;
 
                     if (myTimer) {
-                        console.error("Clearing Timer");
+                        //console.error("Clearing Timer");
                         clearInterval(myTimer);
                         myTimer = null;
                     }
                 }
                 // normal drag
-                console.log("Normal Drag");
                 _checkToHideGrabAndDragAnimation(currentHeading)
             }
             else {
@@ -688,7 +683,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
                             if (!isWrong) {
                                 // set a timer to animate the arrow every 500ms
-                                console.error("Activating timer");
+                                //console.error("Activating timer");
                                 myTimer = setInterval(drawArrowAnimate, 500);
                                 isWrong = true;
                             }
