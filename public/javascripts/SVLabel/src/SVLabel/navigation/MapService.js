@@ -62,6 +62,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         googleMapsPaneBlinkInterval;
 
     // Used while calculation of canvas coordinates during rendering of labels
+    // TODO: Refactor it to be included in the status variable above so that we can use
+    // svl.map.setStatus("povChange", true); Instead of povChange["status"] = true;
     var povChange = {
         status: false
     };
@@ -296,6 +298,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     moveToTheTaskLocation(task);
                 }
             }
+            initialPositionUpdate = true;
         };
 
         var geometry = task.getGeometry();
@@ -637,7 +640,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      *  Issue #537
      */
     function jumpImageryNotFound() {
-
+        initialPositionUpdate = true;
         var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodName = currentNeighborhood.getProperty("name");
 
@@ -963,10 +966,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         // Set the heading angle when the user is dropped to the new position
         if (initialPositionUpdate && 'compass' in svl) {
-            var pov = svl.panorama.getPov(),
-                compassAngle = svl.compass.getCompassAngle();
-            pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
-            svl.panorama.setPov(pov);
+            setPovToRouteDirection();
             initialPositionUpdate = false;
         }
 
@@ -1152,9 +1152,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();
-            var zoom = pov.zoom;
+            var zoom = Math.round(pov.zoom);
             var zoomLevel = svl.zoomFactor[zoom];
-
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;
@@ -1576,10 +1575,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var pov = svl.panorama.getPov(),
                 alpha = 0.25;
-
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-
             // View port restriction.
             // Do not allow users to look up the sky or down the ground.
             // If specified, do not allow users to turn around too much by restricting the heading angle.
@@ -1588,7 +1585,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             } else if (pov.pitch < properties.minPitch) {
                 pov.pitch = properties.minPitch;
             }
-
             if (properties.minHeading && properties.maxHeading) {
                 if (properties.minHeading <= properties.maxHeading) {
                     if (pov.heading > properties.maxHeading) {
@@ -1607,7 +1603,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                 }
             }
-
             // Update the status of pov change
             povChange["status"] = true;
 
@@ -1820,6 +1815,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.panorama.setZoom(zoomLevel);
     }
 
+    function setPovToRouteDirection(){
+        var pov = svl.panorama.getPov(),
+            compassAngle = svl.compass.getCompassAngle();
+        pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
+        svl.panorama.setPov(pov);
+    }
+
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
@@ -1867,7 +1869,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
-
+    self.setPovToRouteDirection = setPovToRouteDirection;
 
     _init(params);
     return self;
