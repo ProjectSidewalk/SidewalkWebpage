@@ -86,20 +86,20 @@ object RegionCompletionTable {
     * @param streetEdgeId street edge id
     * @return
     */
-//  def updateCompletedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
-//    // if so, get length of the street edge, add it to region's completed distance
-//    // if not, do nothing
-//    val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
-//    val regionId: Int = streetEdgeRegion.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list.head
-//
-//    val q = for { regionCompletion <- regionCompletions if regionCompletion.regionId === regionId } yield regionCompletion
-//
-//    val updatedDist = q.firstOption match {
-//      case Some(rC) => q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
-//      case None => -1
-//    }
-//    updatedDist
-//  }
+  def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
+    val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
+    println(distToAdd)
+    val regionId: Int = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list.head
+    println(regionId)
+
+    val q = for { regionCompletion <- regionCompletions if regionCompletion.regionId === regionId } yield regionCompletion
+
+    val updatedDist = q.firstOption match {
+      case Some(rC) => q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
+      case None => -1
+    }
+    updatedDist
+  }
 
   def initializeRegionCompletionTable() = db.withTransaction { implicit session =>
 
