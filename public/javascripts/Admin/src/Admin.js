@@ -869,6 +869,7 @@ function Admin(_, $, c3, turf) {
             });
             // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
+                console.log(data);
                 function cmp(a, b) {
                     return a.timestamp - b.timestamp;
                 }
@@ -878,7 +879,7 @@ function Admin(_, $, c3, turf) {
                 var grouped = _.groupBy(data, function (x) {
                     return x.audit_task_id;
                 });
-                var completionDurationArray = [];
+                var onboardingTimes = [];
                 var record1;
                 var record2;
                 var duration;
@@ -887,57 +888,69 @@ function Admin(_, $, c3, turf) {
                     record1 = grouped[auditTaskId][0];
                     record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
                     duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
-                    completionDurationArray.push(duration);
-                }
-                completionDurationArray.sort(function (a, b) {
-                    return a - b;
-                });
-
-                // Bounce rate
-                var zeros = _.countBy(completionDurationArray, function (x) {
-                    return x == 0;
-                });
-                var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
-
-                // Histogram of duration
-                completionDurationArray = completionDurationArray.filter(function (x) {
-                    return x != 0;
-                });  // Remove zeros
-                var numberOfBins = 10;
-                var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-                // console.log(histogram);
-                var counts = histogram.histogram;
-                counts.unshift("Count");
-                var bins = histogram.histogram.map(function (x, i) {
-                    return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1);
-                });
-
-                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
-
-                var chart = c3.generate({
-                    bindto: '#onboarding-completion-duration-histogram',
-                    data: {
-                        columns: [
-                            counts
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            label: "Onboarding Completion Time (minutes)",
-                            type: 'category',
-                            categories: bins
-                        },
-                        y: {
-                            label: "Count",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
-                        }
-                    },
-                    legend: {
-                        show: false
+                    if (duration != 0) {
+                        onboardingTimes.push({duration: duration});
                     }
-                });
+                }
+
+                var chart = {
+                    "width": 400,
+                    "height": 200,
+                    "data": {"values": onboardingTimes},
+                    "transform": [
+                        {
+                            "calculate": "min(10, datum.duration)", "as": "binned"
+                        }
+                    ],
+                    "layer": [
+                        {
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {
+                                    "bin": {
+                                        "maxbins": 10
+                                    },
+                                    "field": "binned", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Onboarding Completion Time (minutes)", "labelAngle": 0
+                                    }
+                                },
+                                "y": {
+                                    "aggregate": "count", "field": "binned", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
+                            }
+                        },
+                        { // creates red line marking mean completion rate
+                            "mark": "rule",
+                            "encoding": {
+                                "x": {
+                                    "aggregate": "mean", "field": "duration", "type": "quantitative"
+                                },
+                                "color": {
+                                    "value": "red",
+                                    "legend": {
+                                        "title": "Summary Stats"
+                                    }
+                                },
+                                "size": {
+                                    "value": 3
+                                }
+                            }
+                        }
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                var opt = {
+                    "mode": "vega-lite"
+                };
+                vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
@@ -1000,7 +1013,6 @@ function Admin(_, $, c3, turf) {
                 };
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
-
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
 
                 // make a choropleth of neighborhood completion percentages
@@ -1061,8 +1073,8 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
 
                 var coverageRateHist = {
-                    "width": 500,
-                    "height": 500,
+                    "width": 400,
+                    "height": 400,
                     "data": {
                         "values": data, "format": {
                             "type": "json"
@@ -1084,7 +1096,7 @@ function Admin(_, $, c3, turf) {
                                     },
                                     "field": "rate", "type": "quantitative",
                                     "axis": {
-                                        "title": "Neighborhood Completion Percentage"
+                                        "title": "Neighborhood Completion Percentage", "labelAngle": 0
                                     }
                                 },
                                 "y": {
@@ -1095,11 +1107,12 @@ function Admin(_, $, c3, turf) {
                                 }
                             }
                         },
-                        { // creates red line marking mean completion rate
+                        { // creates red line marking mean completion time
                             "mark": "rule",
                             "encoding": {
                                 "x": {
-                                    "aggregate": "mean", "field": "rate", "type": "quantitative"
+                                    "aggregate": "mean", "field": "rate", "type": "quantitative",
+                                    "axis": {"labels": false, "title": ""}
                                 },
                                 "color": {
                                     "value": "red",
@@ -1152,7 +1165,6 @@ function Admin(_, $, c3, turf) {
                     }
                 });
             });
-
             $.getJSON("/userapi/labelCounts/all", function (data) {
                 var dates = ['Date'].concat(data[0].map(function (x) {
                         return x.date;
