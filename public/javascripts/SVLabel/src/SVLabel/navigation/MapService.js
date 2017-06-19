@@ -923,7 +923,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Todo. Wrote this ad-hoc. Clean up and test later.
     var positionUpdateCallbacks = [];
     self.bindPositionUpdate = function (callback) {
-        if (typeof callback == "function") {
+        if (typeof callback == 'function') {
             positionUpdateCallbacks.push(callback);
         }
     };
@@ -970,9 +970,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             initialPositionUpdate = false;
         }
 
-        //
+        // Calling callbacks for position_changed event
         for (var i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
-            positionUpdateCallbacks[i]();
+            var callback = positionUpdateCallbacks[i];
+            if (typeof callback == 'function') {
+                callback();
+            }
         }
     }
 
@@ -1096,6 +1099,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                 STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
                                     self.setPano(streetViewPanoramaData.location.pano);
+                                    //self.handlerPositionUpdate();
                                 }
                                 else{
                                     var currentTask = svl.taskContainer.getCurrentTask();
@@ -1745,7 +1749,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This funciton sets the current status of the instantiated object
+     * This function sets the current status of the instantiated object
      * @param key
      * @param value
      * @returns {*}
@@ -1865,6 +1869,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.setPov = setPov;
     self.setStatus = setStatus;
     self.setZoom = setZoom;
+    self.showLinks = showLinks;
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
