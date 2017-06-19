@@ -263,7 +263,7 @@ function Admin(_, $, c3, turf) {
                         weight: 1,
                         opacity: 0.25,
                         fillColor: getColor2(rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate / 100)
+                        fillOpacity: 0.25 + (0.5 * rates[i].rate)
                     }
                 }
             }
@@ -676,55 +676,63 @@ function Admin(_, $, c3, turf) {
                 var record2;
                 var duration;
                 var bounceCount = 0;
+                var sum = 0;
                 for (var auditTaskId in grouped) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
                     record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
                     duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
-                    if (duration != 0) onboardingTimes.push({duration: duration});
+                    if (duration != 0) {
+                        onboardingTimes.push({duration: duration, binned: Math.min(10.0, duration)});
+                        sum += duration;
+                    }
                     else bounceCount++;
                 }
                 var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
                 $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
+                var mean = sum / onboardingTimes.length;
+                onboardingTimes.sort(function(a, b) {return (a.duration > b.duration) ? 1 : ((b.duration > a.duration) ? -1 : 0);} );
+                var i = onboardingTimes.length / 2;
+                var median = i % 1 == 0 ? (onboardingTimes[i - 1].duration + onboardingTimes[i].duration) / 2 : onboardingTimes[Math.floor(i)].duration;
+
                 var chart = {
                     "width": 400,
                     "height": 200,
-                    "data": {"values": onboardingTimes},
-                    "transform": [
-                        {
-                            "calculate": "min(10, datum.duration)", "as": "binned"
-                        }
-                    ],
                     "layer": [
                         {
+                            "data": {"values": onboardingTimes},
                             "mark": "bar",
                             "encoding": {
                                 "x": {
-                                    "bin": {
-                                        "maxbins": 10
-                                    },
+                                    "bin": {"maxbins": 10},
                                     "field": "binned", "type": "quantitative",
                                     "axis": {
-                                        "title": "Onboarding Completion Time (minutes)", "labelAngle": 0
+                                        "title": "Onboarding Completion Time (minutes)", "labelAngle": 0,
+                                        "scale": {"domain": [0,10]}
                                     }
                                 },
                                 "y": {
-                                    "aggregate": "count", "field": "binned", "type": "quantitative",
+                                    "aggregate": "count", "field": "*", "type": "quantitative",
                                     "axis": {
                                         "title": "Counts"
                                     }
                                 }
                             }
                         },
-                        { // creates red line marking mean completion rate
+                        { // creates lines marking summary statistics
+                            "data": {"values": [
+                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                            },
                             "mark": "rule",
                             "encoding": {
                                 "x": {
-                                    "aggregate": "mean", "field": "duration", "type": "quantitative"
+                                    "field": "value", "type": "quantitative",
+                                    "axis": {"labels": false, "ticks": false, "title": ""},
+                                    "scale": {"domain": [0,10]}
                                 },
                                 "color": {
-                                    "value": "orange",
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["red", "orange"]},
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
@@ -735,6 +743,7 @@ function Admin(_, $, c3, turf) {
                             }
                         }
                     ],
+                    "resolve": {"x": {"scale": "independent"}},
                     "config": {
                         "axis": {
                             "titleFontSize": 16
@@ -818,6 +827,15 @@ function Admin(_, $, c3, turf) {
 
                 // make charts showing neighborhood completion rate
                 data.sort(function(a, b) {return (a["rate"] > b["rate"]) ? 1 : ((b["rate"] > a["rate"]) ? -1 : 0);} );
+                var sum = 0;
+                for (var j = 0; j < data.length; j++) {
+                    data[j].rate *= 100.0;
+                    sum += data[j].rate;
+                }
+                var mean = sum / data.length;
+                var i = data.length / 2;
+                var median = (data.length / 2) % 1 == 0 ? (data[i - 1].rate + data[i].rate) / 2 : data[Math.floor(i)].rate;
+
                 var coverageRateChart = {
                     "width": 600,
                     "height": 800,
@@ -856,19 +874,9 @@ function Admin(_, $, c3, turf) {
                 var coverageRateHist = {
                     "width": 400,
                     "height": 400,
-                    "data": {
-                        "values": data, "format": {
-                            "type": "json"
-                        }
-                    },
-                    "transform": [
-                        { // taking min fixes rounding problems
-                            "calculate": "min(99.9999, 100.0 * datum.completed_distance_m / datum.total_distance_m)",
-                            "as": "rate"
-                        }
-                    ],
                     "layer": [
                         {
+                            "data": {"values": data},
                             "mark": "bar",
                             "encoding": {
                                 "x": {
@@ -888,15 +896,19 @@ function Admin(_, $, c3, turf) {
                                 }
                             }
                         },
-                        { // creates red line marking mean completion time
+                        { // creates lines marking summary statistics
+                            "data": {"values": [
+                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                            },
                             "mark": "rule",
                             "encoding": {
                                 "x": {
-                                    "aggregate": "mean", "field": "rate", "type": "quantitative",
-                                    "axis": {"labels": false, "title": ""}
+                                    "field": "value", "type": "quantitative",
+                                    "axis": {"labels": false, "ticks": false, "title": ""},
+                                    "scale": {"domain": [0,100]}
                                 },
                                 "color": {
-                                    "value": "orange",
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["red", "orange"]},
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
@@ -907,6 +919,7 @@ function Admin(_, $, c3, turf) {
                             }
                         }
                     ],
+                    "resolve": {"x": {"scale": "independent"}},
                     "config": {
                         "axis": {
                             "titleFontSize": 16
