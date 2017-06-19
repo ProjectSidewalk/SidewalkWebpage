@@ -1,4 +1,4 @@
-function Admin(_, $, turf) {
+function Choropleth(_, $, turf) {
     var neighborhoodPolygonLayer;
 
 // Construct a bounding box for these maps that the user cannot move out of
@@ -39,15 +39,8 @@ function Admin(_, $, turf) {
      * @param p {float} represents a completion percentage, between 0 and 100
      * @returns {string} color in hex
      */
-    function getColor(p) {
-        return p > 80 ? '#08519c' :
-            p > 60 ? '#3182bd' :
-                p > 40 ? '#6baed6' :
-                    p > 20 ? '#bdd7e7' :
-                        '#eff3ff';
-    }
 
-    function getColor2(p) {
+    function getColor(p) {
         return p > 90 ? '#08306b' :
             p > 80 ? '#08519c' :
                 p > 70 ? '#08719c' :
@@ -58,40 +51,6 @@ function Admin(_, $, turf) {
                                     p > 20 ? '#c6dbef' :
                                         p > 10 ? '#deebf7' :
                                             '#f7fbff';
-    }
-
-    function getColor3(p) {
-        return p > 90 ? '#023858' :
-            p > 80 ? '#045a8d' :
-                p > 70 ? '#0570b0' :
-                    p > 60 ? '#3690c0' :
-                        p > 50 ? '#74a9cf' :
-                            p > 40 ? '#a6bddb' :
-                                p > 30 ? '#d0d1e6' :
-                                    p > 20 ? '#ece7f2' :
-                                        p > 10 ? '#fff7fb' :
-                                            '#ffffff';
-    }
-
-    function getColor4(p) {
-        return p > 80 ? '#045a8d' :
-            p > 60 ? '#2b8cbe' :
-                p > 40 ? '#74a9cf' :
-                    p > 20 ? '#bdc9e1' :
-                        '#f1eef6';
-    }
-
-    function getOpacity(p) {
-        return p > 90 ? 1.0 :
-            p > 80 ? 0.9 :
-                p > 70 ? 0.8 :
-                    p > 60 ? 0.7 :
-                        p > 50 ? 0.6 :
-                            p > 40 ? 0.5 :
-                                p > 30 ? 0.4 :
-                                    p > 20 ? 0.3 :
-                                        p > 10 ? 0.2 :
-                                            0.1;
     }
 
     /**
@@ -117,7 +76,7 @@ function Admin(_, $, turf) {
                         color: '#888',
                         weight: 1,
                         opacity: 0.25,
-                        fillColor: getColor2(100.0 * rates[i].rate),
+                        fillColor: getColor(100.0 * rates[i].rate),
                         fillOpacity: 0.25 + (0.5 * rates[i].rate)
                     }
                 }
@@ -173,7 +132,6 @@ function Admin(_, $, turf) {
                     if (currentLayer !== layers[i])
                         layers[i].setStyle({opacity: 0.25, weight: 1});
                 }
-                //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
                 var center = turf.center(this.feature),
