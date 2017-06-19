@@ -73,7 +73,6 @@ footer {
  */
 .navbar-brand {
     font-size: 24px;
-
 }
 
 .navbar-container {
@@ -90,7 +89,6 @@ footer {
 
 .navbar-brand.fixed-theme {
     font-size: 18px;
-;
 }
 
 .navbar-container.fixed-theme {
@@ -155,7 +153,7 @@ footer {
 }
 .navbarStartBtn:active {
     position:relative;
-    top:1px;
+    top:8px;
 }
 
 
@@ -271,7 +269,6 @@ video#bgvid {
     perspective:1000;
     position:fixed;
     right:0;
-
     z-index:-1;
 }
 
@@ -770,6 +767,7 @@ video#bgvid {
     background-color: white;
     width: 100%;
     height: 100%;
+    position: fixed;
 }
 .numbers-largefont {
     font-family: raleway, sans-serif;
@@ -1099,4 +1097,29 @@ kbd {
     font-variant: normal;
     font-weight: bold;
     color: #fff;
+}
+
+#page-loading{
+    position:absolute;
+    max-width:45%;
+    max-height:45%;
+    top:33%;
+    left:50%;
+    overflow:visible;
+}
+#loading-gif {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    margin-top: -50%;
+    margin-left: -50%;
+}
+.navbar-xs { min-height: 45px; height: 45px; }
+.navbar-xs .navbar-xs-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; padding-bottom: 17px; padding-top: 0px; height: 38px; float: left; }
+.navbar-xs .navbar-nav > li > a {
+    position: relative;
+    display: block;
+    padding-top: 15px;
+    /*padding-bottom: 9px;*/
+    line-height: 20px;
 }
