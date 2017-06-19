@@ -724,13 +724,13 @@ function Admin(_, $, c3, turf) {
                                     "aggregate": "mean", "field": "duration", "type": "quantitative"
                                 },
                                 "color": {
-                                    "value": "red",
+                                    "value": "orange",
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
                                 },
                                 "size": {
-                                    "value": 3
+                                    "value": 2
                                 }
                             }
                         }
@@ -896,13 +896,13 @@ function Admin(_, $, c3, turf) {
                                     "axis": {"labels": false, "title": ""}
                                 },
                                 "color": {
-                                    "value": "red",
+                                    "value": "orange",
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
                                 },
                                 "size": {
-                                    "value": 3
+                                    "value": 2
                                 }
                             }
                         }
