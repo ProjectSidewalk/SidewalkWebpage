@@ -310,7 +310,7 @@ function Admin(_, $, c3, turf) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 5});
+                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
 
             });
             layer.on('mouseout', function (e) {
