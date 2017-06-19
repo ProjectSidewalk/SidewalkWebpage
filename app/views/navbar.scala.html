@@ -25,14 +25,30 @@
                     </li>
 
                 } else {
-                    
+
                     <li>
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
+
                 }
-
-
-
+                @if(url.get == "/audit"){
+                    <script type="text/javascript">
+                         $("#biglogo").css("top", "0px");
+                         $("#biglogo").css("height", "28px" ); //logo resize
+                         $("#biglogo").css("width", "auto" );
+                         $("#header").css("max-height", "45px");
+                         $("#header-container").css("max-height", "45px");
+                         $("#header-container").css("top", "-13px"); //logo margin
+                         $("#header").addClass("navbar-xs");
+                         $("#header").removeClass("navbar");
+                         $("#brand").addClass("navbar-xs-brand");
+                         $("#brand").removeClass("navbar-brand");
+                         $("#navbar").css("margin-top", "16px"); //button margin
+                         $(".navbar-header").css("top", "0px");
+                         $("body").css("padding-top", "14px");
+                    </script>
+                }
+                
                 @if(user) {
                     <li>
                     <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
@@ -61,7 +77,7 @@
                 } else {
 
                     <li class="active">
-                    <!--<a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">--><button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Login</button>
+                    <!--<a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">--><button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Sign in</button>
                     </li>
                 }
             </ul>

@@ -120,6 +120,11 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 if (svl.map) {
                     svl.map.modeSwitchLabelClick();
                 }
+
+                // Change cursor before mouse is moved
+                if (svl.ui.canvas.drawingLayer) {
+                    svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
+                }
             }
 
             if (uiRibbonMenu) {
@@ -131,7 +136,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
                 uiRibbonMenu.streetViewHolder.css("border-color", borderColor);
             }
-
+			
+			
+			
             // Set the instructional message
             overlayMessageBox.setMessage(labelType);
             overlayMessageBox.setHelpLink(labelType);
