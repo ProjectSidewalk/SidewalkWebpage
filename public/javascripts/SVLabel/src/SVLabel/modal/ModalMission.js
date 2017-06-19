@@ -79,7 +79,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
         uiModalMission.background.css('visibility', 'hidden');
-        //svl.popUpMessage.enableInteractions();
+        svl.popUpMessage.enableInteractions();
     };
 
     /** Show a mission */
@@ -104,7 +104,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             templateHTML,
             missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
 
-
+        svl.popUpMessage.disableInteractions();
         if (label == "distance-mission") {
             var auditDistance,
                 distanceString;
