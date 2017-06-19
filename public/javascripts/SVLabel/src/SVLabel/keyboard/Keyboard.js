@@ -16,10 +16,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
 
     this.disableKeyboard = function (){
         status.disableKeyboard = true;
-    }
+    };
     this.enableKeyboard = function (){
         status.disableKeyboard = false;
-    }
+    };
     // Move in the direction of a link closest to a given angle.
     // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
     // Todo. Make the method name more descriptive.
@@ -92,6 +92,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 case 40:  // "down"
                     self._moveBackward();
                     break;
+            }
         }
         if (!status.focusOnTextField) {
 
