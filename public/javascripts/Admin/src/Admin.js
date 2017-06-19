@@ -67,7 +67,10 @@ function Admin(_, $, c3, turf) {
             // http://leafletjs.com/reference.html#map-maxbounds
             maxBounds: bounds,
             maxZoom: 19,
-            minZoom: 9
+            minZoom: 9,
+            legendControl: {
+                position: 'bottomleft'
+            }
         })
             .addLayer(bwTile)
             .fitBounds(bounds)
@@ -293,21 +296,21 @@ function Admin(_, $, c3, turf) {
                     }
                     else if (milesLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left! " +
+                            "\% Complete<br>Less than a mile left!<br>" +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            "to help finish this neighborhood!";
+                            " to help finish this neighborhood!";
                     }
                     else if (milesLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left! " +
+                            milesLeft + " mile left!<br>" +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            "to help finish this neighborhood!";
+                            " to help finish this neighborhood!";
                     }
                     else {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left! " +
+                            milesLeft + " miles left!<br>" +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            "to help finish this neighborhood!";
+                            " to help finish this neighborhood!";
                     }
                     break;
                 }
@@ -817,19 +820,7 @@ function Admin(_, $, c3, turf) {
 
                 // make a choropleth of neighborhood completion percentages
                 initializeChoroplethNeighborhoodPolygons(choropleth, data);
-                var legend = L.control({position: 'bottomleft'});
-                legend.onAdd = function(map) {
-                    var div = L.DomUtil.create('div', 'map-label-legend'),
-                        percentages = [0, 20, 40, 60, 80, 100],
-                        labels = [];
-                    for (var i = 0; i < percentages.length - 1; i++) {
-                        div.innerHTML += '<i style="background:' + getColor(percentages[i] + 1) + '"></i> ' +
-                            percentages[i] + '&ndash;' + percentages[i + 1] + '<br>';
-                    }
-                    return div;
-                };
-                legend.addTo(choropleth);
-
+                choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
                 setTimeout(function () {
                     choropleth.invalidateSize(false);
                 }, 1);

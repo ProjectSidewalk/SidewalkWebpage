@@ -24,6 +24,18 @@
     height: 800px;
 }
 
+.legend label,
+.legend span {
+    display:block;
+    float:right;
+    height:15px;
+    width:20%;
+    text-align:center;
+    font-size:9px;
+    color:#808080;
+}
+
+
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
@@ -31,14 +43,6 @@
     width: 400px;
     bottom: 15px;
     border: solid 1px #ccc;
-}
-
-#map-label-legend i {
-    width: 18px;
-    height: 18px;
-    float: left;
-    margin-right: 8px;
-    opacity: 0.7;
 }
 
 #map-label-legend .table {
