@@ -135,7 +135,7 @@ function Admin(_, $, turf) {
                 popupContent = "???";
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
-                    compRate = Math.round(rates[i].rate);
+                    compRate = Math.round(100.0 * rates[i].rate);
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
                     if (compRate === 100) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!";
