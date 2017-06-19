@@ -71,7 +71,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         document.addEventListener('keydown', function (e){
             e = e || window.event; //Handle IE
             //enter
-            if (e.keyCode == 13) {
+            if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
                 handleClickOK();
                 self.hide();
             }
