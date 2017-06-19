@@ -70,9 +70,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
-        if (contextMenu.isOpen()) {
+        //equal button || - button
+        if (e.keyCode == 187 || e.keyCode == 189) {
+            svl.contextMenu.hide();
             return;
-        } else if (!status.focusOnTextField && !status.disableKeyboard) {
+        }else if (!status.focusOnTextField && !status.disableKeyboard) {
             // lock scrolling in response to key pressing
             switch (e.keyCode) {
                 case 16:  // "Shift"
@@ -90,10 +92,32 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 case 40:  // "down"
                     self._moveBackward();
                     break;
-            }
+        }
+        if (!status.focusOnTextField) {
 
-            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-                e.preventDefault();
+            if (e.keyCode == 16) { //shift key
+                status.shiftDown = true;
+            }
+            if (!svl.contextMenu.isOpen()){
+                // lock scrolling in response to key pressing
+                switch (e.keyCode) {
+                    case 37:  // "Left"
+                        self._rotatePov(-2);
+                        break;
+                    case 39:  // "Right"
+                        self._rotatePov(2);
+                        break;
+                    case 38:
+                        self._moveForward();
+                        break;
+                    case 40:  // "down"
+                        self._moveBackward();
+                        break;
+                }
+
+                if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                    e.preventDefault();
+                }
             }
         }
     };
@@ -254,11 +278,72 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                     }
                     break;
+<<<<<<< HEAD
                 case 27:
                     // "Escape"
                     if (canvas.getStatus('drawing')) {
                         canvas.cancelDrawing();
                         svl.tracker.push("KeyboardShortcut_CancelDrawing");
+=======
+                case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
+                    // "b" for a blocked view
+                    ribbon.modeSwitch("Occlusion");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_Occlusion", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
+                    // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
+                    ribbon.modeSwitch("CurbRamp");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
+                    // "e" for Explore. Switch the mode to Walk (camera) mode.
+                    ribbon.modeSwitch("Walk");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_Walk", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
+                    // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
+                    ribbon.modeSwitch("NoCurbRamp");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
+                    ribbon.modeSwitch("NoSidewalk");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_NoSidewalk", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
+                    // "o" for Obstacle
+                    ribbon.modeSwitch("Obstacle");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
+                    ribbon.modeSwitch("SurfaceProblem");
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
+                        keyCode: e.keyCode
+                    });
+                    break;
+                case 90:
+                    // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
+                    if (contextMenu.isOpen()){
+                        contextMenu.hide();
+                    }
+                    if (status.shiftDown) {
+                        // Zoom out
+                        zoomControl.zoomOut();
+                        svl.tracker.push("KeyboardShortcut_ZoomOut", {
+                            keyCode: e.keyCode
+                        });
+>>>>>>> refs/remotes/origin/develop
                     } else {
                         ribbon.backToWalk();
                     }
