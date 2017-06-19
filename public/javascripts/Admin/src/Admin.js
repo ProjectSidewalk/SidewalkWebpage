@@ -293,18 +293,21 @@ function Admin(_, $, c3, turf) {
                     }
                     else if (milesLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left! Do you want to explore this area to find accessibility issues? " +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                            "\% Complete<br>Less than a mile left! " +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            "to help finish this neighborhood!";
                     }
                     else if (milesLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left! Do you want to explore this area to find accessibility issues? " +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                            milesLeft + " mile left! " +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            "to help finish this neighborhood!";
                     }
                     else {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left! Do you want to explore this area to find accessibility issues? " +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                            milesLeft + " miles left! " +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            "to help finish this neighborhood!";
                     }
                     break;
                 }
