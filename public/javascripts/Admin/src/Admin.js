@@ -256,8 +256,6 @@ function Admin(_, $, c3, turf) {
             layers = [],
             currentLayer;
 
-        // get completion percentage for each neighborhood
-
         // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
         function style(feature) {
             for (var i=0; i < rates.length; i++) {
@@ -266,13 +264,8 @@ function Admin(_, $, c3, turf) {
                         color: '#888',
                         weight: 1,
                         opacity: 0.25,
-                        // fillColor: getColor(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
-                        // fillColor: '#3182bd',
-                        // fillColor: getColor2(100.0 * rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]),
-                        // fillOpacity: rates[i]["completed_distance_m"] / rates[i]["total_distance_m"]
                         fillColor: getColor2(rates[i].rate),
-                        // fillOpacity: 0.5
-                        fillOpacity: getOpacity(rates[i].rate)
+                        fillOpacity: 0.25 + (0.75 * rates[i].rate / 100)
                     }
                 }
             }
