@@ -8,21 +8,13 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     var initialPanoId;
 
     this._finishedInstructionToStart = function () {
-        self._stopBlinkingNavigationComponents();
-
         if (!svl.isOnboarding()) {
             mapService.bindPositionUpdate(self._instructToCheckSidewalks);
-            mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
         }
-    };
-
-    this._finishedInstructionToFollowTheGuidance = function () {
-        self._stopBlinkingNavigationComponents();
     };
 
     this._instructToCheckSidewalks = function () {
         if (!svl.isOnboarding()) {
-            console.log("check sidewalk called");
             // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
             var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
             var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
@@ -31,8 +23,10 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 var message = "Remember, we would like you to check both sides of the street! " +
                     "Please label accessibility issues like sidewalk obstacles and surface problems!";
 
-                popUpMessage.notify(title, message);
-                mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+                popUpMessage.notify(title, message, function() {
+                    mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+                    mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
+                });
             }
         }
     };
@@ -47,16 +41,19 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this._instructForGSVLabelDisappearing = function () {
         if (!svl.isOnboarding()) {
-            console.log("gsv label disappearing called");
             // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
-            var labelCount = labelContainer.getCurrentLabels().length;
-            if (labelCount > 0) {
+            var labels = svl.labelContainer.getCurrentLabels();
+            var prev_labels = svl.labelContainer.getPreviousLabels();
+            if (labels.length == 0) {
+                labels = prev_labels;
+            }
+            if (labels.length > 0) {
                 var title = "Labels on the image disappear";
                 var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
                     "image after you have taken a step. " +
                     "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
 
-                popUpMessage.notify(title, message, this._finishedInstructionForGSVLabelDisappearing);
+                popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
                 mapService.blinkGoogleMaps();
             }
         }
@@ -69,7 +66,9 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 "If you're done labeling this place, it's time to take a step. " +
                 "Walk in the direction of the red line highlighted on the map.";
 
-            popUpMessage.notify(title, message, this._finishedInstructionToFollowTheGuidance);
+            popUpMessage.notify(title, message, function () {
+                self._stopBlinkingNavigationComponents();
+            });
             compass.blink();
             mapService.blinkGoogleMaps();
         }
@@ -128,7 +127,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
                 "accessibility problems at this intersection.";
 
-            popUpMessage.notify(title, message, this._finishedInstructionToStart);
+            popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
             initialHeading = mapService.getPov().heading;
             lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);

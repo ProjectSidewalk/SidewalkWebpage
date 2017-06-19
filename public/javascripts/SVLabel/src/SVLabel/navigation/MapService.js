@@ -923,7 +923,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Todo. Wrote this ad-hoc. Clean up and test later.
     var positionUpdateCallbacks = [];
     self.bindPositionUpdate = function (callback) {
-        console("PUpdate added" + callback);
         if (typeof callback == 'function') {
             positionUpdateCallbacks.push(callback);
         }
@@ -939,7 +938,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * A callback for position_change.
      */
     function handlerPositionUpdate () {
-        console.log("PositionUpdateCalled");
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
@@ -972,13 +970,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             initialPositionUpdate = false;
         }
 
-        //
+        // Calling callbacks for position_changed event
         for (var i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
-            console.log(i + " Calling position update callbacks len " + len);
+            var callback = positionUpdateCallbacks[i];
             if (typeof callback == 'function') {
-                positionUpdateCallbacks[i]();
-            } else {
-                console.error("Not a function")
+                callback();
             }
         }
     }
