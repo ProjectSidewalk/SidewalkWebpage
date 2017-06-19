@@ -74,78 +74,6 @@ function Admin(_, $, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
-    // Draw an onboarding interaction chart
-    $.getJSON("/adminapi/onboardingInteractions", function (data) {
-        function cmp(a, b) {
-            return a.timestamp - b.timestamp;
-        }
-
-        // Group the audit task interaction records by audit_task_id, then go through each group and compute
-        // the duration between the first time stamp and the last time stamp.
-        var grouped = _.groupBy(data, function (x) {
-            return x.audit_task_id;
-        });
-        var completionDurationArray = [];
-        var record1;
-        var record2;
-        var duration;
-        for (var auditTaskId in grouped) {
-            grouped[auditTaskId].sort(cmp);
-            record1 = grouped[auditTaskId][0];
-            record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-            duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
-            completionDurationArray.push(duration);
-        }
-        completionDurationArray.sort(function (a, b) {
-            return a - b;
-        });
-
-        // Bounce rate
-        var zeros = _.countBy(completionDurationArray, function (x) {
-            return x == 0;
-        });
-        var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
-
-        // Histogram of duration
-        completionDurationArray = completionDurationArray.filter(function (x) {
-            return x != 0;
-        });  // Remove zeros
-        var numberOfBins = 10;
-        var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-        var counts = histogram.histogram;
-        counts.unshift("Count");
-        var bins = histogram.histogram.map(function (x, i) {
-            return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1);
-        });
-
-        $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
-
-        var chart = c3.generate({
-            bindto: '#onboarding-completion-duration-histogram',
-            data: {
-                columns: [
-                    counts
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    label: "Onboarding Completion Time (s)",
-                    type: 'category',
-                    categories: bins
-                },
-                y: {
-                    label: "Count",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
     $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
         var i,
             len = data.length;
@@ -880,15 +808,17 @@ function Admin(_, $, c3, turf) {
                 var record1;
                 var record2;
                 var duration;
+                var bounceCount = 0;
                 for (var auditTaskId in grouped) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
                     record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
                     duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
-                    if (duration != 0) {
-                        onboardingTimes.push({duration: duration});
-                    }
+                    if (duration != 0) onboardingTimes.push({duration: duration});
+                    else bounceCount++;
                 }
+                var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
+                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
                 var chart = {
                     "width": 400,
