@@ -160,7 +160,7 @@ $(document).ready(function () {
                                         });
                                     // Update the chart as well
                                     dotPlotVisualization.increment(label.label_type);
-                                    dotPlotVisualization.udpate();
+                                    dotPlotVisualization.update();
 
                                 }
                             }
@@ -389,7 +389,7 @@ $(document).ready(function () {
     //  }, 1500);
 
       return {
-        udpate: update,
+        update: update,
         increment: increment
       }
     }

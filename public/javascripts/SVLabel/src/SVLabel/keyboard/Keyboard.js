@@ -10,9 +10,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
-        shiftDown: false
+        shiftDown: false,
+        disableKeyboard: false
     };
 
+    this.disableKeyboard = function (){
+        status.disableKeyboard = true;
+    };
+    this.enableKeyboard = function (){
+        status.disableKeyboard = false;
+    };
     // Move in the direction of a link closest to a given angle.
     // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
     // Todo. Make the method name more descriptive.
@@ -47,11 +54,13 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @param degree
      */
     this._rotatePov = function (degree){
-        var heading =  svl.panorama.pov.heading;
-        var pitch = svl.panorama.pov.pitch;
-        var zoom = svl.panorama.pov.zoom;
-        heading = (heading + degree + 360) % 360;
-        svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
+        if (!svl.map.getStatus("disablePanning")){
+            var heading =  svl.panorama.pov.heading;
+            var pitch = svl.panorama.pov.pitch;
+            var zoom = svl.panorama.pov.zoom;
+            heading = (heading + degree + 360) % 360;
+            svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
+        }
     };
 
     /**
@@ -61,9 +70,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     this._documentKeyDown = function (e) {
         // The callback method that is triggered with a keyUp event.
-        if (contextMenu.isOpen()) {
+        //equal button || - button
+        if (e.keyCode == 187 || e.keyCode == 189) {
+            svl.contextMenu.hide();
             return;
-        } else if (!status.focusOnTextField) {
+        }else if (!status.focusOnTextField && !status.disableKeyboard) {
             // lock scrolling in response to key pressing
             switch (e.keyCode) {
                 case 16:  // "Shift"
@@ -82,9 +93,32 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     self._moveBackward();
                     break;
             }
+        }
+        if (!status.focusOnTextField) {
 
-            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-                e.preventDefault();
+            if (e.keyCode == 16) { //shift key
+                status.shiftDown = true;
+            }
+            if (!svl.contextMenu.isOpen()){
+                // lock scrolling in response to key pressing
+                switch (e.keyCode) {
+                    case 37:  // "Left"
+                        self._rotatePov(-2);
+                        break;
+                    case 39:  // "Right"
+                        self._rotatePov(2);
+                        break;
+                    case 38:
+                        self._moveForward();
+                        break;
+                    case 40:  // "down"
+                        self._moveBackward();
+                        break;
+                }
+
+                if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                    e.preventDefault();
+                }
             }
         }
     };
@@ -95,76 +129,162 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyUp = function (e) {
-        /*
-         This is a callback method that is triggered when a keyUp
-         event occurs and focus is not on ContextMenu's textbox.
-         */
-        if (!status.focusOnTextField) {
-            var label;
-            switch (e.keyCode) {
-                case 16:
-                    // "Shift"
-                    status.shiftDown = false;
-                    break;
-                case 49:  // "1"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.checkRadioButton(1);
-                        label = contextMenu.getTargetLabel();
-                        if (label) {
-                            label.setProperty('severity', 1);
-                            svl.tracker.push("KeyboardShortcut_Severity_1", {
-                                keyCode: e.keyCode
-                            });
+        if (!status.disableKeyboard) {
+            /*
+             This is a callback method that is triggered when a keyUp
+             event occurs and focus is not on ContextMenu's textbox.
+             */
+            if (!status.focusOnTextField) {
+                var label;
+                switch (e.keyCode) {
+                    case 16:
+                        // "Shift"
+                        status.shiftDown = false;
+                        break;
+                    case 49:  // "1"
+                        if (contextMenu.isOpen()) {
+                            contextMenu.checkRadioButton(1);
+                            label = contextMenu.getTargetLabel();
+                            if (label) {
+                                label.setProperty('severity', 1);
+                                svl.tracker.push("KeyboardShortcut_Severity_1", {
+                                    keyCode: e.keyCode
+                                });
+                            }
                         }
-                    }
 
-                    break;
-                case 50:  // "2"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.checkRadioButton(2);
-                        label = contextMenu.getTargetLabel();
-                        if (label) {
-                            label.setProperty('severity', 2);
-                            svl.tracker.push("KeyboardShortcut_Severity_2", {
+                        break;
+                    case 50:  // "2"
+                        if (contextMenu.isOpen()) {
+                            contextMenu.checkRadioButton(2);
+                            label = contextMenu.getTargetLabel();
+                            if (label) {
+                                label.setProperty('severity', 2);
+                                svl.tracker.push("KeyboardShortcut_Severity_2", {
+                                    keyCode: e.keyCode
+                                });
+                            }
+                        }
+                        break;
+                    case 51:  // "3"
+                        if (contextMenu.isOpen()) {
+                            contextMenu.checkRadioButton(3);
+                            label = contextMenu.getTargetLabel();
+                            if (label) {
+                                label.setProperty('severity', 3);
+                                svl.tracker.push("KeyboardShortcut_Severity_3", {
+                                    keyCode: e.keyCode
+                                });
+                            }
+                        }
+                        break;
+                    case 52:  // "4"
+                        if (contextMenu.isOpen()) {
+                            contextMenu.checkRadioButton(4);
+                            label = contextMenu.getTargetLabel();
+                            if (label) {
+                                label.setProperty('severity', 4);
+                                svl.tracker.push("KeyboardShortcut_Severity_4", {
+                                    keyCode: e.keyCode
+                                });
+                            }
+                        }
+                        break;
+                    case 53:  // "5"
+                        if (contextMenu.isOpen()) {
+                            contextMenu.checkRadioButton(5);
+                            label = contextMenu.getTargetLabel();
+                            if (label) {
+                                label.setProperty('severity', 5);
+                                svl.tracker.push("KeyboardShortcut_Severity_5", {
+                                    keyCode: e.keyCode
+                                });
+                            }
+                        }
+                        break;
+                    case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
+                        // "b" for a blocked view
+                        ribbon.modeSwitch("Occlusion");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_Occlusion", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
+                        // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
+                        ribbon.modeSwitch("CurbRamp");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
+                        // "e" for Explore. Switch the mode to Walk (camera) mode.
+                        ribbon.modeSwitch("Walk");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_Walk", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
+                        // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
+                        ribbon.modeSwitch("NoCurbRamp");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
+                        ribbon.modeSwitch("NoSidewalk");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_NoSidewalk", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
+                        // "o" for Obstacle
+                        ribbon.modeSwitch("Obstacle");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
+                        ribbon.modeSwitch("SurfaceProblem");
+                        svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
+                            keyCode: e.keyCode
+                        });
+                        break;
+                    case 90:
+                        // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
+                        if (status.shiftDown) {
+                            // Zoom out
+                            zoomControl.zoomOut();
+                            svl.tracker.push("KeyboardShortcut_ZoomOut", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            // Zoom in
+                            zoomControl.zoomIn();
+                            svl.tracker.push("KeyboardShortcut_ZoomIn", {
                                 keyCode: e.keyCode
                             });
                         }
+                }
+            }
+
+            /*
+             This is a callback method that is triggered when a keyUp
+             event occurs. It is not relevant to ContextMenu's textbox focus.
+             */
+            switch (e.keyCode) {
+                case 13:
+                    // "Enter"
+                    if (contextMenu.isOpen()) {
+                        contextMenu.hide();
+                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                     }
                     break;
-                case 51:  // "3"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.checkRadioButton(3);
-                        label = contextMenu.getTargetLabel();
-                        if (label) {
-                            label.setProperty('severity', 3);
-                            svl.tracker.push("KeyboardShortcut_Severity_3", {
-                                keyCode: e.keyCode
-                            });
-                        }
-                    }
-                    break;
-                case 52:  // "4"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.checkRadioButton(4);
-                        label = contextMenu.getTargetLabel();
-                        if (label) {
-                            label.setProperty('severity', 4);
-                            svl.tracker.push("KeyboardShortcut_Severity_4", {
-                                keyCode: e.keyCode
-                            });
-                        }
-                    }
-                    break;
-                case 53:  // "5"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.checkRadioButton(5);
-                        label = contextMenu.getTargetLabel();
-                        if (label) {
-                            label.setProperty('severity', 5);
-                            svl.tracker.push("KeyboardShortcut_Severity_5", {
-                                keyCode: e.keyCode
-                            });
-                        }
+
+                case 27:
+                    // "Escape"
+                    if (canvas.getStatus('drawing')) {
+                        canvas.cancelDrawing();
+                        svl.tracker.push("KeyboardShortcut_CancelDrawing");
                     }
                     break;
                 case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
@@ -216,6 +336,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
+                    if (contextMenu.isOpen()){
+                        contextMenu.hide();
+                    }
                     if (status.shiftDown) {
                         // Zoom out
                         zoomControl.zoomOut();
@@ -223,14 +346,14 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             keyCode: e.keyCode
                         });
                     } else {
-                        // Zoom in
-                        zoomControl.zoomIn();
-                        svl.tracker.push("KeyboardShortcut_ZoomIn", {
-                            keyCode: e.keyCode
-                        });
+                        ribbon.backToWalk();
                     }
+                    svl.modalExample.hide();
+                    break;
             }
+            contextMenu.updateRadioButtonImages();
         }
+
 
         /*
          This is a callback method that is triggered when a keyUp
@@ -246,6 +369,12 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 break;
             case 27:
                 // "Escape"
+                
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                }
+
                 if (canvas.getStatus('drawing')) {
                     canvas.cancelDrawing();
                     svl.tracker.push("KeyboardShortcut_CancelDrawing");
@@ -259,7 +388,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         contextMenu.updateRadioButtonImages();
     };
 
-
+    
     /**
      * Get status
      * @param {string} key Field name

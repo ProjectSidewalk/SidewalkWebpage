@@ -172,16 +172,21 @@ function ActionStack (tracker, uiActionStack) {
                         svl.tracker.push('Redo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
                     actionItem.label.setStatus('deleted', false);
+                    svl.labelCounter.increment(actionItem.label.getProperty('labelType'));
                 } else if (actionItem.action === 'deleteLabel') {
                     if ('tracker' in svl) {
                         svl.tracker.push('Redo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
                     actionItem.label.setStatus('deleted', true);
                     actionItem.label.setVisibility('hidden');
+                    svl.labelCounter.decrement(actionItem.label.getProperty('labelType'));
                 }
                 status.actionStackCursor += 1;
             }
             if ('canvas' in svl) {
+                //svl.map.updatePov(0,0);
+                var pov = svl.panorama.getPov();
+                svl.panorama.setPov(pov);
                 svl.canvas.clear().render2();
             }
         }
@@ -212,18 +217,23 @@ function ActionStack (tracker, uiActionStack) {
                         svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
                     actionItem.label.setStatus('deleted', true);
+                    svl.labelCounter.decrement(actionItem.label.getProperty('labelType'));
                 } else if (actionItem.action === 'deleteLabel') {
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
                     actionItem.label.setStatus('deleted', false);
                     actionItem.label.setVisibility('visible');
+                    svl.labelCounter.increment(actionItem.label.getProperty('labelType'));
                 }
             } else {
                 status.actionStackCursor = 0;
             }
 
             if ('canvas' in svl) {
+                //svl.map.updatePov(0,0);
+                var pov = svl.panorama.getPov();
+                svl.panorama.setPov(pov);
                 svl.canvas.clear().render2();
             }
         }

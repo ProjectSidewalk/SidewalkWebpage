@@ -38,6 +38,66 @@
     width: 100%;
 }
 
+.callout {
+    position: relative;
+    padding: 24px;
+    border-radius: 3px;
+    margin: 25px;
+    min-height: 50px;
+    box-shadow: 0px 0px 20px rgba(0,0,0,0.5);
+    /*box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;*/
+}
+
+.callout:before {
+    content: "";
+    width: 0px;
+    height: 0px;
+    border: 0.8em solid transparent;
+    position: absolute;
+    z-index:-10;
+}
+
+.callout.bottom:before {
+    left: 45%;
+    bottom: -24px;
+    border-top: 10px solid white;
+}
+
+.callout.top:before {
+    left: 45%;
+    top: -24px;
+    border-bottom: 10px solid white;
+}
+
+.callout.right:before {
+    right: -25px;
+    top: 40%;
+    border-left: 10px solid white;
+}
+
+.callout.left:before {
+    left: -24px;
+    top: 40%;
+    border-right: 10px solid white;
+}
+
+.callout.bottom-left:before {
+    left: 7px;
+    bottom: -24px;
+    border-top: 10px solid white;
+}
+
+.callout.bottom-right:before {
+    right: 7px;
+    bottom: -24px;
+    border-top: 10px solid white;
+}
+.callout.lower-right:before {
+    right: -25px;
+    top: 80%;
+    border-left: 10px solid white;
+}
+
 .white-background {
     background: rgba(255, 255, 255, 1);
     -webkit-transition:background 0.5s;
