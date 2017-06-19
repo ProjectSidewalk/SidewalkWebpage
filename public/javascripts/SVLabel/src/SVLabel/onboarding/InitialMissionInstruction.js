@@ -20,9 +20,9 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
             var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
             if (distance >= 0.025) {
-                var title = "Please check both sides of the street!";
-                var message = "Remember, we would like you to check both sides of the street! " +
-                    "Please label accessibility issues like sidewalk obstacles and surface problems!";
+                var title = "Please check both sides of the street";
+                var message = "Remember, we would like you to check both sides of the street. " +
+                    "Please label accessibility issues like sidewalk obstacles and surface problems.";
 
                 popUpMessage.notify(title, message);
                 mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
@@ -32,10 +32,9 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this._instructToFollowTheGuidance = function () {
         if (!svl.isOnboarding()) {
-            var title = "Follow the navigator and audit the street!";
-            var message = "It looks like you've looked around this entire intersection. " +
-                "If you're done labeling this place, it's time to take a step. " +
-                "Walk in the direction of the red line highlighted on the map.";
+            var title = "Let's take a step!";
+            var message = "It looks like you've looked around this entire intersection, so it's time to explore " +
+                "other areas. Walk in the direction of the red line highlighted on the map.";
 
             popUpMessage.notify(title, message, this._finishedInstructionToFollowTheGuidance);
             compass.blink();
