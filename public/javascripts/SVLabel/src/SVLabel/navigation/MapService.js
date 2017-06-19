@@ -923,7 +923,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Todo. Wrote this ad-hoc. Clean up and test later.
     var positionUpdateCallbacks = [];
     self.bindPositionUpdate = function (callback) {
-        if (typeof callback == "function") {
+        console("PUpdate added" + callback);
+        if (typeof callback == 'function') {
             positionUpdateCallbacks.push(callback);
         }
     };
@@ -938,6 +939,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * A callback for position_change.
      */
     function handlerPositionUpdate () {
+        console.log("PositionUpdateCalled");
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
@@ -972,7 +974,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         //
         for (var i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
-            positionUpdateCallbacks[i]();
+            console.log(i + " Calling position update callbacks len " + len);
+            if (typeof callback == 'function') {
+                positionUpdateCallbacks[i]();
+            } else {
+                console.error("Not a function")
+            }
         }
     }
 
@@ -1096,6 +1103,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                 STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
                                     self.setPano(streetViewPanoramaData.location.pano);
+                                    //self.handlerPositionUpdate();
                                 }
                                 else{
                                     var currentTask = svl.taskContainer.getCurrentTask();
