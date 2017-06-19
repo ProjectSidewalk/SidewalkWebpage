@@ -54,7 +54,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @param degree
      */
     this._rotatePov = function (degree){
-        if (!svl.map.getStatus("lockDisablePanning") && !svl.map.getStatus("disablePanning")){
+        if (!svl.map.getStatus("disablePanning")){
             var heading =  svl.panorama.pov.heading;
             var pitch = svl.panorama.pov.pitch;
             var zoom = svl.panorama.pov.zoom;
@@ -278,13 +278,14 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                     }
                     break;
-<<<<<<< HEAD
+
                 case 27:
                     // "Escape"
                     if (canvas.getStatus('drawing')) {
                         canvas.cancelDrawing();
                         svl.tracker.push("KeyboardShortcut_CancelDrawing");
-=======
+                    }
+                    break;
                 case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                     // "b" for a blocked view
                     ribbon.modeSwitch("Occlusion");
@@ -343,7 +344,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         svl.tracker.push("KeyboardShortcut_ZoomOut", {
                             keyCode: e.keyCode
                         });
->>>>>>> refs/remotes/origin/develop
                     } else {
                         ribbon.backToWalk();
                     }
@@ -352,6 +352,39 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             }
             contextMenu.updateRadioButtonImages();
         }
+
+
+        /*
+         This is a callback method that is triggered when a keyUp
+         event occurs. It is not relevant to ContextMenu's textbox focus.
+         */
+        switch (e.keyCode) {
+            case 13:
+                // "Enter"
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                }
+                break;
+            case 27:
+                // "Escape"
+                
+                if (contextMenu.isOpen()) {
+                    contextMenu.hide();
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                }
+
+                if (canvas.getStatus('drawing')) {
+                    canvas.cancelDrawing();
+                    svl.tracker.push("KeyboardShortcut_CancelDrawing");
+                } else {
+                    ribbon.backToWalk();
+                }
+                svl.modalExample.hide();
+                break;
+        }
+
+        contextMenu.updateRadioButtonImages();
     };
 
     
