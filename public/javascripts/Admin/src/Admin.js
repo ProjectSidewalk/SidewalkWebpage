@@ -74,84 +74,6 @@ function Admin(_, $, c3, turf) {
             .setView([38.892, -77.038], 12),
         popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
-    $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-        var i,
-            len = data.length;
-
-        // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-        var missions = {};
-        var printedMissionName;
-        for (i = 0; i < len; i++) {
-            // Set the printed mission name
-            if (data[i].label == "initial-mission") {
-                printedMissionName = "Initial Mission (1000 ft)";
-            } else if (data[i].label == "distance-mission") {
-                if (data[i].level <= 2) {
-                    printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                } else {
-                    printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
-                }
-            } else {
-                printedMissionName = "Onboarding";
-            }
-
-            // Create a counter for the printedMissionName if it does not exist yet.
-            if (!(printedMissionName in missions)) {
-                missions[printedMissionName] = {
-                    label: data[i].label,
-                    level: data[i].level,
-                    printedMissionName: printedMissionName,
-                    count: 0
-                };
-            }
-            missions[printedMissionName].count += 1;
-        }
-        var arrayOfMissions = Object.keys(missions).map(function (key) {
-            return missions[key];
-        });
-        arrayOfMissions.sort(function (a, b) {
-            if (a.count < b.count) {
-                return 1;
-            }
-            else if (a.count > b.count) {
-                return -1;
-            }
-            else {
-                return 0;
-            }
-        });
-
-        var missionCountArray = ["Mission Counts"];
-        var missionNames = [];
-        for (i = 0; i < arrayOfMissions.length; i++) {
-            missionCountArray.push(arrayOfMissions[i].count);
-            missionNames.push(arrayOfMissions[i].printedMissionName);
-        }
-        var chart = c3.generate({
-            bindto: '#completed-mission-histogram',
-            data: {
-                columns: [
-                    missionCountArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: missionNames
-                },
-                y: {
-                    label: "# Users Completed the Mission",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
     $.getJSON("/contribution/auditCounts/all", function (data) {
         var dates = ['Date'].concat(data[0].map(function (x) {
                 return x.date;
@@ -173,37 +95,6 @@ function Admin(_, $, c3, turf) {
                 },
                 y: {
                     label: "Street Audit Count",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON("/userapi/labelCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) {
-                return x.date;
-            })),
-            counts = ['Label Count'].concat(data[0].map(function (x) {
-                return x.count;
-            }));
-        var chart = c3.generate({
-            bindto: "#label-count-chart",
-            data: {
-                x: 'Date',
-                columns: [dates, counts],
-                types: {'Audit Count': 'line'}
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: {format: '%Y-%m-%d'}
-                },
-                y: {
-                    label: "Label Count",
                     min: 0,
                     padding: {top: 50, bottom: 10}
                 }
