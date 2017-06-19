@@ -79,6 +79,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
         uiModalMission.background.css('visibility', 'hidden');
+        svl.popUpMessage.enableInteractions();
     };
 
     /** Show a mission */
@@ -87,6 +88,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.background.css('visibility', 'visible');
+        //svl.popUpMessage.disableInteractions();
     };
 
     /**
@@ -102,7 +104,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             templateHTML,
             missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
 
-
+        svl.popUpMessage.disableInteractions();
         if (label == "distance-mission") {
             var auditDistance,
                 distanceString;
@@ -139,6 +141,17 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
         $("#mission-badge-holder").html(badge);
 
+        document.addEventListener("keyup", function (e){
+            e = e || window.event;
+            //enter key
+            if (e.keyCode == 13 && self._status.isOpen){
+                //uiModalMission.holder.css('visibility', 'hidden');
+                self.hide();
+                if (callback){
+                    callback();
+                }
+            }
+        });
         if (callback) {
             $("#modal-mission-close-button").one("click", function () {
                 self.hide();
