@@ -68,6 +68,14 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             $("#pop-up-message-ok-button").remove();
         }
         self._appendButton(OKButton, handleClickOK);
+        document.addEventListener('keydown', function (e){
+            e = e || window.event;
+            //enter
+            if (e.keyCode == 13) {
+                handleClickOK();
+                self.hide();
+            }
+        });
     };
 
     this.haveAskedToSignIn = function () {
