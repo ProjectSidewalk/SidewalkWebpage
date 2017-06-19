@@ -576,7 +576,7 @@ function Admin(_, $, c3, turf) {
                 var chart = {
                     // "height": 800,
                     "height": 300,
-                    "width": 800,
+                    "width": 875,
                     "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
                     "encoding": {
@@ -700,8 +700,8 @@ function Admin(_, $, c3, turf) {
                 var median = i % 1 == 0 ? (onboardingTimes[i - 1].duration + onboardingTimes[i].duration) / 2 : onboardingTimes[Math.floor(i)].duration;
 
                 var chart = {
-                    "width": 400,
-                    "height": 200,
+                    "width": 800,
+                    "height": 300,
                     "layer": [
                         {
                             "data": {"values": onboardingTimes},
@@ -770,7 +770,7 @@ function Admin(_, $, c3, turf) {
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
 
                 var subPlotHeight = 200;
-                var subPlotWidth = 175;
+                var subPlotWidth = 199;
                 var chart = {
                     "hconcat": [
                         {
@@ -842,7 +842,7 @@ function Admin(_, $, c3, turf) {
                 var median = (data.length / 2) % 1 == 0 ? (data[i - 1].rate + data[i].rate) / 2 : data[Math.floor(i)].rate;
 
                 var coverageRateChart = {
-                    "width": 600,
+                    "width": 810,
                     "height": 800,
                     "data": {
                         "values": data, "format": {
@@ -878,7 +878,7 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
 
                 var coverageRateHist = {
-                    "width": 400,
+                    "width": 800,
                     "height": 400,
                     "layer": [
                         {
@@ -891,7 +891,7 @@ function Admin(_, $, c3, turf) {
                                     },
                                     "field": "rate", "type": "quantitative",
                                     "axis": {
-                                        "title": "Neighborhood Completion Percentage", "labelAngle": 0
+                                        "title": "Neighborhood Completion (%)", "labelAngle": 0
                                     }
                                 },
                                 "y": {
@@ -975,7 +975,7 @@ function Admin(_, $, c3, turf) {
                 var chart = {
                     // "height": 800,
                     "height": 300,
-                    "width": 800,
+                    "width": 920,
                     "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
                     "encoding": {
