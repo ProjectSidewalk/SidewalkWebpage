@@ -656,7 +656,8 @@ function Admin(_, $, c3, turf) {
                     }
                 };
                 var opt = {
-                    "mode": "vega-lite"
+                    "mode": "vega-lite",
+                    "actions": false
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
@@ -751,7 +752,8 @@ function Admin(_, $, c3, turf) {
                     }
                 };
                 var opt = {
-                    "mode": "vega-lite"
+                    "mode": "vega-lite",
+                    "actions": false
                 };
                 vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
@@ -812,7 +814,8 @@ function Admin(_, $, c3, turf) {
                     ]
                 };
                 var opt = {
-                    "mode": "vega-lite"
+                    "mode": "vega-lite",
+                    "actions": false
                 };
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
@@ -867,7 +870,8 @@ function Admin(_, $, c3, turf) {
                     }
                 };
                 var opt = {
-                    "mode": "vega-lite"
+                    "mode": "vega-lite",
+                    "actions": false
                 };
                 vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
 
@@ -993,7 +997,8 @@ function Admin(_, $, c3, turf) {
                     }
                 };
                 var opt = {
-                    "mode": "vega-lite"
+                    "mode": "vega-lite",
+                    "actions": false
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
