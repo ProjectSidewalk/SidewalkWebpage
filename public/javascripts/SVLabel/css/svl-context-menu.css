@@ -33,6 +33,7 @@
 }
 
 .context-menu-wheelchair-icons {
+    cursor: default;
     width: 30px;
     height: 30px;
 }
@@ -48,6 +49,7 @@
 }
 
 #severity-menu #column-not-passable, #severity-menu #column-passable {
+    cursor: default;
     position: relative;
     top: 8px;
     margin-left: 0;
@@ -93,6 +95,10 @@
 
 #problem-property-menu {
     position: relative;
+}
+
+.problem-severity-axis-label{
+    cursor: default;
 }
 
 #context-menu-problem-description-text-box {
