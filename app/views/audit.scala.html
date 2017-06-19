@@ -15,7 +15,9 @@
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-    <div class="container">
+    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+
+    <div class="container toolUI" style = "visibility: hidden;">
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -613,7 +615,6 @@
             </div>
         </div>
     </template>
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
@@ -635,7 +636,6 @@
             svl.user = new User(userParam, svl.userModel);
         }
         svl.userModel._user = svl.user;
-
         @if(task) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
@@ -740,6 +740,7 @@
                 mainParam.regionLayer = null;
             }
             svl.main = new Main(mainParam);
+
         }
     </script>
 

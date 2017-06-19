@@ -110,6 +110,7 @@ function Main (params) {
         svl.canvas = new Canvas(svl.ribbon);
 
 
+
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
@@ -184,7 +185,6 @@ function Main (params) {
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
-
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -399,6 +399,9 @@ function Main (params) {
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
             var mission;
+            $("#page-loading").css({"visibility": "hidden"});
+            $(".toolUI").css({"visibility": "visible"});
+            $(".visible").css({"visibility": "visible"});
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
             } else {
