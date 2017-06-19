@@ -1,4 +1,5 @@
-function InitialMissionInstruction(compass, mapService, neighborhoodContainer, popUpMessage, taskContainer) {
+function InitialMissionInstruction(compass, mapService, neighborhoodContainer, popUpMessage, taskContainer,
+                                   labelContainer) {
     var self = this;
     var initialHeading;
     var lookingAroundInterval;
@@ -6,9 +7,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     var viewedCWTransformed = 0, viewedCCWTransformed = 360;
     var initialPanoId;
 
-    this._finishedInstructionToFollowTheGuidance = function () {
-        self._stopBlinkingNavigationComponents();
-
+    this._finishedInstructionToStart = function () {
         if (!svl.isOnboarding()) {
             mapService.bindPositionUpdate(self._instructToCheckSidewalks);
         }
@@ -24,8 +23,38 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 var message = "Remember, we would like you to check both sides of the street! " +
                     "Please label accessibility issues like sidewalk obstacles and surface problems!";
 
-                popUpMessage.notify(title, message);
-                mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+                popUpMessage.notify(title, message, function() {
+                    mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
+                    mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
+                });
+            }
+        }
+    };
+
+    this._finishedInstructionForGSVLabelDisappearing = function () {
+        mapService.stopBlinkingGoogleMaps();
+
+        if (!svl.isOnboarding()) {
+            mapService.unbindPositionUpdate(self._instructForGSVLabelDisappearing);
+        }
+    };
+
+    this._instructForGSVLabelDisappearing = function () {
+        if (!svl.isOnboarding()) {
+            // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
+            var labels = svl.labelContainer.getCurrentLabels();
+            var prev_labels = svl.labelContainer.getPreviousLabels();
+            if (labels.length == 0) {
+                labels = prev_labels;
+            }
+            if (labels.length > 0) {
+                var title = "Labels on the image disappear";
+                var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
+                    "image after you have taken a step. " +
+                    "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
+
+                popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
+                mapService.blinkGoogleMaps();
             }
         }
     };
@@ -37,13 +66,15 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 "If you're done labeling this place, it's time to take a step. " +
                 "Walk in the direction of the red line highlighted on the map.";
 
-            popUpMessage.notify(title, message, this._finishedInstructionToFollowTheGuidance);
+            popUpMessage.notify(title, message, function () {
+                self._stopBlinkingNavigationComponents();
+            });
             compass.blink();
             mapService.blinkGoogleMaps();
         }
     };
 
-    this._transformAngle = function(angle) {
+    this._transformAngle = function (angle) {
         while ((angle - initialHeading) % 360 < 0)
             angle += 360;
         return (angle - initialHeading) % 360;
@@ -55,9 +86,9 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
         var direction;
         var EPS = 30; //the smaller it is the higher the speed of calling this function should be
 
-        if (transformedCurrent > 360-EPS && lastHeadingTransformed < EPS)
+        if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS)
             direction = transformedCurrent - (lastHeadingTransformed + 360);
-        else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360-EPS)
+        else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS)
             direction = transformedCurrent - (lastHeadingTransformed - 360);
         else
             direction = transformedCurrent - lastHeadingTransformed;
@@ -76,7 +107,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
         if (overallAngleViewed >= 360 - EPS) {
             clearInterval(lookingAroundInterval);
-            
+
             //check the panoId to make sure the user hasn't walked
             if (mapService.getPanoId() == initialPanoId) {
                 self._instructToFollowTheGuidance();
@@ -91,10 +122,12 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this.start = function (neighborhood) {
         if (!svl.isOnboarding()) {
-            popUpMessage.notify("Let's get started!",
-                "We have moved you to a street in " + neighborhood.getProperty("name") +
+            var title = "Let's get started!";
+            var message = "We have moved you to a street in " + neighborhood.getProperty("name") +
                 ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
-                "accessibility problems at this intersection.");
+                "accessibility problems at this intersection.";
+
+            popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
             initialHeading = mapService.getPov().heading;
             lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);

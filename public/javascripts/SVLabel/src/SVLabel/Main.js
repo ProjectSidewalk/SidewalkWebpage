@@ -329,7 +329,8 @@ function Main (params) {
         // Popup the message explaining the goal of the current mission
         if (svl.missionContainer.isTheFirstMission()) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer);
+            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
             svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
