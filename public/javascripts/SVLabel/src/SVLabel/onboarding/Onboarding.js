@@ -47,7 +47,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
-    var disablePanningListener;
     var currentState;
 
     this._onboardingLabels = [];
@@ -91,8 +90,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         $("#left-column-jump-button").addClass('disabled');
 
         compass.hideMessage();
-
-        disablePanningListener = google.maps.event.addListener(svl.panorama, "pov_changed", _disablePanningHandler);
 
         status.state = getState("initialize");
         _visit(status.state);
@@ -465,8 +462,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
 
-        if (typeof google != "undefined") google.maps.event.removeListener(disablePanningListener);
-
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
             onboardingMission.setProperty("isCompleted", true);
@@ -622,13 +617,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
-    function _disablePanningHandler() {
-
-        var currentHeading = mapService.getPov().heading;
-
-
-    }
-
     var prevDistance = 0;
     var flag = false;
 
@@ -640,7 +628,18 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         // get the original pov heading
         var originalHeading = mapService.getPov().heading;
         var tolerance = 20;
+        var callback = function () {
+            var pov = mapService.getPov();
+            if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
+                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                if (listener) google.maps.event.removeListener(listener);
+                handAnimation.hideGrabAndDragAnimation(interval);
+                next(state.transition);
+            }
+        };
 
+        // Currently, the animated arrow for incorrect direction is disabled
+        /*
         var _checkToHideGrabAndDragAnimation = function (currentHeading) {
             if ((360 + state.properties.heading - currentHeading) % 360 < state.properties.tolerance) {
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
@@ -697,7 +696,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             prevDistance = distanceFromCurrentHeading;
 
         };
-        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
+        */
+
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
 
