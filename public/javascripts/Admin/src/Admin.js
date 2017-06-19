@@ -263,7 +263,7 @@ function Admin(_, $, c3, turf) {
                         weight: 1,
                         opacity: 0.25,
                         fillColor: getColor2(rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate)
+                        fillOpacity: 0.25 + (0.5 * rates[i].rate / 100.0)
                     }
                 }
             }
@@ -826,7 +826,7 @@ function Admin(_, $, c3, turf) {
                 }, 1);
 
                 // make charts showing neighborhood completion rate
-                data.sort(function(a, b) {return (a["rate"] > b["rate"]) ? 1 : ((b["rate"] > a["rate"]) ? -1 : 0);} );
+                data.sort(function(a, b) {return (a.rate > b.rate) ? 1 : ((b.rate > a.rate) ? -1 : 0);} );
                 var sum = 0;
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0;
