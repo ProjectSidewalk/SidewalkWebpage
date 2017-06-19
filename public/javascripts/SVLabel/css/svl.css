@@ -8,10 +8,10 @@
 text {
     visibility: hidden;
 }
-
+/*
 .visible {
     visibility: visible;
-}
+}*/
 
 .highlight {
     color: orange;
