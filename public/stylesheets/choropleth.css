@@ -1,0 +1,15 @@
+#choropleth {
+    width: 100%;
+    height: 800px;
+}
+
+.legend label,
+.legend span {
+    display:block;
+    float:right;
+    height:15px;
+    width:10%;
+    text-align:left;
+    font-size:8px;
+    color:#808080;
+}

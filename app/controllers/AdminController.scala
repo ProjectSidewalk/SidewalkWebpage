@@ -103,23 +103,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      RegionCompletionTable.initializeRegionCompletionTable()
+    RegionCompletionTable.initializeRegionCompletionTable()
 
-      val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
-      val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
-        Json.obj("region_id" -> neighborhood.regionId,
-          "total_distance_m" -> neighborhood.totalDistance,
-          "completed_distance_m" -> neighborhood.auditedDistance,
-          "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
-          "name" -> neighborhood.name
-        )
-      }
-
-      Future.successful(Ok(JsArray(completionRates)))
-    } else {
-      Future.successful(Redirect("/"))
+    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
+    val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
+      Json.obj("region_id" -> neighborhood.regionId,
+        "total_distance_m" -> neighborhood.totalDistance,
+        "completed_distance_m" -> neighborhood.auditedDistance,
+        "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
+        "name" -> neighborhood.name
+      )
     }
+
+    Future.successful(Ok(JsArray(completionRates)))
   }
 
   /**
