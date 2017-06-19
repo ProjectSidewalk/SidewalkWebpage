@@ -39,11 +39,11 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
         uiPopUpMessage.content.append($html);
-        $html.on('click', self.hide);
+
         if (callback) {
             $html.on("click", callback);
         }
-
+        $html.on('click', self.hide);
         buttons.push($html);
     }
 
@@ -68,12 +68,12 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             $("#pop-up-message-ok-button").remove();
         }
         self._appendButton(OKButton, handleClickOK);
+
         document.addEventListener('keydown', function (e){
             e = e || window.event; //Handle IE
             //enter
             if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
-                handleClickOK();
-                self.hide();
+                $("#pop-up-message-ok-button").trigger("click");
             }
         });
     };
