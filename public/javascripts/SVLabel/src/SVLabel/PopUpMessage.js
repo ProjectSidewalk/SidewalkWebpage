@@ -11,7 +11,7 @@
  */
 function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
     var self = this;
-    var status = { haveAskedToSignIn: false };
+    var status = { haveAskedToSignIn: false, signUp: false};
     var buttons = [];
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
@@ -39,11 +39,11 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     function appendHTML (htmlDom, callback) {
         var $html = $(htmlDom);
         uiPopUpMessage.content.append($html);
-
+        $html.on('click', self.hide);
         if (callback) {
             $html.on("click", callback);
         }
-        $html.on('click', self.hide);
+
         buttons.push($html);
     }
 
@@ -80,7 +80,9 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     this.hide = function () {
         uiPopUpMessage.holder.removeClass('visible');
         uiPopUpMessage.holder.addClass('hidden');
-        enableInteractions();
+        if (!status.signUp){
+            enableInteractions();
+        }
         self.hideBackground();  // hide background
         self.reset();  // reset all the parameters
         return this;
@@ -110,12 +112,12 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            enableInteractions();
             var data = form.compileSubmissionData(task),
                 staged = storage.get("staged");
             staged.push(data);
             storage.set("staged", staged);
-
+            disableInteractions();
+            status.signUp = true;
             $("#sign-in-modal").addClass("hidden");
             $("#sign-up-modal").removeClass("hidden");
             $('#sign-in-modal-container').modal('show');
@@ -133,7 +135,6 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
 
             var data = form.compileSubmissionData(task);
             form.submit(data, task);
-            enableInteractions();
         });
         appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in">' +
             '<small><span style="text-decoration: underline; cursor: pointer;">I do have an account! Let me sign in.</span></small>' +
@@ -145,7 +146,6 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            enableInteractions();
             var data = form.compileSubmissionData(task),
                 staged = storage.get("staged");
             staged.push(data);
@@ -202,6 +202,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             }
         }
         buttons = [];
+        status.signUp = false;
     };
 
     /**
@@ -253,6 +254,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         });
         return this;
     };
-
+    self.disableInteractions = disableInteractions;
+    self.enableInteractions = enableInteractions;
 
 }
