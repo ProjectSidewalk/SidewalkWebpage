@@ -9,26 +9,7 @@
     @navbar(user)
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
-    <!--<script>
-        $(document).ready(function () {
-            $("#page-alert-close").on("click", function(){
-                $("#mobile-browser-alert").css("visibility", "hidden");
-            })
-        });
-    </script>
-    <div id="mobile-browser-alert">
-        <div id="mobile-alert-text">
-            <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for desktop browsers.
-            <br/>
-            Mobile browsers are not supported.&nbsp;
-                Thanks for visiting!<br />Unfortunately, Project Sidewalk is currently not supported on mobile devices.
-                Please visit us on your laptop or desktop. Let's work together to make the world more accessible.
-            </span>
-            <a id="page-alert-close" href="#"><span class="glyphicon glyphicon-remove"></span></a>
-        </div>
-    </div>-->
     <div id="vidbanner">
-
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
