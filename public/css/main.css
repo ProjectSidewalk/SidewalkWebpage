@@ -1098,6 +1098,21 @@ kbd {
     color: #fff;
 }
 
+#page-loading{
+    position:absolute;
+    max-width:45%;
+    max-height:45%;
+    top:33%;
+    left:50%;
+    overflow:visible;
+}
+#loading-gif {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    margin-top: -50%;
+    margin-left: -50%;
+}
 .navbar-xs { min-height: 45px; height: 45px; }
 .navbar-xs .navbar-xs-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; padding-bottom: 17px; padding-top: 0px; height: 38px; float: left; }
 .navbar-xs .navbar-nav > li > a {
@@ -1106,5 +1121,4 @@ kbd {
     padding-top: 15px;
     /*padding-bottom: 9px;*/
     line-height: 20px;
-
 }
