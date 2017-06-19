@@ -11,7 +11,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "stage-4-adjust": [7, 180],
         "stage-4": [7, 115],
         "stage-5-adjust": [320, 115],
-        "stage-5": [320, 36],
+        "stage-5": [300, 36],
         "stage-6": [281, 14]
     };
     this.states = {
