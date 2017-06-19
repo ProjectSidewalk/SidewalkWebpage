@@ -69,7 +69,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self._appendButton(OKButton, handleClickOK);
         document.addEventListener('keydown', function (e){
-            e = e || window.event;
+            e = e || window.event; //Handle IE
             //enter
             if (e.keyCode == 13) {
                 handleClickOK();
@@ -218,9 +218,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      */
     this.show = function (disableOtherInteraction) {
         disableInteractions();
-        //if (disableOtherInteraction){
         self._showBackground();
-        //}
 
         uiPopUpMessage.holder.removeClass('hidden');
         uiPopUpMessage.holder.addClass('visible');
