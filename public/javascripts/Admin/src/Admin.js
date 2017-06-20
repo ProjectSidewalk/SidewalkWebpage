@@ -708,7 +708,7 @@ function Admin(_, $, c3, turf) {
                 $("#onboarding-std").html((std).toFixed(1) + " minutes");
 
                 var chart = {
-                    "width": 800,
+                    "width": 600,
                     "height": 300,
                     "layer": [
                         {
@@ -743,7 +743,7 @@ function Admin(_, $, c3, turf) {
                                     "scale": {"domain": [0,10]}
                                 },
                                 "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["red", "orange"]},
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
@@ -882,7 +882,7 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
 
                 var coverageRateHist = {
-                    "width": 800,
+                    "width": 600,
                     "height": 400,
                     "layer": [
                         {
@@ -918,7 +918,7 @@ function Admin(_, $, c3, turf) {
                                     "scale": {"domain": [0,100]}
                                 },
                                 "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["red", "orange"]},
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
