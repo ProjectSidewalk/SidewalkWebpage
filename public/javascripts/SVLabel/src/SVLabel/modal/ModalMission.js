@@ -141,17 +141,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
         $("#mission-badge-holder").html(badge);
 
-        document.addEventListener("keyup", function (e){
-            e = e || window.event;
-            //enter key
-            if (e.keyCode == 13 && self._status.isOpen){
-                //uiModalMission.holder.css('visibility', 'hidden');
-                self.hide();
-                if (callback){
-                    callback();
-                }
-            }
-        });
+
         if (callback) {
             $("#modal-mission-close-button").one("click", function () {
                 self.hide();
@@ -161,6 +151,14 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             $("#modal-mission-close-button").one("click", self.hide);
             $("#modal-mission-holder").find(".ok-button").one("click", self.hide);
         }
+
+        $(document).keyup(function (e){
+            e = e || window.event;
+            //enter key
+            if (e.keyCode == 13 && self._status.isOpen){
+                $("#modal-mission-close-button").click();
+            }
+        });
     };
 
     uiModalMission.background.on("click", this._handleBackgroundClick);
