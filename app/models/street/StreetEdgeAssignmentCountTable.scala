@@ -65,7 +65,7 @@ object StreetEdgeAssignmentCountTable {
   def incrementCompletion(edgeId: Int): Int = db.withTransaction { implicit session =>
     val q = for {counts <- streetEdgeAssignmentCounts if counts.streetEdgeId === edgeId} yield counts
     val count = q.firstOption match {
-      case Some(c) => q.map(_.completionCount).update(c.completionCount + 1)
+      case Some(c) => q.map(_.completionCount).update(c.completionCount + 1); c.completionCount + 1 // returns incremented completion count
       case None => 0
     }
     count
