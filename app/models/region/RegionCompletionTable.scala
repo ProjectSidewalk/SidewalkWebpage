@@ -88,9 +88,7 @@ object RegionCompletionTable {
     */
   def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
     val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
-    println(distToAdd)
     val regionId: Int = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list.head
-    println(regionId)
 
     val q = for { regionCompletion <- regionCompletions if regionCompletion.regionId === regionId } yield regionCompletion
 
