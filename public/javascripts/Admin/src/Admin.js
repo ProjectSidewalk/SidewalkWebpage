@@ -824,7 +824,7 @@ function Admin(_, $, c3, turf) {
                 }
                 std /= data.length;
                 std = Math.sqrt(std);
-                $("#neighborhood-std").html((std).toFixed(1) + "%");
+                $("#neighborhood-std").html((std).toFixed(0) + "%");
 
 
                 console.log()
@@ -918,12 +918,29 @@ function Admin(_, $, c3, turf) {
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
+                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
+                var sum = 0;
+                for (var j = 0; j < data[0].length; j++) {
+                    sum += data[0][j].count;
+                }
+                var mean = sum / data[0].length;
+                var i = data[0].length / 2;
+                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
+
+                var std = 0;
+                for(var k = 0; k < data[0].length; k++) {
+                    std += Math.pow(data[0][k].count - mean, 2);
+                }
+                std /= data[0].length;
+                std = Math.sqrt(std);
+                $("#audit-std").html((std).toFixed(1) + " Street Audits");
+
                 var chart = {
                     "data": {"values": data[0]},
                     "hconcat": [
                         {
                             "height": 300,
-                            "width": 600,
+                            "width": 550,
                             "mark": "area",
                             "encoding": {
                                 "x": {
@@ -941,25 +958,52 @@ function Admin(_, $, c3, turf) {
                             }
                         },
                         {
-                            "height": 300,
-                            "width": 250,
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {"title": "# Street Audits per Day", "labelAngle": 0},
-                                    "bin": {"maxbins": 20}
+                            "layer": [
+                                {
+                                    "height": 300,
+                                    "width": 250,
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {"title": "# Street Audits per Day", "labelAngle": 0},
+                                            "bin": {"maxbins": 20}
+                                        },
+                                        "y": {
+                                            "aggregate": "count",
+                                            "field": "*",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "Counts"
+                                            }
+                                        }
+                                    }
                                 },
-                                "y": {
-                                    "aggregate": "count",
-                                    "field": "*",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
+                                            "legend": {
+                                                "title": "Summary Stats"
+                                            }
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
                                     }
                                 }
-                            }
+                                ],
+                            "resolve": {"x": {"scale": "independent"}}
                         }
                     ],
                     "config": {
@@ -975,12 +1019,29 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
+                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
+                var sum = 0;
+                for (var j = 0; j < data[0].length; j++) {
+                    sum += data[0][j].count;
+                }
+                var mean = sum / data[0].length;
+                var i = data[0].length / 2;
+                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
+
+                var std = 0;
+                for(var k = 0; k < data[0].length; k++) {
+                    std += Math.pow(data[0][k].count - mean, 2);
+                }
+                std /= data[0].length;
+                std = Math.sqrt(std);
+                $("#label-std").html((std).toFixed(0) + " Labels");
+
                 var chart = {
                     "data": {"values": data[0]},
                     "hconcat": [
                         {
                             "height": 300,
-                            "width": 600,
+                            "width": 550,
                             "mark": "area",
                             "encoding": {
                                 "x": {
@@ -998,25 +1059,52 @@ function Admin(_, $, c3, turf) {
                             }
                         },
                         {
-                            "height": 300,
-                            "width": 250,
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {"title": "# Labels per Day", "labelAngle": 0},
-                                    "bin": {"maxbins": 20}
+                            "layer": [
+                                {
+                                    "height": 300,
+                                    "width": 250,
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {"title": "# Labels per Day", "labelAngle": 0},
+                                            "bin": {"maxbins": 20}
+                                        },
+                                        "y": {
+                                            "aggregate": "count",
+                                            "field": "*",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "Counts"
+                                            }
+                                        }
+                                    }
                                 },
-                                "y": {
-                                    "aggregate": "count",
-                                    "field": "*",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
+                                            "legend": {
+                                                "title": "Summary Stats"
+                                            }
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
                                     }
                                 }
-                            }
+                            ],
+                            "resolve": {"x": {"scale": "independent"}}
                         }
                         ],
                     "config": {
