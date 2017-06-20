@@ -84,35 +84,35 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     };
 
     this._pollLookingAroundHasFinished = function () {
-        var currentHeadingAngle = mapService.getPov().heading;
-        var transformedCurrent = self._transformAngle(currentHeadingAngle);
-        var direction;
-        var EPS = 30; //the smaller it is the higher the speed of calling this function should be
 
-        if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS)
-            direction = transformedCurrent - (lastHeadingTransformed + 360);
-        else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS)
-            direction = transformedCurrent - (lastHeadingTransformed - 360);
-        else
-            direction = transformedCurrent - lastHeadingTransformed;
+        //check the panoId to make sure the user hasn't walked
+        if (mapService.getPanoId() == initialPanoId) {
+            var currentHeadingAngle = mapService.getPov().heading;
+            var transformedCurrent = self._transformAngle(currentHeadingAngle);
+            var direction;
+            var EPS = 30; //the smaller it is the higher the speed of calling this function should be
 
-        if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) {
-            // user is rotating clockwise
-            viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
-        } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) {
-            //user is rotating counter clockwise
-            viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
-        }
+            if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS)
+                direction = transformedCurrent - (lastHeadingTransformed + 360);
+            else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS)
+                direction = transformedCurrent - (lastHeadingTransformed - 360);
+            else
+                direction = transformedCurrent - lastHeadingTransformed;
 
-        lastHeadingTransformed = transformedCurrent;
+            if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) {
+                // user is rotating clockwise
+                viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
+            } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) {
+                //user is rotating counter clockwise
+                viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
+            }
 
-        var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
+            lastHeadingTransformed = transformedCurrent;
 
-        if (overallAngleViewed >= 360 - EPS) {
-            clearInterval(lookingAroundInterval);
+            var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
 
-            //check the panoId to make sure the user hasn't walked
-            if (mapService.getPanoId() == initialPanoId) {
+            if (overallAngleViewed >= 360 - EPS) {
+                clearInterval(lookingAroundInterval);
                 self._instructToFollowTheGuidance();
             }
         }
