@@ -221,6 +221,7 @@ footer {
     color: #fff;
     font-family: raleway, sans-serif;
     font-size: 45px;
+    background: rgba(0,0,0,0.2);
 }
 #playlink{
     font-size: 20px;
