@@ -979,12 +979,6 @@ function Admin(_, $, c3, turf) {
                 });
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
-                var dates = ['Date'].concat(data[0].map(function (x) {
-                        return x.date;
-                    })),
-                    counts = ['Label Count'].concat(data[0].map(function (x) {
-                        return x.count;
-                    }));
                 var chart = {
                     // "height": 800,
                     "height": 300,
