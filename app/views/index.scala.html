@@ -7,9 +7,9 @@
 
 @main(title) {
     @navbar(user)
+    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
-        
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
