@@ -976,24 +976,49 @@ function Admin(_, $, c3, turf) {
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
                 var chart = {
-                    "height": 300,
-                    "width": 920,
-                    "mark": "area",
-                    "data": {"values": data[0], "format": {"type": "json"}},
-                    "encoding": {
-                        "x": {
-                            "field": "date",
-                            "type": "temporal",
-                            "axis": {"title": "Date", "labelAngle": 0}
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 600,
+                            "mark": "area",
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "axis": {"title": "Date", "labelAngle": 0}
+                                },
+                                "y": {
+                                    "field": "count",
+                                    "type": "quantitative",
+                                    "axis": {
+                                        "title": "# Labels per Day"
+                                    }
+                                }
+                            }
                         },
-                        "y": {
-                            "field": "count",
-                            "type": "quantitative",
-                            "axis": {
-                                "title": "# Labels per Day"
+                        {
+                            "height": 300,
+                            "width": 250,
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {
+                                    "field": "count",
+                                    "type": "quantitative",
+                                    "axis": {"title": "# Labels per Day", "labelAngle": 0},
+                                    "bin": {"maxbins": 20}
+                                },
+                                "y": {
+                                    "aggregate": "count",
+                                    "field": "*",
+                                    "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
                             }
                         }
-                    },
+                        ],
                     "config": {
                         "axis": {
                             "titleFontSize": 16
