@@ -699,6 +699,14 @@ function Admin(_, $, c3, turf) {
                 var i = onboardingTimes.length / 2;
                 var median = i % 1 == 0 ? (onboardingTimes[i - 1].duration + onboardingTimes[i].duration) / 2 : onboardingTimes[Math.floor(i)].duration;
 
+                var std = 0;
+                for(var j = 0; j < onboardingTimes.length; j++) {
+                    std += Math.pow(onboardingTimes[j].duration - mean, 2);
+                }
+                std /= onboardingTimes.length;
+                std = Math.sqrt(std);
+                $("#onboarding-std").html((std).toFixed(1) + " minutes");
+
                 var chart = {
                     "width": 800,
                     "height": 300,
