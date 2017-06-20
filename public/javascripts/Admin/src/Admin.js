@@ -649,7 +649,6 @@ function Admin(_, $, c3, turf) {
                 var duration;
                 var bounceCount = 0;
                 var sum = 0;
-                console.log("grouped", grouped);
                 for (var auditTaskId in grouped) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
