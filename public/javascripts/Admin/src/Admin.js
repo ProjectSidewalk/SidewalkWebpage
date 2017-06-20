@@ -849,6 +849,15 @@ function Admin(_, $, c3, turf) {
                 var i = data.length / 2;
                 var median = (data.length / 2) % 1 == 0 ? (data[i - 1].rate + data[i].rate) / 2 : data[Math.floor(i)].rate;
 
+                var std = 0;
+                for(var k = 0; k < data.length; k++) {
+                    std += Math.pow(data[k].rate - mean, 2);
+                }
+                std /= data.length;
+                std = Math.sqrt(std);
+                $("#neighborhood-std").html((std).toFixed(1) + "%");
+
+
                 console.log()
                 var coverageRateChart = {
                     "width": 810,
