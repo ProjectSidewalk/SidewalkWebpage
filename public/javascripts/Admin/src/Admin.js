@@ -712,7 +712,7 @@ function Admin(_, $, c3, turf) {
                                     "scale": {"domain": [0,10]}
                                 },
                                 "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
@@ -896,7 +896,7 @@ function Admin(_, $, c3, turf) {
                                     "scale": {"domain": [0,100]}
                                 },
                                 "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
                                     "legend": {
                                         "title": "Summary Stats"
                                     }
@@ -941,27 +941,52 @@ function Admin(_, $, c3, turf) {
                         {
                             "height": 300,
                             "width": 550,
-                            "mark": "area",
-                            "encoding": {
-                                "x": {
-                                    "field": "date",
-                                    "type": "temporal",
-                                    "axis": {"title": "Date", "labelAngle": 0}
-                                },
-                                "y": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "# Street Audits per Day"
-                                    }
-                                }
-                            }
-                        },
-                        {
                             "layer": [
                                 {
-                                    "height": 300,
-                                    "width": 250,
+                                    "mark": "area",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Street Audits per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 1
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
+                        },
+                        {
+                            "height": 300,
+                            "width": 250,
+                            "layer": [
+                                {
                                     "mark": "bar",
                                     "encoding": {
                                         "x": {
@@ -992,13 +1017,13 @@ function Admin(_, $, c3, turf) {
                                             "scale": {"domain": [0, data[0][data[0].length-1].count]}
                                         },
                                         "color": {
-                                            "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
                                             "legend": {
                                                 "title": "Summary Stats"
                                             }
                                         },
                                         "size": {
-                                            "value": 2
+                                            "value": 1
                                         }
                                     }
                                 }
@@ -1042,27 +1067,52 @@ function Admin(_, $, c3, turf) {
                         {
                             "height": 300,
                             "width": 550,
-                            "mark": "area",
-                            "encoding": {
-                                "x": {
-                                    "field": "date",
-                                    "type": "temporal",
-                                    "axis": {"title": "Date", "labelAngle": 0}
-                                },
-                                "y": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "# Labels per Day"
-                                    }
-                                }
-                            }
-                        },
-                        {
                             "layer": [
                                 {
-                                    "height": 300,
-                                    "width": 250,
+                                    "mark": "area",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Labels per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
+                        },
+                        {
+                            "height": 300,
+                            "width": 250,
+                            "layer": [
+                                {
                                     "mark": "bar",
                                     "encoding": {
                                         "x": {
@@ -1093,7 +1143,7 @@ function Admin(_, $, c3, turf) {
                                             "scale": {"domain": [0, data[0][data[0].length-1].count]}
                                         },
                                         "color": {
-                                            "field": "stat", "type": "nominal", "scale": {"range": ["green", "orange"]},
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
                                             "legend": {
                                                 "title": "Summary Stats"
                                             }
