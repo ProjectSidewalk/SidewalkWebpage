@@ -42,19 +42,23 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     this._instructForGSVLabelDisappearing = function () {
         if (!svl.isOnboarding()) {
             // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
-            var labels = svl.labelContainer.getCurrentLabels();
-            var prev_labels = svl.labelContainer.getPreviousLabels();
+            var labels = labelContainer.getCurrentLabels();
+            var prev_labels = labelContainer.getPreviousLabels();
             if (labels.length == 0) {
                 labels = prev_labels;
             }
-            if (labels.length > 0) {
-                var title = "Labels on the image disappear";
-                var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
-                    "image after you have taken a step. " +
-                    "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
+            var labelCount = labels.length;
+            var nOnboardingLabels = 7;
+            if (labelCount > 0) {
+                if (svl.missionContainer.isTheFirstMission() && labelCount != nOnboardingLabels) {
+                    var title = "Labels on the image disappear";
+                    var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
+                        "image after you have taken a step. " +
+                        "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
 
-                popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
-                mapService.blinkGoogleMaps();
+                    popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
+                    mapService.blinkGoogleMaps();
+                }
             }
         }
     };
@@ -80,35 +84,35 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     };
 
     this._pollLookingAroundHasFinished = function () {
-        var currentHeadingAngle = mapService.getPov().heading;
-        var transformedCurrent = self._transformAngle(currentHeadingAngle);
-        var direction;
-        var EPS = 30; //the smaller it is the higher the speed of calling this function should be
 
-        if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS)
-            direction = transformedCurrent - (lastHeadingTransformed + 360);
-        else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS)
-            direction = transformedCurrent - (lastHeadingTransformed - 360);
-        else
-            direction = transformedCurrent - lastHeadingTransformed;
+        //check the panoId to make sure the user hasn't walked
+        if (mapService.getPanoId() == initialPanoId) {
+            var currentHeadingAngle = mapService.getPov().heading;
+            var transformedCurrent = self._transformAngle(currentHeadingAngle);
+            var direction;
+            var EPS = 30; //the smaller it is the higher the speed of calling this function should be
 
-        if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) {
-            // user is rotating clockwise
-            viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
-        } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) {
-            //user is rotating counter clockwise
-            viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
-        }
+            if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS)
+                direction = transformedCurrent - (lastHeadingTransformed + 360);
+            else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS)
+                direction = transformedCurrent - (lastHeadingTransformed - 360);
+            else
+                direction = transformedCurrent - lastHeadingTransformed;
 
-        lastHeadingTransformed = transformedCurrent;
+            if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) {
+                // user is rotating clockwise
+                viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
+            } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) {
+                //user is rotating counter clockwise
+                viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
+            }
 
-        var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
+            lastHeadingTransformed = transformedCurrent;
 
-        if (overallAngleViewed >= 360 - EPS) {
-            clearInterval(lookingAroundInterval);
+            var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
 
-            //check the panoId to make sure the user hasn't walked
-            if (mapService.getPanoId() == initialPanoId) {
+            if (overallAngleViewed >= 360 - EPS) {
+                clearInterval(lookingAroundInterval);
                 self._instructToFollowTheGuidance();
             }
         }
