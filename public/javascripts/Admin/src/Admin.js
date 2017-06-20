@@ -677,8 +677,8 @@ function Admin(_, $, c3, turf) {
                 $("#onboarding-std").html((std).toFixed(1) + " minutes");
 
                 var chart = {
-                    "width": 500,
-                    "height": 300,
+                    "width": 400,
+                    "height": 250,
                     "layer": [
                         {
                             "data": {"values": onboardingTimes},
@@ -826,9 +826,7 @@ function Admin(_, $, c3, turf) {
                 std = Math.sqrt(std);
                 $("#neighborhood-std").html((std).toFixed(0) + "%");
 
-
-                console.log()
-                var coverageRateChart = {
+                var coverageRateChartSortedByCompletion = {
                     "width": 810,
                     "height": 800,
                     "data": {
@@ -853,15 +851,48 @@ function Admin(_, $, c3, turf) {
                         "bar": {"binSpacing": 2}
                     }
                 };
+
+                var coverageRateChartSortedAlphabetically = {
+                    "width": 810,
+                    "height": 800,
+                    "data": {
+                        "values": data, "format": {
+                            "type": "json"
+                        }
+                    },
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "field": "rate", "type": "quantitative",
+                            "axis": {"title": "Neighborhood Completion (%)"}
+                        },
+                        "y": {
+                            "field": "name", "type": "nominal",
+                            "axis": {"title": "Neighborhood"},
+                            "sort": {"field": "name", "op": "max", "order": "descending"}
+                        }
+                    },
+                    "config": {
+                        "axis": {"titleFontSize": 16, "labelFontSize": 8},
+                        "bar": {"binSpacing": 2}
+                    }
+                };
                 var opt = {
                     "mode": "vega-lite",
                     "actions": false
                 };
-                vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
+                vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
+
+                document.getElementById("neighborhood-completion-sort-button").addEventListener("click", function() {
+                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
+                });
+                document.getElementById("neighborhood-alphabetical-sort-button").addEventListener("click", function() {
+                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedAlphabetically, opt, function(error, results) {});
+                });
 
                 var coverageRateHist = {
-                    "width": 500,
-                    "height": 400,
+                    "width": 400,
+                    "height": 250,
                     "layer": [
                         {
                             "data": {"values": data},
