@@ -1182,7 +1182,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelTag(selectedLabel);
         } else if (item && item.className === "Path") {
-            console.log("On a Path");
+            //console.log("On a Path");
             var label = item.belongsTo();
             _canvas.clear();
             _canvas.render2();
@@ -1210,6 +1210,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var $paths = $("#viewControlLayer").find('path');
         $paths.css('visibility', 'hidden');
         $paths.css('pointer-events', 'none');
+        svl.panorama.set('linksControl', false);
         // if (properties.browser === 'chrome') {
         //     // Somehow chrome does not allow me to select path
         //     // and fadeOut. Instead, I'm just manipulating path's style
@@ -1475,6 +1476,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.svLinkArrowsLoaded) {
             var numPath = uiMap.viewControlLayer.find("path").length;
             if (numPath === 0) {
+                svl.panorama.set('linksControl', true);
                 makeLinksClickable();
             } else {
                 status.svLinkArrowsLoaded = true;
@@ -1570,6 +1572,36 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Pano Changing Mechanism - END
      */
 
+    function restrictViewPort(pov) {
+        // View port restriction.
+        // Do not allow users to look up the sky or down the ground.
+        // If specified, do not allow users to turn around too much by restricting the heading angle.
+        if (pov.pitch > properties.maxPitch) {
+            pov.pitch = properties.maxPitch;
+        } else if (pov.pitch < properties.minPitch) {
+            pov.pitch = properties.minPitch;
+        }
+        if (properties.minHeading && properties.maxHeading) {
+            if (properties.minHeading <= properties.maxHeading) {
+                if (pov.heading > properties.maxHeading) {
+                    pov.heading = properties.maxHeading;
+                } else if (pov.heading < properties.minHeading) {
+                    pov.heading = properties.minHeading;
+                }
+            } else {
+                if (pov.heading < properties.minHeading &&
+                    pov.heading > properties.maxHeading) {
+                    if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
+                        pov.heading = properties.maxHeading;
+                    } else {
+                        pov.heading = properties.minHeading;
+                    }
+                }
+            }
+        }
+        return pov;
+    }
+
     /**
      * Update POV of Street View as a user drag a mouse cursor.
      * @param dx
@@ -1581,36 +1613,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 alpha = 0.25;
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-            // View port restriction.
-            // Do not allow users to look up the sky or down the ground.
-            // If specified, do not allow users to turn around too much by restricting the heading angle.
-            if (pov.pitch > properties.maxPitch) {
-                pov.pitch = properties.maxPitch;
-            } else if (pov.pitch < properties.minPitch) {
-                pov.pitch = properties.minPitch;
-            }
-            if (properties.minHeading && properties.maxHeading) {
-                if (properties.minHeading <= properties.maxHeading) {
-                    if (pov.heading > properties.maxHeading) {
-                        pov.heading = properties.maxHeading;
-                    } else if (pov.heading < properties.minHeading) {
-                        pov.heading = properties.minHeading;
-                    }
-                } else {
-                    if (pov.heading < properties.minHeading &&
-                        pov.heading > properties.maxHeading) {
-                        if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
-                            pov.heading = properties.maxHeading;
-                        } else {
-                            pov.heading = properties.minHeading;
-                        }
-                    }
-                }
-            }
+
+            // View port restriction
+            pov = restrictViewPort(pov);
+
             // Update the status of pov change
             povChange["status"] = true;
 
-            //
             // Set the property this object. Then update the Street View image
             properties.panoramaPov = pov;
             svl.panorama.setPov(pov);
@@ -1859,6 +1868,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.plotMarkers = plotMarkers;
     // self.povToCanvasCoordinate = povToCanvasCoordinate;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
+    self.restrictViewPort = restrictViewPort;
     self.save = save;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setHeadingRange = setHeadingRange;
