@@ -69,7 +69,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self._appendButton(OKButton, handleClickOK);
 
-        document.addEventListener('keydown', function (e){
+        document.addEventListener('keyup', function (e){
             e = e || window.event; //Handle IE
             //enter
             if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
