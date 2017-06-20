@@ -112,7 +112,7 @@ object AuditTaskTable {
   def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.queryNA[(String, Int)](
       """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |FROM    generate_series(0, 30) n) AS calendar
+        |FROM    generate_series(0, current_date - '11/17/2015') n) AS calendar
         |LEFT JOIN sidewalk.audit_task
         |ON audit_task.task_start::date = calendar_date::date
         |GROUP BY calendar_date
