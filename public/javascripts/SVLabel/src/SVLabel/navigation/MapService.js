@@ -1210,7 +1210,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var $paths = $("#viewControlLayer").find('path');
         $paths.css('visibility', 'hidden');
         $paths.css('pointer-events', 'none');
-        svl.panorama.set('linksControl', false);
         // if (properties.browser === 'chrome') {
         //     // Somehow chrome does not allow me to select path
         //     // and fadeOut. Instead, I'm just manipulating path's style
@@ -1476,7 +1475,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.svLinkArrowsLoaded) {
             var numPath = uiMap.viewControlLayer.find("path").length;
             if (numPath === 0) {
-                svl.panorama.set('linksControl', true);
                 makeLinksClickable();
             } else {
                 status.svLinkArrowsLoaded = true;
