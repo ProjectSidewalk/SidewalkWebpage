@@ -42,19 +42,23 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     this._instructForGSVLabelDisappearing = function () {
         if (!svl.isOnboarding()) {
             // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
-            var labels = svl.labelContainer.getCurrentLabels();
-            var prev_labels = svl.labelContainer.getPreviousLabels();
+            var labels = labelContainer.getCurrentLabels();
+            var prev_labels = labelContainer.getPreviousLabels();
             if (labels.length == 0) {
                 labels = prev_labels;
             }
-            if (labels.length > 0) {
-                var title = "Labels on the image disappear";
-                var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
-                    "image after you have taken a step. " +
-                    "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
+            var labelCount = labels.length;
+            var nOnboardingLabels = 7;
+            if (labelCount > 0) {
+                if (svl.missionContainer.isTheFirstMission() && labelCount != nOnboardingLabels) {
+                    var title = "Labels on the image disappear";
+                    var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
+                        "image after you have taken a step. " +
+                        "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
 
-                popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
-                mapService.blinkGoogleMaps();
+                    popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
+                    mapService.blinkGoogleMaps();
+                }
             }
         }
     };
