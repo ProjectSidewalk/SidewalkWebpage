@@ -841,6 +841,7 @@ function Admin(_, $, c3, turf) {
                 var i = data.length / 2;
                 var median = (data.length / 2) % 1 == 0 ? (data[i - 1].rate + data[i].rate) / 2 : data[Math.floor(i)].rate;
 
+                console.log()
                 var coverageRateChart = {
                     "width": 810,
                     "height": 800,
@@ -852,23 +853,18 @@ function Admin(_, $, c3, turf) {
                     "mark": "bar",
                     "encoding": {
                         "x": {
-                            "field": "rate", "type": "quantitative", "axis": {
-                                "title": "Neighborhood Completion (%)"
-                            }
+                            "field": "rate", "type": "quantitative",
+                            "axis": {"title": "Neighborhood Completion (%)"}
                         },
                         "y": {
-                            "field": "name", "type": "nominal", "axis": {
-                                "title": "Neighborhood"
-                            }
+                            "field": "name", "type": "nominal",
+                            "axis": {"title": "Neighborhood"},
+                            "sort": {"field": "rate", "op": "max", "order": "ascending"}
                         }
                     },
                     "config": {
-                        "axis": {
-                            "titleFontSize": 16, "labelFontSize": 8
-                        },
-                        "bar": {
-                            "binSpacing": 2
-                        }
+                        "axis": {"titleFontSize": 16, "labelFontSize": 8},
+                        "bar": {"binSpacing": 2}
                     }
                 };
                 var opt = {
