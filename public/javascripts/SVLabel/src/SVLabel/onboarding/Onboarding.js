@@ -47,6 +47,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
+    var currentState;
 
     this._onboardingLabels = [];
 
@@ -67,7 +68,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var canvas = uiOnboarding.canvas.get(0);
         if (canvas) ctx = canvas.getContext('2d');
         uiOnboarding.holder.css("visibility", "visible");
-
+        
         mapService.unlockDisableWalking();
         mapService.disableWalking();
         mapService.lockDisableWalking();
@@ -121,6 +122,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         return this;
     }
 
+    var myTimer;
+    var isWrong = false;
+
     /**
      * Draw an arrow on the onboarding canvas
      * @param x1 {number} Starting x coordinate
@@ -132,14 +136,21 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      */
     function drawArrow(x1, y1, x2, y2, parameters) {
         if (ctx) {
-            var lineWidth = 1,
-                fill = 'rgba(255,255,255,1)',
-                lineCap = 'round',
-                arrowWidth = 6,
-                strokeStyle = 'rgba(96, 96, 96, 1)',
+            // var lineWidth = 1,
+            //     fill = 'rgba(255,255,255,1)',
+            //     lineCap = 'round',
+            //     arrowWidth = 6,
+            //     strokeStyle = 'rgba(96, 96, 96, 1)',
+            var lineWidth = parameters.lineWidth,
+                fill = parameters.fill,
+                lineCap = parameters.lineCap,
+                arrowWidth = parameters.arrowWidth,
+                strokeStyle  = parameters.strokeStyle,
                 dx, dy, theta;
 
-            if ("fill" in parameters && parameters.fill) fill = parameters.fill;
+            if (!parameters.fill) {
+                fill = 'rgba(255,255,255,1)';
+            }
 
             dx = x2 - x1;
             dy = y2 - y1;
@@ -167,25 +178,75 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             ctx.fill();
             ctx.stroke();
             ctx.closePath();
+
+            // Add text
+            if("text" in parameters && parameters.text){
+                console.log("Printing text" + parameters.text);
+                ctx.fillStyle = "black"; // font color to write the text with
+                ctx.textBaseline = "top";
+                ctx.fillText(parameters.text, x1, y1);
+            }
+
             ctx.restore();
         }
         return this;
     }
 
+    /**
+     * Clear the arrow
+     */
+    function clearArrow(){
+        if (ctx) {
+            ctx.save();
+            ctx.clearRect(0,200,400,400);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * Draw an animated arrow on the onboarding canvas
+     */
+    function drawArrowAnimate () {
+        if(!flag) {
+            // clear the arrow
+            clearArrow();
+            flag = !flag;
+        }
+        else {
+            // draw the arrow
+            var x1 = 70;
+            var y1 = 300;
+            var x2 = 30;
+            var y2 = 300;
+            var parameters = {
+                lineWidth: 1,
+                fill: 'rgba(255,255,0,1)',
+                lineCap: 'round',
+                arrowWidth: 8,
+                strokeStyle: 'rgba(0, 0, 0, 1)',
+                text: "Oops! Pan this way instead"
+            };
+            drawArrow(x1, y1, x2, y2, parameters);
+            flag = !flag;
+        }
+    }
+
     function drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
         var max_frequency = 60 * blink_frequency_modifier;
         var blink_period = 0.5;
+        var originalFillColor = parameters.fill;
 
         function helperBlinkingArrow() {
-            var par;
             blink_timer = (blink_timer + 1) % max_frequency;
+            var param;
             if (blink_timer < blink_period * max_frequency) {
-                par = parameters
+                parameters["fill"] = originalFillColor;
+            } else {
+                parameters["fill"] = "white";
             }
-            else {
-                par = {"fill": null};
-            }
-            drawArrow(x1, y1, x2, y2, par);
+            param = parameters;
+            drawArrow(x1, y1, x2, y2, param);
+
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
             //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
             var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
@@ -193,6 +254,97 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
 
         helperBlinkingArrow();
+    }
+
+    function _drawAnnotations(state) {
+        var imX,
+            imY,
+            lineLength,
+            lineAngle,
+            x1,
+            x2,
+            y1,
+            y2,
+            origPointPov,
+            canvasCoordinate;
+
+        var currentPov = mapService.getPov();
+        var povChange = svl.map.getPovChangeStatus();
+
+        povChange["status"] = true;
+
+        clear();
+
+        var blink_frequency_modifier = 0;
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            if (state.annotations[i].type == "arrow") {
+                blink_frequency_modifier = blink_frequency_modifier + 1;
+            }
+        }
+
+        for (var i = 0, len = state.annotations.length; i < len; i++) {
+            imX = state.annotations[i].x;
+            imY = state.annotations[i].y;
+            origPointPov = state.annotations[i].originalPov;
+
+            // For the first arrow to be applied, looking at the initial heading (initialize state) of the onboarding.
+            // Refer to OnboardingStates for the value
+            // This avoids applying the first arrow if the heading is not set correctly
+            // This will avoid incorrection POV calculation
+            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 262 &&
+                jQuery.isEmptyObject(origPointPov)) {
+                povChange["status"] = false;
+                return this;
+            }
+            // Setting the original Pov only once and
+            // mapping an image coordinate to a canvas coordinate
+            if (jQuery.isEmptyObject(origPointPov)) {
+
+                if (currentPov.heading < 180) {
+                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                        imX -= svl.svImageWidth;
+                    }
+                } else {
+                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                        imX += svl.svImageWidth;
+                    }
+                }
+
+                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
+                state.annotations[i].originalPov = origPointPov;
+
+            }
+            canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
+
+            if (state.annotations[i].type == "arrow") {
+                lineLength = state.annotations[i].length;
+                lineAngle = state.annotations[i].angle;
+                x2 = canvasCoordinate.x;
+                y2 = canvasCoordinate.y;
+                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
+                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
+
+                //The color of the arrow will by default alternate between white and the fill specified in annotation
+                var parameters = {
+                    lineWidth: 1,
+                    fill: state.annotations[i].fill,
+                    lineCap: 'round',
+                    arrowWidth: 6,
+                    strokeStyle: 'rgba(96, 96, 96, 1)'
+                };
+
+                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
+                    drawArrow(x1, y1, x2, y2, parameters);
+                }
+                else {
+                    drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
+                }
+
+            } else if (state.annotations[i].type == "double-click") {
+                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
+            }
+        }
+        povChange["status"] = false;
     }
 
 
@@ -233,8 +385,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      * @param parameters
      */
     function showMessage(parameters) {
-        var message = parameters.message, position = parameters.position;
-        if (!position) position = "top-right";
+        var message = parameters.message;
 
         uiOnboarding.messageHolder.toggleClass("yellow-background");
         setTimeout(function () {
@@ -247,9 +398,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             width: 300
         });
 
+        uiOnboarding.messageHolder.removeClass("animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp");
+        uiOnboarding.messageHolder.removeClass("callout top bottom left right lower-right");
 
         if (!uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.show();
-
 
         uiOnboarding.background.css("visibility", "hidden");
         if (parameters) {
@@ -267,6 +419,14 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
             if ("background" in parameters && parameters.background) {
                 uiOnboarding.background.css("visibility", "visible");
+            }
+
+            if ("arrow" in parameters) {
+                uiOnboarding.messageHolder.addClass("callout " + parameters.arrow);
+            }
+
+            if ("fade-direction" in parameters) {
+                uiOnboarding.messageHolder.addClass("animated " + parameters["fade-direction"]);
             }
         }
 
@@ -329,89 +489,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         return "message" in state && state.message;
     }
 
-    function _drawAnnotations(state) {
-        var imX,
-            imY,
-            lineLength,
-            lineAngle,
-            x1,
-            x2,
-            y1,
-            y2,
-            origPointPov,
-            canvasCoordinate;
-
-        var currentPov = mapService.getPov();
-
-        var povChange = svl.map.getPovChangeStatus();
-
-        povChange["status"] = true;
-
-        clear();
-
-        var blink_frequency_modifier = 0;
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
-            if (state.annotations[i].type == "arrow") {
-                blink_frequency_modifier = blink_frequency_modifier + 1;
-            }
-        }
-
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
-            imX = state.annotations[i].x;
-            imY = state.annotations[i].y;
-            origPointPov = state.annotations[i].originalPov;
-
-            // 280 is the initial heading of the onoboarding. Refer to OnboardingStates
-            // for the value
-            // This avoids applying the first arrow if the heading is not set correctly
-            // This will avoid incorrection POV calculation
-            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 280 &&
-                jQuery.isEmptyObject(origPointPov)) {
-                povChange["status"] = false;
-                return this;
-            }
-            // Setting the original Pov only once and
-            // mapping an image coordinate to a canvas coordinate
-            if (jQuery.isEmptyObject(origPointPov)) {
-
-                if (currentPov.heading < 180) {
-                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                        imX -= svl.svImageWidth;
-                    }
-                } else {
-                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                        imX += svl.svImageWidth;
-                    }
-                }
-
-                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-                state.annotations[i].originalPov = origPointPov;
-
-            }
-            canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
-
-            if (state.annotations[i].type == "arrow") {
-                lineLength = state.annotations[i].length;
-                lineAngle = state.annotations[i].angle;
-                x2 = canvasCoordinate.x;
-                y2 = canvasCoordinate.y;
-                x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
-                y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
-                //The color of the arrow will by default alternate between white and the fill specified in annotation
-                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
-                    drawArrow(x1, y1, x2, y2, {"fill": state.annotations[i].fill});
-                }
-                else {
-                    drawBlinkingArrow(x1, y1, x2, y2, {"fill": "yellow"}, blink_frequency_modifier);
-                }
-
-            } else if (state.annotations[i].type == "double-click") {
-                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
-            }
-        }
-        povChange["status"] = false;
-    }
-
     /**
      * Execute an instruction based on the current state.
      * @param state
@@ -421,6 +498,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             len,
             callback,
             annotationListener;
+
+        currentState = state;
 
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         if (blink_function_identifier.length != 0) {
@@ -456,18 +535,24 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 });
             }
         }
-
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.constructor == Array) {
+
+                //Restrict panning
+                mapService.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
+
                 // Ideally we need a for loop that goes through every element of the property array
                 // and calls the corresponding action's handler.
                 // Not just the label accessibility attribute's handler
                 if (state.properties[0].action == "LabelAccessibilityAttribute") {
-                    _visitLabelMultipleAccessibilityAttributeState(state, annotationListener);
+                    _visitLabelAccessibilityAttributeState(state, annotationListener);
                 }
             }
             else {
+                //Restrict panning
+                mapService.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
+
                 if (state.properties.action == "Introduction") {
                     _visitIntroduction(state, annotationListener);
                 } else if (state.properties.action == "SelectLabelType") {
@@ -484,11 +569,11 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     _visitInstruction(state, annotationListener);
                 }
             }
-
         }
     }
 
     function _visitWalkTowards(state, listener) {
+
         mapService.unlockDisableWalking();
         mapService.lockDisableWalking();
 
@@ -503,11 +588,13 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             } else {
-                mapService.setPano(state.panoId, true); // Force the interface to go back to the previous position.
+                console.error("Pano mismatch. Shouldn't reach here");
+                // Force the interface to go back to the previous position.
+                mapService.setPano(state.panoId, true);
             }
         };
-        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
 
+        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
 
         // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
@@ -516,11 +603,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var mouseUpCallback = function (e) {
             currentClick = new Date().getTime();
 
-
             // Check if the user has double clicked
             if (previousClick && currentClick - previousClick < 300) {
                 //Previously, we checked if the user double-clicked on the correct location,
-                // it wasn't working correctly and we removed that. So it will jump them if they click anywhere
+                // it wasn't working correctly; we removed that. So it will jump them if they click anywhere
                 uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
                 mapService.setPano(state.properties.panoId, true);
                 mapService.disableWalking();
@@ -531,10 +617,17 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
+    var prevDistance = 0;
+    var flag = false;
+
     function _visitAdjustHeadingAngle(state, listener) {
         var $target;
         var interval;
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
+
+        // get the original pov heading
+        var originalHeading = mapService.getPov().heading;
+        var tolerance = 20;
         var callback = function () {
             var pov = mapService.getPov();
             if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
@@ -544,7 +637,67 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 next(state.transition);
             }
         };
-        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
+
+        // Currently, the animated arrow for incorrect direction is disabled
+        /*
+        var _checkToHideGrabAndDragAnimation = function (currentHeading) {
+            if ((360 + state.properties.heading - currentHeading) % 360 < state.properties.tolerance) {
+                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                if (listener) google.maps.event.removeListener(listener);
+                handAnimation.hideGrabAndDragAnimation(interval);
+                next(state.transition);
+            }
+        };
+
+        var callback = function () {
+
+            var currentHeading = mapService.getPov().heading;
+            var distanceFromCurrentHeading = currentHeading - originalHeading;
+
+            if (distanceFromCurrentHeading <= 0) {
+                if (prevDistance <= 0) {
+                    clearArrow();
+                    isWrong = false;
+
+                    if (myTimer) {
+                        //console.error("Clearing Timer");
+                        clearInterval(myTimer);
+                        myTimer = null;
+                    }
+                }
+                // normal drag
+                _checkToHideGrabAndDragAnimation(currentHeading)
+            }
+            else {
+                if(prevDistance > 0) {
+                    if(distanceFromCurrentHeading <= prevDistance) {
+                        // normal drag, 0->360
+                        console.log("Normal Drag 0 -> 360");
+                        _checkToHideGrabAndDragAnimation(currentHeading)
+                    }
+                    else {
+                        // Indicates user dragging in the wrong direction
+                        if (currentHeading % 360 >= (tolerance + originalHeading)) {
+                            // Stop panning and show the warning (arrow + labeling)
+
+                            if (!isWrong) {
+                                // set a timer to animate the arrow every 500ms
+                                //console.error("Activating timer");
+                                myTimer = setInterval(drawArrowAnimate, 500);
+                                isWrong = true;
+                            }
+                        }
+                    }
+                }
+                else if (prevDistance <= 0) {
+                    _checkToHideGrabAndDragAnimation(currentHeading)
+                }
+            }
+            prevDistance = distanceFromCurrentHeading;
+
+        };
+        */
+
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
 
@@ -709,17 +862,17 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      */
     function _visitZoomState(state, listener) {
         var zoomType = state.properties.type;
-        var $target;
+        var event;
 
         if (zoomType == "in") {
-            $target = zoomControl.getZoomInUI();
+            event = 'ZoomIn';
             zoomControl.blinkZoomIn();
             zoomControl.unlockDisableZoomIn();
             zoomControl.enableZoomIn();
             zoomControl.lockDisableZoomIn();
 
         } else {
-            $target = zoomControl.getZoomOutUI();
+            event = 'ZoomOut';
             zoomControl.blinkZoomOut();
 
             // Enable zoom-out
@@ -743,13 +896,13 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 zoomControl.lockDisableZoomOut();
             }
             ribbon.enableMode("Walk");
-            $target.off("click", callback);
+            $(document).off(event, callback);
 
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
 
-        $target.on("click", callback);
+        $(document).on(event, callback);
 
     }
 
@@ -772,7 +925,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
      * @param listener
      * @private
      */
-    function _visitLabelMultipleAccessibilityAttributeState(state, listener) {
+    function _visitLabelAccessibilityAttributeState(state, listener) {
 
         var $target = uiCanvas.drawingLayer;
         var properties = state.properties;
@@ -796,7 +949,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
                 if (distance < tolerance * tolerance) {
-                    ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
+                    ribbon.disableMode(state.properties[i].labelType, state.properties[i].subcategory);
                     ribbon.enableMode("Walk");
                     uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
                     $target.off("click", callback);
@@ -806,7 +959,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 } else {
                     // Incorrect label application
                     _incorrectLabelApplication(state);
-                    ribbon.enableMode(state.properties.labelType, state.properties.subcategory);
+                    ribbon.enableMode(state.properties[i].labelType, state.properties[i].subcategory);
                 }
                 i = i + 1;
             }
@@ -841,6 +994,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     self._visit = _visit;
     self.clear = clear;
     self.drawArrow = drawArrow;
+    self.drawArrowAnimate = drawArrowAnimate;
     self.next = next;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;

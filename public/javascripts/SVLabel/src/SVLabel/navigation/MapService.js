@@ -923,7 +923,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Todo. Wrote this ad-hoc. Clean up and test later.
     var positionUpdateCallbacks = [];
     self.bindPositionUpdate = function (callback) {
-        if (typeof callback == "function") {
+        if (typeof callback == 'function') {
             positionUpdateCallbacks.push(callback);
         }
     };
@@ -970,9 +970,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             initialPositionUpdate = false;
         }
 
-        //
+        // Calling callbacks for position_changed event
         for (var i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
-            positionUpdateCallbacks[i]();
+            var callback = positionUpdateCallbacks[i];
+            if (typeof callback == 'function') {
+                callback();
+            }
         }
     }
 
@@ -1096,6 +1099,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                 STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
                                     self.setPano(streetViewPanoramaData.location.pano);
+                                    //self.handlerPositionUpdate();
                                 }
                                 else{
                                     var currentTask = svl.taskContainer.getCurrentTask();
@@ -1178,7 +1182,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelTag(selectedLabel);
         } else if (item && item.className === "Path") {
-            console.log("On a Path");
+            //console.log("On a Path");
             var label = item.belongsTo();
             _canvas.clear();
             _canvas.render2();
@@ -1566,6 +1570,36 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Pano Changing Mechanism - END
      */
 
+    function restrictViewPort(pov) {
+        // View port restriction.
+        // Do not allow users to look up the sky or down the ground.
+        // If specified, do not allow users to turn around too much by restricting the heading angle.
+        if (pov.pitch > properties.maxPitch) {
+            pov.pitch = properties.maxPitch;
+        } else if (pov.pitch < properties.minPitch) {
+            pov.pitch = properties.minPitch;
+        }
+        if (properties.minHeading && properties.maxHeading) {
+            if (properties.minHeading <= properties.maxHeading) {
+                if (pov.heading > properties.maxHeading) {
+                    pov.heading = properties.maxHeading;
+                } else if (pov.heading < properties.minHeading) {
+                    pov.heading = properties.minHeading;
+                }
+            } else {
+                if (pov.heading < properties.minHeading &&
+                    pov.heading > properties.maxHeading) {
+                    if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
+                        pov.heading = properties.maxHeading;
+                    } else {
+                        pov.heading = properties.minHeading;
+                    }
+                }
+            }
+        }
+        return pov;
+    }
+
     /**
      * Update POV of Street View as a user drag a mouse cursor.
      * @param dx
@@ -1577,36 +1611,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 alpha = 0.25;
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-            // View port restriction.
-            // Do not allow users to look up the sky or down the ground.
-            // If specified, do not allow users to turn around too much by restricting the heading angle.
-            if (pov.pitch > properties.maxPitch) {
-                pov.pitch = properties.maxPitch;
-            } else if (pov.pitch < properties.minPitch) {
-                pov.pitch = properties.minPitch;
-            }
-            if (properties.minHeading && properties.maxHeading) {
-                if (properties.minHeading <= properties.maxHeading) {
-                    if (pov.heading > properties.maxHeading) {
-                        pov.heading = properties.maxHeading;
-                    } else if (pov.heading < properties.minHeading) {
-                        pov.heading = properties.minHeading;
-                    }
-                } else {
-                    if (pov.heading < properties.minHeading &&
-                        pov.heading > properties.maxHeading) {
-                        if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
-                            pov.heading = properties.maxHeading;
-                        } else {
-                            pov.heading = properties.minHeading;
-                        }
-                    }
-                }
-            }
+
+            // View port restriction
+            pov = restrictViewPort(pov);
+
             // Update the status of pov change
             povChange["status"] = true;
 
-            //
             // Set the property this object. Then update the Street View image
             properties.panoramaPov = pov;
             svl.panorama.setPov(pov);
@@ -1745,7 +1756,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This funciton sets the current status of the instantiated object
+     * This function sets the current status of the instantiated object
      * @param key
      * @param value
      * @returns {*}
@@ -1855,6 +1866,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.plotMarkers = plotMarkers;
     // self.povToCanvasCoordinate = povToCanvasCoordinate;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
+    self.restrictViewPort = restrictViewPort;
     self.save = save;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setHeadingRange = setHeadingRange;
@@ -1865,6 +1877,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.setPov = setPov;
     self.setStatus = setStatus;
     self.setZoom = setZoom;
+    self.showLinks = showLinks;
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;

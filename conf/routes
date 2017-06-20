@@ -14,6 +14,7 @@ GET     /demo                                   @controllers.ApplicationControll
 GET     /results                                @controllers.ApplicationController.results
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
+GET     /mobile                                 @controllers.ApplicationController.mobile
 
 # User authentication
 GET     /signIn                                 @controllers.UserController.signIn(url: String ?= "/")
