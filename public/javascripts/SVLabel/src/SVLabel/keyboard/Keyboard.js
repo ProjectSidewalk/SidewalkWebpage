@@ -41,10 +41,14 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
     this._moveForward = function (){
+        svl.contextMenu.hide();
+        svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         this._movePano(0);
     };
 
     this._moveBackward = function (){
+        svl.contextMenu.hide();
+        svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         this._movePano(180);
     };
 
@@ -55,6 +59,15 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     this._rotatePov = function (degree){
         if (!svl.map.getStatus("disablePanning")){
+            svl.contextMenu.hide();
+            //panning hide label tag and delete icon
+            var labels = svl.labelContainer.getCanvasLabels(),
+                labelLen = labels.length;
+            for (var i=0; i<labelLen; i++){
+                labels[i].setTagVisibility('hidden');
+                labels[i].resetTagCoordinate();
+            }
+            svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             var heading =  svl.panorama.pov.heading;
             var pitch = svl.panorama.pov.pitch;
             var zoom = svl.panorama.pov.zoom;
