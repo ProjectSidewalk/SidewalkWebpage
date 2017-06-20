@@ -77,37 +77,6 @@ function Admin(_, $, c3, turf) {
 
     var popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
-
-    $.getJSON("/contribution/auditCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) {
-                return x.date;
-            })),
-            counts = ['Audit Count'].concat(data[0].map(function (x) {
-                return x.count;
-            }));
-        var chart = c3.generate({
-            bindto: "#audit-count-chart",
-            data: {
-                x: 'Date',
-                columns: [dates, counts],
-                types: {'Audit Count': 'line'}
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: {format: '%Y-%m-%d'}
-                },
-                y: {
-                    label: "Street Audit Count",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
     // Initialize the map
     /**
      * This function adds a semi-transparent white polygon on top of a map
@@ -950,24 +919,49 @@ function Admin(_, $, c3, turf) {
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
                 var chart = {
-                    "height": 300,
-                    "width": 920,
-                    "mark": "area",
-                    "data": {"values": data[0], "format": {"type": "json"}},
-                    "encoding": {
-                        "x": {
-                            "field": "date",
-                            "type": "temporal",
-                            "axis": {"title": "Date", "labelAngle": 0}
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 600,
+                            "mark": "area",
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "axis": {"title": "Date", "labelAngle": 0}
+                                },
+                                "y": {
+                                    "field": "count",
+                                    "type": "quantitative",
+                                    "axis": {
+                                        "title": "# Street Audits per Day"
+                                    }
+                                }
+                            }
                         },
-                        "y": {
-                            "field": "count",
-                            "type": "quantitative",
-                            "axis": {
-                                "title": "# Street Audits per Day"
+                        {
+                            "height": 300,
+                            "width": 250,
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {
+                                    "field": "count",
+                                    "type": "quantitative",
+                                    "axis": {"title": "# Street Audits per Day", "labelAngle": 0},
+                                    "bin": {"maxbins": 20}
+                                },
+                                "y": {
+                                    "aggregate": "count",
+                                    "field": "*",
+                                    "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
                             }
                         }
-                    },
+                    ],
                     "config": {
                         "axis": {
                             "titleFontSize": 16
