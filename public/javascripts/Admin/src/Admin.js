@@ -949,38 +949,39 @@ function Admin(_, $, c3, turf) {
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                var dates = ['Date'].concat(data[0].map(function (x) {
-                        return x.date;
-                    })),
-                    counts = ['Audit Count'].concat(data[0].map(function (x) {
-                        return x.count;
-                    }));
-                var chart = c3.generate({
-                    bindto: "#audit-count-chart",
-                    data: {
-                        x: 'Date',
-                        columns: [dates, counts],
-                        types: {'Audit Count': 'line'}
-                    },
-                    axis: {
-                        x: {
-                            type: 'timeseries',
-                            tick: {format: '%Y-%m-%d'}
+                var chart = {
+                    "height": 300,
+                    "width": 920,
+                    "mark": "area",
+                    "data": {"values": data[0], "format": {"type": "json"}},
+                    "encoding": {
+                        "x": {
+                            "field": "date",
+                            "type": "temporal",
+                            "axis": {"title": "Date", "labelAngle": 0}
                         },
-                        y: {
-                            label: "Street Audit Count",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
+                        "y": {
+                            "field": "count",
+                            "type": "quantitative",
+                            "axis": {
+                                "title": "# Street Audits per Day"
+                            }
                         }
                     },
-                    legend: {
-                        show: false
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
                     }
-                });
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
                 var chart = {
-                    // "height": 800,
                     "height": 300,
                     "width": 920,
                     "mark": "area",
