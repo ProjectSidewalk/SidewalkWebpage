@@ -649,12 +649,13 @@ function Admin(_, $, c3, turf) {
                 var duration;
                 var bounceCount = 0;
                 var sum = 0;
+                console.log("grouped", grouped);
                 for (var auditTaskId in grouped) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
                     record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-                    duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
-                    if (duration != 0) {
+                    if(record2.note === "from:outro" || record2.note === "onboardingTransition:outro"){
+                        duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
                         onboardingTimes.push({duration: duration, binned: Math.min(10.0, duration)});
                         sum += duration;
                     }
