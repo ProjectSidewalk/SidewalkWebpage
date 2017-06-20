@@ -708,7 +708,7 @@ function Admin(_, $, c3, turf) {
                 $("#onboarding-std").html((std).toFixed(1) + " minutes");
 
                 var chart = {
-                    "width": 600,
+                    "width": 500,
                     "height": 300,
                     "layer": [
                         {
@@ -882,7 +882,7 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#neighborhood-completion-rate", coverageRateChart, opt, function(error, results) {});
 
                 var coverageRateHist = {
-                    "width": 600,
+                    "width": 500,
                     "height": 400,
                     "layer": [
                         {
