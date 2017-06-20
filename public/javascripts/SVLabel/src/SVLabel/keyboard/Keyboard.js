@@ -59,7 +59,12 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             var pitch = svl.panorama.pov.pitch;
             var zoom = svl.panorama.pov.zoom;
             heading = (heading + degree + 360) % 360;
-            svl.panorama.setPov({heading: heading, pitch: pitch, zoom: zoom});
+            var pov = svl.map.restrictViewPort({
+                heading: heading,
+                pitch: pitch,
+                zoom: zoom
+            });
+            svl.panorama.setPov({heading: pov.heading, pitch: pov.pitch, zoom: pov.zoom});
         }
     };
 
