@@ -68,7 +68,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var canvas = uiOnboarding.canvas.get(0);
         if (canvas) ctx = canvas.getContext('2d');
         uiOnboarding.holder.css("visibility", "visible");
-
+        
         mapService.unlockDisableWalking();
         mapService.disableWalking();
         mapService.lockDisableWalking();
