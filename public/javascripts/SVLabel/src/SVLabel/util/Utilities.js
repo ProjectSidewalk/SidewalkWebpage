@@ -125,13 +125,14 @@ if(typeof JSON!=="object"){JSON={}}(function(){"use strict";function f(e){return
 // Get what browser the user is using.
 // This code was taken from an answer in the following SO page:
 // http://stackoverflow.com/questions/3303858/distinguish-chrome-from-safari-using-jquery-browser
+// addendum 6-21-2017: chrome
 var userAgent = navigator.userAgent.toLowerCase();
 
 // Figure out what browser is being used
 jQuery.browser = {
     version: (userAgent.match( /.+(?:rv|it|ra|ie|me)[\/: ]([\d.]+)/ ) || [])[1],
-    chrome: /chrome/.test( userAgent ),
-    safari: /webkit/.test( userAgent ) && !/chrome/.test( userAgent ),
+    chrome: /chrome/.test( userAgent ) || /crios/.test( userAgent ),
+    safari: /webkit/.test( userAgent ) && !/chrome/.test( userAgent ) && !/crios/.test( userAgent ),
     opera: /opera/.test( userAgent ),
     msie: /msie/.test( userAgent ) && !/opera/.test( userAgent ),
     mozilla: /mozilla/.test( userAgent ) && !/(compatible|webkit)/.test( userAgent )
@@ -166,6 +167,10 @@ function getOperatingSystem () {
     if (navigator.appVersion.indexOf("Mac")!=-1) OSName="MacOS";
     if (navigator.appVersion.indexOf("X11")!=-1) OSName="UNIX";
     if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
+    if (navigator.appVersion.indexOf("Android")!=-1) OSName="Android";
+    if (navigator.appVersion.indexOf("iPad")!=-1 ||
+        navigator.appVersion.indexOf("iPhone")!=-1 ||
+        navigator.appVersion.indexOf("iPod")!=-1) OSName="iOS";
     return OSName;
 }
 util.getOperatingSystem = getOperatingSystem;
