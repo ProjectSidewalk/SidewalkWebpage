@@ -757,7 +757,12 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     function _visitInstruction(state, listener) {
         if (!("okButton" in state) || state.okButton) {
             // Insert an ok button.
-            uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
+            var okButtonText = 'OK';
+            if (state.okButtonText) {
+                okButtonText = state.okButtonText;
+            }
+            uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>" +
+                okButtonText + "</button>");
         }
 
         // Blink parts of the interface
