@@ -221,6 +221,7 @@ footer {
     color: #fff;
     font-family: raleway, sans-serif;
     font-size: 45px;
+    background: rgba(0,0,0,0.2);
 }
 #playlink{
     font-size: 20px;
@@ -616,6 +617,12 @@ video#bgvid {
     background-color: rgba(249, 241, 227, 1);
     width: 100%;
     min-height: 800px;
+}
+
+#choropleth-container {
+    background-color: rgba(249, 241, 227, 1);
+    width: 100%;
+    min-height: 1100px;
 }
 
 #content{

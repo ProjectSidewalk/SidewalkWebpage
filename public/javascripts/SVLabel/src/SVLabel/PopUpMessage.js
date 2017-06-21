@@ -69,11 +69,11 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self._appendButton(OKButton, handleClickOK);
 
-        document.addEventListener('keydown', function (e){
+        $(document).keyup(function (e){
             e = e || window.event; //Handle IE
             //enter
             if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
-                $("#pop-up-message-ok-button").trigger("click");
+                $("#pop-up-message-ok-button").click();
             }
         });
     };

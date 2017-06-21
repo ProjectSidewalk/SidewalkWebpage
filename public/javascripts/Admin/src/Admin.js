@@ -12,6 +12,8 @@ function Admin(_, $, c3, turf) {
     self.mapLoaded = false;
     self.graphsLoaded = false;
 
+    var neighborhoodPolygonLayer;
+
     for (i = 0; i < 5; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
@@ -32,312 +34,48 @@ function Admin(_, $, c3, turf) {
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
-    // Construct a bounding box for this map that the user cannot move out of
+    // Construct a bounding box for these maps that the user cannot move out of
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262),
-        northEast = L.latLng(39.060, -76.830),
-        bounds = L.latLngBounds(southWest, northEast),
+    var southWest = L.latLng(38.761, -77.262);
+    var northEast = L.latLng(39.060, -76.830);
+    var bounds = L.latLngBounds(southWest, northEast);
 
-        // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-        tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
-        mapboxTiles = L.tileLayer(tileUrl, {
-            attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-        }),
-        map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
+    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
+    var mapboxTiles = L.tileLayer(tileUrl, {
+        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    });
+    var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+        // set that bounding box as maxBounds to restrict moving the map
+        // see full maxBounds documentation:
+        // http://leafletjs.com/reference.html#map-maxbounds
+        maxBounds: bounds,
+        maxZoom: 19,
+        minZoom: 9
+    })
+        .fitBounds(bounds)
+        .setView([38.892, -77.038], 12);
+
+    // a grayscale tileLayer for the choropleth
+    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
+    var choropleth = L.mapbox.map('admin-choropleth', "kotarohara.8e0c6890", {
             // set that bounding box as maxBounds to restrict moving the map
             // see full maxBounds documentation:
             // http://leafletjs.com/reference.html#map-maxbounds
             maxBounds: bounds,
             maxZoom: 19,
-            minZoom: 9
+            minZoom: 9,
+            legendControl: {
+                position: 'bottomleft'
+            }
         })
-        // .addLayer(mapboxTiles)
             .fitBounds(bounds)
-            .setView([38.892, -77.038], 12),
-        popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
+            .setView([38.892, -77.038], 12);
+    choropleth.scrollWheelZoom.disable();
 
-    // Draw an onboarding interaction chart
-    $.getJSON("/adminapi/onboardingInteractions", function (data) {
-        function cmp(a, b) {
-            return a.timestamp - b.timestamp;
-        }
+    L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
-        // Group the audit task interaction records by audit_task_id, then go through each group and compute
-        // the duration between the first time stamp and the last time stamp.
-        var grouped = _.groupBy(data, function (x) {
-            return x.audit_task_id;
-        });
-        var completionDurationArray = [];
-        var record1;
-        var record2;
-        var duration;
-        for (var auditTaskId in grouped) {
-            grouped[auditTaskId].sort(cmp);
-            record1 = grouped[auditTaskId][0];
-            record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-            duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
-            completionDurationArray.push(duration);
-        }
-        completionDurationArray.sort(function (a, b) {
-            return a - b;
-        });
-
-        // Bounce rate
-        var zeros = _.countBy(completionDurationArray, function (x) {
-            return x == 0;
-        });
-        var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
-
-        // Histogram of duration
-        completionDurationArray = completionDurationArray.filter(function (x) {
-            return x != 0;
-        });  // Remove zeros
-        var numberOfBins = 10;
-        var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-        // console.log(histogram);
-        var counts = histogram.histogram;
-        counts.unshift("Count");
-        var bins = histogram.histogram.map(function (x, i) {
-            return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1);
-        });
-
-        $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
-
-        var chart = c3.generate({
-            bindto: '#onboarding-completion-duration-histogram',
-            data: {
-                columns: [
-                    counts
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    label: "Onboarding Completion Time (s)",
-                    type: 'category',
-                    categories: bins
-                },
-                y: {
-                    label: "Count",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-        var i,
-            len = data.length;
-
-        // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-        var missions = {};
-        var printedMissionName;
-        for (i = 0; i < len; i++) {
-            // Set the printed mission name
-            if (data[i].label == "initial-mission") {
-                printedMissionName = "Initial Mission (1000 ft)";
-            } else if (data[i].label == "distance-mission") {
-                if (data[i].level <= 2) {
-                    printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                } else {
-                    printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
-                }
-            } else {
-                printedMissionName = "Onboarding";
-            }
-
-            // Create a counter for the printedMissionName if it does not exist yet.
-            if (!(printedMissionName in missions)) {
-                missions[printedMissionName] = {
-                    label: data[i].label,
-                    level: data[i].level,
-                    printedMissionName: printedMissionName,
-                    count: 0
-                };
-            }
-            missions[printedMissionName].count += 1;
-        }
-        var arrayOfMissions = Object.keys(missions).map(function (key) {
-            return missions[key];
-        });
-        arrayOfMissions.sort(function (a, b) {
-            if (a.count < b.count) {
-                return 1;
-            }
-            else if (a.count > b.count) {
-                return -1;
-            }
-            else {
-                return 0;
-            }
-        });
-
-        var missionCountArray = ["Mission Counts"];
-        var missionNames = [];
-        for (i = 0; i < arrayOfMissions.length; i++) {
-            missionCountArray.push(arrayOfMissions[i].count);
-            missionNames.push(arrayOfMissions[i].printedMissionName);
-        }
-        var chart = c3.generate({
-            bindto: '#completed-mission-histogram',
-            data: {
-                columns: [
-                    missionCountArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: missionNames
-                },
-                y: {
-                    label: "# Users Completed the Mission",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-        var i,
-            len = data.length,
-            completionRate,
-            row,
-            rows = "";
-        var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
-        var coverageDistanceArray = ["Neighborhood Coverage (m)"];
-        var neighborhoodNames = [];
-        for (i = 0; i < len; i++) {
-            completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
-            coverageRateColumn.push(completionRate);
-            coverageDistanceArray.push(data[i].completed_distance_m);
-
-            neighborhoodNames.push(data[i].name);
-            // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
-            // rows += row;
-        }
-
-        var coverageChart = c3.generate({
-            bindto: '#neighborhood-completion-rate',
-            data: {
-                columns: [
-                    coverageRateColumn
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: neighborhoodNames
-                },
-                y: {
-                    label: "Neighborhood Coverage Rate (%)",
-                    min: 0,
-                    max: 100,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-
-        var coverageDistanceChart = c3.generate({
-            bindto: '#neighborhood-completed-distance',
-            data: {
-                columns: [
-                    coverageDistanceArray
-                ],
-                type: 'bar'
-            },
-            axis: {
-                x: {
-                    type: 'category',
-                    categories: neighborhoodNames
-                },
-                y: {
-                    label: "Coverage Distance (m)",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-
-    });
-
-    $.getJSON("/contribution/auditCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) {
-                return x.date;
-            })),
-            counts = ['Audit Count'].concat(data[0].map(function (x) {
-                return x.count;
-            }));
-        var chart = c3.generate({
-            bindto: "#audit-count-chart",
-            data: {
-                x: 'Date',
-                columns: [dates, counts],
-                types: {'Audit Count': 'line'}
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: {format: '%Y-%m-%d'}
-                },
-                y: {
-                    label: "Street Audit Count",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
-
-    $.getJSON("/userapi/labelCounts/all", function (data) {
-        var dates = ['Date'].concat(data[0].map(function (x) {
-                return x.date;
-            })),
-            counts = ['Label Count'].concat(data[0].map(function (x) {
-                return x.count;
-            }));
-        var chart = c3.generate({
-            bindto: "#label-count-chart",
-            data: {
-                x: 'Date',
-                columns: [dates, counts],
-                types: {'Audit Count': 'line'}
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: {format: '%Y-%m-%d'}
-                },
-                y: {
-                    label: "Label Count",
-                    min: 0,
-                    padding: {top: 50, bottom: 10}
-                }
-            },
-            legend: {
-                show: false
-            }
-        });
-    });
+    var popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
     // Initialize the map
     /**
@@ -406,7 +144,7 @@ function Admin(_, $, c3, turf) {
         }
 
         $.getJSON("/neighborhoods", function (data) {
-            L.geoJson(data, {
+            neighborhoodPolygonLayer = L.geoJson(data, {
                 style: function (feature) {
                     return $.extend(true, {}, neighborhoodPolygonStyle);
                 },
@@ -417,7 +155,166 @@ function Admin(_, $, c3, turf) {
     }
 
     /**
-     * This function queries the streets that the user audited and visualize them as segmetns on the map.
+     * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
+     *
+     * @param p {float} represents a completion percentage, between 0 and 100
+     * @returns {string} color in hex
+     */
+    function getColor(p) {
+        return p > 80 ? '#08519c' :
+            p > 60 ? '#3182bd' :
+                p > 40 ? '#6baed6' :
+                    p > 20 ? '#bdd7e7' :
+                        '#eff3ff';
+    }
+    function getColor2(p) {
+        return p > 90 ? '#08306b' :
+            p > 80 ? '#08519c' :
+                p > 70 ? '#08719c' :
+                    p > 60 ? '#2171b5' :
+                        p > 50 ? '#4292c6' :
+                            p > 40 ? '#6baed6' :
+                                p > 30 ? '#9ecae1' :
+                                    p > 20 ? '#c6dbef' :
+                                        p > 10 ? '#deebf7' :
+                                            '#f7fbff';
+    }
+    function getColor3(p) {
+        return p > 90 ? '#023858' :
+            p > 80 ? '#045a8d' :
+                p > 70 ? '#0570b0' :
+                    p > 60 ? '#3690c0' :
+                        p > 50 ? '#74a9cf' :
+                            p > 40 ? '#a6bddb' :
+                                p > 30 ? '#d0d1e6' :
+                                    p > 20 ? '#ece7f2' :
+                                        p > 10 ? '#fff7fb' :
+                                            '#ffffff';
+    }
+    function getColor4(p) {
+        return p > 80 ? '#045a8d' :
+            p > 60 ? '#2b8cbe' :
+                p > 40 ? '#74a9cf' :
+                    p > 20 ? '#bdc9e1' :
+                        '#f1eef6';
+    }
+    function getOpacity(p) {
+        return p > 90 ? 1.0 :
+            p > 80 ? 0.9 :
+                p > 70 ? 0.8 :
+                    p > 60 ? 0.7 :
+                        p > 50 ? 0.6 :
+                            p > 40 ? 0.5 :
+                                p > 30 ? 0.4 :
+                                    p > 20 ? 0.3 :
+                                        p > 10 ? 0.2 :
+                                            0.1;
+    }
+
+    /**
+     * render the neighborhood polygons, colored by completion percentage
+     */
+    function initializeChoroplethNeighborhoodPolygons(map, rates) {
+        var neighborhoodPolygonStyle = { // default bright red, used to check if any regions are missing data
+                color: '#888',
+                weight: 1,
+                opacity: 0.25,
+                fillColor: "#f00",
+                fillOpacity: 1.0
+            },
+            layers = [],
+            currentLayer;
+
+        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
+        function style(feature) {
+            for (var i=0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    return {
+                        color: '#888',
+                        weight: 1,
+                        opacity: 0.25,
+                        fillColor: getColor2(rates[i].rate),
+                        fillOpacity: 0.25 + (0.5 * rates[i].rate / 100.0)
+                    }
+                }
+            }
+            return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
+        }
+
+        function onEachNeighborhoodFeature(feature, layer) {
+
+            var regionId = feature.properties.region_id,
+                regionName = feature.properties.region_name,
+                compRate = -1.0,
+                milesLeft = -1.0,
+                url = "/audit/region/" + regionId,
+                popupContent = "???";
+            for (var i=0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    compRate = Math.round(rates[i].rate);
+                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!";
+                    }
+                    else if (milesLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
+                            "\% Complete<br>Less than a mile left!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    else if (milesLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " mile left!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " miles left!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    break;
+                }
+            }
+            layer.bindPopup(popupContent);
+            layers.push(layer);
+
+            layer.on('mouseover', function (e) {
+                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+
+            });
+            layer.on('mouseout', function (e) {
+                for (var i = layers.length - 1; i >= 0; i--) {
+                    if (currentLayer !== layers[i])
+                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                }
+                //this.setStyle(neighborhoodPolygonStyle);
+            });
+            layer.on('click', function (e) {
+                var center = turf.center(this.feature),
+                    coordinates = center.geometry.coordinates,
+                    latlng = L.latLng(coordinates[1], coordinates[0]),
+                    zoom = map.getZoom();
+                zoom = zoom > 14 ? zoom : 14;
+
+                map.setView(latlng, zoom, {animate: true});
+                currentLayer = this;
+            });
+        }
+
+        // adds the neighborhood polygons to the map
+        $.getJSON("/neighborhoods", function (data) {
+            neighborhoodPolygonLayer = L.geoJson(data, {
+                style: style,
+                onEachFeature: onEachNeighborhoodFeature
+            })
+                .addTo(map);
+        });
+    }
+
+    /**
+     * This function queries the streets that the user audited and visualize them as segments on the map.
      */
     function initializeAuditedStreets(map) {
         var distanceAudited = 0,  // Distance audited in km
@@ -618,27 +515,6 @@ function Admin(_, $, c3, turf) {
         }
     }
 
-    // A helper method to make an histogram of an array.
-    function makeAHistogramArray(arrayOfNumbers, numberOfBins) {
-        arrayOfNumbers.sort(function (a, b) {
-            return a - b;
-        });
-        var stepSize = arrayOfNumbers[arrayOfNumbers.length - 1] / numberOfBins;
-        var dividedArray = arrayOfNumbers.map(function (x) {
-            return x / stepSize;
-        });
-        var histogram = Array.apply(null, Array(numberOfBins)).map(Number.prototype.valueOf, 0);
-        for (var i = 0; i < dividedArray.length; i++) {
-            var binIndex = Math.floor(dividedArray[i] - 0.0000001);
-            histogram[binIndex] += 1;
-        }
-        return {
-            histogram: histogram,
-            stepSize: stepSize,
-            numberOfBins: numberOfBins
-        };
-    }
-
     function initializeAdminGSVLabelView() {
         self.adminGSVLabelView = AdminGSVLabel();
     }
@@ -663,6 +539,99 @@ function Admin(_, $, c3, turf) {
             self.mapLoaded = true;
         }
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
+
+
+            $.getJSON("/adminapi/completionRateByDate", function (data) {
+                var chart = {
+                    // "height": 800,
+                    "height": 300,
+                    "width": 875,
+                    "mark": "area",
+                    "data": {"values": data[0], "format": {"type": "json"}},
+                    "encoding": {
+                        "x": {
+                            "field": "date",
+                            "type": "temporal",
+                            "axis": {"title": "Date", "labelAngle": 0}
+                        },
+                        "y": {
+                            "field": "completion",
+                            "type": "quantitative", "scale": {
+                                "domain": [0,100]
+                            },
+                            "axis": {
+                                "title": "DC Coverage (%)"
+                            }
+                        }
+                    },
+                    // this is the slightly different code for the interactive version
+                    // "vconcat": [
+                    //     {
+                    //         "width": 800,
+                    //         "height": 150,
+                    //         "mark": "area",
+                    //         "selection": {
+                    //             "brush": {
+                    //                 "type": "interval", "encodings": ["x"]
+                    //             }
+                    //         },
+                    //         "encoding": {
+                    //             "x": {
+                    //                 "field": "date",
+                    //                 "type": "temporal",
+                    //                 "axis": {"title": "Date", "labelAngle": 0}
+                    //             },
+                    //             "y": {
+                    //                 "field": "completion",
+                    //                 "type": "quantitative", "scale": {
+                    //                     "domain": [0,100]
+                    //                 },
+                    //                 "axis": {
+                    //                     "title": "DC Coverage (%)"
+                    //                 }
+                    //             }
+                    //         }
+                    //     },
+                    //     {
+                    //         "width": 800,
+                    //         "height": 400,
+                    //         "mark": "area",
+                    //         "encoding": {
+                    //             "x": {
+                    //                 "field": "date",
+                    //                 "type": "temporal",
+                    //                 "scale": {
+                    //                     "domain": {
+                    //                         "selection": "brush", "encoding": "x"
+                    //                     }
+                    //                 },
+                    //                 "axis": {
+                    //                     "title": "", "labelAngle": 0
+                    //                 }
+                    //             },
+                    //             "y": {
+                    //                 "field": "completion","type": "quantitative", "scale": {
+                    //                     "domain": [0,100]
+                    //                 },
+                    //                 "axis": {
+                    //                     "title": "DC Coverage (%)"
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
+            });
             // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
                 function cmp(a, b) {
@@ -674,273 +643,562 @@ function Admin(_, $, c3, turf) {
                 var grouped = _.groupBy(data, function (x) {
                     return x.audit_task_id;
                 });
-                var completionDurationArray = [];
+                var onboardingTimes = [];
                 var record1;
                 var record2;
                 var duration;
+                var bounceCount = 0;
+                var sum = 0;
                 for (var auditTaskId in grouped) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
                     record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-                    duration = (record2.timestamp - record1.timestamp) / 1000;  // Duration in seconds
-                    completionDurationArray.push(duration);
+                    if(record2.note === "from:outro" || record2.note === "onboardingTransition:outro"){
+                        duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
+                        onboardingTimes.push({duration: duration, binned: Math.min(10.0, duration)});
+                        sum += duration;
+                    }
+                    else bounceCount++;
                 }
-                completionDurationArray.sort(function (a, b) {
-                    return a - b;
-                });
-
-                // Bounce rate
-                var zeros = _.countBy(completionDurationArray, function (x) {
-                    return x == 0;
-                });
-                var bounceRate = zeros['true'] / (zeros['true'] + zeros['false']);
-
-                // Histogram of duration
-                completionDurationArray = completionDurationArray.filter(function (x) {
-                    return x != 0;
-                });  // Remove zeros
-                var numberOfBins = 10;
-                var histogram = makeAHistogramArray(completionDurationArray, numberOfBins);
-                // console.log(histogram);
-                var counts = histogram.histogram;
-                counts.unshift("Count");
-                var bins = histogram.histogram.map(function (x, i) {
-                    return (i * histogram.stepSize).toFixed(1) + " - " + ((i + 1) * histogram.stepSize).toFixed(1);
-                });
-
+                var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
                 $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
-                var chart = c3.generate({
-                    bindto: '#onboarding-completion-duration-histogram',
-                    data: {
-                        columns: [
-                            counts
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            label: "Onboarding Completion Time (s)",
-                            type: 'category',
-                            categories: bins
+                var mean = sum / onboardingTimes.length;
+                onboardingTimes.sort(function(a, b) {return (a.duration > b.duration) ? 1 : ((b.duration > a.duration) ? -1 : 0);} );
+                var i = onboardingTimes.length / 2;
+                var median = i % 1 == 0 ? (onboardingTimes[i - 1].duration + onboardingTimes[i].duration) / 2 : onboardingTimes[Math.floor(i)].duration;
+
+                var std = 0;
+                for(var j = 0; j < onboardingTimes.length; j++) {
+                    std += Math.pow(onboardingTimes[j].duration - mean, 2);
+                }
+                std /= onboardingTimes.length;
+                std = Math.sqrt(std);
+                $("#onboarding-std").html((std).toFixed(1) + " minutes");
+
+                var chart = {
+                    "width": 400,
+                    "height": 250,
+                    "layer": [
+                        {
+                            "data": {"values": onboardingTimes},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {
+                                    "bin": {"maxbins": 10},
+                                    "field": "binned", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Onboarding Completion Time (minutes)", "labelAngle": 0,
+                                        "scale": {"domain": [0,10]}
+                                    }
+                                },
+                                "y": {
+                                    "aggregate": "count", "field": "*", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
+                            }
                         },
-                        y: {
-                            label: "Count",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
+                        { // creates lines marking summary statistics
+                            "data": {"values": [
+                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                            },
+                            "mark": "rule",
+                            "encoding": {
+                                "x": {
+                                    "field": "value", "type": "quantitative",
+                                    "axis": {"labels": false, "ticks": false, "title": ""},
+                                    "scale": {"domain": [0,10]}
+                                },
+                                "color": {
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                    "legend": {
+                                        "title": "Summary Stats"
+                                    }
+                                },
+                                "size": {
+                                    "value": 2
+                                }
+                            }
                         }
-                    },
-                    legend: {
-                        show: false
+                    ],
+                    "resolve": {"x": {"scale": "independent"}},
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
                     }
-                });
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
-            $.getJSON('/adminapi/missionsCompletedByUsers', function (data) {
-                var i,
-                    len = data.length;
-
-                // Todo. This code double counts the missions completed for different region. So it should be fixed in the future.
-                var missions = {};
-                var printedMissionName;
-                for (i = 0; i < len; i++) {
-                    // Set the printed mission name
-                    if (data[i].label == "initial-mission") {
-                        printedMissionName = "Initial Mission (1000 ft)";
-                    } else if (data[i].label == "distance-mission") {
-                        if (data[i].level <= 2) {
-                            printedMissionName = "Distance Mission (" + data[i].distance_ft + " ft)";
-                        } else {
-                            printedMissionName = "Distance Mission (" + data[i].distance_mi + " mi)";
-                        }
-                    } else {
-                        printedMissionName = "Onboarding";
-                    }
-
-                    // Create a counter for the printedMissionName if it does not exist yet.
-                    if (!(printedMissionName in missions)) {
-                        missions[printedMissionName] = {
-                            label: data[i].label,
-                            level: data[i].level,
-                            printedMissionName: printedMissionName,
-                            count: 0
-                        };
-                    }
-                    missions[printedMissionName].count += 1;
+            $.getJSON('/adminapi/labels/all', function (data) {
+                for (var i = 0; i < data.features.length; i++) {
+                    data.features[i].label_type = data.features[i].properties.label_type;
+                    data.features[i].severity = data.features[i].properties.severity;
                 }
-                var arrayOfMissions = Object.keys(missions).map(function (key) {
-                    return missions[key];
-                });
-                arrayOfMissions.sort(function (a, b) {
-                    if (a.count < b.count) {
-                        return 1;
-                    }
-                    else if (a.count > b.count) {
-                        return -1;
-                    }
-                    else {
-                        return 0;
-                    }
-                });
+                var curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
+                var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
+                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
+                var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
 
-                var missionCountArray = ["Mission Counts"];
-                var missionNames = [];
-                for (i = 0; i < arrayOfMissions.length; i++) {
-                    missionCountArray.push(arrayOfMissions[i].count);
-                    missionNames.push(arrayOfMissions[i].printedMissionName);
-                }
-                var chart = c3.generate({
-                    bindto: '#completed-mission-histogram',
-                    data: {
-                        columns: [
-                            missionCountArray
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: missionNames
+                var subPlotHeight = 200;
+                var subPlotWidth = 199;
+                var chart = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": curbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Curb Ramp Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
                         },
-                        y: {
-                            label: "# Users Completed the Mission",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noCurbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Missing Curb Ramp Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": surfaceProblems},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Surface Problem Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": obstacles},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Obstacle Severity"}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
                         }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
+                    ]
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                var i,
-                    len = data.length,
-                    completionRate,
-                    row,
-                    rows = "";
-                var coverageRateColumn = ["Neighborhood Coverage Rate (%)"];
-                var coverageDistanceArray = ["Neighborhood Coverage (m)"];
-                var neighborhoodNames = [];
-                for (i = 0; i < len; i++) {
-                    completionRate = data[i].completed_distance_m / data[i].total_distance_m * 100;
-                    coverageRateColumn.push(completionRate);
-                    coverageDistanceArray.push(data[i].completed_distance_m);
 
-                    neighborhoodNames.push(data[i].name);
-                    // row = "<tr><th>" + data[i].region_id + " " + data[i].name + "</th><td>" + completionRate + "%</td>"
-                    // rows += row;
+                // make a choropleth of neighborhood completion percentages
+                initializeChoroplethNeighborhoodPolygons(choropleth, data);
+                choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
+                setTimeout(function () {
+                    choropleth.invalidateSize(false);
+                }, 1);
+
+                // make charts showing neighborhood completion rate
+                data.sort(function(a, b) {return (a.rate > b.rate) ? 1 : ((b.rate > a.rate) ? -1 : 0);} );
+                var sum = 0;
+                for (var j = 0; j < data.length; j++) {
+                    data[j].rate *= 100.0;
+                    sum += data[j].rate;
                 }
+                var mean = sum / data.length;
+                var i = data.length / 2;
+                var median = (data.length / 2) % 1 == 0 ? (data[i - 1].rate + data[i].rate) / 2 : data[Math.floor(i)].rate;
 
-                var coverageChart = c3.generate({
-                    bindto: '#neighborhood-completion-rate',
-                    data: {
-                        columns: [
-                            coverageRateColumn
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: neighborhoodNames
-                        },
-                        y: {
-                            label: "Neighborhood Coverage Rate (%)",
-                            min: 0,
-                            max: 100,
-                            padding: {top: 50, bottom: 10}
+                var std = 0;
+                for(var k = 0; k < data.length; k++) {
+                    std += Math.pow(data[k].rate - mean, 2);
+                }
+                std /= data.length;
+                std = Math.sqrt(std);
+                $("#neighborhood-std").html((std).toFixed(0) + "%");
+
+                var coverageRateChartSortedByCompletion = {
+                    "width": 810,
+                    "height": 800,
+                    "data": {
+                        "values": data, "format": {
+                            "type": "json"
                         }
                     },
-                    legend: {
-                        show: false
-                    }
-                });
-
-                var coverageDistanceChart = c3.generate({
-                    bindto: '#neighborhood-completed-distance',
-                    data: {
-                        columns: [
-                            coverageDistanceArray
-                        ],
-                        type: 'bar'
-                    },
-                    axis: {
-                        x: {
-                            type: 'category',
-                            categories: neighborhoodNames
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "field": "rate", "type": "quantitative",
+                            "axis": {"title": "Neighborhood Completion (%)"}
                         },
-                        y: {
-                            label: "Coverage Distance (m)",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
+                        "y": {
+                            "field": "name", "type": "nominal",
+                            "axis": {"title": "Neighborhood"},
+                            "sort": {"field": "rate", "op": "max", "order": "ascending"}
                         }
                     },
-                    legend: {
-                        show: false
+                    "config": {
+                        "axis": {"titleFontSize": 16, "labelFontSize": 8},
+                        "bar": {"binSpacing": 2}
                     }
+                };
+
+                var coverageRateChartSortedAlphabetically = {
+                    "width": 810,
+                    "height": 800,
+                    "data": {
+                        "values": data, "format": {
+                            "type": "json"
+                        }
+                    },
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "field": "rate", "type": "quantitative",
+                            "axis": {"title": "Neighborhood Completion (%)"}
+                        },
+                        "y": {
+                            "field": "name", "type": "nominal",
+                            "axis": {"title": "Neighborhood"},
+                            "sort": {"field": "name", "op": "max", "order": "descending"}
+                        }
+                    },
+                    "config": {
+                        "axis": {"titleFontSize": 16, "labelFontSize": 8},
+                        "bar": {"binSpacing": 2}
+                    }
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
+
+                document.getElementById("neighborhood-completion-sort-button").addEventListener("click", function() {
+                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
                 });
+                document.getElementById("neighborhood-alphabetical-sort-button").addEventListener("click", function() {
+                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedAlphabetically, opt, function(error, results) {});
+                });
+
+                var coverageRateHist = {
+                    "width": 400,
+                    "height": 250,
+                    "layer": [
+                        {
+                            "data": {"values": data},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {
+                                    "bin": {
+                                        "maxbins": 10
+                                    },
+                                    "field": "rate", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Neighborhood Completion (%)", "labelAngle": 0
+                                    }
+                                },
+                                "y": {
+                                    "aggregate": "count", "field": "*", "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
+                            }
+                        },
+                        { // creates lines marking summary statistics
+                            "data": {"values": [
+                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                            },
+                            "mark": "rule",
+                            "encoding": {
+                                "x": {
+                                    "field": "value", "type": "quantitative",
+                                    "axis": {"labels": false, "ticks": false, "title": ""},
+                                    "scale": {"domain": [0,100]}
+                                },
+                                "color": {
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                    "legend": {
+                                        "title": "Summary Stats"
+                                    }
+                                },
+                                "size": {
+                                    "value": 2
+                                }
+                            }
+                        }
+                    ],
+                    "resolve": {"x": {"scale": "independent"}},
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                var dates = ['Date'].concat(data[0].map(function (x) {
-                        return x.date;
-                    })),
-                    counts = ['Audit Count'].concat(data[0].map(function (x) {
-                        return x.count;
-                    }));
-                var chart = c3.generate({
-                    bindto: "#audit-count-chart",
-                    data: {
-                        x: 'Date',
-                        columns: [dates, counts],
-                        types: {'Audit Count': 'line'}
-                    },
-                    axis: {
-                        x: {
-                            type: 'timeseries',
-                            tick: {format: '%Y-%m-%d'}
-                        },
-                        y: {
-                            label: "Street Audit Count",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
-                        }
-                    },
-                    legend: {
-                        show: false
-                    }
-                });
-            });
+                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
+                var sum = 0;
+                for (var j = 0; j < data[0].length; j++) {
+                    sum += data[0][j].count;
+                }
+                var mean = sum / data[0].length;
+                var i = data[0].length / 2;
+                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
 
-            $.getJSON("/userapi/labelCounts/all", function (data) {
-                var dates = ['Date'].concat(data[0].map(function (x) {
-                        return x.date;
-                    })),
-                    counts = ['Label Count'].concat(data[0].map(function (x) {
-                        return x.count;
-                    }));
-                var chart = c3.generate({
-                    bindto: "#label-count-chart",
-                    data: {
-                        x: 'Date',
-                        columns: [dates, counts],
-                        types: {'Audit Count': 'line'}
-                    },
-                    axis: {
-                        x: {
-                            type: 'timeseries',
-                            tick: {format: '%Y-%m-%d'}
+                var std = 0;
+                for(var k = 0; k < data[0].length; k++) {
+                    std += Math.pow(data[0][k].count - mean, 2);
+                }
+                std /= data[0].length;
+                std = Math.sqrt(std);
+                $("#audit-std").html((std).toFixed(1) + " Street Audits");
+
+                var chart = {
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 550,
+                            "layer": [
+                                {
+                                    "mark": "area",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Street Audits per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 1
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
                         },
-                        y: {
-                            label: "Label Count",
-                            min: 0,
-                            padding: {top: 50, bottom: 10}
+                        {
+                            "height": 300,
+                            "width": 250,
+                            "layer": [
+                                {
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {"title": "# Street Audits per Day", "labelAngle": 0},
+                                            "bin": {"maxbins": 20}
+                                        },
+                                        "y": {
+                                            "aggregate": "count",
+                                            "field": "*",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "Counts"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": {
+                                                "title": "Summary Stats"
+                                            }
+                                        },
+                                        "size": {
+                                            "value": 1
+                                        }
+                                    }
+                                }
+                                ],
+                            "resolve": {"x": {"scale": "independent"}}
                         }
-                    },
-                    legend: {
-                        show: false
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
                     }
-                });
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
+            });
+            $.getJSON("/userapi/labelCounts/all", function (data) {
+                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
+                var sum = 0;
+                for (var j = 0; j < data[0].length; j++) {
+                    sum += data[0][j].count;
+                }
+                var mean = sum / data[0].length;
+                var i = data[0].length / 2;
+                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
+
+                var std = 0;
+                for(var k = 0; k < data[0].length; k++) {
+                    std += Math.pow(data[0][k].count - mean, 2);
+                }
+                std /= data[0].length;
+                std = Math.sqrt(std);
+                $("#label-std").html((std).toFixed(0) + " Labels");
+
+                var chart = {
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 550,
+                            "layer": [
+                                {
+                                    "mark": "area",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Labels per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
+                        },
+                        {
+                            "height": 300,
+                            "width": 250,
+                            "layer": [
+                                {
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {"title": "# Labels per Day", "labelAngle": 0},
+                                            "bin": {"maxbins": 20}
+                                        },
+                                        "y": {
+                                            "aggregate": "count",
+                                            "field": "*",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "Counts"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": {
+                                                "title": "Summary Stats"
+                                            }
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"x": {"scale": "independent"}}
+                        }
+                        ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
             self.graphsLoaded = true;
         }
