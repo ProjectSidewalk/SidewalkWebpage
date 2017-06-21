@@ -913,9 +913,14 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         // TODO: for future
         // Show animated arrow pointing down at the location to emphasise and complement the message
 
+        var labelToApplyCount = state.properties.length;
+        var labelString = '';
+        if (labelToApplyCount > 1) {
+            labelString = "on a curb ramp"
+        }
         // Show error message
-        state.message.message = 'Oops! You labeled too far. <span class="bold">Click beneath ' +
-            'the flashing yellow arrow</span> to label it.';
+        state.message.message = 'Oops! Your label is too far away. <span class="bold">Click ' + labelString +
+            ' beneath the flashing yellow arrow</span> to label it.';
         showMessage(state.message);
     }
 
