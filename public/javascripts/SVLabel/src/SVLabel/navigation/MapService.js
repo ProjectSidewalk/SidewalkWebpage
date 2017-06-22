@@ -257,7 +257,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
     function timeoutWalking(){
         svl.panorama.set('linksControl', false);
-        hideLinks();
         svl.keyboard.setStatus("disableKeyboard", true);
         disableWalking();
         svl.keyboard.setStatus("moving", true);
@@ -265,7 +264,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function resetWalking(){
         svl.panorama.set('linksControl', true);
-        showLinks();
         svl.keyboard.setStatus("disableKeyboard", false);
         enableWalking();
         svl.keyboard.setStatus("moving", false);
