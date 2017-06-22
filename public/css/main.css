@@ -204,11 +204,10 @@ footer {
 #vidembed{
     position: relative;
 
-    background-color:#ccc;
-    max-height: 600px;
+    background-color:#fff;
+    max-height: 800px;
     overflow:hidden;
     width: 100%;
-
 }
 
 #videooverlay{
@@ -221,7 +220,7 @@ footer {
     color: #fff;
     font-family: raleway, sans-serif;
     font-size: 45px;
-    background: rgba(0,0,0,0.2);
+    background: rgba(265,265,265,0.1);
 }
 #playlink{
     font-size: 20px;
@@ -620,7 +619,7 @@ video#bgvid {
 }
 
 #choropleth-container {
-    background-color: rgba(249, 241, 227, 1);
+    background-color: #fff;
     width: 100%;
     min-height: 1100px;
 }
