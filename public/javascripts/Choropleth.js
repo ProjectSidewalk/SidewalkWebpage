@@ -97,7 +97,9 @@ function Choropleth(_, $, turf) {
                     compRate = Math.round(100.0 * rates[i].rate);
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
                     if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!";
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to find accessibility issues in this neighborhood yourself!";
                     }
                     else if (milesLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate +
