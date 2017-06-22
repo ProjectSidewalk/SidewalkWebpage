@@ -105,14 +105,45 @@ function Progress (_, $, c3, L) {
     /**
      * render points
      */
-    function initializeNeighborhoodPolygons(map) {
+    function initializeNeighborhoodPolygons(map, rates) {
         function onEachNeighborhoodFeature(feature, layer) {
 
             var regionId = feature.properties.region_id,
                 regionName = feature.properties.region_name,
                 url = "/audit/region/" + regionId,
+                // default popup content if we don't find neighborhood in list of neighborhoods from query
                 popupContent = "Do you want to find accessibility problems in " + regionName + "? " + 
                     "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            for (var i = 0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    compRate = Math.round(100.0 * rates[i].rate);
+                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to find accessibility issues in this neighborhood yourself!";
+                    }
+                    else if (milesLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
+                            "\% Complete<br>Less than a mile left!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    else if (milesLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " mile left!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " miles left!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    break;
+                }
+            }
             layer.bindPopup(popupContent);
             layers.push(layer);
 
@@ -372,13 +403,16 @@ function Progress (_, $, c3, L) {
         });
     }
 
-    initializeOverlayPolygon(map);
-    initializeNeighborhoodPolygons(map);
-    initializeAuditedStreets(map);
-    initializeSubmittedLabels(map);
-    initializeAuditCountChart(c3, map);
-    initializeSubmittedTasks(map);
-    //initializeInteractions(map);
+
+    $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
+        initializeOverlayPolygon(map);
+        initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
+        initializeAuditedStreets(map);
+        initializeSubmittedLabels(map);
+        initializeAuditCountChart(c3, map);
+        initializeSubmittedTasks(map);
+        //initializeInteractions(map);
+    });
 
     self.data = _data;
     return self;
