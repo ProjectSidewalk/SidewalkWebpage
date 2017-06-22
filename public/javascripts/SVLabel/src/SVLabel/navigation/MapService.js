@@ -59,7 +59,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         panoramaOptions,
         STREETVIEW_MAX_DISTANCE = 50,
         ONE_STEP_DISTANCE_IN_M = 3,
-        googleMapsPaneBlinkInterval;
+        googleMapsPaneBlinkInterval,
+        moveDelay = 800; //delayed move
 
     // Used while calculation of canvas coordinates during rendering of labels
     // TODO: Refactor it to be included in the status variable above so that we can use
@@ -965,7 +966,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
             timeoutWalking();
-            setTimeout(resetWalking, 800);
+            setTimeout(resetWalking, moveDelay);
         }
         updateCanvas();
         if (currentMission && neighborhood) {
@@ -1861,6 +1862,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.panorama.setPov(pov);
     }
 
+    function getMoveDelay(){
+        return moveDelay;
+    }
+
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
@@ -1912,6 +1917,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.setPovToRouteDirection = setPovToRouteDirection;
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
+    self.getMoveDelay = getMoveDelay;
     _init(params);
     return self;
 }

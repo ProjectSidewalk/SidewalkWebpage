@@ -52,11 +52,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     }
 
     this._moveForward = function (){
-        timedMove(0, 800);
+        timedMove(0, svl.map.getMoveDelay());
     };
 
     this._moveBackward = function (){
-        timedMove(180, 800);
+        timedMove(180, svl.map.getMoveDelay());
     };
 
 
