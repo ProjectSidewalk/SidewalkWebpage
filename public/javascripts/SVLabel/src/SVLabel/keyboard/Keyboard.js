@@ -40,7 +40,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         }
     };
     function timedMove(angle, moveTime){
-        if (status.moving || svl.isOnboarding() || svl.popUpMessage.getStatus("isVis")){
+        if (status.moving || svl.isOnboarding() || svl.popUpMessage.getStatus("isVisible")){
             svl.panorama.set("linksControl", false);
             return;
         }

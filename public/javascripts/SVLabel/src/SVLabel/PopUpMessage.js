@@ -11,7 +11,7 @@
  */
 function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
     var self = this;
-    var status = { haveAskedToSignIn: false, signUp: false, isVis: false};
+    var status = { haveAskedToSignIn: false, signUp: false, isVisible: false};
     var buttons = [];
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
@@ -100,7 +100,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self.hideBackground();  // hide background
         self.reset();  // reset all the parameters
-        status.isVis = false;
+        status.isVisible = false;
         return this;
     };
 
@@ -230,7 +230,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
 
         uiPopUpMessage.holder.removeClass('hidden');
         uiPopUpMessage.holder.addClass('visible');
-        status.isVis = true;
+        status.isVisible = true;
         return this;
     };
 
