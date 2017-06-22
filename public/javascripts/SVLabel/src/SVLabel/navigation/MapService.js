@@ -253,15 +253,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
 
-        getLinkLayer().on("click", function(){
-            timeoutWalking();
-            setTimeout(resetWalking(), 1000);
-        });
-        /*
-        $(".gmnoprint svg path").on("click", function(){
-            timeoutWalking();
-            setTimeout(resetWalking(), 1000);
-        });*/
     }
     function timeoutWalking(){
         svl.panorama.set('linksControl', false);
@@ -971,9 +962,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
-        timeoutWalking();
+
+        if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
+            timeoutWalking();
+            setTimeout(resetWalking, 800);
+        }
         updateCanvas();
-        setTimeout(resetWalking, 800);
         if (currentMission && neighborhood) {
             if ("compass" in svl) {
                 svl.compass.update();
@@ -1155,10 +1149,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             }
         }
-        $("#viewControlLayer path").on("click", function(){
-            timeoutWalking();
-            setTimeout(resetWalking(), 3000);
-        });
 
 
         mouseStatus.prevMouseUpTime = currTime;

@@ -39,28 +39,27 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             googleMap.setPano(panoramaId);
         }
     };
-
-    this._moveForward = function (){
-        if (status.moving){
+    function timedMove(angle, moveTime){
+        if (status.moving || svl.isOnboarding() || svl.popUpMessage.getStatus("isVis")){
+            svl.panorama.set("linksControl", false);
             return;
         }
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        this._movePano(0);
+        self._movePano(angle);
         svl.map.timeoutWalking();
-        setTimeout(svl.map.resetWalking, 800);
+        setTimeout(svl.map.resetWalking, moveTime);
+    }
+
+    this._moveForward = function (){
+        timedMove(0, 800);
     };
 
     this._moveBackward = function (){
-        if (status.moving){
-            return;
-        }
-        svl.contextMenu.hide();
-        svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        this._movePano(180);
-        svl.map.timeoutWalking();
-        setTimeout(svl.map.resetWalking, 800);
+        timedMove(180, 800);
     };
+
+
 
     /**
      * Change the heading of the current panorama point of view by a particular degree value
@@ -165,6 +164,12 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             if (!status.focusOnTextField) {
                 var label;
                 switch (e.keyCode) {
+                    case 38:
+                        self._moveForward();
+                        break;
+                    case 40:  // "down"
+                        self._moveBackward();
+                        break;
                     case 16:
                         // "Shift"
                         status.shiftDown = false;
