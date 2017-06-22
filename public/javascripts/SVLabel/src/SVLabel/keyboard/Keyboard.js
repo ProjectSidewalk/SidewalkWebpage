@@ -11,7 +11,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         focusOnTextField: false,
         isOnboarding: false,
         shiftDown: false,
-        disableKeyboard: false
+        disableKeyboard: false,
+        moving: false
     };
 
     this.disableKeyboard = function (){
@@ -40,19 +41,25 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
     this._moveForward = function (){
+        if (status.moving){
+            return;
+        }
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         this._movePano(0);
         svl.map.timeoutWalking();
-        setTimeout(svl.map.resetWalking, 1000);
+        setTimeout(svl.map.resetWalking, 800);
     };
 
     this._moveBackward = function (){
+        if (status.moving){
+            return;
+        }
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         this._movePano(180);
         svl.map.timeoutWalking();
-        setTimeout(svl.map.resetWalking, 1000);
+        setTimeout(svl.map.resetWalking, 800);
     };
 
     /**

@@ -268,6 +268,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         hideLinks();
         svl.keyboard.setStatus("disableKeyboard", true);
         disableWalking();
+        svl.keyboard.setStatus("moving", true);
     }
 
     function resetWalking(){
@@ -275,6 +276,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         showLinks();
         svl.keyboard.setStatus("disableKeyboard", false);
         enableWalking();
+        svl.keyboard.setStatus("moving", false);
     }
 
 
@@ -969,8 +971,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
+        timeoutWalking();
         updateCanvas();
-
+        setTimeout(resetWalking, 800);
         if (currentMission && neighborhood) {
             if ("compass" in svl) {
                 svl.compass.update();
@@ -1339,6 +1342,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             uiMap.viewControlLayer.insertBefore(uiMap.drawingLayer);
         }
     }
+
 
     /**
      *
