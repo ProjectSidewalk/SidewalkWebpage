@@ -26,8 +26,11 @@
 
                 } else {
 
-                    <li>
+                    <li class="navbarLink">
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
+                    </li>
+                    <li class = "navbarLink">
+                      <a href='@routes.ApplicationController.faq' id="toolbar-onboarding-link">FAQ</a>
                     </li>
 
                 }
@@ -48,7 +51,7 @@
                          $("body").css("padding-top", "14px");
                     </script>
                 }
-                
+
                 @if(user) {
                     <li>
                     <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">

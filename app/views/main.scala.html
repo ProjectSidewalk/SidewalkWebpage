@@ -58,6 +58,15 @@
         @content
 
     </div>
+
+    @if(url.get == "/audit") {
+
+        <script type="text/javascript">
+            document.getElementsByTagName("body")[0].style.overflow = "hidden";
+        </script>
+
+    } else{
+
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
     <div class="container" id="footer-container">
@@ -112,6 +121,9 @@
         <a href="http://www.umd.edu/">University of Maryland</a><br>
         <span id="application-version"></span>
     </div>
+
+  }
+
     <script>
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
                         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -123,4 +135,3 @@
 
     </script>
 </body>
-

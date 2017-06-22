@@ -85,7 +85,9 @@ footer {
     /* box-shadow: 0 0 5px rgba(0,0,0,.8); */
 }
 
-
+.navbarLink{
+  display: inline;
+}
 
 .navbar-brand.fixed-theme {
     font-size: 18px;
