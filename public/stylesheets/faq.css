@@ -25,8 +25,9 @@ figure figcaption {
 }
 
 .faq .faq-item h2 {
-    margin-top: 0;
+    margin-top: -70px;
     margin-bottom: 20px;
+    padding-top: 75px;
 }
 
 #faq-panel .panel-body{
