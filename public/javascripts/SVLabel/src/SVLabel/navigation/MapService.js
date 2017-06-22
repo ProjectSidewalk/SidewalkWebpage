@@ -252,7 +252,31 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (properties.isInternetExplore) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
+
+        getLinkLayer().on("click", function(){
+            timeoutWalking();
+            setTimeout(resetWalking(), 1000);
+        });
+        /*
+        $(".gmnoprint svg path").on("click", function(){
+            timeoutWalking();
+            setTimeout(resetWalking(), 1000);
+        });*/
     }
+    function timeoutWalking(){
+        svl.panorama.set('linksControl', false);
+        hideLinks();
+        svl.keyboard.setStatus("disableKeyboard", true);
+        disableWalking();
+    }
+
+    function resetWalking(){
+        svl.panorama.set('linksControl', true);
+        showLinks();
+        svl.keyboard.setStatus("disableKeyboard", false);
+        enableWalking();
+    }
+
 
     /*
      * Get the status of the labelBeforeJump listener
@@ -1022,11 +1046,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
                     }
                 });
+
                 status.panoLinkListenerSet = true;
             } catch (err) {
 
             }
         }
+        $("#viewControlLayer path").on("click", function(){
+            timeoutWalking();
+            window.setTimeout(resetWalking(), 3000);
+        });
 
         //This is necessary for supporting touch devices, because there is no mouse hover
         mouseStatus.prevX = mouseposition(e, this).x;
@@ -1123,6 +1152,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             }
         }
+        $("#viewControlLayer path").on("click", function(){
+            timeoutWalking();
+            setTimeout(resetWalking(), 3000);
+        });
+
 
         mouseStatus.prevMouseUpTime = currTime;
     }
@@ -1882,7 +1916,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
     self.setPovToRouteDirection = setPovToRouteDirection;
-
+    self.timeoutWalking = timeoutWalking;
+    self.resetWalking = resetWalking;
     _init(params);
     return self;
 }

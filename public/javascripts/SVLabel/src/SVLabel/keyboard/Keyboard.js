@@ -25,7 +25,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     // Todo. Make the method name more descriptive.
     this._movePano = function (angle) {
         if (googleMap.getStatus("disableWalking")) return;
-
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panorama.links.map(function(link) {
             var headingAngleOffset = util.math.toRadians(svl.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
@@ -44,12 +43,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         this._movePano(0);
+        svl.map.timeoutWalking();
+        setTimeout(svl.map.resetWalking, 1000);
     };
 
     this._moveBackward = function (){
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         this._movePano(180);
+        svl.map.timeoutWalking();
+        setTimeout(svl.map.resetWalking, 1000);
     };
 
     /**
