@@ -155,6 +155,44 @@ function Choropleth(_, $, turf) {
             })
                 .addTo(map);
         });
+
+        $("#choropleth").on('click', '.region-selection-trigger', function () {
+            var regionId = $(this).attr('regionId');
+            var ratesEl = rates.find(function(x){
+                return regionId == x.region_id;
+            })
+            var compRate = Math.round(100.0 * ratesEl.rate);
+            var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+            var distanceLeft = "";
+            if(compRate === 100){
+                distanceLeft = "0";
+            }
+            else if(milesLeft === 0){
+                distanceLeft = "<1";
+            }
+            else if(milesLeft === 1){
+                distanceLeft = "1";
+            }
+            else{
+                distanceLeft = ">1";
+            }
+            var url = "/userapi/selfAssign";
+            var async = true;
+            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: url,
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        });
     }
 
 
