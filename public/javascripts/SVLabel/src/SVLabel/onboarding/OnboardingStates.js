@@ -1301,7 +1301,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ' +
+                "message": 'You would label the areas under the flashing arrows with a Missing Curb Ramp ' +
                 '<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
                 '" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
                 'However, we want to get you started on actual missions, so let\'s <span class="bold">finish this ' +
