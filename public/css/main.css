@@ -204,10 +204,11 @@ footer {
 #vidembed{
     position: relative;
 
-    background-color:#fff;
-    max-height: 800px;
+    background-color:#ccc;
+    max-height: 600px;
     overflow:hidden;
     width: 100%;
+
 }
 
 #videooverlay{
@@ -220,7 +221,6 @@ footer {
     color: #fff;
     font-family: raleway, sans-serif;
     font-size: 45px;
-    background: rgba(265,265,265,0.1);
 }
 #playlink{
     font-size: 20px;

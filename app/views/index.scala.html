@@ -42,6 +42,7 @@
     <div id="content">
 
 
+
         <div class="container" id="banner2" style="width: 100%;
             position: relative;">
             <div class="im-centered">
@@ -141,6 +142,18 @@
         </div>
     </div>-->
     </div>
+
+    <div class="container" id="vidembed">
+        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
+        <div id="videooverlay">
+            <div id="videotext">
+                <span>What is Project Sidewalk?</span>
+                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
+                cursor: pointer;" onclick="playVideo()">Watch Now</span></span>
+            </div>
+        </div>
+    </div>
+    
     <div class="container" id="choropleth-container" style="width: 100%;
         position: relative;">
         <div class="im-centered3">
@@ -180,20 +193,6 @@
                 </nav>
             </div>
             <div id="choropleth"></div>
-        </div>
-    </div>
-
-    <div class="im-centered3">
-        <div class="row">What is Project Sidewalk</div>
-    </div>
-    <div class="container" id="vidembed">
-        <br>
-        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
-        <div id="videooverlay">
-            <div id="videotext">
-                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
-                    cursor: pointer;" onclick="playVideo()">Watch Now</span></span>
-            </div>
         </div>
     </div>
     <div class="container" id="difference-container">
