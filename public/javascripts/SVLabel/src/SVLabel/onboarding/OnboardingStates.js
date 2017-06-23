@@ -263,7 +263,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -519,7 +519,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3-adjust"][1]
             },
             "message": {
-                "message": 'Keep going <span class="bold">left</span>.',
+                "message": 'Keep looking <span class="bold">left</span>.',
                 "position": "top-right",
                 "width": 190
             },
@@ -681,7 +681,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -851,7 +851,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1115,7 +1115,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
-                "message": '<span class="bold">Click on the curb ramp</span> beneath the flashing yellow arrow to label.',
+                "message": '<span class="bold">Click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1202,7 +1202,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-5-adjust"][1]
             },
             "message": {
-                "message": 'Great Job! We are almost done. Let\'s learn how to walk and find issues. ' +
+                "message": 'Great Job! We are almost done. Let\'s learn how to explore and find issues. ' +
                 '<span class="bold">Grab and drag the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -1256,12 +1256,56 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'You found some issues after walking here! There are <span class="bold">no curb ramps</span> ' +
-                'for this crosswalk. ' +
-                'You would label them with a Missing Curb Ramp ' +
+                "message": 'Great! We just moved one step down the street. Now, we can look for more issues at this ' +
+                'location. In this case, notice how there is a crosswalk with <span class="bold">no curb ramps</span>.',
+                "position": "top-right",
+                "width": 400
+            },
+            "panoId": afterWalkPanoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 200,
+                    "y": -580,
+                    "length": 50,
+                    "angle": 0,
+                    "text": null,
+                    "fill": "yellow",
+                    "originalPov": {}
+                },
+                {
+                    "type": "arrow",
+                    "x": -2510,
+                    "y": -320,
+                    "length": 50,
+                    "angle": 0,
+                    "text": null,
+                    "fill": "yellow",
+                    "originalPov": {}
+                }
+
+            ],
+            okButtonText: "Yes! I see the missing curb ramps.",
+            "transition": function () {
+                var completedRate = 30 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
+                return "walk-3";
+            }
+         },
+        "walk-3": {
+            "properties": {
+                "action": "Instruction",
+                "minHeading": headingRanges["stage-6"][0],
+                "maxHeading": headingRanges["stage-6"][1]
+            },
+            "message": {
+                "message": 'You would label the areas under the flashing arrows with a Missing Curb Ramp ' +
                 '<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
-                '" style="width: 7%; height:auto" alt="Missing Curb Ramp Label">. However, let\'s finish learning about ' +
-                'the <span class="bold">rest of the interface</span>.',
+                '" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
+                'However, we want to get you started on actual missions, so let\'s <span class="bold">finish this ' +
+                'tutorial!</span>',
                 "position": "top-right",
                 "width": 400
             },
@@ -1290,14 +1334,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 30 / numStates;
+                var completedRate = 31 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3"});
                 compass.showMessage();
                 return "instruction-1";
             }
-         },
+        },
         "instruction-1": {
             "properties": {
                 "action": "Instruction",
@@ -1317,7 +1361,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 31 / numStates;
+                var completedRate = 32 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
@@ -1332,11 +1376,11 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'Further, you can follow the <span class="bold">red line</span> on the map to find your route. ' +
+                "message": 'You can also follow the <span class="bold">red line</span> on this map. ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/GoogleMaps.png" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="An instruction saying ' +
-                'follow the red line on the Google Maps"> ' +
-                '<span class="bold">Your labels</span> can also be tracked using this map.',
+                'follow the red line on the Google Maps">' +
+                '<span class="bold">Your labels</span> appear here too!',
                 "position": "top-right",
                 "arrow": "lower-right",
                 "fade-direction": "fadeInLeft",
@@ -1346,13 +1390,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 32 / numStates;
+                var completedRate = 33 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
                 return "instruction-3";
             }
         },
+        /*
         "instruction-3": {
             "properties": {
                 "action": "Instruction",
@@ -1361,7 +1406,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'Your mission <span class="bold">progress</span> will be tracked and shown here.',
+                "message": 'You can track your mission <span class="bold">progress and statistics</span> here.',
                 "position": "top-right",
                 "arrow": "right",
                 "fade-direction": "fadeInLeft",
@@ -1371,14 +1416,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 33 / numStates;
+                var completedRate = 34 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                 return "instruction-4";
             }
-        },
-        "instruction-4": {
+        },*/
+        "instruction-3": {
             "properties": {
                 "action": "Instruction",
                 "blinks": ["jump"],
@@ -1386,7 +1431,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'Finally, if you get stuck while walking, you can use the ' +
+                "message": 'Finally, if you get stuck while exploring, you can use the ' +
                 '<span class="bold">Jump button</span> to move to a different location.',
                 "position": "top-right",
                 "fade-direction": "fadeInRight",
@@ -1397,10 +1442,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 34 / numStates;
+                var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                 return "outro";
             }
         },

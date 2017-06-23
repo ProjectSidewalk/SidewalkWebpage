@@ -757,7 +757,12 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     function _visitInstruction(state, listener) {
         if (!("okButton" in state) || state.okButton) {
             // Insert an ok button.
-            uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>OK</button>");
+            var okButtonText = 'OK';
+            if (state.okButtonText) {
+                okButtonText = state.okButtonText;
+            }
+            uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>" +
+                okButtonText + "</button>");
         }
 
         // Blink parts of the interface
@@ -910,12 +915,15 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         hideMessage();
 
-        // TODO: for future
-        // Show animated arrow pointing down at the location to emphasise and complement the message
-
+        var labelToApplyCount = state.properties.length;
+        var labelString = '';
+        if (labelToApplyCount > 1) {
+            labelString = "on a curb ramp"
+        }
         // Show error message
-        state.message.message = 'Oops! You labeled too far. <span class="bold">Click beneath ' +
-            'the flashing yellow arrow</span> to label it.';
+        // undo message - 'Remove the label by <span class="bold">clicking the undo button</span>'
+        state.message.message = 'Oops! Your label is too far away. <span class="bold">Click ' + labelString +
+            ' beneath the flashing yellow arrow</span> to label it.';
         showMessage(state.message);
     }
 
@@ -930,6 +938,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var $target = uiCanvas.drawingLayer;
         var properties = state.properties;
         var transition = state.transition;
+
+        // TODO: Start undo/redo listener
 
         var callback = function (e) {
 
@@ -949,6 +959,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
                 if (distance < tolerance * tolerance) {
+                    // Activate a timer to see if the user deleted the label
                     ribbon.disableMode(state.properties[i].labelType, state.properties[i].subcategory);
                     ribbon.enableMode("Walk");
                     uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
@@ -957,6 +968,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     next(transition[i]);
                     break;
                 } else {
+                    // Activate the undo button to delete the label
                     // Incorrect label application
                     _incorrectLabelApplication(state);
                     ribbon.enableMode(state.properties[i].labelType, state.properties[i].subcategory);
