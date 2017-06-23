@@ -475,7 +475,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var mission = missions[0];
 
         missionContainer.setCurrentMission(mission);
-        if (missionContainer.isTheFirstMission() && user.getProperty("username") === "anonymous") {
+        if (missionContainer.onlyMissionOnboarding() || missionContainer.isTheFirstMission()) {
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                 svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
             modalMission.setMissionMessage(mission, neighborhood, null, function () {

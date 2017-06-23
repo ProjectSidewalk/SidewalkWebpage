@@ -676,6 +676,7 @@ function Main (params) {
 
     self.getStatus = getStatus;
     self.setStatus = setStatus;
+    self.isAnAnonymousUser = isAnAnonymousUser;
 
     return self;
 }
