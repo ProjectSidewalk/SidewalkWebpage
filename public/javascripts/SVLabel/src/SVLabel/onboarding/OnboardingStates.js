@@ -263,7 +263,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -681,7 +681,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -851,7 +851,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on the curb ramp</span> to label it.',
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1115,7 +1115,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
-                "message": 'To label the curb ramp <span class="bold">click beneath the flashing yellow arrow</span>.',
+                "message": '<span class="bold">Click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1285,7 +1285,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
 
             ],
-            okButtonText: "Yep, I see the missing curb ramps!",
+            okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
                 var completedRate = 30 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
@@ -1397,6 +1397,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 return "instruction-3";
             }
         },
+        /*
         "instruction-3": {
             "properties": {
                 "action": "Instruction",
@@ -1421,8 +1422,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                 return "instruction-4";
             }
-        },
-        "instruction-4": {
+        },*/
+        "instruction-3": {
             "properties": {
                 "action": "Instruction",
                 "blinks": ["jump"],
@@ -1444,7 +1445,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-4"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
                 return "outro";
             }
         },
