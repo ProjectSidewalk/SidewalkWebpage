@@ -34,7 +34,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "top": -50,
                 "padding": "100px 10px 100px 10px",
                 "left": -70,
-                "fade-direction": "fadeIn",
+                //"fade-direction": "fadeIn",
                 "background": true
             },
             "panoId": panoId,
