@@ -39,6 +39,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             googleMap.setPano(panoramaId);
         }
     };
+
+    /*
+       Move user in specific angle relative to current view for a specific moveTime.
+     */
     function timedMove(angle, moveTime){
         if (status.moving || svl.isOnboarding() || svl.popUpMessage.getStatus("isVisible")){
             svl.panorama.set("linksControl", false);
