@@ -139,7 +139,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
         return data;
     };
-    
+
 
     /**
      * Post a json object
@@ -201,7 +201,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
     /**
      * Submit the data collected so far and move to another location.
-     * 
+     *
      * @param dataIn An object that has issue_description, lat, and lng as fields.
      * @returns {boolean}
      */
