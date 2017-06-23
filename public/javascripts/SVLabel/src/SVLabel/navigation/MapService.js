@@ -970,7 +970,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
-
+        if (svl.contextMenu.isOpen()){
+            svl.contextMenu.hide();
+        }
         if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
             timeoutWalking();
             setTimeout(resetWalking, moveDelay);
