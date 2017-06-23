@@ -85,7 +85,9 @@ footer {
     /* box-shadow: 0 0 5px rgba(0,0,0,.8); */
 }
 
-
+.navbarLink{
+  display: inline;
+}
 
 .navbar-brand.fixed-theme {
     font-size: 18px;
@@ -888,6 +890,25 @@ video#bgvid {
     font-size: 12px;
     line-height: 1.9em;
 
+}
+
+#mini-footer-audit{
+
+    position: relative;
+    width: 100%;
+    min-height: 40px;
+
+    text-align: center;
+    color: #585c63;
+    font-size: 12px;
+    line-height: 1.6em;
+    font-family: raleway, sans-serif;
+
+}
+
+#mini-footer-audit a{
+      color:#585c63;
+      text-decoration:underline;
 }
 
 #footer-container {

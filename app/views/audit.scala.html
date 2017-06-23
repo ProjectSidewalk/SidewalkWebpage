@@ -4,7 +4,7 @@
 @import play.api.libs.json.Json
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
-@main(title) {
+@main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
     <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
