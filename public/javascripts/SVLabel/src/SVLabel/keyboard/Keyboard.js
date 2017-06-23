@@ -373,20 +373,22 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                    if (contextMenu.isOpen()){
-                        contextMenu.hide();
+                    if (!status.focusOnTextField) {
+                        if (contextMenu.isOpen()) {
+                            contextMenu.hide();
+                        }
+                        if (status.shiftDown) {
+                            // Zoom out
+                            zoomControl.zoomOut();
+                            svl.tracker.push("KeyboardShortcut_ZoomOut", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            ribbon.backToWalk();
+                        }
+                        svl.modalExample.hide();
+                        break;
                     }
-                    if (status.shiftDown) {
-                        // Zoom out
-                        zoomControl.zoomOut();
-                        svl.tracker.push("KeyboardShortcut_ZoomOut", {
-                            keyCode: e.keyCode
-                        });
-                    } else {
-                        ribbon.backToWalk();
-                    }
-                    svl.modalExample.hide();
-                    break;
             }
             contextMenu.updateRadioButtonImages();
         }
