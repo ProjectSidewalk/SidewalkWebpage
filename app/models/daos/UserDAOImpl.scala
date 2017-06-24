@@ -7,7 +7,7 @@ import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
 import models.label.Label
-import models.audit.{AuditTask, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit._
 
 import play.api.Play.current
 
@@ -61,11 +61,18 @@ object UserDAOImpl {
   val userTable = TableQuery[UserTable]
   val auditTaskTable = TableQuery[AuditTaskTable]
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
+  val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
 //  val labelTable = TableQuery[Label]
+
   val anonUsers = for {
     (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
     if _at.userId === "97760883-8ef0-4309-9a5e-0c086ef27573" && _at.completed === true
-  } yield (_ate.ipAddress, _ate.auditTaskId)
+  } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
+
+  val anonUserInteractions = for {
+    (_ati, _au) <-auditTaskInteractionTable.innerJoin(anonUsers).on(_.auditTaskId === _._2)
+  } yield (_au._1, _au._2, _au._3, _au._4, _ati.action)
+
 
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
@@ -100,18 +107,15 @@ object UserDAOImpl {
    * Gets anonymous user records
    * Date: Oct 11, 2016
    */
-
   def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
 
     anonUsers.list.map(anonUser => AnonymousUserRecords.tupled((anonUser._1.get, anonUser._2)))
   }
 
-
   /*
    * Counts anonymous user records
    * Date: Oct 10, 2016
    */
-
   def countAnonymousUsers: Int = db.withSession { implicit session =>
 
     val anonUsers = getAnonymousUsers
@@ -119,10 +123,13 @@ object UserDAOImpl {
   }
 
   /*
+
+   */
+
+  /*
    * Counts anonymous user records visited today
    * Date: Nov 10, 2016
    */
-
   def countAnonymousUsersVisitedToday: Int = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
