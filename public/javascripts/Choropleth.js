@@ -156,6 +156,11 @@ function Choropleth(_, $, turf) {
                 .addTo(map);
         });
 
+
+        // When a region is selected and 'Click here' is clicked, this function runs
+        // Sends String to be logged in WebpageActivityTable of the form
+        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft
+        // where distanceLeft is 0, <1, 1 or >1
         $("#choropleth").on('click', '.region-selection-trigger', function () {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
