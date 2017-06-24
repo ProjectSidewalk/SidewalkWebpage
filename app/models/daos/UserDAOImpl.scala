@@ -4,10 +4,11 @@ import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable }
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
 import models.label.Label
-import models.audit.AuditTask
+import models.audit.{AuditTask, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskTable}
+
 import play.api.Play.current
 
 import scala.collection.mutable
@@ -58,8 +59,14 @@ class UserDAOImpl extends UserDAO {
 object UserDAOImpl {
   val db = play.api.db.slick.DB
   val userTable = TableQuery[UserTable]
-//  val auditTaskTable = TableQuery[AuditTask]
+  val auditTaskTable = TableQuery[AuditTaskTable]
+  val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
 //  val labelTable = TableQuery[Label]
+  val anonUsers = for {
+    (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
+    if _at.userId === "97760883-8ef0-4309-9a5e-0c086ef27573" && _at.completed === true
+  } yield (_ate.ipAddress, _ate.auditTaskId)
+
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
   case class AnonymousUserProfile(ipAddress: String, timestamp: java.sql.Timestamp, auditCount: Int, labelCount: Int)
@@ -96,17 +103,7 @@ object UserDAOImpl {
 
   def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
 
-    val anonUsers = Q.queryNA[(String, Int)](
-      """select ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous')
-        |						      and completed = true);""".stripMargin
-    )
-    anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
+    anonUsers.list.map(anonUser => AnonymousUserRecords.tupled((anonUser._1.get, anonUser._2)))
   }
 
 
