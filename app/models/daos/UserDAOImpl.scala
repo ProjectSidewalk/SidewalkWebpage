@@ -122,9 +122,17 @@ object UserDAOImpl {
     anonUsers.groupBy(_.ipAddress).keySet.size
   }
 
-  /*
-
-   */
+  /**
+    * Gets the number of missions completed by each anonymous user.
+    * @return List[(String: ipAddress, Int: missionCount)]
+    */
+  def getAnonUserCompletedMissionCounts: List[(String, Int)] = db.withSession { implicit session =>
+    anonUserInteractions.groupBy(interaction => interaction._1).map {
+      case (ipAddress, interactions) => (ipAddress.get, interactions.filter(_._5 === "MissionComplete").groupBy(x => x._1).map(_._1).length)
+//    anonUserInteractions.filter(_._5 === "MissionComplete").groupBy(interaction => interaction._1).map {
+//      case (ipAddress, interactions) => (ipAddress, interactions.map)
+    }.list
+  }
 
   /*
    * Counts anonymous user records visited today
