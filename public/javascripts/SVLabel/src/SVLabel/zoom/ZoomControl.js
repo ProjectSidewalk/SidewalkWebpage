@@ -186,6 +186,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             canvas.render2();
             $(document).trigger('ZoomIn');
         }
+        svl.zoomShortcutAlert.zoomClicked();
     }
 
     /**
@@ -204,6 +205,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             canvas.render2();
             $(document).trigger('ZoomOut');
         }
+        svl.zoomShortcutAlert.zoomClicked();
     }
 
     /**
