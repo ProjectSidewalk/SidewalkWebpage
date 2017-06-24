@@ -83,6 +83,8 @@ GET     /contribution/auditInteractions         @controllers.UserProfileControll
 GET     /contribution/previousAudit             @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                 @controllers.UserProfileController.userProfile(username: String)
 
+POST    /userapi/selfAssign                     @controllers.UserController.postSelfAssign
+
 # Geometry API
 
 # Access Feature and Access Score APIs

@@ -113,7 +113,9 @@ function Progress (_, $, c3, L) {
                 url = "/audit/region/" + regionId,
                 // default popup content if we don't find neighborhood in list of neighborhoods from query
                 popupContent = "Do you want to find accessibility problems in " + regionName + "? " + 
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>",
+                compRate = 0,
+                milesLeft = 0;
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(100.0 * rates[i].rate);
@@ -168,6 +170,7 @@ function Progress (_, $, c3, L) {
                 map.setView(latlng, zoom, { animate: true });
                 currentLayer = this;
             });
+
         }
 
         $.getJSON("/neighborhoods", function (data) {
@@ -190,6 +193,43 @@ function Progress (_, $, c3, L) {
 //        var regionId = $(this).attr('regionid');
 //        console.log(regionId)
 //    });
+        $("#map").on('click', '.region-selection-trigger', function () {
+            var regionId = $(this).attr('regionId');
+            var ratesEl = rates.find(function(x){
+                return regionId == x.region_id;
+            })
+            var compRate = Math.round(100.0 * ratesEl.rate);
+            var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+            var distanceLeft = "";
+            if(compRate === 100){
+                distanceLeft = "0";
+            }
+            else if(milesLeft === 0){
+                distanceLeft = "<1";
+            }
+            else if(milesLeft === 1){
+                distanceLeft = "1";
+            }
+            else{
+                distanceLeft = ">1";
+            }
+            var url = "/userapi/selfAssign";
+            var async = true;
+            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: url,
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        });
     }
 
     /**

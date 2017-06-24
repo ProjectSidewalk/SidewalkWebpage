@@ -1,5 +1,6 @@
 package controllers
 
+import java.sql.Timestamp
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
@@ -7,11 +8,11 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
-import models.user.User
-
-import play.api.libs.json.Json
-import play.api.mvc.{BodyParsers, Result, RequestHeader}
-
+import models.user._
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import play.api.mvc.{BodyParsers, RequestHeader, Result}
+import play.api.libs.json._
+import org.joda.time.{DateTime, DateTimeZone}
 import scala.concurrent.Future
 
 /**
@@ -73,5 +74,32 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
       case Some(user) => Future.successful(Ok(s"Hello $username!"))
       case None => Future.successful(Redirect("/"))
     }
+  }
+
+
+  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp
+  def postSelfAssign = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+    val submission = request.body.validate[String]
+    val anonymousUser: DBUser = UserTable.find("anonymous").get
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+        request.identity match {
+          case Some(user) =>
+            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, submission, timestamp))
+          case None =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, submission, timestamp))
+        }
+
+        Future.successful(Ok(Json.obj()))
+      }
+    )
   }
 }
