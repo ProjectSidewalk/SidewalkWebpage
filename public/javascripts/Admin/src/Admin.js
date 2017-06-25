@@ -526,6 +526,26 @@ function Admin(_, $, c3, turf) {
         });
     }
 
+    // takes an array of objects and the name of a property of the objects, returns summary stats for that property
+    function getSummaryStats(data, col) {
+        data.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
+        var sum = 0;
+        for (var j = 0; j < data.length; j++) {
+            sum += data[j][col];
+        }
+        var mean = sum / data.length;
+        var i = data.length / 2;
+        var median = (data.length / 2) % 1 == 0 ? (data[i - 1][col] + data[i][col]) / 2 : data[Math.floor(i)][col];
+
+        var std = 0;
+        for(var k = 0; k < data.length; k++) {
+            std += Math.pow(data[k][col] - mean, 2);
+        }
+        std /= data.length;
+        std = Math.sqrt(std);
+        return {mean:mean, median:median, std:std, min:data[0][col], max:data[data.length-1][col]};
+    }
+
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
             initializeOverlayPolygon(map);
@@ -674,7 +694,8 @@ function Admin(_, $, c3, turf) {
                 }
                 std /= onboardingTimes.length;
                 std = Math.sqrt(std);
-                $("#onboarding-std").html((std).toFixed(1) + " minutes");
+                var stats = getSummaryStats(onboardingTimes, "duration");
+                $("#onboarding-std").html((stats.std).toFixed(1) + " minutes");
 
                 var chart = {
                     "width": 400,
@@ -702,7 +723,7 @@ function Admin(_, $, c3, turf) {
                         },
                         { // creates lines marking summary statistics
                             "data": {"values": [
-                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                             },
                             "mark": "rule",
                             "encoding": {
@@ -808,23 +829,11 @@ function Admin(_, $, c3, turf) {
                 }, 1);
 
                 // make charts showing neighborhood completion rate
-                data.sort(function(a, b) {return (a.rate > b.rate) ? 1 : ((b.rate > a.rate) ? -1 : 0);} );
-                var sum = 0;
                 for (var j = 0; j < data.length; j++) {
-                    data[j].rate *= 100.0;
-                    sum += data[j].rate;
+                    data[j].rate *= 100.0; // change from proportion to percent
                 }
-                var mean = sum / data.length;
-                var i = data.length / 2;
-                var median = (data.length / 2) % 1 == 0 ? (data[i - 1].rate + data[i].rate) / 2 : data[Math.floor(i)].rate;
-
-                var std = 0;
-                for(var k = 0; k < data.length; k++) {
-                    std += Math.pow(data[k].rate - mean, 2);
-                }
-                std /= data.length;
-                std = Math.sqrt(std);
-                $("#neighborhood-std").html((std).toFixed(0) + "%");
+                var stats = getSummaryStats(data, "rate");
+                $("#neighborhood-std").html((stats.std).toFixed(1) + "%");
 
                 var coverageRateChartSortedByCompletion = {
                     "width": 810,
@@ -917,7 +926,7 @@ function Admin(_, $, c3, turf) {
                         },
                         { // creates lines marking summary statistics
                             "data": {"values": [
-                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                             },
                             "mark": "rule",
                             "encoding": {
@@ -949,22 +958,9 @@ function Admin(_, $, c3, turf) {
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
-                var sum = 0;
-                for (var j = 0; j < data[0].length; j++) {
-                    sum += data[0][j].count;
-                }
-                var mean = sum / data[0].length;
-                var i = data[0].length / 2;
-                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
+                var stats = getSummaryStats(data[0], "count");
 
-                var std = 0;
-                for(var k = 0; k < data[0].length; k++) {
-                    std += Math.pow(data[0][k].count - mean, 2);
-                }
-                std /= data[0].length;
-                std = Math.sqrt(std);
-                $("#audit-std").html((std).toFixed(1) + " Street Audits");
+                $("#audit-std").html((stats.std).toFixed(1) + " Street Audits");
 
                 var chart = {
                     "data": {"values": data[0]},
@@ -992,14 +988,14 @@ function Admin(_, $, c3, turf) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
                                         "y": {
                                             "field": "value", "type": "quantitative",
                                             "axis": {"labels": false, "ticks": false, "title": ""},
-                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                            "scale": {"domain": [0, stats.max]}
                                         },
                                         "color": {
                                             "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
@@ -1038,14 +1034,14 @@ function Admin(_, $, c3, turf) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
                                         "x": {
                                             "field": "value", "type": "quantitative",
                                             "axis": {"labels": false, "ticks": false, "title": ""},
-                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                            "scale": {"domain": [0, stats.max]}
                                         },
                                         "color": {
                                             "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
@@ -1075,22 +1071,8 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
-                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
-                var sum = 0;
-                for (var j = 0; j < data[0].length; j++) {
-                    sum += data[0][j].count;
-                }
-                var mean = sum / data[0].length;
-                var i = data[0].length / 2;
-                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
-
-                var std = 0;
-                for(var k = 0; k < data[0].length; k++) {
-                    std += Math.pow(data[0][k].count - mean, 2);
-                }
-                std /= data[0].length;
-                std = Math.sqrt(std);
-                $("#label-std").html((std).toFixed(0) + " Labels");
+                var stats = getSummaryStats(data[0], "count");
+                $("#label-std").html((stats.std).toFixed(1) + " Labels");
 
                 var chart = {
                     "data": {"values": data[0]},
@@ -1118,14 +1100,14 @@ function Admin(_, $, c3, turf) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
                                         "y": {
                                             "field": "value", "type": "quantitative",
                                             "axis": {"labels": false, "ticks": false, "title": ""},
-                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                            "scale": {"domain": [0, stats.max]}
                                         },
                                         "color": {
                                             "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
@@ -1164,14 +1146,14 @@ function Admin(_, $, c3, turf) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
                                         "x": {
                                             "field": "value", "type": "quantitative",
                                             "axis": {"labels": false, "ticks": false, "title": ""},
-                                            "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                            "scale": {"domain": [0, stats.max]}
                                         },
                                         "color": {
                                             "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
@@ -1201,24 +1183,9 @@ function Admin(_, $, c3, turf) {
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/adminapi/anonUserMissionCounts", function (data) {
-                data[0].sort(function(a, b) {return (a.count > b.count) ? 1 : ((b.count > a.count) ? -1 : 0);} );
-                var sum = 0;
-                for (var j = 0; j < data[0].length; j++) {
-                    sum += data[0][j].count;
-                }
-                var mean = sum / data[0].length;
-                var i = data[0].length / 2;
-                var median = (data[0].length / 2) % 1 == 0 ? (data[0][i - 1].count + data[0][i].count) / 2 : data[0][Math.floor(i)].count;
+                var stats = getSummaryStats(data[0], "count");
 
-                var std = 0;
-                for(var k = 0; k < data[0].length; k++) {
-                    std += Math.pow(data[0][k].count - mean, 2);
-                }
-                std /= data[0].length;
-                std = Math.sqrt(std);
-                $("#anon-missions-std").html((std).toFixed(1) + " Missions");
-                console.log(mean);
-                console.log(median);
+                $("#anon-missions-std").html((stats.std).toFixed(1) + " Missions");
 
                 var chart = {
                     "data": {"values": data[0]},
@@ -1246,14 +1213,14 @@ function Admin(_, $, c3, turf) {
                         },
                         { // creates lines marking summary statistics
                             "data": {"values": [
-                                {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                             },
                             "mark": "rule",
                             "encoding": {
                                 "x": {
                                     "field": "value", "type": "quantitative",
                                     "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
-                                    "scale": {"domain": [0, data[0][data[0].length-1].count]}
+                                    "scale": {"domain": [0, stats.max]}
                                 },
                                 "color": {
                                     "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
