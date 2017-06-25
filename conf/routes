@@ -80,6 +80,7 @@ GET     /userapi/labels                         @controllers.UserProfileControll
 GET     /userapi/labelCounts/all                @controllers.UserProfileController.getAllLabelCounts
 GET     /contribution/auditCounts               @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all           @controllers.UserProfileController.getAllAuditCounts
+GET     /userapi/completedMissionCounts/all     @controllers.UserProfileController.getAllUserCompletedMissionCounts
 GET     /contribution/auditInteractions         @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit             @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                 @controllers.UserProfileController.userProfile(username: String)
