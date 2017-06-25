@@ -1283,7 +1283,7 @@ function Admin(_, $, c3, turf) {
                             "encoding": {
                                 "x": {
                                     "field": "value", "type": "quantitative",
-                                    "axis": {"labels": false, "ticks": false, "title": ""},
+                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
                                     "scale": {"domain": [0, stats.max]}
                                 },
                                 "color": {
