@@ -66,7 +66,7 @@ object UserDAOImpl {
 
   val anonUsers = for {
     (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-    if _at.userId === "97760883-8ef0-4309-9a5e-0c086ef27573" && _at.completed === true
+    if _at.userId === "97760883-8ef0-4309-9a5e-0c086ef27573"
   } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
 
   val anonUserInteractions = for {
@@ -124,14 +124,18 @@ object UserDAOImpl {
 
   /**
     * Gets the number of missions completed by each anonymous user.
+    *
+    * Unfortunate limitation of slick: https://groups.google.com/forum/#!topic/scalaquery/lrumVNo3JE4
+    *
     * @return List[(String: ipAddress, Int: missionCount)]
     */
-  def getAnonUserCompletedMissionCounts: List[(String, Int)] = db.withSession { implicit session =>
-    anonUserInteractions.groupBy(interaction => interaction._1).map {
-      case (ipAddress, interactions) => (ipAddress.get, interactions.filter(_._5 === "MissionComplete").groupBy(x => x._1).map(_._1).length)
-//    anonUserInteractions.filter(_._5 === "MissionComplete").groupBy(interaction => interaction._1).map {
-//      case (ipAddress, interactions) => (ipAddress, interactions.map)
-    }.list
+  def getAnonUserCompletedMissionCounts: List[(Option[String], Int)] = db.withSession { implicit session =>
+    // filter down to only the MissionComplete interactions, then get the set of unique ip/taskId pairs, then group by
+    // ip and count the number of audit tasks in there.
+    val completedMissions = anonUserInteractions.filter(_._5 === "MissionComplete").groupBy(x => (x._1, x._2)).map{
+      case ((ip, taskId), group) => (ip, taskId)
+    }.groupBy(x => x._1).map{case(ip, group) => (ip, group.map(_._2).length)}
+    // then join with the table of anon user ip addresses to give those with no completed missions a 0.
   }
 
   /*

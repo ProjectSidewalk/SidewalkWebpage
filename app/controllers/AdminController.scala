@@ -16,6 +16,7 @@ import models.mission.MissionTable
 import models.region.{RegionCompletionTable, RegionTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.User
+import models.daos.UserDAOImpl
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -105,6 +106,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     RegionCompletionTable.initializeRegionCompletionTable()
 
+    getAllAnonUserCompletedMissionCounts
     val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
     val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
       Json.obj("region_id" -> neighborhood.regionId,
@@ -116,6 +118,23 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     Future.successful(Ok(JsArray(completionRates)))
+  }
+
+  /**
+    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    *
+    * @return
+    */
+  def getAllAnonUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val counts: List[(Option[String], Int)] = UserDAOImpl.getAnonUserCompletedMissionCounts
+      println(counts)
+      println(counts.length)
+      val jsOb = Json.obj("count" -> "count")
+      Future.successful(Ok(jsOb))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
 
   /**

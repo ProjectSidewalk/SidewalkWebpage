@@ -30,6 +30,7 @@ GET     /admin/task/:taskId                     @controllers.AdminController.tas
 
 GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate    @controllers.AdminController.getNeighborhoodCompletionRate
+GET     /adminapi/anonUserMissionCounts         @controllers.AdminController.getAllAnonUserCompletedMissionCounts
 GET     /adminapi/completionRateByDate          @controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/tasks/:username               @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
 GET     /adminapi/interactions/:username        @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
