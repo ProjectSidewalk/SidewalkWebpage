@@ -1311,6 +1311,70 @@ function Admin(_, $, c3, turf) {
                 };
                 vega.embed("#mission-count-chart", chart, opt, function(error, results) {});
             });
+            $.getJSON("/adminapi/allSignInCounts", function (data) {
+                stats = getSummaryStats(data[0], "count");
+
+                $("#login-count-std").html((stats.std).toFixed(1) + " Logins");
+                var chart = {
+                    "height": 300,
+                    "width": 600,
+                    "data": {"values": data[0]},
+                    "layer": [
+                        {
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {
+                                    "field": "count",
+                                    "type": "quantitative",
+                                    "axis": {"title": "# Logins per Registered User", "labelAngle": 0},
+                                    "bin": {"maxbins": 40}
+                                },
+                                "y": {
+                                    "aggregate": "count",
+                                    "field": "*",
+                                    "type": "quantitative",
+                                    "axis": {
+                                        "title": "Counts"
+                                    }
+                                }
+                            }
+                        },
+                        { // creates lines marking summary statistics
+                            "data": {"values": [
+                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                            },
+                            "mark": "rule",
+                            "encoding": {
+                                "x": {
+                                    "field": "value", "type": "quantitative",
+                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
+                                    "scale": {"domain": [0, stats.max]}
+                                },
+                                "color": {
+                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                    "legend": {
+                                        "title": "Summary Stats"
+                                    }
+                                },
+                                "size": {
+                                    "value": 2
+                                }
+                            }
+                        }
+                    ],
+                    "resolve": {"x": {"scale": "independent"}},
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                var opt = {
+                    "mode": "vega-lite",
+                    "actions": false
+                };
+                vega.embed("#login-count-chart", chart, opt, function(error, results) {});
+            });
             self.graphsLoaded = true;
         }
     });
