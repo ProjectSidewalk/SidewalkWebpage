@@ -626,7 +626,7 @@ function Admin(_, $, c3, turf) {
             self.mapLoaded = true;
         }
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
-            
+
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
                     // "height": 800,
@@ -779,7 +779,8 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": curbRamps},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Curb Ramp Severity"}},
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Curb Ramp Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
                             }
                         },
@@ -789,7 +790,8 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": noCurbRamps},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Missing Curb Ramp Severity"}},
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
@@ -799,7 +801,8 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": surfaceProblems},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Surface Problem Severity"}},
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Surface Problem Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
@@ -809,11 +812,17 @@ function Admin(_, $, c3, turf) {
                             "data": {"values": obstacles},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "severity", "type": "ordinal", "axis": {"title": "Obstacle Severity"}},
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         }
-                    ]
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 14
+                        }
+                    }
                 };
                 var opt = {
                     "mode": "vega-lite",
