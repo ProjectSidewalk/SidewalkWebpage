@@ -158,18 +158,26 @@ $( document ).ready(function() {
 
 
     // Triggered when "Watch Now" or the arrow next to it is clicked
-    // Logs "Click_WatchNow" in WebpageActivityTable
+    // Logs "Click_module=WatchNow" in WebpageActivityTable
     $("#playlink").on('click', function(e){
         if(e.target.innerText === "Watch Now"){
-            logWebpageActivity("Click_WatchNow");
+            logWebpageActivity("Click_module=WatchNow");
         }
     });
 
     // Triggered upon clicking tabs in "How you can help" section
-    // Logs "Click_HowYouCanHelp_Tab<tabNumber>" in WebpageActivityTable
+    // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
     $("#numbersrow").on('click','.col-sm-4', function(e){
         // Gets tab number as a string (i.e. "1", "2", or "3")
         var id = e.target.innerText.charAt(1);
-        logWebpageActivity("Click_HowYouCanHelp_Tab"+id);
+        logWebpageActivity("Click_module=HowYouCanHelp_tab="+id);
+    });
+
+    // Triggered when links in Press section are clicked
+    // Logs "Click_module=Press_type=<"img" or "text">_source=<"technically," "curbed," or "diamondback">"
+    $("#press-container2").on('click', '.newslink', function(e){
+        var type = e.currentTarget.id.split('-')[1];
+        var source = e.currentTarget.id.split('-')[0];
+        logWebpageActivity("Click_module=Press_type="+type+"_source="+source);
     });
 });

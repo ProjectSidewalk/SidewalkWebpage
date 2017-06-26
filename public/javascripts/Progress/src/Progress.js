@@ -214,7 +214,7 @@ function Progress (_, $, c3, L) {
             }
             var url = "/userapi/logWebpageActivity";
             var async = true;
-            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft_Dashboard";
+            var data = "Click_UserMap_regionId="+regionId+"_distanceLeft="+distanceLeft;
             $.ajax({
                 async: async,
                 contentType: 'application/json; charset=utf-8',
