@@ -546,6 +546,73 @@ function Admin(_, $, c3, turf) {
         return {mean:mean, median:median, std:std, min:data[0][col], max:data[data.length-1][col]};
     }
 
+    // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
+    function getVegaLiteHistogram(data, mean, median, options) {
+        options = options || {};
+        var xAxisTitle = options.xAxisTitle || "TODO, fill in x-axis title";
+        var yAxisTitle = options.yAxisTitle || "Counts";
+        var height = options.height || 300;
+        var width = options.width || 600;
+        var col = options.col || "count"; // most graphs we are making are made of up counts
+        var xDomain = options.xDomain || [0, data[data.length-1][col]];
+
+        var chart = {
+            "height": height,
+            "width": width,
+            "data": {"values": data},
+            "layer": [
+                {
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "field": col,
+                            "type": "quantitative",
+                            "axis": {"title": xAxisTitle, "labelAngle": 0},
+                            "bin": {"maxbins": 40}
+                        },
+                        "y": {
+                            "aggregate": "count",
+                            "field": "*",
+                            "type": "quantitative",
+                            "axis": {
+                                "title": yAxisTitle
+                            }
+                        }
+                    }
+                },
+                { // creates lines marking summary statistics
+                    "data": {"values": [
+                        {"stat": "mean", "value": mean}, {"stat": "median", "value": median}]
+                    },
+                    "mark": "rule",
+                    "encoding": {
+                        "x": {
+                            "field": "value", "type": "quantitative",
+                            "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
+                            "scale": {"domain": xDomain}
+                        },
+                        "color": {
+                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                            "legend": {
+                                "title": "Summary Stats"
+                            }
+                        },
+                        "size": {
+                            "value": 2
+                        }
+                    }
+                }
+            ],
+            "resolve": {"x": {"scale": "independent"}},
+            "config": {
+                "axis": {
+                    "titleFontSize": 16
+                }
+            }
+        };
+        return chart;
+    }
+
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
             initializeOverlayPolygon(map);
@@ -1315,60 +1382,8 @@ function Admin(_, $, c3, turf) {
                 stats = getSummaryStats(data[0], "count");
 
                 $("#login-count-std").html((stats.std).toFixed(1) + " Logins");
-                var chart = {
-                    "height": 300,
-                    "width": 600,
-                    "data": {"values": data[0]},
-                    "layer": [
-                        {
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {"title": "# Logins per Registered User", "labelAngle": 0},
-                                    "bin": {"maxbins": 40}
-                                },
-                                "y": {
-                                    "aggregate": "count",
-                                    "field": "*",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
-                                    }
-                                }
-                            }
-                        },
-                        { // creates lines marking summary statistics
-                            "data": {"values": [
-                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                            },
-                            "mark": "rule",
-                            "encoding": {
-                                "x": {
-                                    "field": "value", "type": "quantitative",
-                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
-                                    "scale": {"domain": [0, stats.max]}
-                                },
-                                "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                    "legend": {
-                                        "title": "Summary Stats"
-                                    }
-                                },
-                                "size": {
-                                    "value": 2
-                                }
-                            }
-                        }
-                    ],
-                    "resolve": {"x": {"scale": "independent"}},
-                    "config": {
-                        "axis": {
-                            "titleFontSize": 16
-                        }
-                    }
-                };
+                var histOpts = {xAxisTitle:"# Logins per Registered User"};
+                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
                 var opt = {
                     "mode": "vega-lite",
                     "actions": false
