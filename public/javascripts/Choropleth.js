@@ -144,6 +144,10 @@ function Choropleth(_, $, turf) {
 
                 map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
+
+                // Log when a user clicks on a region on the choropleth
+                var regionId = e.target.feature.properties.region_id;
+                postToWebpageActivity("ChoroplethClickRegion"+regionId);
             });
         }
 
@@ -181,22 +185,9 @@ function Choropleth(_, $, turf) {
             else{
                 distanceLeft = ">1";
             }
-            var url = "/userapi/logWebpageActivity";
-            var async = true;
+
             var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: url,
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
+            postToWebpageActivity(data);
         });
     }
 
@@ -209,4 +200,23 @@ function Choropleth(_, $, turf) {
             choropleth.invalidateSize(false);
         }, 1);
     });
+
+
+    // Makes POST request that logs `activity` in WebpageActivityTable
+    function postToWebpageActivity(activity){
+        var url = "/userapi/logWebpageActivity";
+        var async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
 }
