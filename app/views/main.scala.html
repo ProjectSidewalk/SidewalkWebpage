@@ -159,7 +159,7 @@
 
             // Log clicks on links in the information footer to WebpageActivityTable
             // Log is of form: "Click_module=InfoFooter_target=<link>"
-            $('#info-footer').on('click', function(e){
+            $('#info-footer').on('click','a', function(e){
                 var link = e.currentTarget.id.split("-")[0];
                 var activity = "Click_module=InfoFooter_"+"target="+link;
                 var url = "/userapi/logWebpageActivity";
