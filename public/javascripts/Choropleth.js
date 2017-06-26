@@ -163,7 +163,7 @@ function Choropleth(_, $, turf) {
 
         // When a region is selected and 'Click here' is clicked, this function runs
         // Sends String to be logged in WebpageActivityTable of the form
-        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft
+        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft_Choropleth
         // where distanceLeft is 0, <1, 1 or >1
         $("#choropleth").on('click', '.region-selection-trigger', function () {
             var regionId = $(this).attr('regionId');
@@ -186,7 +186,7 @@ function Choropleth(_, $, turf) {
                 distanceLeft = ">1";
             }
 
-            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
+            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft_Choropleth";
             postToWebpageActivity(data);
         });
     }

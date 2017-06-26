@@ -190,7 +190,7 @@ function Progress (_, $, c3, L) {
 
         // When a region is selected and 'Click here' is clicked, this function runs
         // Sends String to be logged in WebpageActivityTable of the form
-        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft
+        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft_Dashboard
         // where distanceLeft is 0, <1, 1 or >1
         $("#map").on('click', '.region-selection-trigger', function () {
             var regionId = $(this).attr('regionId');
@@ -214,7 +214,7 @@ function Progress (_, $, c3, L) {
             }
             var url = "/userapi/logWebpageActivity";
             var async = true;
-            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
+            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft_Dashboard";
             $.ajax({
                 async: async,
                 contentType: 'application/json; charset=utf-8',

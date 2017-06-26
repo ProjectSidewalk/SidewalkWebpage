@@ -186,13 +186,12 @@ function Progress (_, $, c3, L) {
             completedInitializingNeighborhoodPolygons = true;
             handleInitializationComplete(map);
         });
+        
 
-        // Catch click even in popups
-        // https://www.mapbox.com/mapbox.js/example/v1.0.0/clicks-in-popups/
-//    $("#map").on('click', '.region-selection-trigger', function () {
-//        var regionId = $(this).attr('regionid');
-//        console.log(regionId)
-//    });
+        // When a region is selected and 'Click here' is clicked, this function runs
+        // Sends String to be logged in WebpageActivityTable of the form
+        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft_Dashboard
+        // where distanceLeft is 0, <1, 1 or >1
         $("#map").on('click', '.region-selection-trigger', function () {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
@@ -213,9 +212,9 @@ function Progress (_, $, c3, L) {
             else{
                 distanceLeft = ">1";
             }
-            var url = "/userapi/selfAssign";
+            var url = "/userapi/logWebpageActivity";
             var async = true;
-            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
+            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft_Dashboard";
             $.ajax({
                 async: async,
                 contentType: 'application/json; charset=utf-8',
