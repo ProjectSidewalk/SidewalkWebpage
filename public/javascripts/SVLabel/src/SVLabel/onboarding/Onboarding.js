@@ -100,7 +100,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     function renderRoutesOnGoogleMap(state) {
         if ('map' in svl && google && ["initialize", "walk-2"].includes(state.properties.name)) {
-            console.log(state.properties.name);
             var paths = [];
             //var currentPosition = svl.map.getPosition();
 
