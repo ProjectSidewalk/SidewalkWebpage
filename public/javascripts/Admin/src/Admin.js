@@ -555,8 +555,9 @@ function Admin(_, $, c3, turf) {
         var width = options.width || 600;
         var col = options.col || "count"; // most graphs we are making are made of up counts
         var xDomain = options.xDomain || [0, data[data.length-1][col]];
+        var binStep = options.binStep || 1;
 
-        var chart = {
+        return {
             "height": height,
             "width": width,
             "data": {"values": data},
@@ -568,7 +569,7 @@ function Admin(_, $, c3, turf) {
                             "field": col,
                             "type": "quantitative",
                             "axis": {"title": xAxisTitle, "labelAngle": 0},
-                            "bin": {"maxbins": 40}
+                            "bin": {"step": binStep}
                         },
                         "y": {
                             "aggregate": "count",
@@ -610,7 +611,6 @@ function Admin(_, $, c3, turf) {
                 }
             }
         };
-        return chart;
     }
 
     $('.nav-pills').on('click', function (e) {
@@ -626,8 +626,7 @@ function Admin(_, $, c3, turf) {
             self.mapLoaded = true;
         }
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
-
-
+            
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
                     // "height": 800,
@@ -719,7 +718,6 @@ function Admin(_, $, c3, turf) {
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
-            // Draw an onboarding interaction chart
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
                 function cmp(a, b) {
                     return a.timestamp - b.timestamp;
@@ -735,7 +733,6 @@ function Admin(_, $, c3, turf) {
                 var record2;
                 var duration;
                 var bounceCount = 0;
-                var sum = 0;
                 for (var auditTaskId in grouped) {
                     grouped[auditTaskId].sort(cmp);
                     record1 = grouped[auditTaskId][0];
@@ -743,81 +740,19 @@ function Admin(_, $, c3, turf) {
                     if(record2.note === "from:outro" || record2.note === "onboardingTransition:outro"){
                         duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
                         onboardingTimes.push({duration: duration, binned: Math.min(10.0, duration)});
-                        sum += duration;
                     }
                     else bounceCount++;
                 }
                 var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
                 $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
 
-                var mean = sum / onboardingTimes.length;
-                onboardingTimes.sort(function(a, b) {return (a.duration > b.duration) ? 1 : ((b.duration > a.duration) ? -1 : 0);} );
-                var i = onboardingTimes.length / 2;
-                var median = i % 1 == 0 ? (onboardingTimes[i - 1].duration + onboardingTimes[i].duration) / 2 : onboardingTimes[Math.floor(i)].duration;
-
-                var std = 0;
-                for(var j = 0; j < onboardingTimes.length; j++) {
-                    std += Math.pow(onboardingTimes[j].duration - mean, 2);
-                }
-                std /= onboardingTimes.length;
-                std = Math.sqrt(std);
                 var stats = getSummaryStats(onboardingTimes, "duration");
                 $("#onboarding-std").html((stats.std).toFixed(1) + " minutes");
 
-                var chart = {
-                    "width": 400,
-                    "height": 250,
-                    "layer": [
-                        {
-                            "data": {"values": onboardingTimes},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "bin": {"maxbins": 10},
-                                    "field": "binned", "type": "quantitative",
-                                    "axis": {
-                                        "title": "Onboarding Completion Time (minutes)", "labelAngle": 0,
-                                        "scale": {"domain": [0,10]}
-                                    }
-                                },
-                                "y": {
-                                    "aggregate": "count", "field": "*", "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
-                                    }
-                                }
-                            }
-                        },
-                        { // creates lines marking summary statistics
-                            "data": {"values": [
-                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                            },
-                            "mark": "rule",
-                            "encoding": {
-                                "x": {
-                                    "field": "value", "type": "quantitative",
-                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
-                                    "scale": {"domain": [0,10]}
-                                },
-                                "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                    "legend": {
-                                        "title": "Summary Stats"
-                                    }
-                                },
-                                "size": {
-                                    "value": 2
-                                }
-                            }
-                        }
-                    ],
-                    "resolve": {"x": {"scale": "independent"}},
-                    "config": {
-                        "axis": {
-                            "titleFontSize": 16
-                        }
-                    }
-                };
+                var histOpts = {col:"binned", xAxisTitle:"Onboarding Completion Time (minutes)", xDomain:[0, 10],
+                                width:400, height:250, binStep:1};
+                var chart = getVegaLiteHistogram(onboardingTimes, stats.mean, stats.median, histOpts);
+
                 var opt = {
                     "mode": "vega-lite",
                     "actions": false
@@ -966,61 +901,10 @@ function Admin(_, $, c3, turf) {
                     vega.embed("#neighborhood-completion-rate", coverageRateChartSortedAlphabetically, opt, function(error, results) {});
                 });
 
-                var coverageRateHist = {
-                    "width": 400,
-                    "height": 250,
-                    "layer": [
-                        {
-                            "data": {"values": data},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "bin": {
-                                        "maxbins": 10
-                                    },
-                                    "field": "rate", "type": "quantitative",
-                                    "axis": {
-                                        "title": "Neighborhood Completion (%)", "labelAngle": 0
-                                    }
-                                },
-                                "y": {
-                                    "aggregate": "count", "field": "*", "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
-                                    }
-                                }
-                            }
-                        },
-                        { // creates lines marking summary statistics
-                            "data": {"values": [
-                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                            },
-                            "mark": "rule",
-                            "encoding": {
-                                "x": {
-                                    "field": "value", "type": "quantitative",
-                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
-                                    "scale": {"domain": [0,100]}
-                                },
-                                "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                    "legend": {
-                                        "title": "Summary Stats"
-                                    }
-                                },
-                                "size": {
-                                    "value": 2
-                                }
-                            }
-                        }
-                    ],
-                    "resolve": {"x": {"scale": "independent"}},
-                    "config": {
-                        "axis": {
-                            "titleFontSize": 16
-                        }
-                    }
-                };
+                var histOpts = {col: "rate", xAxisTitle:"Neighborhood Completion (%)", xDomain:[0, 100],
+                                width:400, height:250, binStep:10};
+                var coverageRateHist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+
                 vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
 
             });
@@ -1028,6 +912,9 @@ function Admin(_, $, c3, turf) {
                 var stats = getSummaryStats(data[0], "count");
 
                 $("#audit-std").html((stats.std).toFixed(1) + " Street Audits");
+
+                var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50};
+                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
                 var chart = {
                     "data": {"values": data[0]},
@@ -1076,54 +963,7 @@ function Admin(_, $, c3, turf) {
                             ],
                             "resolve": {"y": {"scale": "independent"}}
                         },
-                        {
-                            "height": 300,
-                            "width": 250,
-                            "layer": [
-                                {
-                                    "mark": "bar",
-                                    "encoding": {
-                                        "x": {
-                                            "field": "count",
-                                            "type": "quantitative",
-                                            "axis": {"title": "# Street Audits per Day", "labelAngle": 0},
-                                            "bin": {"maxbins": 20}
-                                        },
-                                        "y": {
-                                            "aggregate": "count",
-                                            "field": "*",
-                                            "type": "quantitative",
-                                            "axis": {
-                                                "title": "Counts"
-                                            }
-                                        }
-                                    }
-                                },
-                                { // creates lines marking summary statistics
-                                    "data": {"values": [
-                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                                    },
-                                    "mark": "rule",
-                                    "encoding": {
-                                        "x": {
-                                            "field": "value", "type": "quantitative",
-                                            "axis": {"labels": false, "ticks": false, "title": ""},
-                                            "scale": {"domain": [0, stats.max]}
-                                        },
-                                        "color": {
-                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                            "legend": {
-                                                "title": "Summary Stats"
-                                            }
-                                        },
-                                        "size": {
-                                            "value": 1
-                                        }
-                                    }
-                                }
-                                ],
-                            "resolve": {"x": {"scale": "independent"}}
-                        }
+                        hist
                     ],
                     "config": {
                         "axis": {
@@ -1140,6 +980,9 @@ function Admin(_, $, c3, turf) {
             $.getJSON("/userapi/labelCounts/all", function (data) {
                 var stats = getSummaryStats(data[0], "count");
                 $("#label-std").html((stats.std).toFixed(1) + " Labels");
+
+                var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200};
+                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
                 var chart = {
                     "data": {"values": data[0]},
@@ -1188,55 +1031,8 @@ function Admin(_, $, c3, turf) {
                             ],
                             "resolve": {"y": {"scale": "independent"}}
                         },
-                        {
-                            "height": 300,
-                            "width": 250,
-                            "layer": [
-                                {
-                                    "mark": "bar",
-                                    "encoding": {
-                                        "x": {
-                                            "field": "count",
-                                            "type": "quantitative",
-                                            "axis": {"title": "# Labels per Day", "labelAngle": 0},
-                                            "bin": {"maxbins": 20}
-                                        },
-                                        "y": {
-                                            "aggregate": "count",
-                                            "field": "*",
-                                            "type": "quantitative",
-                                            "axis": {
-                                                "title": "Counts"
-                                            }
-                                        }
-                                    }
-                                },
-                                { // creates lines marking summary statistics
-                                    "data": {"values": [
-                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                                    },
-                                    "mark": "rule",
-                                    "encoding": {
-                                        "x": {
-                                            "field": "value", "type": "quantitative",
-                                            "axis": {"labels": false, "ticks": false, "title": ""},
-                                            "scale": {"domain": [0, stats.max]}
-                                        },
-                                        "color": {
-                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                            "legend": {
-                                                "title": "Summary Stats"
-                                            }
-                                        },
-                                        "size": {
-                                            "value": 2
-                                        }
-                                    }
-                                }
-                            ],
-                            "resolve": {"x": {"scale": "independent"}}
-                        }
-                        ],
+                        hist
+                    ],
                     "config": {
                         "axis": {
                             "titleFontSize": 16
@@ -1254,60 +1050,8 @@ function Admin(_, $, c3, turf) {
 
                 $("#anon-missions-std").html((stats.std).toFixed(1) + " Missions");
 
-                var chart = {
-                    "data": {"values": data[0]},
-                    "height": 300,
-                    "width": 300,
-                    "layer": [
-                        {
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {"title": "# Missions per Anon User", "labelAngle": 0},
-                                    "bin": {"step": 1}
-                                },
-                                "y": {
-                                    "aggregate": "count",
-                                    "field": "*",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
-                                    }
-                                }
-                            }
-                        },
-                        { // creates lines marking summary statistics
-                            "data": {"values": [
-                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                            },
-                            "mark": "rule",
-                            "encoding": {
-                                "x": {
-                                    "field": "value", "type": "quantitative",
-                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
-                                    "scale": {"domain": [0, stats.max]}
-                                },
-                                "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                    "legend": {
-                                        "title": "Summary Stats"
-                                    }
-                                },
-                                "size": {
-                                    "value": 2
-                                }
-                            }
-                        }
-                    ],
-                    "resolve": {"x": {"scale": "independent"}},
-                    "config": {
-                        "axis": {
-                            "titleFontSize": 16
-                        }
-                    }
-                };
+                var histOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, stats.max], width:300, binStep:1};
+                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
                 var opt = {
                     "mode": "vega-lite",
                     "actions": false
@@ -1317,61 +1061,10 @@ function Admin(_, $, c3, turf) {
             $.getJSON("/userapi/completedMissionCounts/all", function (data) {
                 stats = getSummaryStats(data[0], "count");
 
+                var histOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, stats.max], binStep:10};
+                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+
                 $("#missions-std").html((stats.std).toFixed(1) + " Missions");
-                var chart = {
-                    "height": 300,
-                    "width": 600,
-                    "data": {"values": data[0]},
-                    "layer": [
-                        {
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {
-                                    "field": "count",
-                                    "type": "quantitative",
-                                    "axis": {"title": "# Missions per Registered User", "labelAngle": 0},
-                                    "bin": {"maxbins": 40}
-                                },
-                                "y": {
-                                    "aggregate": "count",
-                                    "field": "*",
-                                    "type": "quantitative",
-                                    "axis": {
-                                        "title": "Counts"
-                                    }
-                                }
-                            }
-                        },
-                        { // creates lines marking summary statistics
-                            "data": {"values": [
-                                {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
-                            },
-                            "mark": "rule",
-                            "encoding": {
-                                "x": {
-                                    "field": "value", "type": "quantitative",
-                                    "axis": {"labels": false, "ticks": false, "title": "", "grid": false},
-                                    "scale": {"domain": [0, stats.max]}
-                                },
-                                "color": {
-                                    "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
-                                    "legend": {
-                                        "title": "Summary Stats"
-                                    }
-                                },
-                                "size": {
-                                    "value": 2
-                                }
-                            }
-                        }
-                    ],
-                    "resolve": {"x": {"scale": "independent"}},
-                    "config": {
-                        "axis": {
-                            "titleFontSize": 16
-                        }
-                    }
-                };
                 var opt = {
                     "mode": "vega-lite",
                     "actions": false
@@ -1382,7 +1075,7 @@ function Admin(_, $, c3, turf) {
                 stats = getSummaryStats(data[0], "count");
 
                 $("#login-count-std").html((stats.std).toFixed(1) + " Logins");
-                var histOpts = {xAxisTitle:"# Logins per Registered User"};
+                var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5};
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
                 var opt = {
                     "mode": "vega-lite",
