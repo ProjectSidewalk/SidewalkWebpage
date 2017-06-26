@@ -183,7 +183,6 @@ function Main (params) {
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
-
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -406,6 +405,7 @@ function Main (params) {
             $("#page-loading").css({"visibility": "hidden"});
             $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
+            $("#mini-footer-audit").css("visibility", "hidden");
             if (!hasCompletedOnboarding(completedMissions)) {
                 startOnboarding();
             } else {
