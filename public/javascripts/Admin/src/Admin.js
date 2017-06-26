@@ -627,6 +627,11 @@ function Admin(_, $, c3, turf) {
         }
         else if (e.target.id == "analytics" && self.graphsLoaded == false) {
 
+            var opt = {
+                "mode": "vega-lite",
+                "actions": false
+            };
+
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
                     // "height": 800,
@@ -712,10 +717,6 @@ function Admin(_, $, c3, turf) {
                         }
                     }
                 };
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/adminapi/onboardingInteractions", function (data) {
@@ -753,10 +754,6 @@ function Admin(_, $, c3, turf) {
                                 width:400, height:250, binStep:1};
                 var chart = getVegaLiteHistogram(onboardingTimes, stats.mean, stats.median, histOpts);
 
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
                 vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/labels/all', function (data) {
@@ -823,10 +820,6 @@ function Admin(_, $, c3, turf) {
                             "titleFontSize": 14
                         }
                     }
-                };
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
                 };
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
@@ -896,10 +889,6 @@ function Admin(_, $, c3, turf) {
                         "axis": {"titleFontSize": 16, "labelFontSize": 8},
                         "bar": {"binSpacing": 2}
                     }
-                };
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
                 };
                 vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
 
@@ -980,10 +969,6 @@ function Admin(_, $, c3, turf) {
                         }
                     }
                 };
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
                 vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
@@ -1048,10 +1033,6 @@ function Admin(_, $, c3, turf) {
                         }
                     }
                 };
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/adminapi/anonUserMissionCounts", function (data) {
@@ -1061,10 +1042,7 @@ function Admin(_, $, c3, turf) {
 
                 var histOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, stats.max], width:300, binStep:1};
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
+
                 vega.embed("#anon-missions-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/completedMissionCounts/all", function (data) {
@@ -1074,10 +1052,7 @@ function Admin(_, $, c3, turf) {
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
                 $("#missions-std").html((stats.std).toFixed(1) + " Missions");
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
+
                 vega.embed("#mission-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
@@ -1086,10 +1061,7 @@ function Admin(_, $, c3, turf) {
                 $("#login-count-std").html((stats.std).toFixed(1) + " Logins");
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5};
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
-                var opt = {
-                    "mode": "vega-lite",
-                    "actions": false
-                };
+
                 vega.embed("#login-count-chart", chart, opt, function(error, results) {});
             });
             self.graphsLoaded = true;
