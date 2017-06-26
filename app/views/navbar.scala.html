@@ -98,6 +98,25 @@
                     $("#sign-up-modal").addClass("hidden");
                     $("#sign-in-modal").removeClass("hidden");
                 });
+
+                // Log if user /clicks/ on sign-in button, but not necessarily signs in
+                $("#sign-in-button").on('click', function(){
+                    var url = "/userapi/logWebpageActivity";
+                    var async = true;
+                    var activity = "Click_SignIn";
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify(activity),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                });
             });
     </script>
     <div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
