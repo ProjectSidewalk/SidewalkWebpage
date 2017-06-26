@@ -180,4 +180,11 @@ $( document ).ready(function() {
         var source = e.currentTarget.id.split('-')[0];
         logWebpageActivity("Click_module=Press_type="+type+"_source="+source);
     });
+
+    // Triggered when twitter links are clicked
+    // Logs "Click_module=Quotes_author=<"microsoftdesign" or "kpkindc">"
+    $("#quotebox-container").on('click', 'a', function(e){
+        var author = e.currentTarget.id.split('-')[0];
+        logWebpageActivity("Click_module=Quotes_author="+author);
+    });
 });
