@@ -47,6 +47,13 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
+    var _deleteLabelHandlerContainer = {
+        "CurbRamp": [],
+        "NoCurbRamp": [],
+        "Obstacle": [],
+        "SurfaceProblem": [],
+        "Other": []
+    };
     var currentState;
 
     this._onboardingLabels = [];
@@ -1028,8 +1035,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var properties = state.properties;
         var transition = state.transition;
 
-        // TODO: Start undo/redo listener
-
         var callback = function (e) {
 
             var i = 0;
@@ -1038,6 +1043,42 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 var imageX = properties[i].imageX;
                 var imageY = properties[i].imageY;
                 var tolerance = properties[i].tolerance;
+                var labelType = state.properties[i].labelType;
+                var subCategory = state.properties[i].subcategory;
+
+                // Undo Handler
+                var deleteCallback = function () {
+                    hideMessage();
+                    actionStack.blinkUndo();
+                    state.message.message = 'Oops! You deleted the label. To bring it back and continue with the tutorial, ' +
+                        '<span class="bold">click the undo button</span>.';
+                    showMessage(state.message);
+
+                };
+                console.log("LabelType " + labelType);
+                _deleteLabelHandlerContainer[labelType].push({listener: '', callback: deleteCallback});
+
+                // Listener Check for deleted label
+                var checkDeletedLabel = function () {
+                    console.log("Calling for i:" + i);
+                    var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType][i];
+                    // Checks for the first step
+                    if (svl.labelCounter.countLabel(labelType) == 0) {
+                        console.log("Clearing for i=" + i);
+                        clearInterval(labelTypeDeleteHandler["listener"]);
+                        labelTypeDeleteHandler["listener"] = null;
+                        labelTypeDeleteHandler["callback"]();
+                    }
+                };
+
+                var afterUndoClick = function () {
+                    actionStack.stopBlinking();
+                    $(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
+
+                    //Bring back the previous transition
+                };
+
+                $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
 
                 var clickCoordinate = mouseposition(e, this),
                     pov = mapService.getPov(),
@@ -1049,7 +1090,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
                 if (distance < tolerance * tolerance) {
                     // Activate a timer to see if the user deleted the label
-                    ribbon.disableMode(state.properties[i].labelType, state.properties[i].subcategory);
+                    _deleteLabelHandlerContainer[labelType][i]["listener"] = setInterval(checkDeletedLabel, 1);
+                    console.log(JSON.stringify(_deleteLabelHandlerContainer[labelType]));
+                    ribbon.disableMode(labelType, subCategory);
                     ribbon.enableMode("Walk");
                     uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
                     $target.off("click", callback);
@@ -1060,7 +1103,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     // Use the undo button to delete the label
                     // Incorrect label application
                     _incorrectLabelApplication(state);
-                    ribbon.enableMode(state.properties[i].labelType, state.properties[i].subcategory);
+                    ribbon.enableMode(labelType, subCategory);
                 }
                 i = i + 1;
             }
