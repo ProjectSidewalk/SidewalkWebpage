@@ -65,19 +65,19 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
-                <a href='@routes.ApplicationController.about'>About Us</a> <br/>
-                <a href='@routes.ApplicationController.terms'>Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.faq'>FAQ</a> <br/>
+                <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
+                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
+                <a href='@routes.ApplicationController.faq' id="sidewalk-faq-link">FAQ</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">DEVELOPER</span><br/>
-                <a href='@routes.ApplicationController.developer'>Sidewalk API </a><br/>
+                <a href='@routes.ApplicationController.developer' id="developer-api-link">Sidewalk API </a><br/>
             </div>
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">CONNECT</span><br/>
-                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
-                <a target="_blank" href="https://twitter.com/umd_sidewalk"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
-                <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
+                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
+                <a target="_blank" href="https://twitter.com/umd_sidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
             </div>
         </div>
     </div>
@@ -87,12 +87,12 @@
         <div class="row" style="max-width: 340px; margin: 0 auto;">
 
             <div class="col-sm-6">
-                <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">
+                <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
                     <img src="@routes.Assets.at("assets/nsf.png")">
                 </a>
             </div>
             <div class="col-sm-6">
-                <a href="http://www.google.com/"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
+                <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
             </div>
 
         </div>
@@ -108,8 +108,8 @@
         </div>
 
         Project Sidewalk is designed and operated by the
-        <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
-        <a href="http://www.umd.edu/">University of Maryland</a><br>
+        <a href="https://makeabilitylab.umiacs.umd.edu/" id="makeability-link">Makeability Lab</a> at the
+        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a><br>
         <span id="application-version"></span>
     </div>
     <script>
@@ -121,6 +121,62 @@
             ga('create', 'UA-76528208-1', 'auto');
             ga('send', 'pageview');
 
+
+            // Log clicks on links in the footer to WebpageActivityTable
+            // Depending on column, form of log varies by the following:
+            // Column is 'Project Sidewalk' or "Developer'
+            //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
+            // Column is 'Connect'
+            //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
+            $("#footer-container").on('click', 'a', function(e){
+                var id = e.currentTarget.id.split("-");
+                var column = id[0];
+                var link = id[1];
+
+                var activity = "Click_module=Footer_section="+column+"_";
+                if(column === "sidewalk" || column === "developer"){
+                    activity = activity+"target="+link;
+                }
+                else{
+                    activity = activity+"platform="+link;
+                }
+
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(activity),
+                    dataType: 'json',
+                    success: function(result){},
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
+            });
+
+            // Log clicks on links in the information footer to WebpageActivityTable
+            // Log is of form: "Click_module=InfoFooter_target=<link>"
+            $('#info-footer').on('click', function(e){
+                var link = e.currentTarget.id.split("-")[0];
+                var activity = "Click_module=InfoFooter_"+"target="+link;
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(activity),
+                    dataType: 'json',
+                    success: function(result){},
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
+            });
     </script>
 </body>
 
