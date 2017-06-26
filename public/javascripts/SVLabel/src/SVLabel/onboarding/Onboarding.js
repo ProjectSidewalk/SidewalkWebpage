@@ -98,6 +98,59 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         onboardingModel.triggerStartOnboarding();
     };
 
+    function renderRoutesOnGoogleMap(state) {
+        if ('map' in svl && google && ["initialize", "walk-2"].includes(state.properties.name)) {
+            console.log(state.properties.name);
+            var paths = [];
+            //var currentPosition = svl.map.getPosition();
+
+            // If its the first state, then initialize with a red GMaps polyline
+            if (state.properties.name == "initialize") {
+                // Initial Position {lat: 38.9404971, lng: -77.0676199}
+                var coords = [
+                    // {lat: currentPosition.lat, lng: currentPosition.lng},
+                    {lat: 38.9404971, lng: -77.0676199},
+                    {lat: 38.9409018, lng: -77.067814},
+                    {lat: 38.9409807, lng: -77.0678717},
+                    {lat: 38.9410649, lng: -77.0680104}
+                ];
+                paths  = [
+                    new google.maps.Polyline({
+                        path: coords,
+                        geodesic: true,
+                        strokeColor: '#ff0000',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2
+                    })
+                ];
+            }
+            else if (state.properties.name == "walk-2") {
+                // Set the paths to a green polyline after the users walks to the next position
+
+                // Next walk position: {lat: 38.9406143, lng: -77.0676763}
+                var coords = [
+                    {lat: 38.9404971, lng: -77.0676199},
+                    {lat: 38.9406143, lng: -77.0676763}
+                    // {lat: currentPosition.lat, lng: currentPosition.lng},
+                ];
+                paths  = [
+                    new google.maps.Polyline({
+                        path: coords,
+                        geodesic: true,
+                        strokeColor: '#00ff00',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 3
+                    })
+                ];
+            }
+
+            // Render the paths
+            for (var i = 0, len = paths.length; i < len; i++) {
+                paths[i].setMap(svl.map.getMap());
+            }
+        }
+    }
+
     /**
      * Clear the onboarding canvas
      * @returns {clear}
@@ -577,6 +630,39 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         mapService.unlockDisableWalking();
         mapService.lockDisableWalking();
 
+        // Blink parts of the interface
+        if ("blinks" in state.properties && state.properties.blinks) {
+            len = state.properties.blinks.length;
+            for (i = 0; i < len; i++) {
+                switch (state.properties.blinks[i]) {
+                    case "google-maps":
+                        mapService.blinkGoogleMaps();
+                        break;
+                    case "compass":
+                        compass.blink();
+                        break;
+                    case "status-field":
+                        statusField.blink();
+                        break;
+                    case "zoom":
+                        zoomControl.blink();
+                        break;
+                    case "action-stack":
+                        actionStack.blink();
+                        break;
+                    case "sound":
+                        audioEffect.blink();
+                        break;
+                    case "jump":
+                        modalSkip.blink();
+                        break;
+                    case "feedback":
+                        modalComment.blink();
+                        break;
+                }
+            }
+        }
+
         var $target;
         var callback = function () {
             var panoId = mapService.getPanoId();
@@ -711,6 +797,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             googleCallback,
             $target;
 
+        renderRoutesOnGoogleMap(state);
+
         // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
         // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
         // When they click OK, then the POV changes.
@@ -755,6 +843,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     }
 
     function _visitInstruction(state, listener) {
+        renderRoutesOnGoogleMap(state);
+
         if (!("okButton" in state) || state.okButton) {
             // Insert an ok button.
             var okButtonText = 'OK';
