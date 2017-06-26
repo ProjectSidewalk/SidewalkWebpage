@@ -181,7 +181,7 @@ function Choropleth(_, $, turf) {
             else{
                 distanceLeft = ">1";
             }
-            var url = "/userapi/selfAssign";
+            var url = "/userapi/logWebpageActivity";
             var async = true;
             var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft";
             $.ajax({

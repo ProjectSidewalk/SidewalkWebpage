@@ -83,7 +83,7 @@ GET     /contribution/auditInteractions         @controllers.UserProfileControll
 GET     /contribution/previousAudit             @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                 @controllers.UserProfileController.userProfile(username: String)
 
-POST    /userapi/selfAssign                     @controllers.UserController.postSelfAssign
+POST    /userapi/logWebpageActivity             @controllers.UserController.logWebpageActivity
 
 # Geometry API
 
