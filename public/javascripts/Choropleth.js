@@ -145,9 +145,31 @@ function Choropleth(_, $, turf) {
                 map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
 
+
                 // Log when a user clicks on a region on the choropleth
+                // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
+                // Log is stored in WebpageActivityTable
                 var regionId = e.target.feature.properties.region_id;
-                postToWebpageActivity("ChoroplethClickRegion"+regionId);
+                var ratesEl = rates.find(function(x){
+                    return regionId == x.region_id;
+                })
+                var compRate = Math.round(100.0 * ratesEl.rate);
+                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                var distanceLeft = "";
+                if(compRate === 100){
+                    distanceLeft = "0";
+                }
+                else if(milesLeft === 0){
+                    distanceLeft = "<1";
+                }
+                else if(milesLeft === 1){
+                    distanceLeft = "1";
+                }
+                else{
+                    distanceLeft = ">1";
+                }
+                var activity = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                postToWebpageActivity(activity);
             });
         }
 
@@ -161,10 +183,9 @@ function Choropleth(_, $, turf) {
         });
 
 
-        // When a region is selected and 'Click here' is clicked, this function runs
-        // Sends String to be logged in WebpageActivityTable of the form
-        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft_Choropleth
-        // where distanceLeft is 0, <1, 1 or >1
+        // Logs when a region is selected from the choropleth and 'Click here' is clicked
+        // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
+        // Log is stored in WebpageActivityTable
         $("#choropleth").on('click', '.region-selection-trigger', function () {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
@@ -186,7 +207,7 @@ function Choropleth(_, $, turf) {
                 distanceLeft = ">1";
             }
 
-            var data = "SelfAssign_Region"+regionId+"_"+distanceLeft+"MilesLeft_Choropleth";
+            var data = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
             postToWebpageActivity(data);
         });
     }

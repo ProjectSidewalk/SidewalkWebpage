@@ -169,6 +169,46 @@ function Progress (_, $, c3, L) {
 
                 map.setView(latlng, zoom, { animate: true });
                 currentLayer = this;
+
+
+                // Log when a user clicks on a region on the user map
+                // Logs are of the form "Click_module=UserMap_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
+                // Log is stored in WebpageActivityTable
+                var regionId = $(this).attr('regionId');
+                var ratesEl = rates.find(function(x){
+                    return regionId == x.region_id;
+                })
+                var compRate = Math.round(100.0 * ratesEl.rate);
+                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                var distanceLeft = "";
+                if(compRate === 100){
+                    distanceLeft = "0";
+                }
+                else if(milesLeft === 0){
+                    distanceLeft = "<1";
+                }
+                else if(milesLeft === 1){
+                    distanceLeft = "1";
+                }
+                else{
+                    distanceLeft = ">1";
+                }
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                var data = "Click_module=UserMap_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(data),
+                    dataType: 'json',
+                    success: function (result) {
+                    },
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
             });
 
         }
@@ -186,12 +226,11 @@ function Progress (_, $, c3, L) {
             completedInitializingNeighborhoodPolygons = true;
             handleInitializationComplete(map);
         });
-        
 
-        // When a region is selected and 'Click here' is clicked, this function runs
-        // Sends String to be logged in WebpageActivityTable of the form
-        // SelfAssign_Region<regionId>_<distanceLeft>MilesLeft_Dashboard
-        // where distanceLeft is 0, <1, 1 or >1
+
+        // Logs when a region is selected from the user map and 'Click here' is clicked
+        // Logs are of the form "Click_module=UserMap_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
+        // Log is stored in WebpageActivityTable
         $("#map").on('click', '.region-selection-trigger', function () {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
@@ -214,7 +253,7 @@ function Progress (_, $, c3, L) {
             }
             var url = "/userapi/logWebpageActivity";
             var async = true;
-            var data = "Click_UserMap_regionId="+regionId+"_distanceLeft="+distanceLeft;
+            var data = "Click_UserMap_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
             $.ajax({
                 async: async,
                 contentType: 'application/json; charset=utf-8',
