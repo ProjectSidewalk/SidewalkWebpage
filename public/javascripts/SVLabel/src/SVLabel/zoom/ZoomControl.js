@@ -175,9 +175,14 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function _handleZoomInButtonClick () {
         if (tracker)  tracker.push('Click_ZoomIn');
 
+        var pov = mapService.getPov();
+
+        if (pov.zoom < properties.maxZoomLevel) {
+          svl.zoomShortcutAlert.zoomClicked();
+        }
+
         if (!status.disableZoomIn) {
             var povChange = mapService.getPovChangeStatus();
-            var pov = mapService.getPov();
 
             setZoom(pov.zoom + 1);
             enableZoomOut();
@@ -186,7 +191,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             canvas.render2();
             $(document).trigger('ZoomIn');
         }
-        svl.zoomShortcutAlert.zoomClicked();
     }
 
     /**
@@ -195,9 +199,14 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function _handleZoomOutButtonClick () {
         if (tracker) tracker.push('Click_ZoomOut');
 
+        var pov = mapService.getPov();
+
+        if (pov.zoom > properties.minZoomLevel) {
+          svl.zoomShortcutAlert.zoomClicked();
+        }
+
         if (!status.disableZoomOut) {
             var povChange = mapService.getPovChangeStatus();
-            var pov = mapService.getPov();
 
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
@@ -205,7 +214,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             canvas.render2();
             $(document).trigger('ZoomOut');
         }
-        svl.zoomShortcutAlert.zoomClicked();
     }
 
     /**
