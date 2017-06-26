@@ -1058,7 +1058,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     next(transition[i]);
                     break;
                 } else {
-                    // Activate the undo button to delete the label
+                    // Use the undo button to delete the label
                     // Incorrect label application
                     _incorrectLabelApplication(state);
                     ribbon.enableMode(state.properties[i].labelType, state.properties[i].subcategory);
