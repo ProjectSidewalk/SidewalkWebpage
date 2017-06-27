@@ -20,6 +20,9 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             disableZoomIn: false,
             disableZoomOut: false
         },
+        zoomBlink = {
+          isBlinking: false
+        },
         blinkInterval;
 
 
@@ -53,6 +56,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function blinkZoomIn () {
         stopBlinking();
+        zoomBlink.isBlinking = true;
         blinkInterval = window.setInterval(function () {
             uiZoomControl.zoomIn.toggleClass("highlight-100");
         }, 500);
@@ -63,6 +67,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function blinkZoomOut () {
         stopBlinking();
+        zoomBlink.isBlinking = true;
         blinkInterval = window.setInterval(function () {
             uiZoomControl.zoomOut.toggleClass("highlight-100");
         }, 500);
@@ -177,7 +182,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         var pov = mapService.getPov();
 
-        if (pov.zoom < properties.maxZoomLevel) {
+        if (pov.zoom < properties.maxZoomLevel && zoomBlink.isBlinking == false) {
           svl.zoomShortcutAlert.zoomClicked();
         }
 
@@ -201,7 +206,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         var pov = mapService.getPov();
 
-        if (pov.zoom > properties.minZoomLevel) {
+        if (pov.zoom > properties.minZoomLevel && zoomBlink.isBlinking == false) {
           svl.zoomShortcutAlert.zoomClicked();
         }
 
@@ -336,6 +341,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function stopBlinking () {
         window.clearInterval(blinkInterval);
+        zoomBlink.isBlinking = false;
         if (uiZoomControl) {
             uiZoomControl.zoomIn.removeClass("highlight-50");
             uiZoomControl.zoomOut.removeClass("highlight-50");
