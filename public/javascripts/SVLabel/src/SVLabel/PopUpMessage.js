@@ -120,7 +120,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         self._setTitle("You've been contributing a lot!");
         self._setMessage("Do you want to create an account to keep track of your progress?");
         disableInteractions(); //disable interactions while msg up
-        self._appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
+        self._appendButton('<button id="pop-up-message-sign-up-button" class="float" style = "margin-right:10px">Let me sign up!</button>', function () {
             // Store the data in LocalStorage.
             var task = taskContainer.getCurrentTask();
 
