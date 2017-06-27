@@ -120,6 +120,7 @@ function Main (params) {
         //svl.alert2 = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
+        svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
@@ -340,7 +341,7 @@ function Main (params) {
         }
 
         // Popup the message explaining the goal of the current mission
-        if (svl.missionContainer.isTheFirstMission()) {
+        if (svl.missionContainer.isTheFirstMission() || svl.missionContainer.onlyMissionOnboardingDone()) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                 svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
@@ -676,6 +677,7 @@ function Main (params) {
 
     self.getStatus = getStatus;
     self.setStatus = setStatus;
+    self.isAnAnonymousUser = isAnAnonymousUser;
 
     return self;
 }
