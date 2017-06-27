@@ -631,11 +631,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
     }
 
-    function _visitWalkTowards(state, listener) {
-
-        mapService.unlockDisableWalking();
-        mapService.lockDisableWalking();
-
+    function blinkInterface(state) {
         // Blink parts of the interface
         if ("blinks" in state.properties && state.properties.blinks) {
             len = state.properties.blinks.length;
@@ -668,6 +664,14 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 }
             }
         }
+    }
+
+    function _visitWalkTowards(state, listener) {
+
+        mapService.unlockDisableWalking();
+        mapService.lockDisableWalking();
+
+        blinkInterface(state);
 
         var $target;
         var callback = function () {
@@ -849,7 +853,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     }
 
     function _visitInstruction(state, listener) {
+
         renderRoutesOnGoogleMap(state);
+        blinkInterface(state);
 
         if (!("okButton" in state) || state.okButton) {
             // Insert an ok button.
@@ -859,39 +865,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             }
             uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>" +
                 okButtonText + "</button>");
-        }
-
-        // Blink parts of the interface
-        if ("blinks" in state.properties && state.properties.blinks) {
-            len = state.properties.blinks.length;
-            for (i = 0; i < len; i++) {
-                switch (state.properties.blinks[i]) {
-                    case "google-maps":
-                        mapService.blinkGoogleMaps();
-                        break;
-                    case "compass":
-                        compass.blink();
-                        break;
-                    case "status-field":
-                        statusField.blink();
-                        break;
-                    case "zoom":
-                        zoomControl.blink();
-                        break;
-                    case "action-stack":
-                        actionStack.blink();
-                        break;
-                    case "sound":
-                        audioEffect.blink();
-                        break;
-                    case "jump":
-                        modalSkip.blink();
-                        break;
-                    case "feedback":
-                        modalComment.blink();
-                        break;
-                }
-            }
         }
 
         var $target = $("#onboarding-ok-button");
