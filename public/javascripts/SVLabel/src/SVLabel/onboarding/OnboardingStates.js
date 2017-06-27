@@ -1442,7 +1442,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 35 / numStates;
+                var completedRate = 34 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-3"});
