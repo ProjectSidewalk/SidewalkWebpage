@@ -48,11 +48,11 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     var _mouseDownCanvasDrawingHandler;
     var _deleteLabelHandlerContainer = {
-        "CurbRamp": [],
-        "NoCurbRamp": [],
-        "Obstacle": [],
-        "SurfaceProblem": [],
-        "Other": []
+        "CurbRamp": {},
+        "NoCurbRamp": {},
+        "Obstacle": {},
+        "SurfaceProblem": {},
+        "Other": {}
     };
     var currentState;
 
@@ -548,6 +548,60 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         return "message" in state && state.message;
     }
 
+    function getCurrentState() {
+        return currentState;
+    }
+
+    function blinkInterface(state) {
+        // Blink parts of the interface
+        if ("blinks" in state.properties && state.properties.blinks) {
+            len = state.properties.blinks.length;
+            for (i = 0; i < len; i++) {
+                switch (state.properties.blinks[i]) {
+                    case "google-maps":
+                        mapService.blinkGoogleMaps();
+                        break;
+                    case "compass":
+                        compass.blink();
+                        break;
+                    case "status-field":
+                        statusField.blink();
+                        break;
+                    case "zoom":
+                        zoomControl.blink();
+                        break;
+                    case "action-stack":
+                        actionStack.blink();
+                        break;
+                    case "sound":
+                        audioEffect.blink();
+                        break;
+                    case "jump":
+                        modalSkip.blink();
+                        break;
+                    case "feedback":
+                        modalComment.blink();
+                        break;
+                }
+            }
+        }
+    }
+
+    function _incorrectLabelApplication(state) {
+
+        hideMessage();
+
+        var labelToApplyCount = state.properties.length;
+        var labelString = '';
+        if (labelToApplyCount > 1) {
+            labelString = "on a curb ramp"
+        }
+        // Show error message
+        state.message.message = 'Now, <span class="bold">Click ' + labelString +
+            ' beneath the flashing yellow arrow</span> to label it.';
+        showMessage(state.message);
+    }
+
     /**
      * Execute an instruction based on the current state.
      * @param state
@@ -631,38 +685,124 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
     }
 
-    function blinkInterface(state) {
-        // Blink parts of the interface
-        if ("blinks" in state.properties && state.properties.blinks) {
-            len = state.properties.blinks.length;
-            for (i = 0; i < len; i++) {
-                switch (state.properties.blinks[i]) {
-                    case "google-maps":
-                        mapService.blinkGoogleMaps();
-                        break;
-                    case "compass":
-                        compass.blink();
-                        break;
-                    case "status-field":
-                        statusField.blink();
-                        break;
-                    case "zoom":
-                        zoomControl.blink();
-                        break;
-                    case "action-stack":
-                        actionStack.blink();
-                        break;
-                    case "sound":
-                        audioEffect.blink();
-                        break;
-                    case "jump":
-                        modalSkip.blink();
-                        break;
-                    case "feedback":
-                        modalComment.blink();
-                        break;
+    function _setUpUndoHandlers() {
+        // Start Listener to show messages to use undo button
+        // 2 cases:
+        //   1. When user deletes a label
+        //   2. When user applies an label too far
+
+        // Undo Handlers
+        var deleteCallback = function () {
+            hideMessage();
+            actionStack.blinkUndo();
+            state.message.message = 'Oops! You deleted the label. To bring it back and continue with the tutorial, ' +
+                '<span class="bold">click the undo button</span>.';
+            showMessage(state.message);
+
+        };
+        var extraCallback = function () {
+            hideMessage();
+            actionStack.blinkUndo();
+            state.message.message = 'Oops! Your label is too far away. First, let\'s remove the misplaced label. ' +
+            '<span class="bold">Click the undo button</span>.';
+            showMessage(state.message);
+
+        };
+
+        var onboardingLabelTypes = ["CurbRamp", "NoCurbRamp", "Other"];
+
+        // Listener check for deleted label
+        var checkDeletedLabel = function () {
+
+            for (var lb_i = 0, len = onboardingLabelTypes.length; lb_i < len; lb_i++) {
+                var labelType = onboardingLabelTypes[lb_i];
+                console.log("LabelType1 " + labelType);
+                if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
+                    // Check based on current state if the label count is correct
+                    console.log("Calling for labelType:" + labelType);
+                    var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
+                    var currentState = getCurrentState();
+                    var maxLabelCount = currentState.properties.maxLabelCount;
+                    if (svl.labelCounter.countLabel(labelType) < maxLabelCount) {
+                        console.log("Calling for:" + labelType);
+                        labelTypeDeleteHandler["listener"] = null;
+                        labelTypeDeleteHandler["callback"]();
+                    }
                 }
             }
+        };
+
+        for (var lb_i = 0, len = onboardingLabelTypes.length; lb_i < len; lb_i++) {
+            var labelType = onboardingLabelTypes[lb_i];
+            console.log("LabelType2 " + labelType);
+            if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
+                console.log("LabelType " + labelType);
+                _deleteLabelHandlerContainer[labelType] = {
+                    listener: null,
+                    state: getCurrentState(),
+                    deleteLabelCallback: deleteCallback,
+                    extraLabelCallback: extraCallback
+                };
+
+                // Activate a timer for each label see if the user deleted the label
+                _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
+
+            }
+        }
+
+        var afterUndoClick = function () {
+            actionStack.stopBlinking();
+            $(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
+
+            //Bring back the previous transition
+            var stateToReload = _deleteLabelHandlerContainer[labelType]["state"];
+            _visit(stateToReload);
+        };
+
+        $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
+    }
+
+    function _visitIntroduction(state, listener) {
+        var pov = {
+                heading: state.properties.heading,
+                pitch: state.properties.pitch,
+                zoom: state.properties.zoom
+            },
+            googleTarget,
+            googleCallback,
+            $target;
+
+        renderRoutesOnGoogleMap(state);
+
+        _setUpUndoHandlers();
+
+        // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
+        // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
+        // When they click OK, then the POV changes.
+        if (typeof google != "undefined") {
+            googleCallback = function () {
+                mapService.setPano(state.panoId, true);
+                google.maps.event.removeListener(googleTarget);
+            };
+
+            googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
+
+            $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
+            $(".onboarding-transition-trigger").css({
+                'cursor': 'pointer'
+            });
+            function callback () {
+                if (listener) google.maps.event.removeListener(listener);
+                $target.off("click", callback);
+                next.call(this, state.transition);
+                mapService.setPano(state.panoId, true);
+                mapService.setPov(pov);
+                mapService.setPosition(state.properties.lat, state.properties.lng);
+
+                compass.hideMessage();
+            }
+
+            $target.on("click", callback);
         }
     }
 
@@ -795,48 +935,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         */
 
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
-    }
-
-    function _visitIntroduction(state, listener) {
-        var pov = {
-                heading: state.properties.heading,
-                pitch: state.properties.pitch,
-                zoom: state.properties.zoom
-            },
-            googleTarget,
-            googleCallback,
-            $target;
-
-        renderRoutesOnGoogleMap(state);
-
-        // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
-        // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
-        // When they click OK, then the POV changes.
-        if (typeof google != "undefined") {
-            googleCallback = function () {
-                mapService.setPano(state.panoId, true);
-                google.maps.event.removeListener(googleTarget);
-            };
-
-            googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
-
-            $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
-            $(".onboarding-transition-trigger").css({
-                'cursor': 'pointer'
-            });
-            function callback () {
-                if (listener) google.maps.event.removeListener(listener);
-                $target.off("click", callback);
-                next.call(this, state.transition);
-                mapService.setPano(state.panoId, true);
-                mapService.setPov(pov);
-                mapService.setPosition(state.properties.lat, state.properties.lng);
-
-                compass.hideMessage();
-            }
-
-            $target.on("click", callback);
-        }
     }
 
     function _visitRateSeverity(state, listener) {
@@ -980,22 +1078,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     }
 
-    function _incorrectLabelApplication(state) {
-
-        hideMessage();
-
-        var labelToApplyCount = state.properties.length;
-        var labelString = '';
-        if (labelToApplyCount > 1) {
-            labelString = "on a curb ramp"
-        }
-        // Show error message
-        // undo message - 'Remove the label by <span class="bold">clicking the undo button</span>'
-        state.message.message = 'Oops! Your label is too far away. <span class="bold">Click ' + labelString +
-            ' beneath the flashing yellow arrow</span> to label it.';
-        showMessage(state.message);
-    }
-
     /**
      * Tell the user to label the multiple possible target attributes.
      * @param state
@@ -1019,40 +1101,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 var labelType = state.properties[i].labelType;
                 var subCategory = state.properties[i].subcategory;
 
-                // Undo Handler
-                var deleteCallback = function () {
-                    hideMessage();
-                    actionStack.blinkUndo();
-                    state.message.message = 'Oops! You deleted the label. To bring it back and continue with the tutorial, ' +
-                        '<span class="bold">click the undo button</span>.';
-                    showMessage(state.message);
-
-                };
-                console.log("LabelType " + labelType);
-                _deleteLabelHandlerContainer[labelType].push({listener: '', callback: deleteCallback});
-
-                // Listener Check for deleted label
-                var checkDeletedLabel = function () {
-                    console.log("Calling for i:" + i);
-                    var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType][i];
-                    // Checks for the first step
-                    if (svl.labelCounter.countLabel(labelType) == 0) {
-                        console.log("Clearing for i=" + i);
-                        clearInterval(labelTypeDeleteHandler["listener"]);
-                        labelTypeDeleteHandler["listener"] = null;
-                        labelTypeDeleteHandler["callback"]();
-                    }
-                };
-
-                var afterUndoClick = function () {
-                    actionStack.stopBlinking();
-                    $(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
-
-                    //Bring back the previous transition
-                };
-
-                $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
-
                 var clickCoordinate = mouseposition(e, this),
                     pov = mapService.getPov(),
                     canvasX = clickCoordinate.x,
@@ -1062,9 +1110,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
                 if (distance < tolerance * tolerance) {
-                    // Activate a timer to see if the user deleted the label
-                    _deleteLabelHandlerContainer[labelType][i]["listener"] = setInterval(checkDeletedLabel, 1);
-                    console.log(JSON.stringify(_deleteLabelHandlerContainer[labelType]));
                     ribbon.disableMode(labelType, subCategory);
                     ribbon.enableMode("Walk");
                     uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
