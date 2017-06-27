@@ -709,57 +709,41 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         };
 
-        var onboardingLabelTypes = ["CurbRamp", "NoCurbRamp", "Other"];
-
-        // Listener check for deleted label
+        // Callback for the undo listener that checks for deleted label
         var checkDeletedLabel = function () {
 
-            for (var lb_i = 0, len = onboardingLabelTypes.length; lb_i < len; lb_i++) {
-                var labelType = onboardingLabelTypes[lb_i];
-                console.log("LabelType1 " + labelType);
-                if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
-                    // Check based on current state if the label count is correct
-                    console.log("Calling for labelType:" + labelType);
-                    var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
-                    var currentState = getCurrentState();
-                    var maxLabelCount = currentState.properties.maxLabelCount;
-                    if (svl.labelCounter.countLabel(labelType) < maxLabelCount) {
-                        console.log("Calling for:" + labelType);
-                        labelTypeDeleteHandler["listener"] = null;
-                        labelTypeDeleteHandler["callback"]();
-                    }
-                }
-            }
-        };
-
-        for (var lb_i = 0, len = onboardingLabelTypes.length; lb_i < len; lb_i++) {
-            var labelType = onboardingLabelTypes[lb_i];
             console.log("LabelType2 " + labelType);
             if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
-                console.log("LabelType " + labelType);
-                _deleteLabelHandlerContainer[labelType] = {
-                    listener: null,
-                    state: getCurrentState(),
-                    deleteLabelCallback: deleteCallback,
-                    extraLabelCallback: extraCallback
-                };
 
-                // Activate a timer for each label see if the user deleted the label
-                _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
-
+                // Check based on current state if the label count is correct
+                console.log("Calling for labelType:" + labelType);
+                var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
+                var currentState = getCurrentState();
+                var maxLabelCount = currentState.properties.maxLabelCount;
+                if (svl.labelCounter.countLabel(labelType) < maxLabelCount) {
+                    console.log("Activated for:" + labelType);
+                    //labelTypeDeleteHandler["listener"] = null;
+                    labelTypeDeleteHandler["callback"]();
+                }
             }
-        }
 
-        var afterUndoClick = function () {
-            actionStack.stopBlinking();
-            $(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
-
-            //Bring back the previous transition
-            var stateToReload = _deleteLabelHandlerContainer[labelType]["state"];
-            _visit(stateToReload);
         };
 
-        $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
+        // Activate undo button listener
+        console.log("LabelType1 " + labelType);
+        if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
+            console.log("LabelType " + labelType);
+            _deleteLabelHandlerContainer[labelType] = {
+                listener: null,
+                state: getCurrentState(),
+                deleteLabelCallback: deleteCallback,
+                extraLabelCallback: extraCallback
+            };
+
+            // Activate a timer for each label see if the user deleted the label
+            _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
+
+        }
     }
 
     function _visitIntroduction(state, listener) {
@@ -774,7 +758,16 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         renderRoutesOnGoogleMap(state);
 
-        _setUpUndoHandlers();
+        var afterUndoClick = function () {
+            actionStack.stopBlinking();
+            $(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
+
+            //Bring back the previous transition
+            var stateToReload = _deleteLabelHandlerContainer[labelType]["state"];
+            _visit(stateToReload);
+        };
+
+        $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
 
         // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
         // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
@@ -999,6 +992,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         ribbon.enableMode(labelType, subcategory);
         ribbon.startBlinking(labelType, subcategory);
+
+        _setUpUndoHandlers();
 
         if (subcategory) {
             event = subcategory
