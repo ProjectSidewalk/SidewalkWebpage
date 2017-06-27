@@ -106,7 +106,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     };
 
     function renderRoutesOnGoogleMap(state) {
-        if ('map' in svl && google && ["initialize", "walk-2"].includes(state.properties.name)) {
+        if ('map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
             var paths = [];
             //var currentPosition = svl.map.getPosition();
 
@@ -130,7 +130,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     })
                 ];
             }
-            else if (state.properties.name == "walk-2") {
+            else if (state.properties.name == "walk-4") {
                 // Set the paths to a green polyline after the users walks to the next position
 
                 // Next walk position: {lat: 38.9406143, lng: -77.0676763}
