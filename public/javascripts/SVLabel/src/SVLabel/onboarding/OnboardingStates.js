@@ -132,7 +132,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not ' +
                 'passable for a wheelchair user. ' +
                 '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -716,7 +717,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
+                "message": 'Now, let\'s <span class="bold">rate the quality</span> of the curb ramp. ' +
                 'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
@@ -767,8 +768,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
-                'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
+                "message": 'Now, <span class="bold">rate the curb ramp’s quality</span>. ' +
+                'Use your best judgment. You can also write in notes in the Description Box.<br>' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -936,7 +937,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": '<span class="bold">Let’s rate the quality of the curb ramp.</span><br>' +
+                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
