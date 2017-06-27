@@ -227,7 +227,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": 'Great! Now we’ve found another curb ramp. Let’s label it! ' +
+                "message": 'Great! Now you’ve found another curb ramp. Let’s label it! ' +
                 '<span class="bold">Click the “Curb Ramp” button</span> like before.',
                 "position": "top-right",
                 "parameters": null
@@ -1203,7 +1203,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-5-adjust"][1]
             },
             "message": {
-                "message": 'Great Job! We are almost done. Let\'s learn how to explore and find issues. ' +
+                "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. ' +
                 '<span class="bold">Grab and drag the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -1226,13 +1226,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "blinks": ["google-maps"]
             },
             "message": {
-                "message": 'Good! First step in exploring is knowing the direction you need to go. ' +
-                'A route will be generated for you to follow. It is shown in the flashing map as a ' +
-                '<span class="bold" style="color: #ff0000;">red</span> line.',
+                "message": 'Good! Now, to figure out where to walk, you will follow the ' +
+                '<span class="bold" style="color: #ff0000;">red</span> line on this mini map.',
                 "position": "top-right",
                 "fade-direction": "fadeInLeft",
                 "arrow": "right",
-                "top": 238,
+                "top": 270,
                 "left": 405
             },
             "panoId": panoId,
@@ -1260,15 +1259,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": 'To make it easier to follow your routes, we\'ll also guide you ' +
-                'through your missions with <span class="bold">navigation messages</span> shown in this area.',
+                "message": 'We will also guide you via <span class="bold">navigation messages</span> ' +
+                'shown in this area.',
                 "position": "top-right",
                 "fade-direction": "fadeInDown",
                 "arrow": "bottom",
-                "top": 210,
+                "top": 263,
                 "left": 405
             },
-            "panoId": afterWalkPanoId,
+            "panoId": panoId,
             "annotations": null,
             "transition": function () {
                 var completedRate = 30 / numStates;
@@ -1288,8 +1287,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 //once you know the direction and the route to follow
-                "message": 'Now, let\'s explore! To move in your desired direction, <span class="bold">' +
-                'double click on the street</span>. In this case, double click in the circle below.',
+                "message": 'Now, let\'s actually take a step! <span class="bold">' +
+                'Double click on the street</span> in the direction you want to move. ' +
+                'In this case, double click in the circle below.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1321,8 +1321,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "name": "walk-4"
             },
             "message": {
-                "message": 'Great! We just moved one step down the street. You can see that as a ' +
-                '<span class= "bold" style="color: #00ff00;">green</span> line on the mini map.',
+                "message": 'Great! You just moved one step down the street. Visited parts of a route are marked in ' +
+                '<span class= "bold" style="color: #3c763d;">green</span> in the mini map.',
                 "position": "top-right",
                 "width": 350,
                 "arrow": "right",
@@ -1348,7 +1348,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'Now, we can look for more issues at this ' +
+                "message": 'Now, you can look for more issues at this ' +
                 'location. In this case, notice how there is a crosswalk with <span class="bold">no curb ramps</span>.',
                 "position": "top-right",
                 "width": 400,
@@ -1394,7 +1394,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": 'You would label the areas under the flashing arrows with a Missing Curb Ramp ' +
+                "message": 'Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ' +
                 '<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
                 '" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
                 'However, we want to get you started on actual missions, so let\'s <span class="bold">finish this ' +
@@ -1443,7 +1443,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
-                "message": '<span class="bold">Your labels</span> appear in the mini map!',
+                "message": 'You can track <span class="bold">your labels</span> in the mini map!',
                 "position": "right",
                 "arrow": "right",
                 "fade-direction": "fadeInLeft",
