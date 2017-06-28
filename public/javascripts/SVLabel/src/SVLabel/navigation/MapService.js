@@ -1861,6 +1861,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.panorama.setZoom(zoomLevel);
     }
 
+
+    self.preparePovReset = function(){
+        initialPositionUpdate = true;
+    }
+
     function setPovToRouteDirection(){
         var pov = svl.panorama.getPov(),
             compassAngle = svl.compass.getCompassAngle();
