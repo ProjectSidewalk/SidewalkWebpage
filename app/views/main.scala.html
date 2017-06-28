@@ -58,6 +58,23 @@
         @content
 
     </div>
+
+    @if(url.get == "/audit") {
+
+        <script type="text/javascript">
+            document.getElementsByTagName("body")[0].style.overflow = "hidden";
+            document.getElementById("wrap").style.padding = "0 0 35px";
+        </script>
+
+        <div id="mini-footer-audit">
+          Project Sidewalk is designed and operated by the
+          <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
+          <a href="http://www.umd.edu/">University of Maryland</a><br>
+          <span id="application-version"></span>
+        </div>
+
+    } else{
+
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
     <div class="container" id="footer-container">
@@ -76,7 +93,7 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">CONNECT</span><br/>
                 <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
-                <a target="_blank" href="https://twitter.com/umd_sidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
+                <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
                 <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
             </div>
         </div>
@@ -112,6 +129,9 @@
         <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a><br>
         <span id="application-version"></span>
     </div>
+
+  }
+
     <script>
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
                         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -179,4 +199,3 @@
             });
     </script>
 </body>
-
