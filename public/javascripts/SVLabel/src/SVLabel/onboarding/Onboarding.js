@@ -49,6 +49,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var _mouseDownCanvasDrawingHandler;
     var currentState;
 
+    var missionWasInProgress = false;
+    var savedMissionInfo = {};
+
     this._onboardingLabels = [];
 
     this._removeOnboardingLabels = function () {
@@ -68,7 +71,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var canvas = uiOnboarding.canvas.get(0);
         if (canvas) ctx = canvas.getContext('2d');
         uiOnboarding.holder.css("visibility", "visible");
-        
+
         mapService.unlockDisableWalking();
         mapService.disableWalking();
         mapService.lockDisableWalking();
@@ -521,24 +524,48 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             missionModel.completeMission(onboardingMission, null);
         }
 
-        // Set the next mission
-        var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
-        var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-        var mission = missions[0];
-
-        missionContainer.setCurrentMission(mission);
-        if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
-            modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                svl.initialMissionInstruction.start(neighborhood);
-            });
-        }else{
+        // Check if mission was previously in progress before onboarding
+        // If so, reload it
+        // If not, find a new one
+        if(missionWasInProgress){
+            missionWasInProgress = false;
+            var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
+            var mission = savedMissionInfo.currentMission;
+            var task = savedMissionInfo.currentTask;
+            var oldPanorama = savedMissionInfo.panorama;
+            var coordinates = {lat: savedMissionInfo.latLng.lat, lng: savedMissionInfo.latLng.lng};
+            missionContainer.setCurrentMission(mission);
             modalMission.setMissionMessage(mission, neighborhood);
-        }
-        modalMission.show();
+            modalMission.show();
+            taskContainer.setCurrentTask(task);
+            mapService.setPano(oldPanorama.location.pano);
+            /*function _jumpBackToTheRoute() {
+             var task = taskContainer.getCurrentTask();
+             var coordinate = task.getStartCoordinate();
+             mapService.setPosition(coordinate.lat, coordinate.lng);
+             mapService.setPovToRouteDirection();
+             // mapService.resetPanoChange();
+             }*/
+        } else{
+            // Set the next mission
+            var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
+            var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+            var mission = missions[0];
 
-        taskContainer.getFinishedAndInitNextTask();
+            missionContainer.setCurrentMission(mission);
+            if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
+                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                    svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
+                modalMission.setMissionMessage(mission, neighborhood, null, function () {
+                    svl.initialMissionInstruction.start(neighborhood);
+                });
+            }else{
+                modalMission.setMissionMessage(mission, neighborhood);
+            }
+            modalMission.show();
+
+            taskContainer.getFinishedAndInitNextTask();
+        }
     }
 
     function _onboardingStateAnnotationExists(state) {
@@ -1100,6 +1127,16 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         return this;
     }
 
+    function saveInProgressMission(missionData){
+        missionWasInProgress = true;
+        savedMissionInfo = missionData;
+        savedMissionInfo.latLng = missionData.latLng;
+        savedMissionInfo.oldPanorama = missionData.panorama;
+        savedMissionInfo.currentMission = missionData.currentMission;
+        savedMissionInfo.currentTask = missionData.currentTask;
+        savedMissionInfo.currentNeighborhood = missionData.currentNeighborhood;
+    }
+
     self._visit = _visit;
     self.clear = clear;
     self.drawArrow = drawArrow;
@@ -1109,4 +1146,5 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     self.showMessage = showMessage;
     self.setStatus = setStatus;
     self.hideMessage = hideMessage;
+    self.saveInProgressMission = saveInProgressMission;
 }

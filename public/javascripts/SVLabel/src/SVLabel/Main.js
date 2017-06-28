@@ -285,6 +285,17 @@ function Main (params) {
             onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
         }
 
+        var currentMissionInfo = {};
+        var currentMissionInProgress = false;
+        if(svl.missionContainer.getCurrentMission() !== null){
+            currentMissionInProgress = true;
+            currentMissionInfo.currentMission = svl.missionContainer.getCurrentMission();
+            currentMissionInfo.currentTask = svl.taskContainer.getCurrentTask();
+            currentMissionInfo.latLng = svl.map.getPosition();
+            currentMissionInfo.currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            currentMissionInfo.panorama = svl.panorama;
+        }
+
         if (!("onboarding" in svl && svl.onboarding)) {
 
             // Todo. It should pass UserModel instead of User (i.e., svl.user)
@@ -296,6 +307,13 @@ function Main (params) {
                 svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
                 svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }
+
+        // Save current mission progress if there is a mission in progress
+        if(currentMissionInProgress){
+            svl.onboarding.saveInProgressMission(currentMissionInfo);
+        }
+
+
         svl.onboarding.start();
 
         var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
