@@ -120,6 +120,7 @@ function Main (params) {
         //svl.alert2 = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
+        svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
