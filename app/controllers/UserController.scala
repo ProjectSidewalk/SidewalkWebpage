@@ -78,7 +78,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp
-  def postSelfAssign = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     val submission = request.body.validate[String]
     val anonymousUser: DBUser = UserTable.find("anonymous").get
