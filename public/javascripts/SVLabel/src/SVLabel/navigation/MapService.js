@@ -1003,13 +1003,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mouseStatus.leftDownY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
 
-        // Setting a cursor
+        // Setting a cursor (crosshair cursor instead of correct zoom out png)
         // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-        if (svl.keyboard.isShiftDown()) {
-            setViewControlLayerCursor('ZoomOut');
-        } else {
-            setViewControlLayerCursor('ClosedHand');
-        }
+        //if (svl.keyboard.isShiftDown()) {
+        //    setViewControlLayerCursor('ZoomOut');
+        //} else {
+        setViewControlLayerCursor('ClosedHand');
+        //}
 
         // Adding delegation on SVG elements
         // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
@@ -1046,14 +1046,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mouseStatus.leftUpY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
 
-        // Setting a mouse cursor
+        // Setting a mouse cursor (crosshair cursor instead of correct zoom out png)
         // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-        if (!svl.keyboard.isShiftDown()) {
-            setViewControlLayerCursor('OpenHand');
+        //if (!svl.keyboard.isShiftDown()) {
+        setViewControlLayerCursor('OpenHand');
             // uiMap.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-        } else {
-            setViewControlLayerCursor('ZoomOut');
-        }
+        //} else {
+        //    setViewControlLayerCursor('ZoomOut');
+        //}
 
         currTime = new Date().getTime();
 
