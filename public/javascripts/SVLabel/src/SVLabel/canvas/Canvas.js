@@ -760,11 +760,7 @@ function Canvas(ribbon) {
         param.svImageWidth = svl.svImageWidth;
         param.svImageHeight = svl.svImageHeight;
         param.svMode = 'html4';
-        param.onboardingLabel = false;
 
-        if (svl.isOnboarding()){
-            param.onboardingLabel = true;
-        }
 
         if (("PhotographerPitch" in labelPoints[0]) && ("PhotographerHeading" in labelPoints[0])) {
             param.photographerHeading = labelPoints[0].PhotographerHeading;
@@ -859,9 +855,6 @@ function Canvas(ribbon) {
      * @method
      */
     function pushLabel(label) {
-        if (svl.isOnboarding()){
-            label.setProperty("onboardingLabel", true);
-        }
         status.currentLabel = label;
         svl.labelContainer.push(label);
         if (svl.actionStack) {

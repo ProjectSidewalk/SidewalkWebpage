@@ -144,9 +144,6 @@ function ActionStack (tracker, uiActionStack) {
         if (availableActionList.indexOf(action) === -1) {
             throw self.className + ": Illegal action.";
         }
-        if (svl.isOnboarding()){
-            label.setProperty('onboardingLabel', true);
-        }
         var actionItem = {
             action : action,
             label : label,
@@ -170,10 +167,6 @@ function ActionStack (tracker, uiActionStack) {
         if (!status.disableRedo) {
             if (actionStack.length > status.actionStackCursor) {
                 var actionItem = actionStack[status.actionStackCursor];
-                if ((actionItem.action === 'addLabel' || actionItem.action === 'deleteLabel') && actionItem.label.getProperty("onboardingLabel")
-                    && !svl.isOnboarding()) {
-                    return;
-                }
                 if (actionItem.action === 'addLabel') {
                     if ('tracker' in svl) {
                         svl.tracker.push('Redo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
@@ -220,10 +213,6 @@ function ActionStack (tracker, uiActionStack) {
             status.actionStackCursor -= 1;
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
-                if ((actionItem.action === 'addLabel' || actionItem.action === 'deleteLabel') && actionItem.label.getProperty("onboardingLabel")
-                    && !svl.isOnboarding()) {
-                    return;
-                }
                 if (actionItem.action === 'addLabel') {
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
@@ -282,6 +271,11 @@ function ActionStack (tracker, uiActionStack) {
         }
     }
 
+    function reset (){
+        status.actionStackCursor = 0;
+        actionStack = [];
+    }
+
     self.blink = blink;
     self.disableRedo = disableRedo;
     self.disableUndo = disableUndo;
@@ -300,7 +294,7 @@ function ActionStack (tracker, uiActionStack) {
     self.getLock = getLock;
     self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
-
+    self.reset = reset;
     init();
 
     return self;

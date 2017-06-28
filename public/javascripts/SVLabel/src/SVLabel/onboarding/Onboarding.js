@@ -48,7 +48,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     var _mouseDownCanvasDrawingHandler;
     var currentState;
-    var skippedOnboarding = false;
     var numOnboardingLabels = 7;
 
     this._onboardingLabels = [];
@@ -496,14 +495,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         //Reset the label counts to zero after onboarding
         svl.labelCounter.reset();
-        if (!skippedOnboarding){
-            for (var i=0; i< numOnboardingLabels; i++){
-                svl.actionStack.pop();
-            }//number of labels in tutorial
-            console.log(actionStack.getStatus("actionStackCursor"));
-        }else{
-            skippedOnboarding = false;
-        }
+        actionStack.reset();
 
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
@@ -519,7 +511,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         ribbon.unlockDisableModeSwitch();
         ribbon.enableModeSwitch();
-        
+
         $("#left-column-jump-button").removeClass('disabled');
 
         setStatus("isOnboarding", false);
@@ -842,9 +834,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
                 compass.hideMessage();
             }
-            $("#skip-the-tutorial").on("click", function(){
-                skippedOnboarding = true;
-            });
             $target.on("click", callback);
 
 
