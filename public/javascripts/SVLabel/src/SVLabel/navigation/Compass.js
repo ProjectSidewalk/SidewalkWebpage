@@ -90,6 +90,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _jumpBackToTheRoute() {
         var task = taskContainer.getCurrentTask();
         var coordinate = task.getStartCoordinate();
+        mapService.preparePovReset();
         mapService.setPosition(coordinate.lat, coordinate.lng);
         mapService.setPovToRouteDirection();
         // mapService.resetPanoChange();
