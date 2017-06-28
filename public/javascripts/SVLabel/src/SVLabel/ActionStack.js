@@ -144,7 +144,9 @@ function ActionStack (tracker, uiActionStack) {
         if (availableActionList.indexOf(action) === -1) {
             throw self.className + ": Illegal action.";
         }
-
+        if (svl.isOnboarding()){
+            label.setProperty('onboardingLabel', true);
+        }
         var actionItem = {
             action : action,
             label : label,
