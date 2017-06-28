@@ -154,11 +154,12 @@ function ActionStack (tracker, uiActionStack) {
         };
         if (actionStack.length !== 0 &&
             actionStack.length > status.actionStackCursor) {
-            // Delete all the action items after the cursor before pushing the new acitonItem
+            // Delete all the action items after the cursor before pushing the new actionItem
             actionStack.splice(status.actionStackCursor);
         }
         actionStack.push(actionItem);
         status.actionStackCursor += 1;
+
         return this;
     }
 
@@ -170,10 +171,8 @@ function ActionStack (tracker, uiActionStack) {
             if (actionStack.length > status.actionStackCursor) {
                 var actionItem = actionStack[status.actionStackCursor];
                 if ((actionItem.action === 'addLabel' || actionItem.action === 'deleteLabel') && actionItem.label.getProperty("onboardingLabel")
-                    && !svl.isOnboarding()){
+                    && !svl.isOnboarding()) {
                     return;
-                }else{
-                    console.log("ignored =[");
                 }
                 if (actionItem.action === 'addLabel') {
                     if ('tracker' in svl) {
@@ -222,10 +221,8 @@ function ActionStack (tracker, uiActionStack) {
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
                 if ((actionItem.action === 'addLabel' || actionItem.action === 'deleteLabel') && actionItem.label.getProperty("onboardingLabel")
-                    && !svl.isOnboarding()){
+                    && !svl.isOnboarding()) {
                     return;
-                }else{
-                    console.log("ignored =[");
                 }
                 if (actionItem.action === 'addLabel') {
                     if ('tracker' in svl) {
