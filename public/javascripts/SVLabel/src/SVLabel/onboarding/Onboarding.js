@@ -55,6 +55,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         "Other": {}
     };
     var currentState;
+    var deletedLabel = false;
+    var addedExtraLabel = false;
+    var totalOnboardingLabels = 0;
 
     this._onboardingLabels = [];
 
@@ -693,67 +696,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
     }
 
-    function _setUpUndoHandlers() {
-        // Start Listener to show messages to use undo button
-        // 2 cases:
-        //   1. When user deletes a label
-        //   2. When user applies an label too far
-
-        // Undo Handlers
-        var deleteCallback = function () {
-            hideMessage();
-            actionStack.blinkUndo();
-            state.message.message = 'Oops! You deleted the label. To bring it back and continue with the tutorial, ' +
-                '<span class="bold">click the undo button</span>.';
-            showMessage(state.message);
-
-        };
-        var extraCallback = function () {
-            hideMessage();
-            actionStack.blinkUndo();
-            state.message.message = 'Oops! Your label is too far away. First, let\'s remove the misplaced label. ' +
-            '<span class="bold">Click the undo button</span>.';
-            showMessage(state.message);
-
-        };
-
-        // Callback for the undo listener that checks for deleted label
-        var checkDeletedLabel = function () {
-
-            console.log("LabelType2 " + labelType);
-            if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
-
-                // Check based on current state if the label count is correct
-                console.log("Calling for labelType:" + labelType);
-                var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
-                var currentState = getCurrentState();
-                var maxLabelCount = currentState.properties.maxLabelCount;
-                if (svl.labelCounter.countLabel(labelType) < maxLabelCount) {
-                    console.log("Activated for:" + labelType);
-                    //labelTypeDeleteHandler["listener"] = null;
-                    labelTypeDeleteHandler["callback"]();
-                }
-            }
-
-        };
-
-        // Activate undo button listener
-        console.log("LabelType1 " + labelType);
-        if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
-            console.log("LabelType " + labelType);
-            _deleteLabelHandlerContainer[labelType] = {
-                listener: null,
-                state: getCurrentState(),
-                deleteLabelCallback: deleteCallback,
-                extraLabelCallback: extraCallback
-            };
-
-            // Activate a timer for each label see if the user deleted the label
-            _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
-
-        }
-    }
-
     function _visitIntroduction(state, listener) {
         var pov = {
                 heading: state.properties.heading,
@@ -765,17 +707,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             $target;
 
         renderRoutesOnGoogleMap(state);
-
-        var afterUndoClick = function () {
-            actionStack.stopBlinking();
-            $(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
-
-            //Bring back the previous transition
-            var stateToReload = _deleteLabelHandlerContainer[labelType]["state"];
-            _visit(stateToReload);
-        };
-
-        $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
 
         // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
         // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
@@ -986,6 +917,120 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         $target.on("click", callback);
     }
 
+    function _countTotalOnboardingLabels() {
+        var onboardingLabels = ["CurbRamp", "NoCurbRamp", "Other"];
+
+        var total = 0;
+        for (var i = 0, len = onboardingLabels.length; i < len; i ++) {
+            total += svl.labelCounter.countLabel(onboardingLabels[i]);
+        }
+        return total;
+    }
+    function _setUpUndoHandlers(labelType) {
+        // Start Listener to show messages to use undo button
+        // 2 cases:
+        //   1. When user deletes a label
+        //   2. When user applies an label too far
+
+        // Undo Handlers
+        var deleteCallback = function () {
+            hideMessage();
+            actionStack.blinkUndo();
+            var message = {
+                "message": 'Oops! You deleted the label. To bring it back and continue with the tutorial, ' +
+                '<span class="bold">click the undo button</span>.',
+                "position": "top-right",
+                "parameters": null
+            };
+            showMessage(message);
+
+        };
+        var extraCallback = function () {
+            hideMessage();
+            actionStack.blinkUndo();
+            var message = {
+                "message": 'Oops! Your label is too far away. First, let\'s remove the misplaced label. ' +
+                '<span class="bold">Click the undo button</span>.',
+                "position": "top-right",
+                "parameters": null
+            };
+            showMessage(message);
+
+        };
+
+        // Callback for the undo listener that checks for deleted label
+        var checkDeletedLabel = function () {
+            if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
+
+                console.log("Checking for labelType: " + labelType);
+
+                // Check based on current state if the label count is correct
+                var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
+                var currentState = getCurrentState();
+                var maxLabelCount;
+                if (currentState.properties.constructor == Array) {
+                    maxLabelCount = currentState.properties[0].maxLabelCount;
+                } else {
+                    maxLabelCount = currentState.properties.maxLabelCount;
+                }
+
+                if (labelType == "NoCurbRamp") {
+                    console.log("Current Count: " + totalOnboardingLabels);
+                    console.log("MaxCount of Current State: " + maxLabelCount);
+                }
+
+                if (totalOnboardingLabels < maxLabelCount) {
+                    console.log("Activated for:" + labelType);
+
+                    deletedLabel = true;
+                    labelTypeDeleteHandler["deleteLabelCallback"]();
+                    clearInterval(labelTypeDeleteHandler["listener"]);
+
+                    // Disable panning
+                }
+            }
+
+        };
+
+        // Activate undo button listener
+        if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
+            if (!_deleteLabelHandlerContainer[labelType].hasOwnProperty("listener")) {
+                console.log("Creating Listener for LabelType " + labelType);
+                _deleteLabelHandlerContainer[labelType] = {
+                    listener: null,
+                    deleteLabelCallback: deleteCallback,
+                    extraLabelCallback: extraCallback,
+                    undoClickHandlerActive: false
+                };
+
+                // Activate a timer for each label see if the user deleted the label
+                _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
+            }
+        }
+
+        var afterUndoClick = function () {
+            console.log("Clicked - deleted Label: " + deletedLabel);
+            if (deletedLabel) {
+                actionStack.stopBlinking();
+                //$(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
+                //_deleteLabelHandlerContainer[labelType]["undoClickHandlerActive"] = false;
+
+                //Restart the timer
+                _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
+
+                //Bring back the previous transition
+                var stateToReload = getCurrentState();
+                _visit(stateToReload);
+                deletedLabel = false;
+            }
+        };
+
+        if (!_deleteLabelHandlerContainer[labelType]["undoClickHandlerActive"]) {
+            $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
+            _deleteLabelHandlerContainer[labelType]["undoClickHandlerActive"] = true;
+        }
+    }
+
     /**
      * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
      * Move on to the next state if they click the button.
@@ -1001,7 +1046,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         ribbon.enableMode(labelType, subcategory);
         ribbon.startBlinking(labelType, subcategory);
 
-        _setUpUndoHandlers();
+        _setUpUndoHandlers(labelType);
 
         if (subcategory) {
             event = subcategory
@@ -1009,7 +1054,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             event = labelType
         }
 
-        // To handle when user presses ESC, the
+        // To handle when user presses ESC - disable mode only when the user places the label
         _mouseDownCanvasDrawingHandler = function () {
             ribbon.disableMode(labelType, subcategory);
         };
@@ -1112,6 +1157,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
+                totalOnboardingLabels = _countTotalOnboardingLabels();
                 if (distance < tolerance * tolerance) {
                     ribbon.disableMode(labelType, subCategory);
                     ribbon.enableMode("Walk");
