@@ -167,6 +167,12 @@ function ActionStack (tracker, uiActionStack) {
         if (!status.disableRedo) {
             if (actionStack.length > status.actionStackCursor) {
                 var actionItem = actionStack[status.actionStackCursor];
+                if ((actionItem.action === 'addLabel' || actionItem.action === 'deleteLabel') && actionItem.label.getProperty("onboardingLabel")
+                    && !svl.isOnboarding()){
+                    return;
+                }else{
+                    console.log("ignored =[");
+                }
                 if (actionItem.action === 'addLabel') {
                     if ('tracker' in svl) {
                         svl.tracker.push('Redo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
@@ -209,9 +215,16 @@ function ActionStack (tracker, uiActionStack) {
     /** Undo an action */
     function undo () {
         if (!status.disableUndo) {
+
             status.actionStackCursor -= 1;
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
+                if ((actionItem.action === 'addLabel' || actionItem.action === 'deleteLabel') && actionItem.label.getProperty("onboardingLabel")
+                    && !svl.isOnboarding()){
+                    return;
+                }else{
+                    console.log("ignored =[");
+                }
                 if (actionItem.action === 'addLabel') {
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});

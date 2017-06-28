@@ -442,6 +442,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         //Reset the label counts to zero after onboarding
         svl.labelCounter.reset();
+        var currLabels = svl.labelContainer.getCurrentLabels();
+
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
 

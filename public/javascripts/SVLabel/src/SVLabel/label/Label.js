@@ -40,7 +40,8 @@ function Label (svl, pathIn, params) {
         severity: null,
         temporary_label_id: null,
         temporaryProblem: null,
-        description: null
+        description: null,
+        onboardingLabel: false
     };
 
     var status = {
