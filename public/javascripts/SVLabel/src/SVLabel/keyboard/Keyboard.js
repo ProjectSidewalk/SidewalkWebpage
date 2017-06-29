@@ -51,7 +51,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
         self._movePano(angle);
+        //prevent user input of walking commands
         svl.map.timeoutWalking();
+        //restore user ability to walk after param moveTime
         setTimeout(svl.map.resetWalking, moveTime);
     }
 
