@@ -94,7 +94,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
             if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS) //interval cross from after 0 to before 360 [30, -30]
                 direction = transformedCurrent - (lastHeadingTransformed + 360);
-            else if (transformedCurrent < EPS && lastHeadingTransformed > 360 - EPS) //interval crossing from before 360 to 0 [-30, 30]
+            else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS) //interval crossing from before 360 to 0 [-30, 30]
                 direction = transformedCurrent - (lastHeadingTransformed - 360);
             else
                 direction = transformedCurrent - lastHeadingTransformed; //regular subtraction to determine direction of rotation
