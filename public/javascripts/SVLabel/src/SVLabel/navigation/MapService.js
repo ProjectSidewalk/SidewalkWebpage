@@ -970,6 +970,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
+        // Hide context menu if walking started
         if (svl.contextMenu.isOpen()){
             svl.contextMenu.hide();
         }
