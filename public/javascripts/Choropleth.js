@@ -22,6 +22,7 @@ function Choropleth(_, $, turf) {
         maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9,
+        zoomControl: false,
         legendControl: {
             position: 'bottomleft'
         }
@@ -31,6 +32,8 @@ function Choropleth(_, $, turf) {
     choropleth.scrollWheelZoom.disable();
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
+
+    L.control.zoomslider().addTo(choropleth);
 
 
     /**
