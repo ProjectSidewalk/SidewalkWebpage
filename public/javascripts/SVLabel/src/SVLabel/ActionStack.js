@@ -231,8 +231,6 @@ function ActionStack (tracker, uiActionStack) {
                     svl.labelCounter.decrement(actionItem.label.getProperty('labelType'));
                 } else if (actionItem.action === 'deleteLabel') {
                     // Undo Delete
-                    console.log("Triggered Remove Label for: Undo_RemoveLabel_" + actionItem.label.getProperty('labelType'));
-                    $(document).trigger('Undo_RemoveLabel_' + actionItem.label.getProperty('labelType'));
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }

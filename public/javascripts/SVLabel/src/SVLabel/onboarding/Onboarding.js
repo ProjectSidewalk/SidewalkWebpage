@@ -6,18 +6,24 @@
  * @param audioEffect
  * @param compass
  * @param form
+ * @param handAnimation
  * @param mapService
  * @param missionContainer
+ * @param missionModel
  * @param modalComment
  * @param modalMission
  * @param modalSkip
  * @param neighborhoodContainer
+ * @param neighborhoodModel
+ * @param onboardingModel
+ * @param onboardingStates
  * @param ribbon
  * @param statusField
  * @param statusModel
  * @param storage
  * @param taskContainer
  * @param tracker
+ * @param canvas
  * @param uiCanvas
  * @param contextMenu
  * @param uiMap
@@ -32,7 +38,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
                     neighborhoodModel, onboardingModel, onboardingStates,
                     ribbon, statusField, statusModel, storage, taskContainer,
-                    tracker, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
+                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
     var canvasWidth = 720;
@@ -47,16 +53,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
-    var _deleteLabelHandlerContainer = {
-        "CurbRamp": {},
-        "NoCurbRamp": {},
-        "Obstacle": {},
-        "SurfaceProblem": {},
-        "Other": {}
-    };
     var currentState;
+    var currentLabelState;
     var deletedLabel = false;
-    var addedExtraLabel = false;
     var totalOnboardingLabels = 0;
 
     this._onboardingLabels = [];
@@ -75,10 +74,14 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         $("#toolbar-onboarding-link").css("visibility", "hidden");
 
-        var canvas = uiOnboarding.canvas.get(0);
-        if (canvas) ctx = canvas.getContext('2d');
+        var canvasUI = uiOnboarding.canvas.get(0);
+        if (canvasUI) ctx = canvasUI.getContext('2d');
         uiOnboarding.holder.css("visibility", "visible");
-        
+
+        canvas.unlockDisableLabelDelete();
+        canvas.disableLabelDelete();
+        canvas.lockDisableLabelDelete();
+
         mapService.unlockDisableWalking();
         mapService.disableWalking();
         mapService.lockDisableWalking();
@@ -564,6 +567,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         return currentState;
     }
 
+    function getCurrentLabelState() {
+        return currentLabelState;
+    }
+
     function blinkInterface(state) {
         // Blink parts of the interface
         if ("blinks" in state.properties && state.properties.blinks) {
@@ -599,19 +606,92 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
     }
 
-    function _incorrectLabelApplication(state) {
+    function _incorrectLabelApplication(state, listener) {
 
         hideMessage();
 
-        var labelToApplyCount = state.properties.length;
-        var labelString = '';
-        if (labelToApplyCount > 1) {
-            labelString = "on a curb ramp"
-        }
-        // Show error message
-        state.message.message = 'Now, <span class="bold">Click ' + labelString +
-            ' beneath the flashing yellow arrow</span> to label it.';
-        showMessage(state.message);
+        // Step 1: Show message to delete
+        var message = {
+            "message": 'Oops! Your label is too far away. Let\'s remove the misplaced label. ' +
+                    '<span class="bold">Hover over the label and click delete icon (cross sign)</span>.',
+            "position": "top-right",
+            "parameters": null
+        };
+        showMessage(message);
+
+        // Remove flashing in the arrow
+        var whiteArrow = {
+            "type": "arrow",
+            "x": 3850,
+            "y": -860,
+            "length": 50,
+            "angle": 0,
+            "text": null,
+            "fill": "white",
+            "originalPov": {}
+        };
+
+        var labelTypeToLabelString = {
+            "CurbRamp": "Curb Ramp",
+            "NoCurbRamp": "Missing Curb Ramp",
+            "Obstacle": "Obstacle in Path",
+            "SurfaceProblem": "Surface Problem",
+            "Other": "No Sidewalk"
+        };
+
+        // Callback for deleted label
+        var deleteLabelCallback = function () {
+
+            if (listener) google.maps.event.removeListener(listener);
+            clear();
+            if (blink_function_identifier.length != 0) {
+                while (blink_function_identifier.length != 0) {
+                    window.cancelAnimationFrame(blink_function_identifier.pop());
+                }
+            }
+
+            $(document).off('RemoveLabel', deleteLabelCallback);
+
+            var stateProperties = state.properties;
+            if (state.properties.constructor == Array) {
+                stateProperties = state.properties[0];
+            }
+            var labelType = stateProperties.labelType;
+            var subcategory = "subcategory" in stateProperties ? stateProperties.subcategory : null;
+            var event;
+
+            if (subcategory) {
+                event = subcategory
+            } else {
+                event = labelType
+            }
+
+            // Start blinking
+            ribbon.startBlinking(labelType, subcategory);
+
+            // Step 2: Select the appropriate label Type
+            var message = {
+                "message": 'Good! Now, let\'s label again. <span class="bold">Click the "' +
+                labelTypeToLabelString[labelType]+ '" button</span> from above.',
+                "position": "top-right",
+                "parameters": null
+            };
+            showMessage(message);
+
+            // Callback after user applied the label correctly
+            var callback = function () {
+                ribbon.enableMode("Walk");
+                ribbon.stopBlinking();
+
+                $(document).off('ModeSwitch_' + event, callback);
+                // Step 3: Re-label
+                _visit(getCurrentLabelState());
+            };
+            $(document).on('ModeSwitch_' + event, callback);
+
+        };
+        $(document).on('RemoveLabel', deleteLabelCallback);
+
     }
 
     /**
@@ -660,13 +740,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 });
             }
         }
-        var maxLabelCount;
-        if (state.properties.constructor == Array) {
-            maxLabelCount = state.properties[0].maxLabelCount;
-        } else {
-            maxLabelCount = state.properties.maxLabelCount;
-        }
-        console.log("MaxLabel: " + maxLabelCount);
+
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.constructor == Array) {
@@ -936,103 +1010,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
         return total;
     }
-    function _setUpUndoHandlers(labelType) {
-        // Start Listener to show messages to use undo button
-        // 2 cases:
-        //   1. When user deletes a label
-        //   2. When user applies an label too far
-
-        // Undo Handlers
-        var deleteCallback = function () {
-            hideMessage();
-            actionStack.blinkUndo();
-            var message = {
-                "message": 'Oops! You deleted the label. To bring it back and continue with the tutorial, ' +
-                '<span class="bold">click the undo button</span>.',
-                "position": "top-right",
-                "parameters": null
-            };
-            showMessage(message);
-
-        };
-        var extraCallback = function () {
-            hideMessage();
-            actionStack.blinkUndo();
-            var message = {
-                "message": 'Oops! Your label is too far away. First, let\'s remove the misplaced label. ' +
-                '<span class="bold">Click the undo button</span>.',
-                "position": "top-right",
-                "parameters": null
-            };
-            showMessage(message);
-
-        };
-
-        // Callback for the undo listener that checks for deleted label
-        var checkDeletedLabel = function () {
-            if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
-
-                // Check based on current state if the label count is correct
-                var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
-                var currentState = getCurrentState();
-                var maxLabelCount;
-                if (currentState.properties.constructor == Array) {
-                    maxLabelCount = currentState.properties[0].maxLabelCount;
-                } else {
-                    maxLabelCount = currentState.properties.maxLabelCount;
-                }
-
-                if (totalOnboardingLabels < maxLabelCount) {
-                    console.log("Activated for:" + labelType);
-
-                    deletedLabel = true;
-                    labelTypeDeleteHandler["deleteLabelCallback"]();
-                    clearInterval(labelTypeDeleteHandler["listener"]);
-
-                    // Disable panning
-                }
-            }
-
-        };
-
-        // Activate undo button listener
-        if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
-            if (!_deleteLabelHandlerContainer[labelType].hasOwnProperty("listener")) {
-                console.log("Creating Listener for LabelType " + labelType);
-                _deleteLabelHandlerContainer[labelType] = {
-                    listener: null,
-                    deleteLabelCallback: deleteCallback,
-                    extraLabelCallback: extraCallback,
-                    undoClickHandlerActive: false
-                };
-
-                // Activate a timer for each label see if the user deleted the label
-                _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
-            }
-        }
-
-        var afterUndoClick = function () {
-            console.log("Clicked - deleted Label: " + deletedLabel);
-            if (deletedLabel) {
-                actionStack.stopBlinking();
-                //$(document).off('Undo_RemoveLabel_' + labelType, afterUndoClick);
-                //_deleteLabelHandlerContainer[labelType]["undoClickHandlerActive"] = false;
-
-                //Restart the timer
-                _deleteLabelHandlerContainer[labelType]["listener"] = setInterval(checkDeletedLabel, 2);
-
-                //Bring back the previous transition
-                var stateToReload = getCurrentState();
-                _visit(stateToReload);
-                deletedLabel = false;
-            }
-        };
-
-        if (!_deleteLabelHandlerContainer[labelType]["undoClickHandlerActive"]) {
-            $(document).on('Undo_RemoveLabel_' + labelType, afterUndoClick);
-            _deleteLabelHandlerContainer[labelType]["undoClickHandlerActive"] = true;
-        }
-    }
 
     /**
      * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
@@ -1045,19 +1022,18 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var labelType = state.properties.labelType;
         var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
         var event;
-        if (state == onboardingStates.states["select-label-type-1"]) {
-            $("#mini-footer-audit").css("visibility", "visible");
-        }
-        ribbon.enableMode(labelType, subcategory);
-        ribbon.startBlinking(labelType, subcategory);
-
-        _setUpUndoHandlers(labelType);
 
         if (subcategory) {
             event = subcategory
         } else {
             event = labelType
         }
+
+        if (state == onboardingStates.states["select-label-type-1"]) {
+            $("#mini-footer-audit").css("visibility", "visible");
+        }
+        ribbon.enableMode(labelType, subcategory);
+        ribbon.startBlinking(labelType, subcategory);
 
         // To handle when user presses ESC - disable mode only when the user places the label
         _mouseDownCanvasDrawingHandler = function () {
@@ -1162,21 +1138,39 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
+                currentLabelState = state;
                 totalOnboardingLabels = _countTotalOnboardingLabels();
-                console.log("total labels:" + totalOnboardingLabels);
 
                 if (distance < tolerance * tolerance) {
+                    // Label applied at the correct location
+
+                    // Reset deleted label flag when label application is correct
+                    if(deletedLabel) deletedLabel = false;
+
+                    // Disable deleting of label
+                    canvas.unlockDisableLabelDelete();
+                    canvas.disableLabelDelete();
+                    canvas.lockDisableLabelDelete();
+
+                    // Disable labeling mode
                     ribbon.disableMode(labelType, subCategory);
                     ribbon.enableMode("Walk");
                     uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
+
                     $target.off("click", callback);
                     if (listener) google.maps.event.removeListener(listener);
                     next(transition[i]);
                     break;
                 } else {
-                    // Use the undo button to delete the label
-                    // Incorrect label application
-                    _incorrectLabelApplication(state);
+                    // Incorrect label application:
+
+                    // 1. Enable deleting label
+                    canvas.unlockDisableLabelDelete();
+                    canvas.enableLabelDelete();
+                    canvas.lockDisableLabelDelete();
+
+                    // 2. Ask user to delete label and reapply the label
+                    _incorrectLabelApplication(state, listener);
                     ribbon.enableMode(labelType, subCategory);
                 }
                 i = i + 1;
