@@ -201,7 +201,6 @@ function Main (params) {
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
-            svl.alert.hideAlert();
             startOnboarding();
         });
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
@@ -280,6 +279,11 @@ function Main (params) {
     var onboardingHandAnimation = null;
     var onboardingStates = null;
     function startOnboarding () {
+        //hide any alerts
+        svl.alert.hideAlert();
+        //hide footer
+        $("#mini-footer-audit").css("visibility", "hidden");
+
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
             onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
@@ -407,8 +411,9 @@ function Main (params) {
             $("#page-loading").css({"visibility": "hidden"});
             $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
-            $("#mini-footer-audit").css("visibility", "hidden");
+
             if (!hasCompletedOnboarding(completedMissions)) {
+                $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
                 // If the user has completed the onboarding mission but the data is only stored in the browser
@@ -423,6 +428,7 @@ function Main (params) {
                 _calculateAndSetTasksMissionsOffset();
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
+                $("#mini-footer-audit").css("visibility", "visible");
                 startTheMission(mission, currentNeighborhood);
             }
         }
