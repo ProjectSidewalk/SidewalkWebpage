@@ -50,6 +50,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this._handleClickJump = function (e) {
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
+        svl.modalComment.hide();
         self.showSkipMenu();
     };
 
