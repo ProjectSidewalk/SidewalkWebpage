@@ -118,6 +118,25 @@ function switchToVideo(vidnum){
 
 }
 
+function logWebpageActivity(activity){
+    var url = "/userapi/logWebpageActivity";
+    var async = true;
+    $.ajax({
+        async: async,
+        contentType: 'application/json; charset=utf-8',
+        url: url,
+        type: 'post',
+        data: JSON.stringify(activity),
+        dataType: 'json',
+        success: function(result){},
+        error: function (result) {
+            console.error(result);
+        }
+    });
+}
+
+
+
 $( document ).ready(function() {
 
     switchToVideo(1)
@@ -137,6 +156,34 @@ $( document ).ready(function() {
     }
     autoAdvanceLaptopVideos();
 
+    // Triggered when "Watch Now" or the arrow next to it is clicked
+    // Logs "Click_module=WatchNow" in WebpageActivityTable
+    $("#playlink").on('click', function(e){
+        if(e.target.innerText === "Watch Now"){
+            logWebpageActivity("Click_module=WatchNow");
+        }
+    });
 
+    // Triggered upon clicking tabs in "How you can help" section
+    // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
+    $("#numbersrow").on('click','.col-sm-4', function(e){
+        // Gets tab number as a string (i.e. "1", "2", or "3")
+        var id = e.target.innerText.charAt(1);
+        logWebpageActivity("Click_module=HowYouCanHelp_tab="+id);
+    });
 
+    // Triggered when links in Press section are clicked
+    // Logs "Click_module=Press_type=<"img" or "text">_source=<"technically," "curbed," or "diamondback">"
+    $("#press-container2").on('click', '.newslink', function(e){
+        var type = e.currentTarget.id.split('-')[1];
+        var source = e.currentTarget.id.split('-')[0];
+        logWebpageActivity("Click_module=Press_type="+type+"_source="+source);
+    });
+
+    // Triggered when twitter links are clicked
+    // Logs "Click_module=Quotes_author=<"microsoftdesign" or "kpkindc">"
+    $("#quotebox-container").on('click', 'a', function(e){
+        var author = e.currentTarget.id.split('-')[0];
+        logWebpageActivity("Click_module=Quotes_author="+author);
+    });
 });
