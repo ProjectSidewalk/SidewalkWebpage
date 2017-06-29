@@ -575,7 +575,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         console.log("[" + rId + "]\n Pano: " + getPanoId() + "\nNewLatLng:" + JSON.stringify(newLatLng));
 
         if (svl.streetViewService) {
-            svl.streetViewService.getPanoramaByLocation(newLatLng, STREETVIEW_MAX_DISTANCE,
+            svl.streetViewService.getPanorama({location: newLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (data, status) {
                     console.error("[" + rId + "]\nPano:" + getPanoId() + " Round:" + round + " LOC:Status: " + status);
 
@@ -1095,8 +1095,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     if (newLatlng) {
                         var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                         if (distance < STREETVIEW_MAX_DISTANCE) {
-                            svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
-                                STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                            svl.streetViewService.getPanorama({location: new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
+                                radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
                                     self.setPano(streetViewPanoramaData.location.pano);
                                     //self.handlerPositionUpdate();
@@ -1399,8 +1399,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
-            
-            svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
+            svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
 
