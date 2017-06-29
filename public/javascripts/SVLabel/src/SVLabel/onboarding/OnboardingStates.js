@@ -1330,7 +1330,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                //once you know the direction and the route to follow
                 "message": 'Now, let\'s actually take a step! <span class="bold">' +
                 'Double click on the street</span> in the direction you want to move. ' +
                 'In this case, double click in the circle below.',
@@ -1543,7 +1542,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Finally, if you get stuck while exploring, you can use the ' +
+                "message": 'Finally, if you get stuck while walking, you can use the ' +
                 '<span class="bold">Jump button</span> to move to a different location.',
                 "position": "top-right",
                 "fade-direction": "fadeInRight",
