@@ -965,7 +965,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     function _visitInstruction(state, listener) {
 
-        if (state == onboardingStates.states["outro"]){
+        if (state == getState("outro")){
             $("#mini-footer-audit").css("visibility", "hidden");
         }
         renderRoutesOnGoogleMap(state);
@@ -1029,7 +1029,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             event = labelType
         }
 
-        if (state == onboardingStates.states["select-label-type-1"]) {
+        if (state == getState("select-label-type-1")) {
             $("#mini-footer-audit").css("visibility", "visible");
         }
         ribbon.enableMode(labelType, subcategory);
