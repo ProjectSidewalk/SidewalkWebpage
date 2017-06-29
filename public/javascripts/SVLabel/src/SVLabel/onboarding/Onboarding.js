@@ -659,6 +659,13 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 });
             }
         }
+        var maxLabelCount;
+        if (state.properties.constructor == Array) {
+            maxLabelCount = state.properties[0].maxLabelCount;
+        } else {
+            maxLabelCount = state.properties.maxLabelCount;
+        }
+        console.log("MaxLabel: " + maxLabelCount);
         // Change behavior based on the current state.
         if ("properties" in state) {
             if (state.properties.constructor == Array) {
@@ -962,8 +969,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var checkDeletedLabel = function () {
             if (_deleteLabelHandlerContainer.hasOwnProperty(labelType)) {
 
-                console.log("Checking for labelType: " + labelType);
-
                 // Check based on current state if the label count is correct
                 var labelTypeDeleteHandler = _deleteLabelHandlerContainer[labelType];
                 var currentState = getCurrentState();
@@ -972,11 +977,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     maxLabelCount = currentState.properties[0].maxLabelCount;
                 } else {
                     maxLabelCount = currentState.properties.maxLabelCount;
-                }
-
-                if (labelType == "NoCurbRamp") {
-                    console.log("Current Count: " + totalOnboardingLabels);
-                    console.log("MaxCount of Current State: " + maxLabelCount);
                 }
 
                 if (totalOnboardingLabels < maxLabelCount) {
@@ -1158,6 +1158,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
                 totalOnboardingLabels = _countTotalOnboardingLabels();
+                console.log("total labels:" + totalOnboardingLabels);
+
                 if (distance < tolerance * tolerance) {
                     ribbon.disableMode(labelType, subCategory);
                     ribbon.enableMode("Walk");
