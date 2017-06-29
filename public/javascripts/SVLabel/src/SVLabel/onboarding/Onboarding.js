@@ -509,7 +509,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         svl.labelCounter.reset();
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
-        
+
         canvas.unlockDisableLabelDelete();
         canvas.enableLabelDelete();
         canvas.lockDisableLabelDelete();
@@ -617,7 +617,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         // Step 1: Show message to delete
         var message = {
             "message": 'Oops! Your label is too far away. Let\'s remove the misplaced label. ' +
-                    '<span class="bold">Hover over the label and click delete icon (cross sign)</span>.',
+                    '<span class="bold">Hover over the label and click the delete icon ' +
+                    '<img src="' + svl.rootDirectory + "img/icons/Icon_Delete.png" +
+                    '" style="width: 6%; height:auto" alt="Delete Icon"></span>',
             "position": "top-right",
             "parameters": null
         };
