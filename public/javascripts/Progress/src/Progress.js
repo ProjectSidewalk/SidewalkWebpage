@@ -174,10 +174,10 @@ function Progress (_, $, c3, L) {
                 // Log when a user clicks on a region on the user map
                 // Logs are of the form "Click_module=UserMap_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
                 // Log is stored in WebpageActivityTable
-                var regionId = $(this).attr('regionId');
+                var regionId = e.target.feature.properties.region_id;
                 var ratesEl = rates.find(function(x){
                     return regionId == x.region_id;
-                })
+                });
                 var compRate = Math.round(100.0 * ratesEl.rate);
                 var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
                 var distanceLeft = "";
