@@ -60,8 +60,8 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
-                                <a href='@routes.AdminController.index' role="menuitem">
-                                    Admin
+                                <a href='/contribution/@user.get.username' role="menuitem">
+                                    Your dashboard
                                 </a>
                             </li>
                             @if(user.get.roles.getOrElse(Seq("")).contains("Administrator")) {
