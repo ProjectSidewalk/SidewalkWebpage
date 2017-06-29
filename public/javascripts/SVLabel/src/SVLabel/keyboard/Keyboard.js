@@ -170,12 +170,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             if (!status.focusOnTextField) {
                 var label;
                 switch (e.keyCode) {
-                    case 38:
-                        self._moveForward();
-                        break;
-                    case 40:  // "down"
-                        self._moveBackward();
-                        break;
                     case 16:
                         // "Shift"
                         status.shiftDown = false;
