@@ -353,10 +353,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             origPointPov = state.annotations[i].originalPov;
 
             // For the first arrow to be applied, looking at the initial heading (initialize state) of the onboarding.
-            // Refer to OnboardingStates for the value
             // This avoids applying the first arrow if the heading is not set correctly
             // This will avoid incorrection POV calculation
-            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != 262 &&
+            var initialHeading = getState("initialize").properties.heading;
+            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != initialHeading &&
                 jQuery.isEmptyObject(origPointPov)) {
                 povChange["status"] = false;
                 return this;
