@@ -37,6 +37,16 @@ function ActionStack (tracker, uiActionStack) {
             uiActionStack.undo.toggleClass("highlight-50");
         }, 500);
     }
+
+    /**
+     * Blink undo and redo buttons
+     */
+    function blinkUndo () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiActionStack.undo.toggleClass("highlight-50");
+        }, 500);
+    }
     
     /**
      * Disable redo
@@ -213,12 +223,14 @@ function ActionStack (tracker, uiActionStack) {
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
                 if (actionItem.action === 'addLabel') {
+                    // Undo Add
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
                     actionItem.label.setStatus('deleted', true);
                     svl.labelCounter.decrement(actionItem.label.getProperty('labelType'));
                 } else if (actionItem.action === 'deleteLabel') {
+                    // Undo Delete
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
@@ -271,6 +283,7 @@ function ActionStack (tracker, uiActionStack) {
     }
 
     self.blink = blink;
+    self.blinkUndo = blinkUndo;
     self.disableRedo = disableRedo;
     self.disableUndo = disableUndo;
     self.enableRedo = enableRedo;
