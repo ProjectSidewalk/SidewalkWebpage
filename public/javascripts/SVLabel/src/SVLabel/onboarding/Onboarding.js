@@ -55,7 +55,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     var _mouseDownCanvasDrawingHandler;
     var currentState;
     var currentLabelState;
-    var deletedLabel = false;
     var totalOnboardingLabels = 0;
 
     this._onboardingLabels = [];
@@ -1149,10 +1148,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
                 if (distance < tolerance * tolerance) {
                     // Label applied at the correct location
-
-                    // Reset deleted label flag when label application is correct
-                    if(deletedLabel) deletedLabel = false;
-
+                    
                     // Disable deleting of label
                     canvas.unlockDisableLabelDelete();
                     canvas.disableLabelDelete();
