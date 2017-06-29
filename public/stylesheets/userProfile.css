@@ -29,7 +29,7 @@ svg {
     border-top: 0;
 }
 
-.table-hover tbody tr:hover td, .table-hover tbody tr:hover th {
+.table-hover tbody tr:hover td, th {
   background-color: rgba(200, 200, 200, 0.55);
 }
 
