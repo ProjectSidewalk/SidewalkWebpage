@@ -547,6 +547,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             modalMission.setMissionMessage(mission, neighborhood);
         }
         modalMission.show();
+        $("#mini-footer-audit").css("visibility", "visible");
 
         taskContainer.getFinishedAndInitNextTask();
     }
@@ -683,7 +684,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             else {
                 //Restrict panning
                 mapService.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
-
                 if (state.properties.action == "Introduction") {
                     _visitIntroduction(state, annotationListener);
                 } else if (state.properties.action == "SelectLabelType") {
@@ -891,6 +891,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     function _visitInstruction(state, listener) {
 
+        if (state == onboardingStates.states["outro"]){
+            $("#mini-footer-audit").css("visibility", "hidden");
+        }
         renderRoutesOnGoogleMap(state);
         blinkInterface(state);
 
@@ -1042,7 +1045,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var labelType = state.properties.labelType;
         var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
         var event;
-
+        if (state == onboardingStates.states["select-label-type-1"]) {
+            $("#mini-footer-audit").css("visibility", "visible");
+        }
         ribbon.enableMode(labelType, subcategory);
         ribbon.startBlinking(labelType, subcategory);
 
