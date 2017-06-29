@@ -509,6 +509,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         svl.labelCounter.reset();
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
+        
+        canvas.unlockDisableLabelDelete();
+        canvas.enableLabelDelete();
+        canvas.lockDisableLabelDelete();
 
         mapService.unlockDisableWalking();
         mapService.enableWalking();
