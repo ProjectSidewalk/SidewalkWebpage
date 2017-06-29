@@ -92,17 +92,17 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             var direction;
             var EPS = 30; //the smaller it is the higher the speed of calling this function should be
 
-            if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS)
+            if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS) //interval cross from after 0 to before 360 [30, -30]
                 direction = transformedCurrent - (lastHeadingTransformed + 360);
-            else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS)
+            else if (transformedCurrent < EPS && lastHeadingTransformed > 360 - EPS) //interval crossing from before 360 to 0 [-30, 30]
                 direction = transformedCurrent - (lastHeadingTransformed - 360);
             else
-                direction = transformedCurrent - lastHeadingTransformed;
+                direction = transformedCurrent - lastHeadingTransformed; //regular subtraction to determine direction of rotation
 
-            if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) {
+            if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) { //
                 // user is rotating clockwise
                 viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
-            } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) {
+            } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) { //
                 //user is rotating counter clockwise
                 viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
             }
