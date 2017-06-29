@@ -201,6 +201,7 @@ function Main (params) {
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
+            svl.alert.hideAlert();
             startOnboarding();
         });
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
