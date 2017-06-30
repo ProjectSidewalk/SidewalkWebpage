@@ -1072,6 +1072,7 @@ function Canvas(ribbon) {
             if (!isAnyVisible) {
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
+
             self.clear();
             self.render2();
             return this;

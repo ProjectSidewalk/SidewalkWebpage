@@ -10,7 +10,8 @@
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
+        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+            <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
         <div id="overlay-top" style="width: 100%;
@@ -257,7 +258,7 @@
             <div class="row" style="padding-top: 40px;">
                 <div class="col-sm-6">
                     <div class="quotebox">
-                        Using machine learning, big data, & civic kindness, <a href="https://twitter.com/projsidewalk" target="_blank">@@projsidewalk</a> is making D.C. more accessible one mile at a time
+                        Using machine learning, big data, & civic kindness, <a href="https://twitter.com/umd_sidewalk" target="_blank" id="microsoftdesign-author-twitter">@@projsidewalk</a> is making D.C. more accessible one mile at a time
                         <br>
                         <span class="quoteauthor">@@microsoftdesign</span>
 
@@ -266,7 +267,7 @@
                 </div>
                 <div class="col-sm-6">
                     <div class="quotebox">
-                        <a href="https://twitter.com/projsidewalk" target="_blank">@@projsidewalk</a> is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
+                        <a href="https://twitter.com/umd_sidewalk" target="_blank" id="kpkindc-author-twitter">@@projsidewalk</a> is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
                         <br>
                         <span class="quoteauthor">@@kpkindc</span>
                     </div>
@@ -291,18 +292,18 @@
             vertical-align: middle;
         ">
             <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
+                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-img-link">
                     <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
+                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-img-link">
                     <img style="position: relative; left:10px; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
 
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
+                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/" id="diamondback-img-link">
                     <img src='@routes.Assets.at("assets/diamondback.png")' height="70" alt="Diamondback Logo">
                 </a>
             </div>
@@ -312,20 +313,20 @@
             text-align: center;
         ">
             <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
+                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-text-link">
 
                     How Project Sidewalk is making DC more accessible
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
+                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-text-link">
 
                     Make D.C.'s sidewalks more accessible with this crowd-sourced map
 
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
+                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/" id="diamondback-text-link">
 
                     A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
                 </a>
@@ -337,6 +338,8 @@
 
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
