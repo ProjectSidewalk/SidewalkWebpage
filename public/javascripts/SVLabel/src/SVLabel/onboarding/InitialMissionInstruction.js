@@ -4,6 +4,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     var initialHeading;
     var lookingAroundInterval;
     var lastHeadingTransformed;
+    var overallAngleViewed = 0;
     var viewedCWTransformed = 0, viewedCCWTransformed = 360;
     var initialPanoId;
 
@@ -78,9 +79,21 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     };
 
     this._transformAngle = function (angle) {
+        var difference = angle - initialHeading;
+        //135 is max degree swipe in panorama
+        if (Math.abs(difference) >= 135){
+            if (initialHeading > 180){
+                difference = 360 - initialHeading + angle;
+            }else{
+                difference = -360 + angle - initialHeading;
+            }
+        }
+
+    /*
         while ((angle - initialHeading) % 360 < 0)
             angle += 360;
-        return (angle - initialHeading) % 360;
+        return (angle - initialHeading) % 360;*/
+        return difference;
     };
 
     this._pollLookingAroundHasFinished = function () {
@@ -89,9 +102,9 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
         if (mapService.getPanoId() == initialPanoId) {
             var currentHeadingAngle = mapService.getPov().heading;
             var transformedCurrent = self._transformAngle(currentHeadingAngle);
-            var direction;
-            var EPS = 30; //the smaller it is the higher the speed of calling this function should be
-
+            //var direction;
+            //var EPS = 30; //the smaller it is the higher the speed of calling this function should be
+            /*
             if (transformedCurrent > 360 - EPS && lastHeadingTransformed < EPS) //interval cross from after 0 to before 360 [30, -30]
                 direction = transformedCurrent - (lastHeadingTransformed + 360);
             else if (currentHeadingAngle < EPS && lastHeadingTransformed > 360 - EPS) //interval crossing from before 360 to 0 [-30, 30]
@@ -99,19 +112,21 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             else
                 direction = transformedCurrent - lastHeadingTransformed; //regular subtraction to determine direction of rotation
 
-            if (direction > 0 && transformedCurrent < viewedCWTransformed + EPS) { //
+            if (direction > 0 ) { //&& transformedCurrent < viewedCWTransformed + EPS
                 // user is rotating clockwise
-                viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
-            } else if (direction < 0 && transformedCurrent > viewedCCWTransformed - EPS) { //
+                //viewedCWTransformed = Math.max(viewedCWTransformed, transformedCurrent);
+            } else if (direction < 0 ) { //&& transformedCurrent > viewedCCWTransformed - EPS
                 //user is rotating counter clockwise
-                viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
+                //viewedCCWTransformed = Math.min(viewedCCWTransformed, transformedCurrent);
             }
+            */
+            //lastHeadingTransformed = transformedCurrent;
 
-            lastHeadingTransformed = transformedCurrent;
+           // var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
+            overallAngleViewed = overallAngleViewed + transformedCurrent;
+            initialHeading = currentHeadingAngle;
 
-            var overallAngleViewed = (360 - viewedCCWTransformed) + viewedCWTransformed;
-
-            if (overallAngleViewed >= 360 - EPS) {
+            if (Math.abs(overallAngleViewed) >= 330) {
                 clearInterval(lookingAroundInterval);
                 self._instructToFollowTheGuidance();
             }
