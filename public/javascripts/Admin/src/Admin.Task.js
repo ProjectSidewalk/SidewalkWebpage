@@ -128,11 +128,11 @@ function AdminTask(params) {
                 featuresdata[featuresdata.length-1].properties.timestamp - featuresdata[0].properties.timestamp;
 
             $("#timeline-active").animate({
-                width: "100%"
+                width: '360px'
             }, totalDuration);
 
             $("#timeline-handle").animate({
-                left: "100%"
+                left: '360px'
             }, totalDuration);
 
             var currentTimestamp = featuresdata[0].properties.timestamp;
@@ -197,7 +197,7 @@ function AdminTask(params) {
                                 self.panorama.renderLabel(adminPanoramaLabel);
                                 // Update the chart as well
                                 // dotPlotVisualization.increment(label.label_type);
-                                // dotPlotVisualization.udpate();
+                                // dotPlotVisualization.update();
 
                             }
                         }

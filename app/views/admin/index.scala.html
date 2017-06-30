@@ -8,10 +8,24 @@
 @import models.audit.AuditTaskCommentTable
 @import java.util.UUID
 
-@(title: String, user: Option[User] = None)
 
+@(title: String, user: Option[User] = None)
 @main(title) {
 @navbar(user)
+<style>
+    .no-js #loader { display: none;  }
+    .js #loader { display: block; position: absolute; left: 100px; top: 0; }
+    .loader {
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('/assets/images/loader.gif') center no-repeat #fff ;
+    }
+</style>
+<div class="loader"></div>
 <div class="container">
     <div id="row">
         <div class="col-lg-2">
@@ -118,25 +132,19 @@
                                 <th></th>
                                 <th>Coverage</th>
                                 <th>Total</th>
+                                <th>Rate</th>
                             </tr>
                             <tr>
                                 <th>Audited Streets</th>
                                 <td>@StreetEdgeTable.countAuditedStreets()</td>
                                 <td>@StreetEdgeTable.countTotalStreets()</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%</td>
                             </tr>
                             <tr>
                                 <th>Distance</th>
                                 <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
                                 <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
-                            </tr>
-                            <tr>
-                                <th>
-                                    Rate
-                                </th>
-                                <td>
-                                    @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%
-                                </td>
-                                <td></td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
                             </tr>
                         </table>
                     </div>
@@ -189,7 +197,7 @@
                                     <tr>
                                         <td id="map-legend-curb-ramp" width="12px"></td>
                                         <td width="190px">Curb Ramp</td>
-                                        <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                        <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
                                         <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
                                         <td width="60px" align= "center" ><span id="curb-ramp-severity-label">All</span></td>
 
@@ -197,45 +205,46 @@
                                     <tr>
                                         <td id="map-legend-no-curb-ramp"></td>
                                         <td>Missing Curb Ramp</td>
-                                        <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
                                         <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
                                         <td align= "center"><span id="missing-curb-ramp-severity-label">All</span></td>
                                     </tr>
+
                                     <tr>
                                         <td id="map-legend-obstacle"></td>
                                         <td>Obstacle in Path</td>
-                                        <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
                                         <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
                                         <td align= "center"><span id="obstacle-severity-label">All</span></td>
                                     </tr>
                                     <tr><td id="map-legend-surface-problem"></td>
                                         <td>Surface Problem</td>
-                                        <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.updateVisibleMarkers();"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
                                         <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
                                         <td align="center"><span id="surface-problem-severity-label">All</span></td>
                                     </tr>
                                     <tr>
+                                        <td id="map-legend-other"></td>
+                                        <td>Other</td>
+                                        <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
+                                        <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
+                                        <td align= "center"><span id="other-severity-label">All</span></td>
+                                    </tr>
+                                    <tr>
                                         <td id="map-legend-occlusion"></td>
                                         <td>Can't see sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.updateVisibleMarkers();"></td>
-                                        <td align="left"><div id = "occlusion-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="occlusion-severity-label">All</span></td>
+                                        <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-nosidewalk"></td>
                                         <td>No Sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.updateVisibleMarkers();"></td>
-                                        <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
-                                        <td  align= "center"><span id="no-sidewalk-severity-label">All</span></td>
+                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
                                     </tr>
                                     <tr>
-                                        <td id="map-legend-other"></td>
-                                        <td>Other</td>
-                                        <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.updateVisibleMarkers();"></td>
-                                        <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="other-severity-label">All</span></td>
+                                      <td id="map-legend-audited-street"></td>
+                                      <td>Audited Street</td>
+                                      <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer();"></td>
                                     </tr>
-                                    <tr><td id="map-legend-audited-street"></td><td>Audited Street</td><td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.updateVisibleMarkers();"></td></tr>
                                 </table>
                             </div>
                         </div>
@@ -244,57 +253,94 @@
             </div>
             <div id="tabs-3" class="tab-pane">
                 <div class="row">
-                    <div class="row">
-                        <h1 style="margin-left:20px">Activities</h1>
-                        <div class="col-lg-12">
-                            <table class="table table-striped table-condensed">
-                                <tr>
-                                    <th>Daily Audits</th>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="audit-count-chart"></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Daily Label Counts</th>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="label-count-chart"></div>
-                                    </td>
-                                </tr>
-                            </table>
+                    <div class="col-lg-12">
+                        <div id="map-holder">
+                            <div id="legend" style="display:none;">
+                                <strong>Percent of Neighborhood Complete</strong>
+                                <nav class='legend clearfix'>
+                                    <span style='background:#08306b;'></span>
+                                    <span style='background:#08519c;'></span>
+                                    <span style='background:#08719c;'></span>
+                                    <span style='background:#2171b5;'></span>
+                                    <span style='background:#4292c6;'></span>
+                                    <span style='background:#6baed6;'></span>
+                                    <span style='background:#9ecae1;'></span>
+                                    <span style='background:#c6dbef;'></span>
+                                    <span style='background:#deebf7;'></span>
+                                    <span style='background:#f7fbff;'></span>
+                                    <label>100%</label>
+                                    <label></label>
+                                    <label></label>
+                                    <label></label>
+                                    <label></label>
+                                    <label></label>
+                                    <label></label>
+                                    <label></label>
+                                    <label></label>
+                                    <label>0%</label>
+                                </nav>
+                            </div>
+                            <div id="admin-choropleth"></div>
                         </div>
                     </div>
-                    <h1>Completed Missions</h1>
+
+                    <h2>Coverage Percentage by Neighborhood</h2>
                     <div class="col-lg-12">
-                        <div id="completed-mission-histogram"></div>
+                        <div id="neighborhood-completion-rate"></div>
                     </div>
-                    <h1>Onboarding Completion Time</h1>
+                    <button id="neighborhood-completion-sort-button">Sort By Completion %</button>
+                    <button id="neighborhood-alphabetical-sort-button">Sort Alphabetically</button>
+                    <h2>Neighborhood Coverage Percentages</h2>
                     <div class="col-lg-12">
                         <p>
-                            <span>Bounce Rate: </span><span id="onboarding-bounce-rate"></span>
+                            <span>Standard Deviation: </span><span id="neighborhood-std"></span><br>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="neighborhood-completed-distance"></div>
+                    </div>
+
+                    <h2 style="...">DC Coverage Progress</h2>
+                    <div class="col-lg-12">
+                        <div id="completion-progress-chart"></div>
+                    </div>
+
+                    <h2>Daily Audits</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation: </span><span id="audit-std"></span><br>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="audit-count-chart"></div>
+                    </div>
+
+                    <h2>Daily Label Counts</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation: </span><span id="label-std"></span><br>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="label-count-chart"></div>
+                    </div>
+
+                    <h2>Severity Ratings by Label Type</h2>
+                    <div class="col-lg-12">
+                        <div id="severity-histograms"></div>
+                    </div>
+                    <h2>Onboarding Completion Time</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Bounce Rate (Percent who did NOT finish tutorial): </span><span id="onboarding-bounce-rate"></span><br>
+                            <span>Standard Deviation: </span><span id="onboarding-std"></span><br>
+                            <span>Note: Final column represents all completion times > 9 minutes.</span>
                         </p>
                     </div>
                     <div class="col-lg-12">
                         <div id="onboarding-completion-duration-histogram"></div>
                     </div>
-                </div>
 
-                <div class="row">
-                    <h1>Neighborhood Statistics</h1>
-                    <div class="col-lg-12">
-                        <h2>Coverage Rate per Neighborhood (%)</h2>
-                        <div id="neighborhood-completion-rate">
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-lg-12">
-                        <h2>Coverage (m)</h2>
-                        <div id="neighborhood-completed-distance"></div>
-                    </div>
                 </div>
             </div>
             <div id="tabs-4" class="tab-pane">
@@ -423,6 +469,13 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
+
+<script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+
 <script>
         var labelArr = new Array(1, 2, 3, 4, 5, "All");
         var sliderToLabelMap = {};
@@ -444,13 +497,26 @@
                     $(sliderToLabelMap[this.id]).text(labelArr[ui.value]);
                 },
                 change: function(event,ui) {
-                    admin.updateVisibleMarkers();
+                    if (this.id == "curb-ramp-slider") {
+                        admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
+                    } else if (this.id == "missing-curb-ramp-slider") {
+                        admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
+                    } else if (this.id == "obstacle-slider") {
+                        admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
+                    } else if (this.id == 'surface-problem-slider') {
+                        admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
+                    } else if (this.id == 'occlusion-slider') {
+                        admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
+                    } else if (this.id == 'no-sidewalk-slider') {
+                        admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                    } else if (this.id == 'other-slider') {
+                        admin.toggleLayers('Other', 'other', '#other-slider');
+                    }
                 }
             });
         });
 
     </script>
-
     <script>
         $(document).ready(function () {
 
@@ -462,7 +528,9 @@
         $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
         $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
 
-    });
-
-
-</script> }
+        });
+        $(window).load(function() {
+            $(".loader").fadeOut("slow");
+        })
+    </script>
+}

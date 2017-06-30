@@ -50,6 +50,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this._handleClickJump = function (e) {
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
+        svl.modalComment.hide();
         self.showSkipMenu();
     };
 
@@ -94,7 +95,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this.blink = function () {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
-            uiLeftColumn.jump.toggleClass("highlight-50");
+            uiLeftColumn.jump.toggleClass("highlight-100");
         }, 500);
     };
 
@@ -120,7 +121,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
      */
     this.stopBlinking = function () {
         window.clearInterval(blinkInterval);
-        uiLeftColumn.jump.removeClass("highlight-50");
+        uiLeftColumn.jump.removeClass("highlight-100");
     };
 
     // Initialize

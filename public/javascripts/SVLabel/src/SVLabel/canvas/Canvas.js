@@ -5,57 +5,57 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Canvas (ribbon) {
-    var self = { className : 'Canvas' };
+function Canvas(ribbon) {
+    var self = {className: 'Canvas'};
 
-        // Mouse status and mouse event callback functions
+    // Mouse status and mouse event callback functions
     var mouseStatus = {
-            currX:0,
-            currY:0,
-            prevX:0,
-            prevY:0,
-            leftDownX:0,
-            leftDownY:0,
-            leftUpX:0,
-            leftUpY:0,
-            isLeftDown: false,
-            prevMouseDownTime : 0,
-            prevMouseUpTime : 0
-        };
-        // Properties
+        currX: 0,
+        currY: 0,
+        prevX: 0,
+        prevY: 0,
+        leftDownX: 0,
+        leftDownY: 0,
+        leftUpX: 0,
+        leftUpY: 0,
+        isLeftDown: false,
+        prevMouseDownTime: 0,
+        prevMouseUpTime: 0
+    };
+    // Properties
     var properties = {
         drawingMode: "point",
         evaluationMode: false,
         radiusThresh: 7,
-        showDeleteMenuTimeOutToken : undefined,
+        showDeleteMenuTimeOutToken: undefined,
         tempPointRadius: 5
     };
 
     var pointParameters = {
-        'fillStyleInnerCircle' : 'rgba(0,0,0,1)', // labelColor.fillStyle,
-        'lineWidthOuterCircle' : 2,
-        'iconImagePath' : undefined, // iconImagePath,
-        'radiusInnerCircle' : 5, //13,
-        'radiusOuterCircle' : 6, //14,
-        'strokeStyleOuterCircle' : 'rgba(255,255,255,1)',
-        'storedInDatabase' : false
+        'fillStyleInnerCircle': 'rgba(0,0,0,1)', // labelColor.fillStyle,
+        'lineWidthOuterCircle': 2,
+        'iconImagePath': undefined, // iconImagePath,
+        'radiusInnerCircle': 5, //13,
+        'radiusOuterCircle': 6, //14,
+        'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
+        'storedInDatabase': false
     };
 
     var status = {
-        currentLabel : null,
-        disableLabelDelete : false,
-        disableLabelEdit : false,
-        disableLabeling : false,
-        disableWalking : false,
-        drawing : false,
+        currentLabel: null,
+        disableLabelDelete: false,
+        disableLabelEdit: false,
+        disableLabeling: false,
+        disableWalking: false,
+        drawing: false,
 
-        lockCurrentLabel : false,
-        lockDisableLabelDelete : false,
-        lockDisableLabelEdit : false,
-        lockDisableLabeling : false,
+        lockCurrentLabel: false,
+        lockDisableLabelDelete: false,
+        lockDisableLabelEdit: false,
+        lockDisableLabeling: false,
         svImageCoordinatesAdjusted: false,
         totalLabelCount: 0,
-        'visibilityMenu' : 'hidden'
+        'visibilityMenu': 'hidden'
     };
 
     var lock = {
@@ -63,7 +63,7 @@ function Canvas (ribbon) {
     };
 
     // Canvas context
-    var canvasProperties = {'height':0, 'width':0};
+    var canvasProperties = {'height': 0, 'width': 0};
     var ctx;
 
     var tempPath = [];
@@ -76,7 +76,7 @@ function Canvas (ribbon) {
     var labels = [];
 
     // Initialization
-    function _init () {
+    function _init() {
         var el = document.getElementById("label-canvas");
         if (!el) {
             return false;
@@ -93,7 +93,7 @@ function Canvas (ribbon) {
             $("#interaction-area-holder").on('mouseleave', handleDrawingLayerMouseOut);
         }
         if (svl.ui.canvas.deleteIcon) {
-          svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);
+            svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);
         }
 
         // Point radius
@@ -192,7 +192,7 @@ function Canvas (ribbon) {
 
     }
 
-    function handleDrawingLayerMouseOut (e) {
+    function handleDrawingLayerMouseOut(e) {
         svl.tracker.push('LabelingCanvas_MouseOut');
         if (!svl.isOnboarding() && !_mouseIsOverAnOverlayLink(e) && !_mouseIsOverAnOverlayMessageBox(e)) {
             ribbon.backToWalk();
@@ -205,7 +205,7 @@ function Canvas (ribbon) {
      * @param e
      * @private
      */
-    function _mouseIsOverAnOverlayLink (e) {
+    function _mouseIsOverAnOverlayLink(e) {
         var x = e.clientX, y = e.clientY;
         var elementMouseIsOver = document.elementFromPoint(x, y);
         return $(elementMouseIsOver).text() == "Explain this!";
@@ -221,7 +221,7 @@ function Canvas (ribbon) {
      * This function is fired when at the time of mouse-down
      * @param e
      */
-    function handleDrawingLayerMouseDown (e) {
+    function handleDrawingLayerMouseDown(e) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = util.mouseposition(e, this).x;
         mouseStatus.leftDownY = util.mouseposition(e, this).y;
@@ -234,7 +234,7 @@ function Canvas (ribbon) {
     /**
      * This function is fired when at the time of mouse-up
      */
-    function handleDrawingLayerMouseUp (e) {
+    function handleDrawingLayerMouseUp(e) {
         var currTime;
 
         mouseStatus.isLeftDown = false;
@@ -310,7 +310,7 @@ function Canvas (ribbon) {
     /**
      * This function is fired when mouse cursor moves over the drawing layer.
      */
-    function handleDrawingLayerMouseMove (e) {
+    function handleDrawingLayerMouseMove(e) {
         var mousePosition = mouseposition(e, this);
         mouseStatus.currX = mousePosition.x;
         mouseStatus.currY = mousePosition.y;
@@ -347,7 +347,7 @@ function Canvas (ribbon) {
 
     /**
      */
-    function imageCoordinates2String (coordinates) {
+    function imageCoordinates2String(coordinates) {
         if (!(coordinates instanceof Array)) {
             throw self.className + '.imageCoordinates2String() expects Array as an input';
         }
@@ -355,7 +355,7 @@ function Canvas (ribbon) {
             throw self.className + '.imageCoordinates2String(): Empty array';
         }
         var ret = '';
-        var i ;
+        var i;
         var len = coordinates.length;
 
         for (i = 0; i < len; i += 1) {
@@ -366,9 +366,9 @@ function Canvas (ribbon) {
     }
 
     /**
-      * This is called when a user clicks a delete icon.
-      */
-    function labelDeleteIconClick () {
+     * This is called when a user clicks a delete icon.
+     */
+    function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             svl.tracker.push('Click_LabelDelete');
             var currLabel = self.getCurrentLabel();
@@ -437,14 +437,14 @@ function Canvas (ribbon) {
         // Draw the lines in between
         for (var i = 2; i < pathLen; i++) {
             curr = tempPath[i];
-            prev = tempPath[i-1];
+            prev = tempPath[i - 1];
             util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 5, curr.x, curr.y, 5, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
         }
 
         if (r < properties.radiusThresh && pathLen > 2) {
-            util.shape.lineWithRoundHead(ctx, tempPath[pathLen-1].x, tempPath[pathLen-1].y, properties.tempPointRadius, tempPath[0].x, tempPath[0].y, 2 * properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
+            util.shape.lineWithRoundHead(ctx, tempPath[pathLen - 1].x, tempPath[pathLen - 1].y, properties.tempPointRadius, tempPath[0].x, tempPath[0].y, 2 * properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
         } else {
-            util.shape.lineWithRoundHead(ctx, tempPath[pathLen-1].x, tempPath[pathLen-1].y, properties.tempPointRadius, mouseStatus.currX, mouseStatus.currY, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'stroke', 'rgba(255,255,255,1)', pointFill);
+            util.shape.lineWithRoundHead(ctx, tempPath[pathLen - 1].x, tempPath[pathLen - 1].y, properties.tempPointRadius, mouseStatus.currX, mouseStatus.currY, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'stroke', 'rgba(255,255,255,1)', pointFill);
         }
     }
 
@@ -452,7 +452,7 @@ function Canvas (ribbon) {
      * Cancel drawing while use is drawing a label
      * @method
      */
-    function cancelDrawing () {
+    function cancelDrawing() {
         // This method clears a tempPath and cancels drawing. This method is called by Keyboard when esc is pressed.
         if ('tracker' in svl && svl.tracker && status.drawing) {
             svl.tracker.push("LabelingCanvas_CancelLabeling");
@@ -468,12 +468,12 @@ function Canvas (ribbon) {
      * Clear what's on the canvas.
      * @method
      */
-    function clear () {
+    function clear() {
         // Clears the canvas
         if (ctx) {
-          ctx.clearRect(0, 0, canvasProperties.width, canvasProperties.height);
+            ctx.clearRect(0, 0, canvasProperties.width, canvasProperties.height);
         } else {
-          console.warn('The ctx is not set.')
+            console.warn('The ctx is not set.')
         }
         return this;
     }
@@ -482,7 +482,7 @@ function Canvas (ribbon) {
      *
      * @method
      */
-    function disableLabelDelete () {
+    function disableLabelDelete() {
         if (!status.lockDisableLabelDelete) {
             status.disableLabelDelete = true;
             return this;
@@ -494,31 +494,31 @@ function Canvas (ribbon) {
      * @method
      * @return {boolean}
      */
-    function disableLabelEdit () {
-       if (!status.lockDisableLabelEdit) {
-           status.disableLabelEdit = true;
-           return this;
-       }
-       return false;
+    function disableLabelEdit() {
+        if (!status.lockDisableLabelEdit) {
+            status.disableLabelEdit = true;
+            return this;
+        }
+        return false;
     }
 
     /**
      * Disable labeling
      * @method
      */
-    function disableLabeling () {
+    function disableLabeling() {
         // Check right-click-menu visibility
         // If any of menu is visible, disable labeling
         if (!status.lockDisableLabeling) {
             status.disableLabeling = true;
             /*
-            var menuOpen = rightClickMenu.isAnyOpen();
-            if (menuOpen) {
-                status.disableLabeling = true;
-            } else {
-                status.disableLabeling = false;
-            }
-            */
+             var menuOpen = rightClickMenu.isAnyOpen();
+             if (menuOpen) {
+             status.disableLabeling = true;
+             } else {
+             status.disableLabeling = false;
+             }
+             */
             return this;
         }
         return false;
@@ -528,7 +528,7 @@ function Canvas (ribbon) {
      * Enable deleting labels
      * @method
      */
-    function enableLabelDelete () {
+    function enableLabelDelete() {
         if (!status.lockDisableLabelDelete) {
             status.disableLabelDelete = false;
             return this;
@@ -540,7 +540,7 @@ function Canvas (ribbon) {
      * Enables editing labels
      * @method
      */
-    function enableLabelEdit () {
+    function enableLabelEdit() {
         if (!status.lockDisableLabelEdit) {
             status.disableLabelEdit = false;
             return this;
@@ -552,7 +552,7 @@ function Canvas (ribbon) {
      * Enables labeling
      * @method
      */
-    function enableLabeling () {
+    function enableLabeling() {
         if (!status.lockDisableLabeling) {
             status.disableLabeling = false;
             return this;
@@ -564,7 +564,7 @@ function Canvas (ribbon) {
      * Returns the label of the current focus
      * @method
      */
-    function getCurrentLabel () {
+    function getCurrentLabel() {
         return status.currentLabel;
     }
 
@@ -572,7 +572,7 @@ function Canvas (ribbon) {
      * Get labels stored in this canvas.
      * @method
      */
-    function getLabels (target) {
+    function getLabels(target) {
         // This method returns a deepcopy of labels stored in this canvas.
         if (!target) {
             target = 'user';
@@ -589,17 +589,19 @@ function Canvas (ribbon) {
      * Returns a lock that corresponds to the key.
      * @method
      */
-    function getLock (key) { return lock[key]; }
+    function getLock(key) {
+        return lock[key];
+    }
 
     /**
      * Returns a number of labels in the current panorama.
      * @method
      */
-    function getNumLabels () {
+    function getNumLabels() {
         var labels = svl.labelContainer.getCanvasLabels();
         var len = labels.length;
         var i, total = 0;
-        for (i =0; i < len; i++) {
+        for (i = 0; i < len; i++) {
             if (!labels[i].isDeleted() && labels[i].isVisible()) {
                 total++;
             }
@@ -610,16 +612,18 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function getRightClickMenu () { return rightClickMenu; }
+    function getRightClickMenu() {
+        return rightClickMenu;
+    }
 
     /**
      * Returns a status
      * @method
      */
-    function getStatus (key) {
-      if (!(key in status)) {
-        console.warn("You have passed an invalid key for status.")
-      }
+    function getStatus(key) {
+        if (!(key in status)) {
+            console.warn("You have passed an invalid key for status.")
+        }
         return status[key];
     }
 
@@ -630,15 +634,17 @@ function Canvas (ribbon) {
      * Otherwise it returns deepcopy of labels.
      * @method
      */
-    function getSystemLabels (reference) {
-        if (!reference) { reference = false; }
+    function getSystemLabels(reference) {
+        if (!reference) {
+            reference = false;
+        }
         return reference ? systemLabels : $.extend(true, [], systemLabels);
     }
 
     /**
      * @method
      */
-    function getUserLabelCount () {
+    function getUserLabelCount() {
         var labels = self.getUserLabels();
         labels = labels.filter(function (label) {
             return !label.isDeleted() && label.isVisible();
@@ -651,8 +657,10 @@ function Canvas (ribbon) {
      * If reference is true, then it returns reference to the labels. Otherwise it returns deepcopy of labels.
      * @method
      */
-    function getUserLabels (reference) {
-        if (!reference) { reference = false; }
+    function getUserLabels(reference) {
+        if (!reference) {
+            reference = false;
+        }
         return reference ? svl.labelContainer.getCanvasLabels() : $.extend(true, [], svl.labelContainer.getCanvasLabels());
     }
 
@@ -660,7 +668,7 @@ function Canvas (ribbon) {
      * Hide the delete label
      * @method
      */
-    function hideDeleteLabel () {
+    function hideDeleteLabel() {
         rightClickMenu.hideDeleteLabel();
         return this;
     }
@@ -669,7 +677,7 @@ function Canvas (ribbon) {
      * Hide the right click menu
      * @returns {hideRightClickMenu}
      */
-    function hideRightClickMenu () {
+    function hideRightClickMenu() {
         rightClickMenu.hideBusStopType();
         rightClickMenu.hideBusStopPosition();
         return this;
@@ -680,8 +688,10 @@ function Canvas (ribbon) {
      * and insert it into the labels array so the Canvas will render it
      * @method
      */
-    function insertLabel (labelPoints, target) {
-        if (!target) { target = 'user'; }
+    function insertLabel(labelPoints, target) {
+        if (!target) {
+            target = 'user';
+        }
 
         var pointData, pov, point, path, param = {},
             labelColors = util.misc.getLabelColors(),
@@ -712,18 +722,18 @@ function Canvas (ribbon) {
 
 
             point.setProperties({
-                fillStyleInnerCircle : labelColors[pointData.LabelType].fillStyle,
-                lineWidthOuterCircle : 2,
-                iconImagePath : iconImagePaths[pointData.LabelType].iconImagePath,
+                fillStyleInnerCircle: labelColors[pointData.LabelType].fillStyle,
+                lineWidthOuterCircle: 2,
+                iconImagePath: iconImagePaths[pointData.LabelType].iconImagePath,
                 originalCanvasCoordinate: pointData.originalCanvasCoordinate,
                 originalHeading: pointData.originalHeading,
                 originalPitch: pointData.originalPitch,
                 originalZoom: pointData.originalZoom,
                 pov: pov,
-                radiusInnerCircle : properties.pointInnerCircleRadius,
-                radiusOuterCircle : properties.pointOuterCircleRadius,
-                strokeStyleOuterCircle : 'rgba(255,255,255,1)',
-                storedInDatabase : false
+                radiusInnerCircle: properties.pointInnerCircleRadius,
+                radiusOuterCircle: properties.pointOuterCircleRadius,
+                strokeStyleOuterCircle: 'rgba(255,255,255,1)',
+                storedInDatabase: false
             });
 
             points.push(point)
@@ -751,6 +761,7 @@ function Canvas (ribbon) {
         param.svImageHeight = svl.svImageHeight;
         param.svMode = 'html4';
 
+
         if (("PhotographerPitch" in labelPoints[0]) && ("PhotographerHeading" in labelPoints[0])) {
             param.photographerHeading = labelPoints[0].PhotographerHeading;
             param.photographerPitch = labelPoints[0].PhotographerPitch;
@@ -771,14 +782,16 @@ function Canvas (ribbon) {
      * @method
      * @return {boolean}
      */
-    function isDrawing () { return status.drawing; }
+    function isDrawing() {
+        return status.drawing;
+    }
 
     /**
      * This function takes cursor coordinates x and y on the canvas. Then returns an object right below the cursor.
      * If a cursor is not on anything, return false.
      * @method
      */
-    function isOn (x, y) {
+    function isOn(x, y) {
         var i, ret = false,
             labels = svl.labelContainer.getCanvasLabels(),
             lenLabels = labels.length;
@@ -797,7 +810,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function lockCurrentLabel () {
+    function lockCurrentLabel() {
         status.lockCurrentLabel = true;
         return this;
     }
@@ -806,7 +819,7 @@ function Canvas (ribbon) {
      * Lock disable label delete
      * @method
      */
-    function lockDisableLabelDelete () {
+    function lockDisableLabelDelete() {
         status.lockDisableLabelDelete = true;
         return this;
     }
@@ -815,7 +828,7 @@ function Canvas (ribbon) {
      * Lock disable label edit
      * @method
      */
-    function lockDisableLabelEdit () {
+    function lockDisableLabelEdit() {
         status.lockDisableLabelEdit = true;
         return this;
     }
@@ -824,7 +837,7 @@ function Canvas (ribbon) {
      * Lock disable labeling
      * @method
      */
-    function lockDisableLabeling () {
+    function lockDisableLabeling() {
         status.lockDisableLabeling = true;
         return this;
     }
@@ -833,7 +846,7 @@ function Canvas (ribbon) {
      * This method locks showLabelTag
      * @method
      */
-    function lockShowLabelTag () {
+    function lockShowLabelTag() {
         lock.showLabelTag = true;
         return this;
     }
@@ -841,7 +854,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function pushLabel (label) {
+    function pushLabel(label) {
         status.currentLabel = label;
         svl.labelContainer.push(label);
         if (svl.actionStack) {
@@ -854,7 +867,7 @@ function Canvas (ribbon) {
      * This method removes all the labels stored in the labels array.
      * @method
      */
-    function removeAllLabels () {
+    function removeAllLabels() {
         if ("labelContainer" in svl) {
             svl.labelContainer.removeAll();
         }
@@ -866,17 +879,19 @@ function Canvas (ribbon) {
      * Renders labels
      * @method
      */
-    function render2 () {
-        if (!ctx) { return this; }
+    function render2() {
+        if (!ctx) {
+            return this;
+        }
         var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
         var labelCount = {
-            Landmark_Bench : 0,
+            Landmark_Bench: 0,
             Landmark_Shelter: 0,
             Landmark_TrashCan: 0,
             Landmark_MailboxAndNewsPaperBox: 0,
             Landmark_OtherPole: 0,
-            StopSign : 0,
+            StopSign: 0,
             CurbRamp: 0,
             NoCurbRamp: 0
         };
@@ -887,7 +902,7 @@ function Canvas (ribbon) {
         // For the condition, when the interface loads for the first time
         // The pov is changed. Prevents the conversion function to be called
         // for the initial rendering pipeline
-        if (labels.length == 0 && povChange["status"]){
+        if (labels.length == 0 && povChange["status"]) {
             povChange["status"] = false;
         }
 
@@ -914,7 +929,7 @@ function Canvas (ribbon) {
                             deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
                             x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
                             y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
-                            points[j].resetSVImageCoordinate({ x: x, y: y })
+                            points[j].resetSVImageCoordinate({x: x, y: y})
                         }
                     }
                 }
@@ -969,19 +984,29 @@ function Canvas (ribbon) {
         povChange["status"] = false;
 
         // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) { renderTempPath(); }
+        if (status.drawing) {
+            renderTempPath();
+        }
 
         // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) { svl.labeledLandmarkFeedback.setLabelCount(labelCount); }
+        if (svl.labeledLandmarkFeedback) {
+            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
+        }
 
         // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) { svl.actionStack.updateOpacity(); }
+        if (svl.actionStack) {
+            svl.actionStack.updateOpacity();
+        }
 
         // Update the opacity of Zoom In and Zoom Out buttons.
-        if (svl.zoomControl) { svl.zoomControl.updateOpacity(); }
+        if (svl.zoomControl) {
+            svl.zoomControl.updateOpacity();
+        }
 
         // This line of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) { svl.goldenInsertion.renderMessage(); }
+        if ('goldenInsertion' in svl && svl.goldenInsertion) {
+            svl.goldenInsertion.renderMessage();
+        }
 
         return this;
     }
@@ -989,7 +1014,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function renderBoundingBox (path) {
+    function renderBoundingBox(path) {
         path.renderBoundingBox(ctx);
         return this;
     }
@@ -997,7 +1022,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function setCurrentLabel (label) {
+    function setCurrentLabel(label) {
         if (!status.lockCurrentLabel) {
             status.currentLabel = label;
             return this;
@@ -1011,7 +1036,7 @@ function Canvas (ribbon) {
      * @param value
      * @returns {*}
      */
-    function setStatus (key, value) {
+    function setStatus(key, value) {
         if (key in status) {
             status[key] = value;
         } else {
@@ -1027,7 +1052,7 @@ function Canvas (ribbon) {
      * @param label
      * @returns {showLabelTag}
      */
-    function showLabelTag (label) {
+    function showLabelTag(label) {
         if (!lock.showLabelTag) {
             var i,
                 labels = svl.labelContainer.getCanvasLabels(),
@@ -1047,6 +1072,7 @@ function Canvas (ribbon) {
             if (!isAnyVisible) {
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             }
+
             self.clear();
             self.render2();
             return this;
@@ -1056,12 +1082,14 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function setTagVisibility (labelIn) { return self.showLabelTag(labelIn); }
+    function setTagVisibility(labelIn) {
+        return self.showLabelTag(labelIn);
+    }
 
     /**
      * @method
      */
-    function setVisibility (visibility) {
+    function setVisibility(visibility) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
@@ -1075,7 +1103,7 @@ function Canvas (ribbon) {
     /**
      * Set the visibility of the labels based on pano id.
      */
-    function setVisibilityBasedOnLocation (visibility, panoramaId) {
+    function setVisibilityBasedOnLocation(visibility, panoramaId) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
@@ -1089,7 +1117,7 @@ function Canvas (ribbon) {
      * Hide labels that are not in LabelerIds
      * @method
      */
-    function setVisibilityBasedOnLabelerId (visibility, LabelerIds, included) {
+    function setVisibilityBasedOnLabelerId(visibility, LabelerIds, included) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
 
@@ -1102,7 +1130,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function setVisibilityBasedOnLabelerIdAndLabelTypes (visibility, table, included) {
+    function setVisibilityBasedOnLabelerIdAndLabelTypes(visibility, table, included) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
         for (var i = 0; i < labelLen; i += 1) {
@@ -1114,12 +1142,14 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function showDeleteLabel (x, y) { rightClickMenu.showDeleteLabel(x, y); }
+    function showDeleteLabel(x, y) {
+        rightClickMenu.showDeleteLabel(x, y);
+    }
 
     /**
      * @method
      */
-    function unlockCurrentLabel () {
+    function unlockCurrentLabel() {
         status.lockCurrentLabel = false;
         return this;
     }
@@ -1127,7 +1157,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function unlockDisableLabelDelete () {
+    function unlockDisableLabelDelete() {
         status.lockDisableLabelDelete = false;
         return this;
     }
@@ -1135,7 +1165,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function unlockDisableLabelEdit () {
+    function unlockDisableLabelEdit() {
         status.lockDisableLabelEdit = false;
         return this;
     }
@@ -1143,7 +1173,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function unlockDisableLabeling () {
+    function unlockDisableLabeling() {
         status.lockDisableLabeling = false;
         return this;
     }
@@ -1151,7 +1181,7 @@ function Canvas (ribbon) {
     /**
      * @method
      */
-    function unlockShowLabelTag () {
+    function unlockShowLabelTag() {
         // This method locks showLabelTag
         lock.showLabelTag = false;
         return this;

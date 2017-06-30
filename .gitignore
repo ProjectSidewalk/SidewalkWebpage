@@ -12,6 +12,7 @@ coverage/
 .mailmap
 bower.json
 component.json
+package-lock.json
 
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
@@ -93,7 +94,7 @@ node_modules
 public/javascripts/SVLabel/build/*
 public/javascripts/Admin/build/*
 public/javascripts/FAQ/build/*
-public/javascripts/Admin/Progress/*
+public/javascripts/Progress/build/*
 download
 
 public/javascripts/SVLabel/build/SVLabel.js

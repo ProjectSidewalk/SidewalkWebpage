@@ -13,8 +13,29 @@ function ContextMenu (uiContextMenu) {
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
 
+    var lastShownLabelColor;
 
-    document.addEventListener("mousedown", hide);
+    var context_menu_el = document.getElementById('context-menu-holder');
+    document.addEventListener('mousedown', function(event){
+        //event.stopPropagation();
+        var clicked_out = !(context_menu_el.contains(event.target));
+        if (isOpen()){
+            hide();
+            if (clicked_out) _handleSeverityPopup();
+        }
+    }); //handles clicking outside of context menu holder
+    //document.addEventListener("mousedown", hide);
+    document.onkeypress= function(e){
+        e= e || window.event;
+        var key_pressed = e.which || e.keyCode;
+        if (key_pressed == 13 && isOpen()){
+            hide();
+            _handleSeverityPopup();
+        }
+    };//handles pressing enter key to exit ContextMenu
+
+
+
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
     $radioButtons.on('change', _handleRadioChange);
     $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
@@ -26,8 +47,40 @@ function ContextMenu (uiContextMenu) {
     $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
 
+    var down = {};
+    var lastKeyPressed = 0;
+    var lastKeyCmd = false;
+    onkeydown = onkeyup = function(e){
+        e = e || event; // to deal with IE
+        var isMac = navigator.platform.indexOf('Mac') > -1;
+        down[e.keyCode] = e.type == 'keydown';
+        if (isMac){
+            if (lastKeyCmd && down[91] && isOpen() && down[65]){
+                $descriptionTextBox.select();
+                down[65] = false; //reset A key 
+            }//A key, menu shown
+
+        }//mac
+        else{
+            if (lastKeyPressed == 17 && isOpen() && down[65]){
+                $descriptionTextBox.select();
+            }//ctrl+A while context menu open
+        }//windows
+        if (e.type == 'keydown'){
+            lastKeyPressed = e.keyCode;
+            lastKeyCmd = e.metaKey;
+        }else{
+            lastKeyPressed = 0;
+            lastKeyCmd = false;
+        }
+    }//handles both key down and key up events
+
     function checkRadioButton (value) {
         uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
+    }
+
+    function getContextMenuUI(){
+        return uiContextMenu;
     }
 
     /**
@@ -77,13 +130,32 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
+
         svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
+        _handleSeverityPopup();
+
     }
 
     function _handleOKButtonClick () {
+
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
+        _handleSeverityPopup();
+
+    }
+
+    function _handleSeverityPopup (){
+        var labels = svl.labelContainer.getCurrentLabels();
+        var prev_labels = svl.labelContainer.getPreviousLabels();
+        if (labels.length == 0){
+            labels = prev_labels;
+        }
+        if (labels.length > 0) {
+            var last_label = labels[labels.length - 1];
+            var prop = last_label.getProperties();
+            svl.ratingReminderAlert.ratingClicked(prop.severity);
+        }
     }
 
     /**
@@ -166,6 +238,19 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Unhide the context menu
+     * @returns {hide}
+     */
+    function unhide () {
+        $menuWindow.css('visibility', 'visible');
+        if (lastShownLabelColor) {
+            setBorderColor(lastShownLabelColor);
+        }
+        setStatus('visibility', 'visible');
+        return this;
+    }
+
+    /**
      * Checks if the menu is open or not
      * @returns {boolean}
      */
@@ -217,7 +302,10 @@ function ContextMenu (uiContextMenu) {
                 });
 
                 if (param) {
-                    if ('targetLabelColor' in param) { setBorderColor(param.targetLabelColor); }
+                    if ('targetLabelColor' in param) {
+                        setBorderColor(param.targetLabelColor);
+                        lastShownLabelColor = param.targetLabelColor;
+                    }
                 }
                 setStatus('visibility', 'visible');
 
@@ -255,9 +343,11 @@ function ContextMenu (uiContextMenu) {
         self.updateRadioButtonImages();
     }
 
+    self.getContextMenuUI = getContextMenuUI;
     self.checkRadioButton = checkRadioButton;
     self.getTargetLabel = getTargetLabel;
     self.hide = hide;
+    self.unhide = unhide;
     self.isOpen = isOpen;
     self.show = show;
     return self;

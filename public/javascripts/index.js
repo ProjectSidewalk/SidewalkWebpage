@@ -150,7 +150,7 @@ $(document).ready(function () {
                                             });
                                     // Update the chart as well
                                     dotPlotVisualization.increment(label.label_type);
-                                    dotPlotVisualization.udpate();
+                                    dotPlotVisualization.update();
 
                                 }
                             }
@@ -243,7 +243,7 @@ $(document).ready(function () {
       var svg = d3.select('#map-chart')
                     .append('svg')
                     .attr('width', svgWidth)
-                    .attr('height', svgHeight)
+                    .attr('height', svgHeight);
 
 
       var chart = svg.append('g')
@@ -278,7 +278,7 @@ $(document).ready(function () {
       }
 
       function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
+        // If a key is given, update the dot plot for that specific data.
         // Otherwise update all.
         if (key) {
           _update(key)
@@ -379,10 +379,10 @@ $(document).ready(function () {
     //  }, 1500);
 
       return {
-        udpate: update,
+        update: update,
         increment: increment
       }
-    };
+    }
     var dotPlotVisualization = new DotPlotVisualization();
 
 });

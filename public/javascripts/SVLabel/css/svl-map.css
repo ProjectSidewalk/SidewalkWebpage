@@ -1,7 +1,7 @@
 #google-maps-holder  {
     position: absolute;
     left: 735px;
-    top: 403px;
+    top: 393px;
 }
 
 .google-maps-pane {
@@ -10,7 +10,7 @@
     left: 0;
     top:0;
     width: 200px;
-    height: 200px;
+    height: 210px;
 }
 
 #google-maps-overlay {

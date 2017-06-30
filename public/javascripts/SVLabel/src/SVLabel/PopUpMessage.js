@@ -11,13 +11,27 @@
  */
 function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
     var self = this;
-    var status = { haveAskedToSignIn: false };
+    var status = { haveAskedToSignIn: false, signUp: false};
     var buttons = [];
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
         self.hide();
     });
-
+    function disableInteractions () {
+        svl.panorama.set('linksControl', false);//disable arrows
+        svl.map.disableWalking();
+        svl.map.unlockDisablePanning();
+        svl.map.disablePanning();
+        svl.canvas.disableLabeling();
+        svl.keyboard.disableKeyboard();
+    }
+    function enableInteractions () {
+        svl.panorama.set('linksControl', true);//enable arrows
+        svl.map.enableWalking();
+        svl.map.enablePanning();
+        svl.canvas.enableLabeling();
+        svl.keyboard.enableKeyboard();
+    }
     function _attachCallbackToClickOK (callback) {
         $("#pop-up-message-ok-button").one('click', callback);
     }
@@ -50,9 +64,20 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         var OKButton = '<button id="pop-up-message-ok-button">OK</button>';
         function handleClickOK () {
             tracker.push('PopUpMessage_ClickOk');
+            enableInteractions();
             $("#pop-up-message-ok-button").remove();
         }
         self._appendButton(OKButton, handleClickOK);
+
+
+        $(document).keyup(function (e){
+            e = e || window.event; //Handle IE
+            //enter
+            if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
+                tracker.push('KeyboardShortcut_ClickOk');
+                $("#pop-up-message-ok-button").click();
+            }
+        });
     };
 
     this.haveAskedToSignIn = function () {
@@ -65,6 +90,9 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     this.hide = function () {
         uiPopUpMessage.holder.removeClass('visible');
         uiPopUpMessage.holder.addClass('hidden');
+        if (!status.signUp){
+            enableInteractions();
+        }
         self.hideBackground();  // hide background
         self.reset();  // reset all the parameters
         return this;
@@ -85,28 +113,49 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         uiPopUpMessage.buttonHolder.html("");
         self._setTitle("You've been contributing a lot!");
         self._setMessage("Do you want to create an account to keep track of your progress?");
-        self._appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
+        disableInteractions(); //disable interactions while msg up
+        self._appendButton('<button id="pop-up-message-sign-up-button" class="float" style = "margin-right:10px">Let me sign up!</button>', function () {
             // Store the data in LocalStorage.
             var task = taskContainer.getCurrentTask();
+
+            tracker.push('PopUpMessage_SignUpClickYes', {
+                "auditTaskId": task.getAuditTaskId(),
+                "auditStreetEdgeId": task.getStreetEdgeId()
+            });
             var data = form.compileSubmissionData(task),
                 staged = storage.get("staged");
             staged.push(data);
             storage.set("staged", staged);
-
+            disableInteractions();
+            status.signUp = true;
             $("#sign-in-modal").addClass("hidden");
             $("#sign-up-modal").removeClass("hidden");
             $('#sign-in-modal-container').modal('show');
         });
         self._appendButton('<button id="pop-up-message-cancel-button" class="float">No</button>', function () {
 
-            user.setProperty('firstTask', false);
             // Submit the data as an anonymous user.
+            user.setProperty('firstTask', false);
+
             var task = taskContainer.getCurrentTask();
+            tracker.push('PopUpMessage_SignUpClickNo', {
+                "auditTaskId": task.getAuditTaskId(),
+                "auditStreetEdgeId": task.getStreetEdgeId()
+            });
+
             var data = form.compileSubmissionData(task);
             form.submit(data, task);
         });
-        appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in"><small><span style="text-decoration: underline;">I do have an account! Let me sign in.</span></small></a></p>', function () {
+        appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in">' +
+            '<small><span style="text-decoration: underline; cursor: pointer;">I do have an account! Let me sign in.</span></small>' +
+            '</a></p>', function () {
+
             var task = taskContainer.getCurrentTask();
+
+            tracker.push('PopUpMessage_SignInClick', {
+                "auditTaskId": task.getAuditTaskId(),
+                "auditStreetEdgeId": task.getStreetEdgeId()
+            });
             var data = form.compileSubmissionData(task),
                 staged = storage.get("staged");
             staged.push(data);
@@ -136,7 +185,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         self._appendOKButton();
 
         if (callback) {
-            _attachCallbackToClickOK(callback)
+            _attachCallbackToClickOK(callback);
         }
     };
 
@@ -153,7 +202,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                     zIndex: ''
                 });
 
-        uiPopUpMessage.foreground.css('padding-bottom', '')
+        uiPopUpMessage.foreground.css('padding-bottom', '');
 
         for (var i = 0; i < buttons.length; i++ ){
             try {
@@ -163,15 +212,15 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             }
         }
         buttons = [];
+        status.signUp = false;
     };
 
     /**
      * This method shows a messaage box on the page.
      */
     this.show = function (disableOtherInteraction) {
-        if (disableOtherInteraction) {
-            self._showBackground();
-        }
+        disableInteractions();
+        self._showBackground();
 
         uiPopUpMessage.holder.removeClass('hidden');
         uiPopUpMessage.holder.addClass('visible');
@@ -213,4 +262,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         });
         return this;
     };
+    self.disableInteractions = disableInteractions;
+    self.enableInteractions = enableInteractions;
+
 }

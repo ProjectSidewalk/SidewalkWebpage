@@ -25,13 +25,31 @@
                     </li>
 
                 } else {
-                    
-                    <li>
+
+                    <script type="text/javascript">
+                            $("#biglogo").css("top", "0px");
+                            $("#biglogo").css("height", "28px" ); //logo resize
+                            $("#biglogo").css("width", "auto" );
+                            $("#header").css("max-height", "45px");
+                            $("#header-container").css("max-height", "45px");
+                            $("#header-container").css("top", "-13px"); //logo margin
+                            $("#header").addClass("navbar-xs");
+                            $("#header").removeClass("navbar");
+                            $("#brand").addClass("navbar-xs-brand");
+                            $("#brand").removeClass("navbar-brand");
+                            $("#navbar").css("margin-top", "16px"); //button margin
+                            $(".navbar-header").css("top", "0px");
+                            $("body").css("padding-top", "14px");
+                    </script>
+
+                    <li class="navbarLink">
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
+                    <li class = "navbarLink">
+                      <a href='@routes.ApplicationController.faq' id="toolbar-onboarding-link" target="_blank">FAQ</a>
+                    </li>
+
                 }
-
-
 
                 @if(user) {
                     <li>
@@ -61,7 +79,7 @@
                 } else {
 
                     <li class="active">
-                    <!--<a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">--><button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Login</button>
+                    <!--<a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">--><button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" id="sign-in-button" onclick="location.href='#SignIn';">Sign in</button>
                     </li>
                 }
             </ul>
@@ -81,6 +99,25 @@
                 $("#form-open-sign-in").on("mouseup", function () {
                     $("#sign-up-modal").addClass("hidden");
                     $("#sign-in-modal").removeClass("hidden");
+                });
+
+                // Log if user /clicks/ on sign-in button, but not necessarily signs in
+                $("#sign-in-button").on('click', function(){
+                    var url = "/userapi/logWebpageActivity";
+                    var async = true;
+                    var activity = "Click_module=SignIn";
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify(activity),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
                 });
             });
     </script>

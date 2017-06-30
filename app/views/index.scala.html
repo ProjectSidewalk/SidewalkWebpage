@@ -7,10 +7,11 @@
 
 @main(title) {
     @navbar(user)
+    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
-        
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.png")' id="bgvid" class="visible-desktop">
+        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+            <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
         <div id="overlay-top" style="width: 100%;
@@ -40,6 +41,7 @@
     </div>
 
     <div id="content">
+
 
 
         <div class="container" id="banner2" style="width: 100%;
@@ -152,6 +154,48 @@
             </div>
         </div>
     </div>
+    
+    <div class="container" id="choropleth-container" style="width: 100%;
+        position: relative;">
+        <div class="im-centered3">
+            <div class="row">Pick a Neighborhood</div>
+            <br>
+            <div class="row" id="content-text-1">
+                <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
+                    You are automatically assigned a neighborhood when you click 'Start Mapping', but you can also choose one by clicking on a region below!
+                </div>
+            </div>
+        </div>
+        <br>
+        <div id="map-holder">
+            <div id="legend" style="display:none;">
+                <strong style="font-size: 18px">Percent of Neighborhood Complete</strong>
+                <nav class='legend clearfix'>
+                    <span style='background:#08306b;'></span>
+                    <span style='background:#08519c;'></span>
+                    <span style='background:#08719c;'></span>
+                    <span style='background:#2171b5;'></span>
+                    <span style='background:#4292c6;'></span>
+                    <span style='background:#6baed6;'></span>
+                    <span style='background:#9ecae1;'></span>
+                    <span style='background:#c6dbef;'></span>
+                    <span style='background:#deebf7;'></span>
+                    <span style='background:#f7fbff;'></span>
+                    <label>100%</label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label>0%</label>
+                </nav>
+            </div>
+            <div id="choropleth"></div>
+        </div>
+    </div>
     <div class="container" id="difference-container">
         <div id="dcanim-div">
             <img src="@routes.Assets.at("assets/dc_graphic.png")" width="1400" style="position:relative;">
@@ -182,7 +226,7 @@
 
             </div>
             <script language="javascript">
-                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
+                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
                     var milesAnim = new CountUp("nummiles", 0, @("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))),0,2.5,{suffix:''});
             </script>
@@ -195,7 +239,7 @@
             <div class="im-centered3">
                 <div class="row" style="width: 450px;">What we do with your labels</div>
                 <div class="row" id="content-text-4">
-                    <p>Your contributions help train machine learning algorithms to identify accessibility issues automatically.</p>
+                    <p>Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.</p>
                 </div>
                 <br>
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" >
@@ -214,7 +258,7 @@
             <div class="row" style="padding-top: 40px;">
                 <div class="col-sm-6">
                     <div class="quotebox">
-                        Using machine learning, big data, & civic kindness, <a href="https://twitter.com/umd_sidewalk" target="_blank">@@umd_sidewalk</a> is making D.C. more accessible one mile at a time
+                        Using machine learning, big data, & civic kindness, <a href="https://twitter.com/umd_sidewalk" target="_blank" id="microsoftdesign-author-twitter">@@projsidewalk</a> is making D.C. more accessible one mile at a time
                         <br>
                         <span class="quoteauthor">@@microsoftdesign</span>
 
@@ -223,7 +267,7 @@
                 </div>
                 <div class="col-sm-6">
                     <div class="quotebox">
-                        <a href="https://twitter.com/umd_sidewalk" target="_blank">@@umd_sidewalk</a> is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
+                        <a href="https://twitter.com/umd_sidewalk" target="_blank" id="kpkindc-author-twitter">@@projsidewalk</a> is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
                         <br>
                         <span class="quoteauthor">@@kpkindc</span>
                     </div>
@@ -248,18 +292,18 @@
             vertical-align: middle;
         ">
             <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
+                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-img-link">
                     <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
+                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-img-link">
                     <img style="position: relative; left:10px; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
 
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
+                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/" id="diamondback-img-link">
                     <img src='@routes.Assets.at("assets/diamondback.png")' height="70" alt="Diamondback Logo">
                 </a>
             </div>
@@ -269,20 +313,20 @@
             text-align: center;
         ">
             <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/">
+                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-text-link">
 
                     How Project Sidewalk is making DC more accessible
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk">
+                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-text-link">
 
                     Make D.C.'s sidewalks more accessible with this crowd-sourced map
 
                 </a>
             </div>
             <div class="col-sm-4">
-                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/">
+                <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/" id="diamondback-text-link">
 
                     A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
                 </a>
@@ -291,4 +335,19 @@
     </div>
     </div>
 
+
+<script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+<link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
+
+
+<script>
+        $(document).ready(function () {
+            window.choropleth = Choropleth(_, $, turf);
+        });
+</script>
 }

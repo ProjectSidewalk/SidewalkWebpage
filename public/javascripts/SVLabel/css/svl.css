@@ -8,10 +8,10 @@
 text {
     visibility: hidden;
 }
-
+/*
 .visible {
     visibility: visible;
-}
+}*/
 
 .highlight {
     color: orange;
@@ -137,4 +137,10 @@ input[type="radio"] {
     -ms-user-select: none;
     -o-user-select: none;
     user-select: none;
+}
+
+.disabled {
+    pointer-events: none;
+    cursor: default;
+    opacity: 0.5;
 }

@@ -4,8 +4,9 @@
 @import play.api.libs.json.Json
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
-@main(title) {
+@main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
+    <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
@@ -15,7 +16,9 @@
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-    <div class="container">
+    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+
+    <div class="container toolUI" style = "visibility: hidden;">
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -269,7 +272,7 @@
                             </div>
                             <div>
                                 <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                    <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
+                                    <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
                                 </div>
                             </div>
                             <div>
@@ -613,7 +616,6 @@
             </div>
         </div>
     </template>
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
@@ -635,7 +637,6 @@
             svl.user = new User(userParam, svl.userModel);
         }
         svl.userModel._user = svl.user;
-
         @if(task) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
@@ -676,7 +677,6 @@
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
-
             enableTouchSupport();
         });
 
@@ -741,6 +741,7 @@
                 mainParam.regionLayer = null;
             }
             svl.main = new Main(mainParam);
+
         }
     </script>
 
