@@ -154,7 +154,6 @@ function ActionStack (tracker, uiActionStack) {
         if (availableActionList.indexOf(action) === -1) {
             throw self.className + ": Illegal action.";
         }
-
         var actionItem = {
             action : action,
             label : label,
@@ -162,11 +161,12 @@ function ActionStack (tracker, uiActionStack) {
         };
         if (actionStack.length !== 0 &&
             actionStack.length > status.actionStackCursor) {
-            // Delete all the action items after the cursor before pushing the new acitonItem
+            // Delete all the action items after the cursor before pushing the new actionItem
             actionStack.splice(status.actionStackCursor);
         }
         actionStack.push(actionItem);
         status.actionStackCursor += 1;
+
         return this;
     }
 
@@ -219,6 +219,7 @@ function ActionStack (tracker, uiActionStack) {
     /** Undo an action */
     function undo () {
         if (!status.disableUndo) {
+
             status.actionStackCursor -= 1;
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
@@ -281,6 +282,13 @@ function ActionStack (tracker, uiActionStack) {
             uiActionStack.redo.css('opacity', 0.5);
         }
     }
+    /*
+        Resets action stack to empty and resets current action pointer
+     */
+    function reset (){
+        status.actionStackCursor = 0;
+        actionStack = [];
+    }
 
     self.blink = blink;
     self.blinkUndo = blinkUndo;
@@ -301,7 +309,7 @@ function ActionStack (tracker, uiActionStack) {
     self.getLock = getLock;
     self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
-
+    self.reset = reset;
     init();
 
     return self;

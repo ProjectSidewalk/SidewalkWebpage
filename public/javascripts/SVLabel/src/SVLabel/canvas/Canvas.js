@@ -761,6 +761,7 @@ function Canvas(ribbon) {
         param.svImageHeight = svl.svImageHeight;
         param.svMode = 'html4';
 
+
         if (("PhotographerPitch" in labelPoints[0]) && ("PhotographerHeading" in labelPoints[0])) {
             param.photographerHeading = labelPoints[0].PhotographerHeading;
             param.photographerPitch = labelPoints[0].PhotographerPitch;

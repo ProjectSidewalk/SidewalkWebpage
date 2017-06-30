@@ -505,6 +505,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         //Reset the label counts to zero after onboarding
         svl.labelCounter.reset();
+        actionStack.reset();
+
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
 
@@ -952,6 +954,49 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         */
 
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
+    }
+
+    function _visitIntroduction(state, listener) {
+        var pov = {
+                heading: state.properties.heading,
+                pitch: state.properties.pitch,
+                zoom: state.properties.zoom
+            },
+            googleTarget,
+            googleCallback,
+            $target;
+
+        renderRoutesOnGoogleMap(state);
+
+        // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
+        // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
+        // When they click OK, then the POV changes.
+        if (typeof google != "undefined") {
+            googleCallback = function () {
+                mapService.setPano(state.panoId, true);
+                google.maps.event.removeListener(googleTarget);
+            };
+
+            googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
+
+            $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
+            $(".onboarding-transition-trigger").css({
+                'cursor': 'pointer'
+            });
+            function callback () {
+                if (listener) google.maps.event.removeListener(listener);
+                $target.off("click", callback);
+                next.call(this, state.transition);
+                mapService.setPano(state.panoId, true);
+                mapService.setPov(pov);
+                mapService.setPosition(state.properties.lat, state.properties.lng);
+
+                compass.hideMessage();
+            }
+            $target.on("click", callback);
+
+
+        }
     }
 
     function _visitRateSeverity(state, listener) {
