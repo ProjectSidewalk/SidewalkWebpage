@@ -108,33 +108,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             svl.contextMenu.hide();
             return;
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
-            // lock scrolling in response to key pressing
-            switch (e.keyCode) {
-                case 16:  // "Shift"
-                    status.shiftDown = true;
-                    break;
-                case 37:  // "Left"
-                    self._rotatePov(-2);
-                    break;
-                case 39:  // "Right"
-                    self._rotatePov(2);
-                    break;
-                case 38:
-                    self._moveForward();
-                    break;
-                case 40:  // "down"
-                    self._moveBackward();
-                    break;
-            }
-        }
-        if (!status.focusOnTextField) {
-
             if (e.keyCode == 16) { //shift key
                 status.shiftDown = true;
             }
-            if (!svl.contextMenu.isOpen()){
+
+            if (!svl.contextMenu.isOpen()) {
                 // lock scrolling in response to key pressing
                 switch (e.keyCode) {
+                    case 16:  // "Shift"
+                        status.shiftDown = true;
+                        break;
                     case 37:  // "Left"
                         self._rotatePov(-2);
                         break;
@@ -148,7 +131,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         self._moveBackward();
                         break;
                 }
-
                 if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                     e.preventDefault();
                 }

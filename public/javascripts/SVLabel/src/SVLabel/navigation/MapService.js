@@ -1060,10 +1060,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             }
         }
-        $("#viewControlLayer path").on("click", function(){
-            timeoutWalking();
-            window.setTimeout(resetWalking(), 3000);
-        });
 
         //This is necessary for supporting touch devices, because there is no mouse hover
         mouseStatus.prevX = mouseposition(e, this).x;
