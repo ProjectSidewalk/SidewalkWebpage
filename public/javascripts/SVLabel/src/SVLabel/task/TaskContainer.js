@@ -54,7 +54,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         navigationModel.disableWalking();
 
         if (streetViewService) {
-            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE,
+            streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
                     navigationModel.enableWalking();
                     if (status === google.maps.StreetViewStatus.OK) {
