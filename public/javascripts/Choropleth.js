@@ -22,6 +22,7 @@ function Choropleth(_, $, turf) {
         maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9,
+        zoomControl: false,
         legendControl: {
             position: 'bottomleft'
         }
@@ -31,6 +32,8 @@ function Choropleth(_, $, turf) {
     choropleth.scrollWheelZoom.disable();
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
+
+    L.control.zoomslider().addTo(choropleth);
 
 
     /**
@@ -97,7 +100,9 @@ function Choropleth(_, $, turf) {
                     compRate = Math.round(100.0 * rates[i].rate);
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
                     if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!";
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to find accessibility issues in this neighborhood yourself!";
                     }
                     else if (milesLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate +
@@ -142,6 +147,32 @@ function Choropleth(_, $, turf) {
 
                 map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
+
+
+                // Log when a user clicks on a region on the choropleth
+                // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
+                // Log is stored in WebpageActivityTable
+                var regionId = e.target.feature.properties.region_id;
+                var ratesEl = rates.find(function(x){
+                    return regionId == x.region_id;
+                });
+                var compRate = Math.round(100.0 * ratesEl.rate);
+                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                var distanceLeft = "";
+                if(compRate === 100){
+                    distanceLeft = "0";
+                }
+                else if(milesLeft === 0){
+                    distanceLeft = "<1";
+                }
+                else if(milesLeft === 1){
+                    distanceLeft = "1";
+                }
+                else{
+                    distanceLeft = ">1";
+                }
+                var activity = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                postToWebpageActivity(activity);
             });
         }
 
@@ -152,6 +183,35 @@ function Choropleth(_, $, turf) {
                 onEachFeature: onEachNeighborhoodFeature
             })
                 .addTo(map);
+        });
+
+
+        // Logs when a region is selected from the choropleth and 'Click here' is clicked
+        // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
+        // Log is stored in WebpageActivityTable
+        $("#choropleth").on('click', '.region-selection-trigger', function () {
+            var regionId = $(this).attr('regionId');
+            var ratesEl = rates.find(function(x){
+                return regionId == x.region_id;
+            })
+            var compRate = Math.round(100.0 * ratesEl.rate);
+            var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+            var distanceLeft = "";
+            if(compRate === 100){
+                distanceLeft = "0";
+            }
+            else if(milesLeft === 0){
+                distanceLeft = "<1";
+            }
+            else if(milesLeft === 1){
+                distanceLeft = "1";
+            }
+            else{
+                distanceLeft = ">1";
+            }
+
+            var data = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
+            postToWebpageActivity(data);
         });
     }
 
@@ -164,4 +224,23 @@ function Choropleth(_, $, turf) {
             choropleth.invalidateSize(false);
         }, 1);
     });
+
+
+    // Makes POST request that logs `activity` in WebpageActivityTable
+    function postToWebpageActivity(activity){
+        var url = "/userapi/logWebpageActivity";
+        var async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
 }
