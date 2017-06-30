@@ -54,7 +54,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
     var _mouseDownCanvasDrawingHandler;
     var currentState;
-    var numOnboardingLabels = 7;
     var currentLabelState;
 
     this._onboardingLabels = [];
@@ -957,7 +956,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
 
-<<<<<<< HEAD
     function _visitIntroduction(state, listener) {
         var pov = {
                 heading: state.properties.heading,
@@ -1001,8 +999,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         }
     }
 
-=======
->>>>>>> refs/remotes/origin/develop
     function _visitRateSeverity(state, listener) {
 
         if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();

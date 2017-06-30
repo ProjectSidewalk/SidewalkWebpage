@@ -282,7 +282,9 @@ function ActionStack (tracker, uiActionStack) {
             uiActionStack.redo.css('opacity', 0.5);
         }
     }
-
+    /*
+        Resets action stack to empty and resets current action pointer
+     */
     function reset (){
         status.actionStackCursor = 0;
         actionStack = [];
