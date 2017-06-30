@@ -37,6 +37,16 @@ function ActionStack (tracker, uiActionStack) {
             uiActionStack.undo.toggleClass("highlight-50");
         }, 500);
     }
+
+    /**
+     * Blink undo and redo buttons
+     */
+    function blinkUndo () {
+        stopBlinking();
+        blinkInterval = window.setInterval(function () {
+            uiActionStack.undo.toggleClass("highlight-50");
+        }, 500);
+    }
     
     /**
      * Disable redo
@@ -144,7 +154,6 @@ function ActionStack (tracker, uiActionStack) {
         if (availableActionList.indexOf(action) === -1) {
             throw self.className + ": Illegal action.";
         }
-
         var actionItem = {
             action : action,
             label : label,
@@ -152,11 +161,12 @@ function ActionStack (tracker, uiActionStack) {
         };
         if (actionStack.length !== 0 &&
             actionStack.length > status.actionStackCursor) {
-            // Delete all the action items after the cursor before pushing the new acitonItem
+            // Delete all the action items after the cursor before pushing the new actionItem
             actionStack.splice(status.actionStackCursor);
         }
         actionStack.push(actionItem);
         status.actionStackCursor += 1;
+
         return this;
     }
 
@@ -209,16 +219,19 @@ function ActionStack (tracker, uiActionStack) {
     /** Undo an action */
     function undo () {
         if (!status.disableUndo) {
+
             status.actionStackCursor -= 1;
             if(status.actionStackCursor >= 0) {
                 var actionItem = actionStack[status.actionStackCursor];
                 if (actionItem.action === 'addLabel') {
+                    // Undo Add
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_AddLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
                     actionItem.label.setStatus('deleted', true);
                     svl.labelCounter.decrement(actionItem.label.getProperty('labelType'));
                 } else if (actionItem.action === 'deleteLabel') {
+                    // Undo Delete
                     if ('tracker' in svl) {
                         svl.tracker.push('Undo_RemoveLabel', {labelId: actionItem.label.getProperty('labelId')});
                     }
@@ -269,8 +282,16 @@ function ActionStack (tracker, uiActionStack) {
             uiActionStack.redo.css('opacity', 0.5);
         }
     }
+    /*
+        Resets action stack to empty and resets current action pointer
+     */
+    function reset (){
+        status.actionStackCursor = 0;
+        actionStack = [];
+    }
 
     self.blink = blink;
+    self.blinkUndo = blinkUndo;
     self.disableRedo = disableRedo;
     self.disableUndo = disableUndo;
     self.enableRedo = enableRedo;
@@ -288,7 +309,7 @@ function ActionStack (tracker, uiActionStack) {
     self.getLock = getLock;
     self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
-
+    self.reset = reset;
     init();
 
     return self;

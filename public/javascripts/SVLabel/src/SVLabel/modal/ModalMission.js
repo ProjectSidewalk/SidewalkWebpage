@@ -41,11 +41,11 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ of __NEIGHBORHOOD_PLACEHOLDER__"
     };
 
-    var initailMissionHTML = '<figure> \
+    var initialMissionHTML = '<figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>The sidewalk accessibility affects how people with mobility impairments move about the city. Your first mission is to <span class="bold">find all the accessibility attributes that affect mobility impaired travelers.</span></p>\
+        <p>Your <span class="bold">first mission</span> is to audit __DISTANCE_PLACEHOLDER__ of __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
     var distanceMissionHTML = ' <figure> \
@@ -108,7 +108,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         if (label == "distance-mission") {
             var auditDistance,
                 distanceString;
-            templateHTML = distanceMissionHTML;
+                templateHTML = distanceMissionHTML;
+
+            if(missionContainer.isTheFirstMission()){
+                missionTitle = "First Mission: " + missionTitle;
+                templateHTML = initialMissionHTML;
+            }
 
             distanceString = this._auidtDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
 
@@ -133,7 +138,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             uiModalMission.instruction.html(templateHTML);
             $("#modal-mission-area-coverage-rate").html(coverage);
         } else {
-            templateHTML = initailMissionHTML;
+            templateHTML = initialMissionHTML;
             uiModalMission.instruction.html(templateHTML);
             uiModalMission.missionTitle.html(missionTitle);
         }
@@ -141,17 +146,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
         $("#mission-badge-holder").html(badge);
 
-        document.addEventListener("keyup", function (e){
-            e = e || window.event;
-            //enter key
-            if (e.keyCode == 13 && self._status.isOpen){
-                //uiModalMission.holder.css('visibility', 'hidden');
-                self.hide();
-                if (callback){
-                    callback();
-                }
-            }
-        });
+
         if (callback) {
             $("#modal-mission-close-button").one("click", function () {
                 self.hide();
@@ -161,6 +156,14 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             $("#modal-mission-close-button").one("click", self.hide);
             $("#modal-mission-holder").find(".ok-button").one("click", self.hide);
         }
+
+        $(document).keyup(function (e){
+            e = e || window.event;
+            //enter key
+            if (e.keyCode == 13 && self._status.isOpen){
+                $("#modal-mission-close-button").click();
+            }
+        });
     };
 
     uiModalMission.background.on("click", this._handleBackgroundClick);

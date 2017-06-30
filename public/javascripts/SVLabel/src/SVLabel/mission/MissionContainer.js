@@ -105,7 +105,9 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
             if (missionIds.indexOf(mission.missionId) < 0) self._missionStoreByRegionId[regionId].push(mission);
         }
     };
-
+    this.onlyMissionOnboardingDone = function (){
+       return self._completedMissions.length == 1 && self._completedMissions[0].getProperty("label") === "onboarding";
+    };
 
     /** Get current mission */
     function getCurrentMission () {
