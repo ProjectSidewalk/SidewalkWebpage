@@ -8,7 +8,7 @@ POST    /                                       controllers.TeaserController.tea
 
 GET     /home                                   @controllers.ApplicationController.index
 GET     /about                                  @controllers.ApplicationController.about
-GET     /developer                              @controllers.ApplicationController.developer
+GET     /api                                    @controllers.ApplicationController.developer
 GET     /terms                                  @controllers.ApplicationController.terms
 GET     /demo                                   @controllers.ApplicationController.demo
 GET     /results                                @controllers.ApplicationController.results
