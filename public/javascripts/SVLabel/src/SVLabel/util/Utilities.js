@@ -125,12 +125,13 @@ if(typeof JSON!=="object"){JSON={}}(function(){"use strict";function f(e){return
 // Get what browser the user is using.
 // This code was taken from an answer in the following SO page:
 // http://stackoverflow.com/questions/3303858/distinguish-chrome-from-safari-using-jquery-browser
-// addendum 6-21-2017: chrome detection now supports iOS devices
+// addendum 6-21-2017: chrome detection now supports iOS devices, added edge recognition
 var userAgent = navigator.userAgent.toLowerCase();
 
 // Figure out what browser is being used
 jQuery.browser = {
     version: (userAgent.match( /.+(?:rv|it|ra|ie|me)[\/: ]([\d.]+)/ ) || [])[1],
+    edge: /edge/.test( userAgent ),
     chrome: /chrome/.test( userAgent ) || /crios/.test( userAgent ),
     safari: /webkit/.test( userAgent ) && !/chrome/.test( userAgent ) && !/crios/.test( userAgent ),
     opera: /opera/.test( userAgent ),
