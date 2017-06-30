@@ -1132,6 +1132,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param e
      */
     function handlerViewControlLayerMouseLeave (e) {
+        setViewControlLayerCursor('OpenHand')
         mouseStatus.isLeftDown = false;
     }
 
