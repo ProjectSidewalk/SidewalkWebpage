@@ -1,5 +1,5 @@
 function InitialMissionInstruction(compass, mapService, neighborhoodContainer, popUpMessage, taskContainer,
-                                   labelContainer) {
+                                   labelContainer, tracker) {
     var self = this;
     var initialHeading;
     var lookingAroundInterval;
@@ -22,6 +22,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 var title = "Please check both sides of the street";
                 var message = "Remember, we would like you to check both sides of the street. " +
                     "Please label accessibility issues like sidewalk obstacles and surface problems.";
+                tracker.push('PopUpShow_CheckBothSides');
 
                 popUpMessage.notify(title, message, function() {
                     mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
@@ -52,9 +53,9 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             if (labelCount > 0) {
                 if (svl.missionContainer.isTheFirstMission() && labelCount != nOnboardingLabels) {
                     var title = "Labels on the image disappear";
-                    var message = "If you turn back now to look at your labels, they would not appear on the Street View " +
-                        "image after you have taken a step. " +
-                        "<span class='bold'>However, they aren't gone</span>. You can track them on the highlighed map.";
+                    var message = "Wondering where your labels went? After taking a step, you won't see them in the " +
+                        "Street View image anymore, but you can still see them on the highlighted mini map!";
+                    tracker.push('PopUpShow_GSVLabelDisappear');
 
                     popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
                     mapService.blinkGoogleMaps();
@@ -68,6 +69,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             var title = "Let's take a step!";
             var message = "It looks like you've looked around this entire intersection, so it's time to explore " +
                 "other areas. Walk in the direction of the red line highlighted on the map.";
+            tracker.push('PopUpShow_LookAroundIntersection');
 
             popUpMessage.notify(title, message, function () {
                 self._stopBlinkingNavigationComponents();
@@ -129,6 +131,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             var message = "We have moved you to a street in " + neighborhood.getProperty("name") +
                 ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
                 "accessibility problems at this intersection.";
+            tracker.push('PopUpShow_LetsGetStarted');
 
             popUpMessage.notify(title, message, self._finishedInstructionToStart);
 

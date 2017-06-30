@@ -343,7 +343,7 @@ function Main (params) {
         if (svl.missionContainer.isTheFirstMission() || svl.missionContainer.onlyMissionOnboardingDone()) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
+                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
             svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
