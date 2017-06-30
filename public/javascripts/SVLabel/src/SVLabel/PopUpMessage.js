@@ -74,6 +74,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             e = e || window.event; //Handle IE
             //enter
             if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
+                tracker.push('KeyboardShortcut_ClickOk');
                 $("#pop-up-message-ok-button").click();
             }
         });
