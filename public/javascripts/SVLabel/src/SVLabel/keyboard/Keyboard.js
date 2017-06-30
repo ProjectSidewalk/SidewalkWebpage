@@ -11,7 +11,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         focusOnTextField: false,
         isOnboarding: false,
         shiftDown: false,
-        disableKeyboard: false
+        disableKeyboard: false,
+        moving: false
     };
 
     this.disableKeyboard = function (){
@@ -25,7 +26,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     // Todo. Make the method name more descriptive.
     this._movePano = function (angle) {
         if (googleMap.getStatus("disableWalking")) return;
-
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panorama.links.map(function(link) {
             var headingAngleOffset = util.math.toRadians(svl.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
@@ -40,17 +40,32 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         }
     };
 
-    this._moveForward = function (){
+    /*
+       Move user in specific angle relative to current view for a specific moveTime.
+     */
+    function timedMove(angle, moveTime){
+        if (status.moving || svl.isOnboarding() || svl.popUpMessage.getStatus("isVisible")){
+            svl.panorama.set("linksControl", false);
+            return;
+        }
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        this._movePano(0);
+        self._movePano(angle);
+        //prevent user input of walking commands
+        svl.map.timeoutWalking();
+        //restore user ability to walk after param moveTime
+        setTimeout(svl.map.resetWalking, moveTime);
+    }
+
+    this._moveForward = function (){
+        timedMove(0, svl.map.getMoveDelay());
     };
 
     this._moveBackward = function (){
-        svl.contextMenu.hide();
-        svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        this._movePano(180);
+        timedMove(180, svl.map.getMoveDelay());
     };
+
+
 
     /**
      * Change the heading of the current panorama point of view by a particular degree value
@@ -93,33 +108,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             svl.contextMenu.hide();
             return;
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
-            // lock scrolling in response to key pressing
-            switch (e.keyCode) {
-                case 16:  // "Shift"
-                    status.shiftDown = true;
-                    break;
-                case 37:  // "Left"
-                    self._rotatePov(-2);
-                    break;
-                case 39:  // "Right"
-                    self._rotatePov(2);
-                    break;
-                case 38:
-                    self._moveForward();
-                    break;
-                case 40:  // "down"
-                    self._moveBackward();
-                    break;
-            }
-        }
-        if (!status.focusOnTextField) {
-
             if (e.keyCode == 16) { //shift key
                 status.shiftDown = true;
             }
-            if (!svl.contextMenu.isOpen()){
+
+            if (!svl.contextMenu.isOpen()) {
                 // lock scrolling in response to key pressing
                 switch (e.keyCode) {
+                    case 16:  // "Shift"
+                        status.shiftDown = true;
+                        break;
                     case 37:  // "Left"
                         self._rotatePov(-2);
                         break;
@@ -133,7 +131,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         self._moveBackward();
                         break;
                 }
-
                 if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                     e.preventDefault();
                 }
@@ -354,20 +351,22 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 90:
                     // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                    if (contextMenu.isOpen()){
-                        contextMenu.hide();
+                    if (!status.focusOnTextField) {
+                        if (contextMenu.isOpen()) {
+                            contextMenu.hide();
+                        }
+                        if (status.shiftDown) {
+                            // Zoom out
+                            zoomControl.zoomOut();
+                            svl.tracker.push("KeyboardShortcut_ZoomOut", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            ribbon.backToWalk();
+                        }
+                        svl.modalExample.hide();
+                        break;
                     }
-                    if (status.shiftDown) {
-                        // Zoom out
-                        zoomControl.zoomOut();
-                        svl.tracker.push("KeyboardShortcut_ZoomOut", {
-                            keyCode: e.keyCode
-                        });
-                    } else {
-                        ribbon.backToWalk();
-                    }
-                    svl.modalExample.hide();
-                    break;
             }
             contextMenu.updateRadioButtonImages();
         }

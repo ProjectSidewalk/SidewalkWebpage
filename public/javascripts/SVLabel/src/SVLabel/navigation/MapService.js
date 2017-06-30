@@ -59,7 +59,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         panoramaOptions,
         STREETVIEW_MAX_DISTANCE = 50,
         ONE_STEP_DISTANCE_IN_M = 3,
-        googleMapsPaneBlinkInterval;
+        googleMapsPaneBlinkInterval,
+        moveDelay = 800; //delayed move
+    //Move delay exists because too quick navigation causes rendering issues/black screens with no panos
+    //No current solution to check that pano view is completely loaded before navigating
+    //Hard delay is 2nd best option.
 
     // Used while calculation of canvas coordinates during rendering of labels
     // TODO: Refactor it to be included in the status variable above so that we can use
@@ -252,7 +256,28 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (properties.isInternetExplore) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
+
     }
+
+    /*
+       Disable walking thoroughly and indicate that user is moving.
+     */
+    function timeoutWalking(){
+        svl.panorama.set('linksControl', false);
+        svl.keyboard.setStatus("disableKeyboard", true);
+        disableWalking();
+        svl.keyboard.setStatus("moving", true);
+    }
+    /*
+     Enable walking and indicate that user has finished moving.
+     */
+    function resetWalking(){
+        svl.panorama.set('linksControl', true);
+        svl.keyboard.setStatus("disableKeyboard", false);
+        enableWalking();
+        svl.keyboard.setStatus("moving", false);
+    }
+
 
     /*
      * Get the status of the labelBeforeJump listener
@@ -941,12 +966,19 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
-
+        //position updated, set delay until user can walk again to properly update canvas
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
+        // Hide context menu if walking started
+        if (svl.contextMenu.isOpen()){
+            svl.contextMenu.hide();
+        }
+        if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
+            timeoutWalking();
+            setTimeout(resetWalking, moveDelay);
+        }
         updateCanvas();
-
         if (currentMission && neighborhood) {
             if ("compass" in svl) {
                 svl.compass.update();
@@ -1022,6 +1054,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
                     }
                 });
+
                 status.panoLinkListenerSet = true;
             } catch (err) {
 
@@ -1123,6 +1156,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             }
         }
+
 
         mouseStatus.prevMouseUpTime = currTime;
     }
@@ -1305,6 +1339,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             uiMap.viewControlLayer.insertBefore(uiMap.drawingLayer);
         }
     }
+
 
     /**
      *
@@ -1832,6 +1867,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.panorama.setPov(pov);
     }
 
+    function getMoveDelay(){
+        return moveDelay;
+    }
+
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
@@ -1881,7 +1920,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
     self.setPovToRouteDirection = setPovToRouteDirection;
-
+    self.timeoutWalking = timeoutWalking;
+    self.resetWalking = resetWalking;
+    self.getMoveDelay = getMoveDelay;
     _init(params);
     return self;
 }

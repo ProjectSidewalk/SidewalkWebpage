@@ -11,12 +11,19 @@
  */
 function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
     var self = this;
-    var status = { haveAskedToSignIn: false, signUp: false};
+    var status = { haveAskedToSignIn: false, signUp: false, isVisible: false};
     var buttons = [];
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
         self.hide();
     });
+    this.getStatus = function (key){
+        if (!(key in status)) {
+            console.warn("You have passed an invalid key for status.")
+        }
+        return status[key];
+    };
+
     function disableInteractions () {
         svl.panorama.set('linksControl', false);//disable arrows
         svl.map.disableWalking();
@@ -95,6 +102,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self.hideBackground();  // hide background
         self.reset();  // reset all the parameters
+        status.isVisible = false;
         return this;
     };
 
@@ -224,6 +232,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
 
         uiPopUpMessage.holder.removeClass('hidden');
         uiPopUpMessage.holder.addClass('visible');
+        status.isVisible = true;
         return this;
     };
 
