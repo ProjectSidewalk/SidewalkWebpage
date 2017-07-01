@@ -8,6 +8,7 @@ POST    /                                       controllers.TeaserController.tea
 
 GET     /home                                   @controllers.ApplicationController.index
 GET     /about                                  @controllers.ApplicationController.about
+GET     /api                                    @controllers.ApplicationController.developer
 GET     /developer                              @controllers.ApplicationController.developer
 GET     /terms                                  @controllers.ApplicationController.terms
 GET     /demo                                   @controllers.ApplicationController.demo
@@ -85,6 +86,8 @@ GET     /userapi/completedMissionCounts/all     @controllers.UserProfileControll
 GET     /contribution/auditInteractions         @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit             @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                 @controllers.UserProfileController.userProfile(username: String)
+
+POST    /userapi/logWebpageActivity             @controllers.UserController.logWebpageActivity
 
 # Geometry API
 

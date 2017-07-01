@@ -11,12 +11,19 @@
  */
 function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
     var self = this;
-    var status = { haveAskedToSignIn: false, signUp: false};
+    var status = { haveAskedToSignIn: false, signUp: false, isVisible: false};
     var buttons = [];
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
         self.hide();
     });
+    this.getStatus = function (key){
+        if (!(key in status)) {
+            console.warn("You have passed an invalid key for status.")
+        }
+        return status[key];
+    };
+
     function disableInteractions () {
         svl.panorama.set('linksControl', false);//disable arrows
         svl.map.disableWalking();
@@ -69,10 +76,12 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self._appendButton(OKButton, handleClickOK);
 
+
         $(document).keyup(function (e){
             e = e || window.event; //Handle IE
             //enter
             if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
+                tracker.push('KeyboardShortcut_ClickOk');
                 $("#pop-up-message-ok-button").click();
             }
         });
@@ -93,6 +102,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         }
         self.hideBackground();  // hide background
         self.reset();  // reset all the parameters
+        status.isVisible = false;
         return this;
     };
 
@@ -112,7 +122,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         self._setTitle("You've been contributing a lot!");
         self._setMessage("Do you want to create an account to keep track of your progress?");
         disableInteractions(); //disable interactions while msg up
-        self._appendButton('<button id="pop-up-message-sign-up-button" class="float">Let me sign up!</button>', function () {
+        self._appendButton('<button id="pop-up-message-sign-up-button" class="float" style = "margin-right:10px">Let me sign up!</button>', function () {
             // Store the data in LocalStorage.
             var task = taskContainer.getCurrentTask();
 
@@ -222,6 +232,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
 
         uiPopUpMessage.holder.removeClass('hidden');
         uiPopUpMessage.holder.addClass('visible');
+        status.isVisible = true;
         return this;
     };
 
