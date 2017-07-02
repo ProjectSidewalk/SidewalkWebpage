@@ -529,23 +529,30 @@ function Admin(_, $, c3, turf) {
     }
 
     // takes an array of objects and the name of a property of the objects, returns summary stats for that property
-    function getSummaryStats(data, col) {
-        data.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
+    function getSummaryStats(data, col, options) {
+        options = options || {};
+        var excludeResearchers = options.excludeResearchers || false;
+
         var sum = 0;
+        var filteredData = [];
         for (var j = 0; j < data.length; j++) {
-            sum += data[j][col];
+            if (!excludeResearchers || !data[j].is_researcher) {
+                sum += data[j][col];
+                filteredData.push(data[j])
+            }
         }
-        var mean = sum / data.length;
-        var i = data.length / 2;
-        var median = (data.length / 2) % 1 == 0 ? (data[i - 1][col] + data[i][col]) / 2 : data[Math.floor(i)][col];
+        var mean = sum / filteredData.length;
+        var i = filteredData.length / 2;
+        filteredData.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
+        var median = (filteredData.length / 2) % 1 == 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
 
         var std = 0;
-        for(var k = 0; k < data.length; k++) {
-            std += Math.pow(data[k][col] - mean, 2);
+        for(var k = 0; k < filteredData.length; k++) {
+            std += Math.pow(filteredData[k][col] - mean, 2);
         }
-        std /= data.length;
+        std /= filteredData.length;
         std = Math.sqrt(std);
-        return {mean:mean, median:median, std:std, min:data[0][col], max:data[data.length-1][col]};
+        return {mean:mean, median:median, std:std, min:filteredData[0][col], max:filteredData[filteredData.length-1][col]};
     }
 
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
@@ -559,11 +566,15 @@ function Admin(_, $, c3, turf) {
         var xDomain = options.xDomain || [0, data[data.length-1][col]];
         var binStep = options.binStep || 1;
         var legendOffset = options.legendOffset || 0;
+        var excludeResearchers = options.excludeResearchers || false;
+
+        var transformList = excludeResearchers ? [{"filter": "!datum.is_researcher"}] : [];
 
         return {
             "height": height,
             "width": width,
             "data": {"values": data},
+            "transform": transformList,
             "layer": [
                 {
                     "mark": "bar",
@@ -1044,33 +1055,54 @@ function Admin(_, $, c3, turf) {
                 $.getJSON("/userapi/completedMissionCounts/all", function (regData) {
                     var allData = [];
                     for (var i = 0; i < anonData[0].length; i++) {
-                        allData.push({count:anonData[0][i].count, user:anonData[0][i].ip_address})
+                        allData.push({count:anonData[0][i].count, user:anonData[0][i].ip_address, is_researcher:anonData[0][i].is_researcher})
                     }
                     for (var i = 0; i < regData[0].length; i++) {
-                        allData.push({count:regData[0][i].count, user:regData[0][i].user_id})
+                        allData.push({count:regData[0][i].count, user:regData[0][i].user_id, is_researcher:regData[0][i].is_researcher})
                     }
 
                     var allStats = getSummaryStats(allData, "count");
-                    var regStats = getSummaryStats(anonData[0], "count");
-                    var anonStats = getSummaryStats(regData[0], "count");
+                    var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers:true});
+                    var regStats = getSummaryStats(regData[0], "count");
+                    var regFilteredStats = getSummaryStats(regData[0], "count", {excludeResearchers:true});
+                    var anonStats = getSummaryStats(anonData[0], "count");
 
                     var allHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allStats.max], width:250,
                                        binStep:20, legendOffset:-80};
-                    var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, anonStats.max],
-                                       width:250, binStep:20, legendOffset:-80};
-                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, regStats.max], width:250,
-                                        binStep:1, legendOffset:-80};
+                    var allFilteredHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allFilteredStats.max],
+                                               width:250, binStep:20, legendOffset:-80, excludeResearchers:true};
+                    var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, regStats.max], width:250,
+                                       binStep:20, legendOffset:-80};
+                    var regFilteredHistOpts = {xAxisTitle:"# Missions per Registered User", width:250, legendOffset:-80,
+                                               xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:20};
+                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, anonStats.max],
+                                        width:250, legendOffset:-80};
 
                     var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                    var regChart = getVegaLiteHistogram(regData[0], anonStats.mean, anonStats.median, regHistOpts);
-                    var anonChart = getVegaLiteHistogram(anonData[0], regStats.mean, regStats.median, anonHistOpts);
+                    var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                    var regChart = getVegaLiteHistogram(regData[0], regStats.mean, regStats.median, regHistOpts);
+                    var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                    var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
 
                     $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                    $("#reg-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-                    $("#anon-missions-std").html((regStats.std).toFixed(2) + " Missions");
+                    $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
+                    $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
 
-                    var realChart = {"hconcat": [allChart, regChart, anonChart]};
-                    vega.embed("#mission-count-chart", realChart, opt, function(error, results) {});
+                    var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
+                    var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, anonChart]};
+
+                    vega.embed("#mission-count-chart", combinedChart, opt, function(error, results) {});
+
+                    document.getElementById("mission-count-include-researchers-button").addEventListener("click", function() {
+                        $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
+                        $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
+                        vega.embed("#mission-count-chart", combinedChart, opt, function(error, results) {});
+                    });
+                    document.getElementById("mission-count-exclude-researchers-button").addEventListener("click", function() {
+                        $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                        $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                        vega.embed("#mission-count-chart", combinedChartFiltered, opt, function(error, results) {});
+                    });
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
