@@ -597,7 +597,8 @@ function Admin(_, $, c3, turf) {
                         "color": {
                             "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
                             "legend": {
-                                "title": "Summary Stats"
+                                "title": "Summary Stats",
+                                "values": ["mean: " + mean.toFixed(2), "median: " + median.toFixed(2)]
                             }
                         },
                         "size": {
