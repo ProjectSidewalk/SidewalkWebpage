@@ -1055,9 +1055,9 @@ function Admin(_, $, c3, turf) {
                     var anonStats = getSummaryStats(regData[0], "count");
 
                     var allHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allStats.max], width:250,
-                                       binStep:10, legendOffset:-80};
+                                       binStep:20, legendOffset:-80};
                     var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, anonStats.max],
-                                       width:250, binStep:10, legendOffset:-80};
+                                       width:250, binStep:20, legendOffset:-80};
                     var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, regStats.max], width:250,
                                         binStep:1, legendOffset:-80};
 
