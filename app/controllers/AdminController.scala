@@ -129,7 +129,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val counts: List[(Option[String], Int)] = UserDAOImpl.getAnonUserCompletedMissionCounts
       val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("ip_address" -> x._1, "count" -> x._2)
+        Json.obj("ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false)
       }))
       Future.successful(Ok(jsonArray))
     } else {
