@@ -748,10 +748,10 @@ function Admin(_, $, c3, turf) {
                     else bounceCount++;
                 }
                 var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
-                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(1) + "%");
+                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(2) + "%");
 
                 var stats = getSummaryStats(onboardingTimes, "duration");
-                $("#onboarding-std").html((stats.std).toFixed(1) + " minutes");
+                $("#onboarding-std").html((stats.std).toFixed(2) + " minutes");
 
                 var histOpts = {col:"binned", xAxisTitle:"Onboarding Completion Time (minutes)", xDomain:[0, 10],
                                 width:400, height:250, binStep:1};
@@ -840,7 +840,7 @@ function Admin(_, $, c3, turf) {
                     data[j].rate *= 100.0; // change from proportion to percent
                 }
                 var stats = getSummaryStats(data, "rate");
-                $("#neighborhood-std").html((stats.std).toFixed(1) + "%");
+                $("#neighborhood-std").html((stats.std).toFixed(2) + "%");
 
                 var coverageRateChartSortedByCompletion = {
                     "width": 810,
@@ -912,7 +912,7 @@ function Admin(_, $, c3, turf) {
             $.getJSON("/contribution/auditCounts/all", function (data) {
                 var stats = getSummaryStats(data[0], "count");
 
-                $("#audit-std").html((stats.std).toFixed(1) + " Street Audits");
+                $("#audit-std").html((stats.std).toFixed(2) + " Street Audits");
 
                 var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50};
                 var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
@@ -976,7 +976,7 @@ function Admin(_, $, c3, turf) {
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
                 var stats = getSummaryStats(data[0], "count");
-                $("#label-std").html((stats.std).toFixed(1) + " Labels");
+                $("#label-std").html((stats.std).toFixed(2) + " Labels");
 
                 var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200};
                 var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
@@ -1061,8 +1061,8 @@ function Admin(_, $, c3, turf) {
                     var anonChart = getVegaLiteHistogram(anonData[0], regStats.mean, regStats.median, anonHistOpts);
 
                     $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                    $("#reg-missions-std").html((anonStats.std).toFixed(1) + " Missions");
-                    $("#anon-missions-std").html((regStats.std).toFixed(1) + " Missions");
+                    $("#reg-missions-std").html((anonStats.std).toFixed(2) + " Missions");
+                    $("#anon-missions-std").html((regStats.std).toFixed(2) + " Missions");
 
                     var realChart = {"hconcat": [allChart, regChart, anonChart]};
                     vega.embed("#mission-count-chart", realChart, opt, function(error, results) {});
@@ -1071,7 +1071,7 @@ function Admin(_, $, c3, turf) {
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 stats = getSummaryStats(data[0], "count");
 
-                $("#login-count-std").html((stats.std).toFixed(1) + " Logins");
+                $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5};
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
