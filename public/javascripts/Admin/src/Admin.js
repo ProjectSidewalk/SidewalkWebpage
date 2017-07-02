@@ -558,6 +558,7 @@ function Admin(_, $, c3, turf) {
         var col = options.col || "count"; // most graphs we are making are made of up counts
         var xDomain = options.xDomain || [0, data[data.length-1][col]];
         var binStep = options.binStep || 1;
+        var legendOffset = options.legendOffset || 0;
 
         return {
             "height": height,
@@ -598,7 +599,8 @@ function Admin(_, $, c3, turf) {
                             "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
                             "legend": {
                                 "title": "Summary Stats",
-                                "values": ["mean: " + mean.toFixed(2), "median: " + median.toFixed(2)]
+                                "values": ["mean: " + mean.toFixed(2), "median: " + median.toFixed(2)],
+                                "offset": legendOffset
                             }
                         },
                         "size": {
@@ -1052,9 +1054,12 @@ function Admin(_, $, c3, turf) {
                     var regStats = getSummaryStats(anonData[0], "count");
                     var anonStats = getSummaryStats(regData[0], "count");
 
-                    var allHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allStats.max], width:300, binStep:10};
-                    var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, anonStats.max], width:300, binStep:10};
-                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, regStats.max], width:300, binStep:1};
+                    var allHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allStats.max], width:250,
+                                       binStep:10, legendOffset:-80};
+                    var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, anonStats.max],
+                                       width:250, binStep:10, legendOffset:-80};
+                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, regStats.max], width:250,
+                                        binStep:1, legendOffset:-80};
 
                     var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
                     var regChart = getVegaLiteHistogram(regData[0], anonStats.mean, anonStats.median, regHistOpts);
