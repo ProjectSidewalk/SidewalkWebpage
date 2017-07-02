@@ -924,7 +924,7 @@ function Admin(_, $, c3, turf) {
                             "width": 550,
                             "layer": [
                                 {
-                                    "mark": "area",
+                                    "mark": "bar",
                                     "encoding": {
                                         "x": {
                                             "field": "date",
@@ -988,7 +988,7 @@ function Admin(_, $, c3, turf) {
                             "width": 550,
                             "layer": [
                                 {
-                                    "mark": "area",
+                                    "mark": "bar",
                                     "encoding": {
                                         "x": {
                                             "field": "date",
