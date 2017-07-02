@@ -1037,25 +1037,35 @@ function Admin(_, $, c3, turf) {
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/anonUserMissionCounts", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+            $.getJSON("/adminapi/anonUserMissionCounts", function (anonData) {
+                $.getJSON("/userapi/completedMissionCounts/all", function (regData) {
+                    var allData = [];
+                    for (var i = 0; i < anonData[0].length; i++) {
+                        allData.push({count:anonData[0][i].count, user:anonData[0][i].ip_address})
+                    }
+                    for (var i = 0; i < regData[0].length; i++) {
+                        allData.push({count:regData[0][i].count, user:regData[0][i].user_id})
+                    }
 
-                $("#anon-missions-std").html((stats.std).toFixed(1) + " Missions");
+                    var allStats = getSummaryStats(allData, "count");
+                    var regStats = getSummaryStats(anonData[0], "count");
+                    var anonStats = getSummaryStats(regData[0], "count");
 
-                var histOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, stats.max], width:300, binStep:1};
-                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                    var allHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allStats.max], width:300, binStep:10};
+                    var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, anonStats.max], width:300, binStep:10};
+                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, regStats.max], width:300, binStep:1};
 
-                vega.embed("#anon-missions-chart", chart, opt, function(error, results) {});
-            });
-            $.getJSON("/userapi/completedMissionCounts/all", function (data) {
-                stats = getSummaryStats(data[0], "count");
+                    var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                    var regChart = getVegaLiteHistogram(regData[0], anonStats.mean, anonStats.median, regHistOpts);
+                    var anonChart = getVegaLiteHistogram(anonData[0], regStats.mean, regStats.median, anonHistOpts);
 
-                var histOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, stats.max], binStep:10};
-                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                    $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
+                    $("#reg-missions-std").html((anonStats.std).toFixed(1) + " Missions");
+                    $("#anon-missions-std").html((regStats.std).toFixed(1) + " Missions");
 
-                $("#missions-std").html((stats.std).toFixed(1) + " Missions");
-
-                vega.embed("#mission-count-chart", chart, opt, function(error, results) {});
+                    var realChart = {"hconcat": [allChart, regChart, anonChart]};
+                    vega.embed("#mission-count-chart", realChart, opt, function(error, results) {});
+                });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 stats = getSummaryStats(data[0], "count");
