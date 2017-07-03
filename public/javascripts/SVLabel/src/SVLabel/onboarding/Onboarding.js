@@ -546,7 +546,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         missionContainer.setCurrentMission(mission);
         if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
+                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
             modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
