@@ -1165,12 +1165,28 @@ function Admin(_, $, c3, turf) {
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 var stats = getSummaryStats(data[0], "count");
+                var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
 
                 $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
-                var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
-                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
-                vega.embed("#login-count-chart", chart, opt, function(error, results) {});
+                var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
+                var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
+                                        excludeResearchers:true};
+
+                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var filteredChart = getVegaLiteHistogram(data[0], filteredStats.mean, filteredStats.median, histFilteredOpts);
+
+                vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
+
+                var checkbox = document.getElementById("login-count-include-researchers-checkbox").addEventListener("click", function(cb) {
+                    if (cb.srcElement.checked) {
+                        $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
+                        vega.embed("#login-count-chart", chart, opt, function (error, results) {});
+                    } else {
+                        $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
+                        vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
+                    }
+                });
             });
             self.graphsLoaded = true;
         }

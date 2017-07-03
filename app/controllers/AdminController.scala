@@ -159,7 +159,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
       val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("user_id" -> x._1, "count" -> x._2)
+        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> researcherIds.contains(x._1))
       }))
       Future.successful(Ok(jsonArray))
     } else {
