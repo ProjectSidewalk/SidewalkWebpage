@@ -97,7 +97,7 @@ object UserDAOImpl {
   def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
-      """select ip_address, audit_task_id
+      """select distinct ip_address, audit_task_id
         |from sidewalk.audit_task_environment
         |where audit_task_id in (select audit_task_id
         |						from sidewalk.audit_task
@@ -129,7 +129,7 @@ object UserDAOImpl {
   def countAnonymousUsersVisitedToday: Int = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
-      """select ip_address, audit_task_id
+      """select distinct ip_address, audit_task_id
         |from sidewalk.audit_task_environment
         |where audit_task_id in (select audit_task_id
         |						from sidewalk.audit_task
@@ -186,7 +186,7 @@ object UserDAOImpl {
   def countAnonymousUsersVisitedYesterday: Int = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
-      """select ip_address, audit_task_id
+      """select distinct ip_address, audit_task_id
         |from sidewalk.audit_task_environment
         |where audit_task_id in (select audit_task_id
         |						from sidewalk.audit_task
@@ -296,7 +296,7 @@ object UserDAOImpl {
     val anonProfileQuery = Q.queryNA[(String, Int, Int)](
       """select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count, sum (anonProfile.n_labels) as label_count
         |from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
-        |		   from (select ip_address, audit_task_id
+        |		   from (select distinct ip_address, audit_task_id
         |				     from sidewalk.audit_task_environment
         |				     where audit_task_id in (select audit_task_id
         |											                from sidewalk.audit_task
@@ -318,7 +318,7 @@ object UserDAOImpl {
     val lastAuditedTimestampQuery = Q.queryNA[(String, Int)](
       """select ip_address, max(timestamp) as new_timestamp
         |from (select ip_address, anonUsersTable.audit_task_id as task_id, task_end as timestamp
-        |	 from (select ip_address, audit_task_id
+        |	 from (select distinct ip_address, audit_task_id
         |				     from sidewalk.audit_task_environment
         |				     where audit_task_id in (select audit_task_id
         |							                 from sidewalk.audit_task
