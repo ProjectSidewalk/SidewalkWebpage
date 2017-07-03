@@ -37,22 +37,22 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     // Mission titles. Keys are mission labels.
     var missionTitles = {
         "initial-mission": "Initial Mission",
-        "distance-mission": "Audit __DISTANCE_PLACEHOLDER__ of __NEIGHBORHOOD_PLACEHOLDER__",
-        "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ of __NEIGHBORHOOD_PLACEHOLDER__"
+        "distance-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
+        "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
     };
 
     var initialMissionHTML = '<figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your <span class="bold">first mission</span> is to audit __DISTANCE_PLACEHOLDER__ of __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
+        <p>Your <span class="bold">first mission</span> is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
     var distanceMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ of __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
+        <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
     var areaCoverageMissionHTML = '<figure> \
