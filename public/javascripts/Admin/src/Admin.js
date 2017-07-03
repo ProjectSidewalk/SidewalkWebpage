@@ -927,7 +927,7 @@ function Admin(_, $, c3, turf) {
 
                 $("#audit-std").html((stats.std).toFixed(2) + " Street Audits");
 
-                var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50};
+                var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50, legendOffset:-80};
                 var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
                 var chart = {
@@ -991,7 +991,7 @@ function Admin(_, $, c3, turf) {
                 var stats = getSummaryStats(data[0], "count");
                 $("#label-std").html((stats.std).toFixed(2) + " Labels");
 
-                var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200};
+                var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
                 var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
                 var chart = {
