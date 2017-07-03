@@ -9,8 +9,12 @@ Copyright (c) 2015 Daniel Eden
 
 .animated {
   -webkit-animation-duration: 1s;
+  -moz-animation-duration: 1s;
+  -o-animation-duration: 1s;
   animation-duration: 1s;
   -webkit-animation-fill-mode: both;
+  -moz-animation-fill-mode: both;
+  -o-animation-fill-mode: both;
   animation-fill-mode: both;
 }
 
@@ -34,6 +38,18 @@ Copyright (c) 2015 Daniel Eden
 .animated.flipOutY {
   -webkit-animation-duration: .75s;
   animation-duration: .75s;
+}
+
+.animated.fadeIn,
+.animated.fadeInLeft,
+.animated.fadeInRight,
+.animated.fadeInUp,
+.animated.fadeInDown
+{
+  -webkit-animation-duration: 0.7s;
+  -moz-animation-duration: 0.7s;
+  -o-animation-duration: 0.7s;
+  animation-duration: 0.7s;
 }
 
 @-webkit-keyframes bounce {
