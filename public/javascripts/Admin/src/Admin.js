@@ -1075,7 +1075,7 @@ function Admin(_, $, c3, turf) {
                                        binStep:5, legendOffset:-80};
                     var regFilteredHistOpts = {xAxisTitle:"# Missions per Registered User", width:250, legendOffset:-80,
                                                xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:5};
-                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, anonStats.max], binStep:0.5,
+                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, anonStats.max],
                                         width:250, legendOffset:-80};
 
                     var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
