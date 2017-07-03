@@ -546,7 +546,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         missionContainer.setCurrentMission(mission);
         if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
+                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
             modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
@@ -625,18 +625,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         };
         showMessage(message);
 
-        // Remove flashing in the arrow
-        var whiteArrow = {
-            "type": "arrow",
-            "x": 3850,
-            "y": -860,
-            "length": 50,
-            "angle": 0,
-            "text": null,
-            "fill": "white",
-            "originalPov": {}
-        };
-
         var labelTypeToLabelString = {
             "CurbRamp": "Curb Ramp",
             "NoCurbRamp": "Missing Curb Ramp",
@@ -649,6 +637,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var deleteLabelCallback = function () {
 
             if (listener) google.maps.event.removeListener(listener);
+
+            // Remove flashing in the arrow
             clear();
             if (blink_function_identifier.length != 0) {
                 while (blink_function_identifier.length != 0) {
@@ -672,8 +662,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 event = labelType
             }
 
-            // Start blinking
+            // Start blinking and enable labeling
             ribbon.startBlinking(labelType, subcategory);
+            ribbon.enableMode(labelType, subcategory);
 
             // Step 2: Select the appropriate label Type
             var message = {
@@ -956,49 +947,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
 
-    function _visitIntroduction(state, listener) {
-        var pov = {
-                heading: state.properties.heading,
-                pitch: state.properties.pitch,
-                zoom: state.properties.zoom
-            },
-            googleTarget,
-            googleCallback,
-            $target;
-
-        renderRoutesOnGoogleMap(state);
-
-        // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
-        // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
-        // When they click OK, then the POV changes.
-        if (typeof google != "undefined") {
-            googleCallback = function () {
-                mapService.setPano(state.panoId, true);
-                google.maps.event.removeListener(googleTarget);
-            };
-
-            googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
-
-            $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
-            $(".onboarding-transition-trigger").css({
-                'cursor': 'pointer'
-            });
-            function callback () {
-                if (listener) google.maps.event.removeListener(listener);
-                $target.off("click", callback);
-                next.call(this, state.transition);
-                mapService.setPano(state.panoId, true);
-                mapService.setPov(pov);
-                mapService.setPosition(state.properties.lat, state.properties.lng);
-
-                compass.hideMessage();
-            }
-            $target.on("click", callback);
-
-
-        }
-    }
-
     function _visitRateSeverity(state, listener) {
 
         if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
@@ -1207,6 +1155,10 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     next(transition[i]);
                     break;
                 } else {
+                    // Disable labeling mode
+                    ribbon.disableMode(labelType, subCategory);
+                    ribbon.enableMode("Walk");
+
                     // Incorrect label application:
 
                     // 1. Enable deleting label
@@ -1216,7 +1168,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
                     // 2. Ask user to delete label and reapply the label
                     _incorrectLabelApplication(state, listener);
-                    ribbon.enableMode(labelType, subCategory);
                 }
                 i = i + 1;
             }
