@@ -168,6 +168,16 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+    <div class="modal fade" id="incorrect-login-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="incorrect-login-modal">
+                <div class="modal-body">
+                    <span>Incorrect email address or password.</span>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
     <script>
             $(document).ready(function() {
                 $("#navbar-agree-to-terms").click(function() {
@@ -212,6 +222,14 @@
 
             // Callback function for checking sign-in results
             function handleSignIn(data) {
+
+                //this means that logging in failed, alert user of failure
+                if(typeof data == 'string'){
+                    $('#incorrect-login-modal-container').modal('toggle');
+                    return;
+                }
+
+                //otherwise, reflect login changes on user's end
                 var htmlString = $("#navbar-dropdown-list-signed-in").html();
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
