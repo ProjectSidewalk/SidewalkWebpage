@@ -72,6 +72,7 @@ object LabelTable {
   val db = play.api.db.slick.DB
   val labels = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
+  val completedAudits = auditTasks.filter(_.completed === true)
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
@@ -481,6 +482,22 @@ object LabelTable {
         |ORDER BY calendar_date""".stripMargin
     )
     selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
+  }
+
+
+  /**
+    * Select label counts per registered user
+    */
+  def getLabelCountsPerRegisteredUser: List[(String, Int)] = db.withSession { implicit session =>
+
+    val regUserAudits = completedAudits.filterNot(_.userId === "97760883-8ef0-4309-9a5e-0c086ef27573")
+
+    val _labels = for {
+      (_tasks, _labels) <- regUserAudits.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+    } yield _tasks.userId
+
+    // counts the number of tasks for each user
+    _labels.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
   }
 }
 

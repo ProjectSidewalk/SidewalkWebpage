@@ -43,6 +43,7 @@ GET     /adminapi/labelLocations/:username      @controllers.AdminController.get
 GET     /adminapi/labels/all                    @controllers.AdminController.getAllLabels
 GET     /adminapi/labels/panoid                 @controllers.AdminController.getAllPanoIds
 GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
+GET     /adminapi/labelCounts/registered        @controllers.AdminController.getAllRegisteredUserLabelCounts
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
