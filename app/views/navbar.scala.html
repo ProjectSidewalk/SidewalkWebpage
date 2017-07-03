@@ -60,7 +60,7 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
-                                <a href='/contribution/@user.get.username' role="menuitem">
+                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
                                     Your dashboard
                                 </a>
                             </li>
@@ -177,10 +177,41 @@
                         $("#sign-up-submit").prop("disabled", true);
                     }
                 });
+
+                //set tooltip alerts for when users do not enter all sign in / sign up fields
+                $('#username').tooltip({title:'Please enter a username.', trigger: 'manual'});
+                $('#username').on({
+                    'focus': function(){
+                        $('#username').tooltip('hide');
+                    }
+                });
+                $('#identifier').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#identifier').on({
+                    'focus': function(){
+                        $('#identifier').tooltip('hide');
+                    }
+                });
+                $('#email').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#email').on({
+                    'focus': function(){
+                        $('#email').tooltip('hide');
+                    }
+                });
+                $(':password').tooltip({title:'Please enter your password.', trigger: 'manual'});
+                $(':password').on({
+                    'focus': function(){
+                        $(':password').tooltip('hide');
+                    }
+                });
             });
 
-            // Callback function for sign in success
-            function signInSuccess(data) {
+            function validateEmail(email) {
+                var regex = /\S+@@\S+\.\S+/;
+                return regex.test(email);
+            }
+
+            // Callback function for checking sign-in results
+            function handleSignIn(data) {
                 var htmlString = $("#navbar-dropdown-list-signed-in").html();
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
@@ -198,16 +229,54 @@
 
             // Intercept form-based sign in and use AJAX to signin so the page does not refresh.
             $('#sign-in-form').submit(function () {
+                var formData = $('#sign-in-form :input');
+                var email = formData[0].value;
+                var password = formData[1].value;
+
+                //if not a valid email address, do not submit form
+                if(!email || !validateEmail(email)){
+                    $('#identifier').tooltip('show');
+                    return false;
+                }
+
+                if(!password){
+                    $(':password').tooltip('show');
+                    return false;
+                }
+
                 var data = $(this).serialize();
+
                 var url = '/authapi/authenticate';
-                $.post(url, data, signInSuccess);
+                $.post(url, data, handleSignIn);
                 return false;
             });
 
             $('#sign-up-form').submit(function () {
+                var formData = $('#sign-up-form :input');
+                var username = formData[0].value;
+                var email = formData[1].value;
+                var password = formData[2].value;
+
+                if(!username){
+                    $('#username').tooltip('show');
+                    return false;
+                }
+
+                //if not a valid email address, do not submit form
+                if(!email || !validateEmail(email)){
+                    $('#email').tooltip('show');
+                    return false;
+                }
+
+                if(!password){
+                    $(':password').tooltip('show');
+                    return false;
+                }
+
                 var data = $(this).serialize();
+
                 var url = '/authapi/signup';
-                $.post(url, data, signInSuccess);
+                $.post(url, data, handleSignIn);
                 return false;
             });
     </script>
