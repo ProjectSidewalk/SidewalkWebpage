@@ -1093,22 +1093,23 @@ function Admin(_, $, c3, turf) {
 
                     vega.embed("#mission-count-chart", combinedChart, opt, function(error, results) {});
 
-                    document.getElementById("mission-count-include-researchers-button").addEventListener("click", function() {
-                        $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                        $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
-                        vega.embed("#mission-count-chart", combinedChart, opt, function(error, results) {});
-                    });
-                    document.getElementById("mission-count-exclude-researchers-button").addEventListener("click", function() {
-                        $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
-                        $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                        vega.embed("#mission-count-chart", combinedChartFiltered, opt, function(error, results) {});
+                    var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function(cb) {
+                        if (cb.srcElement.checked) {
+                            $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
+                            $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
+                            vega.embed("#mission-count-chart", combinedChart, opt, function (error, results) {
+                            });
+                        } else {
+                            $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                            $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                            vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
+                            });
+                        }
                     });
                 });
             });
             $.getJSON("/adminapi/labelCounts/registered", function (regData) {
                 $.getJSON("/adminapi/labelCounts/anonymous", function (anonData) {
-                    console.log(regData);
-                    console.log(anonData);
                     var allData = [];
                     for (var i = 0; i < anonData[0].length; i++) {
                         allData.push({count:anonData[0][i].count, user:anonData[0][i].ip_address, is_researcher:anonData[0][i].is_researcher})
@@ -1116,7 +1117,6 @@ function Admin(_, $, c3, turf) {
                     for (var i = 0; i < regData[0].length; i++) {
                         allData.push({count:regData[0][i].count, user:regData[0][i].user_id, is_researcher:regData[0][i].is_researcher})
                     }
-                    console.log(allData);
 
                     var allStats = getSummaryStats(allData, "count");
                     var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers:true});
@@ -1154,20 +1154,13 @@ function Admin(_, $, c3, turf) {
                         if (cb.srcElement.checked) {
                             $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
                             $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
-                            console.log(combinedChart);
                             vega.embed("#label-count-hist", combinedChart, opt, function(error, results) {});
                         } else {
                             $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
                             $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                            console.log(combinedChartFiltered);
                             vega.embed("#label-count-hist", combinedChartFiltered, opt, function(error, results) {});
                         }
                     });
-                    // document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function(cb) {
-
-                    // });
-                    // document.getElementById("label-count-exclude-researchers-checkbox").addEventListener("click", function(cb) {
-                    // });
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
