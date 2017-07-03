@@ -582,7 +582,7 @@ function Admin(_, $, c3, turf) {
                         "x": {
                             "field": col,
                             "type": "quantitative",
-                            "axis": {"title": xAxisTitle, "labelAngle": 0},
+                            "axis": {"title": xAxisTitle, "labelAngle": 0, "tickCount":8},
                             "bin": {"step": binStep}
                         },
                         "y": {
@@ -1068,14 +1068,14 @@ function Admin(_, $, c3, turf) {
                     var anonStats = getSummaryStats(anonData[0], "count");
 
                     var allHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allStats.max], width:250,
-                                       binStep:20, legendOffset:-80};
+                                       binStep:5, legendOffset:-80};
                     var allFilteredHistOpts = {xAxisTitle:"# Missions per User (all)", xDomain:[0, allFilteredStats.max],
-                                               width:250, binStep:20, legendOffset:-80, excludeResearchers:true};
+                                               width:250, binStep:5, legendOffset:-80, excludeResearchers:true};
                     var regHistOpts = {xAxisTitle:"# Missions per Registered User", xDomain:[0, regStats.max], width:250,
-                                       binStep:20, legendOffset:-80};
+                                       binStep:5, legendOffset:-80};
                     var regFilteredHistOpts = {xAxisTitle:"# Missions per Registered User", width:250, legendOffset:-80,
-                                               xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:20};
-                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, anonStats.max],
+                                               xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:5};
+                    var anonHistOpts = {xAxisTitle:"# Missions per Anon User", xDomain:[0, anonStats.max], binStep:0.5,
                                         width:250, legendOffset:-80};
 
                     var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
@@ -1125,15 +1125,15 @@ function Admin(_, $, c3, turf) {
                     var anonStats = getSummaryStats(anonData[0], "count");
 
                     var allHistOpts = {xAxisTitle:"# Labels per User (all)", xDomain:[0, allStats.max], width:250,
-                        binStep:1000, legendOffset:-80};
+                                       binStep:200, legendOffset:-80};
                     var allFilteredHistOpts = {xAxisTitle:"# Labels per User (all)", xDomain:[0, allFilteredStats.max],
-                        width:250, binStep:500, legendOffset:-80, excludeResearchers:true};
+                                               width:250, binStep:200, legendOffset:-80, excludeResearchers:true};
                     var regHistOpts = {xAxisTitle:"# Labels per Registered User", xDomain:[0, regStats.max], width:250,
-                        binStep:1000, legendOffset:-80};
+                                       binStep:200, legendOffset:-80};
                     var regFilteredHistOpts = {xAxisTitle:"# Labels per Registered User", width:250, legendOffset:-80,
-                        xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:500};
+                                               xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:200};
                     var anonHistOpts = {xAxisTitle:"# Labels per Anon User", xDomain:[0, anonStats.max],
-                        width:250, legendOffset:-80, binStep:500};
+                                        width:250, legendOffset:-80, binStep:200};
 
                     var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
                     var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
@@ -1164,10 +1164,10 @@ function Admin(_, $, c3, turf) {
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
-                stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data[0], "count");
 
                 $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
-                var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5};
+                var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
 
                 vega.embed("#login-count-chart", chart, opt, function(error, results) {});
