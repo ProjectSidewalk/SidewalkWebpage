@@ -1133,7 +1133,7 @@ function Admin(_, $, c3, turf) {
                     var regFilteredHistOpts = {xAxisTitle:"# Labels per Registered User", width:250, legendOffset:-80,
                                                xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:200};
                     var anonHistOpts = {xAxisTitle:"# Labels per Anon User", xDomain:[0, anonStats.max],
-                                        width:250, legendOffset:-80, binStep:200};
+                                        width:250, legendOffset:-80, binStep:50};
 
                     var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
                     var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);

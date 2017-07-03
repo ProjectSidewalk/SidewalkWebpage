@@ -522,10 +522,12 @@ object LabelTable {
       if _task.userId === "97760883-8ef0-4309-9a5e-0c086ef27573"
     } yield (_environment.ipAddress, _environment.auditTaskId)
 
+    val uniqueAudits = _anonAudits.groupBy(x => x).map(_._1)
+
     // join with label table, but only return ip address; we end up with an occurrence of an ip address for each label
     // that was placed from this ip address
     val _labels = for {
-      (_tasks, _labels) <- _anonAudits.innerJoin(labelsWithoutDeleted).on(_._2 === _.auditTaskId)
+      (_tasks, _labels) <- uniqueAudits.innerJoin(labelsWithoutDeleted).on(_._2 === _.auditTaskId)
     } yield _tasks._1
 
     // now count the occurrences of each ip address, this gives you the label counts. Also right join on the list of
