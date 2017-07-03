@@ -59,7 +59,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         panoramaOptions,
         STREETVIEW_MAX_DISTANCE = 50,
         ONE_STEP_DISTANCE_IN_M = 3,
-        googleMapsPaneBlinkInterval;
+        googleMapsPaneBlinkInterval,
+        moveDelay = 800; //delayed move
+    //Move delay exists because too quick navigation causes rendering issues/black screens with no panos
+    //No current solution to check that pano view is completely loaded before navigating
+    //Hard delay is 2nd best option.
 
     // Used while calculation of canvas coordinates during rendering of labels
     // TODO: Refactor it to be included in the status variable above so that we can use
@@ -252,7 +256,28 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (properties.isInternetExplore) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
+
     }
+
+    /*
+       Disable walking thoroughly and indicate that user is moving.
+     */
+    function timeoutWalking(){
+        svl.panorama.set('linksControl', false);
+        svl.keyboard.setStatus("disableKeyboard", true);
+        disableWalking();
+        svl.keyboard.setStatus("moving", true);
+    }
+    /*
+     Enable walking and indicate that user has finished moving.
+     */
+    function resetWalking(){
+        svl.panorama.set('linksControl', true);
+        svl.keyboard.setStatus("disableKeyboard", false);
+        enableWalking();
+        svl.keyboard.setStatus("moving", false);
+    }
+
 
     /*
      * Get the status of the labelBeforeJump listener
@@ -575,7 +600,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         console.log("[" + rId + "]\n Pano: " + getPanoId() + "\nNewLatLng:" + JSON.stringify(newLatLng));
 
         if (svl.streetViewService) {
-            svl.streetViewService.getPanoramaByLocation(newLatLng, STREETVIEW_MAX_DISTANCE,
+            svl.streetViewService.getPanorama({location: newLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (data, status) {
                     console.error("[" + rId + "]\nPano:" + getPanoId() + " Round:" + round + " LOC:Status: " + status);
 
@@ -941,12 +966,19 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
-
+        //position updated, set delay until user can walk again to properly update canvas
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
+        // Hide context menu if walking started
+        if (svl.contextMenu.isOpen()){
+            svl.contextMenu.hide();
+        }
+        if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
+            timeoutWalking();
+            setTimeout(resetWalking, moveDelay);
+        }
         updateCanvas();
-
         if (currentMission && neighborhood) {
             if ("compass" in svl) {
                 svl.compass.update();
@@ -1003,13 +1035,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mouseStatus.leftDownY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
 
-        // Setting a cursor
+        // Setting a cursor (crosshair cursor instead of correct zoom out png)
         // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-        if (svl.keyboard.isShiftDown()) {
-            setViewControlLayerCursor('ZoomOut');
-        } else {
-            setViewControlLayerCursor('ClosedHand');
-        }
+        //if (svl.keyboard.isShiftDown()) {
+        //    setViewControlLayerCursor('ZoomOut');
+        //} else {
+        setViewControlLayerCursor('ClosedHand');
+        //}
 
         // Adding delegation on SVG elements
         // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
@@ -1022,6 +1054,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
                     }
                 });
+
                 status.panoLinkListenerSet = true;
             } catch (err) {
 
@@ -1046,14 +1079,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mouseStatus.leftUpY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
 
-        // Setting a mouse cursor
+        // Setting a mouse cursor (crosshair cursor instead of correct zoom out png)
         // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-        if (!svl.keyboard.isShiftDown()) {
-            setViewControlLayerCursor('OpenHand');
+        //if (!svl.keyboard.isShiftDown()) {
+        setViewControlLayerCursor('OpenHand');
             // uiMap.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-        } else {
-            setViewControlLayerCursor('ZoomOut');
-        }
+        //} else {
+        //    setViewControlLayerCursor('ZoomOut');
+        //}
 
         currTime = new Date().getTime();
 
@@ -1095,8 +1128,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     if (newLatlng) {
                         var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
                         if (distance < STREETVIEW_MAX_DISTANCE) {
-                            svl.streetViewService.getPanoramaByLocation(new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
-                                STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+                            svl.streetViewService.getPanorama({location: new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
+                                radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
                                     self.setPano(streetViewPanoramaData.location.pano);
                                     //self.handlerPositionUpdate();
@@ -1124,6 +1157,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
         }
 
+
         mouseStatus.prevMouseUpTime = currTime;
     }
 
@@ -1132,6 +1166,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param e
      */
     function handlerViewControlLayerMouseLeave (e) {
+        setViewControlLayerCursor('OpenHand')
         mouseStatus.isLeftDown = false;
     }
 
@@ -1306,6 +1341,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
+
     /**
      *
      */
@@ -1399,8 +1435,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
-            
-            svl.streetViewService.getPanoramaByLocation(gLatLng, STREETVIEW_MAX_DISTANCE,
+            svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
 
@@ -1833,6 +1868,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.panorama.setPov(pov);
     }
 
+    function getMoveDelay(){
+        return moveDelay;
+    }
+
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
@@ -1882,7 +1921,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.unlockDisablePanning = unlockDisablePanning;
     self.unlockRenderLabels = unlockRenderLabels;
     self.setPovToRouteDirection = setPovToRouteDirection;
-
+    self.timeoutWalking = timeoutWalking;
+    self.resetWalking = resetWalking;
+    self.getMoveDelay = getMoveDelay;
     _init(params);
     return self;
 }
