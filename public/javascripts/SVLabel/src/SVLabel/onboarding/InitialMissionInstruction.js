@@ -115,17 +115,22 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             /* OLD CODE - note: does not properly handle large degree mouse panning
             Explanation: https://github.com/ProjectSidewalk/SidewalkWebpage/pull/398#issuecomment-259284249
             Pasted:
-            The heading of the panorama indicates the angle in which the user is looking at and could be any number between 0 and 360.
+            The heading of the panorama indicates the angle in which the user is looking at and could be any number
+            between 0 and 360.
             We constantly track the heading to detect when the whole scene has been viewed.
-            The problem is that the user might alter between moving clockwise and counter-clockwise (this is what was not considered in the original code and caused this problem to happen).
+            The problem is that the user might alter between moving clockwise and counter-clockwise
+            (this is what was not considered in the original code and caused this problem to happen).
             To detect this, I store and constantly update two variables: viewedCWTransformed and viewedCCWTransformed.
-            The first one stores the size of the largest arc from the initial heading that the user has seen while moving clockwise.
+            The first one stores the size of the largest arc from the initial heading that the user has seen while
+            moving clockwise.
             Similarly, the second variable stores the same thing but when the user is moving counter-clockwise.
             The sum of these two arcs indicates the portion of the scene that the user has viewed.
             To implement this there are two technical problems:
                 (1) the initial heading might be any number in [0, 360] and this would cause a lot of special cases.
-                (2) the events are given in discrete time points and therefore it is not very easy to detect if the user just moved 10° in clockwise or 350° counter-clockwise.
-            To fix the first problem I transfer all the angles in function _transformAngle and then simply assume the initial heading is always 0.
+                (2) the events are given in discrete time points and therefore it is not very easy to detect if the
+                user just moved 10° in clockwise or 350° counter-clockwise.
+            To fix the first problem I transfer all the angles in function _transformAngle and then simply assume
+            the initial heading is always 0.
             And to fix the second problem I define a variable EPS and use it to detect the direction.
 
 
