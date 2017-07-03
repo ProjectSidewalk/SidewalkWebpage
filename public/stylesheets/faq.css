@@ -23,7 +23,7 @@ figure figcaption {
 .faq .faq-item {
     margin-bottom: 100px;
 }
-
+/* Found recommended fix here: https://github.com/twbs/bootstrap/issues/1768 */
 .faq .faq-item h2 {
     margin-top: -70px;
     margin-bottom: 20px;
