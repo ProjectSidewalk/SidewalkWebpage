@@ -1105,6 +1105,71 @@ function Admin(_, $, c3, turf) {
                     });
                 });
             });
+            $.getJSON("/adminapi/labelCounts/registered", function (regData) {
+                $.getJSON("/adminapi/labelCounts/anonymous", function (anonData) {
+                    console.log(regData);
+                    console.log(anonData);
+                    var allData = [];
+                    for (var i = 0; i < anonData[0].length; i++) {
+                        allData.push({count:anonData[0][i].count, user:anonData[0][i].ip_address, is_researcher:anonData[0][i].is_researcher})
+                    }
+                    for (var i = 0; i < regData[0].length; i++) {
+                        allData.push({count:regData[0][i].count, user:regData[0][i].user_id, is_researcher:regData[0][i].is_researcher})
+                    }
+                    console.log(allData);
+
+                    var allStats = getSummaryStats(allData, "count");
+                    var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers:true});
+                    var regStats = getSummaryStats(regData[0], "count");
+                    var regFilteredStats = getSummaryStats(regData[0], "count", {excludeResearchers:true});
+                    var anonStats = getSummaryStats(anonData[0], "count");
+
+                    var allHistOpts = {xAxisTitle:"# Labels per User (all)", xDomain:[0, allStats.max], width:250,
+                        binStep:1000, legendOffset:-80};
+                    var allFilteredHistOpts = {xAxisTitle:"# Labels per User (all)", xDomain:[0, allFilteredStats.max],
+                        width:250, binStep:500, legendOffset:-80, excludeResearchers:true};
+                    var regHistOpts = {xAxisTitle:"# Labels per Registered User", xDomain:[0, regStats.max], width:250,
+                        binStep:1000, legendOffset:-80};
+                    var regFilteredHistOpts = {xAxisTitle:"# Labels per Registered User", width:250, legendOffset:-80,
+                        xDomain:[0, regFilteredStats.max], excludeResearchers:true, binStep:500};
+                    var anonHistOpts = {xAxisTitle:"# Labels per Anon User", xDomain:[0, anonStats.max],
+                        width:250, legendOffset:-80, binStep:500};
+
+                    var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                    var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                    var regChart = getVegaLiteHistogram(regData[0], regStats.mean, regStats.median, regHistOpts);
+                    var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                    var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
+
+                    $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
+                    $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
+                    $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
+
+                    var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
+                    var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, anonChart]};
+
+                    vega.embed("#label-count-hist", combinedChartFiltered, opt, function(error, results) {});
+
+                    var checkbox = document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function(cb) {
+                        if (cb.srcElement.checked) {
+                            $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
+                            $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
+                            console.log(combinedChart);
+                            vega.embed("#label-count-hist", combinedChart, opt, function(error, results) {});
+                        } else {
+                            $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                            $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                            console.log(combinedChartFiltered);
+                            vega.embed("#label-count-hist", combinedChartFiltered, opt, function(error, results) {});
+                        }
+                    });
+                    // document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function(cb) {
+
+                    // });
+                    // document.getElementById("label-count-exclude-researchers-checkbox").addEventListener("click", function(cb) {
+                    // });
+                });
+            });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 stats = getSummaryStats(data[0], "count");
 

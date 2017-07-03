@@ -345,7 +345,7 @@
                     <div class="col-lg-12">
                         <p>
                             <span>Standard Deviation (all users): </span><span id="missions-std"></span><br>
-                            <span>Standard Deviation (registerd users): </span><span id="reg-missions-std"></span><br>
+                            <span>Standard Deviation (registered users): </span><span id="reg-missions-std"></span><br>
                             <span>Standard Deviation (anon users): </span><span id="anon-missions-std"></span><br>
                             <span>
                                 Note: An anonymous user is defined as an IP address that is associated with at least one
@@ -358,6 +358,23 @@
                     </div>
                     <button id="mission-count-include-researchers-button">Include researchers</button>
                     <button id="mission-count-exclude-researchers-button">Exclude researchers</button>
+
+                    <h2>Labels per User</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation (all users): </span><span id="all-labels-std"></span><br>
+                            <span>Standard Deviation (registered users): </span><span id="reg-labels-std"></span><br>
+                            <span>Standard Deviation (anon users): </span><span id="anon-labels-std"></span><br>
+                            <span>
+                                Note: An anonymous user is defined as an IP address that is associated with at least one
+                                completed audit task.
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="label-count-hist"></div>
+                    </div>
+                    <input type="checkbox" id="label-count-include-researchers-checkbox">Include researchers</input>
 
                     <h2>Logins Per User</h2>
                     <div class="col-lg-12">
