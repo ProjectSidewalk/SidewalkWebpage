@@ -215,7 +215,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, it looks like the intersection corner is too far away to see clearly. ' +
                 '<span class="bold">Click the “Zoom In” button</span> to get a closer look.',
                 "position": "top-right",
-                "parameters": null
+                "fade-direction": "fadeInUp",
+                "arrow": "top",
+                "top": 0,
+                "left": 325
             },
             "panoId": panoId,
             "annotations": null,
@@ -493,7 +496,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Now, let’s zoom out and look at the next intersection corner. ' +
                 '<span class="bold">Click the “Zoom Out” button</span>.',
                 "position": "top-right",
-                "parameters": null
+                "fade-direction": "fadeInUp",
+                "arrow": "top",
+                "top": 0,
+                "left": 400
             },
             "panoId": panoId,
             "annotations": null,
