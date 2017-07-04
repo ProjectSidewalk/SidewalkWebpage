@@ -830,7 +830,7 @@ function Admin(_, $, c3, turf) {
 
                 var coverageRateChartSortedByCompletion = {
                     "width": 810,
-                    "height": 800,
+                    "height": 1200,
                     "data": {
                         "values": data, "format": {
                             "type": "json"
@@ -849,14 +849,13 @@ function Admin(_, $, c3, turf) {
                         }
                     },
                     "config": {
-                        "axis": {"titleFontSize": 16, "labelFontSize": 8},
-                        "bar": {"binSpacing": 2}
+                        "axis": {"titleFontSize": 16, "labelFontSize": 8}
                     }
                 };
 
                 var coverageRateChartSortedAlphabetically = {
                     "width": 810,
-                    "height": 800,
+                    "height": 1200,
                     "data": {
                         "values": data, "format": {
                             "type": "json"
@@ -875,8 +874,7 @@ function Admin(_, $, c3, turf) {
                         }
                     },
                     "config": {
-                        "axis": {"titleFontSize": 16, "labelFontSize": 8},
-                        "bar": {"binSpacing": 2}
+                        "axis": {"titleFontSize": 16, "labelFontSize": 8}
                     }
                 };
                 var opt = {
