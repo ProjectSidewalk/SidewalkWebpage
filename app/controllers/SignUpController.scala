@@ -165,7 +165,6 @@ class SignUpController @Inject() (
                   env.eventBus.publish(SignUpEvent(user, request, request2lang))
                   env.eventBus.publish(LoginEvent(user, request, request2lang))
 
-                  println(result);
                   result
                 }
             }
