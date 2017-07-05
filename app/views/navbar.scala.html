@@ -224,33 +224,7 @@
                 // Append the link to the admin interface if it the user is admin
                 if (data.roles && data.roles.indexOf("Administrator") >= 0) {
                     var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
-                    $("#nav-user-menu").append(adminLi);
-                }
-
-                $('#sign-in-modal-container').modal('toggle');
-            }
-            function handleSignUp(data){
-                //this means that logging in failed, alert user of failure
-                if(typeof data == 'string'){
-                    $('#incorrect-signin-alert').hide();
-                    $('#incorrect-login-modal-alert').show();
-                    return;
-                }
-
-                //otherwise, reflect login changes on user's end
-                var htmlString = $("#navbar-dropdown-list-signed-in").html();
-                htmlString = htmlString.replace(/__USERNAME__/g, data.username);
-
-                $("#navbar-dropdown-list").html(htmlString);
-                var path = window.location.pathname;
-                if(path.includes("/audit")) {
-                    svl.user.setProperty('username', data.username);
-                }
-
-                // Append the link to the admin interface if it the user is admin
-                if (data.roles && data.roles.indexOf("Administrator") >= 0) {
-                    var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
-                    $("#nav-user-menu").append(adminLi);
+                    $('#nav-user-menu').children('#dashboard-link').after(adminLi);
                 }
 
                 $('#sign-in-modal-container').modal('toggle');
@@ -328,7 +302,7 @@
                 var data = $(this).serialize();
 
                 var url = '/authapi/signup';
-                $.post(url, data, handleSignUp).fail(function(e){
+                $.post(url, data, handleSignIn).fail(function(e){
                     var error = e.responseText;
                     $('#incorrect-signup-alert').hide();
                     $('#invalid-signup-alert').show();
@@ -348,7 +322,7 @@
             <b class="caret"></b>
         </a>
         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
-            <li role="presentation">
+            <li role="presentation" id="dashboard-link">
                 <a href='/contribution/__USERNAME__' role="menuitem">
                     Your dashboard
                 </a>
