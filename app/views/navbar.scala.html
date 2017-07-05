@@ -129,8 +129,13 @@
                 </div>
                 <div class="modal-body">
 
+                    <div id="incorrect-signin-alert"></div>
                     <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
-                    <div id="incorrect-login-modal-alert"></div>
+                    <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
+                        <a href="#" class="close" data-hide="alert">&times;</a>
+                        <strong>Error!&nbsp;</strong>Invalid credentials!
+                    </div>
+
 
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
                         @text(forms.SignInForm.form("identifier"), "Email address")
@@ -150,6 +155,8 @@
                     <h4 class="modal-title" id="sign-up-label">Sign up</h4>
                 </div>
                 <div class="modal-body">
+                    <div id="incorrect-signup-alert"></div>
+
                     @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/")), args ='id -> "sign-up-form") {
                     @text(forms.SignUpForm.form("username"), "Username", icon = "person")
                     @text(forms.SignUpForm.form("email"), "Email", icon = "at")
@@ -182,30 +189,10 @@
                     }
                 });
 
-                //set tooltip alerts for when users do not enter all sign in / sign up fields
-                $('#username').tooltip({title:'Please enter a username.', trigger: 'manual'});
-                $('#username').on({
-                    'focus': function(){
-                        $('#username').tooltip('hide');
-                    }
-                });
-                $('#identifier').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
-                $('#identifier').on({
-                    'focus': function(){
-                        $('#identifier').tooltip('hide');
-                    }
-                });
-                $('#email').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
-                $('#email').on({
-                    'focus': function(){
-                        $('#email').tooltip('hide');
-                    }
-                });
-                $(':password').tooltip({title:'Please enter your password.', trigger: 'manual'});
-                $(':password').on({
-                    'focus': function(){
-                        $(':password').tooltip('hide');
-                    }
+                $("[data-hide]").on("click", function(){
+                    $("." + $(this).attr("data-hide")).hide();
+                    // -or-, see below
+                    // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
             });
 
@@ -219,12 +206,8 @@
 
                 //this means that logging in failed, alert user of failure
                 if(typeof data == 'string'){
-                    $('#incorrect-login-modal-alert').html(
-                        '<div class="alert alert-danger alert-error" id="incorrect-login-modal-alert">'+
-                        '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                        '<strong>Error!</strong> Invalid credentials!'+
-                        '</div>'
-                    );
+                    $('#incorrect-signin-alert').hide();
+                    $('#incorrect-login-modal-alert').show();
                     return;
                 }
 
@@ -247,6 +230,28 @@
                 $('#sign-in-modal-container').modal('toggle');
             }
 
+            function invalidSignInUpAlert(signIn, message){
+                $('#incorrect-login-modal-alert').hide();
+                if(signIn){
+                    $('#incorrect-signin-alert').html(
+                            '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
+                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                            '<strong>Error!&nbsp;</strong>' + message +
+                            '</div>'
+                    );
+                    $('#incorrect-signin-alert').show();
+                }
+                else{
+                    $('#incorrect-signup-alert').html(
+                            '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
+                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                            '<strong>Error!&nbsp;</strong>' + message +
+                            '</div>'
+                    );
+                    $('#incorrect-signup-alert').show();
+                }
+            }
+
             // Intercept form-based sign in and use AJAX to signin so the page does not refresh.
             $('#sign-in-form').submit(function () {
                 var formData = $('#sign-in-form :input');
@@ -255,12 +260,12 @@
 
                 //if not a valid email address, do not submit form
                 if(!email || !validateEmail(email)){
-                    $('#identifier').tooltip('show');
+                    invalidSignInUpAlert(true, 'Please enter a valid email address.');
                     return false;
                 }
 
                 if(!password){
-                    $(':password').tooltip('show');
+                    invalidSignInUpAlert(true, 'Please enter your password.');
                     return false;
                 }
 
@@ -278,18 +283,18 @@
                 var password = formData[2].value;
 
                 if(!username){
-                    $('#username').tooltip('show');
+                    invalidSignInUpAlert(false, 'Please enter a username.');
                     return false;
                 }
 
                 //if not a valid email address, do not submit form
                 if(!email || !validateEmail(email)){
-                    $('#email').tooltip('show');
+                    invalidSignInUpAlert(false, 'Please enter a valid email address.');
                     return false;
                 }
 
                 if(!password){
-                    $(':password').tooltip('show');
+                    invalidSignInUpAlert(false, 'Please enter your password.');
                     return false;
                 }
 
