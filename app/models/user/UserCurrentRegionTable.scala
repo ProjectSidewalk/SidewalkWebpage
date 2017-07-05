@@ -60,7 +60,7 @@ object UserCurrentRegionTable {
       val regionId: Int = if (region.isDefined) {
         region.get.regionId
       } else {
-        scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head
+        scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).filterNot(difficultRegionIds.contains(_)).head
       }
       save(userId, regionId)
       regionId
@@ -78,7 +78,7 @@ object UserCurrentRegionTable {
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
     // if they have audited less than 2 miles and there is an easy region left, give them an easy one
     if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && StreetEdgeTable.getDistanceAudited(userId) < 2.0) {
-      val regionId = scala.util.Random.shuffle(regionIds).head
+      val regionId = scala.util.Random.shuffle(regionIds.filterNot(difficultRegionIds.contains(_))).head
       update(userId, regionId)
     }
     else {
