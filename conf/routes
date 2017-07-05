@@ -81,15 +81,15 @@ GET     /map/edit                               @controllers.MapController.edit
 GET     /contribution/streets                   @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all               @controllers.UserProfileController.getAllAuditedStreets
 GET     /contribution/tasks                     @controllers.UserProfileController.getSubmittedTasksWithLabels
-GET     /userapi/labels                         @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
-
-GET     /userapi/labelCounts/all                @controllers.UserProfileController.getAllLabelCounts
 GET     /contribution/auditCounts               @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all           @controllers.UserProfileController.getAllAuditCounts
-GET     /userapi/completedMissionCounts/all     @controllers.UserProfileController.getAllUserCompletedMissionCounts
 GET     /contribution/auditInteractions         @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit             @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                 @controllers.UserProfileController.userProfile(username: String)
+
+GET     /userapi/labels                         @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
+GET     /userapi/labelCounts/all                @controllers.UserProfileController.getAllLabelCounts
+GET     /userapi/completedMissionCounts/all     @controllers.UserProfileController.getAllUserCompletedMissionCounts
 
 POST    /userapi/logWebpageActivity             @controllers.UserController.logWebpageActivity
 
