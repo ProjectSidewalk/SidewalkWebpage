@@ -691,14 +691,6 @@
             document.onselectstart = function () { return false; };
             enableTouchSupport();
 
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            if(neighborhood.regionId == 251 ||
-               neighborhood.regionId == 281 ||
-               neighborhood.regionId == 317 ||
-               neighborhood.regionId == 366) {
-                   $('#advanced-overlay').show();
-            }
-
             $('#continue-advanced').on('click', function(){
                 $('#advanced-overlay').hide();
             });
@@ -763,6 +755,12 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
+                if(mainParam.regionId == 251 ||
+                   mainParam.regionId == 281 ||
+                   mainParam.regionId == 317 ||
+                   mainParam.regionId == 366) {
+                       $('#advanced-overlay').show();
+                }
             } else {
                 mainParam.regionId = 1;
                 mainParam.regionName = "";
