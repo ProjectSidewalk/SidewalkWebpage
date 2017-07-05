@@ -30,6 +30,7 @@ object UserCurrentRegionTable {
 
   // these regions are buggy, and we steer new users away from them
   val difficultRegionIds = List(251, 281, 317, 366)
+  val experiencedUserMileageThreshold = 2.0
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -77,7 +78,8 @@ object UserCurrentRegionTable {
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
     // if they have audited less than 2 miles and there is an easy region left, give them an easy one
-    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && StreetEdgeTable.getDistanceAudited(userId) < 2.0) {
+    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty &&
+        StreetEdgeTable.getDistanceAudited(userId) < experiencedUserMileageThreshold) {
       val regionId = scala.util.Random.shuffle(regionIds.filterNot(difficultRegionIds.contains(_))).head
       update(userId, regionId)
     }

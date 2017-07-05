@@ -123,7 +123,7 @@ object RegionTable {
     */
   def selectANamedRegionRoundRobin(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     // If a novice user (audited less than 2 miles)
-    if (StreetEdgeTable.getDistanceAudited(userId) < 2.0) {
+    if (StreetEdgeTable.getDistanceAudited(userId) < UserCurrentRegionTable.experiencedUserMileageThreshold) {
       selectAnEasyNamedRegionRoundRobin
     } else {
       Some(namedRegionRoundRobin.next)
