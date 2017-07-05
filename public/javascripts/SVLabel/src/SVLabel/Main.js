@@ -285,6 +285,7 @@ function Main (params) {
             onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
         }
 
+        // Save mission details before Onboarding is initialized
         var currentMissionInfo = {};
         var currentMissionInProgress = false;
         if(svl.missionContainer.getCurrentMission() !== null){
@@ -293,7 +294,7 @@ function Main (params) {
             currentMissionInfo.currentTask = svl.taskContainer.getCurrentTask();
             currentMissionInfo.latLng = svl.map.getPosition();
             currentMissionInfo.currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            currentMissionInfo.panorama = svl.panorama;
+            currentMissionInfo.panorama = svl.map.getPanoId();
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
