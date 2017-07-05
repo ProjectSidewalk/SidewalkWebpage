@@ -7,13 +7,7 @@
     <!-- Fixed navbar -->
 <nav id="header" class="navbar navbar-fixed-top">
     <div id="header-container" class="container navbar-container">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar"><span id="menubutton" class="logintext">Menu</span>
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
+        <div>
             <a id="brand" class="navbar-brand" href="/"><img id="biglogo" alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
@@ -60,7 +54,7 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
-                                <a href='/contribution/@user.get.username' role="menuitem">
+                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
                                     Your dashboard
                                 </a>
                             </li>
@@ -168,6 +162,16 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+    <div class="modal fade" id="incorrect-login-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="incorrect-login-modal">
+                <div class="modal-body">
+                    <span>Incorrect email address or password.</span>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
     <script>
             $(document).ready(function() {
                 $("#navbar-agree-to-terms").click(function() {
@@ -177,10 +181,49 @@
                         $("#sign-up-submit").prop("disabled", true);
                     }
                 });
+
+                //set tooltip alerts for when users do not enter all sign in / sign up fields
+                $('#username').tooltip({title:'Please enter a username.', trigger: 'manual'});
+                $('#username').on({
+                    'focus': function(){
+                        $('#username').tooltip('hide');
+                    }
+                });
+                $('#identifier').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#identifier').on({
+                    'focus': function(){
+                        $('#identifier').tooltip('hide');
+                    }
+                });
+                $('#email').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#email').on({
+                    'focus': function(){
+                        $('#email').tooltip('hide');
+                    }
+                });
+                $(':password').tooltip({title:'Please enter your password.', trigger: 'manual'});
+                $(':password').on({
+                    'focus': function(){
+                        $(':password').tooltip('hide');
+                    }
+                });
             });
 
-            // Callback function for sign in success
-            function signInSuccess(data) {
+            function validateEmail(email) {
+                var regex = /\S+@@\S+\.\S+/;
+                return regex.test(email);
+            }
+
+            // Callback function for checking sign-in results
+            function handleSignIn(data) {
+
+                //this means that logging in failed, alert user of failure
+                if(typeof data == 'string'){
+                    $('#incorrect-login-modal-container').modal('toggle');
+                    return;
+                }
+
+                //otherwise, reflect login changes on user's end
                 var htmlString = $("#navbar-dropdown-list-signed-in").html();
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
@@ -198,16 +241,54 @@
 
             // Intercept form-based sign in and use AJAX to signin so the page does not refresh.
             $('#sign-in-form').submit(function () {
+                var formData = $('#sign-in-form :input');
+                var email = formData[0].value;
+                var password = formData[1].value;
+
+                //if not a valid email address, do not submit form
+                if(!email || !validateEmail(email)){
+                    $('#identifier').tooltip('show');
+                    return false;
+                }
+
+                if(!password){
+                    $(':password').tooltip('show');
+                    return false;
+                }
+
                 var data = $(this).serialize();
+
                 var url = '/authapi/authenticate';
-                $.post(url, data, signInSuccess);
+                $.post(url, data, handleSignIn);
                 return false;
             });
 
             $('#sign-up-form').submit(function () {
+                var formData = $('#sign-up-form :input');
+                var username = formData[0].value;
+                var email = formData[1].value;
+                var password = formData[2].value;
+
+                if(!username){
+                    $('#username').tooltip('show');
+                    return false;
+                }
+
+                //if not a valid email address, do not submit form
+                if(!email || !validateEmail(email)){
+                    $('#email').tooltip('show');
+                    return false;
+                }
+
+                if(!password){
+                    $(':password').tooltip('show');
+                    return false;
+                }
+
                 var data = $(this).serialize();
+
                 var url = '/authapi/signup';
-                $.post(url, data, signInSuccess);
+                $.post(url, data, handleSignIn);
                 return false;
             });
     </script>
