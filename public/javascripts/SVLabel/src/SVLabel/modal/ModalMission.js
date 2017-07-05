@@ -100,6 +100,16 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
      */
     this.setMissionMessage = function (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
+
+        console.log(neighborhood);
+        if(neighborhood.regionId == 276 ||
+           neighborhood.regionId == 317 ||
+           neighborhood.regionId == 281) {
+               //update message with alert about difficulty
+               //possibly have a div that is hidden in the above html templates and set to show when this is true
+        }
+
+
         var label = mission.getProperty("label"),
             templateHTML,
             missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
