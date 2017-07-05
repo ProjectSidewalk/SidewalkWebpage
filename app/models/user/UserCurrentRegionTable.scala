@@ -29,7 +29,7 @@ object UserCurrentRegionTable {
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   // these regions are buggy, and we steer new users away from them
-  val difficultRegionIds = List(  251)
+  val difficultRegionIds = List(251, 281, 317, 366)
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -55,7 +55,7 @@ object UserCurrentRegionTable {
     if (currentRegionList.isEmpty) {
       // val regionId: Int = scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
 
-      val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
+      val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin(userId)
 
       val regionId: Int = if (region.isDefined) {
         region.get.regionId
