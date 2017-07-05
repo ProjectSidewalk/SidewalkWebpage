@@ -131,7 +131,7 @@ object RegionTable {
   }
 
   /**
-    * Get a Named Region in a round-robin fashion, giving novice users easy regions if possible.
+    * Get a Named Region that has not been flagged as difficult (if any are left) in a round-robin fashion.
     *
     * @return
     */
