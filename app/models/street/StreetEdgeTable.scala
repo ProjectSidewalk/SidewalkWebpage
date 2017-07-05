@@ -5,6 +5,9 @@ import java.util.UUID
 import java.util.Calendar
 import java.text.SimpleDateFormat
 
+import org.geotools.geometry.jts.JTS
+import org.geotools.referencing.CRS
+
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.region.RegionTable
@@ -295,6 +298,17 @@ object StreetEdgeTable {
       """.stripMargin
     )
     selectAuditedStreetsQuery(userId.toString).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /** Returns the total distance that the specified user has audited in meters */
+  def getDistanceAudited(userId: UUID): Float = db.withSession {implicit session =>
+    // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
+    val CRSEpsg4326 = CRS.decode("epsg:4326")
+    val CRSEpsg26918 = CRS.decode("epsg:26918")
+    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+
+    val userStreets = selectAllStreetsAuditedByAUser(userId)
+    userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum.toFloat
   }
 
   /**
