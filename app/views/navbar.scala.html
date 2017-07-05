@@ -128,11 +128,15 @@
                     <h4 class="modal-title" id="sign-in-label">Sign in</h4>
                 </div>
                 <div class="modal-body">
+
+                    <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
+                    <div id="incorrect-login-modal-alert"></div>
+
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
-                    @text(forms.SignInForm.form("identifier"), "Email address")
-                    @password(forms.SignInForm.form("password"), "Password")
-                    <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
-                }
+                        @text(forms.SignInForm.form("identifier"), "Email address")
+                        @password(forms.SignInForm.form("password"), "Password")
+                        <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
+                    }
                 </div>
                 <div class="modal-footer">
                     <div>
@@ -225,7 +229,15 @@
 
                 //this means that logging in failed, alert user of failure
                 if(typeof data == 'string'){
-                    $('#incorrect-login-modal-container').modal('toggle');
+                    //$('#incorrect-login-modal-container').modal('toggle');
+                    //return;
+
+                    $('#incorrect-login-modal-alert').html(
+                        '<div class="alert alert-danger alert-error" id="incorrect-login-modal-alert">'+
+                        '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                        '<strong>Error!</strong> Invalid credentials!'+
+                        '</div>'
+                    );
                     return;
                 }
 
