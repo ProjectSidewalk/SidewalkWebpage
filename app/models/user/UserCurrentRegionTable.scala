@@ -54,7 +54,6 @@ object UserCurrentRegionTable {
     val currentRegionList = _currentRegions.list
 
     if (currentRegionList.isEmpty) {
-      // val regionId: Int = scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
 
       val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin(userId)
 
