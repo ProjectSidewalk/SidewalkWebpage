@@ -14,42 +14,26 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(url.isDefined && url.get != "/audit") {
 
-                    <li class="active">
+                    <li class="active navbarLink">
                         <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
                     </li>
-                    <li class="active">
+                    <li class="active navbarLink">
                         <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
                     </li>
 
                 } else {
 
-                    <script type="text/javascript">
-                            $("#biglogo").css("top", "0px");
-                            $("#biglogo").css("height", "28px" ); //logo resize
-                            $("#biglogo").css("width", "auto" );
-                            $("#header").css("max-height", "45px");
-                            $("#header-container").css("max-height", "45px");
-                            $("#header-container").css("top", "-13px"); //logo margin
-                            $("#header").addClass("navbar-xs");
-                            $("#header").removeClass("navbar");
-                            $("#brand").addClass("navbar-xs-brand");
-                            $("#brand").removeClass("navbar-brand");
-                            $("#navbar").css("margin-top", "16px"); //button margin
-                            $(".navbar-header").css("top", "0px");
-                            $("body").css("padding-top", "14px");
-                    </script>
-
                     <li class="navbarLink">
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
                     <li class = "navbarLink">
-                      <a href='@routes.ApplicationController.faq' id="toolbar-onboarding-link" target="_blank">FAQ</a>
+                      <a href='@routes.ApplicationController.faq' id="toolbar-faq-link" target="_blank">FAQ</a>
                     </li>
 
                 }
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
-                <li class="dropdown" id="navbar-dropdown-list">
+                <li class="dropdown navbarLink" id="navbar-dropdown-list">
                     @if(user) {
                         <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
@@ -73,9 +57,7 @@
                             </li>
                         </ul>
                     } else {
-                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
-                                &nbsp;Sign in
-                        </a>
+                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Sign in</button>
                     }
                 </li>
             </ul>
@@ -337,35 +319,22 @@ $(document).ready(function () {
                 var password = formData[1].value;
 
                 //if not a valid email address, do not submit form
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 if(!email){
                     invalidSignInUpAlert(true, 'Please enter a valid email address.');
-=======
-                if(!email || !validateEmail(email)){
-                    $('#identifier').tooltip('show');
->>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 if(!password){
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                     invalidSignInUpAlert(true, 'Please enter your password.');
-=======
-                    $(':password').tooltip('show');
->>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 var data = $(this).serialize();
 
                 var url = '/authapi/authenticate';
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 $.post(url, data, handleSignIn).fail(function(e){
                     invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
                 });
-=======
-                $.post(url, data, handleSignIn);
->>>>>>> Prevent navbar from collapsing on thin screens
                 return false;
             });
 
@@ -376,38 +345,24 @@ $(document).ready(function () {
                 var password = formData[2].value;
 
                 if(!username){
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                     invalidSignInUpAlert(false, 'Please enter a username.');
-=======
-                    $('#username').tooltip('show');
->>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 //if not a valid email address, do not submit form
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 if(!email){
                     invalidSignInUpAlert(false, 'Please enter a valid email address.');
-=======
-                if(!email || !validateEmail(email)){
-                    $('#email').tooltip('show');
->>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 if(!password){
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                     invalidSignInUpAlert(false, 'Please enter your password.');
-=======
-                    $(':password').tooltip('show');
->>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 var data = $(this).serialize();
 
                 var url = '/authapi/signup';
-<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 $.post(url, data, handleSignIn).fail(function(e){
                     var errorMessage = "";
                     if(e.status === 409){
@@ -430,9 +385,6 @@ $(document).ready(function () {
                             '</div>'
                     );
                 });
-=======
-                $.post(url, data, handleSignIn);
->>>>>>> Prevent navbar from collapsing on thin screens
                 return false;
             });
     </script>
