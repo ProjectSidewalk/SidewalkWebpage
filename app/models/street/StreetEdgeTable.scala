@@ -279,6 +279,22 @@ object StreetEdgeTable {
     selectAuditedStreetsQuery((userId.toString, regionId)).list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
+  def selectAllStreetsAuditedByAUser(userId: UUID): List[StreetEdge] = db.withSession { implicit session =>
+    val selectAuditedStreetsQuery = Q.query[String, StreetEdge](
+      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.street_edge_region
+        |  ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        |INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.completed = TRUE
+        |  AND audit_task.user_id = ?
+        |WHERE street_edge.deleted=FALSE
+      """.stripMargin
+    )
+    selectAuditedStreetsQuery(userId.toString).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
   /**
     * Returns all the streets intersecting the neighborhood
     * @param regionId
