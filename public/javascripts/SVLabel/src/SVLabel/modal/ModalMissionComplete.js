@@ -59,6 +59,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     };
 
     this._closeModal = function (e) {
+        svl.actionStack.reset();
         if (svl.neighborhoodModel.isNeighborhoodCompleted) {
             // reload the page to load another neighborhood
             window.location.replace('/audit');

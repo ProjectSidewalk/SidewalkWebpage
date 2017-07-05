@@ -23,7 +23,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "zoom": 1,
                 "lat": 38.94042608,
                 "lng": -77.06766133,
-                "name": "initialize"
+                "name": "initialize",
+                "maxLabelCount": 0
             },
             "message": {
                 "message": function () {
@@ -54,7 +55,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1]
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 0
             },
             "message": {
                 "message": 'In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. ' +
@@ -90,7 +92,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -325,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1]
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 0
             }],
             "message": {
                 "message": 'Good! Now, <span class="bold">click the curb ramp</span> ' +
@@ -126,7 +129,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1]
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 1
             },
             "message": {
                 "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not ' +
@@ -154,7 +158,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1]
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 1
             },
             "message": {
                 "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
@@ -179,7 +184,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "heading": 230,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-2-adjust"][0],
-                "maxHeading": headingRanges["stage-2-adjust"][1]
+                "maxHeading": headingRanges["stage-2-adjust"][1],
+                "maxLabelCount": 1
             },
             "message": {
                 "message": 'Great! Let’s adjust the view to look at another corner of the intersection. ' +
@@ -202,13 +208,17 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Zoom",
                 "type": "in",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 1
             },
             "message": {
                 "message": 'Hmm, it looks like the intersection corner is too far away to see clearly. ' +
                 '<span class="bold">Click the “Zoom In” button</span> to get a closer look.',
                 "position": "top-right",
-                "parameters": null
+                "fade-direction": "fadeInUp",
+                "arrow": "top",
+                "top": 0,
+                "left": 325
             },
             "panoId": panoId,
             "annotations": null,
@@ -225,7 +235,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 1
             },
             "message": {
                 "message": 'Great! Now you’ve found another curb ramp. Let’s label it! ' +
@@ -262,7 +273,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -300,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 1
             }],
             "message": {
                 "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
@@ -296,7 +308,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 2
             },
             "message": {
                 "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
@@ -322,7 +335,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 2
             },
             "message": {
                 "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
@@ -346,7 +360,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "SelectLabelType",
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 2
             },
             "message": {
                 "message": 'Notice that there is no curb ramp at the end of this crosswalk. ' +
@@ -383,7 +398,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -300,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 2
             }],
             "message": {
                 "message": 'Now click beneath the flashing yellow arrow to <span class="bold">label the missing ' +
@@ -418,7 +434,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "NoCurbRamp",
                 "severity": 3,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
             },
             "message": {
                 "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem ' +
@@ -447,7 +464,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "NoCurbRamp",
                 "severity": 3,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
             },
             "message": {
                 "message": 'Hmm, this is a slightly severe problem. ' +
@@ -471,13 +489,17 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Zoom",
                 "type": "out",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
             },
             "message": {
                 "message": 'Now, let’s zoom out and look at the next intersection corner. ' +
                 '<span class="bold">Click the “Zoom Out” button</span>.',
                 "position": "top-right",
-                "parameters": null
+                "fade-direction": "fadeInUp",
+                "arrow": "top",
+                "top": 0,
+                "left": 400
             },
             "panoId": panoId,
             "annotations": null,
@@ -495,7 +517,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "heading": 177,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-3-adjust"][0],
-                "maxHeading": headingRanges["stage-3-adjust"][1]
+                "maxHeading": headingRanges["stage-3-adjust"][1],
+                "maxLabelCount": 3
             },
             "message": {
                 "message": 'Look to the left by <span class="bold">grabbing and dragging the Street View image.</span>',
@@ -518,7 +541,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "heading": 115,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-3-adjust"][0],
-                "maxHeading": headingRanges["stage-3-adjust"][1]
+                "maxHeading": headingRanges["stage-3-adjust"][1],
+                "maxLabelCount": 3
             },
             "message": {
                 "message": 'Keep looking <span class="bold">left</span>.',
@@ -540,7 +564,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 3
             },
             "message": {
                 "message": 'OK, this corner has two curb ramps. Let’s label them both! ' +
@@ -588,7 +613,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -750,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 3
             },{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -638,12 +664,189 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 return "rate-severity-5-goto-4";
             }]
         },
+        "rate-severity-4": {
+            "properties": {
+                "action": "RateSeverity",
+                "labelType": "CurbRamp",
+                "severity": null,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
+            },
+            "message": {
+                "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
+                'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 18 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
+                var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
+                return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
+            }
+        },
+        "redo-rate-attribute-4": {
+            "properties": {
+                "action": "RedoRateSeverity",
+                "labelType": "CurbRamp",
+                "severity": 1,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
+            },
+            "message": {
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
+            }
+        },
+        "select-label-type-5": {
+            "properties": {
+                "action": "SelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
+            },
+            "message": {
+                "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 3850,
+                    "y": -860,
+                    "length": 50,
+                    "angle": 0,
+                    "text": null,
+                    "fill": "white",
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                var completedRate = 19 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
+                return "label-attribute-5";
+            }
+        },
+        "label-attribute-5": {
+            "properties": [{
+                "action": "LabelAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "imageX": 3850,
+                "imageY": -860,
+                "tolerance": 300,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
+            }],
+            "message": {
+                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 3850,
+                    "y": -860,
+                    "length": 50,
+                    "angle": 0,
+                    "text": null,
+                    "fill": "yellow",
+                    "originalPov": {}
+                }
+            ],
+            "transition": [function () {
+                var completedRate = 20 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
+                return "rate-severity-5";
+            }]
+        },
+        "rate-severity-5": {
+            "properties": {
+                "action": "RateSeverity",
+                "labelType": "CurbRamp",
+                "severity": null,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 5
+            },
+            "message": {
+                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 21 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
+            }
+        },
+        "redo-rate-attribute-5": {
+            "properties": {
+                "action": "RedoRateSeverity",
+                "labelType": "CurbRamp",
+                "severity": 1,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 5
+            },
+            "message": {
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
+            }
+        },
         "select-label-type-4-after-5": {
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
             },
             "message": {
                 "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
@@ -680,7 +883,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -750,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
             }],
             "message": {
                 "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
@@ -708,68 +912,18 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 return "rate-severity-4-after-5";
             }]
         },
-        "rate-severity-4": {
-            "properties": {
-                "action": "RateSeverity",
-                "labelType": "CurbRamp",
-                "severity": null,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
-            },
-            "message": {
-                "message": 'Now, let\'s <span class="bold">rate the quality</span> of the curb ramp. ' +
-                'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var completedRate = 18 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
-                var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
-                return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
-            }
-        },
-        "redo-rate-attribute-4": {
-            "properties": {
-                "action": "RedoRateSeverity",
-                "labelType": "CurbRamp",
-                "severity": 1,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
-            },
-            "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
-                var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "select-label-type-5" : "redo-rate-attribute-4";
-            }
-        },
         "rate-severity-4-after-5": {
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 5
             },
             "message": {
-                "message": 'Now, <span class="bold">rate the curb ramp’s quality</span>. ' +
-                'Use your best judgment. You can also write in notes in the Description Box.<br>' +
+                "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
+                'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -791,7 +945,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 5
             },
             "message": {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
@@ -809,132 +964,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-4-after-5";
             }
         },
-        "select-label-type-5": {
-            "properties": {
-                "action": "SelectLabelType",
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
-            },
-            "message": {
-                "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": [
-                {
-                    "type": "arrow",
-                    "x": 3850,
-                    "y": -860,
-                    "length": 50,
-                    "angle": 0,
-                    "text": null,
-                    "fill": "white",
-                    "originalPov": {}
-                }
-            ],
-            "transition": function () {
-                var completedRate = 19 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
-                return "label-attribute-5";
-            }
-        },
-        "label-attribute-5": {
-            "properties": [{
-                "action": "LabelAccessibilityAttribute",
-                "labelType": "CurbRamp",
-                "imageX": 3850,
-                "imageY": -860,
-                "tolerance": 300,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
-            }],
-            "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": [
-                {
-                    "type": "arrow",
-                    "x": 3850,
-                    "y": -860,
-                    "length": 50,
-                    "angle": 0,
-                    "text": null,
-                    "fill": "yellow",
-                    "originalPov": {}
-                }
-            ],
-            "transition": [function () {
-                var completedRate = 20 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
-                return "rate-severity-5";
-            }]
-        },
-        "rate-severity-5": {
-            "properties": {
-                "action": "RateSeverity",
-                "labelType": "CurbRamp",
-                "severity": null,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
-            },
-            "message": {
-                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var completedRate = 21 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
-                var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
-            }
-        },
-        "redo-rate-attribute-5": {
-            "properties": {
-                "action": "RedoRateSeverity",
-                "labelType": "CurbRamp",
-                "severity": 1,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
-            },
-            "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
-                var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "select-label-type-6" : "redo-rate-attribute-5";
-            }
-        },
         "rate-severity-5-goto-4": {
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
             },
             "message": {
                 "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
@@ -960,7 +997,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 4
             },
             "message": {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
@@ -984,7 +1022,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "Other",
                 "subcategory": "NoSidewalk",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 5
             },
             "message": {
                 "message": 'Notice that the sidewalk suddenly ends here. Let’s label this. ' +
@@ -1022,7 +1061,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -550,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 5
             }],
             "message": {
                 "message": '<span class="bold">Click on the ground</span> where the sidewalk is missing.',
@@ -1055,7 +1095,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "heading": 20,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-4-adjust"][0],
-                "maxHeading": headingRanges["stage-4-adjust"][1]
+                "maxHeading": headingRanges["stage-4-adjust"][1],
+                "maxLabelCount": 6
             },
             "message": {
                 "message": 'Awesome! Let’s finish labeling the last curb ramp in the intersection. ' +
@@ -1078,7 +1119,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "maxHeading": headingRanges["stage-4"][1],
+                "maxLabelCount": 6
             },
             "message": {
                 "message": 'Good! Now <span class="bold">click the "Curb Ramp" button</span> on the menu to label it.',
@@ -1114,7 +1156,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "imageY": -690,
                 "tolerance": 250,
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "maxHeading": headingRanges["stage-4"][1],
+                "maxLabelCount": 6
             }],
             "message": {
                 "message": '<span class="bold">Click the curb ramp</span> beneath the flashing yellow arrow to label it.',
@@ -1149,7 +1192,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "maxHeading": headingRanges["stage-4"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
@@ -1176,7 +1220,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "maxHeading": headingRanges["stage-4"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
@@ -1201,7 +1246,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "heading": 346,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-5-adjust"][0],
-                "maxHeading": headingRanges["stage-5-adjust"][1]
+                "maxHeading": headingRanges["stage-5-adjust"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. ' +
@@ -1224,7 +1270,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
-                "blinks": ["google-maps"]
+                "blinks": ["google-maps"],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Good! Now, to figure out where to walk, you will follow the ' +
@@ -1257,7 +1304,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Instruction",
                 "blinks": ["compass"],
                 "minHeading": headingRanges["stage-5"][0],
-                "maxHeading": headingRanges["stage-5"][1]
+                "maxHeading": headingRanges["stage-5"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'We will also guide you via <span class="bold">navigation messages</span> ' +
@@ -1284,10 +1332,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "panoId": afterWalkPanoId,
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
-                "fade-direction": "fadeIn"
+                "fade-direction": "fadeIn",
+                "maxLabelCount": 7
             },
             "message": {
-                //once you know the direction and the route to follow
                 "message": 'Now, let\'s actually take a step! <span class="bold">' +
                 'Double click on the street</span> in the direction you want to move. ' +
                 'In this case, double click in the circle below.',
@@ -1319,7 +1367,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
                 "blinks": ["google-maps"],
-                "name": "walk-4"
+                "name": "walk-4",
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Great! You just moved one step down the street. Visited parts of a route are marked in ' +
@@ -1346,7 +1395,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "maxHeading": headingRanges["stage-6"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Now, you can look for more issues at this ' +
@@ -1392,7 +1442,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "maxHeading": headingRanges["stage-6"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ' +
@@ -1441,7 +1492,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Instruction",
                 "blinks": ["google-maps"],
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "maxHeading": headingRanges["stage-6"][1],
+                "maxLabelCount": 7
             },
             "message": {
                 "message": 'You can track <span class="bold">your labels</span> in the mini map!',
@@ -1492,10 +1544,11 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "action": "Instruction",
                 "blinks": ["jump"],
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "maxHeading": headingRanges["stage-6"][1],
+                "maxLabelCount": 7
             },
             "message": {
-                "message": 'Finally, if you get stuck while exploring, you can use the ' +
+                "message": 'Finally, if you get stuck while walking, you can use the ' +
                 '<span class="bold">Jump button</span> to move to a different location.',
                 "position": "top-right",
                 "fade-direction": "fadeInRight",
@@ -1520,7 +1573,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "pitch": -6,
                 "zoom": 1,
                 "minHeading": undefined,
-                "maxHeading": undefined
+                "maxHeading": undefined,
+                "maxLabelCount": 7
             },
             "message": {
                 "message": function () {
