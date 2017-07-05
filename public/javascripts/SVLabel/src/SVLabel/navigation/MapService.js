@@ -298,7 +298,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     moveToTheTaskLocation(task);
                 }
             }
-            initialPositionUpdate = true;
+            self.preparePovReset();
         };
 
         var geometry = task.getGeometry();
@@ -640,7 +640,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      *  Issue #537
      */
     function jumpImageryNotFound() {
-        initialPositionUpdate = true;
+        self.preparePovReset();
         var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodName = currentNeighborhood.getProperty("name");
 
@@ -1827,10 +1827,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
 
+    // Set a flag that triggers the POV being reset into the route direction upon the postiion changing
     self.preparePovReset = function(){
         initialPositionUpdate = true;
     }
-
+    // Set the POV in the same direction as the route
     function setPovToRouteDirection(){
         var pov = svl.panorama.getPov(),
             compassAngle = svl.compass.getCompassAngle();
