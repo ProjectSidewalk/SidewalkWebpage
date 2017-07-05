@@ -7,6 +7,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
+import models.street.StreetEdgeTable
+
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
 class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Some("sidewalk"), "user_current_region") {
@@ -25,6 +27,9 @@ object UserCurrentRegionTable {
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+
+  // these regions are buggy, and we steer new users away from them
+  val difficultRegionIds = List(  251)
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -70,9 +75,16 @@ object UserCurrentRegionTable {
     * @return
     */
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
-    val regionIds = MissionTable.selectIncompleteRegions(userId)
-    val regionId = scala.util.Random.shuffle(regionIds).head
-    update(userId, regionId)
+    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
+    // if they have audited less than 2 miles and there is an easy region left, give them an easy one
+    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && StreetEdgeTable.getDistanceAudited(userId) < 2.0) {
+      val regionId = scala.util.Random.shuffle(regionIds).head
+      update(userId, regionId)
+    }
+    else {
+      val regionId = scala.util.Random.shuffle(regionIds).head
+      update(userId, regionId)
+    }
   }
 
   /**

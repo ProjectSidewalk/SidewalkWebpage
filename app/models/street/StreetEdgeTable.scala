@@ -300,7 +300,7 @@ object StreetEdgeTable {
     selectAuditedStreetsQuery(userId.toString).list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
-  /** Returns the total distance that the specified user has audited in meters */
+  /** Returns the total distance that the specified user has audited in miles */
   def getDistanceAudited(userId: UUID): Float = db.withSession {implicit session =>
     // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
     val CRSEpsg4326 = CRS.decode("epsg:4326")
@@ -308,7 +308,7 @@ object StreetEdgeTable {
     val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
 
     val userStreets = selectAllStreetsAuditedByAUser(userId)
-    userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum.toFloat
+    (userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum * 0.000621371).toFloat
   }
 
   /**
