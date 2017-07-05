@@ -1161,3 +1161,41 @@ kbd {
     /*padding-bottom: 9px;*/
     line-height: 20px;
 }
+.toolUI{
+    position: relative;
+}
+#advanced-overlay{
+    display:none;
+}
+#overlay-text{
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    background: rgba(0,0,0,0.85);
+    z-index: 5;
+}
+#advanced-neighborhood-text{
+    color: white;
+    text-align: center;
+    width: 59%;
+    position: relative;
+    margin-top: 35vh;
+    margin-left: 18vw;
+    border-radius: 5px;
+    font-size: 21px;
+}
+#advanced-neighborhood-text p{
+    border-radius: 5px;
+    padding: 7px;
+}
+#advanced-neighborhood-text span{
+    margin: 20px 5px;
+    padding: 7px;
+    border: 1px solid white;
+    border-radius: 5px;
+}
+#advanced-neighborhood-text span:hover{
+    background-color: white;
+    color: black;
+    cursor: pointer;
+}

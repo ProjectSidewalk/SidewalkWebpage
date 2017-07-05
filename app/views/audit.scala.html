@@ -19,6 +19,18 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
     <div class="container toolUI" style = "visibility: hidden;">
+        <div id="advanced-overlay">
+            <div id="overlay-text">
+                <div id="advanced-neighborhood-text">
+                    <p>
+                        <b>Notice:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                    </p>
+                    <br>
+                    <span id="continue-advanced">Yes, continue</span>
+                    <span id="redirect-advanced">No, take me somewhere else</span>
+                </div>
+            </div>
+        </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -678,6 +690,22 @@
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
             enableTouchSupport();
+
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            if(neighborhood.regionId == 251 ||
+               neighborhood.regionId == 281 ||
+               neighborhood.regionId == 317 ||
+               neighborhood.regionId == 366) {
+                   $('#advanced-overlay').show();
+            }
+
+            $('#continue-advanced').on('click', function(){
+                $('#advanced-overlay').hide();
+            });
+
+            $('#redirect-advanced').on('click', function(){
+                $(location).attr('href', '/audit');
+            });
         });
 
         function enableTouchSupport() {
