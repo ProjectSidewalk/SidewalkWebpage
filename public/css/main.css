@@ -122,7 +122,6 @@ footer {
     /* the rest of your styling */
 }
 #navbar {
-    margin-top: 30px;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
@@ -1003,11 +1002,6 @@ video#bgvid {
 
 }
 
-#topbuttons {
-    position: relative;
-    top: -25px;
-}
-
 .verticalbar {
     color: #FBD78B;
 }
@@ -1243,4 +1237,19 @@ kbd {
 #results-choropleth-container {
     background-color: #fff;
     width: 100%;
+}
+.navbar-collapse.collapse {
+  display: block;
+}
+
+.navbar-nav>li, .navbar-nav {
+  float: left;
+}
+
+.navbar-nav.navbar-right:last-child {
+  margin-right: -15px;
+}
+
+.navbar-right {
+  float: right;
 }

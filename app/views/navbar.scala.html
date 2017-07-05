@@ -7,13 +7,7 @@
     <!-- Fixed navbar -->
 <nav id="header" class="navbar navbar-fixed-top">
     <div id="header-container" class="container navbar-container">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar"><span id="menubutton" class="logintext">Menu</span>
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
+        <div>
             <a id="brand" class="navbar-brand" href="/"><img id="biglogo" alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
@@ -235,6 +229,16 @@ $(document).ready(function () {
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+    <div class="modal fade" id="incorrect-login-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="incorrect-login-modal">
+                <div class="modal-body">
+                    <span>Incorrect email address or password.</span>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
     <script>
             $(document).ready(function() {
                 $("#navbar-agree-to-terms").click(function() {
@@ -333,22 +337,35 @@ $(document).ready(function () {
                 var password = formData[1].value;
 
                 //if not a valid email address, do not submit form
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 if(!email){
                     invalidSignInUpAlert(true, 'Please enter a valid email address.');
+=======
+                if(!email || !validateEmail(email)){
+                    $('#identifier').tooltip('show');
+>>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 if(!password){
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                     invalidSignInUpAlert(true, 'Please enter your password.');
+=======
+                    $(':password').tooltip('show');
+>>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 var data = $(this).serialize();
 
                 var url = '/authapi/authenticate';
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 $.post(url, data, handleSignIn).fail(function(e){
                     invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
                 });
+=======
+                $.post(url, data, handleSignIn);
+>>>>>>> Prevent navbar from collapsing on thin screens
                 return false;
             });
 
@@ -359,24 +376,38 @@ $(document).ready(function () {
                 var password = formData[2].value;
 
                 if(!username){
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                     invalidSignInUpAlert(false, 'Please enter a username.');
+=======
+                    $('#username').tooltip('show');
+>>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 //if not a valid email address, do not submit form
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 if(!email){
                     invalidSignInUpAlert(false, 'Please enter a valid email address.');
+=======
+                if(!email || !validateEmail(email)){
+                    $('#email').tooltip('show');
+>>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 if(!password){
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                     invalidSignInUpAlert(false, 'Please enter your password.');
+=======
+                    $(':password').tooltip('show');
+>>>>>>> Prevent navbar from collapsing on thin screens
                     return false;
                 }
 
                 var data = $(this).serialize();
 
                 var url = '/authapi/signup';
+<<<<<<< b01cae0431191ffd52036d1d0a8589cbc9dabc6a
                 $.post(url, data, handleSignIn).fail(function(e){
                     var errorMessage = "";
                     if(e.status === 409){
@@ -399,6 +430,9 @@ $(document).ready(function () {
                             '</div>'
                     );
                 });
+=======
+                $.post(url, data, handleSignIn);
+>>>>>>> Prevent navbar from collapsing on thin screens
                 return false;
             });
     </script>
