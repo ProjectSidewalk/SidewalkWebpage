@@ -14,39 +14,23 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(url.isDefined && url.get != "/audit") {
 
-                    <li class="active">
+                    <li class="active navbarLink">
                         <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
                     </li>
 
                 } else {
 
-                    <script type="text/javascript">
-                            $("#biglogo").css("top", "0px");
-                            $("#biglogo").css("height", "28px" ); //logo resize
-                            $("#biglogo").css("width", "auto" );
-                            $("#header").css("max-height", "45px");
-                            $("#header-container").css("max-height", "45px");
-                            $("#header-container").css("top", "-13px"); //logo margin
-                            $("#header").addClass("navbar-xs");
-                            $("#header").removeClass("navbar");
-                            $("#brand").addClass("navbar-xs-brand");
-                            $("#brand").removeClass("navbar-brand");
-                            $("#navbar").css("margin-top", "16px"); //button margin
-                            $(".navbar-header").css("top", "0px");
-                            $("body").css("padding-top", "14px");
-                    </script>
-
                     <li class="navbarLink">
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
                     <li class = "navbarLink">
-                      <a href='@routes.ApplicationController.faq' id="toolbar-onboarding-link" target="_blank">FAQ</a>
+                      <a href='@routes.ApplicationController.faq' id="toolbar-faq-link" target="_blank">FAQ</a>
                     </li>
 
                 }
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
-                <li class="dropdown" id="navbar-dropdown-list">
+                <li class="dropdown navbarLink" id="navbar-dropdown-list">
                     @if(user) {
                         <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
@@ -70,9 +54,7 @@
                             </li>
                         </ul>
                     } else {
-                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">
-                                &nbsp;Sign in
-                        </a>
+                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Sign in</button>
                     }
                 </li>
             </ul>
