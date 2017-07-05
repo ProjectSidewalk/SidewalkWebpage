@@ -172,16 +172,6 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
-    <div class="modal fade" id="incorrect-login-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content" id="incorrect-login-modal">
-                <div class="modal-body">
-                    <span>Incorrect email address or password.</span>
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                </div>
-            </div><!-- /.modal-content -->
-        </div><!-- /.modal-dialog -->
-    </div><!-- /.modal -->
     <script>
             $(document).ready(function() {
                 $("#navbar-agree-to-terms").click(function() {
@@ -229,9 +219,6 @@
 
                 //this means that logging in failed, alert user of failure
                 if(typeof data == 'string'){
-                    //$('#incorrect-login-modal-container').modal('toggle');
-                    //return;
-
                     $('#incorrect-login-modal-alert').html(
                         '<div class="alert alert-danger alert-error" id="incorrect-login-modal-alert">'+
                         '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
@@ -246,6 +233,9 @@
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
                 $("#navbar-dropdown-list").html(htmlString);
+                // TODO: have some check to whether we're on the audit page or not, because
+                // svl only exists on that page I think. This line causes an error when signing
+                // in from the main page
                 svl.user.setProperty('username', data.username);
 
                 // Append the link to the admin interface if it the user is admin
