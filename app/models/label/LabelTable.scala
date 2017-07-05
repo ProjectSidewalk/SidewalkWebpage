@@ -519,7 +519,7 @@ object LabelTable {
     // TODO figure out how to select a distinct environment for each ip address, right now we get duplicates!!!
     val _anonAudits = for {
       (_environment, _task) <- auditTaskEnvironments.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-      if _task.userId === "97760883-8ef0-4309-9a5e-0c086ef27573"
+      if _task.userId === anonId
     } yield (_environment.ipAddress, _environment.auditTaskId)
 
     val uniqueAudits = _anonAudits.groupBy(x => x).map(_._1)
