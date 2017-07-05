@@ -44,7 +44,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
-    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
 
     request.identity match {
       case Some(user) =>

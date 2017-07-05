@@ -78,7 +78,7 @@ object RegionTable {
     val namedRegionMap: Map[Int, NamedRegion] = namedRegionsList.map(nr => nr.regionId -> nr).toMap
 
     // Sort the NamedRegions based on their completion rates
-    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
     val sortedRegionIds = completionRates.map(_.regionId)
     val sortedNamedRegionList: List[NamedRegion] = for (regionId <- sortedRegionIds) yield namedRegionMap(regionId)
 
