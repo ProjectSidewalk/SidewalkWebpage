@@ -55,6 +55,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         svl.map.timeoutWalking();
         //restore user ability to walk after param moveTime
         setTimeout(svl.map.resetWalking, moveTime);
+        //additional check to hide arrows after the fact
+        //pop-up may become visible during timeout period
+        if (svl.popUpMessage.getStatus('isVisible')){
+            svl.panorama.set('linksControl', false);//disable arrows
+        }
     }
 
     this._moveForward = function (){

@@ -341,6 +341,51 @@
                         <div id="onboarding-completion-duration-histogram"></div>
                     </div>
 
+                    <h2>Missions Completed By Users</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation (all users): </span><span id="missions-std"></span><br>
+                            <span>Standard Deviation (registered users): </span><span id="reg-missions-std"></span><br>
+                            <span>Standard Deviation (anon users): </span><span id="anon-missions-std"></span><br>
+                            <span>
+                                Note: An anonymous user is defined as an IP address that is associated with at least one
+                                completed audit task.
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="mission-count-chart"></div>
+                    </div>
+                    <label><input type="checkbox" id="mission-count-include-researchers-checkbox"> Include researchers</label>
+
+                    <h2>Labels per User</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation (all users): </span><span id="all-labels-std"></span><br>
+                            <span>Standard Deviation (registered users): </span><span id="reg-labels-std"></span><br>
+                            <span>Standard Deviation (anon users): </span><span id="anon-labels-std"></span><br>
+                            <span>
+                                Note: An anonymous user is defined as an IP address that is associated with at least one
+                                completed audit task.
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="label-count-hist"></div>
+                    </div>
+                    <label><input type="checkbox" id="label-count-include-researchers-checkbox"> Include researchers</label>
+
+                    <h2>Logins Per User</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation: </span><span id="login-count-std"></span><br>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="login-count-chart"></div>
+                    </div>
+                    <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
+
                 </div>
             </div>
             <div id="tabs-4" class="tab-pane">

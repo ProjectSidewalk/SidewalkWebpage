@@ -19,3 +19,7 @@ NavigationModel.prototype.getPosition = function () {
 NavigationModel.prototype.setPosition = function (lat, lng, callback) {
     if (this._mapService) this._mapService.setPosition(lat, lng, callback);
 };
+
+NavigationModel.prototype.preparePovReset = function(){
+    if (this._mapService) this._mapService.preparePovReset();
+}
