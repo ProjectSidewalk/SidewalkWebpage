@@ -133,7 +133,7 @@
                     <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
                     <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
                         <a href="#" class="close" data-hide="alert">&times;</a>
-                        <strong>Error!&nbsp;</strong>Invalid credentials!
+                        <strong>Whoops!&nbsp;</strong>We can't find this username and password pair.
                     </div>
 
 
@@ -230,13 +230,14 @@
                 $('#sign-in-modal-container').modal('toggle');
             }
 
+            
             function invalidSignInUpAlert(signIn, message){
                 if(signIn){
                     $('#incorrect-login-modal-alert').hide();
                     $('#incorrect-signin-alert').html(
                             '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Error!&nbsp;</strong>' + message +
+                            '<strong>Whoops!&nbsp;</strong>' + message +
                             '</div>'
                     );
                     $('#incorrect-signin-alert').show();
@@ -246,7 +247,7 @@
                     $('#incorrect-signup-alert').html(
                             '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Error!&nbsp;</strong>' + message +
+                            '<strong>Whoops!&nbsp;</strong>' + message +
                             '</div>'
                     );
                     $('#incorrect-signup-alert').show();
@@ -303,13 +304,21 @@
 
                 var url = '/authapi/signup';
                 $.post(url, data, handleSignIn).fail(function(e){
+                    var errorMessage;
+                    console.log(e);
+                    if(e.responseText.toLowerCase().includes("email")){
+                        errorMessage = "An account with that email is already registered. Please try another one."
+                    }
+                    else{
+                        errorMessage = "An account with that username is already registered. Please try another one."
+                    }
                     var error = e.responseText;
                     $('#incorrect-signup-alert').hide();
                     $('#invalid-signup-alert').show();
                     $('#invalid-signup-alert').html(
                             '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Error!&nbsp;</strong>' + error +
+                            '<strong>Uh-oh!&nbsp;</strong>' + errorMessage +
                             '</div>'
                     );
                 });
