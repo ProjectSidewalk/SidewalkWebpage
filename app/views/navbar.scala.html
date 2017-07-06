@@ -307,10 +307,10 @@
                     var errorMessage;
                     console.log(e);
                     if(e.responseText.toLowerCase().includes("email")){
-                        errorMessage = "An account with that email is already registered. Please try another one."
+                        errorMessage = "That email address already exists. Please try another one."
                     }
                     else{
-                        errorMessage = "An account with that username is already registered. Please try another one."
+                        errorMessage = "That username already exists. Please try another one."
                     }
                     var error = e.responseText;
                     $('#incorrect-signup-alert').hide();
