@@ -63,9 +63,10 @@ object UserDAOImpl {
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
   val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
 
+  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
   val anonUsers = for {
     (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-    if _at.userId === "97760883-8ef0-4309-9a5e-0c086ef27573" && _at.completed === true
+    if _at.userId === anonId && _at.completed === true
   } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
 
   val anonIps = anonUsers.groupBy(_._1).map{case(ip,group)=>ip}
@@ -139,7 +140,7 @@ object UserDAOImpl {
   def getAnonUserInteractions = db.withSession { implicit session =>
     val anonAuditTasks = for {
       (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-      if _at.userId === "97760883-8ef0-4309-9a5e-0c086ef27573"
+      if _at.userId === anonId
     } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
 
     val interactions = for {
