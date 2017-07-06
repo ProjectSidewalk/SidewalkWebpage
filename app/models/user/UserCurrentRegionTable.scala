@@ -89,6 +89,24 @@ object UserCurrentRegionTable {
   }
 
   /**
+    * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
+    * @param userId
+    * @return
+    */
+  def assignNextEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
+    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
+    // if they have audited less than 2 miles and there is an easy region left, give them an easy one
+    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty) {
+      val regionId = scala.util.Random.shuffle(regionIds.filterNot(difficultRegionIds.contains(_))).head
+      update(userId, regionId)
+    }
+    else {
+      val regionId = scala.util.Random.shuffle(regionIds).head
+      update(userId, regionId)
+    }
+  }
+
+  /**
     * Returns the region id that is currently assigned to the given user
     *
     * @param userId user id
