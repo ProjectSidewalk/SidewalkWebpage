@@ -119,7 +119,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     RegionCompletionTable.initializeRegionCompletionTable()
 
-    getAllAnonUserCompletedMissionCounts
     val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
     val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
       Json.obj("region_id" -> neighborhood.regionId,
