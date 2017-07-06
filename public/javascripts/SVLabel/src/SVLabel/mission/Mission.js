@@ -153,6 +153,10 @@ function Mission(parameters) {
             };
             svl.labelCounter.reset();
         }
+
+        if (svl.main.isAnAnonymousUser() && !svl.onboarding.isOnboarding()){
+            svl.storage.set('completedMissionAnonymously', true);
+        }
     }
 
     /**

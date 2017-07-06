@@ -345,7 +345,8 @@ function Main (params) {
         }
 
         // Popup the message explaining the goal of the current mission
-        if (svl.missionContainer.isTheFirstMission() || svl.missionContainer.onlyMissionOnboardingDone()) {
+        if ((svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission())
+            && !svl.storage.get('completedMissionAnonymously')) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                 svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);

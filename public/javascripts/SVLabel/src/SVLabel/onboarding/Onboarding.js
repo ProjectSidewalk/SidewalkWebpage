@@ -544,12 +544,15 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var mission = missions[0];
 
         missionContainer.setCurrentMission(mission);
-        if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
+        if ((missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission())
+            && !storage.get('completedMissionAnonymously')) {
+
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                 svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
             modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
+
         }else{
             modalMission.setMissionMessage(mission, neighborhood);
         }
