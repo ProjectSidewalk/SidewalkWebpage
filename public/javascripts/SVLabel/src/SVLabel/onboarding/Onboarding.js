@@ -544,8 +544,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var mission = missions[0];
 
         missionContainer.setCurrentMission(mission);
-        if ((missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission())
-            && !storage.get('completedMissionAnonymously')) {
+        if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
 
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                 svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);

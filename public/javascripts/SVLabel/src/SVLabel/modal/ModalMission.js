@@ -110,8 +110,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 distanceString;
                 templateHTML = distanceMissionHTML;
 
-            if ((missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission())
-                && !svl.storage.get('completedMissionAnonymously')) {
+            if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
             }
