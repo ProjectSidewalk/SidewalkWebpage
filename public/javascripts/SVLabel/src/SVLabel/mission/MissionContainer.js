@@ -106,7 +106,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         }
     };
     this.onlyMissionOnboardingDone = function (){
-       return self._completedMissions.length == 1 && self._completedMissions[0].getProperty("label") === "onboarding";
+       return self._completedMissions.length == 1 && self._completedMissions[0].getProperty("label") === "onboarding" && !svl.storage.get("completedFirstMission");
     };
 
     /** Get current mission */
@@ -190,7 +190,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
      * @returns {boolean}
      */
     function isTheFirstMission () {
-        return getCompletedMissions().length == 0;
+        return getCompletedMissions().length == 0 && !svl.storage.get("completedFirstMission");
     }
 
     /**
