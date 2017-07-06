@@ -154,7 +154,7 @@ function Mission(parameters) {
             svl.labelCounter.reset();
         }
 
-        if (!svl.onboarding.isOnboarding()){
+        if (!svl.isOnboarding()){
             svl.storage.set('completedFirstMission', true);
         }
     }
