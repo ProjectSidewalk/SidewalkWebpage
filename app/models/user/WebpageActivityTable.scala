@@ -71,4 +71,15 @@ object WebpageActivityTable {
     val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").list
     Some(signInActivities.length)
   }
+
+  /**
+    * Returns a list of signin counts, each element being a count of logins for a user
+    *
+    * @return List[(userId: String, count: Int)]
+    */
+  def selectAllSignInCounts: List[(String, Int)] = db.withTransaction { implicit session =>
+    activities.filter(_.activity === "SignIn").groupBy(x => x.userId).map{
+      case (id, group) => (id, group.map(_.activity).length)
+    }.list
+  }
 }
