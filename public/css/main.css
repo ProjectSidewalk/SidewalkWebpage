@@ -1179,7 +1179,7 @@ kbd {
     text-align: center;
     width: 59%;
     position: relative;
-    margin-top: 35vh;
+    margin-top: 27vh;
     margin-left: 18vw;
     border-radius: 5px;
     font-size: 21px;
@@ -1188,13 +1188,14 @@ kbd {
     border-radius: 5px;
     padding: 7px;
 }
-#advanced-neighborhood-text span{
+.advanced-neighborhood-option{
     margin: 20px 5px;
     padding: 7px;
     border: 1px solid white;
     border-radius: 5px;
+    display: inline-block;
 }
-#advanced-neighborhood-text span:hover{
+.advanced-neighborhood-option:hover{
     background-color: white;
     color: black;
     cursor: pointer;
