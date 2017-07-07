@@ -15,7 +15,9 @@ import models.label.{LabelPointTable, LabelTable}
 import models.mission.MissionTable
 import models.region.{RegionCompletionTable, RegionTable}
 import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.User
+import models.user.{User, WebpageActivityTable}
+import models.daos.UserDAOImpl
+import models.user.UserRoleTable
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -117,6 +119,41 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
     Future.successful(Ok(JsArray(completionRates)))
   }
+
+  /**
+    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    *
+    * @return
+    */
+  def getAllAnonUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val counts: List[(Option[String], Int)] = UserDAOImpl.getAnonUserCompletedMissionCounts
+      val jsonArray = Json.arr(counts.map(x => {
+        Json.obj("ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false)
+      }))
+      Future.successful(Ok(jsonArray))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    *
+    * @return
+    */
+  def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
+      val jsonArray = Json.arr(counts.map(x => {
+        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1))
+      }))
+      Future.successful(Ok(jsonArray))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
 
   /**
     * Returns DC coverage percentage by Date
@@ -318,5 +355,25 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
 
+  }
+
+  /**
+    * USER CENTRIC ANALYTICS
+    */
+
+  def getAllRegisteredUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerRegisteredUser
+    val json = Json.arr(labelCounts.map(x => Json.obj(
+      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1)
+    )))
+    Future.successful(Ok(json))
+  }
+
+  def getAllAnonUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerAnonUser
+    val json = Json.arr(labelCounts.map(x => Json.obj(
+      "ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false
+    )))
+    Future.successful(Ok(json))
   }
 }

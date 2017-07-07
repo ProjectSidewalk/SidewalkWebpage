@@ -222,4 +222,17 @@ object MissionTable {
 
     _missionsCompleted.list.map(x => MissionCompletedByAUser.tupled(x))
   }
+
+  /**
+    * Select mission counts by user
+    *
+    * @ List[(user_id,count)]
+    */
+  def selectMissionCountsPerUser: List[(String, Int)] = db.withSession { implicit session =>
+    val _missions = for {
+      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
+    } yield _missionUsers.userId
+
+    _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
+  }
 }

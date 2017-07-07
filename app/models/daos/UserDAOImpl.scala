@@ -4,10 +4,11 @@ import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable }
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
 import models.label.Label
-import models.audit.AuditTask
+import models.audit._
+
 import play.api.Play.current
 
 import scala.collection.mutable
@@ -58,8 +59,21 @@ class UserDAOImpl extends UserDAO {
 object UserDAOImpl {
   val db = play.api.db.slick.DB
   val userTable = TableQuery[UserTable]
-//  val auditTaskTable = TableQuery[AuditTask]
-//  val labelTable = TableQuery[Label]
+  val auditTaskTable = TableQuery[AuditTaskTable]
+  val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
+  val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
+
+  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
+  val anonUsers = for {
+    (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
+    if _at.userId === anonId && _at.completed === true
+  } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
+
+  val anonIps = anonUsers.groupBy(_._1).map{case(ip,group)=>ip}
+
+  val anonUserInteractions = getAnonUserInteractions
+
+
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
   case class AnonymousUserProfile(ipAddress: String, timestamp: java.sql.Timestamp, auditCount: Int, labelCount: Int)
@@ -93,7 +107,6 @@ object UserDAOImpl {
    * Gets anonymous user records
    * Date: Oct 11, 2016
    */
-
   def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
@@ -109,23 +122,61 @@ object UserDAOImpl {
     anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
   }
 
-
   /*
    * Counts anonymous user records
    * Date: Oct 10, 2016
    */
-
   def countAnonymousUsers: Int = db.withSession { implicit session =>
 
     val anonUsers = getAnonymousUsers
     anonUsers.groupBy(_.ipAddress).keySet.size
   }
 
+  /**
+    * Gets a query for all audit task interactions done by anonymous users
+    *
+    * @return a query
+    */
+  def getAnonUserInteractions = db.withSession { implicit session =>
+    val anonAuditTasks = for {
+      (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
+      if _at.userId === anonId
+    } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
+
+    val interactions = for {
+      (_ati, _au) <-auditTaskInteractionTable.innerJoin(anonAuditTasks).on(_.auditTaskId === _._2)
+    } yield (_au._1, _au._2, _au._3, _au._4, _ati.action)
+    interactions
+  }
+
+  /**
+    * Gets the number of missions completed by each anonymous user.
+    *
+    * Unfortunate limitation of slick: https://groups.google.com/forum/#!topic/scalaquery/lrumVNo3JE4
+    *
+    * @return List[(String: ipAddress, Int: missionCount)]
+    */
+  def getAnonUserCompletedMissionCounts: List[(Option[String], Int)] = db.withSession { implicit session =>
+    // filter down to only the MissionComplete interactions, then get the set of unique ip/taskId pairs, then group by
+    // ip and count the number of audit tasks in there.
+    val completedMissions = anonUserInteractions.filter(_._5 === "MissionComplete").groupBy(x => (x._1, x._2)).map{
+      case ((ip, taskId), group) => (ip, taskId)
+    }.groupBy(x => x._1).map{case(ip, group) => (ip, group.map(_._2).length)}
+
+    // then join with the table of anon user ip addresses to give those with no completed missions a 0.
+    val missionCounts: List[(Option[String], Option[Int])] = completedMissions.rightJoin(anonIps).on(_._1 === _).map{
+      case (cm, ai) => (ai, cm._2.?)
+    }.list
+
+    // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
+    // missions ended up in the completedMissions query.
+    missionCounts.map{pair => (pair._1, pair._2.getOrElse(0))}
+  }
+
   /*
    * Counts anonymous user records visited today
    * Date: Nov 10, 2016
    */
-
   def countAnonymousUsersVisitedToday: Int = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
