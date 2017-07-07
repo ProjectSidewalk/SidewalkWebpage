@@ -217,8 +217,15 @@
 
                 $("#navbar-dropdown-list").html(htmlString);
                 var path = window.location.pathname;
-                if(path.includes("/audit")) {
+                if(path.includes("/audit") && svl) {
                     svl.user.setProperty('username', data.username);
+
+                    // Turn neighborhood name into a link
+                    svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
+                    svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
+                    var neighborhoodId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+                    var href = "/contribution/" + data.username + "?regionId=" + neighborhoodId;
+                    svl.statusFieldNeighborhood.setHref(href);
                 }
 
                 // Append the link to the admin interface if it the user is admin
