@@ -313,7 +313,6 @@ function Progress (_, $, c3, L) {
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
             document.getElementById("total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
-
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);
         });
@@ -344,7 +343,8 @@ function Progress (_, $, c3, L) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "Other": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -356,10 +356,13 @@ function Progress (_, $, c3, L) {
             document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
 
             document.getElementById("curb-ramps").innerHTML = labelCounter["CurbRamp"];
-            document.getElementById("missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
-            document.getElementById("obstacles").innerHTML = labelCounter["Obstacle"];
-            document.getElementById("surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+             document.getElementById("missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
+             document.getElementById("obstacles").innerHTML = labelCounter["Obstacle"];
+             document.getElementById("surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+             document.getElementById("other-problems").innerHTML = labelCounter["Other"];
 
+
+             document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "'></svg>";
             document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
