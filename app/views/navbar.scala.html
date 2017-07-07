@@ -231,6 +231,10 @@
                     // Need root directory to prevent cursor icons from disappearing
                     Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
                         .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+
+                    // Prevent first-mission popups
+                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
+                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
                 }
 
                 // Append the link to the admin interface if it the user is admin
