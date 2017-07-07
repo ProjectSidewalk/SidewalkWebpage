@@ -223,9 +223,14 @@
                     // Turn neighborhood name into a link
                     svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
                     svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
-                    var neighborhoodId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-                    var href = "/contribution/" + data.username + "?regionId=" + neighborhoodId;
+                    var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                    var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
                     svl.statusFieldNeighborhood.setHref(href);
+
+                    // init: noInit is a flag that prevents the init functions in main from running
+                    // Need root directory to prevent cursor icons from disappearing
+                    Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
+                        .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
                 }
 
                 // Append the link to the admin interface if it the user is admin
