@@ -1,8 +1,10 @@
 @import models.daos.slick.DBTableDefinitions.UserTable
 @import models.user.User
+@import models.user.UserCurrentRegionTable
 @import models.daos._
 @import models.label._
 @import models.street.StreetEdgeTable
+@import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)
 
 @main(title) {
@@ -154,7 +156,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="container" id="choropleth-container" style="width: 100%;
         position: relative;">
         <div class="im-centered3">
@@ -347,7 +349,8 @@
 
 <script>
         $(document).ready(function () {
-            window.choropleth = Choropleth(_, $, turf);
+            var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+            window.choropleth = Choropleth(_, $, turf, difficultRegionIds);
         });
 </script>
 }

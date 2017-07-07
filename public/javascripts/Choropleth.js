@@ -1,4 +1,4 @@
-function Choropleth(_, $, turf) {
+function Choropleth(_, $, turf, difficultRegionIds) {
     var neighborhoodPolygonLayer;
 
 // Construct a bounding box for these maps that the user cannot move out of
@@ -101,10 +101,7 @@ function Choropleth(_, $, turf) {
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
 
                     var advancedMessage = '';
-                    if(feature.properties.region_id == 251 ||
-                       feature.properties.region_id == 281 ||
-                       feature.properties.region_id == 317 ||
-                       feature.properties.region_id == 366) {
+                    if(difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
