@@ -233,8 +233,14 @@
                         .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
                     // Prevent first-mission popups
+                    if (!svl.initialMissionInstruction) {
+                        svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer,
+                                svl.tracker);
+                    }
                     svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
                     svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
+
                 }
 
                 // Append the link to the admin interface if it the user is admin
