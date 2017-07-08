@@ -140,13 +140,13 @@
             <div id="status-holder">
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
-                    @if(!user) {
+
                     <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    } else {
-                    <a href="" target="_blank" id="status-neighborhood-link">
-                        <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    </a>
-                    }
+
+              <!--      <a href="" target="_blank" id="status-neighborhood-link">
+                        <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
+                    </a>-->
+
                     <div class="status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
@@ -647,7 +647,11 @@
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
             };
             svl.user = new User(userParam, svl.userModel);
+
+            $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
         } else {
+            $('#status-neighborhood-link').hide();
+
             var userParam = { username : "anonymous" };
             svl.user = new User(userParam, svl.userModel);
         }

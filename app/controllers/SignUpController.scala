@@ -112,6 +112,9 @@ class SignUpController @Inject() (
 
   def postSignUp = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
+    val anonymousUser: DBUser = UserTable.find("anonymous").get
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
@@ -120,41 +123,50 @@ class SignUpController @Inject() (
 
         UserTable.find(data.username) match {
           case Some(user) =>
-            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
+            Future.successful(Status(409)("Username already exists"))
           case None =>
-            val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
-            val authInfo = passwordHasher.hash(data.password)
-            val user = User(
-              userId = UUID.randomUUID(),
-              loginInfo = loginInfo,
-              username = data.username,
-              email = data.email,
-              roles = None
-            )
 
-            for {
-              user <- userService.save(user)
-              authInfo <- authInfoService.save(loginInfo, authInfo)
-              authenticator <- env.authenticatorService.create(user.loginInfo)
-              value <- env.authenticatorService.init(authenticator)
-              result <- env.authenticatorService.embed(value, Future.successful(
-                Ok(Json.toJson(user))
-              ))
-            } yield {
-              // Set the user role and assign the neighborhood to audit.
-              UserRoleTable.addUserRole(user.userId)
-              UserCurrentRegionTable.assignRandomly(user.userId)
+            // Check presence of user by email
+            UserTable.findEmail(data.email) match {
+              case Some(user) =>
+                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
+                Future.successful(Status(409)("Email already exists"))
+              case None =>
+                val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
+                val authInfo = passwordHasher.hash(data.password)
+                val user = User(
+                  userId = UUID.randomUUID(),
+                  loginInfo = loginInfo,
+                  username = data.username,
+                  email = data.email,
+                  roles = None
+                )
 
-              // Add Timestamp
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+                for {
+                  user <- userService.save(user)
+                  authInfo <- authInfoService.save(loginInfo, authInfo)
+                  authenticator <- env.authenticatorService.create(user.loginInfo)
+                  value <- env.authenticatorService.init(authenticator)
+                  result <- env.authenticatorService.embed(value, Future.successful(
+                    Ok(Json.toJson(user))
+                  ))
+                } yield {
+                  // Set the user role and assign the neighborhood to audit.
+                  UserRoleTable.addUserRole(user.userId)
+                  UserCurrentRegionTable.assignRandomly(user.userId)
 
-              env.eventBus.publish(SignUpEvent(user, request, request2lang))
-              env.eventBus.publish(LoginEvent(user, request, request2lang))
+                  // Add Timestamp
+                  val now = new DateTime(DateTimeZone.UTC)
+                  val timestamp: Timestamp = new Timestamp(now.getMillis)
+                  WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+                  WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-              result
+                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
+                  env.eventBus.publish(LoginEvent(user, request, request2lang))
+
+                  result
+                }
             }
         }
       }
