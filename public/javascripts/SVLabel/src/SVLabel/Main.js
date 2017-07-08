@@ -14,7 +14,7 @@ function Main (params) {
     };
 
     // Initialize things that needs data loading.
-    var loadingAnOboardingTaskCompleted = false;
+    var loadingAnOnboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
@@ -249,7 +249,7 @@ function Main (params) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
-            loadingAnOboardingTaskCompleted = true;
+            loadingAnOnboardingTaskCompleted = true;
             handleDataLoadComplete();
         });
 
@@ -331,7 +331,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl || svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
+        return 'user' in svl && svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {
@@ -344,18 +344,20 @@ function Main (params) {
             svl.missionModel.submitMissions([onboardingMission]);
         }
 
-        // Popup the message explaining the goal of the current mission
-        if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
-            svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                svl.initialMissionInstruction.start(neighborhood);
-            });
-        } else {
-            svl.modalMission.setMissionMessage(mission, neighborhood);
+        if(params.init !== "noInit") {
+            // Popup the message explaining the goal of the current mission
+            if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
+                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                    svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
+                svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
+                    svl.initialMissionInstruction.start(neighborhood);
+                });
+            } else {
+                svl.modalMission.setMissionMessage(mission, neighborhood);
+            }
+            svl.modalMission.show();
         }
-        svl.modalMission.show();
         svl.missionModel.updateMissionProgress(mission, neighborhood);
 
         // Get the labels collected in the current neighborhood
@@ -402,7 +404,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted &&
+        if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
@@ -679,12 +681,15 @@ function Main (params) {
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
-    _initUI();
-    _init(params);
+    if(params.init !== "noInit") {
+        _initUI();
+        _init(params);
+    }
 
     self.getStatus = getStatus;
     self.setStatus = setStatus;
     self.isAnAnonymousUser = isAnAnonymousUser;
+    self.loadData = loadData;
 
     return self;
 }
