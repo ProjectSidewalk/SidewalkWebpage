@@ -127,6 +127,7 @@ object StreetEdgeTable {
   def totalStreetDistance(): Float = db.withSession { implicit session =>
     // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
     (distances.sum * 0.000621371).toFloat
   }
@@ -143,6 +144,8 @@ object StreetEdgeTable {
     val edges = for {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
+
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = edges.groupBy(x => x).map(_._1.geom.transform(26918).length).list
     (distances.sum * 0.000621371).toFloat
   }
@@ -189,7 +192,7 @@ object StreetEdgeTable {
         c.set(Calendar.MINUTE, 0)
         c.set(Calendar.SECOND, 0)
         c.set(Calendar.MILLISECOND, 0)
-        (c, pair._2.get * 0.000621371)
+        (c, pair._2.get * 0.000621371) // converts from meters to miles
       }})
 
     // sum the distances by date
@@ -308,6 +311,7 @@ object StreetEdgeTable {
     val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
 
     val userStreets = selectAllStreetsAuditedByAUser(userId)
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     (userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum * 0.000621371).toFloat
   }
 
