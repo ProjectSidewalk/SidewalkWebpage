@@ -50,6 +50,7 @@ GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.get
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
+GET     /audit/easyRegion                        @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                          @controllers.AuditController.postComment

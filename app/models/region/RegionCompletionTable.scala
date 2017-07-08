@@ -119,20 +119,4 @@ object RegionCompletionTable {
       }
     }
   }
-
-//
-//  /**
-//    * Update the `task_end` column of the specified audit task row
-//    *
-//    * @param auditTaskId
-//    * @param timestamp
-//    * @return
-//    */
-//  def updateTaskEnd(auditTaskId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-//    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.taskEnd
-//    q.update(Some(timestamp))
-//  }
-
-
-
 }
