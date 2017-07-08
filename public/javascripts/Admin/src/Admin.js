@@ -1,4 +1,4 @@
-function Admin(_, $, c3, turf) {
+function Admin(_, $, c3, turf, difficultRegionIds) {
     var self = {};
     var severityList = [1, 2, 3, 4, 5];
     self.markerLayer = null;
@@ -253,26 +253,32 @@ function Admin(_, $, c3, turf) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(rates[i].rate);
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+
+                    var advancedMessage = '';
+                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                    }
+
                     if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to find accessibility issues in this neighborhood yourself!";
                     }
                     else if (milesLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" +
+                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }
                     else if (milesLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" +
+                            milesLeft + " mile left!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }
                     else {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" +
+                            milesLeft + " miles left!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }

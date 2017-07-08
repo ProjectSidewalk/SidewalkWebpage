@@ -1,5 +1,6 @@
 @import models.user.User
 @import models.user.WebpageActivityTable
+@import models.user.UserCurrentRegionTable
 @import models.daos._
 @import models.audit._
 @import models.label._
@@ -7,7 +8,7 @@
 @import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import java.util.UUID
-
+@import play.api.libs.json.Json
 
 @(title: String, user: Option[User] = None)
 @main(title) {
@@ -565,7 +566,8 @@
     <script>
         $(document).ready(function () {
 
-        window.admin = Admin(_, $, c3, turf);
+        var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+        window.admin = Admin(_, $, c3, turf, difficultRegionIds);
         $('#commentsTable').dataTable();
         $('#labelTable').dataTable();
         $('#userTable').dataTable();
