@@ -110,7 +110,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     };
 
     function renderRoutesOnGoogleMap(state) {
-        if ('map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
+
+        if (svl.isOnboarding() && 'map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
             var paths = [];
             //var currentPosition = svl.map.getPosition();
 

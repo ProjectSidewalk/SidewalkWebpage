@@ -259,7 +259,9 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     this.decrement = function (key) {
-        $(document).trigger('RemoveLabel');
+        if(svl.isOnboarding()) {
+            $(document).trigger('RemoveLabel');
+        }
 
         if (keys.indexOf(key) == -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
