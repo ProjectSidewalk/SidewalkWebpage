@@ -1,16 +1,16 @@
 @(signInForm: Form[forms.SignUpForm.Data], url: String = "/")(implicit request: RequestHeader)
-
 @import views.html.bootstrap._
 
 @main("Project Sidewalk - Sign Up") {
     @navbar(None)
     @request.flash.get("error").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error">
+        <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error"
+         style="float:none;margin-top:20px;margin-bottom:0px">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
             <strong>Error!</strong> @msg
         </div>
     }
-    <fieldset class="col-md-6 col-md-offset-3">
+    <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
         <legend>Sign up for a new account</legend>
         @helper.form(action = routes.SignUpController.signUp(url)) {
             @text(signInForm("username"), "Username", icon = "person")
@@ -41,6 +41,10 @@
                         $("#sign-up-page-submit").prop("disabled", true);
                     }
                 });
+            });
+
+            $('#closeAlert').on('click', function(){
+                $('').hide();
             });
     </script>
 }

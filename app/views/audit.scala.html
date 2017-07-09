@@ -1,11 +1,13 @@
 @import models.user.User
+@import models.user.UserCurrentRegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
-@main(title) {
+@main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
+    <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
@@ -15,7 +17,23 @@
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-    <div class="container">
+    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+
+    <div class="container toolUI" style = "visibility: hidden;">
+        <div id="advanced-overlay">
+            <div id="overlay-text">
+                <div id="advanced-neighborhood-text">
+                    <p>
+                        <b>Notice:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                    </p>
+                    <p>
+                        If you get stuck, click the Jump button to navigate to a different area.
+                    </p>
+                    <span class="advanced-neighborhood-option" id="continue-advanced">Yes, continue</span>
+                    <span class="advanced-neighborhood-option" id="redirect-advanced">No, take me somewhere else</span>
+                </div>
+            </div>
+        </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -122,13 +140,13 @@
             <div id="status-holder">
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
-                    @if(!user) {
+
                     <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    } else {
-                    <a href="" target="_blank" id="status-neighborhood-link">
-                        <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    </a>
-                    }
+
+              <!--      <a href="" target="_blank" id="status-neighborhood-link">
+                        <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
+                    </a>-->
+
                     <div class="status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
@@ -269,7 +287,7 @@
                             </div>
                             <div>
                                 <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                    <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
+                                    <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
                                 </div>
                             </div>
                             <div>
@@ -613,7 +631,6 @@
             </div>
         </div>
     </template>
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
@@ -630,12 +647,15 @@
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
             };
             svl.user = new User(userParam, svl.userModel);
+
+            $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
         } else {
+            $('#status-neighborhood-link').hide();
+
             var userParam = { username : "anonymous" };
             svl.user = new User(userParam, svl.userModel);
         }
         svl.userModel._user = svl.user;
-
         @if(task) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
@@ -653,7 +673,7 @@
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.taskModel, svl.tracker);
 
             // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
-            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE, function (streetViewPanoramaData, status) {
+            streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
@@ -676,8 +696,15 @@
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
-
             enableTouchSupport();
+
+            $('#continue-advanced').on('click', function(){
+                $('#advanced-overlay').hide();
+            });
+
+            $('#redirect-advanced').on('click', function(){
+                $(location).attr('href', '/audit/easyRegion');
+            });
         });
 
         function enableTouchSupport() {
@@ -735,12 +762,16 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
+                if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
+                       $('#advanced-overlay').show();
+                }
             } else {
                 mainParam.regionId = 1;
                 mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
             svl.main = new Main(mainParam);
+
         }
     </script>
 

@@ -1,5 +1,7 @@
 @import models.user.User
+@import models.user.UserCurrentRegionTable
 @import models.mission.MissionTable
+@import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)
 
 @main(title) {
@@ -79,8 +81,12 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/userProfile.js")'></script>
-
+    <script>
+    $(document).ready(function () {
+        var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+        window.progress = Progress(_, $, c3, L, difficultRegionIds);
+    });
+    </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>

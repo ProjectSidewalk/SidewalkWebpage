@@ -25,45 +25,62 @@
                     </li>
 
                 } else {
-                    
-                    <li>
+
+                    <script type="text/javascript">
+                            $("#biglogo").css("top", "0px");
+                            $("#biglogo").css("height", "28px" ); //logo resize
+                            $("#biglogo").css("width", "auto" );
+                            $("#header").css("max-height", "45px");
+                            $("#header-container").css("max-height", "45px");
+                            $("#header-container").css("top", "-13px"); //logo margin
+                            $("#header").addClass("navbar-xs");
+                            $("#header").removeClass("navbar");
+                            $("#brand").addClass("navbar-xs-brand");
+                            $("#brand").removeClass("navbar-brand");
+                            $("#navbar").css("margin-top", "16px"); //button margin
+                            $(".navbar-header").css("top", "0px");
+                            $("body").css("padding-top", "14px");
+                    </script>
+
+                    <li class="navbarLink">
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
+                    <li class = "navbarLink">
+                      <a href='@routes.ApplicationController.faq' id="toolbar-onboarding-link" target="_blank">FAQ</a>
+                    </li>
+
                 }
 
-
-
-                @if(user) {
-                    <li>
-                    <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
-                        <!--<img src='@routes.Assets.at("images/avatar.png")' alt="User avatar" class="avatar-medium">&nbsp;-->
-                        @user.get.username
-                        <b class="caret"></b>
-                    </a>
-                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
-                        <li role="presentation">
-                            <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
-                                Your dashboard
-                            </a>
-                        </li>
-                        @if(user.get.roles.getOrElse(Seq("")).contains("Administrator")) {
+                <!--<li><a href="#">Explore Accessibility!</a></li>-->
+                <li class="dropdown" id="navbar-dropdown-list">
+                    @if(user) {
+                        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                            @user.get.username
+                            <b class="caret"></b>
+                        </a>
+                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
-                                <a href='@routes.AdminController.index' role="menuitem">
-                                    Admin
+                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                    Your dashboard
                                 </a>
                             </li>
-                        }
-                        <li role="presentation">
-                            <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
-                        </li>
-                    </ul>
-                    </li>
-                } else {
-
-                    <li class="active">
-                    <!--<a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">--><button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Login</button>
-                    </li>
-                }
+                            @if(user.get.roles.getOrElse(Seq("")).contains("Administrator")) {
+                                <li role="presentation">
+                                    <a href='@routes.AdminController.index' role="menuitem">
+                                        Admin
+                                    </a>
+                                </li>
+                            }
+                            <li role="presentation">
+                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                            </li>
+                        </ul>
+                    } else {
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">
+                                &nbsp;Sign in
+                        </a>
+                    }
+                </li>
             </ul>
         </div>
             <!-- /.nav-collapse -->
@@ -82,6 +99,25 @@
                     $("#sign-up-modal").addClass("hidden");
                     $("#sign-in-modal").removeClass("hidden");
                 });
+
+                // Log if user /clicks/ on sign-in button, but not necessarily signs in
+                $("#sign-in-button").on('click', function(){
+                    var url = "/userapi/logWebpageActivity";
+                    var async = true;
+                    var activity = "Click_module=SignIn";
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify(activity),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                });
             });
     </script>
     <div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -92,11 +128,20 @@
                     <h4 class="modal-title" id="sign-in-label">Sign in</h4>
                 </div>
                 <div class="modal-body">
-                @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/"))) {
-                    @text(forms.SignInForm.form("identifier"), "Email address")
-                    @password(forms.SignInForm.form("password"), "Password")
-                    <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
-                }
+
+                    <div id="incorrect-signin-alert"></div>
+                    <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
+                    <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
+                        <a href="#" class="close" data-hide="alert">&times;</a>
+                        <strong>Whoops!&nbsp;</strong>We can't find this username and password pair.
+                    </div>
+
+
+                    @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
+                        @text(forms.SignInForm.form("identifier"), "Email address")
+                        @password(forms.SignInForm.form("password"), "Password")
+                        <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
+                    }
                 </div>
                 <div class="modal-footer">
                     <div>
@@ -110,7 +155,10 @@
                     <h4 class="modal-title" id="sign-up-label">Sign up</h4>
                 </div>
                 <div class="modal-body">
-                @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/"))) {
+                    <div id="incorrect-signup-alert"></div>
+                    <div id="invalid-signup-alert"></div>
+
+                    @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/")), args ='id -> "sign-up-form") {
                     @text(forms.SignUpForm.form("username"), "Username", icon = "person")
                     @text(forms.SignUpForm.form("email"), "Email", icon = "at")
                     @password(forms.SignUpForm.form("password"), "Password", icon = "key")
@@ -141,6 +189,183 @@
                         $("#sign-up-submit").prop("disabled", true);
                     }
                 });
+
+                $("[data-hide]").on("click", function(){
+                    $("." + $(this).attr("data-hide")).hide();
+                    // -or-, see below
+                    // $(this).closest("." + $(this).attr("data-hide")).hide();
+                });
+            });
+
+            function validateEmail(email) {
+                var regex = /\S+@@\S+\.\S+/;
+                return regex.test(email);
+            }
+
+            // Callback function for checking sign-in results
+            function handleSignIn(data) {
+                //this means that logging in failed, alert user of failure
+                if(typeof data == 'string'){
+                    $('#incorrect-signin-alert').hide();
+                    $('#incorrect-login-modal-alert').show();
+                    return;
+                }
+
+                //otherwise, reflect login changes on user's end
+                var htmlString = $("#navbar-dropdown-list-signed-in").html();
+                htmlString = htmlString.replace(/__USERNAME__/g, data.username);
+
+                $("#navbar-dropdown-list").html(htmlString);
+                var path = window.location.pathname;
+                if(path.includes("/audit") && svl) {
+                    svl.user.setProperty('username', data.username);
+
+                    // Turn neighborhood name into a link
+                    svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
+                    svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
+                    var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                    var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
+                    svl.statusFieldNeighborhood.setHref(href);
+
+                    // init: noInit is a flag that prevents the init functions in main from running
+                    // Need root directory to prevent cursor icons from disappearing
+                    Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
+                        .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+
+                    // Prevent first-mission popups
+                    if (!svl.initialMissionInstruction) {
+                        svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer,
+                                svl.tracker);
+                    }
+                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
+                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
+
+                }
+
+                // Append the link to the admin interface if it the user is admin
+                if (data.roles && data.roles.indexOf("Administrator") >= 0) {
+                    var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
+                    $('#nav-user-menu').children('#dashboard-link').after(adminLi);
+                }
+
+                $('#sign-in-modal-container').modal('toggle');
+            }
+
+            
+            function invalidSignInUpAlert(signIn, message){
+                if(signIn){
+                    $('#incorrect-login-modal-alert').hide();
+                    $('#incorrect-signin-alert').html(
+                            '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
+                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                            '<strong>Whoops!&nbsp;</strong>' + message +
+                            '</div>'
+                    );
+                    $('#incorrect-signin-alert').show();
+                }
+                else{
+                    $('#invalid-signup-alert').hide();
+                    $('#incorrect-signup-alert').html(
+                            '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
+                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                            '<strong>Whoops!&nbsp;</strong>' + message +
+                            '</div>'
+                    );
+                    $('#incorrect-signup-alert').show();
+                }
+            }
+
+            // Intercept form-based sign in and use AJAX to signin so the page does not refresh.
+            $('#sign-in-form').submit(function () {
+                var formData = $('#sign-in-form :input');
+                var email = formData[0].value;
+                var password = formData[1].value;
+
+                //if not a valid email address, do not submit form
+                if(!email || !validateEmail(email)){
+                    invalidSignInUpAlert(true, 'Please enter a valid email address.');
+                    return false;
+                }
+
+                if(!password){
+                    invalidSignInUpAlert(true, 'Please enter your password.');
+                    return false;
+                }
+
+                var data = $(this).serialize();
+
+                var url = '/authapi/authenticate';
+                $.post(url, data, handleSignIn);
+                return false;
+            });
+
+            $('#sign-up-form').submit(function () {
+                var formData = $('#sign-up-form :input');
+                var username = formData[0].value;
+                var email = formData[1].value;
+                var password = formData[2].value;
+
+                if(!username){
+                    invalidSignInUpAlert(false, 'Please enter a username.');
+                    return false;
+                }
+
+                //if not a valid email address, do not submit form
+                if(!email || !validateEmail(email)){
+                    invalidSignInUpAlert(false, 'Please enter a valid email address.');
+                    return false;
+                }
+
+                if(!password){
+                    invalidSignInUpAlert(false, 'Please enter your password.');
+                    return false;
+                }
+
+                var data = $(this).serialize();
+
+                var url = '/authapi/signup';
+                $.post(url, data, handleSignIn).fail(function(e){
+                    var errorMessage;
+                    console.log(e);
+                    if(e.responseText.toLowerCase().includes("email")){
+                        errorMessage = "That email address already exists. Please try another one."
+                    }
+                    else{
+                        errorMessage = "That username already exists. Please try another one."
+                    }
+                    var error = e.responseText;
+                    $('#incorrect-signup-alert').hide();
+                    $('#invalid-signup-alert').show();
+                    $('#invalid-signup-alert').html(
+                            '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
+                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                            '<strong>Uh-oh!&nbsp;</strong>' + errorMessage +
+                            '</div>'
+                    );
+                });
+                return false;
             });
     </script>
+    <template id="navbar-dropdown-list-signed-in">
+        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+            __USERNAME__
+            <b class="caret"></b>
+        </a>
+        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+            <li role="presentation" id="dashboard-link">
+                <a href='/contribution/__USERNAME__' role="menuitem">
+                    Your dashboard
+                </a>
+            </li>
+            <li role="presentation">
+                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+            </li>
+        </ul>
+    </template>
+    <template id="navbar-dropdown-list-signed-out">
+        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">
+            Sign in
+        </a>
+    </template>
 }

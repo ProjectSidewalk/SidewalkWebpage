@@ -2,6 +2,11 @@ package models.street
 
 import java.sql.Timestamp
 import java.util.UUID
+import java.util.Calendar
+import java.text.SimpleDateFormat
+
+import org.geotools.geometry.jts.JTS
+import org.geotools.referencing.CRS
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
@@ -102,6 +107,18 @@ object StreetEdgeTable {
   }
 
   /**
+    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
+    *
+    * @param auditCount
+    * @return Float between 0 and 1
+    */
+  def streetDistanceCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistance(auditCount)
+    val totalDistance = totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /**
     * Get the total distance in miles
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
     *
@@ -110,6 +127,7 @@ object StreetEdgeTable {
   def totalStreetDistance(): Float = db.withSession { implicit session =>
     // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
     (distances.sum * 0.000621371).toFloat
   }
@@ -126,8 +144,74 @@ object StreetEdgeTable {
     val edges = for {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
+
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = edges.groupBy(x => x).map(_._1.geom.transform(26918).length).list
     (distances.sum * 0.000621371).toFloat
+  }
+
+
+  /**
+    * Computes percentage of DC audited over time.
+    *
+    * author: Mikey Saugstad
+    * date: 06/16/2017
+    *
+    * @param auditCount
+    * @return List[(String,Float)] representing dates and percentages
+    */
+  def streetDistanceCompletionRateByDate(auditCount: Int): Seq[(String, Float)] = db.withSession { implicit session =>
+    // join the street edges and audit tasks
+    // TODO figure out how to do this w/out doing the join twice
+    val edges = for {
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _streetEdges
+    val audits = for {
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _auditTasks
+
+    // get distances of street edges associated with their edgeId
+    val edgeDists: Map[Int, Float] = edges.groupBy(x => x).map(g => (g._1.streetEdgeId, g._1.geom.transform(26918).length)).list.toMap
+
+    // Filter out group of edges with the size less than the passed `auditCount`, picking 1 rep from each group
+    // TODO pick audit with earliest timestamp
+    val uniqueEdgeDists: List[(Option[Timestamp], Option[Float])] = (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
+      if (auditCount > 0 && groupedAudits.size >= auditCount) {
+        Some((groupedAudits.head.taskEnd, edgeDists.get(eid)))
+      } else {
+        None
+      }
+    }).toList.flatten
+
+    // round the timestamps down to just the date (year-month-day)
+    val dateRoundedDists: List[(Calendar, Double)] = uniqueEdgeDists.map({
+      pair => {
+        var c : Calendar = Calendar.getInstance()
+        c.setTimeInMillis(pair._1.get.getTime)
+        c.set(Calendar.HOUR_OF_DAY, 0)
+        c.set(Calendar.MINUTE, 0)
+        c.set(Calendar.SECOND, 0)
+        c.set(Calendar.MILLISECOND, 0)
+        (c, pair._2.get * 0.000621371) // converts from meters to miles
+      }})
+
+    // sum the distances by date
+    val distsPerDay: List[(Calendar, Double)] = dateRoundedDists.groupBy(_._1).mapValues(_.map(_._2).sum).view.force.toList
+
+    // sort the list by date
+    val sortedEdges: Seq[(Calendar, Double)] =
+      scala.util.Sorting.stableSort(distsPerDay, (e1: (Calendar,Double), e2: (Calendar, Double)) => e1._1.getTimeInMillis < e2._1.getTimeInMillis).toSeq
+
+    // get the cumulative distance over time
+    val cumDistsPerDay: Seq[(Calendar, Double)] = sortedEdges.map({var dist = 0.0; pair => {dist += pair._2; (pair._1, dist)}})
+
+    // calculate the completion percentage for each day
+    val totalDist = totalStreetDistance()
+    val ratePerDay: Seq[(Calendar, Float)] = cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
+
+    // format the calendar date in the correct format and return the (date,completionPercentage) pair
+    val format1 = new SimpleDateFormat("yyyy-MM-dd")
+    ratePerDay.map(pair => (format1.format(pair._1.getTime), pair._2))
   }
 
   /**
@@ -184,6 +268,7 @@ object StreetEdgeTable {
     selectAuditedStreetsQuery(regionId).list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
+  /** Gets a list of all street edges that the user has audited in the specified region */
   def selectStreetsAuditedByAUser(userId: UUID, regionId: Int): List[StreetEdge] = db.withSession { implicit session =>
     val selectAuditedStreetsQuery = Q.query[(String, Int), StreetEdge](
       """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
@@ -199,6 +284,35 @@ object StreetEdgeTable {
       """.stripMargin
     )
     selectAuditedStreetsQuery((userId.toString, regionId)).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /** Gets a list of all street edges that the user has audited */
+  def selectAllStreetsAuditedByAUser(userId: UUID): List[StreetEdge] = db.withSession { implicit session =>
+    val selectAuditedStreetsQuery = Q.query[String, StreetEdge](
+      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.street_edge_region
+        |  ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        |INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.completed = TRUE
+        |  AND audit_task.user_id = ?
+        |WHERE street_edge.deleted=FALSE
+      """.stripMargin
+    )
+    selectAuditedStreetsQuery(userId.toString).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /** Returns the total distance that the specified user has audited in miles */
+  def getDistanceAudited(userId: UUID): Float = db.withSession {implicit session =>
+    // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
+    val CRSEpsg4326 = CRS.decode("epsg:4326")
+    val CRSEpsg26918 = CRS.decode("epsg:26918")
+    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+
+    val userStreets = selectAllStreetsAuditedByAUser(userId)
+    // get length of each street segment, sum the lengths, and convert from meters to miles
+    (userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum * 0.000621371).toFloat
   }
 
   /**

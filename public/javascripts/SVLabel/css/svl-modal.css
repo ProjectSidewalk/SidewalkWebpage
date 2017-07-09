@@ -13,7 +13,7 @@
 
 #modal-skip-background, #modal-comment-background, #modal-mission-background {
     position: absolute;
-    left: -55px;
+    left: 0px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
     visibility: hidden;

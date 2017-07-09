@@ -1,4 +1,4 @@
-function Progress (_, $, c3, L) {
+function Progress (_, $, c3, L, difficultRegionIds) {
     var self = {};
     var completedInitializingOverlayPolygon = false,
         completedInitializingNeighborhoodPolygons = false,
@@ -105,13 +105,53 @@ function Progress (_, $, c3, L) {
     /**
      * render points
      */
-    function initializeNeighborhoodPolygons(map) {
+    function initializeNeighborhoodPolygons(map, rates) {
         function onEachNeighborhoodFeature(feature, layer) {
 
             var regionId = feature.properties.region_id,
+                regionName = feature.properties.region_name,
                 url = "/audit/region/" + regionId,
-                popupContent = "Do you want to explore this area to find accessibility issues? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+                // default popup content if we don't find neighborhood in list of neighborhoods from query
+                popupContent = "Do you want to find accessibility problems in " + regionName + "? " +
+                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>",
+                compRate = 0,
+                milesLeft = 0;
+            for (var i = 0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    compRate = Math.round(100.0 * rates[i].rate);
+                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    
+                    var advancedMessage = '';
+                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                    }
+
+                    if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to find accessibility issues in this neighborhood yourself!";
+                    }
+                    else if (milesLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
+                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    else if (milesLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " mile left!<br>" + advancedMessage +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
+                            milesLeft + " miles left!<br>" + advancedMessage +
+                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
+                            " to help finish this neighborhood!";
+                    }
+                    break;
+                }
+            }
             layer.bindPopup(popupContent);
             layers.push(layer);
 
@@ -135,7 +175,48 @@ function Progress (_, $, c3, L) {
 
                 map.setView(latlng, zoom, { animate: true });
                 currentLayer = this;
+
+
+                // Log when a user clicks on a region on the user map
+                // Logs are of the form "Click_module=UserMap_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
+                // Log is stored in WebpageActivityTable
+                var regionId = e.target.feature.properties.region_id;
+                var ratesEl = rates.find(function(x){
+                    return regionId == x.region_id;
+                });
+                var compRate = Math.round(100.0 * ratesEl.rate);
+                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                var distanceLeft = "";
+                if(compRate === 100){
+                    distanceLeft = "0";
+                }
+                else if(milesLeft === 0){
+                    distanceLeft = "<1";
+                }
+                else if(milesLeft === 1){
+                    distanceLeft = "1";
+                }
+                else{
+                    distanceLeft = ">1";
+                }
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                var data = "Click_module=UserMap_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(data),
+                    dataType: 'json',
+                    success: function (result) {
+                    },
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
             });
+
         }
 
         $.getJSON("/neighborhoods", function (data) {
@@ -152,12 +233,47 @@ function Progress (_, $, c3, L) {
             handleInitializationComplete(map);
         });
 
-        // Catch click even in popups
-        // https://www.mapbox.com/mapbox.js/example/v1.0.0/clicks-in-popups/
-//    $("#map").on('click', '.region-selection-trigger', function () {
-//        var regionId = $(this).attr('regionid');
-//        console.log(regionId)
-//    });
+
+        // Logs when a region is selected from the user map and 'Click here' is clicked
+        // Logs are of the form "Click_module=UserMap_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
+        // Log is stored in WebpageActivityTable
+        $("#map").on('click', '.region-selection-trigger', function () {
+            var regionId = $(this).attr('regionId');
+            var ratesEl = rates.find(function(x){
+                return regionId == x.region_id;
+            })
+            var compRate = Math.round(100.0 * ratesEl.rate);
+            var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+            var distanceLeft = "";
+            if(compRate === 100){
+                distanceLeft = "0";
+            }
+            else if(milesLeft === 0){
+                distanceLeft = "<1";
+            }
+            else if(milesLeft === 1){
+                distanceLeft = "1";
+            }
+            else{
+                distanceLeft = ">1";
+            }
+            var url = "/userapi/logWebpageActivity";
+            var async = true;
+            var data = "Click_UserMap_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: url,
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        });
     }
 
     /**
@@ -371,13 +487,16 @@ function Progress (_, $, c3, L) {
         });
     }
 
-    initializeOverlayPolygon(map);
-    initializeNeighborhoodPolygons(map);
-    initializeAuditedStreets(map);
-    initializeSubmittedLabels(map);
-    initializeAuditCountChart(c3, map);
-    initializeSubmittedTasks(map);
-    //initializeInteractions(map);
+
+    $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
+        initializeOverlayPolygon(map);
+        initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
+        initializeAuditedStreets(map);
+        initializeSubmittedLabels(map);
+        initializeAuditCountChart(c3, map);
+        initializeSubmittedTasks(map);
+        //initializeInteractions(map);
+    });
 
     self.data = _data;
     return self;

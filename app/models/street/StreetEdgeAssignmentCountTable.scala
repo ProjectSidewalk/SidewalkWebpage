@@ -65,7 +65,7 @@ object StreetEdgeAssignmentCountTable {
   def incrementCompletion(edgeId: Int): Int = db.withTransaction { implicit session =>
     val q = for {counts <- streetEdgeAssignmentCounts if counts.streetEdgeId === edgeId} yield counts
     val count = q.firstOption match {
-      case Some(c) => q.map(_.completionCount).update(c.completionCount + 1)
+      case Some(c) => q.map(_.completionCount).update(c.completionCount + 1); c.completionCount + 1 // returns incremented completion count
       case None => 0
     }
     count
@@ -97,7 +97,7 @@ object StreetEdgeAssignmentCountTable {
     * @param auditCount Minimum number of audit counts needs to be considered as completed
     * @return
     */
-  def computeNeighborhoodComplationRate(auditCount: Int): List[CompletionRate] = {
+  def computeNeighborhoodCompletionRate(auditCount: Int): List[CompletionRate] = {
     val completionCount = selectCompletionCount
     val grouped = completionCount.groupBy(_.regionId)
     val completed = completionCount.filter(_.completionCount >= auditCount)
