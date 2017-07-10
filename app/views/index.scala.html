@@ -351,6 +351,26 @@
         $(document).ready(function () {
             var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
             window.choropleth = Choropleth(_, $, turf, difficultRegionIds);
+
+
+            // Log clicking "start mapping" in main video container
+            $(".bodyStartBtn").on("click", function(){
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                var activity = "Click_module=StartMapping_location=Index";
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(activity),
+                    dataType: 'json',
+                    success: function(result){},
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
+            });
         });
 </script>
 }
