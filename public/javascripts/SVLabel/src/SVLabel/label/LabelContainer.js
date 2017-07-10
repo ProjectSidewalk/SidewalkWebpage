@@ -57,6 +57,11 @@ function LabelContainer($) {
         return prevCanvasLabels.concat(currentCanvasLabels);
     };
 
+    this.restoreCanvasLabels = function(oldCanvasLabels){
+        currentCanvasLabels = [];
+        prevCanvasLabels = [].concat(oldCanvasLabels);
+    }
+
     /** Get current label */
     this.getCurrentLabels = function () {
         return currentCanvasLabels;

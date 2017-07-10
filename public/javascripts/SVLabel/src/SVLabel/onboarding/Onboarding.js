@@ -553,8 +553,18 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             var task = self._savedMissionInfo.currentTask;
             var oldPanorama = self._savedMissionInfo.panorama;
             var lat = self._savedMissionInfo.latLng.lat, lng = self._savedMissionInfo.latLng.lng;
+            var stack = self._savedMissionInfo.actionStack;
+            var labels = self._savedMissionInfo.canvasLabels;
+
+
             missionContainer.setCurrentMission(mission);
             taskContainer.setCurrentTask(task);
+            svl.actionStack.setActionStack(stack.actionStack, stack.actionStackCursor);
+            svl.labelContainer.restoreCanvasLabels(labels);
+            labels.forEach(function(label){
+                svl.labelCounter.increment(label.getLabelType());
+            });
+
 
             // Relocate the user to their old location
             mapService.setPositionByIdAndLatLng(oldPanorama, lat, lng);
@@ -1232,6 +1242,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         self._savedMissionInfo.currentMission = missionData.currentMission;
         self._savedMissionInfo.currentTask = missionData.currentTask;
         self._savedMissionInfo.currentNeighborhood = missionData.currentNeighborhood;
+        self._savedMissionInfo.canvasLabels = missionData.canvasLabels;
+        self._savedMissionInfo.actionStack = missionData.actionStack;
     }
 
     self._visit = _visit;

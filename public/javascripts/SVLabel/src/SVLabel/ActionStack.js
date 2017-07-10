@@ -290,6 +290,14 @@ function ActionStack (tracker, uiActionStack) {
         actionStack = [];
     }
 
+    function getActionStack(){
+        return {'actionStack': actionStack, 'actionStackCursor': status.actionStackCursor};
+    }
+    function setActionStack(newActionStack, cursorLocation){
+        actionStack = newActionStack;
+        status.actionStackCursor = cursorLocation;
+    }
+
     self.blink = blink;
     self.blinkUndo = blinkUndo;
     self.disableRedo = disableRedo;
@@ -310,6 +318,8 @@ function ActionStack (tracker, uiActionStack) {
     self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
     self.reset = reset;
+    self.getActionStack = getActionStack;
+    self.setActionStack = setActionStack;
     init();
 
     return self;

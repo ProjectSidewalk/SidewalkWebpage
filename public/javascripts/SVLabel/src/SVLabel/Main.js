@@ -292,13 +292,29 @@ function Main (params) {
         // Save mission details before Onboarding is initialized
         var currentMissionInfo = {};
         var currentMissionInProgress = false;
+        //svl.storage.set('missionInProgress', false);
         if(svl.missionContainer.getCurrentMission() !== null){
             currentMissionInProgress = true;
+
             currentMissionInfo.currentMission = svl.missionContainer.getCurrentMission();
             currentMissionInfo.currentTask = svl.taskContainer.getCurrentTask();
             currentMissionInfo.latLng = svl.map.getPosition();
             currentMissionInfo.currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             currentMissionInfo.panorama = svl.map.getPanoId();
+            currentMissionInfo.canvasLabels = svl.labelContainer.getCanvasLabels();
+            currentMissionInfo.actionStack = svl.actionStack.getActionStack();
+
+            /*svl.labelContainer = new LabelContainer($);
+            svl.storage.set('missionInProgress', true);
+            svl.storage.set('currentMission', svl.missionContainer.getCurrentMission());
+            svl.storage.set('currentTask', svl.taskContainer.getCurrentTask());
+            svl.storage.set('latLng', svl.map.getPosition());
+            svl.storage.set('currentNeighborhood', svl.neighborhoodContainer.getCurrentNeighborhood());
+            svl.storage.set('panorama', svl.map.getPanoId());
+            svl.storage.set('labels', svl.labelContainer.getCanvasLabels());*/
+            svl.labelContainer.removeAll();
+            svl.actionStack.reset();
+            svl.labelCounter.reset();
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
@@ -384,8 +400,7 @@ function Main (params) {
         });
 
         svl.labelContainer.fetchLabelsInTheCurrentMission(
-            neighborhood.getProperty("regionId"),
-            function (result) {
+            neighborhood.getProperty("regionId"), function(result){
                 var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0};
                 for (var i = 0, len = result.length; i < len; i++) {
                     switch (result[i].label_type_id) {
@@ -415,8 +430,6 @@ function Main (params) {
         var unit = "miles";
         var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
-
-
     }
 
     // This is a callback function that is executed after every loading process is done.
