@@ -546,32 +546,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         // If so, reload it
         // If not, find a new one
         if(self._missionWasInProgress){
-            // Reload details of old in-progress mission
-            self._missionWasInProgress = false;
-            var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
-            var mission = self._savedMissionInfo.currentMission;
-            var task = self._savedMissionInfo.currentTask;
-            var oldPanorama = self._savedMissionInfo.panorama;
-            var lat = self._savedMissionInfo.latLng.lat, lng = self._savedMissionInfo.latLng.lng;
-            var stack = self._savedMissionInfo.actionStack;
-            var labels = self._savedMissionInfo.canvasLabels;
-
-
-            missionContainer.setCurrentMission(mission);
-            taskContainer.setCurrentTask(task);
-            svl.actionStack.setActionStack(stack.actionStack, stack.actionStackCursor);
-            svl.labelContainer.restoreCanvasLabels(labels);
-            labels.forEach(function(label){
-                svl.labelCounter.increment(label.getLabelType());
-            });
-
-
-            // Relocate the user to their old location
-            mapService.setPositionByIdAndLatLng(oldPanorama, lat, lng);
-            mapService.setPovToRouteDirection();
-
-            modalMission.setMissionMessage(mission, neighborhood);
-            modalMission.show();
+            recoverInProgressMission();
         } else{
             // Set the next mission
             var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
@@ -590,8 +565,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             }
             modalMission.show();
             taskContainer.getFinishedAndInitNextTask();
+            $("#mini-footer-audit").css("visibility", "visible");
         }
-        $("#mini-footer-audit").css("visibility", "visible");
     }
 
     function _onboardingStateAnnotationExists(state) {
@@ -839,6 +814,12 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             function callback () {
                 if (listener) google.maps.event.removeListener(listener);
                 $target.off("click", callback);
+                if(this.getAttribute("value") === "Skip"){
+                    hideMessage();
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
+                    _endTheOnboarding();
+                    return;
+                }
                 next.call(this, state.transition);
                 mapService.setPano(state.panoId, true);
                 mapService.setPov(pov);
@@ -1244,6 +1225,42 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         self._savedMissionInfo.currentNeighborhood = missionData.currentNeighborhood;
         self._savedMissionInfo.canvasLabels = missionData.canvasLabels;
         self._savedMissionInfo.actionStack = missionData.actionStack;
+    }
+
+    function recoverInProgressMission(){
+        // Reload details of old in-progress mission
+        self._missionWasInProgress = false;
+        var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
+        var mission = self._savedMissionInfo.currentMission;
+        var task = self._savedMissionInfo.currentTask;
+        var oldPanorama = self._savedMissionInfo.panorama;
+        var lat = self._savedMissionInfo.latLng.lat, lng = self._savedMissionInfo.latLng.lng;
+        var stack = self._savedMissionInfo.actionStack;
+        var labels = self._savedMissionInfo.canvasLabels;
+
+
+        missionContainer.setCurrentMission(mission);
+        taskContainer.setCurrentTask(task);
+        svl.actionStack.setActionStack(stack.actionStack, stack.actionStackCursor);
+        svl.labelContainer.restoreCanvasLabels(labels);
+        labels.forEach(function(label){
+            svl.labelCounter.increment(label.getLabelType());
+        });
+
+        // Return mission progress bar to old values
+        statusModel.setMissionCompletionRate(mission.getMissionCompletionRate());
+        statusModel.setProgressBar(mission.getMissionCompletionRate());
+
+
+        // Relocate the user to their old location
+        mapService.setPositionByIdAndLatLng(oldPanorama, lat, lng);
+        mapService.setPovToRouteDirection();
+
+        // TODO: Create new "We're returning you to this neighborhood" message
+        modalMission.setMissionMessage(mission, neighborhood);
+        modalMission.show();
+
+        $("#mini-footer-audit").css("visibility", "visible");
     }
 
     self._visit = _visit;
