@@ -76,7 +76,7 @@
                             </li>
                         </ul>
                     } else {
-                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
                                 &nbsp;Sign in
                         </a>
                     }
@@ -100,11 +100,9 @@
                     $("#sign-in-modal").removeClass("hidden");
                 });
 
-                // Log if user /clicks/ on sign-in button, but not necessarily signs in
-                $("#sign-in-button").on('click', function(){
+                function logWebpageActivity(activity){
                     var url = "/userapi/logWebpageActivity";
                     var async = true;
-                    var activity = "Click_module=SignIn";
                     $.ajax({
                         async: async,
                         contentType: 'application/json; charset=utf-8',
@@ -117,6 +115,18 @@
                             console.error(result);
                         }
                     });
+                }
+
+                // Triggered when 'Sign In' in navbar is clicked
+                // Logs "Click_module=SignIn"
+                $("#sign-in-button").on('click', function(){
+                    logWebpageActivity("Click_module=SignIn");
+                });
+
+                // Triggered when 'Start Mapping' in navbar is clicked
+                // Logs "Click_module=StartMapping_location=Index"
+                $(".navbarStartBtn").on('click', function(){
+                    logWebpageActivity("Click_module=StartMapping_location=Navbar");
                 });
             });
     </script>
@@ -364,7 +374,7 @@
         </ul>
     </template>
     <template id="navbar-dropdown-list-signed-out">
-        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">
+        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
             Sign in
         </a>
     </template>
