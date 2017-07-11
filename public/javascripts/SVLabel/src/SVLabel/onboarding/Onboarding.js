@@ -506,8 +506,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         form.submit(data, task);
         uiOnboarding.background.css("visibility", "hidden");
 
-        //Reset the label counts to zero after onboarding
-        svl.labelCounter.reset();
+        // Reset the action stack after onboarding
         actionStack.reset();
 
 
@@ -548,6 +547,9 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         if(self._missionWasInProgress){
             recoverInProgressMission();
         } else{
+            //Reset the label counts to zero after onboarding
+            svl.labelCounter.reset();
+
             // Set the next mission
             var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
             var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
@@ -1242,19 +1244,30 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         missionContainer.setCurrentMission(mission);
         taskContainer.setCurrentTask(task);
         svl.actionStack.setActionStack(stack.actionStack, stack.actionStackCursor);
-        svl.labelContainer.restoreCanvasLabels(labels);
-        labels.forEach(function(label){
-            svl.labelCounter.increment(label.getLabelType());
-        });
+
 
         // Return mission progress bar to old values
         statusModel.setMissionCompletionRate(mission.getMissionCompletionRate());
         statusModel.setProgressBar(mission.getMissionCompletionRate());
 
+        // Return label counter to old values
+        svl.labelContainer.restoreCanvasLabels(labels);
+        var labelCounts = {};
+        svl.labelCounter.getLabelTypes().forEach(function(labelType){
+            labelCounts[labelType] = 0;
+        });
+        labels.forEach(function(label){
+            labelCounts[label.getLabelType()] += 1;
+        });
+        for(var labelType in labelCounts){
+            svl.labelCounter.set(labelType, labelCounts[labelType]);
+        }
 
         // Relocate the user to their old location
         mapService.setPositionByIdAndLatLng(oldPanorama, lat, lng);
         mapService.setPovToRouteDirection();
+
+
 
         // TODO: Create new "We're returning you to this neighborhood" message
         modalMission.setMissionMessage(mission, neighborhood);

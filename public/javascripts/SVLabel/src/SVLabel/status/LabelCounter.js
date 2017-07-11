@@ -290,6 +290,10 @@ function LabelCounter (d3) {
         update(key);
     };
 
+    this.getLabelTypes = function(){
+        return keys;
+    }
+
     // Initialize
     update();
     // self.countLabel = countLabel;
