@@ -428,7 +428,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted && loadingRoutesCompleted &&
+        if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted && loadingRoutesCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
