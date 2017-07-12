@@ -85,13 +85,19 @@ object WebpageActivityTable {
   }
 
   /**
-    * Returns all instances of a specific activity
+    * Returns all WebpageActivities that contain the given string in their 'activity' field
     */
   def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
     activities.filter(_.activity.like("%"++activity++"%")).list
   }
-  def findKeyVal(activity: String, key: String, value: String): List[WebpageActivity] = db.withSession { implicit session =>
-    activities.filter(thisActivity => thisActivity.activity.like("%"++key++"="++value++"%") && thisActivity.activity.like("%"++activity++"%")).list
+  // Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
+  // Really, it doesn't have to be a key-value pair. It could just be a key. Or a value. Or even part of a key or value.
+  def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
+    var filteredActivities = activities.filter(_.activity.like("%"++activity++"%"))
+    for(keyVal <- keyVals) yield {
+      filteredActivities = filteredActivities.filter(_.activity.like("%"++keyVal++"%"))
+    }
+    filteredActivities.list
   }
   // Returns all webpage activities
   def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>

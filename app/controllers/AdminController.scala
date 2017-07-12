@@ -384,14 +384,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @param activity
     */
   def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)) {
-        val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.find(activity))
-        if(activities.length == 0){
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
-        } else {
-          Future.successful(Ok(Json.arr(activities)))
-        }
-    } else {
+    if (isAdmin(request.identity)){
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
+      if(activities.length == 0){
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
+      } else {
+        Future.successful(Ok(Json.arr(activities)))
+      }
+    }else{
       Future.successful(Redirect("/"))
     }
   }
@@ -404,9 +404,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getWebpageActivitiesKeyVal(activity: String, key: String, value: String) = UserAwareAction.async{ implicit request =>
+  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)){
-      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, key, value)))))
+      val keyVals: Array[String] = keyValPairs.split("/")
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
+      if(activities.length == 0){
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name and/or key-value pair")))
+      } else {
+        Future.successful(Ok(Json.arr(activities)))
+      }
     }else{
       Future.successful(Redirect("/"))
     }
