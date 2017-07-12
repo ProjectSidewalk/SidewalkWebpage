@@ -417,4 +417,22 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.successful(Redirect("/"))
     }
   }
+
+  def getNumWebpageActivities(activity: String) =   UserAwareAction.async{implicit request =>
+    if (isAdmin(request.identity)){
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
+      Future.successful(Ok(activities.length + ""))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
+  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)){
+      val keyVals: Array[String] = keyValPairs.split("/")
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
+      Future.successful(Ok(activities.length + ""))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
 }

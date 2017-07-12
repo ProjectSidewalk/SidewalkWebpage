@@ -50,6 +50,8 @@ GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.get
 GET     /adminapi/webpageActivities             @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivities/:activity   @controllers.AdminController.getWebpageActivities(activity: String)
 GET     /adminapi/webpageActivities/:activity/*keyValPairs  @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
+GET     /adminapi/numWebpageActivities/:activity @controllers.AdminController.getNumWebpageActivities(activity: String)
+GET     /adminapi/numWebpageActivities/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 
 
 # Auditing tasks
