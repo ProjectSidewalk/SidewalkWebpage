@@ -70,7 +70,7 @@ cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
 # Query that returns all edges along with their region_id
 # Note: Region_id should be from the entries that are not marked deleted
-cur.execute("""SELECT t2.region_id,t1.* from sidewalk.street_edge as t1 join sidewalk.street_edge_region as t2 on t1.street_edge_id=t2.street_edge_id where t1.deleted=FALSE and t2.region_id in (197,200,279,266,284)""")
+cur.execute("""SELECT t2.region_id,t1.* from sidewalk.street_edge as t1 join sidewalk.street_edge_region as t2 on t1.street_edge_id=t2.street_edge_id where t1.deleted=FALSE""")# and t2.region_id in (197,200,279,266,284)""")
 
 
 # In[ ]:
@@ -179,13 +179,13 @@ if False:
 # In[ ]:
 
 def find_path(seed_edge, adjacency_list, adjacency_list_region,
-              adjacency_list_streetedge, d_m=0.19, d_del_low=0.01, d_del_high=0.0):
+              adjacency_list_streetedge, d_m=0.19, d_del_low=0.0, d_del_high=0.01):
 
     # d_m is the mission distance. By default it is 0.19 miles or 1000 ft
     # d_del is the allowed deviated from the mission distance for a path in miles
 
     check_distance_constraint = lambda x: x <= (
-        d_m + d_del_low) and x >= (d_m - d_del_high)
+        d_m + d_del_high) and x >= (d_m - d_del_low)
     check_distance_exceeded = lambda x: x >= (d_m + d_del_high)
 
     if(len(adjacency_list.keys()) == 0):
@@ -301,7 +301,7 @@ valid_path_count = 0
 for index, seed_edge in edges_sample.iterrows():
     path, path_exists, path_length = find_path(
         seed_edge, adjacency_list, adjacency_list_region,
-        adjacency_list_streetedge, d_del_low=0.01, d_del_high=0.0)
+        adjacency_list_streetedge, d_del_low=0.0, d_del_high=0.01)
     if(path_exists):
         # Add a route_id, and route_start_edge,route_end_edge boolean indicators
         # to each edge in the valid path
@@ -347,7 +347,7 @@ def jaccard_similarity(path_x, path_y):
 # In[ ]:
 
 if True:
-    overlap_threshold = 0.2
+    overlap_threshold = 0.1
     overlap_constraint = lambda similarity, overlap_threshold: similarity >= 0.0 and similarity <= overlap_threshold
     valid_pair_count = 0
     invalid_path_indices = set()
