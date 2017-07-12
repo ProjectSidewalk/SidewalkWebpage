@@ -292,7 +292,6 @@ function Main (params) {
         // Save mission details before Onboarding is initialized
         var currentMissionInfo = {};
         var currentMissionInProgress = false;
-        //svl.storage.set('missionInProgress', false);
         if(svl.missionContainer.getCurrentMission() !== null){
             currentMissionInProgress = true;
 
@@ -304,15 +303,7 @@ function Main (params) {
             currentMissionInfo.canvasLabels = svl.labelContainer.getCanvasLabels();
             currentMissionInfo.actionStack = svl.actionStack.getActionStack();
 
-            /*svl.labelContainer = new LabelContainer($);
-            svl.storage.set('missionInProgress', true);
-            svl.storage.set('currentMission', svl.missionContainer.getCurrentMission());
-            svl.storage.set('currentTask', svl.taskContainer.getCurrentTask());
-            svl.storage.set('latLng', svl.map.getPosition());
-            svl.storage.set('currentNeighborhood', svl.neighborhoodContainer.getCurrentNeighborhood());
-            svl.storage.set('panorama', svl.map.getPanoId());
-            svl.storage.set('labels', svl.labelContainer.getCanvasLabels());*/
-            svl.labelContainer.removeAll();
+            svl.labelContainer.removePastAndCurrent();
             svl.actionStack.reset();
             svl.labelCounter.reset();
         }
@@ -333,7 +324,6 @@ function Main (params) {
         if(currentMissionInProgress){
             svl.onboarding.saveInProgressMission(currentMissionInfo);
         }
-
 
         svl.onboarding.start();
 

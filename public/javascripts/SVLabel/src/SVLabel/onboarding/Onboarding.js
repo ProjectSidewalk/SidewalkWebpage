@@ -1250,18 +1250,34 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         statusModel.setMissionCompletionRate(mission.getMissionCompletionRate());
         statusModel.setProgressBar(mission.getMissionCompletionRate());
 
-        // Return label counter to old values
+        // Remove labels from onboarding mini-map
+        svl.labelContainer.getCanvasLabels().forEach(function(label){
+            label.remove();
+        });
+        svl.canvas.render();
+
+        // Restore labels on previous mission
         svl.labelContainer.restoreCanvasLabels(labels);
+
+        // Restore label counters on previous mission
         var labelCounts = {};
-        svl.labelCounter.getLabelTypes().forEach(function(labelType){
+        var labelTypes = svl.labelCounter.getLabelTypes();
+        labelTypes.forEach(function(labelType){
             labelCounts[labelType] = 0;
         });
         labels.forEach(function(label){
-            labelCounts[label.getLabelType()] += 1;
+            var labelType = label.getLabelType();
+            if(labelTypes.includes(labelType)){
+                labelCounts[labelType] += 1;
+            }
+            else{
+                labelCounts['Other'] += 1; // 'No Sidewalk' and 'Occlusion' fall under 'Other' when it comes to label counts
+            }
         });
         for(var labelType in labelCounts){
             svl.labelCounter.set(labelType, labelCounts[labelType]);
         }
+
 
         // Relocate the user to their old location
         mapService.setPositionByIdAndLatLng(oldPanorama, lat, lng);

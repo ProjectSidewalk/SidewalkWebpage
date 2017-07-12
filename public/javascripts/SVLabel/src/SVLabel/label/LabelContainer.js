@@ -51,12 +51,13 @@ function LabelContainer($) {
     };
 
     /**
-     * Returns canvas labels. NOTE: I don't think this is used anywhere anymore.
+     * Returns canvas labels.
      */
     this.getCanvasLabels = function () {
         return prevCanvasLabels.concat(currentCanvasLabels);
     };
 
+    /** Used when reloading an in-progress mission */
     this.restoreCanvasLabels = function(oldCanvasLabels){
         currentCanvasLabels = [];
         prevCanvasLabels = [].concat(oldCanvasLabels);
@@ -66,7 +67,6 @@ function LabelContainer($) {
     this.getCurrentLabels = function () {
         return currentCanvasLabels;
     };
-
     this.getPreviousLabels = function () {
         return prevCanvasLabels;
     };
@@ -136,6 +136,11 @@ function LabelContainer($) {
     this.removeAll = function () {
         currentCanvasLabels = [];
     };
+    /** Flush ALL canvasLabels */
+    this.removePastAndCurrent = function(){
+        currentCanvasLabels = [];
+        prevCanvasLabels = [];
+    }
 
     /**
      * This function removes a passed label and its child path and points
