@@ -1,6 +1,5 @@
 
 # --- !Ups
-<<<<<<< HEAD
 CREATE TABLE turker
 (
   turker_id TEXT NOT NULL,
