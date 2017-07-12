@@ -47,6 +47,9 @@ GET     /adminapi/labels/panoid                 @controllers.AdminController.get
 GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered        @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/webpageActivities             @controllers.AdminController.getAllWebpageActivities
+GET     /adminapi/webpageActivities/:activity   @controllers.AdminController.getWebpageActivities(activity: String)
+
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit

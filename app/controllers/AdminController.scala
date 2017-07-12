@@ -376,4 +376,31 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     )))
     Future.successful(Ok(json))
   }
+
+
+  /** If no argument is provided, returns all webpage activities
+    * Otherwise, returns all activities that match the activity provided
+    * If the activity provided doesn't exist, returns 400 (Bad Request)
+    * @param activity
+    */
+  def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
+    if (isAdmin(request.identity)) {
+        val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.find(activity))
+        if(activities.length == 0){
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
+        } else {
+          Future.successful(Ok(Json.arr(activities)))
+        }
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def getAllWebpageActivities = UserAwareAction.async{implicit request =>
+    if (isAdmin(request.identity)){
+      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
 }
