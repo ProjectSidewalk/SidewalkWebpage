@@ -13,13 +13,16 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable}
 import models.mission.MissionTable
-import models.region.RegionTable
+import models.region.{RegionCompletionTable, RegionTable}
 import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.User
+import models.user.{User, WebpageActivityTable}
+import models.daos.UserDAOImpl
+import models.user.UserRoleTable
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.extras.geojson
+
 
 import scala.concurrent.Future
 
@@ -102,29 +105,71 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
+    RegionCompletionTable.initializeRegionCompletionTable()
+
+    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
+    val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
+      Json.obj("region_id" -> neighborhood.regionId,
+        "total_distance_m" -> neighborhood.totalDistance,
+        "completed_distance_m" -> neighborhood.auditedDistance,
+        "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
+        "name" -> neighborhood.name
+      )
+    }
+
+    Future.successful(Ok(JsArray(completionRates)))
+  }
+
+  /**
+    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    *
+    * @return
+    */
+  def getAllAnonUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
+      val counts: List[(Option[String], Int)] = UserDAOImpl.getAnonUserCompletedMissionCounts
+      val jsonArray = Json.arr(counts.map(x => {
+        Json.obj("ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false)
+      }))
+      Future.successful(Ok(jsonArray))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
 
-      // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
-      val CRSEpsg4326 = CRS.decode("epsg:4326")
-      val CRSEpsg26918 = CRS.decode("epsg:26918")
-      val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+  /**
+    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    *
+    * @return
+    */
+  def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
+      val jsonArray = Json.arr(counts.map(x => {
+        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1))
+      }))
+      Future.successful(Ok(jsonArray))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
 
 
-      val neighborhoods = RegionTable.selectAllNamedNeighborhoods
-      val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
-        val streets: List[StreetEdge] = StreetEdgeTable.selectStreetsByARegionId(neighborhood.regionId)
-        val auditedStreets: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsByARegionId(neighborhood.regionId)
-
-        val completedDistance = auditedStreets.map(s => JTS.transform(s.geom, transform).getLength).sum
-        val totalDistance = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
-        Json.obj("region_id" -> neighborhood.regionId,
-          "total_distance_m" -> totalDistance,
-          "completed_distance_m" -> completedDistance,
-          "name" -> neighborhood.name
+  /**
+    * Returns DC coverage percentage by Date
+    *
+    * @return
+    */
+  def getCompletionRateByDate = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val streets: Seq[(String, Float)] = StreetEdgeTable.streetDistanceCompletionRateByDate(1)
+      val json = Json.arr(streets.map(x => {
+        Json.obj(
+          "date" -> x._1, "completion" -> x._2
         )
-      }
+      }))
 
-      Future.successful(Ok(JsArray(completionRates)))
+      Future.successful(Ok(json))
     } else {
       Future.successful(Redirect("/"))
     }
@@ -218,7 +263,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getMissionsCompletedByUsers = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val missionsCompleted = MissionTable.selectMissionsCompletedByUsers.map(x =>
-        Json.obj("usrename" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m, "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
+        Json.obj("username" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m,
+          "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
       )
       Future.successful(Ok(JsArray(missionsCompleted)))
     } else {
@@ -309,5 +355,25 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
 
+  }
+
+  /**
+    * USER CENTRIC ANALYTICS
+    */
+
+  def getAllRegisteredUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerRegisteredUser
+    val json = Json.arr(labelCounts.map(x => Json.obj(
+      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1)
+    )))
+    Future.successful(Ok(json))
+  }
+
+  def getAllAnonUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerAnonUser
+    val json = Json.arr(labelCounts.map(x => Json.obj(
+      "ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false
+    )))
+    Future.successful(Ok(json))
   }
 }

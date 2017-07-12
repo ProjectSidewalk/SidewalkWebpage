@@ -101,7 +101,7 @@ GSVPANO.PanoLoader = function (parameters) {
     
         console.log('Load for', location);
         var self = this;
-        _panoClient.getPanoramaByLocation(location, 50, function (result, status) {
+        _panoClient.getPanorama({location: location, radius: 50, source: google.maps.StreetViewSource.OUTDOOR}, function (result, status) {
             if (status === google.maps.StreetViewStatus.OK) {
                 if( self.onPanoramaData ) self.onPanoramaData( result );
                 var h = google.maps.geometry.spherical.computeHeading(location, result.location.latLng);

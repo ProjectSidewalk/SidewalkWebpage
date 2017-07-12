@@ -63,14 +63,16 @@ function TaskContainer (routeModel, navigationModel, neighborhoodModel, streetVi
         navigationModel.disableWalking();
 
         if (streetViewService) {
-            streetViewService.getPanoramaByLocation(latLng, STREETVIEW_MAX_DISTANCE,
+            streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
                     navigationModel.enableWalking();
                     if (status === google.maps.StreetViewStatus.OK) {
                         lat = streetViewPanoramaData.location.latLng.lat();
                         lng = streetViewPanoramaData.location.latLng.lng();
                         self.setCurrentTask(nextTaskIn);
-                        navigationModel.setPosition(lat, lng);
+                        navigationModel.setPosition(lat, lng, function(){
+                            navigationModel.preparePovReset();
+                        });
                     } else {
                         console.error("Error loading Street View imagery");
                         svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(latLng)});

@@ -39,6 +39,10 @@ function TemporaryStorage(JSON, params) {
             set("completedOnboarding", null);
         }
 
+        if (!get("completedFirstMission")){
+            set("completedFirstMission", null);
+        }
+
         if (!get("muted")) {
             set("muted", false);
         }
@@ -61,6 +65,7 @@ function TemporaryStorage(JSON, params) {
         set("tracker", []);
         set("labels", []);
         set("completedOnboarding", null);
+        set("completedFirstMission", null);
         set("muted", false);
     }
 

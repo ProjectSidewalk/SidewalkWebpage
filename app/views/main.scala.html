@@ -17,14 +17,7 @@
     <link rel="icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
-    <script>
-        function checkIfPaddingNeeded(){
-            if(window.location.pathname !== "/"){
-                console.log("Adding padding");
-                document.body.style.paddingTop = "60px";
-            }
-        }
-    </script>
+
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
@@ -39,7 +32,7 @@
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=3.26&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=3.27&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
@@ -48,6 +41,8 @@
 
     <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
     <script src='@routes.Assets.at("assets/countUp.js")'></script>
+    <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
+    <script src='@routes.Assets.at("assets/pagetop-padding.js")'></script>
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -63,6 +58,23 @@
         @content
 
     </div>
+
+    @if(url.get == "/audit") {
+
+        <script type="text/javascript">
+            document.getElementsByTagName("body")[0].style.overflow = "hidden";
+            document.getElementById("wrap").style.padding = "0 0 35px";
+        </script>
+
+        <div id="mini-footer-audit">
+          Project Sidewalk is designed and operated by the
+          <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
+          <a href="http://www.umd.edu/">University of Maryland</a><br>
+          <span id="application-version"></span>
+        </div>
+
+    } else{
+
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
     <div class="container" id="info-footer">
@@ -81,6 +93,61 @@
             ga('create', 'UA-76528208-2', 'auto');
             ga('send', 'pageview');
 
+
+            // Log clicks on links in the footer to WebpageActivityTable
+            // Depending on column, form of log varies by the following:
+            // Column is 'Project Sidewalk' or "Developer'
+            //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
+            // Column is 'Connect'
+            //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
+            $("#footer-container").on('click', 'a', function(e){
+                var id = e.currentTarget.id.split("-");
+                var column = id[0];
+                var link = id[1];
+
+                var activity = "Click_module=Footer_section="+column+"_";
+                if(column === "sidewalk" || column === "developer"){
+                    activity = activity+"target="+link;
+                }
+                else{
+                    activity = activity+"platform="+link;
+                }
+
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(activity),
+                    dataType: 'json',
+                    success: function(result){},
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
+            });
+
+            // Log clicks on links in the information footer to WebpageActivityTable
+            // Log is of form: "Click_module=InfoFooter_target=<link>"
+            $('#info-footer').on('click','a', function(e){
+                var link = e.currentTarget.id.split("-")[0];
+                var activity = "Click_module=InfoFooter_"+"target="+link;
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(activity),
+                    dataType: 'json',
+                    success: function(result){},
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
+            });
     </script>
 </body>
-

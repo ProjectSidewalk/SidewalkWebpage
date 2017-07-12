@@ -5,19 +5,15 @@ import java.util
 import java.util.{Calendar, TimeZone}
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import models.audit.{AuditTaskTable, NewTask}
 import models.user._
-import models.daos.UserDAOImpl
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
-import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.Action
-import play.api.{Logger, Play}
+
 
 import scala.concurrent.Future
 
@@ -64,6 +60,21 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_About", timestamp))
         Future.successful(Ok(views.html.about("Project Sidewalk - About")))
+    }
+  }
+
+  def mobile = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
+        Future.successful(Ok(views.html.mobile("Project Sidewalk", Some(user))))
+      case None =>
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
+        Future.successful(Ok(views.html.mobile("Project Sidewalk")))
     }
   }
 

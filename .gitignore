@@ -92,12 +92,12 @@ project/.sbtserver.lock
 node_modules
 logs/
 project/project/
-public/javascripts/Admin/build/
-public/javascripts/FAQ/build/
-public/javascripts/SVLabel/build/
-tmp/
+public/javascripts/SVLabel/build/*
+public/javascripts/Admin/build/*
+public/javascripts/FAQ/build/*
+public/javascripts/Progress/build/*
 
-public/javascripts/Admin/Progress/*
+tmp/
 download
 
 # sidewalk-webpage-binary directory
@@ -109,3 +109,5 @@ mturk_results
 
 # Python .pyc files
 *.pyc
+
+nohup.out

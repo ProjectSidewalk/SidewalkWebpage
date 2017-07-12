@@ -14,7 +14,7 @@ function Main (params) {
     };
 
     // Initialize things that needs data loading.
-    var loadingAnOboardingTaskCompleted = false;
+    var loadingAnOnboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
     var loadingRoutesCompleted = false;
     var loadingMissionsCompleted = false;
@@ -114,13 +114,17 @@ function Main (params) {
         svl.canvas = new Canvas(svl.ribbon);
 
 
+
         // Set map parameters and instantiate it.
         var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.routeModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
+        //svl.alert2 = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
+        svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
+        svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
@@ -218,6 +222,19 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+        $('#sign-in-modal-container').on('hide.bs.modal', function () {
+            svl.popUpMessage.enableInteractions();
+            $(".toolUI").css('opacity', 1);
+        });
+        $('#sign-in-modal-container').on('show.bs.modal', function () {
+            svl.popUpMessage.disableInteractions();
+            $(".toolUI").css('opacity', 0.5);
+        });
+        $('#sign-in-button').on('click', function(){
+            $("#sign-in-modal").removeClass("hidden");
+            $("#sign-up-modal").addClass("hidden");
+            $(".toolUI").css('opacity', 0.5);
+        });
 
         $(svl.ui.ribbonMenu.buttons).each(function() {
             var val = $(this).attr('val');
@@ -251,7 +268,7 @@ function Main (params) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
-            loadingAnOboardingTaskCompleted = true;
+            loadingAnOnboardingTaskCompleted = true;
             handleDataLoadComplete();
         });
 
@@ -287,6 +304,11 @@ function Main (params) {
     var onboardingHandAnimation = null;
     var onboardingStates = null;
     function startOnboarding () {
+        //hide any alerts
+        svl.alert.hideAlert();
+        //hide footer
+        $("#mini-footer-audit").css("visibility", "hidden");
+
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
             onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
@@ -300,8 +322,8 @@ function Main (params) {
                 onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
                 svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
-                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.ui.canvas,
-                svl.ui.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
+                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas, svl.ui.canvas,
+                svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
 
@@ -334,7 +356,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl || svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
+        return 'user' in svl && svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {
@@ -347,17 +369,20 @@ function Main (params) {
             svl.missionModel.submitMissions([onboardingMission]);
         }
 
-        // Popup the message explaining the goal of the current mission
-        if (svl.missionContainer.isTheFirstMission()) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer);
-            svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                svl.initialMissionInstruction.start(neighborhood);
-            });
-        } else {
-            svl.modalMission.setMissionMessage(mission, neighborhood);
+        if(params.init !== "noInit") {
+            // Popup the message explaining the goal of the current mission
+            if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
+                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                    svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
+                svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
+                    svl.initialMissionInstruction.start(neighborhood);
+                });
+            } else {
+                svl.modalMission.setMissionMessage(mission, neighborhood);
+            }
+            svl.modalMission.show();
         }
-        svl.modalMission.show();
         svl.missionModel.updateMissionProgress(mission, neighborhood);
 
         // Get the labels collected in the current neighborhood
@@ -409,7 +434,12 @@ function Main (params) {
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
             var mission;
+            $("#page-loading").css({"visibility": "hidden"});
+            $(".toolUI").css({"visibility": "visible"});
+            $(".visible").css({"visibility": "visible"});
+
             if (!hasCompletedOnboarding(completedMissions)) {
+                $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
                 // If the user has completed the onboarding mission but the data is only stored in the browser
@@ -424,6 +454,7 @@ function Main (params) {
                 _calculateAndSetTasksMissionsOffset();
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
+                $("#mini-footer-audit").css("visibility", "visible");
                 startTheMission(mission, currentNeighborhood);
             }
         }
@@ -674,11 +705,15 @@ function Main (params) {
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
-    _initUI();
-    _init(params);
+    if(params.init !== "noInit") {
+        _initUI();
+        _init(params);
+    }
 
     self.getStatus = getStatus;
     self.setStatus = setStatus;
+    self.isAnAnonymousUser = isAnAnonymousUser;
+    self.loadData = loadData;
 
     return self;
 }

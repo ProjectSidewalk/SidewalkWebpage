@@ -50,6 +50,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this._handleClickJump = function (e) {
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
+        svl.modalComment.hide();
         self.showSkipMenu();
     };
 
@@ -94,7 +95,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this.blink = function () {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
-            uiLeftColumn.jump.toggleClass("highlight-50");
+            uiLeftColumn.jump.toggleClass("highlight-100");
         }, 500);
     };
 
@@ -104,6 +105,8 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this.hideSkipMenu = function () {
         uiModalSkip.radioButtons.prop('checked', false);
         uiModalSkip.holder.addClass('hidden');
+        svl.popUpMessage.enableInteractions();
+        self.hideBackground();
     };
 
     /**
@@ -112,6 +115,22 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this.showSkipMenu = function () {
         uiModalSkip.holder.removeClass('hidden');
         this._disableClickOK();
+        svl.popUpMessage.disableInteractions();
+        self.showBackground();
+    };
+
+    this.hideBackground = function (){
+        $('#modal-skip-background').css({ width: '', height: ''})
+    };
+
+    this.showBackground = function (){
+        $('#modal-skip-background').css("background-color", "white");
+        $('#modal-skip-background').css({
+            width: '100%',
+            height: '100%',
+            opacity: '0.5',
+            visibility: 'visible'
+        });
     };
 
     /**
@@ -120,7 +139,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
      */
     this.stopBlinking = function () {
         window.clearInterval(blinkInterval);
-        uiLeftColumn.jump.removeClass("highlight-50");
+        uiLeftColumn.jump.removeClass("highlight-100");
     };
 
     // Initialize

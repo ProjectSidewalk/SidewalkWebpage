@@ -1,5 +1,6 @@
 
 # --- !Ups
+<<<<<<< HEAD
 CREATE TABLE turker
 (
   turker_id TEXT NOT NULL,
@@ -64,6 +65,14 @@ ALTER TABLE amt_assignment
   ADD CONSTRAINT amt_assignment_route_id_fkey
     FOREIGN KEY (route_id) REFERENCES route(route_id);
 
+CREATE TABLE region_completion
+(
+  region_id INTEGER NOT NULL,
+  total_distance REAL,
+  audited_distance REAL,
+  PRIMARY KEY (region_id)
+);
+
 
 # --- !Downs
 DROP TABLE amt_route_assignment;
@@ -82,3 +91,4 @@ DROP TABLE route_street;
 DROP TABLE route;
 DROP TABLE amt_condition;
 DROP TABLE turker;
+DROP TABLE region_completion;

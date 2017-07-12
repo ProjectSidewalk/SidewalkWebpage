@@ -87,7 +87,10 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     }
 
     this.hide = function () {
+        svl.modalSkip.hideSkipMenu();
         _uiModalComment.holder.addClass('hidden');
+        svl.popUpMessage.enableInteractions();
+        self.hideBackground();
     };
 
     function showCommentMenu () {
@@ -95,7 +98,23 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         _uiModalComment.holder.removeClass('hidden');
         _uiModalComment.ok.addClass("disabled");
         self._disableClickOK();
+        svl.popUpMessage.disableInteractions();
+        self.showBackground();
     }
+
+    this.hideBackground = function (){
+        $('#modal-comment-background').css({ width: '', height: ''})
+    };
+
+    this.showBackground = function (){
+        $('#modal-comment-background').css("background-color", "white");
+        $('#modal-comment-background').css({
+            width: '100%',
+            height: '100%',
+            opacity: '0.5',
+            visibility: 'visible'
+        });
+    };
 
     self._disableClickOK = function () {
         _uiModalComment.ok.attr("disabled", true);

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
 import math._
-import models.street.StreetEdgeAssignmentCountTable
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -117,12 +117,38 @@ object RegionTable {
   }
 
   /**
-    * Get a Named Region in a round-robin fashion
+    * Get a Named Region in a round-robin fashion, giving novice users easy regions if possible.
     *
     * @return
     */
-  def selectANamedRegionRoundRobin: Option[NamedRegion] = db.withSession { implicit session =>
-    Some(namedRegionRoundRobin.next)
+  def selectANamedRegionRoundRobin(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+    // If a novice user (audited less than 2 miles)
+    if (StreetEdgeTable.getDistanceAudited(userId) < UserCurrentRegionTable.experiencedUserMileageThreshold) {
+      selectAnEasyNamedRegionRoundRobin
+    } else {
+      Some(namedRegionRoundRobin.next)
+    }
+  }
+
+  /**
+    * Get a Named Region that has not been flagged as difficult (if any are left) in a round-robin fashion.
+    *
+    * @return
+    */
+  def selectAnEasyNamedRegionRoundRobin: Option[NamedRegion] = db.withSession { implicit session =>
+    // If the first one is an easy region, use it. O/w keep getting regions until we get an easy one (or we have
+    // wrapped around back to the first region, meaning there are no easy regions left).
+    val firstRegion = namedRegionRoundRobin.next
+    if (!UserCurrentRegionTable.difficultRegionIds.contains(firstRegion.regionId)) {
+      Some(firstRegion)
+    } else {
+      var currentRegion = namedRegionRoundRobin.next
+      while (currentRegion.regionId != firstRegion.regionId &&
+        UserCurrentRegionTable.difficultRegionIds.contains(currentRegion.regionId)) {
+        currentRegion = namedRegionRoundRobin.next
+      }
+      Some(currentRegion)
+    }
   }
 
   /**

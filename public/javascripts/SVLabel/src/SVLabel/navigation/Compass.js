@@ -41,6 +41,10 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         }, 500);
     }
 
+    function getCompassMessageHolder() {
+        return uiCompass;
+    }
+
     /**
      * Get the angle to the next goal.
      * @returns {number}
@@ -86,7 +90,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _jumpBackToTheRoute() {
         var task = taskContainer.getCurrentTask();
         var coordinate = task.getStartCoordinate();
+        mapService.preparePovReset();
         mapService.setPosition(coordinate.lat, coordinate.lng);
+        mapService.setPovToRouteDirection();
         // mapService.resetPanoChange();
     }
 
@@ -177,7 +183,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * @param direction
      * @returns {string|*}
      */
-    function _directionToImagePath (direction) {
+    function directionToImagePath (direction) {
         switch (direction) {
             case "straight":
                 return imageDirectories.straight;
@@ -211,7 +217,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             angle = self.getCompassAngle(),
             direction = _angleToDirection(angle);
 
-        image = "<img src='" + _directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
+        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
         message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" +
             image + "<span class='bold'>" + _directionToDirectionMessage(direction) + "</span>";
         uiCompass.message.html(message);
@@ -343,8 +349,10 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     self.blink = blink;
+    self.directionToImagePath = directionToImagePath;
     self.resetBeforeJump = resetBeforeJump;
     self.getCompassAngle = getCompassAngle;
+    self.getCompassMessageHolder = getCompassMessageHolder;
     self.hideMessage = hideMessage;
     self.setTurnMessage = setTurnMessage;
     self.setLabelBeforeJumpMessage = setLabelBeforeJumpMessage;

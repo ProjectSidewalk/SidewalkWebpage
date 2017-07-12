@@ -3,7 +3,7 @@ package models.label
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
-import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskTable}
+import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskTable, AuditTaskEnvironmentTable}
 import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -72,6 +72,8 @@ object LabelTable {
   val db = play.api.db.slick.DB
   val labels = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
+  val completedAudits = auditTasks.filter(_.completed === true)
+  val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
@@ -79,6 +81,15 @@ object LabelTable {
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+
+
+  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
+  val anonUsersAudits = for {
+    (_ate, _at) <- auditTaskEnvironments.innerJoin(completedAudits).on(_.auditTaskId === _.auditTaskId)
+    if _at.userId === anonId
+  } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
+
+  val anonIps = anonUsersAudits.groupBy(_._1).map{case(ip,group)=>ip}
 
 
   case class LabelCountPerDay(date: String, count: Int)
@@ -464,10 +475,15 @@ object LabelTable {
 //    labelLocationList
   }
 
+  /**
+    * Returns a count of the number of labels placed on each day since the tool was launched (11/17/2015).
+    *
+    * @return
+    */
   def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
-    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
+    val selectLabelCountQuery =  Q.queryNA[(String, Int)](
       """SELECT calendar_date::date, COUNT(label_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |FROM    generate_series(0, 30) n) AS calendar
+        |FROM    generate_series(0, current_date - '11/17/2015') n) AS calendar
         |LEFT JOIN sidewalk.audit_task
         |ON audit_task.task_start::date = calendar_date::date
         |LEFT JOIN sidewalk.label
@@ -475,7 +491,55 @@ object LabelTable {
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )
-    selectAuditCountQuery.list.map(x => LabelCountPerDay.tupled(x))
+    selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
+  }
+
+
+  /**
+    * Select label counts per registered user
+    */
+  def getLabelCountsPerRegisteredUser: List[(String, Int)] = db.withSession { implicit session =>
+
+    val regUserAudits = completedAudits.filterNot(_.userId === "97760883-8ef0-4309-9a5e-0c086ef27573")
+
+    val _labels = for {
+      (_tasks, _labels) <- regUserAudits.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+    } yield _tasks.userId
+
+    // counts the number of tasks for each user
+    _labels.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
+  }
+
+  /**
+    * Select label counts per anonymous user
+    */
+  def getLabelCountsPerAnonUser: List[(String, Int)] = db.withSession { implicit session =>
+
+    // gets ip address and audit task id of all audits (possibly incomplete) done by anonymous users
+    // TODO figure out how to select a distinct environment for each ip address, right now we get duplicates!!!
+    val _anonAudits = for {
+      (_environment, _task) <- auditTaskEnvironments.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
+      if _task.userId === anonId
+    } yield (_environment.ipAddress, _environment.auditTaskId)
+
+    val uniqueAudits = _anonAudits.groupBy(x => x).map(_._1)
+
+    // join with label table, but only return ip address; we end up with an occurrence of an ip address for each label
+    // that was placed from this ip address
+    val _labels = for {
+      (_tasks, _labels) <- uniqueAudits.innerJoin(labelsWithoutDeleted).on(_._2 === _.auditTaskId)
+    } yield _tasks._1
+
+    // now count the occurrences of each ip address, this gives you the label counts. Also right join on the list of
+    // anonymous users, since anon users that didn't supply any labels at all would not have been in the list, and we
+    // want to associate a 0 with their ip address.
+    val labelCounts = _labels.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.rightJoin(anonIps).on(_._1 === _).map{
+      case (cm, ai) => (ai, cm._2.?)
+    }.list
+
+    // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
+    // missions ended up in the completedMissions query.
+    labelCounts.map{pair => (pair._1.get, pair._2.getOrElse(0))}
   }
 }
 
