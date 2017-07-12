@@ -88,7 +88,10 @@ object WebpageActivityTable {
     * Returns all instances of a specific activity
     */
   def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
-    activities.filter(_.activity === activity).list
+    activities.filter(_.activity.like("%"++activity++"%")).list
+  }
+  def findKeyVal(activity: String, key: String, value: String): List[WebpageActivity] = db.withSession { implicit session =>
+    activities.filter(thisActivity => thisActivity.activity.like("%"++key++"="++value++"%") && thisActivity.activity.like("%"++activity++"%")).list
   }
   // Returns all webpage activities
   def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>

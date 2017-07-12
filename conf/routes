@@ -49,11 +49,12 @@ GET     /adminapi/labelCounts/registered        @controllers.AdminController.get
 GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.getAllAnonUserLabelCounts
 GET     /adminapi/webpageActivities             @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivities/:activity   @controllers.AdminController.getWebpageActivities(activity: String)
+GET     /adminapi/webpageActivities/:activity/:key/:value   @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, key: String, value: String)
 
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
-GET     /audit/easyRegion                        @controllers.AuditController.auditNewEasyRegion
+GET     /audit/easyRegion                       @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                          @controllers.AuditController.postComment

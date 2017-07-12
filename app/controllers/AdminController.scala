@@ -403,4 +403,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.successful(Redirect("/"))
     }
   }
+
+  def getWebpageActivitiesKeyVal(activity: String, key: String, value: String) = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)){
+      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, key, value)))))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
 }
