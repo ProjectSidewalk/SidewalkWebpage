@@ -388,20 +388,27 @@
                     <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
 
                     <h2>How Users Access Audit Page:</h2>
-                    <div class="col-lg-4 col-md-4" style="align:left">
+                    <div class="col-lg-6 col-md-4" style="align:left">
                         <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: right;">Activity</th>
+                                    <th style="text-align: right;">Number</th>
+                                    <th style="text-align: right;">Percentage (%)</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                <tr>
+                                <tr id="audit-access-table-audit">
                                     <td style="text-align: right;">Visit Audit</td>
-                                    <td id="table-cell-num-visit-audit"></td>
                                 </tr>
-                                <tr>
+                                <tr id="audit-access-table-start">
                                     <td style="text-align: right;">Click "Start Mapping"</td>
-                                    <td id="table-cell-num-click-start"></td>
                                 </tr>
-                                <tr>
+                                <tr id="audit-access-table-choro">
                                     <td style="text-align: right;">Click Choropleth</td>
-                                    <td id="table-cell-num-choro-click"></td>
+                                </tr>
+                                <tr id="audit-access-table-total">
+                                    <td style="text-align: right;">Total (Visit Index)</td>
                                 </tr>
                             </tbody>
                         </table>

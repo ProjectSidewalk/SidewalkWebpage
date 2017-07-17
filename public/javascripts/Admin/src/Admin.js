@@ -1197,9 +1197,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/numWebpageActivities/Visit_Audit", function(numVisitAudit){
             $.getJSON("/adminapi/numWebpageActivities/Click/module=StartMapping", function(numClickStartMapping){
             $.getJSON("/adminapi/numWebpageActivities/Click/module=Choropleth/target=audit", function(numChoroplethClicks){
+            $.getJSON("/adminapi/numWebpageActivities/Visit_Index", function(numVisitIndex){
                 $("#table-cell-num-visit-audit").prepend(numVisitAudit);
                 $("#table-cell-num-click-start").prepend(numClickStartMapping);
                 $("#table-cell-num-choro-click").prepend(numChoroplethClicks);
+                $("#audit-access-table-audit").append('<td style="text-align: right;">'+numVisitAudit+'</td><td style="text-align: right;">'+(parseInt(numVisitAudit)/parseInt(numVisitIndex)*100).toFixed(4)+"%</td>");
+                $("#audit-access-table-start").append('<td style="text-align: right;">'+numClickStartMapping+'</td><td style="text-align: right;">'+(parseInt(numClickStartMapping)/parseInt(numVisitIndex)*100).toFixed(4)+"%</td>");
+                $("#audit-access-table-choro").append('<td style="text-align: right;">'+numChoroplethClicks+'</td><td style="text-align: right;">'+(parseInt(numChoroplethClicks)/parseInt(numVisitIndex)*100).toFixed(4)+"%</td>");
+                $("#audit-access-table-total").append('<td style="text-align: right;">'+numVisitIndex+'</td><td style="text-align: right;">100.0000%</td>');
+            });
             });
             });
             });
