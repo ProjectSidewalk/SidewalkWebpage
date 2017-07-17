@@ -179,7 +179,7 @@ if False:
 # In[ ]:
 
 def find_path(seed_edge, adjacency_list, adjacency_list_region,
-              adjacency_list_streetedge, d_m=0.19, d_del_low=0.0, d_del_high=0.01):
+              adjacency_list_streetedge, d_m=0.19, d_del_low=0.0, d_del_high=0.01, random_walk=False, jump_on_no_neighbour = False):
 
     # d_m is the mission distance. By default it is 0.19 miles or 1000 ft
     # d_del is the allowed deviated from the mission distance for a path in miles
@@ -213,7 +213,10 @@ def find_path(seed_edge, adjacency_list, adjacency_list_region,
         # This can also be ignored if we want do not find enough paths.
         region_adjacent_nodes = set(node for node in all_adjacent_nodes if adjacency_list_region[
                                     current_source][node] == seed_edge['region_id'])
-        unvisited_adjacent_nodes = region_adjacent_nodes.difference(visited_nodes)
+        unvisited_adjacent_nodes = list(region_adjacent_nodes.difference(visited_nodes))
+
+        if(random_walk):
+            random.shuffle(unvisited_adjacent_nodes)
 
         if(len(unvisited_adjacent_nodes) > 0):
             # Unvisited nodes adjacent to current source
@@ -243,11 +246,40 @@ def find_path(seed_edge, adjacency_list, adjacency_list_region,
                 # No unvisited nodes adjacent to current source
                 # and path length doesnt meet our constraint.
                 # Try going back to the previous source and try another edge.
-                previous_edge = path.pop()
-                # print path
-                current_source = previous_edge['source']  # update current_source
-                current_path_length = current_path_length - \
-                    previous_edge['length']  # update current_path_length
+                if(jump_on_no_neighbour):
+                    # Jump to another location in the same neighborhood that hasnt been visited
+                    #print "Jumped here"
+                    random_jump_edges = edges_csubset[edges_csubset['region_id'].isin([seed_edge['region_id']]) & ~edges_csubset['source'].isin(visited_nodes) & ~edges_csubset['target'].isin(visited_nodes)]
+                    #print random_jump_edges
+                    
+                    if(random_jump_edges.empty):
+                        path_exists = False
+                        current_path_length = 0
+                        return ([{'street_edge_id':seed_edge['street_edge_id'],'region_id':seed_edge['region_id'],'target':seed_edge['target'],'source':seed_edge['source'],'length':seed_edge['length']}],path_exists,seed_edge['length'])
+                    else:
+                        random_jump_edge = dict(random_jump_edges.sample(1).iloc[0])
+                    
+                    current_source = random_jump_edge['source']
+                    current_target = random_jump_edge['target']
+                    current_edge_length = adjacency_list[current_source][current_target]
+                    current_street_edge_id = adjacency_list_streetedge[current_source][current_target]
+                    current_path_length = current_path_length + current_edge_length
+                    if(len(path)>0):
+                        path[-1]['next_street_edge_id'] = current_street_edge_id
+            
+                    path.append(random_jump_edge)
+                    visited_nodes.add(current_source)
+                    visited_nodes.add(current_target)
+                    current_source = current_target
+                    
+                else:
+                    # Try going back to the previous source and try another edge.
+                    # This will give us continuous routes if the adjacency network is correct
+                    # Sometime the database may exchange source and target values for an edge. This seems to be the case for the sidewalk dc data 
+                    previous_edge = path.pop()
+                    #print path
+                    current_source = previous_edge['source'] # update current_source
+                    current_path_length = current_path_length - previous_edge['length'] # update current_path_length
 
         else:
             print "Error. Number of unvisited nodes is -ve!!"
