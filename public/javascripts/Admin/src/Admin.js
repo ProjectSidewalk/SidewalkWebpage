@@ -846,7 +846,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-
                 // make a choropleth of neighborhood completion percentages
                 initializeChoroplethNeighborhoodPolygons(choropleth, data);
                 choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
@@ -1191,6 +1190,67 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
                     }
                 });
+            });
+
+            // Chart showing how many audit page visits there are, how many people click the choropleth, and how many people
+            // click "start mapping"
+            $.getJSON("/adminapi/numWebpageActivities/Visit_Audit", function(numVisitAudit){
+            $.getJSON("/adminapi/numWebpageActivities/Click/module=StartMapping", function(numClickStartMapping){
+            $.getJSON("/adminapi/numWebpageActivities/Click/module=Choropleth/target=audit", function(numChoroplethClicks){
+                var data = [{'name': "Visit_Audit", 'rate': numVisitAudit},
+                            {'name': "StartMapping", 'rate': numClickStartMapping},
+                            {'name': "Click Choropleth", 'rate': numChoroplethClicks}];
+                var height = 300;
+                var width = 600;
+                var maxRate = Math.max(Math.max(numVisitAudit, numClickStartMapping), numChoroplethClicks);
+
+                var coverageRateChartSortedByCompletion = {
+                    "data": {
+                        "values": data
+                    },
+                    "width": 600,
+                    "height": 300,
+                    "mark": "bar",
+                    "encoding": {
+                        "y": {
+                            "field": "name",
+                            "type": "nominal",
+                            "sort": {"op": "mean", "field": "rate", "order": "ascending"}
+                        },
+                        "x": {
+                            "field": "rate",
+                            "type": "quantitative"
+                        }
+                    },
+                    "config": {
+                        "axis": {
+                            "labelFontSize": 14
+                        }
+                    }
+                };
+
+                vega.embed("#audit-access-method-chart", coverageRateChartSortedByCompletion, opt, function(error, results) {});
+
+                // Draw numbers on another, overlapping canvas
+                var drawNumbersAccessChart = function(){
+                    var chartContainer = $('#audit-access-method-chart');
+                    var canvasWidth =  chartContainer.children('canvas.marks').attr('width');
+                    var canvasHeight = chartContainer.children('canvas.marks').attr('height');
+                    chartContainer.attr('style', 'height: '+canvasHeight+'; z-index:0;');
+                    chartContainer.children('canvas.marks').attr('style', 'position:absolute;');
+                    chartContainer.children('canvas.marks').after('<canvas id="audit-access-method-numbers"'
+                        + 'height="'+canvasHeight+'" width="'+(parseInt(canvasWidth)+15)+'"style="z-index:1;"></canvas>');
+                    var ctx = $('#audit-access-method-numbers')[0].getContext('2d');
+                    data.forEach(function(bar){
+                        var y = (data.indexOf(bar) + 0.5)*(height/data.length) + 12;
+                        var x = (bar.rate/maxRate) * 588 + 135;
+                        ctx.font = '12px sans-serif';
+                        ctx.fillText(bar.rate, x, y);
+                    });  
+                }
+                drawNumbersAccessChart();
+            });
+            });
             });
             self.graphsLoaded = true;
         }
