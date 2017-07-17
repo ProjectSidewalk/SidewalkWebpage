@@ -168,5 +168,8 @@ if __name__ == '__main__':
 
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
         create_missions_for_routes(engine, cur, route_rows)
+
+        # Manually insert an experiment condition into the amt_condition
+        cur.execute("""INSERT INTO sidewalk.amt_condition (description, parameters) VALUES ('mturk-pilot-1000ft-route-mission', 'hitCost=0.85,routeDistance=1000ft,turkerPerRoute=5,noRoutes=5,noRegion=3')""")
     except Exception as e:
         print "Error: ", e
