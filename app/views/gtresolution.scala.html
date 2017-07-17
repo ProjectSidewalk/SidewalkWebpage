@@ -1,0 +1,16 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
+@import models.user.User
+@import models.user.UserCurrentRegionTable
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
+
+@main(title) {
+    @navbar(user)
+    <div id="content">
+        <div class="container">
+            <h3>Ground Truth Resolution</h3>
+        </div>
+    </div>
+}
