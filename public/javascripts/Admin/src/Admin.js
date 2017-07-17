@@ -1197,58 +1197,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/numWebpageActivities/Visit_Audit", function(numVisitAudit){
             $.getJSON("/adminapi/numWebpageActivities/Click/module=StartMapping", function(numClickStartMapping){
             $.getJSON("/adminapi/numWebpageActivities/Click/module=Choropleth/target=audit", function(numChoroplethClicks){
-                var data = [{'name': "Visit_Audit", 'rate': numVisitAudit},
-                            {'name': "StartMapping", 'rate': numClickStartMapping},
-                            {'name': "Click Choropleth", 'rate': numChoroplethClicks}];
-                var height = 300;
-                var width = 600;
-                var maxRate = Math.max(Math.max(numVisitAudit, numClickStartMapping), numChoroplethClicks);
-
-                var coverageRateChartSortedByCompletion = {
-                    "data": {
-                        "values": data
-                    },
-                    "width": 600,
-                    "height": 300,
-                    "mark": "bar",
-                    "encoding": {
-                        "y": {
-                            "field": "name",
-                            "type": "nominal",
-                            "sort": {"op": "mean", "field": "rate", "order": "ascending"}
-                        },
-                        "x": {
-                            "field": "rate",
-                            "type": "quantitative"
-                        }
-                    },
-                    "config": {
-                        "axis": {
-                            "labelFontSize": 14
-                        }
-                    }
-                };
-
-                vega.embed("#audit-access-method-chart", coverageRateChartSortedByCompletion, opt, function(error, results) {});
-
-                // Draw numbers on another, overlapping canvas
-                var drawNumbersAccessChart = function(){
-                    var chartContainer = $('#audit-access-method-chart');
-                    var canvasWidth =  chartContainer.children('canvas.marks').attr('width');
-                    var canvasHeight = chartContainer.children('canvas.marks').attr('height');
-                    chartContainer.attr('style', 'height: '+canvasHeight+'; z-index:0;');
-                    chartContainer.children('canvas.marks').attr('style', 'position:absolute;');
-                    chartContainer.children('canvas.marks').after('<canvas id="audit-access-method-numbers"'
-                        + 'height="'+canvasHeight+'" width="'+(parseInt(canvasWidth)+15)+'"style="z-index:1;"></canvas>');
-                    var ctx = $('#audit-access-method-numbers')[0].getContext('2d');
-                    data.forEach(function(bar){
-                        var y = (data.indexOf(bar) + 0.5)*(height/data.length) + 12;
-                        var x = (bar.rate/maxRate) * 588 + 135;
-                        ctx.font = '12px sans-serif';
-                        ctx.fillText(bar.rate, x, y);
-                    });  
-                }
-                drawNumbersAccessChart();
+                $("#table-cell-num-visit-audit").prepend(numVisitAudit);
+                $("#table-cell-num-click-start").prepend(numClickStartMapping);
+                $("#table-cell-num-choro-click").prepend(numChoroplethClicks);
             });
             });
             });
