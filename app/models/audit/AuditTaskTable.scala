@@ -560,7 +560,7 @@ object AuditTaskTable {
         |       street.y2,
         |       street.timestamp,
         |       audit_task.completed
-        |  FROM sidewalk.regione
+        |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
         |LEFT JOIN sidewalk.audit_task
