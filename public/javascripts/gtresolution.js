@@ -21,9 +21,29 @@ $(document).ready(function () {
 		        disableDefaultUI: true,
 		        clickToGo: false
 		    });
+    var panorama3 = new google.maps.StreetViewPanorama(
+    		    document.getElementById('panorama-3'), {
+    			    position: fenway,
+    		    	pov: {
+    		        	heading: 34,
+    		        	pitch: 10
+    		        },
+    		        disableDefaultUI: true,
+    		        clickToGo: false
+    		    });
+      var panorama4 = new google.maps.StreetViewPanorama(
+        		    document.getElementById('panorama-4'), {
+        			    position: fenway,
+        		    	pov: {
+        		        	heading: 34,
+        		        	pitch: 10
+        		        },
+        		        disableDefaultUI: true,
+        		        clickToGo: false
+        		    });
 	}
 
-	
+
   L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
   // Construct a bounding box for these maps that the user cannot move out of
@@ -50,4 +70,5 @@ $(document).ready(function () {
 
 
 	initializePanoramas();
+
 });

@@ -9,25 +9,39 @@
 @main(title) {
     @navbar(user)
     <div id="content">
-        <div class="container">
+        <div id="gt-container">
             <h3>Ground Truth Resolution</h3>
+            <div id="gt-map-nav">
             <div id="gtButtonContainer">
-              <button class="gtButton" id="gtprev">Previous</button>
+              <button class="gtButton" id="gtprev">Prev</button>
               <button class="gtButton" id="gtnext">Next</button>
             </div>
             <div id="gt-map-holder">
             <div id="groundtruth-map"></div>
           </div>
+        </div>
+
+        <div class="gtcolumn" id="column2">
+              <div class="col-lg-6">
+                  <div id="panorama-1" class="gtpano"></div>
+              </div>
+              <br>
+              <div class="col-lg-6">
+                  <div id="panorama-2" class="gtpano"></div>
+              </div>
+        </div>
+
+        <div class="gtcolumn" id="column3">
+          <div class="col-lg-6">
+              <div id="panorama-3" class="gtpano"></div>
+          </div>
+          <br>
+          <div class="col-lg-6">
+              <div id="panorama-4" class="gtpano"></div>
+          </div>
+        </div>
 
 
-            <div class="row" style="margin-top: 20px">
-                <div class="col-lg-6">
-                    <div id="panorama-1" style="height: 400px; width: 600px; float: right;"></div>
-                </div>
-                <div class="col-lg-6">
-                    <div id="panorama-2" style="height: 400px; width: 600px; float: left;"></div>
-                </div>
-            </div>
 
         </div>
     </div>
