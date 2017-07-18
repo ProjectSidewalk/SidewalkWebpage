@@ -101,6 +101,7 @@
                 });
 
                 function logWebpageActivity(activity){
+                    var currentRoute = window.location.pathname;
                     var url = "/userapi/logWebpageActivity";
                     var async = true;
                     $.ajax({
@@ -108,7 +109,7 @@
                         contentType: 'application/json; charset=utf-8',
                         url: url,
                         type: 'post',
-                        data: JSON.stringify(activity),
+                        data: JSON.stringify(activity + "_route="+currentRoute),
                         dataType: 'json',
                         success: function(result){},
                         error: function (result) {
