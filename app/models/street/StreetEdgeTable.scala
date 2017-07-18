@@ -322,7 +322,7 @@ object StreetEdgeTable {
     * @return
     */
   def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
-    val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
+    val selectStreetsInARegionQuery = Q.query[Int, StreetEdge](
       """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
         |  FROM sidewalk.street_edge
         |INNER JOIN sidewalk.region
@@ -333,7 +333,7 @@ object StreetEdgeTable {
     )
 
     try {
-      selectAuditedStreetsQuery(regionId).list
+      selectStreetsInARegionQuery(regionId).list
     } catch {
       case e: PSQLException => List()
     }
