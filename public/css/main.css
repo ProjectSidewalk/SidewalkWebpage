@@ -755,6 +755,46 @@ video#bgvid {
   height: 100%;
 }
 
+.gtButton {
+  background-color:transparent;
+  -moz-border-radius:15px;
+  -webkit-border-radius:15px;
+  border-radius:15px;
+  border:1px solid #2D2A3F;
+  display:inline-block;
+  cursor:pointer;
+  color:#2D2A3F;
+  font: normal normal normal 14px/1.4em raleway,sans-serif;
+  font-family: 'Raleway', sans-serif;
+  font-size:14px;
+  padding:10px 45px;
+  text-decoration:none;
+  position: relative;
+  top: 0px;
+  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.gtButton:hover {
+    background-color:#eb734d;
+    border:1px solid #eb734d;
+    color: #ffffff;
+    text-shadow: none;
+}
+.gtButton:active {
+    position:relative;
+    top:0px;
+}
+#gtButtonContainer{
+  margin-bottom: 10px;
+  margin-top: 20px;
+  width: 100%;
+}
+#gtnext{
+    left:76%;
+}
+#gtprev{
+  left:0px;
+}
+
 
 
 #wrap {
