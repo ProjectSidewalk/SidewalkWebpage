@@ -301,7 +301,7 @@ object AuditTaskTable {
     * @return
     */
   def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
-    auditTasks.filter(_.userId === userId.toString).list
+    completedAuditTasks.filter(_.userId === userId.toString).list
   }
 
   /**
@@ -323,7 +323,7 @@ object AuditTaskTable {
 
     val completedTasks = for {
       u <- users.filter(_.username === username)
-      at <- auditTasks if at.userId === u.userId
+      at <- completedAuditTasks if at.userId === u.userId
     } yield (u.username.?, at.streetEdgeId.?)
 
     // gets list of streets that user has not audited, takes 100, then picks one of those at random to assign
