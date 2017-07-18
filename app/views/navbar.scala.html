@@ -120,8 +120,8 @@
     $(".navbarStartBtn").on('click', function(){
         logWebpageActivity("Click_module=StartMapping");
     });
-    
-    
+
+
     $(".navbarLink").on('click', function(e){
         var activity = "Click_module=RetakeTutorial";
         if(e.currentTarget.innerHTML.includes("FAQ")){
@@ -276,7 +276,7 @@
 
                 // Append the link to the admin interface if it the user is admin
                 if (data.roles && data.roles.indexOf("Administrator") >= 0) {
-                    var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
+                    var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
                     $('#nav-user-menu').children('#dashboard-link').after(adminLi);
                 }
 
