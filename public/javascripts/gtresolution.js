@@ -8,7 +8,8 @@ $(document).ready(function () {
 		        	heading: 34,
 		        	pitch: 10
 		        },
-		        disableDefaultUI: true
+		        disableDefaultUI: true,
+		        clickToGo: false
 		    });
 		var panorama2 = new google.maps.StreetViewPanorama(
 		    document.getElementById('panorama-2'), {
@@ -17,7 +18,8 @@ $(document).ready(function () {
 		        	heading: 34,
 		        	pitch: 10
 		        },
-		        disableDefaultUI: true
+		        disableDefaultUI: true,
+		        clickToGo: false
 		    });
 	}
 
