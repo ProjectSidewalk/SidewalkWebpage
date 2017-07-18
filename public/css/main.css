@@ -744,6 +744,19 @@ video#bgvid {
     top: -5px;
 }
 
+#gt-map-holder{
+  width: 100%;
+  min-height: 400px;
+  height:100%;
+}
+
+#groundtruth-map{
+  min-height: 400px;
+  height: 100%;
+}
+
+
+
 #wrap {
     min-height: 100%;
     height: auto;
