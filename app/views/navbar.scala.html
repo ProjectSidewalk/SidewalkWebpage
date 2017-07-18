@@ -88,6 +88,55 @@
         <!-- /.container -->
 </nav>
     <!-- /.navbar -->
+
+<!-- Script loads regardless of whether user is registered or not -->
+<script>
+    function logWebpageActivity(activity){
+        var currentRoute = window.location.pathname;
+        var url = "/userapi/logWebpageActivity";
+        var async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity + "_location=Navbar_route="+currentRoute),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    // Triggered when 'Sign In' in navbar is clicked
+    // Logs "Click_module=SignIn"
+    $("#sign-in-button").on('click', function(){
+        logWebpageActivity("Click_module=SignIn");
+    });
+
+    // Triggered when 'Start Mapping' in navbar is clicked
+    // Logs "Click_module=StartMapping_location=Index"
+    $(".navbarStartBtn").on('click', function(){
+        logWebpageActivity("Click_module=StartMapping");
+    });
+    
+    
+    $(".navbarLink").on('click', function(e){
+        var activity = "Click_module=RetakeTutorial";
+        if(e.currentTarget.innerHTML.includes("FAQ")){
+            activity = "Click_module=FAQ";
+        }
+        logWebpageActivity(activity);
+    });
+
+    // Triggered when Project Sidewalk logo on navbar is clicked
+    // Logs "Click_module=PSLogo_location=Navbar_route=<currentRoute>"
+    $("#brand").on('click', function(){
+        logWebpageActivity("Click_module=PSLogo");
+    });
+</script>
+
 @if(!user) {
     <script type="text/javascript">
             $(document).ready(function () {
@@ -98,36 +147,6 @@
                 $("#form-open-sign-in").on("mouseup", function () {
                     $("#sign-up-modal").addClass("hidden");
                     $("#sign-in-modal").removeClass("hidden");
-                });
-
-                function logWebpageActivity(activity){
-                    var currentRoute = window.location.pathname;
-                    var url = "/userapi/logWebpageActivity";
-                    var async = true;
-                    $.ajax({
-                        async: async,
-                        contentType: 'application/json; charset=utf-8',
-                        url: url,
-                        type: 'post',
-                        data: JSON.stringify(activity + "_route="+currentRoute),
-                        dataType: 'json',
-                        success: function(result){},
-                        error: function (result) {
-                            console.error(result);
-                        }
-                    });
-                }
-
-                // Triggered when 'Sign In' in navbar is clicked
-                // Logs "Click_module=SignIn"
-                $("#sign-in-button").on('click', function(){
-                    logWebpageActivity("Click_module=SignIn");
-                });
-
-                // Triggered when 'Start Mapping' in navbar is clicked
-                // Logs "Click_module=StartMapping_location=Index"
-                $(".navbarStartBtn").on('click', function(){
-                    logWebpageActivity("Click_module=StartMapping_location=Navbar");
                 });
             });
     </script>
@@ -207,6 +226,7 @@
                     // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
             });
+            
 
             function validateEmail(email) {
                 var regex = /\S+@@\S+\.\S+/;
