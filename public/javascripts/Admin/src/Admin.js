@@ -1195,7 +1195,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             // Chart showing how many audit page visits there are, how many people click the choropleth, and how many people
             // click "start mapping"
             $.getJSON("/adminapi/numWebpageActivities/Visit_Audit", function(numVisitAudit){
-            $.getJSON("/adminapi/numWebpageActivities/Click/module=StartMapping", function(numClickStartMapping){
+            $.getJSON("/adminapi/numWebpageActivities/Click/module=StartMapping/location=Index", function(numClickStartMapping){
             $.getJSON("/adminapi/numWebpageActivities/Click/module=Choropleth/target=audit", function(numChoroplethClicks){
             $.getJSON("/adminapi/numWebpageActivities/Visit_Index", function(numVisitIndex){
                 $("#table-cell-num-visit-audit").prepend(numVisitAudit);
