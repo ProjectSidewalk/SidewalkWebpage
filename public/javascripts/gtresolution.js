@@ -1,51 +1,152 @@
 $(document).ready(function () {
-	function initializePanoramas(coordinates){
+
     var labelSet1 = sampleLabels.sampleSet1;
     var labelSet2 = sampleLabels.sampleSet2;
-    
-		var fenway = {lat: 42.345573, lng: -71.098326};
-		var panorama1 = new google.maps.StreetViewPanorama(
-		    document.getElementById('panorama-1'), {
-			    position: fenway,
-		    	pov: {
-		        	heading: 34,
-		        	pitch: 10
-		        },
-		        disableDefaultUI: true,
-		        clickToGo: false
-		    });
-		var panorama2 = new google.maps.StreetViewPanorama(
-		    document.getElementById('panorama-2'), {
-			    position: fenway,
-		    	pov: {
-		        	heading: 34,
-		        	pitch: 10
-		        },
-		        disableDefaultUI: true,
-		        clickToGo: false
-		    });
-    var panorama3 = new google.maps.StreetViewPanorama(
-    		    document.getElementById('panorama-3'), {
-    			    position: fenway,
-    		    	pov: {
-    		        	heading: 34,
-    		        	pitch: 10
-    		        },
-    		        disableDefaultUI: true,
-    		        clickToGo: false
-    		    });
-      var panorama4 = new google.maps.StreetViewPanorama(
-        		    document.getElementById('panorama-4'), {
-        			    position: fenway,
-        		    	pov: {
-        		        	heading: 34,
-        		        	pitch: 10
-        		        },
-        		        disableDefaultUI: true,
-        		        clickToGo: false
-        		    });
+
+    var disagreementCoordinates = [[labelSet1.features[0].geometry.coordinates[1],labelSet1.features[0].geometry.coordinates[0]],[labelSet2.features[0].geometry.coordinates[1],labelSet2.features[0].geometry.coordinates[0]]];
+    var currentDisagreement = 0;
+    var panoramas = document.getElementsByClassName("gtpano");
+
+  function initializeAllLayers(data) {
+      for (i = 0; i < data.features.length; i++) {
+          var labelType = data.features[i].properties.label_type;
+          if(labelType == "Occlusion" || labelType == "NoSidewalk"){
+              //console.log(data.features[i]);
+          }
+          self.allLayers[labelType].push(data.features[i]);
+      }
+
+
+
+      Object.keys(self.allLayers).forEach(function (key) {
+          for (var i = 0; i < self.allLayers[key].length; i++) {
+              self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]});
+              map.addLayer(self.allLayers[key]);
+          }
+      })
+    }
+
+    function createLayer(data) {
+        return L.geoJson(data, {
+            pointToLayer: function (feature, latlng) {
+                var style = $.extend(true, {}, geojsonMarkerOptions);
+                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                return L.circleMarker(latlng, style);
+            },
+            onEachFeature: onEachLabelFeature
+        })
+    }
+
+    function onEachLabelFeature(feature, layer) {
+        layer.on('click', function () {
+            self.adminGSVLabelView.showLabel(feature.properties.label_id);
+        });
+        layer.on({
+            'mouseover': function () {
+                layer.setRadius(15);
+            },
+            'mouseout': function () {
+                layer.setRadius(5);
+            }
+        })
+    }
+
+    var colorMapping = {
+        Walk : {
+            id : 'Walk',
+            fillStyle : 'rgba(0, 0, 0, 1)',
+            strokeStyle: '#ffffff'
+        },
+        CurbRamp: {
+            id: 'CurbRamp',
+            fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
+            strokeStyle: '#ffffff'
+        },
+        NoCurbRamp: {
+            id: 'NoCurbRamp',
+            fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
+            strokeStyle: '#ffffff'
+        },
+        Obstacle: {
+            id: 'Obstacle',
+            fillStyle: 'rgba(0, 161, 203, 1)',
+            strokeStyle: '#ffffff'
+        },
+        Other: {
+            id: 'Other',
+            fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
+            strokeStyle: '#0000ff'
+
+        },
+        Occlusion: {
+            id: 'Occlusion',
+            fillStyle: 'rgba(179, 179, 179, 1)',
+            strokeStyle: '#009902'
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            fillStyle: 'rgba(179, 179, 179, 1)',
+            strokeStyle: '#ff0000'
+        },
+        SurfaceProblem: {
+            id: 'SurfaceProblem',
+            fillStyle: 'rgba(241, 141, 5, 1)',
+            strokeStyle: '#ffffff'
+        },
+        Void: {
+            id: 'Void',
+            fillStyle: 'rgba(255, 255, 255, 1)',
+            strokeStyle: '#ffffff'
+        },
+        Unclear: {
+            id: 'Unclear',
+            fillStyle: 'rgba(128, 128, 128, 0.5)',
+            strokeStyle: '#ffffff'
+        }
+    };
+      var geojsonMarkerOptions = {
+            radius: 5,
+            fillColor: "#ff7800",
+            color: "#ffffff",
+            weight: 1,
+            opacity: 0.5,
+            fillOpacity: 0.5,
+            "stroke-width": 1
+        };
+
+
+	function initializePanoramas(coordinates){
+		var first = {lat: labelSet1.features[0].geometry.coordinates[1], lng: labelSet1.features[0].geometry.coordinates[0]};
+    for(var i = 0; i < panoramas.length; i++){
+      var panorama1 = new google.maps.StreetViewPanorama(
+  		    panoramas[i], {
+  			    position: first,
+  		    	pov: {
+  		        	heading: 34,
+  		        	pitch: 10
+  		        },
+  		        disableDefaultUI: true,
+  		        clickToGo: false
+  		    });
+    }
 	}
 
+  var self = {};
+  self.markerLayer = null;
+  self.curbRampLayers = [];
+  self.missingCurbRampLayers = [];
+  self.obstacleLayers = [];
+  self.surfaceProblemLayers = [];
+  self.cantSeeSidewalkLayers = [];
+  self.noSidewalkLayers = [];
+  self.otherLayers = [];
+
+  self.allLayers = {
+      "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
+      "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
+      "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
+  };
 
   L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -66,11 +167,14 @@ $(document).ready(function () {
       // http://leafletjs.com/reference.html#map-maxbounds
       maxBounds: bounds,
       maxZoom: 20,
-      minZoom: 16
+      minZoom: 18
   })
       .fitBounds(bounds)
-      .setView([38.8977, -77.0365], 12);
+      .setView(disagreementCoordinates[0], 12);
 
 
 	initializePanoramas();
+  initializeAllLayers(labelSet1);
+  initializeAllLayers(labelSet2);
+  alert("hey");
 });
