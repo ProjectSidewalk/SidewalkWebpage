@@ -783,6 +783,13 @@ video#bgvid {
   transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
   width: 34%;
 }
+#gtrefocus{
+  padding:8px 10px;
+  width: 20%;
+  font-size:11px;
+  margin-left: 5%;
+  margin-right: 5%;
+}
 .gtButton:hover {
     background-color:#eb734d;
     border:1px solid #eb734d;
@@ -798,9 +805,6 @@ video#bgvid {
   margin-top: 12px;
   width: 100%;
   text-align: center;
-}
-#gtprev{
-  margin-right: 30%;
 }
 
 .gtcolumn{
