@@ -1,5 +1,29 @@
 $(document).ready(function () {
+	function initializePanoramas(coordinates){
+		var fenway = {lat: 42.345573, lng: -71.098326};
+		var panorama1 = new google.maps.StreetViewPanorama(
+		    document.getElementById('panorama-1'), {
+			    position: fenway,
+		    	pov: {
+		        	heading: 34,
+		        	pitch: 10
+		        },
+		        disableDefaultUI: true,
+		        clickToGo: false
+		    });
+		var panorama2 = new google.maps.StreetViewPanorama(
+		    document.getElementById('panorama-2'), {
+			    position: fenway,
+		    	pov: {
+		        	heading: 34,
+		        	pitch: 10
+		        },
+		        disableDefaultUI: true,
+		        clickToGo: false
+		    });
+	}
 
+	
   L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
   // Construct a bounding box for these maps that the user cannot move out of
@@ -24,4 +48,6 @@ $(document).ready(function () {
       .fitBounds(bounds)
       .setView([38.8977, -77.0365], 12);
 
+
+	initializePanoramas();
 });
