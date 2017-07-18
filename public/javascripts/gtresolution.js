@@ -1,5 +1,8 @@
 $(document).ready(function () {
 	function initializePanoramas(coordinates){
+    var labelSet1 = sampleLabels.sampleSet1;
+    var labelSet2 = sampleLabels.sampleSet2;
+    
 		var fenway = {lat: 42.345573, lng: -71.098326};
 		var panorama1 = new google.maps.StreetViewPanorama(
 		    document.getElementById('panorama-1'), {
@@ -70,5 +73,4 @@ $(document).ready(function () {
 
 
 	initializePanoramas();
-
 });
