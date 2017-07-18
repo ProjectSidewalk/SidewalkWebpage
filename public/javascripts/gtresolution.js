@@ -1,33 +1,4 @@
 $(document).ready(function () {
-  var self = {};
-  self.markerLayer = null;
-  self.curbRampLayers = [];
-  self.missingCurbRampLayers = [];
-  self.obstacleLayers = [];
-  self.surfaceProblemLayers = [];
-  self.cantSeeSidewalkLayers = [];
-  self.noSidewalkLayers = [];
-  self.otherLayers = [];
-  self.mapLoaded = false;
-  self.graphsLoaded = false;
-
-  for (i = 0; i < 5; i++) {
-      self.curbRampLayers[i] = [];
-      self.missingCurbRampLayers[i] = [];
-      self.obstacleLayers[i] = [];
-      self.surfaceProblemLayers[i] = [];
-      self.cantSeeSidewalkLayers[i] = [];
-      self.noSidewalkLayers[i] = [];
-      self.otherLayers[i] = [];
-  }
-
-  self.allLayers = {
-      "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-      "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-      "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
-  };
-
-  self.auditedStreetLayer = null;
 
   L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
@@ -52,6 +23,5 @@ $(document).ready(function () {
   })
       .fitBounds(bounds)
       .setView([38.8977, -77.0365], 12);
-
 
 });
