@@ -91,11 +91,11 @@ object WebpageActivityTable {
     activities.filter(_.activity.like("%"++activity++"%")).list
   }
   // Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
-  // Really, it doesn't have to be a key-value pair. It could just be a key. Or a value. Or even part of a key or value.
+  // Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins with "Cli..." will be matched)
   def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
-    var filteredActivities = activities.filter(_.activity.like("%"++activity++"%"))
+    var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
     for(keyVal <- keyVals) yield {
-      filteredActivities = filteredActivities.filter(_.activity.like("%"++keyVal++"%"))
+      filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
     }
     filteredActivities.list
   }
