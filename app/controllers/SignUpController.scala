@@ -115,7 +115,6 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
-    println(request)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
