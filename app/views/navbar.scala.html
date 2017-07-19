@@ -301,7 +301,9 @@
                 var data = $(this).serialize();
 
                 var url = '/authapi/authenticate';
-                $.post(url, data, handleSignIn);
+                $.post(url, data, handleSignIn).fail(function(e){
+                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                });
                 return false;
             });
 
@@ -331,15 +333,18 @@
 
                 var url = '/authapi/signup';
                 $.post(url, data, handleSignIn).fail(function(e){
-                    var errorMessage;
-                    console.log(e);
-                    if(e.responseText.toLowerCase().includes("email")){
-                        errorMessage = "That email address already exists. Please try another one."
+                    var errorMessage = "";
+                    if(e.status === 409){
+                        if(e.responseText.toLowerCase().includes("email")){
+                            errorMessage = "That email address already exists. Please try another one."
+                        }
+                        else{
+                            errorMessage = "That username already exists. Please try another one."
+                        }
                     }
-                    else{
-                        errorMessage = "That username already exists. Please try another one."
+                    else{ // Some other Bad Request
+                        errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
                     }
-                    var error = e.responseText;
                     $('#incorrect-signup-alert').hide();
                     $('#invalid-signup-alert').show();
                     $('#invalid-signup-alert').html(
