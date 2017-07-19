@@ -151,6 +151,33 @@ $(document).ready(function () {
     initializePanoramas(currentPano);
   }
 
+  function _handleData(labelMetadata) {
+    self.panorama.changePanoId(labelMetadata['gsv_panorama_id']);
+
+    self.panorama.setPov({
+        heading: labelMetadata['heading'],
+        pitch: labelMetadata['pitch'],
+        zoom: labelMetadata['zoom']
+    });
+
+    var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_type_key'],
+        labelMetadata['canvas_x'], labelMetadata['canvas_y'],
+        labelMetadata['canvas_width'], labelMetadata['canvas_height']);
+    self.panorama.renderLabel(adminPanoramaLabel);
+
+    var labelDate = moment(new Date(labelMetadata['timestamp']));
+    self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
+    self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
+    self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
+    self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
+    self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+    self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
+        labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
+        labelMetadata['username'] + "</a>");
+
+    self.panorama.refreshGSV();
+  }
+
   var self = {};
   self.markerLayer = null;
   self.curbRampLayers = [];

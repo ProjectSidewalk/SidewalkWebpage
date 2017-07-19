@@ -37,5 +37,15 @@ class GroundTruthResolutionController @Inject() (implicit val env: Environment[U
   def index = UserAwareAction.async { implicit request =>
     Future.successful(Ok(views.html.gtresolution("Ground Truth Resolution")))
   }
+
+  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+	LabelPointTable.find(labelId) match {
+	case Some(labelPointObj) =>
+	  val labelMetadata = LabelTable.getLabelMetadata(labelId)
+	  val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+	  Future.successful(Ok(labelMetadataJson))
+	case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+	}
+  }
 }
   

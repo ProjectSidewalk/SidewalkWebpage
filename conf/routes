@@ -112,3 +112,4 @@ GET     /webjars/*file                          controllers.WebJarAssets.at(file
 
 # Set up ground truth resolution page
 GET 	/gtresolution							@controllers.GroundTruthResolutionController.index
+GET 	/gtresolution/labelData/:labelId		@controllers.GroundTruthResolutionController.getLabelData(labelId: Int)
