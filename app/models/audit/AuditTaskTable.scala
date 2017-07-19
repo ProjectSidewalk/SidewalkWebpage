@@ -451,7 +451,7 @@ object AuditTaskTable {
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completed=false)
       case _ =>
-        selectANewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
+        selectANewTask(userId) // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
     }
   }
 
