@@ -87,7 +87,15 @@ object RegionCompletionTable {
     * @return
     */
   def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
-    val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
+
+    // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
+    val CRSEpsg4326 = CRS.decode("epsg:4326")
+    val CRSEpsg26918 = CRS.decode("epsg:26918")
+    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+
+    val completedEdge: StreetEdge = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1).list.head
+    val distToAdd: Float = JTS.transform(completedEdge.geom, transform).getLength.toFloat
+//    val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
     val regionIds: List[Int] = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list
 
     for (regionId <- regionIds) yield {
