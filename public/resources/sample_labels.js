@@ -1,5 +1,4 @@
 var sampleLabels = {
-	sampleSet1: {	
 		features: [{
 	geometry: {
 		coordinates: [
@@ -84,12 +83,7 @@ var sampleLabels = {
 					severity: 1
 				},
 				type: "Feature"
-			}
-		],
-		type: "FeatureCollection"
-	},
-	sampleSet2: {
-		features: [
+			},
 			{
 				type: "Feature",
 				properties: {
@@ -100,7 +94,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03860473632812, 38.912681579589844]
+					coordinates: [-77.03860473632812, 38.912681579589844],
+					type: "Point"
 				}
 			},
 			{
@@ -113,7 +108,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03857421875,38.912689208984375]
+					coordinates: [-77.03857421875,38.912689208984375],
+					type: "Point"
 				}
 			},
 			{
@@ -126,7 +122,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.0385513305664,38.91270065307617]
+					coordinates: [-77.0385513305664,38.91270065307617],
+					type: "Point"
 				}
 			},
 			{
@@ -139,7 +136,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.0385971069336,38.91253662109375]
+					coordinates: [-77.0385971069336,38.91253662109375],
+					type: "Point"
 				}
 			},
 			{
@@ -152,7 +150,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03857421875,38.91255187988281]
+					coordinates: [-77.03857421875,38.91255187988281],
+					type: "Point"
 				}
 			},
 			{
@@ -165,7 +164,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03854370117188,38.91252136230469]
+					coordinates: [-77.03854370117188,38.91252136230469],
+					type: "Point"
 				}
 			},
 			{
@@ -178,7 +178,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03838348388672,38.91253662109375]
+					coordinates: [-77.03838348388672,38.91253662109375],
+					type: "Point"
 				}
 			},
 			{
@@ -191,7 +192,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03833770751953,38.91256332397461]
+					coordinates: [-77.03833770751953,38.91256332397461],
+					type: "Point"
 				}
 			},
 			{
@@ -204,7 +206,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.03840637207031,38.91268539428711]
+					coordinates: [-77.03840637207031,38.91268539428711],
+					type: "Point"
 				}
 			},
 			{
@@ -217,7 +220,8 @@ var sampleLabels = {
 					severity:3
 				},
 				geometry: {
-					coordinates: [-77.03837585449219,38.91269302368164]
+					coordinates: [-77.03837585449219,38.91269302368164],
+					type: "Point"
 				}
 			},
 			{
@@ -230,7 +234,8 @@ var sampleLabels = {
 					severity:1
 				},
 				geometry: {
-					coordinates: [-77.0383529663086,38.91265106201172]
+					coordinates: [-77.0383529663086,38.91265106201172],
+					type: "Point"
 				}
 			},
 			{
@@ -243,10 +248,10 @@ var sampleLabels = {
 					severity:2
 				},
 				geometry: {
-					coordinates: [-77.03833770751953,38.91267776489258]
+					coordinates: [-77.03833770751953,38.91267776489258],
+					type: "Point"
 				}
 			}
 		],
 		type: "FeatureCollection"
-	}
 }

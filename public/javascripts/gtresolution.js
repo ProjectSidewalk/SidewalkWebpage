@@ -1,11 +1,12 @@
 $(document).ready(function () {
 
-    var labelSet1 = sampleLabels.sampleSet1;
-    var labelSet2 = sampleLabels.sampleSet2;
+    var disagreements = sampleLabels;
 
-    var disagreementCoordinates = [[labelSet1.features[0].geometry.coordinates[1],labelSet1.features[0].geometry.coordinates[0]],[labelSet2.features[0].geometry.coordinates[1],labelSet2.features[0].geometry.coordinates[0]]];
     var currentDisagreement = 0;
+    var currentPano = {lat: disagreements.features[currentDisagreement].geometry.coordinates[1], lng: disagreements.features[currentDisagreement].geometry.coordinates[0]};
+    var currentCoordinates = [disagreements.features[currentDisagreement].geometry.coordinates[1], disagreements.features[currentDisagreement].geometry.coordinates[0]];
     var panoramas = document.getElementsByClassName("gtpano");
+
 
   function initializeAllLayers(data) {
       for (i = 0; i < data.features.length; i++) {
@@ -116,21 +117,39 @@ $(document).ready(function () {
         };
 
 
-	function initializePanoramas(coordinates){
-		var first = {lat: labelSet1.features[0].geometry.coordinates[1], lng: labelSet1.features[0].geometry.coordinates[0]};
+	function initializePanoramas(location){
     for(var i = 0; i < panoramas.length; i++){
       var panorama1 = new google.maps.StreetViewPanorama(
   		    panoramas[i], {
-  			    position: first,
+  			    position: location,
   		    	pov: {
-  		        	heading: 34,
-  		        	pitch: 10
+  		        	heading: 0,
+  		        	pitch: -10
   		        },
   		        disableDefaultUI: true,
   		        clickToGo: false
   		    });
     }
 	}
+
+  function nextDisagreement(){
+    currentDisagreement++;
+    currentPano = {lat: disagreements.features[currentDisagreement].geometry.coordinates[1], lng: disagreements.features[currentDisagreement].geometry.coordinates[0]};
+    currentCoordinates = [disagreements.features[currentDisagreement].geometry.coordinates[1], disagreements.features[currentDisagreement].geometry.coordinates[0]];
+    refocusView();
+  }
+
+  function previousDisagreement(){
+    currentDisagreement--;
+    currentPano = {lat: disagreements.features[currentDisagreement].geometry.coordinates[1], lng: disagreements.features[currentDisagreement].geometry.coordinates[0]};
+    currentCoordinates = [disagreements.features[currentDisagreement].geometry.coordinates[1], disagreements.features[currentDisagreement].geometry.coordinates[0]];
+    refocusView();
+  }
+
+  function refocusView(){
+    map.setView(currentCoordinates,12);
+    initializePanoramas(currentPano);
+  }
 
   var self = {};
   self.markerLayer = null;
@@ -167,14 +186,16 @@ $(document).ready(function () {
       // http://leafletjs.com/reference.html#map-maxbounds
       maxBounds: bounds,
       maxZoom: 20,
-      minZoom: 18
+      minZoom: 19
   })
       .fitBounds(bounds)
-      .setView(disagreementCoordinates[0], 12);
+      .setView(currentCoordinates, 12);
 
 
-	initializePanoramas();
-  initializeAllLayers(labelSet1);
-  initializeAllLayers(labelSet2);
-  alert("hey");
+	initializePanoramas(currentPano);
+  initializeAllLayers(disagreements);
+
+  document.getElementById("gtnext").onclick = nextDisagreement;
+  document.getElementById("gtrefocus").onclick = refocusView;
+  document.getElementById("gtprev").onclick = previousDisagreement;
 });
