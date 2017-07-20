@@ -293,16 +293,12 @@ object StreetEdgeTable {
 
   /** Gets the query for a list of all street edges that the user has audited */
   def selectAllStreetsAuditedByAUserQuery(userId: UUID) = db.withSession { implicit session =>
-    // TODO figure out why this is being done or remove it if it does nothing. Copied from query that existed before I got here (Mikey)
-    val edges1 = for {
-      (_streetEdges, _streetEdgeRegions) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeRegion).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _streetEdges
 
-    val edges2 = for {
-      (_streetEdges, _auditTasks) <- edges1.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    val auditedStreets = for {
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
       if _auditTasks.userId === userId.toString
     } yield _streetEdges
-    edges2.groupBy(x => x).map(_._1) // does a select distinct
+    auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
   }
 
   /** Returns the total distance that the specified user has audited in miles */
