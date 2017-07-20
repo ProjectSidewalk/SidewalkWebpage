@@ -10,8 +10,6 @@ import formats.json.MissionFormats._
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
 import models.user.{User, UserCurrentRegionTable}
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
 import play.api.libs.json._
 import play.api.mvc.BodyParsers
 
@@ -33,7 +31,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         // Mark the missions that should be completed.
         val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
         if (regionId.isDefined) {
-          updatedUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
+          updateUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
         }
 
         val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
@@ -108,18 +106,14 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 
-  /**
+  /** If the dist a user has audited in a region implies that they should have completed more missions, add them.
     *
     * @param userId
     * @param regionId
     */
-  def updatedUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
+  def updateUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
     val missions = MissionTable.selectIncompleteMissionsByAUser(userId, regionId)
-    val streets = StreetEdgeTable.selectStreetsAuditedByAUser(userId, regionId)
-    val CRSEpsg4326 = CRS.decode("epsg:4326")
-    val CRSEpsg26918 = CRS.decode("epsg:26918")
-    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
-    val completedDistance_m = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+    val completedDistance_m = StreetEdgeTable.getDistanceAudited(userId, regionId)
 
     val missionsToComplete = missions.filter(_.distance.getOrElse(Double.PositiveInfinity) < completedDistance_m)
     missionsToComplete.foreach { m =>

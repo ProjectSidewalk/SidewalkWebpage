@@ -2,10 +2,6 @@ package models.region
 
 import java.util.UUID
 
-import com.vividsolutions.jts.geom.Polygon
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
-
 import math._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
 import models.user.UserCurrentRegionTable
@@ -88,14 +84,7 @@ object RegionCompletionTable {
     */
   def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
 
-    // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
-    val CRSEpsg4326 = CRS.decode("epsg:4326")
-    val CRSEpsg26918 = CRS.decode("epsg:26918")
-    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
-
-    val completedEdge: StreetEdge = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1).list.head
-    val distToAdd: Float = JTS.transform(completedEdge.geom, transform).getLength.toFloat
-//    val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
+    val distToAdd: Float = StreetEdgeTable.getStreetEdgeDistance(streetEdgeId)
     val regionIds: List[Int] = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list
 
     for (regionId <- regionIds) yield {
@@ -111,18 +100,12 @@ object RegionCompletionTable {
   def initializeRegionCompletionTable() = db.withTransaction { implicit session =>
 
     if (regionCompletions.length.run == 0) {
-      // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
-      val CRSEpsg4326 = CRS.decode("epsg:4326")
-      val CRSEpsg26918 = CRS.decode("epsg:26918")
-      val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
 
       val neighborhoods = RegionTable.selectAllNamedNeighborhoods
       for (neighborhood <- neighborhoods) yield {
-        val streets: List[StreetEdge] = StreetEdgeTable.selectStreetsByARegionId(neighborhood.regionId)
-        val auditedStreets: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsByARegionId(neighborhood.regionId)
 
-        val auditedDistance = auditedStreets.map(s => JTS.transform(s.geom, transform).getLength).sum
-        val totalDistance = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+        val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
+        val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
         regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
       }
