@@ -149,6 +149,7 @@
             // Column is 'Connect'
             //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
             $("#footer-container").on('click', 'a', function(e){
+                var currentRoute = window.location.pathname;
                 var id = e.currentTarget.id.split("-");
                 var column = id[0];
                 var link = id[1];
@@ -160,6 +161,7 @@
                 else{
                     activity = activity+"platform="+link;
                 }
+                activity = activity + "_route="+currentRoute;
 
                 var url = "/userapi/logWebpageActivity";
                 var async = true;
@@ -178,10 +180,11 @@
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
-            // Log is of form: "Click_module=InfoFooter_target=<link>"
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/faq|...>"
             $('#info-footer').on('click','a', function(e){
+                var currentRoute = window.location.pathname;
                 var link = e.currentTarget.id.split("-")[0];
-                var activity = "Click_module=InfoFooter_"+"target="+link;
+                var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
                 var url = "/userapi/logWebpageActivity";
                 var async = true;
                 $.ajax({
