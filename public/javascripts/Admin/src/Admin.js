@@ -370,6 +370,52 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
+    function initializeRoutesGenerated(map) {
+        var distanceRouted = 0,  // Distance audited in km
+            streetLinestringStyle = {
+                color: "red",
+                weight: 3,
+                opacity: 0.75
+            };
+
+        function onEachStreetFeature(feature, layer) {
+            if (feature.properties && feature.properties.type) {
+                layer.bindPopup(feature.properties.type);
+            }
+            layer.on({
+                'add': function () {
+                    layer.bringToBack()
+                }
+            })
+        }
+
+        $.getJSON("/routeviz/allRouteStreets", function (data) {
+
+            // Render audited street segments
+            self.routeStreetLayer = L.geoJson(data, {
+                pointToLayer: L.mapbox.marker.style,
+                style: function (feature) {
+                    var style = $.extend(true, {}, streetLinestringStyle);
+                    var randomInt = Math.floor(Math.random() * 5);
+                    style.color = "#000";
+                    style["stroke-width"] = 3;
+                    style.opacity = 0.75;
+                    style.weight = 3;
+
+                    return style;
+                },
+                onEachFeature: onEachStreetFeature
+            })
+                .addTo(map);
+
+            // Calculate total distance audited in (km)
+            for (var i = data.features.length - 1; i >= 0; i--) {
+                distanceRouted += turf.lineDistance(data.features[i]);
+            }
+            // document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
+        });
+    }
+
     function initializeSubmittedLabels(map) {
 
         $.getJSON("/adminapi/labels/all", function (data) {
@@ -478,7 +524,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function redrawAuditedStreetLayer() {
-        initializeAuditedStreets(map);
+        initializeRoutesGenerated(map);
     }
 
     function redrawLabels() {
@@ -639,7 +685,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
             initializeOverlayPolygon(map);
             initializeNeighborhoodPolygons(map);
-            initializeAuditedStreets(map);
+            initializeRoutesGenerated(map);
             initializeSubmittedLabels(map);
             initializeAdminGSVLabelView();
             setTimeout(function () {

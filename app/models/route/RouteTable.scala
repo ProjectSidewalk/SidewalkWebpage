@@ -43,6 +43,9 @@ object RouteTable{
     val route = routes.filter(_.routeId === routeId).list
     route.headOption
   }
+  def all: List[Route] = db.withSession { implicit session =>
+    routes.list
+  }
 
   def save(route: Route): Int = db.withTransaction { implicit session =>
     val rId: Int =
