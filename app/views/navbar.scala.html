@@ -112,7 +112,7 @@ $(document).ready(function () {
     }
 
     // Triggered when 'Sign In' in navbar is clicked
-    // Logs "Click_module=SignIn"
+    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/faq|...>"
     $("#sign-in-button").on('click', function(){
         logWebpageActivity("Click_module=SignIn");
     });
@@ -124,7 +124,7 @@ $(document).ready(function () {
     });
 
     // Triggered when links in the navbar are pressed when on the Audit page
-    // Logs "Click_module=<RetakeTutorial|FAQ>_location=Navbar_route=<currentRoute>"
+    // Logs "Click_module=<RetakeTutorial|FAQ>_location=Navbar_route=</|/audit|/faq|...>"
     $(".navbarLink").on('click', function(e){
         var activity = "Click_module=RetakeTutorial";
         if(e.currentTarget.innerHTML.includes("FAQ")){
@@ -134,13 +134,13 @@ $(document).ready(function () {
     });
 
     // Triggered when Project Sidewalk logo on navbar is clicked
-    // Logs "Click_module=PSLogo_location=Navbar_route=<currentRoute>"
+    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/faq|...>"
     $("#brand").on('click', function(){
         logWebpageActivity("Click_module=PSLogo");
     });
 
     // Triggered when items in the user menu are clicked
-    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=<currentRoute>""
+    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/faq|...>""
     $("#nav-user-menu").on('click', function(e){
         var activity = "Click_module=SignOut";
         if(e.target.innerText.includes("Admin")){
