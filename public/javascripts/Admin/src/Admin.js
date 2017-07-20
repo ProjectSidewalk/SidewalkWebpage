@@ -1088,13 +1088,12 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
                     var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
 
-                    $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                    $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
-                    $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-
                     var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
                     var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, anonChart]};
 
+                    $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                    $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                    $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
                     vega.embed("#mission-count-chart", combinedChartFiltered, opt, function(error, results) {});
 
                     var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function(cb) {
@@ -1145,13 +1144,12 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
                     var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
 
-                    $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
-                    $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
-                    $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
-
                     var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
                     var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, anonChart]};
 
+                    $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                    $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                    $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
                     vega.embed("#label-count-hist", combinedChartFiltered, opt, function(error, results) {});
 
                     var checkbox = document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function(cb) {
@@ -1171,8 +1169,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var stats = getSummaryStats(data[0], "count");
                 var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
 
-                $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
-
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
@@ -1180,6 +1176,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
                 var filteredChart = getVegaLiteHistogram(data[0], filteredStats.mean, filteredStats.median, histFilteredOpts);
 
+                $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
                 vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
 
                 var checkbox = document.getElementById("login-count-include-researchers-checkbox").addEventListener("click", function(cb) {
