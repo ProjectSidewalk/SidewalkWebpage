@@ -53,7 +53,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             beforeJumpListenerHandle: undefined
         },
         jumpLocation = undefined,
-        missionJump = undefined
+        missionJump = undefined,
         wasOpen = false;
 
     var initialPositionUpdate = true,
