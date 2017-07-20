@@ -12,14 +12,14 @@
             that support people with mobility impairments!
         </p>
         <p class="text-justify">
-            We serve the accessibility data in two formats: <span class="bold">Access Feature and Access Score.</span> Access Feature contains
-            point-level information on what accessibility feature exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
-            Access Score is a numerical value that indicates how (in)accesible a given street/area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score APIs for examples.</a>
+            We serve our accessibility data in two formats: <span class="bold">Access Feature and Access Score.</span> Access Feature contains
+            point-level information on what accessibility features exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
+            Access Score is a value that indicates how (in)accessible a given street/area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score APIs for examples.</a>
         </p>
         <p class="text-justify">
             You can get the data through the <a data-scroll href="#access-api-header">REST APIs</a>.
                 @*or <a data-scroll href="#access-dataset">download the zip file.</a>*@
-                You can also help <a data-scroll href="#contribute">contribute</a>! The code is accessible on
+                You can also help <a data-scroll href="#contribute">contribute</a>! The code is available on
                 <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">github</a>.
         </p>
 
@@ -39,9 +39,9 @@
                 <table class="table">
                     <tr>
                         <td colspan="2">
-                            This API serves point-level location data on accessibility features. The major categories of the features include:
-                            "Curb Ramp," "Missing Curb Ramp," "Obstacles," and "Surface Problem."
-                            You would occasionally find an accessibility feature like "No Sidewalk."
+                            This API serves point-level location data on accessibility features. The major categories of features include:
+                            "Curb Ramp", "Missing Curb Ramp", "Obstacle", and "Surface Problem".
+                            The less common features are "No Sidewalk", "Occlusion", and "Other".
                         </td>
                     </tr>
                     <tr>
@@ -112,7 +112,7 @@
                     <tr>
                         <td colspan="2">
                             This API serves Accessibility Scores of the streets within a specified region.
-                            Accessibility Score is a numerical value between 0 and 1, where 0 means inaccessible and
+                            Accessibility Score is a value between 0 and 1, where 0 means inaccessible and
                             1 means accessible.
                         </td>
                     </tr>
@@ -154,7 +154,7 @@
                             <dl>
                                 <dt>200</dt>
                                 <dd>
-                                    The API returns the streets that has been audited at least once as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
+                                    The API returns the streets that have been audited at least once as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
                                     <a href="http://geojson.org/geojson-spec.html#linestring">LineString features.</a> Each LineString feature
                                     include street's geometry as well as the corresponding Access Score.
                                 </dd>
@@ -185,7 +185,7 @@
                     <tr>
                         <td colspan="2">
                             This API serves Accessibility Scores of the neighborhoods within a specified region.
-                            Accessibility Score is a numerical value between 0 and 1, where 0 means inaccessible and
+                            Accessibility Score is a value between 0 and 1, where 0 means inaccessible and
                             1 means accessible.
                         </td>
                     </tr>
@@ -264,7 +264,7 @@
                     <li>APIs' design (e.g., URL, response formats) could change.</li>
                     <li>We are focusing on collecting data only from Washington, D.C. at the moment.</li>
                     <li>Since we have only covered @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of DC,
-                        you would find neighborhoods where we don't have accessibility data yet.
+                        there are neighborhoods where we currently have very little accessibility data.
                         Note: You can help us by <a href='@routes.AuditController.audit'>contributing to data collection</a> too ;-).</li>
                 </ol>
             </div>
@@ -298,7 +298,7 @@
             <div class="col-sm-12">
                 <h2>License</h2>
                 <p>
-                    We are working on this! We'll choose a license that gives as much flexibilities as possible for
+                    We are working on this! We plan to choose a license that gives as much flexibility as possible for
                     developers and researchers to use the data.
                 </p>
             </div>
