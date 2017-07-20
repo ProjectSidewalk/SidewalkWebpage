@@ -736,7 +736,6 @@ function Canvas(ribbon) {
                 storedInDatabase: false
             });
 
-            points.push(point)
         }
 
         path = new Path(svl, points);

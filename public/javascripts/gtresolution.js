@@ -1,57 +1,15 @@
 $(document).ready(function () {
 
     var disagreements = sampleLabels;
-
     var currentDisagreement = 0;
-    var currentPano = {lat: disagreements.features[currentDisagreement].geometry.coordinates[1], lng: disagreements.features[currentDisagreement].geometry.coordinates[0]};
-    var currentCoordinates = [disagreements.features[currentDisagreement].geometry.coordinates[1], disagreements.features[currentDisagreement].geometry.coordinates[0]];
+    var currentPano, currentCoordinates;
+
+
     var panoramas = document.getElementsByClassName("gtpano");
-
-
-  function initializeAllLayers(data) {
-      for (i = 0; i < data.features.length; i++) {
-          var labelType = data.features[i].properties.label_type;
-          if(labelType == "Occlusion" || labelType == "NoSidewalk"){
-              //console.log(data.features[i]);
-          }
-          self.allLayers[labelType].push(data.features[i]);
-      }
-
-
-
-      Object.keys(self.allLayers).forEach(function (key) {
-          for (var i = 0; i < self.allLayers[key].length; i++) {
-              self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]});
-              map.addLayer(self.allLayers[key]);
-          }
-      })
-    }
-
-    function createLayer(data) {
-        return L.geoJson(data, {
-            pointToLayer: function (feature, latlng) {
-                var style = $.extend(true, {}, geojsonMarkerOptions);
-                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                return L.circleMarker(latlng, style);
-            },
-            onEachFeature: onEachLabelFeature
-        })
-    }
-
-    function onEachLabelFeature(feature, layer) {
-        layer.on('click', function () {
-            self.adminGSVLabelView.showLabel(feature.properties.label_id);
-        });
-        layer.on({
-            'mouseover': function () {
-                layer.setRadius(15);
-            },
-            'mouseout': function () {
-                layer.setRadius(5);
-            }
-        })
-    }
+    var canvases = document.getElementsByClassName("label-canvas");
+    var infos = document.getElementsByClassName("labelstats");
+    var selectedLabels = [{view: canvases[0], info: infos[0], label: null}, {view: canvases[1], info: infos[1], label: null}, {view: canvases[2], info: infos[2], label: null}, {view: canvases[3], info: infos[3], label: null}];
+    var nextOpenView = 0;
 
     var colorMapping = {
         Walk : {
@@ -106,6 +64,7 @@ $(document).ready(function () {
             strokeStyle: '#ffffff'
         }
     };
+
       var geojsonMarkerOptions = {
             radius: 5,
             fillColor: "#ff7800",
@@ -116,66 +75,162 @@ $(document).ready(function () {
             "stroke-width": 1
         };
 
+  function initializeAllLayers(data) {
+      for (i = 0; i < data.features.length; i++) {
+          var labelType = data.features[i].properties.label_type;
+          if(labelType == "Occlusion" || labelType == "NoSidewalk"){
+              //console.log(data.features[i]);
+          }
+          self.allLayers[labelType].push(data.features[i]);
+      }
 
-	function initializePanoramas(location){
-    for(var i = 0; i < panoramas.length; i++){
+
+
+      Object.keys(self.allLayers).forEach(function (key) {
+          for (var i = 0; i < self.allLayers[key].length; i++) {
+              self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]},false);
+              map.addLayer(self.allLayers[key]);
+          }
+      })
+    }
+
+    function createLayer(data) {
+        return L.geoJson(data, {
+            pointToLayer: function (feature, latlng) {
+                var style = $.extend(true, {}, geojsonMarkerOptions);
+                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                return L.circleMarker(latlng, style);
+            },
+            onEachFeature: onEachLabelFeature
+        })
+    }
+
+
+    function onEachLabelFeature(feature, layer) {
+        layer.on('click', function () {
+          var id = feature.properties.label_id;
+          var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === id );
+          if(!present){
+            selectedLabels[nextOpenView].label = id;
+            layer.setRadius(15);
+            showLabel(id);}
+          else{
+            var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === id );
+            var drawing = pan.view;
+            pan.info.innerHTML = "";
+            pan.view.style.borderStyle = "hidden";
+            pan.label = null;
+            nextOpenView= calculateNextOpen();
+            layer.setRadius(5);
+            var ctx = drawing.getContext("2d");
+            ctx.clearRect(0,0,drawing.width,drawing.height);
+          }
+        });
+        layer.on({
+            'mouseover': function () {
+              var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
+                if(present){
+                var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
+                pan.view.style.borderStyle = "solid";
+              }
+                layer.setRadius(10);
+            },
+            'mouseout': function () {
+              var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
+                if(!present){
+                  layer.setRadius(5);
+                }else{
+                  var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
+                  pan.view.style.borderStyle = "hidden";
+                }
+            }
+        })
+    }
+
+
+
+    function renderLabel (label) {
+
+      var drawing = canvases[nextOpenView];
+      var ctx = drawing.getContext("2d");
+      ctx.clearRect(0,0,drawing.width,drawing.height);
+
+        var x = (label.canvas_x / label.canvas_width) * drawing.width;
+        var y = (label.canvas_y / label.canvas_height) * drawing.height;
+
+        var fillColor = (label.label_type_key in colorMapping) ? colorMapping[label.label_type_key].fillStyle : "rgb(128, 128, 128)";
+
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        ctx.restore();
+
+
+        nextOpenView= calculateNextOpen();
+        return this;
+    }
+
+    function calculateNextOpen(){
+      for(var i = 0; i<selectedLabels.length; i++){
+        if(selectedLabels[i].label === null){return i}
+      }
+      return 0;
+    }
+
+
+	function initializePanoramas(labelId, panosToUpdate){
+    $.getJSON("/adminapi/label/" + labelId, function (data) {
+      currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
+    for(var i = 0; i < panosToUpdate.length; i++){
       var panorama1 = new google.maps.StreetViewPanorama(
-  		    panoramas[i], {
-  			    position: location,
+  		    panosToUpdate[i], {
+  			    position: currentPano,
   		    	pov: {
-  		        	heading: 0,
-  		        	pitch: -10
+  		        	heading: data.heading,
+  		        	pitch: data.pitch
   		        },
   		        disableDefaultUI: true,
   		        clickToGo: false
   		    });
     }
+  });
 	}
 
   function nextDisagreement(){
     currentDisagreement++;
-    currentPano = {lat: disagreements.features[currentDisagreement].geometry.coordinates[1], lng: disagreements.features[currentDisagreement].geometry.coordinates[0]};
-    currentCoordinates = [disagreements.features[currentDisagreement].geometry.coordinates[1], disagreements.features[currentDisagreement].geometry.coordinates[0]];
+    $.getJSON("/adminapi/label/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
+      currentCoordinates = [data.panorama_lat, data.panorama_lng];
     refocusView();
+    });
   }
 
   function previousDisagreement(){
     currentDisagreement--;
-    currentPano = {lat: disagreements.features[currentDisagreement].geometry.coordinates[1], lng: disagreements.features[currentDisagreement].geometry.coordinates[0]};
-    currentCoordinates = [disagreements.features[currentDisagreement].geometry.coordinates[1], disagreements.features[currentDisagreement].geometry.coordinates[0]];
+    $.getJSON("/adminapi/label/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
+      currentCoordinates = [data.panorama_lat, data.panorama_lng];
     refocusView();
+  });
   }
 
   function refocusView(){
     map.setView(currentCoordinates,12);
-    initializePanoramas(currentPano);
   }
 
-  function _handleData(labelMetadata) {
-    self.panorama.changePanoId(labelMetadata['gsv_panorama_id']);
-
-    self.panorama.setPov({
-        heading: labelMetadata['heading'],
-        pitch: labelMetadata['pitch'],
-        zoom: labelMetadata['zoom']
+  function showLabel(labelId){
+    $.getJSON("/adminapi/label/" + labelId, function (data) {
+      infos[nextOpenView].innerHTML = "Label ID: <b>" + data.label_id + "</b>, Label Type: " + data.label_type_key;
+      renderLabel(data);
     });
-
-    var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_type_key'],
-        labelMetadata['canvas_x'], labelMetadata['canvas_y'],
-        labelMetadata['canvas_width'], labelMetadata['canvas_height']);
-    self.panorama.renderLabel(adminPanoramaLabel);
-
-    var labelDate = moment(new Date(labelMetadata['timestamp']));
-    self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
-    self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
-    self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
-    self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
-    self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
-    self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
-        labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
-        labelMetadata['username'] + "</a>");
-
-    self.panorama.refreshGSV();
+      var selectPano = [panoramas[nextOpenView]];
+      initializePanoramas(labelId,selectPano);
   }
 
   var self = {};
@@ -207,6 +262,7 @@ $(document).ready(function () {
   var mapboxTiles = L.tileLayer(tileUrl, {
       attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
   });
+
   var map = L.mapbox.map('groundtruth-map', "kotarohara.8e0c6890", {
       // set that bounding box as maxBounds to restrict moving the map
       // see full maxBounds documentation:
@@ -216,13 +272,20 @@ $(document).ready(function () {
       minZoom: 19
   })
       .fitBounds(bounds)
-      .setView(currentCoordinates, 12);
 
-
-	initializePanoramas(currentPano);
+  $.getJSON("/adminapi/label/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
+        currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
+        currentCoordinates = [data.panorama_lat, data.panorama_lng];
+      map.setView(currentCoordinates, 12);
+	initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
   initializeAllLayers(disagreements);
+
+});
 
   document.getElementById("gtnext").onclick = nextDisagreement;
   document.getElementById("gtrefocus").onclick = refocusView;
   document.getElementById("gtprev").onclick = previousDisagreement;
+  document.getElementById("filler").style.minHeight = "40px";
+
+
 });

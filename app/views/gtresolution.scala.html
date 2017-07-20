@@ -10,7 +10,7 @@
     @navbar(user)
     <div id="content">
         <div id="gt-container">
-            <h3>Ground Truth Resolution</h3>
+            <h3>Ground Truth Resolution Tool</h3>
             <div id="gt-map-nav">
             <div id="gtButtonContainer">
               <button class="gtButton" id="gtprev">Prev</button>
@@ -23,25 +23,36 @@
         </div>
 
         <div class="gtcolumn" id="column2">
-              <div class="col-lg-6">
+              <div class="col-lg-6" id="pano1-holder">
+                    <div class="labelinfo" id="info1">
+                      <div class="viewnum"><b>View 1</b></div><div class="labelstats"></div></div>
                   <div id="panorama-1" class="gtpano"></div>
+                  <canvas class="label-canvas"></canvas>
               </div>
               <br>
               <div class="col-lg-6">
+                <div class="labelinfo" id="info2">
+                <div class="viewnum"><b>View 2</b></div><div class="labelstats"></div></div>
                   <div id="panorama-2" class="gtpano"></div>
+                  <canvas class="label-canvas"></canvas>
               </div>
         </div>
 
         <div class="gtcolumn" id="column3">
           <div class="col-lg-6">
+              <div class="labelinfo" id="info3">
+                <div class="viewnum"><b>View 3</b></div><div class="labelstats"></div></div>
               <div id="panorama-3" class="gtpano"></div>
+              <canvas class="label-canvas"></canvas>
           </div>
           <br>
           <div class="col-lg-6">
+            <div class="labelinfo" id="info4">
+            <div class="viewnum"><b>View 4</b></div><div class="labelstats"></div></div>
               <div id="panorama-4" class="gtpano"></div>
+              <canvas class="label-canvas"></canvas>
           </div>
         </div>
-
 
 
         </div>
@@ -51,5 +62,6 @@
 
 
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
+    <script src='@routes.Assets.at("javascripts/lib/mapbox.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/mapbox.js")'></script>
 }
