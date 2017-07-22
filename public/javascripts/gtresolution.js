@@ -10,68 +10,55 @@ $(document).ready(function () {
     //currentPano and currentCoordinates are formats for the label's lat lng position
     var currentPano, currentCoordinates;
 
-    //list of the four GSV panoramas
+    //list of the four GSV panorama holders
     var panoramas = document.getElementsByClassName("gtpano");
-    //list of the four canvases
-    var canvases = document.getElementsByClassName("label-canvas");
+    //list of the four GSV panoramas
+    var gsv_panoramas = [];
     //list of the four divs storing label information
     var infos = document.getElementsByClassName("labelstats");
-    //array that stores which label is being displayed on what canvas/info pairing
-    var selectedLabels = [{view: canvases[0], info: infos[0], label: null}, {view: canvases[1], info: infos[1], label: null}, {view: canvases[2], info: infos[2], label: null}, {view: canvases[3], info: infos[3], label: null}];
+    //list of label markers
+    var label_markers = [];
+    //array that stores which label is being displayed on what holder/info group
+    var selectedLabels = [{view: panoramas[0], info: infos[0], label: null}, {view: panoramas[1], info: infos[1], label: null}, {view: panoramas[2], info: infos[2], label: null}, {view: panoramas[3], info: infos[3], label: null}];
     //stores the next open view to display a label on
     var nextOpenView = 0;
 
     //stores color information for each label type
     var colorMapping = {
-        Walk : {
-            id : 'Walk',
-            fillStyle : 'rgba(0, 0, 0, 1)',
-            strokeStyle: '#ffffff'
-        },
         CurbRamp: {
             id: 'CurbRamp',
-            fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
+            fillStyle: '00DE26',  // 'rgba(0, 244, 38, 1)'
             strokeStyle: '#ffffff'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
+            fillStyle: 'E92771',  // 'rgba(255, 39, 113, 1)'
             strokeStyle: '#ffffff'
         },
         Obstacle: {
             id: 'Obstacle',
-            fillStyle: 'rgba(0, 161, 203, 1)',
+            fillStyle: '00A1CB',
             strokeStyle: '#ffffff'
         },
         Other: {
             id: 'Other',
-            fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
+            fillStyle: 'B3B3B3', //'rgba(204, 204, 204, 1)'
             strokeStyle: '#0000ff'
 
         },
         Occlusion: {
             id: 'Occlusion',
-            fillStyle: 'rgba(179, 179, 179, 1)',
+            fillStyle: 'B3B3B3',
             strokeStyle: '#009902'
         },
         NoSidewalk: {
             id: 'NoSidewalk',
-            fillStyle: 'rgba(179, 179, 179, 1)',
+            fillStyle: 'B3B3B3',
             strokeStyle: '#ff0000'
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
-            fillStyle: 'rgba(241, 141, 5, 1)',
-            strokeStyle: '#ffffff'
-        },
-        Void: {
-            id: 'Void',
-            fillStyle: 'rgba(255, 255, 255, 1)',
-            strokeStyle: '#ffffff'
-        },
-        Unclear: {
-            id: 'Unclear',
-            fillStyle: 'rgba(128, 128, 128, 0.5)',
+            fillStyle: 'F18D05',
             strokeStyle: '#ffffff'
         }
     };
@@ -110,7 +97,7 @@ $(document).ready(function () {
             pointToLayer: function (feature, latlng) {
               //style the marker
                 var style = $.extend(true, {}, geojsonMarkerOptions);
-                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
+                style.fillColor = "#" + colorMapping[feature.properties.label_type].fillStyle;
                 style.color = colorMapping[feature.properties.label_type].strokeStyle;
                 return L.circleMarker(latlng, style);
             },
@@ -129,7 +116,7 @@ $(document).ready(function () {
             layer.setRadius(5);
             //find out which view it is being shown in
             var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === id );
-            var drawing = pan.view;
+            var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === id );
             //clear info, border, logged id
             pan.info.innerHTML = "";
             pan.view.style.borderStyle = "hidden";
@@ -137,8 +124,7 @@ $(document).ready(function () {
             //recalulate next open view
             nextOpenView= calculateNextOpen();
             //clear canvas
-            var ctx = drawing.getContext("2d");
-            ctx.clearRect(0,0,drawing.width,drawing.height);
+            label_markers[index].setMap(null);
           }else{
             //if not, display the label and log that it is being shown
             selectedLabels[nextOpenView].label = id;
@@ -177,32 +163,24 @@ $(document).ready(function () {
     function renderLabel (label) {
 
       //choose the next open canvas
-      var drawing = canvases[nextOpenView];
-      var ctx = drawing.getContext("2d");
-      //clear any existing labels
-      ctx.clearRect(0,0,drawing.width,drawing.height);
+      var open = gsv_panoramas[nextOpenView];
 
-        //calculate position
-        var x = (label.canvas_x / label.canvas_width) * drawing.width;
-        var y = (label.canvas_y / label.canvas_height) * drawing.height;
-        //choose colors
-        var fillColor = (label.label_type_key in colorMapping) ? colorMapping[label.label_type_key].fillStyle : "rgb(128, 128, 128)";
+      var labelPos = new google.maps.LatLng(label.label_lat,label.label_lng);
 
-        //draw circle
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.fillStyle = fillColor;
-        ctx.fill();
-        ctx.restore();
+      var label_marker = label_markers[nextOpenView]
+      label_marker.setPosition(labelPos);
+      label_marker.setMap(open);
+      var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
+      label_marker.setIcon(icon);
 
         //recalculate next open view
         nextOpenView= calculateNextOpen();
         return this;
+    }
+
+    function getIcon(fillColor) {
+        var iconUrl = "http://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + fillColor;
+        return iconUrl;
     }
 
     //choose the earliest of the open views (views not displaying a label)
@@ -221,7 +199,7 @@ $(document).ready(function () {
       currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
     for(var i = 0; i < panosToUpdate.length; i++){
       //update all indicated panoramas
-      var panorama1 = new google.maps.StreetViewPanorama(panosToUpdate[i],{
+      gsv_panoramas[i] = new google.maps.StreetViewPanorama(panosToUpdate[i],{
         position: currentPano,
         pov: {
             heading: data.heading,
@@ -229,6 +207,11 @@ $(document).ready(function () {
           },
           disableDefaultUI: true,
           clickToGo: false
+      });
+      label_markers[i] = new google.maps.Marker({
+        position: null,
+        map: null,
+        title: 'Label'
       });
     }
   });
@@ -266,10 +249,12 @@ $(document).ready(function () {
       infos[nextOpenView].innerHTML = "Label ID: <b>" + data.label_id + "</b>, Label Type: " + data.label_type_key;
       //draw label
       renderLabel(data);
-    });
       //update selected panorama
-      var selectPano = [panoramas[nextOpenView]];
-      initializePanoramas(labelId,selectPano);
+      var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === data.label_id );
+      var toChange = gsv_panoramas[index];
+      toChange.setPosition({lat: data.panorama_lat, lng: data.panorama_lng});
+      toChange.setPov({heading: data.heading, pitch: data.pitch});
+    });
   }
 
   //variables for the mapbox
@@ -330,8 +315,7 @@ function clearCanvas(canvasNum){
   pan.view.style.borderStyle = "hidden";
   pan.label = null;
   nextOpenView= calculateNextOpen();
-  var ctx = drawing.getContext("2d");
-  ctx.clearRect(0,0,drawing.width,drawing.height);
+  label_markers[canvasNum].setMap(null);
 }
 
   //map all button functionalities

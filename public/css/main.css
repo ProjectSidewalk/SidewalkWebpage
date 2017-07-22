@@ -820,6 +820,9 @@ video#bgvid {
   width: 100%;
   height: 100%;
   z-index: 1;
+  border-style: hidden;
+  border-width: 8px;
+  border-color: #efe70f;
 }
 .col-lg-6{
   height: 48%;
@@ -827,18 +830,6 @@ video#bgvid {
   margin-bottom: 7%;
   padding-right: 0;
   padding-left: 0;
-}
-.label-canvas{
-  z-index: 2;
-  position: absolute;
-  top: 9%;
-  left: 0;
-  display: inline-block;
-  width: 100%;
-  height: 101%;
-  border-style: hidden;
-  border-width: 8px;
-  border-color: #efe70f;
 }
 .labelinfo{
   width: 100%;
