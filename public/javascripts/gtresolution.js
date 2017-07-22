@@ -18,6 +18,8 @@ $(document).ready(function () {
     var infos = document.getElementsByClassName("labelstats");
     //list of label markers
     var label_markers = [];
+    //list of infowindows
+    var info_windows = [];
     //array that stores which label is being displayed on what holder/info group
     var selectedLabels = [{view: panoramas[0], info: infos[0], label: null}, {view: panoramas[1], info: infos[1], label: null}, {view: panoramas[2], info: infos[2], label: null}, {view: panoramas[3], info: infos[3], label: null}];
     //stores the next open view to display a label on
@@ -210,12 +212,27 @@ $(document).ready(function () {
       });
       label_markers[i] = new google.maps.Marker({
         position: null,
-        map: null,
+        map: gsv_panoramas[i],
         title: 'Label'
       });
     }
+    //open popups
+    google.maps.event.addListener(label_markers[0], 'click', function(){openInfo(0);});
+    google.maps.event.addListener(label_markers[1], 'click', function(){openInfo(1);});
+    google.maps.event.addListener(label_markers[2], 'click', function(){openInfo(2);});
+    google.maps.event.addListener(label_markers[3], 'click', function(){openInfo(3);});
   });
 	}
+
+  //open popup
+  function openInfo(index){
+    $.getJSON("/gtresolution/labelData/" + selectedLabels[index].label, function (data) {
+      var infowindow = new google.maps.InfoWindow({
+        content: '<p style="text-align: center"><b>Labeler:</b> ' + data.username + ', <b>Label ID:</b> ' + data.label_id + '</p><input type="button" style="margin-top: 2" value = "Commit to Ground Truth"></input>'
+      });
+      infowindow.open(gsv_panoramas[index],label_markers[index]);
+    });
+  }
 
   //next button functionality
   function nextDisagreement(){
@@ -296,6 +313,8 @@ $(document).ready(function () {
       minZoom: 19
   })
       .fitBounds(bounds)
+
+
 
     //update panoramas and initialize all labels on mapbox
   $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
