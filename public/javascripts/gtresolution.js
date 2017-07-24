@@ -163,21 +163,24 @@ $(document).ready(function () {
 
     //draw a label in the view
     function renderLabel (label) {
-
       //choose the next open canvas
       var open = gsv_panoramas[nextOpenView];
 
-      var labelPos = new google.maps.LatLng(label.label_lat,label.label_lng);
+      var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
+      //label_marker.setPosition(labelPos);
+      //label_marker.setMap(open);
+      var label_marker = new PanoMarker({
+        pano: gsv_panoramas[nextOpenView],
+        container: panoramas[nextOpenView],
+        position: {heading: labelPosition.heading, pitch: labelPosition.pitch}
+      });
+      label_markers[nextOpenView] = label_marker;
+      //var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
+      //label_marker.setIcon(icon);
 
-      var label_marker = label_markers[nextOpenView]
-      label_marker.setPosition(labelPos);
-      label_marker.setMap(open);
-      var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
-      label_marker.setIcon(icon);
-
-        //recalculate next open view
-        nextOpenView= calculateNextOpen();
-        return this;
+      //recalculate next open view
+      nextOpenView = calculateNextOpen();
+      return this;
     }
 
     function getIcon(fillColor) {
@@ -199,29 +202,30 @@ $(document).ready(function () {
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
       //set position
       currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
-    for(var i = 0; i < panosToUpdate.length; i++){
-      //update all indicated panoramas
-      gsv_panoramas[i] = new google.maps.StreetViewPanorama(panosToUpdate[i],{
-        position: currentPano,
-        pov: {
-            heading: data.heading,
-            pitch: data.pitch
+      for(var i = 0; i < panosToUpdate.length; i++){
+        //update all indicated panoramas
+        gsv_panoramas[i] = new google.maps.StreetViewPanorama(panosToUpdate[i],{
+          pano: data.gsv_panorama_id,
+          pov: {
+              heading: data.heading,
+              pitch: data.pitch
           },
           disableDefaultUI: true,
           clickToGo: false
-      });
-      label_markers[i] = new google.maps.Marker({
-        position: null,
-        map: gsv_panoramas[i],
-        title: 'Label'
-      });
-    }
-    //open popups
-    google.maps.event.addListener(label_markers[0], 'click', function(){openInfo(0);});
-    google.maps.event.addListener(label_markers[1], 'click', function(){openInfo(1);});
-    google.maps.event.addListener(label_markers[2], 'click', function(){openInfo(2);});
-    google.maps.event.addListener(label_markers[3], 'click', function(){openInfo(3);});
-  });
+        });
+        /*label_markers[i] = new google.maps.Marker({
+          position: null,
+          map: gsv_panoramas[i],
+          title: 'Label'
+        });*/
+
+      }
+      //open popups
+      /*google.maps.event.addListener(label_markers[0], 'click', function(){openInfo(0);});
+      google.maps.event.addListener(label_markers[1], 'click', function(){openInfo(1);});
+      google.maps.event.addListener(label_markers[2], 'click', function(){openInfo(2);});
+      google.maps.event.addListener(label_markers[3], 'click', function(){openInfo(3);});*/
+    });
 	}
 
   //open popup
@@ -259,7 +263,7 @@ $(document).ready(function () {
     map.setView(currentCoordinates,12);
   }
 
-  //show label in view
+  //show label in panorama
   function showLabel(labelId){
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
       //update info
@@ -269,7 +273,7 @@ $(document).ready(function () {
       //update selected panorama
       var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === data.label_id );
       var toChange = gsv_panoramas[index];
-      toChange.setPosition({lat: data.panorama_lat, lng: data.panorama_lng});
+      toChange.setPano(data.gsv_panorama_id);
       toChange.setPov({heading: data.heading, pitch: data.pitch});
     });
   }
@@ -335,6 +339,73 @@ $(document).ready(function () {
     pan.label = null;
     nextOpenView= calculateNextOpen();
     label_markers[canvasNum].setMap(null);
+  }
+
+  
+  /**
+   * Given the current POV, zoom and the original canvas dimensions and coordinates for the label,
+   * this method calculates the POV on the
+   * given viewport for the desired POV. All credit for the math this method goes
+   * to user3146587 on StackOverflow: http://goo.gl/0GGKi6
+   *
+   * @param {number} canvas_x: the x-coordinate of the label on the original panorama
+   * @param {number} canvas_y: the y-coordinate of the label on the original panorama
+   * @param {number} canvas_width: the width of the original panorama image
+   * @param {number} canvas_height: the height of the original panorama image
+   * @param {number} zoom: The current zoom level.
+   * @param {number} heading: heading of the viewport center
+   * @param {number} pitch: pitch of the viewport center.
+   * @return {Object} heading and pitch of the point in our panorama
+   */
+  function mapXYtoPov(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch){
+    function sgn(x) {
+      return x >= 0 ? 1 : -1;
+    }
+
+    var PI = Math.PI;
+    var cos = Math.cos;
+    var sin = Math.sin;
+    var tan = Math.tan;
+    var sqrt = Math.sqrt;
+    var atan2 = Math.atan2;
+    var asin = Math.asin;
+
+    var fov = PanoMarker.get3dFov(zoom) * PI / 180.0;
+    var width = canvas_width;
+    var height = canvas_height;
+
+    var h0 = heading * PI / 180.0;
+    var p0 = pitch * PI / 180.0;
+
+    var f = 0.5 * width / tan(0.5 * fov);
+
+    var x0 = f * cos(p0) * sin(h0);
+    var y0 = f * cos(p0) * cos(h0);
+    var z0 = f * sin(p0);
+
+    var du = canvas_x - width / 2;
+    var dv = height / 2 - canvas_y;
+
+    var ux = sgn(cos(p0)) * cos(h0);
+    var uy = -sgn(cos(p0)) * sin(h0);
+    var uz = 0;
+
+    var vx = -sin(p0) * sin(h0);
+    var vy = -sin(p0) * cos(h0);
+    var vz = cos(p0);
+
+    var x = x0 + du * ux + dv * vx;
+    var y = y0 + du * uy + dv * vy;
+    var z = z0 + du * uz + dv * vz;
+
+    var R = sqrt(x * x + y * y + z * z);
+    var h = atan2(x, y);
+    var p = asin(z / R);
+
+    return {
+      heading: h * 180.0 / PI,
+      pitch: p * 180.0 / PI
+    };
   }
 
   //map all button functionalities
