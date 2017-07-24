@@ -22,7 +22,8 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.extras.geojson
-
+import org.joda.time.{DateTime, DateTimeZone}
+import java.sql.Timestamp
 
 import scala.concurrent.Future
 
@@ -39,13 +40,13 @@ class GroundTruthResolutionController @Inject() (implicit val env: Environment[U
   }
 
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-	LabelPointTable.find(labelId) match {
-	case Some(labelPointObj) =>
-	  val labelMetadata = LabelTable.getLabelMetadata(labelId)
-	  val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
-	  Future.successful(Ok(labelMetadataJson))
-	case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
-	}
+  	LabelPointTable.find(labelId) match {
+    	case Some(labelPointObj) =>
+    	  val labelMetadata = LabelTable.getLabelMetadata(labelId)
+    	  val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+    	  Future.successful(Ok(labelMetadataJson))
+    	case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+  	}
   }
 }
   

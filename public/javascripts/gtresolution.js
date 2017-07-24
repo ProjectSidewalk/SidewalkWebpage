@@ -1,80 +1,80 @@
 $(document).ready(function () {
 
-    //http://plnkr.co/edit/MeQDKjHA34PcPa53Zr9o?p=preview
+  //http://plnkr.co/edit/MeQDKjHA34PcPa53Zr9o?p=preview
 
-    //disagreements currently only has to be a Json of label_id's,
-    //but eventually making disagreements a Json that stores additional label information (lat,lng,heading, pitch,user_id) will speed everything up
-    var disagreements = sampleLabels;
-    //stores which disagreement is being looked at currently
-    var currentDisagreement = 0;
-    //currentPano and currentCoordinates are formats for the label's lat lng position
-    var currentPano, currentCoordinates;
+  //disagreements currently only has to be a Json of label_id's,
+  //but eventually making disagreements a Json that stores additional label information (lat,lng,heading, pitch,user_id) will speed everything up
+  var disagreements = sampleLabels;
+  //stores which disagreement is being looked at currently
+  var currentDisagreement = 0;
+  //currentPano and currentCoordinates are formats for the label's lat lng position
+  var currentPano, currentCoordinates;
 
-    //list of the four GSV panorama holders
-    var panoramas = document.getElementsByClassName("gtpano");
-    //list of the four GSV panoramas
-    var gsv_panoramas = [];
-    //list of the four divs storing label information
-    var infos = document.getElementsByClassName("labelstats");
-    //list of label markers
-    var label_markers = [];
-    //list of infowindows
-    var info_windows = [];
-    //array that stores which label is being displayed on what holder/info group
-    var selectedLabels = [{view: panoramas[0], info: infos[0], label: null}, {view: panoramas[1], info: infos[1], label: null}, {view: panoramas[2], info: infos[2], label: null}, {view: panoramas[3], info: infos[3], label: null}];
-    //stores the next open view to display a label on
-    var nextOpenView = 0;
+  //list of the four GSV panorama holders
+  var panoramas = document.getElementsByClassName("gtpano");
+  //list of the four GSV panoramas
+  var gsv_panoramas = [];
+  //list of the four divs storing label information
+  var infos = document.getElementsByClassName("labelstats");
+  //list of label markers
+  var label_markers = [];
+  //list of infowindows
+  var info_windows = [];
+  //array that stores which label is being displayed on what holder/info group
+  var selectedLabels = [{view: panoramas[0], info: infos[0], label: null}, {view: panoramas[1], info: infos[1], label: null}, {view: panoramas[2], info: infos[2], label: null}, {view: panoramas[3], info: infos[3], label: null}];
+  //stores the next open view to display a label on
+  var nextOpenView = 0;
 
-    //stores color information for each label type
-    var colorMapping = {
-        CurbRamp: {
-            id: 'CurbRamp',
-            fillStyle: '00DE26',  // 'rgba(0, 244, 38, 1)'
-            strokeStyle: '#ffffff'
-        },
-        NoCurbRamp: {
-            id: 'NoCurbRamp',
-            fillStyle: 'E92771',  // 'rgba(255, 39, 113, 1)'
-            strokeStyle: '#ffffff'
-        },
-        Obstacle: {
-            id: 'Obstacle',
-            fillStyle: '00A1CB',
-            strokeStyle: '#ffffff'
-        },
-        Other: {
-            id: 'Other',
-            fillStyle: 'B3B3B3', //'rgba(204, 204, 204, 1)'
-            strokeStyle: '#0000ff'
+  //stores color information for each label type
+  var colorMapping = {
+      CurbRamp: {
+          id: 'CurbRamp',
+          fillStyle: '00DE26',  // 'rgba(0, 244, 38, 1)'
+          strokeStyle: '#ffffff'
+      },
+      NoCurbRamp: {
+          id: 'NoCurbRamp',
+          fillStyle: 'E92771',  // 'rgba(255, 39, 113, 1)'
+          strokeStyle: '#ffffff'
+      },
+      Obstacle: {
+          id: 'Obstacle',
+          fillStyle: '00A1CB',
+          strokeStyle: '#ffffff'
+      },
+      Other: {
+          id: 'Other',
+          fillStyle: 'B3B3B3', //'rgba(204, 204, 204, 1)'
+          strokeStyle: '#0000ff'
 
-        },
-        Occlusion: {
-            id: 'Occlusion',
-            fillStyle: 'B3B3B3',
-            strokeStyle: '#009902'
-        },
-        NoSidewalk: {
-            id: 'NoSidewalk',
-            fillStyle: 'B3B3B3',
-            strokeStyle: '#ff0000'
-        },
-        SurfaceProblem: {
-            id: 'SurfaceProblem',
-            fillStyle: 'F18D05',
-            strokeStyle: '#ffffff'
-        }
-    };
+      },
+      Occlusion: {
+          id: 'Occlusion',
+          fillStyle: 'B3B3B3',
+          strokeStyle: '#009902'
+      },
+      NoSidewalk: {
+          id: 'NoSidewalk',
+          fillStyle: 'B3B3B3',
+          strokeStyle: '#ff0000'
+      },
+      SurfaceProblem: {
+          id: 'SurfaceProblem',
+          fillStyle: 'F18D05',
+          strokeStyle: '#ffffff'
+      }
+  };
 
-    //stores settings for mapbox markers
-      var geojsonMarkerOptions = {
-            radius: 5,
-            fillColor: "#ff7800",
-            color: "#ffffff",
-            weight: 1,
-            opacity: 0.5,
-            fillOpacity: 0.5,
-            "stroke-width": 1
-        };
+  //stores settings for mapbox markers
+  var geojsonMarkerOptions = {
+        radius: 5,
+        fillColor: "#ff7800",
+        color: "#ffffff",
+        weight: 1,
+        opacity: 0.5,
+        fillOpacity: 0.5,
+        "stroke-width": 1
+  };
 
   //initialize all labels on the mapbox map
   function initializeAllLayers(data) {
@@ -228,7 +228,7 @@ $(document).ready(function () {
   function openInfo(index){
     $.getJSON("/gtresolution/labelData/" + selectedLabels[index].label, function (data) {
       var infowindow = new google.maps.InfoWindow({
-        content: '<p style="text-align: center"><b>Labeler:</b> ' + data.username + ', <b>Label ID:</b> ' + data.label_id + '</p><input type="button" style="margin-top: 2" value = "Commit to Ground Truth"></input>'
+        content: '<p style="text-align: center"><b>Labeler:</b> ' + data.username + ', <b>Label ID:</b> ' + data.label_id + '<br><b>Severity:</b> '+data.severity+'</p><input type="button" style="margin-top: 2" value = "Commit to Ground Truth"></input>'
       });
       infowindow.open(gsv_panoramas[index],label_markers[index]);
     });
@@ -263,7 +263,7 @@ $(document).ready(function () {
   function showLabel(labelId){
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
       //update info
-      infos[nextOpenView].innerHTML = "Label ID: <b>" + data.label_id + "</b>, Label Type: " + data.label_type_key;
+      infos[nextOpenView].innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
       //draw label
       renderLabel(data);
       //update selected panorama
@@ -312,30 +312,30 @@ $(document).ready(function () {
       maxZoom: 20,
       minZoom: 19
   })
-      .fitBounds(bounds)
+    .fitBounds(bounds)
 
 
 
     //update panoramas and initialize all labels on mapbox
   $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
-        currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
-        currentCoordinates = [data.panorama_lat, data.panorama_lng];
-      map.setView(currentCoordinates, 12);
-	initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
-  initializeAllLayers(disagreements);
-});
+    currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
+    currentCoordinates = [data.panorama_lat, data.panorama_lng];
+    map.setView(currentCoordinates, 12);
+  	initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
+    initializeAllLayers(disagreements);
+  });
 
 
-//clear a specific canvas
-function clearCanvas(canvasNum){
-  var pan = selectedLabels[canvasNum];
-  var drawing = pan.view;
-  pan.info.innerHTML = "";
-  pan.view.style.borderStyle = "hidden";
-  pan.label = null;
-  nextOpenView= calculateNextOpen();
-  label_markers[canvasNum].setMap(null);
-}
+  //clear a specific canvas
+  function clearCanvas(canvasNum){
+    var pan = selectedLabels[canvasNum];
+    var drawing = pan.view;
+    pan.info.innerHTML = "";
+    pan.view.style.borderStyle = "hidden";
+    pan.label = null;
+    nextOpenView= calculateNextOpen();
+    label_markers[canvasNum].setMap(null);
+  }
 
   //map all button functionalities
   document.getElementById("gtnext").onclick = nextDisagreement;
