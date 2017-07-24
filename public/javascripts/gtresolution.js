@@ -27,178 +27,178 @@ $(document).ready(function () {
 
   //stores color information for each label type
   var colorMapping = {
-      CurbRamp: {
-          id: 'CurbRamp',
-          fillStyle: '00DE26',  // 'rgba(0, 244, 38, 1)'
-          strokeStyle: '#ffffff'
-      },
-      NoCurbRamp: {
-          id: 'NoCurbRamp',
-          fillStyle: 'E92771',  // 'rgba(255, 39, 113, 1)'
-          strokeStyle: '#ffffff'
-      },
-      Obstacle: {
-          id: 'Obstacle',
-          fillStyle: '00A1CB',
-          strokeStyle: '#ffffff'
-      },
-      Other: {
-          id: 'Other',
-          fillStyle: 'B3B3B3', //'rgba(204, 204, 204, 1)'
-          strokeStyle: '#0000ff'
+    CurbRamp: {
+      id: 'CurbRamp',
+      fillStyle: '00DE26',  // 'rgba(0, 244, 38, 1)'
+      strokeStyle: '#ffffff'
+    },
+    NoCurbRamp: {
+      id: 'NoCurbRamp',
+      fillStyle: 'E92771',  // 'rgba(255, 39, 113, 1)'
+      strokeStyle: '#ffffff'
+    },
+    Obstacle: {
+      id: 'Obstacle',
+      fillStyle: '00A1CB',
+      strokeStyle: '#ffffff'
+    },
+    Other: {
+      id: 'Other',
+      fillStyle: 'B3B3B3', //'rgba(204, 204, 204, 1)'
+      strokeStyle: '#0000ff'
 
-      },
-      Occlusion: {
-          id: 'Occlusion',
-          fillStyle: 'B3B3B3',
-          strokeStyle: '#009902'
-      },
-      NoSidewalk: {
-          id: 'NoSidewalk',
-          fillStyle: 'B3B3B3',
-          strokeStyle: '#ff0000'
-      },
-      SurfaceProblem: {
-          id: 'SurfaceProblem',
-          fillStyle: 'F18D05',
-          strokeStyle: '#ffffff'
-      }
+    },
+    Occlusion: {
+      id: 'Occlusion',
+      fillStyle: 'B3B3B3',
+      strokeStyle: '#009902'
+    },
+    NoSidewalk: {
+      id: 'NoSidewalk',
+      fillStyle: 'B3B3B3',
+      strokeStyle: '#ff0000'
+    },
+    SurfaceProblem: {
+      id: 'SurfaceProblem',
+      fillStyle: 'F18D05',
+      strokeStyle: '#ffffff'
+    }
   };
 
   //stores settings for mapbox markers
   var geojsonMarkerOptions = {
-        radius: 5,
-        fillColor: "#ff7800",
-        color: "#ffffff",
-        weight: 1,
-        opacity: 0.5,
-        fillOpacity: 0.5,
-        "stroke-width": 1
+    radius: 5,
+    fillColor: "#ff7800",
+    color: "#ffffff",
+    weight: 1,
+    opacity: 0.5,
+    fillOpacity: 0.5,
+    "stroke-width": 1
   };
 
   //initialize all labels on the mapbox map
   function initializeAllLayers(data) {
-      for (i = 0; i < data.features.length; i++) {
-          //push label type to list of layers
-          var labelType = data.features[i].properties.label_type;
-          self.allLayers[labelType].push(data.features[i]);
-      }
-
-      Object.keys(self.allLayers).forEach(function (key) {
-          for (var i = 0; i < self.allLayers[key].length; i++) {
-              //create later and add to map
-              self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]},false);
-              map.addLayer(self.allLayers[key]);
-          }
-      })
+    for (i = 0; i < data.features.length; i++) {
+      //push label type to list of layers
+      var labelType = data.features[i].properties.label_type;
+      self.allLayers[labelType].push(data.features[i]);
     }
+
+    Object.keys(self.allLayers).forEach(function (key) {
+      for (var i = 0; i < self.allLayers[key].length; i++) {
+        //create later and add to map
+        self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]},false);
+        map.addLayer(self.allLayers[key]);
+      }
+    });
+  }
 
     //create a layer for the mapbox
-    function createLayer(data) {
-        return L.geoJson(data, {
-            pointToLayer: function (feature, latlng) {
-              //style the marker
-                var style = $.extend(true, {}, geojsonMarkerOptions);
-                style.fillColor = "#" + colorMapping[feature.properties.label_type].fillStyle;
-                style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                return L.circleMarker(latlng, style);
-            },
-            onEachFeature: onEachLabelFeature
-        })
-    }
+  function createLayer(data) {
+    return L.geoJson(data, {
+      pointToLayer: function (feature, latlng) {
+        //style the marker
+        var style = $.extend(true, {}, geojsonMarkerOptions);
+        style.fillColor = "#" + colorMapping[feature.properties.label_type].fillStyle;
+        style.color = colorMapping[feature.properties.label_type].strokeStyle;
+        return L.circleMarker(latlng, style);
+      },
+      onEachFeature: onEachLabelFeature
+    });
+  }
 
     //activity of marker
-    function onEachLabelFeature(feature, layer) {
-        layer.on('click', function () {
-          //test whether the label is already being shown in one of the four views
-          var id = feature.properties.label_id;
-          var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === id );
-          if(present){
-            //if yes, then remove the label and clear the view
-            layer.setRadius(5);
-            //find out which view it is being shown in
-            var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === id );
-            var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === id );
-            //clear info, border, logged id
-            pan.info.innerHTML = "";
-            pan.view.style.borderStyle = "hidden";
-            pan.label = null;
-            //recalulate next open view
-            nextOpenView= calculateNextOpen();
-            //clear canvas
-            label_markers[index].setMap(null);
-          }else{
-            //if not, display the label and log that it is being shown
-            selectedLabels[nextOpenView].label = id;
-            layer.setRadius(15);
-            showLabel(id);
-          }
-        });
-        layer.on({
-            'mouseover': function () {
-              //test whether label is present within a view
-              var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
-                if(present){
-                //if so, highlight that view with a border
-                var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
-                pan.view.style.borderStyle = "solid";
-              }
-                //emphasize marker
-                layer.setRadius(10);
-            },
-            'mouseout': function () {
-              //test whether label is present within a view
-              var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
-                if(!present){
-                  //if not, remove emphasis
-                  layer.setRadius(5);
-                }else{
-                  //if so, hide border highlight
-                  var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
-                  pan.view.style.borderStyle = "hidden";
-                }
-            }
-        })
-    }
-
-    //draw a label in the view
-    function renderLabel (label) {
-      //choose the next open canvas
-      var open = gsv_panoramas[nextOpenView];
-
-      var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
-      //label_marker.setPosition(labelPos);
-      //label_marker.setMap(open);
-      var label_marker = new PanoMarker({
-        pano: gsv_panoramas[nextOpenView],
-        container: panoramas[nextOpenView],
-        position: {heading: labelPosition.heading, pitch: labelPosition.pitch}
-      });
-      label_markers[nextOpenView] = label_marker;
-      //var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
-      //label_marker.setIcon(icon);
-
-      //recalculate next open view
-      nextOpenView = calculateNextOpen();
-      return this;
-    }
-
-    function getIcon(fillColor) {
-        var iconUrl = "http://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + fillColor;
-        return iconUrl;
-    }
-
-    //choose the earliest of the open views (views not displaying a label)
-    //if all full, choose the first view
-    function calculateNextOpen(){
-      for(var i = 0; i<selectedLabels.length; i++){
-        if(selectedLabels[i].label === null){return i}
+  function onEachLabelFeature(feature, layer) {
+    layer.on('click', function () {
+      //test whether the label is already being shown in one of the four views
+      var id = feature.properties.label_id;
+      var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === id );
+      if(present){
+        //if yes, then remove the label and clear the view
+        layer.setRadius(5);
+        //find out which view it is being shown in
+        var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === id );
+        var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === id );
+        //clear info, border, logged id
+        pan.info.innerHTML = "";
+        pan.view.style.borderStyle = "hidden";
+        pan.label = null;
+        //recalulate next open view
+        nextOpenView= calculateNextOpen();
+        //clear canvas
+        label_markers[index].setMap(null);
+      }else{
+        //if not, display the label and log that it is being shown
+        selectedLabels[nextOpenView].label = id;
+        layer.setRadius(15);
+        showLabel(id);
       }
-      return 0;
+    });
+    layer.on({
+      'mouseover': function () {
+        //test whether label is present within a view
+        var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
+        if(present){
+          //if so, highlight that view with a border
+          var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
+          pan.view.style.borderStyle = "solid";
+        }
+        //emphasize marker
+        layer.setRadius(10);
+      },
+      'mouseout': function () {
+        //test whether label is present within a view
+        var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
+        if(!present){
+          //if not, remove emphasis
+          layer.setRadius(5);
+        }else{
+          //if so, hide border highlight
+          var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
+          pan.view.style.borderStyle = "hidden";
+        }
+      }
+    });
+  }
+
+  //draw a label in the view
+  function renderLabel (label) {
+    //choose the next open canvas
+    var open = gsv_panoramas[nextOpenView];
+
+    var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
+    //label_marker.setPosition(labelPos);
+    //label_marker.setMap(open);
+    var label_marker = new PanoMarker({
+      pano: gsv_panoramas[nextOpenView],
+      container: panoramas[nextOpenView],
+      position: {heading: labelPosition.heading, pitch: labelPosition.pitch}
+    });
+    label_markers[nextOpenView] = label_marker;
+    //var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
+    //label_marker.setIcon(icon);
+
+    //recalculate next open view
+    nextOpenView = calculateNextOpen();
+    return this;
+  }
+
+  function getIcon(fillColor) {
+    var iconUrl = "http://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + fillColor;
+    return iconUrl;
+  }
+
+  //choose the earliest of the open views (views not displaying a label)
+  //if all full, choose the first view
+  function calculateNextOpen(){
+    for(var i = 0; i<selectedLabels.length; i++){
+      if(selectedLabels[i].label === null){return i}
     }
+    return 0;
+  }
 
   //set the GSV panoramas
-	function initializePanoramas(labelId, panosToUpdate){
+  function initializePanoramas(labelId, panosToUpdate){
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
       //set position
       currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
@@ -207,8 +207,8 @@ $(document).ready(function () {
         gsv_panoramas[i] = new google.maps.StreetViewPanorama(panosToUpdate[i],{
           pano: data.gsv_panorama_id,
           pov: {
-              heading: data.heading,
-              pitch: data.pitch
+            heading: data.heading,
+            pitch: data.pitch
           },
           disableDefaultUI: true,
           clickToGo: false
@@ -218,7 +218,6 @@ $(document).ready(function () {
           map: gsv_panoramas[i],
           title: 'Label'
         });*/
-
       }
       //open popups
       /*google.maps.event.addListener(label_markers[0], 'click', function(){openInfo(0);});
@@ -226,7 +225,7 @@ $(document).ready(function () {
       google.maps.event.addListener(label_markers[2], 'click', function(){openInfo(2);});
       google.maps.event.addListener(label_markers[3], 'click', function(){openInfo(3);});*/
     });
-	}
+  }
 
   //open popup
   function openInfo(index){
@@ -255,7 +254,7 @@ $(document).ready(function () {
       //shift mapbox to focus on previous label
       currentCoordinates = [data.panorama_lat, data.panorama_lng];
       refocusView();
-  });
+    });
   }
 
   //focus view on current label
@@ -289,9 +288,9 @@ $(document).ready(function () {
   self.noSidewalkLayers = [];
   self.otherLayers = [];
   self.allLayers = {
-      "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-      "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-      "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
+    "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
+    "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
+    "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
   };
 
   L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
@@ -305,27 +304,27 @@ $(document).ready(function () {
   // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
   var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
   var mapboxTiles = L.tileLayer(tileUrl, {
-      attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
   });
 
   var map = L.mapbox.map('groundtruth-map', "kotarohara.8e0c6890", {
-      // set that bounding box as maxBounds to restrict moving the map
-      // see full maxBounds documentation:
-      // http://leafletjs.com/reference.html#map-maxbounds
-      maxBounds: bounds,
-      maxZoom: 20,
-      minZoom: 19
+    // set that bounding box as maxBounds to restrict moving the map
+    // see full maxBounds documentation:
+    // http://leafletjs.com/reference.html#map-maxbounds
+    maxBounds: bounds,
+    maxZoom: 20,
+    minZoom: 19
   })
-    .fitBounds(bounds)
+  .fitBounds(bounds)
 
 
 
-    //update panoramas and initialize all labels on mapbox
+  //update panoramas and initialize all labels on mapbox
   $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
     currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
     currentCoordinates = [data.panorama_lat, data.panorama_lng];
     map.setView(currentCoordinates, 12);
-  	initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
+    initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
     initializeAllLayers(disagreements);
   });
 
