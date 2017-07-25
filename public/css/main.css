@@ -1229,16 +1229,18 @@ kbd {
     position: absolute;
     top: 47%;
     right: 44%;
-    background: rgba(255, 255, 255, 0.9);
 }
 .leaflet-bottom > .map-legends.wax-legends{
     right: 0px;
     top: 0px;
-    width: 330px;
+    width: 319px;
     max-width: 500px;
-    height: 130px;
+    height: 118px;
 }
 #results-choropleth-container {
     background-color: #fff;
     width: 100%;
+}
+.navbarResultsBtn{
+    margin-left: 8px;
 }
