@@ -14,20 +14,17 @@ $(document).ready(function () {
   var panoramas = document.getElementsByClassName("gtpano");
   //list of the four GSV panoramas
   var gsv_panoramas = [];
-  // Metadata of the labels currently shown in the panoramas
-  var panoramaLabels = [];
   //list of the four divs storing label information
   var infos = document.getElementsByClassName("labelstats");
   //list of label markers
   var labelMarkers = [];
-  //list of infowindows
-  var info_windows = [];
+
   //array that stores which label is being displayed on what holder/info group
   var selectedLabels = [
-    {view: panoramas[0], info: infos[0], label: {}},
-    {view: panoramas[1], info: infos[1], label: {}},
-    {view: panoramas[2], info: infos[2], label: {}},
-    {view: panoramas[3], info: infos[3], label: {}}];
+    {view: panoramas[0], info: infos[0], label: {}, popoverOn: false},
+    {view: panoramas[1], info: infos[1], label: {}, popoverOn: false},
+    {view: panoramas[2], info: infos[2], label: {}, popoverOn: false},
+    {view: panoramas[3], info: infos[3], label: {}, popoverOn: false}];
   //stores the next open view to display a label on
   var nextOpenView = 0;
 
@@ -231,6 +228,7 @@ $(document).ready(function () {
   function createPopover(index){
     var data = selectedLabels[index].label;  
     var markerElement = $("#label_id_"+selectedLabels[index].label.label_id);
+    selectedLabels[index].popoverOn = !selectedLabels[index].popoverOn;
 
     if(markerElement.attr('data-toggle') === undefined){
       markerElement
@@ -241,6 +239,14 @@ $(document).ready(function () {
           '<br><b>Severity:</b>&nbsp;'+data.severity+'</p>'+
           '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>')
         .popover({html:true});
+      selectedLabels[index].popoverOn = true;
+
+      // Popover follows marker when POV is changed
+      gsv_panoramas[index].addListener('pov_changed', function(){
+        if(selectedLabels[index].popoverOn){
+          markerElement.popover('show');
+        }
+      });
     }
   }
 
@@ -338,13 +344,15 @@ $(document).ready(function () {
 
 
   //clear a specific canvas
-  function clearCanvas(canvasNum){
-    var pano = selectedLabels[canvasNum];
-    pano.info.innerHTML = "";
-    pano.view.style.borderStyle = "hidden";
-    pano.label = {};
-    nextOpenView= calculateNextOpen();
-    labelMarkers[canvasNum].setMap(null);
+  function clearCanvas(index){
+    var selectedLabel = selectedLabels[index];
+    selectedLabel.info.innerHTML = "";
+    selectedLabel.view.style.borderStyle = "hidden";
+    selectedLabel.label = {};
+    selectedLabel.popoverOn = false;
+    nextOpenView = calculateNextOpen();
+    gsv_panoramas[index].clearListeners('pov_changed');
+    labelMarkers[index].setMap(null);
   }
 
   
