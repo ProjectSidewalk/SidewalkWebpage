@@ -14,14 +14,20 @@ $(document).ready(function () {
   var panoramas = document.getElementsByClassName("gtpano");
   //list of the four GSV panoramas
   var gsv_panoramas = [];
+  // Metadata of the labels currently shown in the panoramas
+  var panoramaLabels = [];
   //list of the four divs storing label information
   var infos = document.getElementsByClassName("labelstats");
   //list of label markers
-  var label_markers = [];
+  var labelMarkers = [];
   //list of infowindows
   var info_windows = [];
   //array that stores which label is being displayed on what holder/info group
-  var selectedLabels = [{view: panoramas[0], info: infos[0], label: null}, {view: panoramas[1], info: infos[1], label: null}, {view: panoramas[2], info: infos[2], label: null}, {view: panoramas[3], info: infos[3], label: null}];
+  var selectedLabels = [
+    {view: panoramas[0], info: infos[0], label: {}},
+    {view: panoramas[1], info: infos[1], label: {}},
+    {view: panoramas[2], info: infos[2], label: {}},
+    {view: panoramas[3], info: infos[3], label: {}}];
   //stores the next open view to display a label on
   var nextOpenView = 0;
 
@@ -112,13 +118,13 @@ $(document).ready(function () {
     layer.on('click', function () {
       //test whether the label is already being shown in one of the four views
       var id = feature.properties.label_id;
-      var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === id );
+      var present = selectedLabels.some( selectedLabel => selectedLabel.label.label_id === id );
       if(present){
         //if yes, then remove the label and clear the view
         layer.setRadius(5);
         //find out which view it is being shown in
-        var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === id );
-        var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === id );
+        var pan = selectedLabels.find( selectedLabel => selectedLabel.label.label_id === id );
+        var index = selectedLabels.findIndex( selectedLabel => selectedLabel.label.label_id === id );
         //clear info, border, logged id
         pan.info.innerHTML = "";
         pan.view.style.borderStyle = "hidden";
@@ -126,21 +132,21 @@ $(document).ready(function () {
         //recalulate next open view
         nextOpenView= calculateNextOpen();
         //clear canvas
-        label_markers[index].setMap(null);
+        labelMarkers[index].setMap(null);
       }else{
         //if not, display the label and log that it is being shown
-        selectedLabels[nextOpenView].label = id;
+        selectedLabels[nextOpenView].label.label_id = id;
         layer.setRadius(15);
-        showLabel(id);
+        showLabel(id, nextOpenView);
       }
     });
     layer.on({
       'mouseover': function () {
         //test whether label is present within a view
-        var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
+        var present = selectedLabels.some( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id);
         if(present){
           //if so, highlight that view with a border
-          var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
+          var pan = selectedLabels.find( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id );
           pan.view.style.borderStyle = "solid";
         }
         //emphasize marker
@@ -148,13 +154,13 @@ $(document).ready(function () {
       },
       'mouseout': function () {
         //test whether label is present within a view
-        var present = selectedLabels.some( selectedLabel => selectedLabel['label'] === feature.properties.label_id);
+        var present = selectedLabels.some( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id);
         if(!present){
           //if not, remove emphasis
           layer.setRadius(5);
         }else{
           //if so, hide border highlight
-          var pan = selectedLabels.find( selectedLabel => selectedLabel['label'] === feature.properties.label_id );
+          var pan = selectedLabels.find( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id );
           pan.view.style.borderStyle = "hidden";
         }
       }
@@ -162,24 +168,29 @@ $(document).ready(function () {
   }
 
   //draw a label in the view
-  function renderLabel (label) {
+  function renderLabel (label, panoIndex) {
     //choose the next open canvas
-    var open = gsv_panoramas[nextOpenView];
+    var open = gsv_panoramas[panoIndex];
 
     var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
-    //label_marker.setPosition(labelPos);
-    //label_marker.setMap(open);
+    
+    var id = "label_id_"+label.label_id;
     var label_marker = new PanoMarker({
-      pano: gsv_panoramas[nextOpenView],
-      container: panoramas[nextOpenView],
-      position: {heading: labelPosition.heading, pitch: labelPosition.pitch}
+      pano: gsv_panoramas[panoIndex],
+      container: panoramas[panoIndex],
+      position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
+      id: id,
+      icon: "https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png"
     });
-    label_markers[nextOpenView] = label_marker;
+
+    labelMarkers[panoIndex] = label_marker;
+    google.maps.event.addListener(labelMarkers[panoIndex], 'click', function() {
+      createPopover(panoIndex);
+    });
+
     //var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
     //label_marker.setIcon(icon);
 
-    //recalculate next open view
-    nextOpenView = calculateNextOpen();
     return this;
   }
 
@@ -192,7 +203,7 @@ $(document).ready(function () {
   //if all full, choose the first view
   function calculateNextOpen(){
     for(var i = 0; i<selectedLabels.length; i++){
-      if(selectedLabels[i].label === null){return i}
+      if(selectedLabels[i].label.label_id === undefined){return i;}
     }
     return 0;
   }
@@ -213,28 +224,23 @@ $(document).ready(function () {
           disableDefaultUI: true,
           clickToGo: false
         });
-        /*label_markers[i] = new google.maps.Marker({
-          position: null,
-          map: gsv_panoramas[i],
-          title: 'Label'
-        });*/
       }
-      //open popups
-      /*google.maps.event.addListener(label_markers[0], 'click', function(){openInfo(0);});
-      google.maps.event.addListener(label_markers[1], 'click', function(){openInfo(1);});
-      google.maps.event.addListener(label_markers[2], 'click', function(){openInfo(2);});
-      google.maps.event.addListener(label_markers[3], 'click', function(){openInfo(3);});*/
     });
   }
 
-  //open popup
-  function openInfo(index){
-    $.getJSON("/gtresolution/labelData/" + selectedLabels[index].label, function (data) {
-      var infowindow = new google.maps.InfoWindow({
-        content: '<p style="text-align: center"><b>Labeler:</b> ' + data.username + ', <b>Label ID:</b> ' + data.label_id + '<br><b>Severity:</b> '+data.severity+'</p><input type="button" style="margin-top: 2" value = "Commit to Ground Truth"></input>'
-      });
-      infowindow.open(gsv_panoramas[index],label_markers[index]);
-    });
+  // Create popover for marker
+  function createPopover(index){
+    var data = selectedLabels[index].label;  
+    var markerElement = $("#label_id_"+selectedLabels[index].label.label_id);
+
+    if(markerElement.attr('data-toggle') === undefined){
+      markerElement
+        .attr('data-toggle', 'popover')
+        .attr('data-content', 
+          '<p style="text-align:center"><b>Labeler:</b>&nbsp;'+data.username+', <b>Label ID:</b>&nbsp;'+data.label_id+'<br><b>Severity:</b>&nbsp;'+data.severity+'</p>'+
+          '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>')
+        .popover({html:true});
+    }
   }
 
   //next button functionality
@@ -263,15 +269,16 @@ $(document).ready(function () {
   }
 
   //show label in panorama
-  function showLabel(labelId){
+  function showLabel(labelId, panoIndex){
+    nextOpenView = calculateNextOpen();  
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
+      selectedLabels[panoIndex].label = data;
       //update info
-      infos[nextOpenView].innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
+      infos[panoIndex].innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
       //draw label
-      renderLabel(data);
+      renderLabel(data, panoIndex);
       //update selected panorama
-      var index = selectedLabels.findIndex( selectedLabel => selectedLabel['label'] === data.label_id );
-      var toChange = gsv_panoramas[index];
+      var toChange = gsv_panoramas[panoIndex];
       toChange.setPano(data.gsv_panorama_id);
       toChange.setPov({heading: data.heading, pitch: data.pitch});
     });
@@ -337,7 +344,7 @@ $(document).ready(function () {
     pan.view.style.borderStyle = "hidden";
     pan.label = null;
     nextOpenView= calculateNextOpen();
-    label_markers[canvasNum].setMap(null);
+    labelMarkers[canvasNum].setMap(null);
   }
 
   
