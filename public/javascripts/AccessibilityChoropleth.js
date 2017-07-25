@@ -84,12 +84,22 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             for (var i = 0; i < rates.length; i++) {
                 //if (rates[i].region_id === feature.properties.region_id) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var totalIssues = 0;
+                    for(var issue in rates[i].labels){
+                        totalIssues += rates[i].labels[issue];
+                    }
+
+                    var significantData = rates[i].rate > .15;
+                    var fillColor = significantData ? getColor(1000.0 * totalIssues/rates[i].completed_distance_m) : '#888';
+                    var fillOpacity = significantData ? 0.25 + (0.5 * totalIssues/rates[i].completed_distance_m) : .25;
                     return {
                         color: '#888',
                         weight: 1,
                         opacity: 0.25,
-                        fillColor: getColor(100.0 * rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate)
+                        //fillColor: getColor(100.0 * rates[i].rate),
+                        //fillOpacity: 0.25 + (0.5 * rates[i].rate)
+                        fillColor: fillColor,
+                        fillOpacity: fillOpacity
                     }
                 }
             }
