@@ -1238,3 +1238,7 @@ kbd {
     max-width: 500px;
     height: 130px;
 }
+#results-choropleth-container {
+    background-color: #fff;
+    width: 100%;
+}
