@@ -443,14 +443,12 @@ object LabelTable {
   def selectNegativeLabelCountsByRegionId(regionId: Int) = db.withSession { implicit session =>
     val selectQuery = Q.query[(Int), (String, Int)](
       """SELECT labels.label_type, count(labels.label_type) FROM (
-        |	SELECT label.label_id, label.audit_task_id, label_type.label_type, label_point.lat, region.region_id
+        |	SELECT label.label_id, label_type.label_type, label_point.lat, region.region_id
         |          FROM sidewalk.label
         |        INNER JOIN sidewalk.label_type
         |          ON label.label_type_id = label_type.label_type_id
         |        INNER JOIN sidewalk.label_point
         |          ON label.label_id = label_point.label_id
-        |        INNER JOIN sidewalk.audit_task
-        |          ON audit_task.audit_task_id = label.audit_task_id
         |        INNER JOIN sidewalk.region
         |          ON ST_Intersects(region.geom, label_point.geom)
         |        WHERE label.deleted = FALSE
