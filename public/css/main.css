@@ -129,7 +129,7 @@ footer {
     max-height: 30px;
 }
 
-.navbarStartBtn {
+.navbarStartBtn, .navbarResultsBtn {
     background-color:#ffffff;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -146,6 +146,9 @@ footer {
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.navbarResultsBtn{
+    margin-left: 8px;
 }
 .navbarStartBtn:hover {
     background-color:#FCECBE;
@@ -1240,7 +1243,4 @@ kbd {
 #results-choropleth-container {
     background-color: #fff;
     width: 100%;
-}
-.navbarResultsBtn{
-    margin-left: 8px;
 }

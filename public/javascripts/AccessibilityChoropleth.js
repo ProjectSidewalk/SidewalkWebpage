@@ -259,7 +259,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
 
     $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-        console.log(data);
+        //console.log(data);
 
         $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
 
