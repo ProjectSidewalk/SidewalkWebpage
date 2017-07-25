@@ -1,24 +1,32 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
 @import models.user.User
+@import models.user.UserCurrentRegionTable
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)
 
 @main(title) {
     @navbar(user)
+    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
+
+    <!--
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
                 <div id="map-holder">
                     <img src='@routes.Assets.at("images/CityAccessibilityResultsWithOverlayText_Dec6.png")'
-                    alt="Visualization of the data collected" class="img-responsive">
+                         alt="Visualization of the data collected" class="img-responsive">
                 </div>
             </div>
         </div>
-
         <div class="row">
             <div class="col-lg-12">
                 <h1>Accessibility Problems Discovered</h1>
                 <div id="map-holder">
                     <img src='@routes.Assets.at("images/CityAccessibilityProblems_Dec6.png")'
-                    alt="Visualization of the problems uncovered" class="img-responsive">
+                         alt="Visualization of the problems uncovered" class="img-responsive">
                 </div>
             </div>
         </div>
@@ -27,4 +35,61 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+    -->
+
+<div class="container" id="results-choropleth-container" style="width: 100%;
+        position: relative;">
+        <div id="map-holder">
+            <div id="legend" style="display:none;">
+                <strong style="font-size: 18px">Sidewalk Problems per Mile</strong>
+                <nav class='legend clearfix'>
+                    <span style='background:#99000a;'></span>
+                    <span style='background:#b3000c;'></span>
+                    <span style='background:#cc000e;'></span>
+                    <span style='background:#e6000f;'></span>
+                    <span style='background:#ff1a29;'></span>
+                    <span style='background:#ff3341;'></span>
+                    <span style='background:#ff4d58;'></span>
+                    <span style='background:#ff6670;'></span>
+                    <span style='background:#ff8088;'></span>
+                    <span style='background:#ff99a0;'></span>
+                    <label>High</label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label>Low</label>
+                </nav>
+                <div>
+                    <p style="font-size:10px;margin-top:7px;line-height:14px;">Gray neighborhoods lack sufficient data to assess sidewalk problems.
+                        Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!</p>
+                </div>
+            </div>
+            <div id="choropleth"></div>
+            <div id="loadingChoropleth">
+                <img src='/assets/images/loader.gif' alt='loading' />
+            </div>
+        </div>
+    </div>
+
+
+<script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+<link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/AccessibilityChoropleth.js")'></script>
+
+
+<script>
+        $(document).ready(function () {
+            var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+            window.choropleth = AccessibilityChoropleth(_, $, turf, difficultRegionIds);
+        });
+</script>
 }
