@@ -173,13 +173,12 @@ $(document).ready(function () {
     var open = gsv_panoramas[panoIndex];
 
     var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
-    
-    var id = "label_id_"+label.label_id;
+
     var label_marker = new PanoMarker({
       pano: gsv_panoramas[panoIndex],
       container: panoramas[panoIndex],
       position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
-      id: id,
+      id: "label_id_"+label.label_id,
       icon: "https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png"
     });
 
@@ -236,8 +235,10 @@ $(document).ready(function () {
     if(markerElement.attr('data-toggle') === undefined){
       markerElement
         .attr('data-toggle', 'popover')
+        .attr('data-placement', 'top')
         .attr('data-content', 
-          '<p style="text-align:center"><b>Labeler:</b>&nbsp;'+data.username+', <b>Label ID:</b>&nbsp;'+data.label_id+'<br><b>Severity:</b>&nbsp;'+data.severity+'</p>'+
+          '<p style="text-align:center"><b>Labeler:</b>&nbsp;'+data.username+', <b>Label ID:</b>&nbsp;'+data.label_id+
+          '<br><b>Severity:</b>&nbsp;'+data.severity+'</p>'+
           '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>')
         .popover({html:true});
     }
@@ -338,11 +339,10 @@ $(document).ready(function () {
 
   //clear a specific canvas
   function clearCanvas(canvasNum){
-    var pan = selectedLabels[canvasNum];
-    var drawing = pan.view;
-    pan.info.innerHTML = "";
-    pan.view.style.borderStyle = "hidden";
-    pan.label = null;
+    var pano = selectedLabels[canvasNum];
+    pano.info.innerHTML = "";
+    pano.view.style.borderStyle = "hidden";
+    pano.label = {};
     nextOpenView= calculateNextOpen();
     labelMarkers[canvasNum].setMap(null);
   }
