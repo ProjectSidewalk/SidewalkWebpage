@@ -23,6 +23,9 @@
                     <li class="active">
                         <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
                     </li>
+                    <li class="active">
+                        <button class="navbarStartBtn navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
+                    </li>
 
                 } else {
 
@@ -242,7 +245,7 @@ $(document).ready(function () {
                     // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
             });
-            
+
 
             function validateEmail(email) {
                 var regex = /\S+@@\S+\.\S+/;
@@ -299,7 +302,7 @@ $(document).ready(function () {
                 $('#sign-in-modal-container').modal('toggle');
             }
 
-            
+
             function invalidSignInUpAlert(signIn, message){
                 if(signIn){
                     $('#incorrect-login-modal-alert').hide();

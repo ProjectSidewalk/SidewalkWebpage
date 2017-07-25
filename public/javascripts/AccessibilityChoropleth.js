@@ -252,7 +252,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 distanceLeft = ">1";
             }
 
-            var data = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
+            var data = "Click_module=Results_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
             postToWebpageActivity(data);
         });
     }
