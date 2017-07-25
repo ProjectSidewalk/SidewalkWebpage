@@ -1200,3 +1200,11 @@ kbd {
     color: black;
     cursor: pointer;
 }
+.resultsImages{
+    margin-top: 10px;
+}
+.resultsImages td {
+    padding-left: 15px;
+    text-align: center;
+    padding-top: 5px;
+}

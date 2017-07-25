@@ -18,8 +18,6 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         "NoCurbRamp": "Missing Curb Ramps",
         "SurfaceProblem": "Surface Problems",
         "Obstacle": "Obstacles",
-        "Occlusion": "Occluded Sidewalks",
-        "Other": "Other Issues",
     };
 
 // a grayscale tileLayer for the choropleth
@@ -82,22 +80,19 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
         function style(feature) {
             for (var i = 0; i < rates.length; i++) {
-                //if (rates[i].region_id === feature.properties.region_id) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     var totalIssues = 0;
                     for(var issue in rates[i].labels){
                         totalIssues += rates[i].labels[issue];
                     }
 
-                    var significantData = rates[i].rate > .15;
+                    var significantData = rates[i].rate >= .13;
                     var fillColor = significantData ? getColor(1000.0 * totalIssues/rates[i].completed_distance_m) : '#888';
-                    var fillOpacity = significantData ? 0.25 + (0.5 * totalIssues/rates[i].completed_distance_m) : .25;
+                    var fillOpacity = significantData ? 0.4 + (totalIssues/rates[i].completed_distance_m) : .25;
                     return {
                         color: '#888',
                         weight: 1,
                         opacity: 0.25,
-                        //fillColor: getColor(100.0 * rates[i].rate),
-                        //fillOpacity: 0.25 + (0.5 * rates[i].rate)
                         fillColor: fillColor,
                         fillOpacity: fillOpacity
                     }
@@ -113,7 +108,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 compRate = -1.0,
                 milesLeft = -1.0,
                 url = "/audit/region/" + regionId,
-                popupContent = "???";
+                popupContent = "";
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(100.0 * rates[i].rate);
@@ -149,12 +144,25 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                     }
 
                     var labels = rates[i].labels;
+                    var counts = {};
                     for(var j in labelText){
                         if(typeof labels[j] != 'undefined')
-                            popupContent += "<br>" + labelText[j] + ": "+ labels[j];
+                            counts[j] = labels[j];
                         else
-                            popupContent += "<br>" + labelText[j] + ": "+ 0;
+                            counts[j] = 0;
                     }
+
+                    popupContent += '<div class="resultsImages"><table><tbody>'+
+                                    '<tr><td>Missing Sidewalks<br/>'+
+                                    '</td><td>Missing Ramps<br/>'+
+                                    '</td><td>Surface Problems<br/>'+
+                                    '</td><td>Obstacles<br/>'+
+                                    '</td></tr>'+
+                                    '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Other.png"></td>'+
+                                    '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoCurbRamp.png"></td>'+
+                                    '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_SurfaceProblem.png"></td>'+
+                                    '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+
+                                    '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>'
 
                     break;
                 }

@@ -451,7 +451,7 @@ object LabelTable {
         |          AND label_point.lat IS NOT NULL
         |          AND region.deleted = FALSE
         |          AND region.region_type_id = 2
-        |          AND label.label_type_id <> 1
+        |          AND label.label_type_id NOT IN (1,5,6)
         |          AND region_id = ?) AS labels
         |GROUP BY (labels.label_type)""".stripMargin
     )
