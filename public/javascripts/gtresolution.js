@@ -169,30 +169,24 @@ $(document).ready(function () {
     //choose the next open canvas
     var open = gsv_panoramas[panoIndex];
 
+    // Create PanoMarker
     var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
-
+    var size = new google.maps.Size(30, 30);
     var label_marker = new PanoMarker({
       pano: gsv_panoramas[panoIndex],
       container: panoramas[panoIndex],
       position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
       id: "label_id_"+label.label_id,
-      icon: "https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png"
+      icon: "assets/javascripts/SVLabel/img/cursors/Cursor_"+label.label_type_key+".png",
+      size: size
     });
-
     labelMarkers[panoIndex] = label_marker;
+
+    // Add listener to marker to show info upon clicking
     google.maps.event.addListener(labelMarkers[panoIndex], 'click', function() {
       createPopover(panoIndex);
     });
-
-    //var icon = getIcon(colorMapping[label.label_type_key].fillStyle);
-    //label_marker.setIcon(icon);
-
     return this;
-  }
-
-  function getIcon(fillColor) {
-    var iconUrl = "http://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + fillColor;
-    return iconUrl;
   }
 
   //choose the earliest of the open views (views not displaying a label)
