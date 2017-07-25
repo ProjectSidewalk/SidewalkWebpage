@@ -175,12 +175,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+    * Returns label counts by label type, for each region
+    * @return
+    */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
       val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
 
       val features: List[JsObject] = neighborhoods.map {neighborhood =>
-       val labelResults = LabelTable.selectNegativeLabelsByRegionId(neighborhood.regionId)
+       val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
        Json.obj(
             "region_id" -> neighborhood.regionId,
             "labels" -> Json.toJson(labelResults.toMap)

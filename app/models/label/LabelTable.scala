@@ -434,7 +434,13 @@ object LabelTable {
     labelLocationList
   }
 
-  def selectNegativeLabelsByRegionId(regionId: Int) = db.withSession { implicit session =>
+  /**
+    * Returns counts of labels by label type in the specified region
+    *
+    * @param regionId
+    * @return
+    */
+  def selectNegativeLabelCountsByRegionId(regionId: Int) = db.withSession { implicit session =>
     val selectQuery = Q.query[(Int), (String, Int)](
       """SELECT labels.label_type, count(labels.label_type) FROM (
         |	SELECT label.label_id, label.audit_task_id, label.gsv_panorama_id, label_type.label_type, label_point.lat, label_point.lng, region.region_id
