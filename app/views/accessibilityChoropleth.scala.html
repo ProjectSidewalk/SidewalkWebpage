@@ -1,0 +1,76 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
+@import models.user.User
+@import models.user.UserCurrentRegionTable
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@import play.api.libs.json.Json
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
+
+    <div class="container" id="choropleth-container" style="width: 100%;
+        position: relative;">
+        <div class="im-centered3">
+            <div class="row">Pick a Neighborhood</div>
+            <br>
+            <div class="row" id="content-text-1">
+                <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
+                    You are automatically assigned a neighborhood when you click 'Start Mapping', but you can also choose one by clicking on a region below!
+                </div>
+            </div>
+        </div>
+        <br>
+        <div id="map-holder">
+            <div id="legend" style="display:none;">
+                <strong style="font-size: 18px">Percent of Neighborhood Complete</strong>
+                <nav class='legend clearfix'>
+                    <span style='background:#08306b;'></span>
+                    <span style='background:#08519c;'></span>
+                    <span style='background:#08719c;'></span>
+                    <span style='background:#2171b5;'></span>
+                    <span style='background:#4292c6;'></span>
+                    <span style='background:#6baed6;'></span>
+                    <span style='background:#9ecae1;'></span>
+                    <span style='background:#c6dbef;'></span>
+                    <span style='background:#deebf7;'></span>
+                    <span style='background:#f7fbff;'></span>
+                    <label>100%</label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label></label>
+                    <label>0%</label>
+                </nav>
+            </div>
+            <div id="choropleth"></div>
+        </div>
+    </div>
+
+
+    </div>
+
+
+<script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+<link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/AccessibilityChoropleth.js")'></script>
+
+
+<script>
+        $(document).ready(function () {
+            var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+            //window.choropleth = Choropleth(_, $, turf, difficultRegionIds);
+            window.choropleth = AccessibilityChoropleth(_, $, turf, difficultRegionIds);
+        });
+</script>
+}

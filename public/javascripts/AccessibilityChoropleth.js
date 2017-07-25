@@ -13,6 +13,15 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
 
+    var labelText = {
+        "NoSidewalk":"Missing Sidewalks",
+        "NoCurbRamp": "Missing Curb Ramps",
+        "SurfaceProblem": "Surface Problems",
+        "Obstacle": "Obstacles",
+        "Occlusion": "Occluded Sidewalks",
+        "Other": "Other Issues",
+    };
+
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var choropleth = L.mapbox.map('choropleth', "kotarohara.8e0c6890", {
@@ -73,8 +82,8 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
         function style(feature) {
             for (var i = 0; i < rates.length; i++) {
+                //if (rates[i].region_id === feature.properties.region_id) {
                 if (rates[i].region_id === feature.properties.region_id) {
-
                     return {
                         color: '#888',
                         weight: 1,
@@ -128,6 +137,15 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }
+
+                    var labels = rates[i].labels;
+                    for(var j in labelText){
+                        if(typeof labels[j] != 'undefined')
+                            popupContent += "<br>" + labelText[j] + ": "+ labels[j];
+                        else
+                            popupContent += "<br>" + labelText[j] + ": "+ 0;
+                    }
+
                     break;
                 }
             }
@@ -222,17 +240,27 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
     }
 
 
-    //$.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-    $.getJSON('/adminapi/choroplethCounts/', function (data) {
+    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
         console.log(data);
-        // make a choropleth of neighborhood completion percentages
-        initializeChoroplethNeighborhoodPolygons(choropleth, data);
-        choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
-        setTimeout(function () {
-            choropleth.invalidateSize(false);
-        }, 1);
-    });
 
+        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+
+            //append label counts to region data with map/reduce
+            var regionData = _.map(data, function(region){
+                var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
+                region.labels = regionLabel ? regionLabel.labels : {};
+                return region;
+            })
+
+            // make a choropleth of neighborhood completion percentages
+            initializeChoroplethNeighborhoodPolygons(choropleth, regionData);
+            choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
+            setTimeout(function () {
+                choropleth.invalidateSize(false);
+            }, 1);
+
+        });
+    });
 
     // Makes POST request that logs `activity` in WebpageActivityTable
     function postToWebpageActivity(activity){

@@ -16,6 +16,7 @@ GET     /results                                @controllers.ApplicationControll
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
 GET     /mobile                                 @controllers.ApplicationController.mobile
+GET     /accessibility                          @controllers.ApplicationController.accessibility
 
 # User authentication
 GET     /signIn                                 @controllers.UserController.signIn(url: String ?= "/")
@@ -47,11 +48,11 @@ GET     /adminapi/labels/panoid                 @controllers.AdminController.get
 GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered        @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.getAllAnonUserLabelCounts
-GET     /adminapi/choroplethCounts                   @controllers.AdminController.getRegionNegativeLabelCounts
+GET     /adminapi/choroplethCounts              @controllers.AdminController.getRegionNegativeLabelCounts
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
-GET     /audit/easyRegion                        @controllers.AuditController.auditNewEasyRegion
+GET     /audit/easyRegion                       @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                          @controllers.AuditController.postComment
