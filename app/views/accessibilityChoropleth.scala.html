@@ -25,7 +25,7 @@
         <br>
         <div id="map-holder">
             <div id="legend" style="display:none;">
-                <strong style="font-size: 18px">Percent of Neighborhood Complete</strong>
+                <strong style="font-size: 18px">Rate of Sidewalk Problems</strong>
                 <nav class='legend clearfix'>
                     <span style='background:#99000a;'></span>
                     <span style='background:#b3000c;'></span>
@@ -37,7 +37,7 @@
                     <span style='background:#ff6670;'></span>
                     <span style='background:#ff8088;'></span>
                     <span style='background:#ff99a0;'></span>
-                    <label>100%</label>
+                    <label style='font-size:13px;'>Severe</label>
                     <label></label>
                     <label></label>
                     <label></label>
@@ -46,14 +46,22 @@
                     <label></label>
                     <label></label>
                     <label></label>
-                    <label>0%</label>
+                    <label>OK</label>
                 </nav>
+                <div>
+                    <p style="font-size:11px;">These results are preliminary and represent volunteer contributions that have not yet been validated.
+                       We are working on it. Stay tuned!</p>
+                </div>
             </div>
             <div id="choropleth"></div>
+            <div id="loadingChoropleth">
+                <img src='/assets/images/loader.gif' alt='loading' />
+            </div>
+            <!--<div class='map-overlay' id="resultsAlert">
+                <p>These results are preliminary and represent volunteer contributions that have not yet been validated.
+                   We are working on it. Stay tuned!</p>
+            </div>-->
         </div>
-    </div>
-
-
     </div>
 
 
@@ -69,7 +77,6 @@
 <script>
         $(document).ready(function () {
             var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
-            //window.choropleth = Choropleth(_, $, turf, difficultRegionIds);
             window.choropleth = AccessibilityChoropleth(_, $, turf, difficultRegionIds);
         });
 </script>
