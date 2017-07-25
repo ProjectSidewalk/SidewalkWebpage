@@ -44,9 +44,9 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
 
     /**
-     * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
+     * Takes number of labels per km, and returns the appropriate color for a choropleth.
      *
-     * @param p {float} represents a completion percentage, between 0 and 100
+     * @param p {float} represents number of labels per km
      * @returns {string} color in hex
      */
 
@@ -64,11 +64,11 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
     }
 
     /**
-     * render the neighborhood polygons, colored by completion percentage
+     * render the neighborhood polygons, colored by num of labels per km
      */
     function initializeChoroplethNeighborhoodPolygons(map, rates) {
-        var neighborhoodPolygonStyle = { // default bright red, used to check if any regions are missing data
-                color: '#888',
+        var neighborhoodPolygonStyle = { // default black, used to check if any regions are missing data
+                color: '#000',
                 weight: 1,
                 opacity: 0.25,
                 fillColor: "#f00",
@@ -77,7 +77,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             layers = [],
             currentLayer;
 
-        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
+        // finds matching neighborhood's completion percentage and num labels/km, uses it to determine the fill color
         function style(feature) {
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
