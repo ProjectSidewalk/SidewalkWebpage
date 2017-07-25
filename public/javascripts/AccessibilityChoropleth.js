@@ -86,7 +86,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                         totalIssues += rates[i].labels[issue];
                     }
 
-                    var significantData = rates[i].rate >= .13;
+                    var significantData = rates[i].rate >= .3;
                     var fillColor = significantData ? getColor(1000.0 * totalIssues/rates[i].completed_distance_m) : '#888';
                     var fillOpacity = significantData ? 0.4 + (totalIssues/rates[i].completed_distance_m) : .25;
                     return {
