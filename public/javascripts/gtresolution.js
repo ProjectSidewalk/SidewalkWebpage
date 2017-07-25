@@ -231,9 +231,30 @@ $(document).ready(function () {
         .attr('data-content', 
           '<p style="text-align:center"><b>Labeler:</b>&nbsp;'+data.username+', <b>Label ID:</b>&nbsp;'+data.label_id+
           '<br><b>Severity:</b>&nbsp;'+data.severity+'</p>'+
-          '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>')
-        .popover({html:true});
+          '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>'+
+          '<a href="javascript:;" id="toggle-visible-'+data.label_id+'" style="margin-left:8px"><span class="glyphicon glyphicon-eye-open" style="color:#7CE98B; font-size:14px"></span></a>') // 9eba9e
+        .popover({html:true})
+        .parent().delegate('a#toggle-visible-'+data.label_id, 'click', function(e){
+          if(labelMarkers[index].getIcon() === null){
+            labelMarkers[index].setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
+            markerElement.children('a').children('span').css('color', '#7CE98B');
+          }else{
+            labelMarkers[index].setIcon(null);
+            markerElement.children('a').children('span').css('color', '#F8F4F0');
+          }
+        });
       selectedLabels[index].popoverOn = true;
+
+      // Toggle visibility of label marker
+      markerElement.on('click','a#toggle-visible-'+data.label_id, function(e){
+        if(labelMarkers[index].getIcon() === null){
+          labelMarkers[index].setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
+          this.children('span').css('color', '#7CE98B');
+        }else{
+          labelMarkers[index].setIcon(null);
+          this.children('span').css('color', '#F8F4F0');
+        }
+      });
 
       // Popover follows marker when POV is changed
       gsv_panoramas[index].addListener('pov_changed', function(){
