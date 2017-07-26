@@ -88,6 +88,71 @@
         <!-- /.container -->
 </nav>
     <!-- /.navbar -->
+
+<!-- Script loads regardless of whether user is registered or not -->
+<script>
+$(document).ready(function () {
+    function logWebpageActivity(activity){
+        var currentRoute = window.location.pathname;
+        var url = "/userapi/logWebpageActivity";
+        var async = true;
+        var activityToSend = activity + "_location=Navbar_route=" + currentRoute;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activityToSend),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    // Triggered when 'Sign In' in navbar is clicked
+    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/faq|...>"
+    $("#sign-in-button").on('click', function(){
+        logWebpageActivity("Click_module=SignIn");
+    });
+
+    // Triggered when 'Start Mapping' in navbar is clicked
+    // Logs "Click_module=StartMapping_location=Index"
+    $(".navbarStartBtn").on('click', function(){
+        logWebpageActivity("Click_module=StartMapping");
+    });
+
+    // Triggered when links in the navbar are pressed when on the Audit page
+    // Logs "Click_module=<RetakeTutorial|FAQ>_location=Navbar_route=</|/audit|/faq|...>"
+    $(".navbarLink").on('click', function(e){
+        var activity = "Click_module=RetakeTutorial";
+        if(e.currentTarget.innerHTML.includes("FAQ")){
+            activity = "Click_module=FAQ";
+        }
+        logWebpageActivity(activity);
+    });
+
+    // Triggered when Project Sidewalk logo on navbar is clicked
+    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/faq|...>"
+    $("#brand").on('click', function(){
+        logWebpageActivity("Click_module=PSLogo");
+    });
+
+    // Triggered when items in the user menu are clicked
+    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/faq|...>""
+    $("#nav-user-menu").on('click', function(e){
+        var activity = "Click_module=SignOut";
+        if(e.target.innerText.includes("Admin")){
+            activity = "Click_module=ToAdmin";
+        }else if(e.target.innerText.includes("dashboard")){
+            activity = "Click_module=ToDashboard";
+        }
+        logWebpageActivity(activity);
+    });
+});
+</script>
+
 @if(!user) {
     <script type="text/javascript">
             $(document).ready(function () {
@@ -98,35 +163,6 @@
                 $("#form-open-sign-in").on("mouseup", function () {
                     $("#sign-up-modal").addClass("hidden");
                     $("#sign-in-modal").removeClass("hidden");
-                });
-
-                function logWebpageActivity(activity){
-                    var url = "/userapi/logWebpageActivity";
-                    var async = true;
-                    $.ajax({
-                        async: async,
-                        contentType: 'application/json; charset=utf-8',
-                        url: url,
-                        type: 'post',
-                        data: JSON.stringify(activity),
-                        dataType: 'json',
-                        success: function(result){},
-                        error: function (result) {
-                            console.error(result);
-                        }
-                    });
-                }
-
-                // Triggered when 'Sign In' in navbar is clicked
-                // Logs "Click_module=SignIn"
-                $("#sign-in-button").on('click', function(){
-                    logWebpageActivity("Click_module=SignIn");
-                });
-
-                // Triggered when 'Start Mapping' in navbar is clicked
-                // Logs "Click_module=StartMapping_location=Index"
-                $(".navbarStartBtn").on('click', function(){
-                    logWebpageActivity("Click_module=StartMapping_location=Navbar");
                 });
             });
     </script>
@@ -206,6 +242,7 @@
                     // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
             });
+            
 
             function validateEmail(email) {
                 var regex = /\S+@@\S+\.\S+/;
@@ -255,7 +292,7 @@
 
                 // Append the link to the admin interface if it the user is admin
                 if (data.roles && data.roles.indexOf("Administrator") >= 0) {
-                    var adminLi = '<li role="presentation"><a href="/admin" role="menuitem">Admin</a></li>';
+                    var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
                     $('#nav-user-menu').children('#dashboard-link').after(adminLi);
                 }
 

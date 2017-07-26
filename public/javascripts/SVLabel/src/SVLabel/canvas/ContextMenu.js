@@ -22,6 +22,7 @@ function ContextMenu (uiContextMenu) {
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
             hide();
+            wasOpen = true;
             if (clicked_out) _handleSeverityPopup();
         }
     }); //handles clicking outside of context menu holder

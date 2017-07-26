@@ -1094,7 +1094,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
                     var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, anonChart]};
 
-                    vega.embed("#mission-count-chart", combinedChart, opt, function(error, results) {});
+                    vega.embed("#mission-count-chart", combinedChartFiltered, opt, function(error, results) {});
 
                     var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function(cb) {
                         if (cb.srcElement.checked) {
