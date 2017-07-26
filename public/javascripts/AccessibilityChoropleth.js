@@ -213,7 +213,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 else{
                     distanceLeft = ">1";
                 }
-                var activity = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                var activity = "Click_module=ResultsChoropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
                 postToWebpageActivity(activity);
             });
         }
@@ -235,7 +235,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
                 return regionId == x.region_id;
-            })
+            });
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
@@ -252,7 +252,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 distanceLeft = ">1";
             }
 
-            var data = "Click_module=Results_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
+            var data = "Click_module=ResultsChoropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
             postToWebpageActivity(data);
         });
     }
