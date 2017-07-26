@@ -47,11 +47,14 @@ GET     /adminapi/labels/panoid                 @controllers.AdminController.get
 GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered        @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.getAllAnonUserLabelCounts
+
 GET     /adminapi/webpageActivities             @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivities/:activity   @controllers.AdminController.getWebpageActivities(activity: String)
 GET     /adminapi/webpageActivities/:activity/*keyValPairs  @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/numWebpageActivities/:activity @controllers.AdminController.getNumWebpageActivities(activity: String)
 GET     /adminapi/numWebpageActivities/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
+
+GET     /adminapi/choroplethCounts              @controllers.AdminController.getRegionNegativeLabelCounts
 
 
 # Auditing tasks
