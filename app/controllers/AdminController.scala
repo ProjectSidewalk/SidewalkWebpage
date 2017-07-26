@@ -407,7 +407,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)){
-      val keyVals: Array[String] = keyValPairs.split("/")
+      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       if(activities.length == 0){
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name and/or key-value pair")))
