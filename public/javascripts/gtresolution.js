@@ -178,6 +178,7 @@ $(document).ready(function () {
   function showLabel(labelId, panoIndex){
     nextOpenView = calculateNextOpen();  
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
+      $('#pano'+(panoIndex+1)+'-holder').children('div.loading').fadeOut('slow', function(){$(this).remove();});
       panoramaContainers[panoIndex].label = data;
       //update info
       panoramaContainers[panoIndex].info.innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
@@ -188,6 +189,10 @@ $(document).ready(function () {
       toChange.setPano(data.gsv_panorama_id);
       toChange.setPov({heading: data.heading, pitch: data.pitch});
     });
+    $('#pano'+(panoIndex+1)+'-holder').prepend(
+      '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">'+
+        '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%">Loading...</p>'+
+      '</div>');
   }
 
   //draw a label in the view
