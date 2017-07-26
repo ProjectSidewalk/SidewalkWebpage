@@ -129,7 +129,7 @@ footer {
     max-height: 30px;
 }
 
-.navbarStartBtn {
+.navbarStartBtn, .navbarResultsBtn {
     background-color:#ffffff;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -146,6 +146,9 @@ footer {
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.navbarResultsBtn{
+    margin-left: 8px;
 }
 .navbarStartBtn:hover {
     background-color:#FCECBE;
@@ -1199,4 +1202,45 @@ kbd {
     background-color: white;
     color: black;
     cursor: pointer;
+}
+.resultsImages{
+    margin-top: 10px;
+}
+.resultsImages td {
+    padding-left: 15px;
+    text-align: center;
+    padding-top: 5px;
+}
+.map-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  margin-right: 20px;
+  font-family: Arial, sans-serif;
+  overflow: auto;
+  border-radius: 10px;
+}
+#resultsAlert {
+    height: 100px;
+    margin-top: 20px;
+    width: 250px;
+    padding: 5px;
+    margin-bottom: 20px;
+}
+#loadingChoropleth{
+    position: absolute;
+    top: 47%;
+    right: 44%;
+}
+.leaflet-bottom > .map-legends.wax-legends{
+    right: 0px;
+    top: 0px;
+    width: 319px;
+    max-width: 500px;
+    height: 118px;
+}
+#results-choropleth-container {
+    background-color: #fff;
+    width: 100%;
 }

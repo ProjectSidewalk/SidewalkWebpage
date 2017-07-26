@@ -23,6 +23,9 @@
                     <li class="active">
                         <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
                     </li>
+                    <li class="active">
+                        <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
+                    </li>
 
                 } else {
 
@@ -118,9 +121,15 @@ $(document).ready(function () {
     });
 
     // Triggered when 'Start Mapping' in navbar is clicked
-    // Logs "Click_module=StartMapping_location=Index"
+    // Logs "Click_module=StartMapping_location=Navbar_route=</|/audit|/faq|...>"
     $(".navbarStartBtn").on('click', function(){
         logWebpageActivity("Click_module=StartMapping");
+    });
+
+    // Triggered when 'Results' in navbar is clicked
+    // Logs "Click_module=Results_location=Navbar_route=</|/audit|/faq|...>"
+    $(".navbarResultsBtn ").on('click', function(){
+        logWebpageActivity("Click_module=Results");
     });
 
     // Triggered when links in the navbar are pressed when on the Audit page
@@ -242,7 +251,7 @@ $(document).ready(function () {
                     // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
             });
-            
+
 
             function validateEmail(email) {
                 var regex = /\S+@@\S+\.\S+/;
@@ -299,7 +308,7 @@ $(document).ready(function () {
                 $('#sign-in-modal-container').modal('toggle');
             }
 
-            
+
             function invalidSignInUpAlert(signIn, message){
                 if(signIn){
                     $('#incorrect-login-modal-alert').hide();

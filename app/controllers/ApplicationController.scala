@@ -176,4 +176,5 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility")))
     }
   }
+
 }

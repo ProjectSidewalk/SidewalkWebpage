@@ -175,6 +175,28 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+    * Returns label counts by label type, for each region
+    * @return
+    */
+  def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
+
+      val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
+
+      val features: List[JsObject] = neighborhoods.map {neighborhood =>
+       val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
+       Json.obj(
+            "region_id" -> neighborhood.regionId,
+            "labels" -> Json.toJson(labelResults.toMap)
+       )
+      }
+
+      val jsonObjectList = features.map(x => Json.toJson(x))
+
+      Future.successful(Ok(JsArray(jsonObjectList)))
+
+  }
+
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
