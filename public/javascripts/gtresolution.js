@@ -139,8 +139,9 @@ $(document).ready(function () {
       var id = feature.properties.label_id;
       var panoIndex = panoramaContainers.findIndex( panoramaContainer => panoramaContainer.label.label_id === id );
       if(panoIndex >= 0){ // If it's being shown, clear the canvas it's being shown in
-        clearCanvas(panoIndex, [layer]);
+        $('#clear' + (panoIndex + 1)).trigger('click');
       } else { //if not, display the label and log that it is being shown
+        $('#clear' + (nextOpenView + 1)).trigger('click');
         panoramaContainers[nextOpenView].label.label_id = id;
         layer.setRadius(15);
         showLabel(id, nextOpenView);
@@ -267,13 +268,11 @@ $(document).ready(function () {
   //clear a specific canvas
   function clearCanvas(index, layers){
     var panoramaContainer = panoramaContainers[index];
-    var labelId = panoramaContainer.label.label_id;
-    var layer = undefined;
-    var labelsOfAType = [];
+    if(panoramaContainer.labelMarker !== null){
+      var labelId = panoramaContainer.label.label_id;
+      var layer = undefined;
+      var labelsOfAType = [];
 
-    if(Array.isArray(layers) && layers.length === 1){ // True when canvas is cleared by clicking on same label on the map
-      layer = layers[0];
-    } else {
       for (var labelType in layers) {
         if (layers.hasOwnProperty(labelType)) {
           if(!Array.isArray(layers[labelType])){ // Go through all labels on map and find the one that matches the one that we're trying to clear from the canvas
@@ -282,20 +281,21 @@ $(document).ready(function () {
           }
         }
       }
+      
+      if(layer !== undefined){
+        layer.setRadius(5);
+      }
+      
+      $('#label-id-'+labelId).popover('hide');
+      panoramaContainer.info.innerHTML = "";
+      panoramaContainer.view.style.borderStyle = "hidden";
+      panoramaContainer.label = {};
+      panoramaContainer.popoverOn = false;
+      nextOpenView = calculateNextOpen();
+      google.maps.event.clearListeners(panoramaContainers[index].gsv_panorama, 'pov_changed');
+      panoramaContainers[index].labelMarker.setMap(null);
+      panoramaContainers[index].labelMarker = null;
     }
-    if(layer !== undefined){
-      layer.setRadius(5);
-    }
-    
-    $('#label-id-'+labelId).popover('hide');
-    panoramaContainer.info.innerHTML = "";
-    panoramaContainer.view.style.borderStyle = "hidden";
-    panoramaContainer.label = {};
-    panoramaContainer.popoverOn = false;
-    nextOpenView = calculateNextOpen();
-    google.maps.event.clearListeners(panoramaContainers[index].gsv_panorama, 'pov_changed');
-    panoramaContainers[index].labelMarker.setMap(null);
-    panoramaContainers[index].labelMarker = null;
   }
 
 
