@@ -47,10 +47,11 @@ GET     /adminapi/labels/panoid                 @controllers.AdminController.get
 GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered        @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/choroplethCounts              @controllers.AdminController.getRegionNegativeLabelCounts
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
-GET     /audit/easyRegion                        @controllers.AuditController.auditNewEasyRegion
+GET     /audit/easyRegion                       @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                          @controllers.AuditController.postComment
