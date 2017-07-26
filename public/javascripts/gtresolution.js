@@ -7,26 +7,16 @@ $(document).ready(function () {
   var disagreements = sampleLabels;
   //stores which disagreement is being looked at currently
   var currentDisagreement = 0;
-  //currentPano and currentCoordinates are formats for the label's lat lng position
-  var currentPano, currentCoordinates;
+  // currentCoordinates are formats for the label's lat lng position
+  var currentCoordinates;
 
-  //list of the four GSV panorama holders
-  var panoramas = document.getElementsByClassName("gtpano");
-  //list of the four GSV panoramas
-  var gsv_panoramas = [];
-  //list of the four divs storing label information
-  var infos = document.getElementsByClassName("labelstats");
-  //list of label markers
-  var labelMarkers = [];
+  //array that stores information about each panorama/view
+  var panoramaContainers = [];
 
-  //array that stores which label is being displayed on what holder/info group
-  var selectedLabels = [
-    {view: panoramas[0], info: infos[0], label: {}, popoverOn: false},
-    {view: panoramas[1], info: infos[1], label: {}, popoverOn: false},
-    {view: panoramas[2], info: infos[2], label: {}, popoverOn: false},
-    {view: panoramas[3], info: infos[3], label: {}, popoverOn: false}];
   //stores the next open view to display a label on
   var nextOpenView = 0;
+
+
 
   //stores color information for each label type
   var colorMapping = {
@@ -79,8 +69,10 @@ $(document).ready(function () {
     "stroke-width": 1
   };
 
+
+
   //initialize all labels on the mapbox map
-  function initializeAllLayers(data) {
+  function initializeAllLayers(data, self, map) {
     for (i = 0; i < data.features.length; i++) {
       //push label type to list of layers
       var labelType = data.features[i].properties.label_type;
@@ -95,8 +87,7 @@ $(document).ready(function () {
       }
     });
   }
-
-    //create a layer for the mapbox
+  //create a layer for the mapbox
   function createLayer(data) {
     return L.geoJson(data, {
       pointToLayer: function (feature, latlng) {
@@ -110,102 +101,12 @@ $(document).ready(function () {
     });
   }
 
-    //activity of marker
-  function onEachLabelFeature(feature, layer) {
-    layer.on('click', function () {
-      //test whether the label is already being shown in one of the four views
-      var id = feature.properties.label_id;
-      var present = selectedLabels.some( selectedLabel => selectedLabel.label.label_id === id );
-      if(present){
-        //if yes, then remove the label and clear the view
-        layer.setRadius(5);
-        //find out which view it is being shown in
-        var pan = selectedLabels.find( selectedLabel => selectedLabel.label.label_id === id );
-        var index = selectedLabels.findIndex( selectedLabel => selectedLabel.label.label_id === id );
-        //clear info, border, logged id
-        pan.info.innerHTML = "";
-        pan.view.style.borderStyle = "hidden";
-        pan.label = null;
-        //recalulate next open view
-        nextOpenView= calculateNextOpen();
-        //clear canvas
-        labelMarkers[index].setMap(null);
-      }else{
-        //if not, display the label and log that it is being shown
-        selectedLabels[nextOpenView].label.label_id = id;
-        layer.setRadius(15);
-        showLabel(id, nextOpenView);
-      }
-    });
-    layer.on({
-      'mouseover': function () {
-        //test whether label is present within a view
-        var present = selectedLabels.some( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id);
-        if(present){
-          //if so, highlight that view with a border
-          var pan = selectedLabels.find( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id );
-          pan.view.style.borderStyle = "solid";
-        }
-        //emphasize marker
-        layer.setRadius(10);
-      },
-      'mouseout': function () {
-        //test whether label is present within a view
-        var present = selectedLabels.some( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id);
-        if(!present){
-          //if not, remove emphasis
-          layer.setRadius(5);
-        }else{
-          //if so, hide border highlight
-          var pan = selectedLabels.find( selectedLabel => selectedLabel.label.label_id === feature.properties.label_id );
-          pan.view.style.borderStyle = "hidden";
-        }
-      }
-    });
-  }
-
-  //draw a label in the view
-  function renderLabel (label, panoIndex) {
-    //choose the next open canvas
-    var open = gsv_panoramas[panoIndex];
-
-    // Create PanoMarker
-    var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
-    var size = new google.maps.Size(30, 30);
-    var label_marker = new PanoMarker({
-      pano: gsv_panoramas[panoIndex],
-      container: panoramas[panoIndex],
-      position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
-      id: "label_id_"+label.label_id,
-      icon: "assets/javascripts/SVLabel/img/cursors/Cursor_"+label.label_type_key+".png",
-      size: size
-    });
-    labelMarkers[panoIndex] = label_marker;
-
-    // Add listener to marker to show info upon clicking
-    google.maps.event.addListener(labelMarkers[panoIndex], 'click', function() {
-      createPopover(panoIndex);
-    });
-    return this;
-  }
-
-  //choose the earliest of the open views (views not displaying a label)
-  //if all full, choose the first view
-  function calculateNextOpen(){
-    for(var i = 0; i<selectedLabels.length; i++){
-      if(selectedLabels[i].label.label_id === undefined){return i;}
-    }
-    return 0;
-  }
-
   //set the GSV panoramas
   function initializePanoramas(labelId, panosToUpdate){
     $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
-      //set position
-      currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
       for(var i = 0; i < panosToUpdate.length; i++){
         //update all indicated panoramas
-        gsv_panoramas[i] = new google.maps.StreetViewPanorama(panosToUpdate[i],{
+        panoramaContainers[i].gsv_panorama = new google.maps.StreetViewPanorama(panosToUpdate[i],{
           pano: data.gsv_panorama_id,
           pov: {
             heading: data.heading,
@@ -218,11 +119,114 @@ $(document).ready(function () {
     });
   }
 
+
+
+  //choose the earliest of the open views (views not displaying a label)
+  //if all full, choose the first view
+  function calculateNextOpen(){
+    for(var i = 0; i<panoramaContainers.length; i++){
+      if(panoramaContainers[i].label.label_id === undefined){return i;}
+    }
+    return 0;
+  }
+
+
+
+  //activity of marker
+  function onEachLabelFeature(feature, layer) {
+    layer.on('click', function () {
+      //test whether the label is already being shown in one of the four views
+      var id = feature.properties.label_id;
+      var panoIndex = panoramaContainers.findIndex( panoramaContainer => panoramaContainer.label.label_id === id );
+      if(panoIndex >= 0){ // If it's being shown, clear the canvas it's being shown in
+        clearCanvas(panoIndex, [layer]);
+      } else { //if not, display the label and log that it is being shown
+        panoramaContainers[nextOpenView].label.label_id = id;
+        layer.setRadius(15);
+        showLabel(id, nextOpenView);
+      }
+    });
+    layer.on({
+      'mouseover': function () {
+        //test whether label is present within a view
+        var present = panoramaContainers.some( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id);
+        if(present){ //if so, highlight that view with a border
+          var pano = panoramaContainers.find( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id );
+          pano.view.style.borderStyle = "solid";
+        }
+        //emphasize label on map
+        layer.setRadius(10);
+      },
+      'mouseout': function () {
+        //test whether label is present within a view
+        var present = panoramaContainers.some( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id);
+        if(!present){
+          //if not, remove emphasis
+          layer.setRadius(5);
+        }else{ //if so, hide border highlight
+          var pano = panoramaContainers.find( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id );
+          pano.view.style.borderStyle = "hidden";
+        }
+      }
+    });
+  }
+
+
+
+  //show label in panorama
+  function showLabel(labelId, panoIndex){
+    nextOpenView = calculateNextOpen();  
+    $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
+      panoramaContainers[panoIndex].label = data;
+      //update info
+      panoramaContainers[panoIndex].info.innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
+      //draw label
+      renderLabel(data, panoIndex);
+      //update selected panorama
+      var toChange = panoramaContainers[panoIndex].gsv_panorama;
+      toChange.setPano(data.gsv_panorama_id);
+      toChange.setPov({heading: data.heading, pitch: data.pitch});
+    });
+  }
+
+  //draw a label in the view
+  function renderLabel (label, panoIndex) {
+    //choose the next open canvas
+    var open = panoramaContainers[panoIndex].gsv_panorama;
+
+    // Create PanoMarker
+    var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
+    var size = new google.maps.Size(30, 30);
+    var id = "label-id-"+label.label_id;
+    var label_marker = new PanoMarker({
+      pano: panoramaContainers[panoIndex].gsv_panorama,
+      container: panoramaContainers[panoIndex].view,
+      position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
+      id: id,
+      icon: "assets/javascripts/SVLabel/img/cursors/Cursor_"+label.label_type_key+".png",
+      size: size
+    });
+    panoramaContainers[panoIndex].labelMarker = label_marker;
+
+    // Add listener to marker to show info upon clicking
+    google.maps.event.addListener(panoramaContainers[panoIndex].labelMarker, 'click', function() {
+      createPopover(panoIndex);
+    });
+    
+    // Popover follows marker when POV is changed
+    google.maps.event.addListener(panoramaContainers[panoIndex].gsv_panorama, 'pov_changed', function(){
+      if(panoramaContainers[panoIndex].popoverOn){
+        $("#"+id).popover('show');
+      }
+    });
+    return this;
+  }
+
   // Create popover for marker
   function createPopover(index){
-    var data = selectedLabels[index].label;  
-    var markerElement = $("#label_id_"+selectedLabels[index].label.label_id);
-    selectedLabels[index].popoverOn = !selectedLabels[index].popoverOn;
+    var data = panoramaContainers[index].label;  
+    var markerElement = $("#label-id-"+panoramaContainers[index].label.label_id);
+    panoramaContainers[index].popoverOn = !panoramaContainers[index].popoverOn;
 
     if(markerElement.attr('data-toggle') === undefined){
       markerElement
@@ -235,140 +239,95 @@ $(document).ready(function () {
           '<a href="javascript:;" id="toggle-visible-'+data.label_id+'" style="margin-left:8px"><span class="glyphicon glyphicon-eye-open" style="color:#7CE98B; font-size:14px"></span></a>') // 9eba9e
         .popover({html:true})
         .parent().delegate('a#toggle-visible-'+data.label_id, 'click', function(e){
-          if(labelMarkers[index].getIcon() === null){
-            labelMarkers[index].setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
+          if(panoramaContainers[index].labelMarker.getIcon() === null){
+            panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
             markerElement.children('a').children('span').css('color', '#7CE98B');
           }else{
-            labelMarkers[index].setIcon(null);
+            panoramaContainers[index].labelMarker.setIcon(null);
             markerElement.children('a').children('span').css('color', '#F8F4F0');
           }
         });
-      selectedLabels[index].popoverOn = true;
+      panoramaContainers[index].popoverOn = true;
 
       // Toggle visibility of label marker
       markerElement.on('click','a#toggle-visible-'+data.label_id, function(e){
-        if(labelMarkers[index].getIcon() === null){
-          labelMarkers[index].setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
+        if(panoramaContainers[index].labelMarker.getIcon() === null){
+          panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
           this.children('span').css('color', '#7CE98B');
         }else{
-          labelMarkers[index].setIcon(null);
+          panoramaContainers[index].labelMarker.setIcon(null);
           this.children('span').css('color', '#F8F4F0');
         }
       });
 
-      // Popover follows marker when POV is changed
-      gsv_panoramas[index].addListener('pov_changed', function(){
-        if(selectedLabels[index].popoverOn){
-          markerElement.popover('show');
-        }
-      });
+      
     }
   }
 
+  //clear a specific canvas
+  function clearCanvas(index, layers){
+    var panoramaContainer = panoramaContainers[index];
+    var labelId = panoramaContainer.label.label_id;
+    var layer = undefined;
+    var labelsOfAType = [];
+
+    if(Array.isArray(layers) && layers.length === 1){ // True when canvas is cleared by clicking on same label on the map
+      layer = layers[0];
+    } else {
+      for (var labelType in layers) {
+        if (layers.hasOwnProperty(labelType)) {
+          if(!Array.isArray(layers[labelType])){ // Go through all labels on map and find the one that matches the one that we're trying to clear from the canvas
+            labelsOfAType = $.map(layers[labelType]._layers, function(value, index){return [value];});
+            layer = (layer === undefined) ? labelsOfAType.find(function(label){return label.feature.properties.label_id === labelId}) : layer;
+          }
+        }
+      }
+    }
+    if(layer !== undefined){
+      layer.setRadius(5);
+    }
+    
+    $('#label-id-'+labelId).popover('hide');
+    panoramaContainer.info.innerHTML = "";
+    panoramaContainer.view.style.borderStyle = "hidden";
+    panoramaContainer.label = {};
+    panoramaContainer.popoverOn = false;
+    nextOpenView = calculateNextOpen();
+    google.maps.event.clearListeners(panoramaContainers[index].gsv_panorama, 'pov_changed');
+    panoramaContainers[index].labelMarker.setMap(null);
+    panoramaContainers[index].labelMarker = null;
+  }
+
+
+
   //next button functionality
-  function nextDisagreement(){
-    currentDisagreement++;
+  function nextDisagreement(map){
+    currentDisagreement = (currentDisagreement + 1) % disagreements.features.length;
     $.getJSON("/gtresolution/labelData/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
       //shift mapbox to focus on next label
       currentCoordinates = [data.panorama_lat, data.panorama_lng];
-      refocusView();
+      refocusView(map);
     });
   }
 
   //previous button functionality
-  function previousDisagreement(){
-    currentDisagreement--;
+  function previousDisagreement(map){
+    currentDisagreement = (currentDisagreement - 1 + disagreements.features.length) % disagreements.features.length;
     $.getJSON("/gtresolution/labelData/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
       //shift mapbox to focus on previous label
       currentCoordinates = [data.panorama_lat, data.panorama_lng];
-      refocusView();
+      refocusView(map);
     });
   }
 
   //focus view on current label
-  function refocusView(){
+  function refocusView(map){
     map.setView(currentCoordinates,12);
   }
 
-  //show label in panorama
-  function showLabel(labelId, panoIndex){
-    nextOpenView = calculateNextOpen();  
-    $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
-      selectedLabels[panoIndex].label = data;
-      //update info
-      infos[panoIndex].innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
-      //draw label
-      renderLabel(data, panoIndex);
-      //update selected panorama
-      var toChange = gsv_panoramas[panoIndex];
-      toChange.setPano(data.gsv_panorama_id);
-      toChange.setPov({heading: data.heading, pitch: data.pitch});
-    });
-  }
-
-  //variables for the mapbox
-  var self = {};
-  self.markerLayer = null;
-  self.curbRampLayers = [];
-  self.missingCurbRampLayers = [];
-  self.obstacleLayers = [];
-  self.surfaceProblemLayers = [];
-  self.cantSeeSidewalkLayers = [];
-  self.noSidewalkLayers = [];
-  self.otherLayers = [];
-  self.allLayers = {
-    "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-    "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-    "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
-  };
-
-  L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
-
-  // Construct a bounding box for the map that the user cannot move out of
-  // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-  var southWest = L.latLng(38.761, -77.262);
-  var northEast = L.latLng(39.060, -76.830);
-  var bounds = L.latLngBounds(southWest, northEast);
-
-  // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-  var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-  var mapboxTiles = L.tileLayer(tileUrl, {
-    attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-  });
-
-  var map = L.mapbox.map('groundtruth-map', "kotarohara.8e0c6890", {
-    // set that bounding box as maxBounds to restrict moving the map
-    // see full maxBounds documentation:
-    // http://leafletjs.com/reference.html#map-maxbounds
-    maxBounds: bounds,
-    maxZoom: 20,
-    minZoom: 19
-  })
-  .fitBounds(bounds)
 
 
 
-  //update panoramas and initialize all labels on mapbox
-  $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
-    currentPano = {lat: data.panorama_lat, lng: data.panorama_lng};
-    currentCoordinates = [data.panorama_lat, data.panorama_lng];
-    map.setView(currentCoordinates, 12);
-    initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
-    initializeAllLayers(disagreements);
-  });
-
-
-  //clear a specific canvas
-  function clearCanvas(index){
-    var selectedLabel = selectedLabels[index];
-    selectedLabel.info.innerHTML = "";
-    selectedLabel.view.style.borderStyle = "hidden";
-    selectedLabel.label = {};
-    selectedLabel.popoverOn = false;
-    nextOpenView = calculateNextOpen();
-    gsv_panoramas[index].clearListeners('pov_changed');
-    labelMarkers[index].setMap(null);
-  }
 
   
   /**
@@ -437,16 +396,83 @@ $(document).ready(function () {
     };
   }
 
-  //map all button functionalities
-  document.getElementById("gtnext").onclick = nextDisagreement;
-  document.getElementById("gtrefocus").onclick = refocusView;
-  document.getElementById("gtprev").onclick = previousDisagreement;
-  document.getElementById("clear1").onclick = function(){ clearCanvas(0); }
-  document.getElementById("clear2").onclick = function(){ clearCanvas(1); }
-  document.getElementById("clear3").onclick = function(){ clearCanvas(2); }
-  document.getElementById("clear4").onclick = function(){ clearCanvas(3); }
 
-  //reduce filler at bottom of page (styling purposes)
-  document.getElementById("filler").style.minHeight = "40px";
 
+  function initialize(){
+    //variables for the mapbox
+    var self = {};
+    self.markerLayer = null;
+    self.curbRampLayers = [];
+    self.missingCurbRampLayers = [];
+    self.obstacleLayers = [];
+    self.surfaceProblemLayers = [];
+    self.cantSeeSidewalkLayers = [];
+    self.noSidewalkLayers = [];
+    self.otherLayers = [];
+    self.allLayers = {
+      "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
+      "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
+      "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
+    };
+    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+    // Construct a bounding box for the map that the user cannot move out of
+    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
+    var southWest = L.latLng(38.761, -77.262);
+    var northEast = L.latLng(39.060, -76.830);
+    var bounds = L.latLngBounds(southWest, northEast);
+    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
+    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
+    var mapboxTiles = L.tileLayer(tileUrl, {
+      attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    });
+    var map = L.mapbox.map('groundtruth-map', "kotarohara.8e0c6890", {
+      // set that bounding box as maxBounds to restrict moving the map
+      // see full maxBounds documentation:
+      // http://leafletjs.com/reference.html#map-maxbounds
+      maxBounds: bounds,
+      maxZoom: 20,
+      minZoom: 19
+    })
+    .fitBounds(bounds)
+
+    // Initialize panorama data
+    for(var i = 0; i < 4; i++){
+      panoramaContainers.push({
+        gsv_panorama: null, // the StreetViewPanorama object for each view
+        view: document.getElementsByClassName("gtpano")[i], // holder for the GSV panorama
+        info: document.getElementsByClassName("labelstats")[i], // div above panorama holding label information
+        label: {}, // metadata of label displayed in each panorama ({} if no label is displayed)
+        popoverOn: false, // 
+        labelMarker: null // the marker for the label in the panorama
+      });
+    }
+
+
+    //update panoramas and initialize all labels on mapbox
+    $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
+      currentCoordinates = [data.panorama_lat, data.panorama_lng];
+      map.setView(currentCoordinates, 12);
+      var panoramas = panoramaContainers.map(panoramaContainer => panoramaContainer.view);
+      initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
+      initializeAllLayers(disagreements, self, map);
+    });
+
+
+
+    //map all button functionalities
+    document.getElementById("gtnext").onclick = function(){nextDisagreement(map); };
+    document.getElementById("gtrefocus").onclick = function(){ refocusView(map); };
+    document.getElementById("gtprev").onclick = function(){ previousDisagreement(map); };
+    document.getElementById("clear1").onclick = function(){ clearCanvas(0, self.allLayers); };
+    document.getElementById("clear2").onclick = function(){ clearCanvas(1, self.allLayers); };
+    document.getElementById("clear3").onclick = function(){ clearCanvas(2, self.allLayers); };
+    document.getElementById("clear4").onclick = function(){ clearCanvas(3, self.allLayers); };
+
+    //reduce filler at bottom of page (styling purposes)
+    document.getElementById("filler").style.minHeight = "40px";
+  }
+
+  
+
+  initialize();
 });
