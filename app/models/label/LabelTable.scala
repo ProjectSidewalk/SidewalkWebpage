@@ -100,7 +100,8 @@ object LabelTable {
                            userId: String, username: String,
                            timestamp: java.sql.Timestamp,
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                           temporary: Boolean, description: Option[String], lat: Float, lng: Float, lat2: Float, lng2: Float)
+                           temporary: Boolean, description: Option[String],
+                           panoLat: Float, panoLng: Float, lat: Float, lng: Float)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -234,7 +235,8 @@ object LabelTable {
       Option[String], Float, Float, Float, Float)](
       """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
         |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, ati.timestamp,
-        |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description, lb1.panorama_lat, lb1.panorama_lng, lp.lat, lp.lng
+        |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description,
+        |       lb1.panorama_lat, lb1.panorama_lng, lp.lat, lp.lng
         |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
         |       sidewalk.user as u, sidewalk.label_point as lp,
         |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
@@ -285,10 +287,10 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
-      "panorama_lat" -> labelMetadata.lat,
-      "panorama_lng" -> labelMetadata.lng,
-      "label_lat" -> labelMetadata.lat2,
-      "label_lng" -> labelMetadata.lng2
+      "panorama_lat" -> labelMetadata.panoLat,
+      "panorama_lng" -> labelMetadata.panoLng,
+      "label_lat" -> labelMetadata.lat,
+      "label_lng" -> labelMetadata.lng
     )
   }
 
