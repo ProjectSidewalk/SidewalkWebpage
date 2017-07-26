@@ -1,5 +1,33 @@
 
 # --- !Ups
+CREATE TABLE gt_session
+(
+  gt_session_id SERIAL NOT NULL,
+  route_id INT NOT NULL,
+  clustering_threshold DOUBLE PRECISION NOT NULL,
+  deleted Boolean NOT NULL,
+  PRIMARY KEY (gt_session_id),
+  FOREIGN KEY (route_id) REFERENCES route(route_id)
+);
+
+CREATE TABLE gt_session_cluster
+(
+  gt_cluster_id INT NOT NULL,
+  gt_session_id INT NOT NULL,
+  PRIMARY KEY (gt_cluster_id),
+  FOREIGN KEY (gt_session_id) REFERENCES gt_session(gt_session_id)
+);
+
+CREATE TABLE gt_session_cluster_label
+(
+  gt_session_cluster_label_id SERIAL NOT NULL,
+  gt_cluster_id INT NOT NULL,
+  label_id INT NOT NULL,
+  PRIMARY KEY (gt_session_cluster_label_id),
+  FOREIGN KEY (label_id) REFERENCES label(label_id),
+  FOREIGN KEY (gt_cluster_id) REFERENCES gt_session_cluster(gt_cluster_id)
+);
+
 CREATE TABLE turker
 (
   turker_id TEXT NOT NULL,
@@ -74,6 +102,10 @@ CREATE TABLE region_completion
 
 
 # --- !Downs
+DROP TABLE gt_session;
+DROP TABLE gt_session_cluster;
+DROP TABLE gt_cluster_label;
+
 DROP TABLE amt_route_assignment;
 ALTER TABLE amt_assignment
   DROP turker_id,
