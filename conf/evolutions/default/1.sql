@@ -12,20 +12,20 @@ CREATE TABLE gt_session
 
 CREATE TABLE gt_session_cluster
 (
-  gt_cluster_id INT NOT NULL,
+  gt_session_cluster_id SERIAL NOT NULL,
   gt_session_id INT NOT NULL,
-  PRIMARY KEY (gt_cluster_id),
+  PRIMARY KEY (gt_session_cluster_id),
   FOREIGN KEY (gt_session_id) REFERENCES gt_session(gt_session_id)
 );
 
 CREATE TABLE gt_session_cluster_label
 (
   gt_session_cluster_label_id SERIAL NOT NULL,
-  gt_cluster_id INT NOT NULL,
+  gt_session_cluster_id INT NOT NULL,
   label_id INT NOT NULL,
   PRIMARY KEY (gt_session_cluster_label_id),
   FOREIGN KEY (label_id) REFERENCES label(label_id),
-  FOREIGN KEY (gt_cluster_id) REFERENCES gt_session_cluster(gt_cluster_id)
+  FOREIGN KEY (gt_session_cluster_id) REFERENCES gt_session_cluster(gt_session_cluster_id)
 );
 
 CREATE TABLE turker
