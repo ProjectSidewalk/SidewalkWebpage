@@ -118,3 +118,5 @@ GET     /webjars/*file                          controllers.WebJarAssets.at(file
 
 # Set up ground truth resolution page
 GET 	/gtresolution							@controllers.GroundTruthResolutionController.index
+
+GET     /gtsessions                             @controllers.GTSessionController.index

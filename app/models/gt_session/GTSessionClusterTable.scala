@@ -38,11 +38,11 @@ object GTSessionClusterTable{
   }
 
   def all: List[GTSessionCluster] = db.withSession { implicit session =>
-    gt_sessions_clusters.list
+    gt_session_clusters.list
   }
 
   def getSpecificGTSessionClusters(gtSessionId: Int): List[GTSessionCluster] = db.withSession { implicit session =>
-    gt_sessions_clusters.filter(_.gtSessionId === gtSessionId).list
+    gt_session_clusters.filter(_.gtSessionId === gtSessionId).list
   }
 
   def save(gt_session_cluster: GTSessionCluster): Int = db.withTransaction { implicit session =>

@@ -46,7 +46,7 @@ object GTSessionClusterLabelTable{
   }
 
   def getSpecificGTSessionClusterLabels(gtSessionClusterId: Int): List[GTSessionClusterLabel] = db.withSession { implicit session =>
-    gt_sessions_cluster_labels.filter(_.gtSessionClusterId === gtSessionClusterId).list
+    gt_session_cluster_labels.filter(_.gtSessionClusterId === gtSessionClusterId).list
   }
 
   def save(gt_session_cluster_label: GTSessionClusterLabel): Int = db.withTransaction { implicit session =>
