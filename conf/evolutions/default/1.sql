@@ -72,40 +72,40 @@ CREATE TABLE region_completion
   PRIMARY KEY (region_id)
 );
 
-CREATE TABLE gt_session
+CREATE TABLE clustering_session
 (
-  gt_session_id SERIAL NOT NULL,
+  clustering_session_id SERIAL NOT NULL,
   route_id INT NOT NULL,
   clustering_threshold DOUBLE PRECISION NOT NULL,
   time_created timestamp default current_timestamp NOT NULL,
   deleted Boolean NOT NULL,
-  PRIMARY KEY (gt_session_id),
+  PRIMARY KEY (clustering_session_id),
   FOREIGN KEY (route_id) REFERENCES route(route_id)
 );
 
-CREATE TABLE gt_session_cluster
+CREATE TABLE clustering_session_cluster
 (
-  gt_session_cluster_id SERIAL NOT NULL,
-  gt_session_id INT NOT NULL,
-  PRIMARY KEY (gt_session_cluster_id),
-  FOREIGN KEY (gt_session_id) REFERENCES gt_session(gt_session_id)
+  clustering_session_cluster_id SERIAL NOT NULL,
+  clustering_session_id INT NOT NULL,
+  PRIMARY KEY (clustering_session_cluster_id),
+  FOREIGN KEY (clustering_session_id) REFERENCES clustering_session(clustering_session_id)
 );
 
-CREATE TABLE gt_session_cluster_label
+CREATE TABLE clustering_session_label
 (
-  gt_session_cluster_label_id SERIAL NOT NULL,
-  gt_session_cluster_id INT NOT NULL,
+  clustering_session_label_id SERIAL NOT NULL,
+  clustering_session_cluster_id INT NOT NULL,
   label_id INT NOT NULL,
-  PRIMARY KEY (gt_session_cluster_label_id),
+  PRIMARY KEY (clustering_session_label_id),
   FOREIGN KEY (label_id) REFERENCES label(label_id),
-  FOREIGN KEY (gt_session_cluster_id) REFERENCES gt_session_cluster(gt_session_cluster_id)
+  FOREIGN KEY (clustering_session_cluster_id) REFERENCES clustering_session_cluster(clustering_session_cluster_id)
 );
 
 # --- !Downs
 
-DROP TABLE gt_session_cluster_label;
-DROP TABLE gt_session_cluster;
-DROP TABLE gt_session;
+DROP TABLE clustering_session_label;
+DROP TABLE clustering_session_cluster;
+DROP TABLE clustering_session;
 
 DROP TABLE amt_route_assignment;
 ALTER TABLE amt_assignment
