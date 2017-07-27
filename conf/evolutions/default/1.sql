@@ -77,6 +77,7 @@ CREATE TABLE gt_session
   gt_session_id SERIAL NOT NULL,
   route_id INT NOT NULL,
   clustering_threshold DOUBLE PRECISION NOT NULL,
+  time_created timestamp default current_timestamp NOT NULL,
   deleted Boolean NOT NULL,
   PRIMARY KEY (gt_session_id),
   FOREIGN KEY (route_id) REFERENCES route(route_id)
@@ -102,7 +103,7 @@ CREATE TABLE gt_session_cluster_label
 
 # --- !Downs
 
-DROP TABLE gt_cluster_label;
+DROP TABLE gt_session_cluster_label;
 DROP TABLE gt_session_cluster;
 DROP TABLE gt_session;
 

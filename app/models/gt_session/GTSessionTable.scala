@@ -9,7 +9,7 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class GTSession(gtSessionId: Int, routeId: Int, clustering_threshold: Double,
+case class GTSession(gtSessionId: Int, routeId: Int, clustering_threshold: Double, time_created: java.sql.Timestamp,
                      deleted: Boolean)
 /**
   *
@@ -19,8 +19,8 @@ class GTSessionTable(tag: Tag) extends Table[GTSession](tag, Some("sidewalk"), "
   def routeId = column[Int]("route_id", O.NotNull)
   def clustering_threshold = column[Double]("clustering_threshold", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
-
-  def * = (gtSessionId, routeId, clustering_threshold, deleted) <> ((GTSession.apply _).tupled, GTSession.unapply)
+  def time_created = column[java.sql.Timestamp]("time_created",O.NotNull)
+  def * = (gtSessionId, routeId, clustering_threshold, time_created, deleted) <> ((GTSession.apply _).tupled, GTSession.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] =
     foreignKey("gt_session_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)

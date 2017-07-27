@@ -23,21 +23,21 @@ import play.extras.geojson
 
 import scala.concurrent.Future
 
-/**
-  * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
-  * @param env
-  */
 class GTSessionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+    * The index page just displays all undeleted ground truth sessions for now.
+    */
   def index = UserAwareAction.async { implicit request =>
     val gtSessions= GTSessionTable.selectExistingSessions
     val ses: List[JsObject] = gtSessions.map { gtSession =>
       val gtSessionId: Int = gtSession.gtSessionId
       val routeId: Int = gtSession.routeId
       val clustering_threshold: Double = gtSession.clustering_threshold
+      val time_created: java.sql.Timestamp = gtSession.time_created
       val deleted: Boolean = gtSession.deleted
-      Json.obj("gtSessionId" -> gtSessionId, "routeId" -> routeId, "clustering_threshold" -> clustering_threshold, "deleted" -> deleted)
+      Json.obj("gtSessionId" -> gtSessionId, "routeId" -> routeId, "clustering_threshold" -> clustering_threshold, "time_created" -> time_created, "deleted" -> deleted)
     }
     val sessionCollection = Json.obj("sessions" -> ses)
     Future.successful(Ok(sessionCollection))
