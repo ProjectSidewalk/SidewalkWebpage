@@ -1192,13 +1192,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 });
             });
 
-            // Chart showing how many audit page visits there are, how many people click the choropleth, and how many people
-            // click "start mapping"
+            // Creates chart showing how many audit page visits there are, how many people click via choropleth, how
+            // many click "start mapping" on navbar, and how many click "start mapping" on the landing page itself.
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
+                // TODO switch this to make use of versioning on the backend once it is implemented...
+                // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
                 var numVisitAudit = visitAuditEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
@@ -1212,7 +1214,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     return event.timestamp > 1500584520000;
                 }).length;                                
 
-
+                // Fill in values in "How users access Audit Page from Landing Page:" table
                 $("#audit-access-table-start-main").append(
                     '<td style="text-align: right;">'+
                         numClickStartMappingMainIndex+
