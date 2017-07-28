@@ -26,7 +26,7 @@ class ClusteringSessionClusterTable(tag: Tag) extends Table[ClusteringSessionClu
 }
 
 /**
-  * Data access object for the Route table
+  * Data access object for the Clustering Session Cluster table
   */
 object ClusteringSessionClusterTable{
   val db = play.api.db.slick.DB

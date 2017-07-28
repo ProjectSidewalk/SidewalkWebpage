@@ -11,7 +11,6 @@ import formats.json.TaskFormats._
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.clustering_session.{ClusteringSessionTable}
-import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivityTable}
 import models.daos.UserDAOImpl
 import models.user.UserRoleTable
@@ -27,7 +26,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * The index page just displays all undeleted ground truth sessions for now.
+    * The index page just displays all undeleted clustering sessions for now.
     */
   def index = UserAwareAction.async { implicit request =>
     val clusteringSessions= ClusteringSessionTable.selectExistingSessions

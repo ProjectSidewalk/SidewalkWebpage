@@ -30,7 +30,7 @@ class ClusteringSessionLabelTable(tag: Tag) extends Table[ClusteringSessionLabel
 }
 
 /**
-  * Data access object for the Route table
+  * Data access object for the Clustering Session Label table
   */
 object ClusteringSessionLabelTable{
   val db = play.api.db.slick.DB
