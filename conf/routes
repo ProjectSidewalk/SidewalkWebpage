@@ -123,4 +123,4 @@ GET 	/gtresolution							@controllers.GroundTruthResolutionController.index
 GET     /clusteringsessions                             @controllers.ClusteringSessionController.index
 
 # Ground Truth Label end points
-#GET     /gtlabels                                       @controllers.GTLabelController.index
+GET     /gtlabels                                       @controllers.GTLabelController.index
