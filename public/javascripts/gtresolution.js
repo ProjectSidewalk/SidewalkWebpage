@@ -80,7 +80,10 @@ $(document).ready(function () {
         Object.keys(self.allLayers).forEach(function (key) {
             for (var i = 0; i < self.allLayers[key].length; i++) {
                 //create layer and add to map
-                self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]},false);
+                self.allLayers[key] = createLayer({
+                    "type": "FeatureCollection",
+                    "features": self.allLayers[key]
+                }, false);
                 map.addLayer(self.allLayers[key]);
             }
         });
@@ -101,11 +104,11 @@ $(document).ready(function () {
     }
 
     //set the GSV panoramas
-    function initializePanoramas(labelId, panosToUpdate){
+    function initializePanoramas(labelId, panosToUpdate) {
         $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
-            for(var i = 0; i < panosToUpdate.length; i++){
+            for (var i = 0; i < panosToUpdate.length; i++) {
                 //update all indicated panoramas
-                panoramaContainers[i].gsv_panorama = new google.maps.StreetViewPanorama(panosToUpdate[i],{
+                panoramaContainers[i].gsv_panorama = new google.maps.StreetViewPanorama(panosToUpdate[i], {
                     pano: data.gsv_panorama_id,
                     pov: {
                         heading: data.heading,
@@ -119,39 +122,48 @@ $(document).ready(function () {
     }
 
 
-
     //choose the earliest of the open views (views not displaying a label)
     //if all full, choose the first view
-    function calculateNextOpen(){
-        for(var i = 0; i<panoramaContainers.length; i++){
-            if(panoramaContainers[i].label.label_id === undefined){return i;}
+    function calculateNextOpen() {
+        for (var i = 0; i < panoramaContainers.length; i++) {
+            if (panoramaContainers[i].label.label_id === undefined) {
+                return i;
+            }
         }
         return 0;
     }
 
 
-
-    //activity of marker
+    // defines interactions that can be performed with the markers on the top-down map
     function onEachLabelFeature(feature, layer) {
         layer.on('click', function () {
             //test whether the label is already being shown in one of the four views
             var id = feature.properties.label_id;
-            var panoIndex = panoramaContainers.findIndex( panoramaContainer => panoramaContainer.label.label_id === id );
-            if(panoIndex >= 0){ // If it's being shown, clear the canvas it's being shown in
+            var panoIndex = panoramaContainers.findIndex(panoramaContainer = > panoramaContainer.label.label_id === id
+            )
+            ;
+            // If it's being shown, clear the canvas it's being shown in, o/w display the label and log that it is shown
+            if (panoIndex >= 0) {
                 $('#clear' + (panoIndex + 1)).trigger('click');
-            } else { //if not, display the label and log that it is being shown
+            } else {
                 $('#clear' + (nextOpenView + 1)).trigger('click');
                 panoramaContainers[nextOpenView].label.label_id = id;
                 layer.setRadius(15);
                 showLabel(id, nextOpenView);
             }
         });
+
         layer.on({
             'mouseover': function () {
                 //test whether label is present within a view
-                var present = panoramaContainers.some( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id);
-                if(present){ //if so, highlight that view with a border
-                    var pano = panoramaContainers.find( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id );
+                var present = panoramaContainers.some(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
+                )
+                ;
+                //if so, highlight that view with a border
+                if (present) {
+                    var pano = panoramaContainers.find(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
+                )
+                    ;
                     pano.view.style.borderStyle = "solid";
                 }
                 //emphasize label on map
@@ -159,28 +171,34 @@ $(document).ready(function () {
             },
             'mouseout': function () {
                 //test whether label is present within a view
-                var present = panoramaContainers.some( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id);
-                if(!present){
-                    //if not, remove emphasis
-                    layer.setRadius(5);
-                }else{ //if so, hide border highlight
-                    var pano = panoramaContainers.find( panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id );
+                var present = panoramaContainers.some(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
+                )
+                ;
+                // if present, hide border highlight, o/w remove emphasis
+                //if not, remove emphasis
+                if (present) {
+                    var pano = panoramaContainers.find(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
+                )
+                    ;
                     pano.view.style.borderStyle = "hidden";
+                } else {
+                    layer.setRadius(5);
                 }
             }
         });
     }
 
 
-
     //show label in panorama
-    function showLabel(labelId, panoIndex){
+    function showLabel(labelId, panoIndex) {
         nextOpenView = calculateNextOpen();
         $.getJSON("/gtresolution/labelData/" + labelId, function (data) {
-            $('#pano'+(panoIndex+1)+'-holder').children('div.loading').fadeOut('slow', function(){$(this).remove();});
+            $('#pano' + (panoIndex + 1) + '-holder').children('div.loading').fadeOut('slow', function () {
+                $(this).remove();
+            });
             panoramaContainers[panoIndex].label = data;
             //update info
-            panoramaContainers[panoIndex].info.innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> "+data.severity;
+            panoramaContainers[panoIndex].info.innerHTML = "<b>Label ID:</b> " + data.label_id + ", <b>Label Type:</b> " + data.label_type_key + ", <b>Severity:</b> " + data.severity;
             //draw label
             renderLabel(data, panoIndex);
             //update selected panorama
@@ -188,66 +206,66 @@ $(document).ready(function () {
             toChange.setPano(data.gsv_panorama_id);
             toChange.setPov({heading: data.heading, pitch: data.pitch});
         });
-        $('#pano'+(panoIndex+1)+'-holder').prepend(
-            '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">'+
-            '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%">Loading...</p>'+
+        $('#pano' + (panoIndex + 1) + '-holder').prepend(
+            '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">' +
+            '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%">Loading...</p>' +
             '</div>');
     }
 
     //draw a label in the view
-    function renderLabel (label, panoIndex) {
+    function renderLabel(label, panoIndex) {
         //choose the next open canvas
         var open = panoramaContainers[panoIndex].gsv_panorama;
 
         // Create PanoMarker
         var labelPosition = mapXYtoPov(label.canvas_x, label.canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
         var size = new google.maps.Size(30, 30);
-        var id = "label-id-"+label.label_id;
+        var id = "label-id-" + label.label_id;
         var label_marker = new PanoMarker({
             pano: panoramaContainers[panoIndex].gsv_panorama,
             container: panoramaContainers[panoIndex].view,
             position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
             id: id,
-            icon: "assets/javascripts/SVLabel/img/cursors/Cursor_"+label.label_type_key+".png",
+            icon: "assets/javascripts/SVLabel/img/cursors/Cursor_" + label.label_type_key + ".png",
             size: size
         });
         panoramaContainers[panoIndex].labelMarker = label_marker;
 
         // Add listener to marker to show info upon clicking
-        google.maps.event.addListener(panoramaContainers[panoIndex].labelMarker, 'click', function() {
+        google.maps.event.addListener(panoramaContainers[panoIndex].labelMarker, 'click', function () {
             createPopover(panoIndex);
         });
 
         // Popover follows marker when POV is changed
-        google.maps.event.addListener(panoramaContainers[panoIndex].gsv_panorama, 'pov_changed', function(){
-            if(panoramaContainers[panoIndex].popoverOn){
-                $("#"+id).popover('show');
+        google.maps.event.addListener(panoramaContainers[panoIndex].gsv_panorama, 'pov_changed', function () {
+            if (panoramaContainers[panoIndex].popoverOn) {
+                $("#" + id).popover('show');
             }
         });
         return this;
     }
 
     // Create popover for marker
-    function createPopover(index){
+    function createPopover(index) {
         var data = panoramaContainers[index].label;
-        var markerElement = $("#label-id-"+panoramaContainers[index].label.label_id);
+        var markerElement = $("#label-id-" + panoramaContainers[index].label.label_id);
         panoramaContainers[index].popoverOn = !panoramaContainers[index].popoverOn;
 
-        if(markerElement.attr('data-toggle') === undefined){
+        if (markerElement.attr('data-toggle') === undefined) {
             markerElement
                 .attr('data-toggle', 'popover')
                 .attr('data-placement', 'top')
                 .attr('data-content',
-                    '<p style="text-align:center"><b>Labeler:</b>&nbsp;'+data.username+', <b>Label ID:</b>&nbsp;'+data.label_id+
-                    '<br><b>Severity:</b>&nbsp;'+data.severity+'</p>'+
-                    '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>'+
-                    '<a href="javascript:;" id="toggle-visible-'+data.label_id+'" style="margin-left:8px"><span class="glyphicon glyphicon-eye-open" style="color:#7CE98B; font-size:14px"></span></a>') // 9eba9e
-                .popover({html:true})
-                .parent().delegate('a#toggle-visible-'+data.label_id, 'click', function(e){
-                if(panoramaContainers[index].labelMarker.getIcon() === null){
-                    panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
+                    '<p style="text-align:center"><b>Labeler:</b>&nbsp;' + data.username + ', <b>Label ID:</b>&nbsp;' + data.label_id +
+                    '<br><b>Severity:</b>&nbsp;' + data.severity + '</p>' +
+                    '<input type="button" style="margin-top:2" value="Commit to Ground Truth"></input>' +
+                    '<a href="javascript:;" id="toggle-visible-' + data.label_id + '" style="margin-left:8px"><span class="glyphicon glyphicon-eye-open" style="color:#7CE98B; font-size:14px"></span></a>') // 9eba9e
+                .popover({html: true})
+                .parent().delegate('a#toggle-visible-' + data.label_id, 'click', function (e) {
+                if (panoramaContainers[index].labelMarker.getIcon() === null) {
+                    panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_" + data.label_type_key + ".png");
                     markerElement.children('a').children('span').css('color', '#7CE98B');
-                }else{
+                } else {
                     panoramaContainers[index].labelMarker.setIcon(null);
                     markerElement.children('a').children('span').css('color', '#F8F4F0');
                 }
@@ -255,42 +273,44 @@ $(document).ready(function () {
             panoramaContainers[index].popoverOn = true;
 
             // Toggle visibility of label marker
-            markerElement.on('click','a#toggle-visible-'+data.label_id, function(e){
-                if(panoramaContainers[index].labelMarker.getIcon() === null){
-                    panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_"+data.label_type_key+".png");
+            markerElement.on('click', 'a#toggle-visible-' + data.label_id, function (e) {
+                if (panoramaContainers[index].labelMarker.getIcon() === null) {
+                    panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_" + data.label_type_key + ".png");
                     this.children('span').css('color', '#7CE98B');
-                }else{
+                } else {
                     panoramaContainers[index].labelMarker.setIcon(null);
                     this.children('span').css('color', '#F8F4F0');
                 }
             });
-
-
         }
     }
 
     //clear a specific canvas
-    function clearCanvas(index, layers){
+    function clearCanvas(index, layers) {
         var panoramaContainer = panoramaContainers[index];
-        if(panoramaContainer.labelMarker !== null){
+        if (panoramaContainer.labelMarker !== null) {
             var labelId = panoramaContainer.label.label_id;
             var layer = undefined;
             var labelsOfAType = [];
 
             for (var labelType in layers) {
                 if (layers.hasOwnProperty(labelType)) {
-                    if(!Array.isArray(layers[labelType])){ // Go through all labels on map and find the one that matches the one that we're trying to clear from the canvas
-                        labelsOfAType = $.map(layers[labelType]._layers, function(value, index){return [value];});
-                        layer = (layer === undefined) ? labelsOfAType.find(function(label){return label.feature.properties.label_id === labelId}) : layer;
+                    if (!Array.isArray(layers[labelType])) { // Go through all labels on map and find the one that matches the one that we're trying to clear from the canvas
+                        labelsOfAType = $.map(layers[labelType]._layers, function (value, index) {
+                            return [value];
+                        });
+                        layer = (layer === undefined) ? labelsOfAType.find(function (label) {
+                            return label.feature.properties.label_id === labelId
+                        }) : layer;
                     }
                 }
             }
 
-            if(layer !== undefined){
+            if (layer !== undefined) {
                 layer.setRadius(5);
             }
 
-            $('#label-id-'+labelId).popover('hide');
+            $('#label-id-' + labelId).popover('hide');
             panoramaContainer.info.innerHTML = "";
             panoramaContainer.view.style.borderStyle = "hidden";
             panoramaContainer.label = {};
@@ -303,9 +323,8 @@ $(document).ready(function () {
     }
 
 
-
     //next button functionality
-    function nextDisagreement(map){
+    function nextDisagreement(map) {
         currentDisagreement = (currentDisagreement + 1) % disagreements.features.length;
         $.getJSON("/gtresolution/labelData/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
             //shift mapbox to focus on next label
@@ -315,7 +334,7 @@ $(document).ready(function () {
     }
 
     //previous button functionality
-    function previousDisagreement(map){
+    function previousDisagreement(map) {
         currentDisagreement = (currentDisagreement - 1 + disagreements.features.length) % disagreements.features.length;
         $.getJSON("/gtresolution/labelData/" + disagreements.features[currentDisagreement].properties.label_id, function (data) {
             //shift mapbox to focus on previous label
@@ -325,13 +344,9 @@ $(document).ready(function () {
     }
 
     //focus view on current label
-    function refocusView(map){
-        map.setView(currentCoordinates,12);
+    function refocusView(map) {
+        map.setView(currentCoordinates, 12);
     }
-
-
-
-
 
 
     /**
@@ -349,7 +364,7 @@ $(document).ready(function () {
      * @param {number} pitch: pitch of the viewport center.
      * @return {Object} heading and pitch of the point in our panorama
      */
-    function mapXYtoPov(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch){
+    function mapXYtoPov(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
         function sgn(x) {
             return x >= 0 ? 1 : -1;
         }
@@ -401,8 +416,7 @@ $(document).ready(function () {
     }
 
 
-
-    function initialize(){
+    function initialize() {
         //variables for the mapbox
         var self = {};
         self.markerLayer = null;
@@ -440,7 +454,7 @@ $(document).ready(function () {
             .fitBounds(bounds)
 
         // Initialize panorama data
-        for(var i = 0; i < 4; i++){
+        for (var i = 0; i < 4; i++) {
             panoramaContainers.push({
                 gsv_panorama: null, // the StreetViewPanorama object for each view
                 view: document.getElementsByClassName("gtpano")[i], // holder for the GSV panorama
@@ -456,26 +470,40 @@ $(document).ready(function () {
         $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
             currentCoordinates = [data.panorama_lat, data.panorama_lng];
             map.setView(currentCoordinates, 12);
-            var panoramas = panoramaContainers.map(panoramaContainer => panoramaContainer.view);
+            var panoramas = panoramaContainers.map(panoramaContainer = > panoramaContainer.view
+            )
+            ;
             initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
             initializeAllLayers(disagreements, self, map);
         });
 
 
-
         //map all button functionalities
-        document.getElementById("gtnext").onclick = function(){nextDisagreement(map); };
-        document.getElementById("gtrefocus").onclick = function(){ refocusView(map); };
-        document.getElementById("gtprev").onclick = function(){ previousDisagreement(map); };
-        document.getElementById("clear1").onclick = function(){ clearCanvas(0, self.allLayers); };
-        document.getElementById("clear2").onclick = function(){ clearCanvas(1, self.allLayers); };
-        document.getElementById("clear3").onclick = function(){ clearCanvas(2, self.allLayers); };
-        document.getElementById("clear4").onclick = function(){ clearCanvas(3, self.allLayers); };
+        document.getElementById("gtnext").onclick = function () {
+            nextDisagreement(map);
+        };
+        document.getElementById("gtrefocus").onclick = function () {
+            refocusView(map);
+        };
+        document.getElementById("gtprev").onclick = function () {
+            previousDisagreement(map);
+        };
+        document.getElementById("clear1").onclick = function () {
+            clearCanvas(0, self.allLayers);
+        };
+        document.getElementById("clear2").onclick = function () {
+            clearCanvas(1, self.allLayers);
+        };
+        document.getElementById("clear3").onclick = function () {
+            clearCanvas(2, self.allLayers);
+        };
+        document.getElementById("clear4").onclick = function () {
+            clearCanvas(3, self.allLayers);
+        };
 
         //reduce filler at bottom of page (styling purposes)
         document.getElementById("filler").style.minHeight = "40px";
     }
-
 
 
     initialize();
