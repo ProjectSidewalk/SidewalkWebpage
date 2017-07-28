@@ -113,3 +113,9 @@ GET     /webjars/*file                          controllers.WebJarAssets.at(file
 # Set up ground truth resolution page
 GET     /gtresolution                            @controllers.GroundTruthResolutionController.index
 GET     /gtresolution/labelData/:labelId         @controllers.GroundTruthResolutionController.getLabelData(labelId: Int)
+
+# Clustering session end points
+GET     /clusteringsessions                             @controllers.ClusteringSessionController.index
+
+# Ground Truth Label end points
+GET     /gtlabels                                       @controllers.GTLabelController.index
