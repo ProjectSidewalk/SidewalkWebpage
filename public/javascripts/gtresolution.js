@@ -81,7 +81,7 @@ $(document).ready(function () {
 
     Object.keys(self.allLayers).forEach(function (key) {
       for (var i = 0; i < self.allLayers[key].length; i++) {
-        //create later and add to map
+        //create layer and add to map
         self.allLayers[key] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key]},false);
         map.addLayer(self.allLayers[key]);
       }
