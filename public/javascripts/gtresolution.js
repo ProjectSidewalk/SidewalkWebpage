@@ -139,9 +139,7 @@ $(document).ready(function () {
         layer.on('click', function () {
             //test whether the label is already being shown in one of the four views
             var id = feature.properties.label_id;
-            var panoIndex = panoramaContainers.findIndex(panoramaContainer = > panoramaContainer.label.label_id === id
-            )
-            ;
+            var panoIndex = panoramaContainers.findIndex(panoramaContainer => panoramaContainer.label.label_id === id );
             // If it's being shown, clear the canvas it's being shown in, o/w display the label and log that it is shown
             if (panoIndex >= 0) {
                 $('#clear' + (panoIndex + 1)).trigger('click');
@@ -156,14 +154,10 @@ $(document).ready(function () {
         layer.on({
             'mouseover': function () {
                 //test whether label is present within a view
-                var present = panoramaContainers.some(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
-                )
-                ;
+                var present = panoramaContainers.some(panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id);
                 //if so, highlight that view with a border
                 if (present) {
-                    var pano = panoramaContainers.find(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
-                )
-                    ;
+                    var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id );
                     pano.view.style.borderStyle = "solid";
                 }
                 //emphasize label on map
@@ -171,15 +165,11 @@ $(document).ready(function () {
             },
             'mouseout': function () {
                 //test whether label is present within a view
-                var present = panoramaContainers.some(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
-                )
-                ;
+                var present = panoramaContainers.some(panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id);
                 // if present, hide border highlight, o/w remove emphasis
                 //if not, remove emphasis
                 if (present) {
-                    var pano = panoramaContainers.find(panoramaContainer = > panoramaContainer.label.label_id === feature.properties.label_id
-                )
-                    ;
+                    var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.label.label_id === feature.properties.label_id );
                     pano.view.style.borderStyle = "hidden";
                 } else {
                     layer.setRadius(5);
@@ -208,7 +198,7 @@ $(document).ready(function () {
         });
         $('#pano' + (panoIndex + 1) + '-holder').prepend(
             '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">' +
-            '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%">Loading...</p>' +
+            '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%">s</p>' +
             '</div>');
     }
 
@@ -451,7 +441,7 @@ $(document).ready(function () {
             maxZoom: 20,
             minZoom: 19
         })
-            .fitBounds(bounds)
+            .fitBounds(bounds);
 
         // Initialize panorama data
         for (var i = 0; i < 4; i++) {
@@ -470,9 +460,7 @@ $(document).ready(function () {
         $.getJSON("/gtresolution/labelData/" + disagreements.features[0].properties.label_id, function (data) {
             currentCoordinates = [data.panorama_lat, data.panorama_lng];
             map.setView(currentCoordinates, 12);
-            var panoramas = panoramaContainers.map(panoramaContainer = > panoramaContainer.view
-            )
-            ;
+            var panoramas = panoramaContainers.map(panoramaContainer => panoramaContainer.view );
             initializePanoramas(disagreements.features[currentDisagreement].properties.label_id, panoramas);
             initializeAllLayers(disagreements, self, map);
         });
