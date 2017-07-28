@@ -419,6 +419,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         })
     }
 
+
     var colorMapping = util.misc.getLabelColors(),
         geojsonMarkerOptions = {
             radius: 5,
