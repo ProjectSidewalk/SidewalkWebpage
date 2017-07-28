@@ -1194,10 +1194,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             // Chart showing how many audit page visits there are, how many people click the choropleth, and how many people
             // click "start mapping"
-            $.getJSON("/adminapi/webpageActivities/Visit_Audit", function(visitAuditEvents){
-            $.getJSON("/adminapi/webpageActivities/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
-            $.getJSON("/adminapi/webpageActivities/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivities/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 var numVisitAudit = visitAuditEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;

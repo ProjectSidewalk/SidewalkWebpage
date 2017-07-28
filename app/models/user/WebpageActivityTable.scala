@@ -90,8 +90,16 @@ object WebpageActivityTable {
   def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
     activities.filter(_.activity.like("%"++activity++"%")).list
   }
-  // Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
-  // Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins with "Cli..." will be matched)
+
+  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
+    *
+    * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins
+    * with "Cli...", such as "Click" will be matched)
+    *
+    * @param activity
+    * @param keyVals
+    * @return
+    */
   def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
     var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
     for(keyVal <- keyVals) yield {
@@ -99,6 +107,7 @@ object WebpageActivityTable {
     }
     filteredActivities.list
   }
+
   // Returns all webpage activities
   def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>
     activities.list
@@ -107,6 +116,7 @@ object WebpageActivityTable {
   def webpageActivityListToJson(webpageActivities: List[WebpageActivity]): List[JsObject] = {
     webpageActivities.map(webpageActivity => webpageActivityToJson(webpageActivity)).toList
   }
+
   def webpageActivityToJson(webpageActivity: WebpageActivity): JsObject = {
     Json.obj(
       "webpageActivityId" -> webpageActivity.webpageActivityId,

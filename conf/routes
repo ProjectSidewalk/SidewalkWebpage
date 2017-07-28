@@ -20,39 +20,39 @@ GET     /mobile                                 @controllers.ApplicationControll
 # User authentication
 GET     /signIn                                 @controllers.UserController.signIn(url: String ?= "/")
 GET     /signUp                                 @controllers.UserController.signUp(url: String ?= "/")
-GET     /signOut                                @controllers.UserController.signOut(url: String ?="/")
-POST    /signUp                                 @controllers.SignUpController.signUp(url: String ?= "/")
-POST    /authenticate/credentials               @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
-POST    /authapi/authenticate                   @controllers.CredentialsAuthController.postAuthenticate
-POST    /authapi/signup                         @controllers.SignUpController.postSignUp
+GET     /signOut                                               @controllers.UserController.signOut(url: String ?="/")
+POST    /signUp                                                @controllers.SignUpController.signUp(url: String ?= "/")
+POST    /authenticate/credentials                              @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
+POST    /authapi/authenticate                                  @controllers.CredentialsAuthController.postAuthenticate
+POST    /authapi/signup                                        @controllers.SignUpController.postSignUp
 
 # Admin
-GET     /admin                                  @controllers.AdminController.index
-GET     /admin/user/:username                   @controllers.AdminController.userProfile(username: String)
-GET     /admin/task/:taskId                     @controllers.AdminController.task(taskId: Int)
+GET     /admin                                                 @controllers.AdminController.index
+GET     /admin/user/:username                                  @controllers.AdminController.userProfile(username: String)
+GET     /admin/task/:taskId                                    @controllers.AdminController.task(taskId: Int)
 
-GET     /adminapi/missionsCompletedByUsers      @controllers.AdminController.getMissionsCompletedByUsers
-GET     /adminapi/neighborhoodCompletionRate    @controllers.AdminController.getNeighborhoodCompletionRate
-GET     /adminapi/anonUserMissionCounts         @controllers.AdminController.getAllAnonUserCompletedMissionCounts
-GET     /adminapi/allSignInCounts               @controllers.AdminController.getAllUserSignInCounts
-GET     /adminapi/completionRateByDate          @controllers.AdminController.getCompletionRateByDate
-GET     /adminapi/tasks/:username               @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
-GET     /adminapi/interactions/:username        @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
-GET     /adminapi/onboardingInteractions        @controllers.AdminController.getOnboardingTaskInteractions
-GET     /adminapi/auditpath/:id                 @controllers.AdminController.getAnAuditTaskPath(id: Int)
-GET     /adminapi/auditedStreets/:username      @controllers.AdminController.getStreetsAuditedByAUser(username: String)
-GET     /adminapi/labelLocations/:username      @controllers.AdminController.getLabelsCollectedByAUser(username: String)
-GET     /adminapi/labels/all                    @controllers.AdminController.getAllLabels
-GET     /adminapi/labels/panoid                 @controllers.AdminController.getAllPanoIds
-GET     /adminapi/label/:labelId                @controllers.AdminController.getLabelData(labelId: Int)
-GET     /adminapi/labelCounts/registered        @controllers.AdminController.getAllRegisteredUserLabelCounts
-GET     /adminapi/labelCounts/anonymous         @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/missionsCompletedByUsers                     @controllers.AdminController.getMissionsCompletedByUsers
+GET     /adminapi/neighborhoodCompletionRate                   @controllers.AdminController.getNeighborhoodCompletionRate
+GET     /adminapi/anonUserMissionCounts                        @controllers.AdminController.getAllAnonUserCompletedMissionCounts
+GET     /adminapi/allSignInCounts                              @controllers.AdminController.getAllUserSignInCounts
+GET     /adminapi/completionRateByDate                         @controllers.AdminController.getCompletionRateByDate
+GET     /adminapi/tasks/:username                              @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
+GET     /adminapi/interactions/:username                       @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
+GET     /adminapi/onboardingInteractions                       @controllers.AdminController.getOnboardingTaskInteractions
+GET     /adminapi/auditpath/:id                                @controllers.AdminController.getAnAuditTaskPath(id: Int)
+GET     /adminapi/auditedStreets/:username                     @controllers.AdminController.getStreetsAuditedByAUser(username: String)
+GET     /adminapi/labelLocations/:username                     @controllers.AdminController.getLabelsCollectedByAUser(username: String)
+GET     /adminapi/labels/all                                   @controllers.AdminController.getAllLabels
+GET     /adminapi/labels/panoid                                @controllers.AdminController.getAllPanoIds
+GET     /adminapi/label/:labelId                               @controllers.AdminController.getLabelData(labelId: Int)
+GET     /adminapi/labelCounts/registered                       @controllers.AdminController.getAllRegisteredUserLabelCounts
+GET     /adminapi/labelCounts/anonymous                        @controllers.AdminController.getAllAnonUserLabelCounts
 
-GET     /adminapi/webpageActivities             @controllers.AdminController.getAllWebpageActivities
-GET     /adminapi/webpageActivities/:activity   @controllers.AdminController.getWebpageActivities(activity: String)
-GET     /adminapi/webpageActivities/:activity/*keyValPairs  @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
-GET     /adminapi/numWebpageActivities/:activity @controllers.AdminController.getNumWebpageActivities(activity: String)
-GET     /adminapi/numWebpageActivities/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
+GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
+GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
+GET     /adminapi/webpageActivity/:activity/*keyValPairs     @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
+GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminController.getNumWebpageActivities(activity: String)
+GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 
 GET     /adminapi/choroplethCounts              @controllers.AdminController.getRegionNegativeLabelCounts
 

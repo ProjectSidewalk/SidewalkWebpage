@@ -400,9 +400,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     Future.successful(Ok(json))
   }
 
-  /** If no argument is provided, returns all webpage activities
-    * Otherwise, returns all activities that match the activity provided
-    * If the activity provided doesn't exist, returns 400 (Bad Request)
+  /**
+    * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
+    * If the activity provided doesn't exist, returns 400 (Bad Request).
+    *
     * @param activity
     */
   def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
@@ -418,6 +419,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /** Returns all records in the webpage_interactions table as a JSON array. */
   def getAllWebpageActivities = UserAwareAction.async{implicit request =>
     if (isAdmin(request.identity)){
       Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
@@ -426,20 +428,24 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+    * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
+    *
+    * @param activity
+    * @param keyValPairs
+    * @return
+    */
   def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)){
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
-      if(activities.length == 0){
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name and/or key-value pair")))
-      } else {
-        Future.successful(Ok(Json.arr(activities)))
-      }
+      Future.successful(Ok(Json.arr(activities)))
     }else{
       Future.successful(Redirect("/"))
     }
   }
 
+  /** Returns number of records in webpage_activity table containing the specified activity. */
   def getNumWebpageActivities(activity: String) =   UserAwareAction.async{implicit request =>
     if (isAdmin(request.identity)){
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
@@ -448,6 +454,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.successful(Redirect("/"))
     }
   }
+
+  /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
   def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)){
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
