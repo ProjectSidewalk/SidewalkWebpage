@@ -141,6 +141,9 @@ CREATE TABLE gt_existing_label
 
 # --- !Downs
 
+DROP TABLE gt_existing_label
+DROP TABLE gt_label
+
 DROP TABLE clustering_session_label;
 DROP TABLE clustering_session_cluster;
 DROP TABLE clustering_session;
