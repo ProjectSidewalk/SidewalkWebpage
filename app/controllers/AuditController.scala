@@ -57,6 +57,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     var hitId: String = null
     var assignmentId: String = null
     var workerId: String = null
+    var conditionId: Int = 0
+
     if (qString.nonEmpty && qString.contains("assignmentId")) {
 
       assignmentId = qString("assignmentId")
@@ -65,6 +67,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // User clicked the ACCEPT HIT button
         hitId = qString("hitId")
         workerId = qString("workerId")
+        conditionId = qString("conditionId").toInt
         screenStatus = "Assigned"
       }
       else {
@@ -116,7 +119,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
             // Save HIT assignment details
-            val conditionId = 1
             val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
             val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 

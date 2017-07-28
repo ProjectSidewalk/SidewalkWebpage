@@ -47,10 +47,27 @@ class RouteStreetTable(tag: Tag) extends Table[RouteStreet](tag, Some("sidewalk"
 object RouteStreetTable{
   val db = play.api.db.slick.DB
   val routesStreets = TableQuery[RouteStreetTable]
+  val streetEdges = TableQuery[StreetEdgeTable]
 
   def getRouteStreets(routeId: Int): List[RouteStreet] = db.withSession { implicit session =>
     val routeStreet = routesStreets.filter(_.routeId === routeId).list
     routeStreet
+  }
+
+  def selectStreetsOnRoutes: List[StreetEdge] = db.withSession { implicit session =>
+    val _streetEdges = (for {
+      (_routesStreets, _streetEdges) <- routesStreets.innerJoin(streetEdges).on(_.current_street_edge_id === _.streetEdgeId)
+    } yield _streetEdges).filter(edge => edge.deleted === false)
+    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
+  }
+
+  /**
+    * Returns a list of all the street edges
+    *
+    * @return A list of StreetEdge objects.
+    */
+  def all: List[RouteStreet] = db.withSession { implicit session =>
+    routesStreets.list
   }
 
   def getFirstRouteStreetId(routeId: Int): Option[Int] = db.withSession { implicit session =>

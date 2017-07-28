@@ -72,8 +72,8 @@ CREATE TABLE region_completion
   PRIMARY KEY (region_id)
 );
 
-
 # --- !Downs
+
 DROP TABLE amt_route_assignment;
 ALTER TABLE amt_assignment
   DROP turker_id,

@@ -66,6 +66,9 @@ POST    /task                                   @controllers.TaskController.post
 POST    /route                                  @controllers.RouteController.post
 GET     /routes/:id                             @controllers.RouteController.getStreetsOnARoute(id: Int)
 
+# MTurk Condition
+GET     /condition                              @controllers.ConditionController.assignIfNotExists
+
 # Missions
 GET     /missionturk                            @controllers.MissionController.getMTurkMissions
 GET     /mission                                @controllers.MissionController.getMissions
@@ -99,6 +102,9 @@ GET     /userapi/completedMissionCounts/all     @controllers.UserProfileControll
 POST    /userapi/logWebpageActivity             @controllers.UserController.logWebpageActivity
 
 # Geometry API
+# Route Visualization
+GET     /routeviz                               @controllers.RouteVizController.index
+GET     /routeviz/allRouteStreets              @controllers.RouteVizController.getAllRouteStreets
 
 # Access Feature and Access Score APIs
 GET     /v1/access/features             @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
@@ -112,3 +118,9 @@ GET     /webjars/*file                          controllers.WebJarAssets.at(file
 
 # Set up ground truth resolution page
 GET 	/gtresolution							@controllers.GroundTruthResolutionController.index
+
+# Clustering session end points
+GET     /clusteringsessions                             @controllers.ClusteringSessionController.index
+
+# Ground Truth Label end points
+GET     /gtlabels                                       @controllers.GTLabelController.index
