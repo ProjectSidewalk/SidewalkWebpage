@@ -46,7 +46,7 @@ object UserCurrentRegionTable {
     * @return
     */
   def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    StreetEdgeTable.getDistanceAudited(userId) < experiencedUserMileageThreshold
+    StreetEdgeTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
   }
 
   /**
@@ -92,7 +92,7 @@ object UserCurrentRegionTable {
       update(userId, regionId)
     }
     else {
-      val regionId = scala.util.Random.shuffle(regionIds).head
+      val regionId = scala.util.Random.shuffle(difficultRegionIds).head
       update(userId, regionId)
     }
   }
