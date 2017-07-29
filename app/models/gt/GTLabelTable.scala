@@ -62,7 +62,7 @@ object GTLabelTable{
   val db = play.api.db.slick.DB
   val gt_labels = TableQuery[GTLabelTable]
 
-  def getGTLabel(gtLabelId: Option[Int]): Option[GTLabel] = db.withSession { implicit session =>
+  def getGTLabel(gtLabelId: Int): Option[GTLabel] = db.withSession { implicit session =>
     val gt_label = gt_labels.filter(_.gtLabelId === gtLabelId).list
     gt_label.headOption
   }

@@ -36,7 +36,7 @@ object ClusteringSessionLabelTable{
   val db = play.api.db.slick.DB
   val clustering_session_labels = TableQuery[ClusteringSessionLabelTable]
 
-  def getClusteringSessionLabel(clusteringSessionLabelId: Option[Int]): Option[ClusteringSessionLabel] = db.withSession { implicit session =>
+  def getClusteringSessionLabel(clusteringSessionLabelId: Int): Option[ClusteringSessionLabel] = db.withSession { implicit session =>
     val clustering_session_label = clustering_session_labels.filter(_.clusteringSessionLabelId === clusteringSessionLabelId).list
     clustering_session_label.headOption
   }

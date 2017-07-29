@@ -9,8 +9,8 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class ClusteringSession(clusteringSessionId: Int, routeId: Int, clustering_threshold: Double, time_created: java.sql.Timestamp,
-                             deleted: Boolean)
+case class ClusteringSession(clusteringSessionId: Int, routeId: Int, clustering_threshold: Double,
+                             time_created: java.sql.Timestamp, deleted: Boolean)
 /**
   *
   */
@@ -34,7 +34,7 @@ object ClusteringSessionTable{
   val db = play.api.db.slick.DB
   val clustering_sessions = TableQuery[ClusteringSessionTable]
 
-  def getClusteringSession(clusteringSessionId: Option[Int]): Option[ClusteringSession] = db.withSession { implicit session =>
+  def getClusteringSession(clusteringSessionId: Int): Option[ClusteringSession] = db.withSession { implicit session =>
     val clustering_session = clustering_sessions.filter(_.clusteringSessionId === clusteringSessionId).list
     clustering_session.headOption
   }

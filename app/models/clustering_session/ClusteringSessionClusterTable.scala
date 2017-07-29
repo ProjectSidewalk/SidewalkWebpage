@@ -32,7 +32,7 @@ object ClusteringSessionClusterTable{
   val db = play.api.db.slick.DB
   val clustering_session_clusters = TableQuery[ClusteringSessionClusterTable]
 
-  def getClusteringSessionCluster(clusteringSessionClusterId: Option[Int]): Option[ClusteringSessionCluster] = db.withSession { implicit session =>
+  def getClusteringSessionCluster(clusteringSessionClusterId: Int): Option[ClusteringSessionCluster] = db.withSession { implicit session =>
     val clustering_session_cluster = clustering_session_clusters.filter(_.clusteringSessionClusterId === clusteringSessionClusterId).list
     clustering_session_cluster.headOption
   }

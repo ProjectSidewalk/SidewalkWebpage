@@ -31,7 +31,7 @@ object GTExistingLabelTable{
   val db = play.api.db.slick.DB
   val gt_existing_labels = TableQuery[GTExistingLabelTable]
 
-  def getExistingGTLabel(gtExistingLabelId: Option[Int]): Option[GTExistingLabel] = db.withSession { implicit session =>
+  def getExistingGTLabel(gtExistingLabelId: Int): Option[GTExistingLabel] = db.withSession { implicit session =>
     val gt_existing_label = gt_existing_labels.filter(_.gtExistingLabelId === gtExistingLabelId).list
     gt_existing_label.headOption
   }
