@@ -32,11 +32,11 @@ class GTLabelController @Inject()(implicit val env: Environment[User, SessionAut
     val gtLabels= GTLabelTable.all
     val gtl: List[JsObject] = gtLabels.map { gtLabel =>
       Json.obj(
-        "gtLabelId" -> gtLabel.gtLabelId, "routeId" -> gtLabel.routeId, "has_label_id" -> gtLabel.has_label_id,
-        "gsvPanoramaId" -> gtLabel.gsvPanoramaId, "labelTypeId" -> gtLabel.labelTypeId,
-        "svImageX" -> gtLabel.svImageX, "svImageY" -> gtLabel.svImageY, "canvasX" -> gtLabel.canvasX,
-        "canvasY" -> gtLabel.canvasY, "heading" -> gtLabel.heading, "pitch" -> gtLabel.pitch, "zoom" -> gtLabel.zoom,
-        "canvasHeight" -> gtLabel.canvasHeight, "canvasWidth" -> gtLabel.canvasWidth, "alphaX" -> gtLabel.alphaX, "alphaY" -> gtLabel.alphaY,
+        "gtLabelId" -> gtLabel.gtLabelId, "routeId" -> gtLabel.routeId, "gsvPanoramaId" -> gtLabel.gsvPanoramaId,
+        "labelTypeId" -> gtLabel.labelTypeId, "svImageX" -> gtLabel.svImageX, "svImageY" -> gtLabel.svImageY,
+        "canvasX" -> gtLabel.canvasX, "canvasY" -> gtLabel.canvasY, "heading" -> gtLabel.heading,
+        "pitch" -> gtLabel.pitch, "zoom" -> gtLabel.zoom, "canvasHeight" -> gtLabel.canvasHeight,
+        "canvasWidth" -> gtLabel.canvasWidth, "alphaX" -> gtLabel.alphaX, "alphaY" -> gtLabel.alphaY,
         "lat" -> gtLabel.lat, "lng" -> gtLabel.lng,
         "description" -> gtLabel.description,
         "severity" -> gtLabel.severity,

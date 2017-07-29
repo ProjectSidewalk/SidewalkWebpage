@@ -33,7 +33,6 @@ CREATE TABLE gt_label
 (
   gt_label_id SERIAL NOT NULL,
   route_id INT NOT NULL,
-  has_label_id Boolean NOT NULL,
   gsv_panorama_id Character Varying( 64 ) NOT NULL,
   label_type_id Integer NOT NULL,
   sv_image_x Integer NOT NULL,

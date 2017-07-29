@@ -10,9 +10,9 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class GTLabel(gtLabelId: Int, routeId: Int, has_label_id: Boolean, gsvPanoramaId: String, labelTypeId: Int,
-                   svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int,
-                   canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float],
+case class GTLabel(gtLabelId: Int, routeId: Int, gsvPanoramaId: String, labelTypeId: Int, svImageX: Int, svImageY: Int,
+                   canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int,
+                   canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float],
                    description: String,
                    severity: Int,
                    temporaryProblem: Boolean)
@@ -22,7 +22,6 @@ case class GTLabel(gtLabelId: Int, routeId: Int, has_label_id: Boolean, gsvPanor
 class GTLabelTable(tag: Tag) extends Table[GTLabel](tag, Some("sidewalk"), "gt_label") {
   def gtLabelId = column[Int]("gt_label_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def routeId = column[Int]("route_id", O.NotNull)
-  def has_label_id = column[Boolean]("has_label_id",O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def svImageX = column[Int]("sv_image_x", O.NotNull)
@@ -44,7 +43,7 @@ class GTLabelTable(tag: Tag) extends Table[GTLabel](tag, Some("sidewalk"), "gt_l
 
 
 
-  def * = (gtLabelId, routeId, has_label_id, gsvPanoramaId, labelTypeId, svImageX, svImageY,
+  def * = (gtLabelId, routeId, gsvPanoramaId, labelTypeId, svImageX, svImageY,
            canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, alphaX, alphaY,
            lat, lng, description, severity, temporaryProblem)  <>  ((GTLabel.apply _).tupled, GTLabel.unapply)
 
@@ -73,11 +72,19 @@ object GTLabelTable{
   }
 
   def selectExistingLabels: List[GTLabel] = db.withSession { implicit session =>
-    gt_labels.filter(_.has_label_id === true).list
+    (for {
+      (_labs, _existing_labs) <- gt_labels.innerJoin(GTExistingLabelTable.gt_existing_labels).on(_.gtLabelId === _.gtLabelId)
+    } yield _labs).list
   }
 
+  /** Returns set of labels that  */
   def selectAddedLabels: List[GTLabel] = db.withSession { implicit session =>
-    gt_labels.filter(_.has_label_id === false).list
+    (for {
+      (_labs, _existing_labs) <- gt_labels.leftJoin(GTExistingLabelTable.gt_existing_labels).on(_.gtLabelId === _.gtLabelId)
+      // includes only rows without an entry in the gt_existing_label table
+      // http://slick.lightbend.com/doc/2.1.0/upgrade.html#isnull-and-isnotnull
+      if _existing_labs.gtExistingLabelId.?.isEmpty
+    } yield _labs).list
   }
 
   def save(gt_label: GTLabel): Int = db.withTransaction { implicit session =>
