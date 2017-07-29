@@ -1,24 +1,13 @@
 package controllers
 
-import java.util.UUID
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import formats.json.TaskFormats._
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.LabelMetadata
 import models.gt.{GTLabelTable}
-import models.user.{User, WebpageActivityTable}
-import models.daos.UserDAOImpl
-import models.user.UserRoleTable
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
-import play.extras.geojson
-
+import models.user.User
+import play.api.libs.json.{JsObject, Json}
 
 import scala.concurrent.Future
 
