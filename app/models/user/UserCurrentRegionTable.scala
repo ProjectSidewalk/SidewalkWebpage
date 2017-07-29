@@ -40,6 +40,16 @@ object UserCurrentRegionTable {
   }
 
   /**
+    * Checks if the given user is "experienced" (have audited at least 2 miles).
+    *
+    * @param userId
+    * @return
+    */
+  def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
+    StreetEdgeTable.getDistanceAudited(userId) < experiencedUserMileageThreshold
+  }
+
+  /**
     * Assign a region to the given user. This is used for the initial assignment.
     *
     * @param userId user id
@@ -77,8 +87,7 @@ object UserCurrentRegionTable {
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
     // if they have audited less than 2 miles and there is an easy region left, give them an easy one
-    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty &&
-        StreetEdgeTable.getDistanceAudited(userId) < experiencedUserMileageThreshold) {
+    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId)) {
       val regionId = scala.util.Random.shuffle(regionIds.filterNot(difficultRegionIds.contains(_))).head
       update(userId, regionId)
     }
