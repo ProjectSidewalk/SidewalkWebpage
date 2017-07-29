@@ -29,7 +29,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
     * The index page just displays all undeleted clustering sessions for now.
     */
   def index = UserAwareAction.async { implicit request =>
-    val clusteringSessions= ClusteringSessionTable.selectExistingSessions
+    val clusteringSessions= ClusteringSessionTable.selectSessionsWithoutDeleted
     val ses: List[JsObject] = clusteringSessions.map { clusteringSession =>
       val clusteringSessionId: Int = clusteringSession.clusteringSessionId
       val routeId: Int = clusteringSession.routeId

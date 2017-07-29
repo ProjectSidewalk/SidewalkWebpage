@@ -43,7 +43,7 @@ object ClusteringSessionTable{
     clustering_sessions.list
   }
 
-  def selectExistingSessions: List[ClusteringSession] = db.withSession { implicit session =>
+  def selectSessionsWithoutDeleted: List[ClusteringSession] = db.withSession { implicit session =>
     clustering_sessions.filter(_.deleted === false).list
   }
 
