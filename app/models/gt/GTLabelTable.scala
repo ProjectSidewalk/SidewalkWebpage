@@ -11,7 +11,8 @@ import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
 case class GTLabel(gtLabelId: Int, routeId: Int, has_label_id: Boolean, gsvPanoramaId: String, labelTypeId: Int,
-                   svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float],
+                   svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int,
+                   canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float],
                    description: String,
                    severity: Int,
                    temporaryProblem: Boolean)
@@ -43,8 +44,9 @@ class GTLabelTable(tag: Tag) extends Table[GTLabel](tag, Some("sidewalk"), "gt_l
 
 
 
-  def * = (gtLabelId, routeId, has_label_id, gsvPanoramaId, labelTypeId, svImageX, svImageY, canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, alphaX, alphaY, lat, lng,
-    description, severity, temporaryProblem) <> ((GTLabel.apply _).tupled, GTLabel.unapply)
+  def * = (gtLabelId, routeId, has_label_id, gsvPanoramaId, labelTypeId, svImageX, svImageY,
+           canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, alphaX, alphaY,
+           lat, lng, description, severity, temporaryProblem)  <>  ((GTLabel.apply _).tupled, GTLabel.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] =
     foreignKey("gt_label_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
