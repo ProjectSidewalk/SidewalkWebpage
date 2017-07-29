@@ -26,10 +26,11 @@ class GTLabelController @Inject()(implicit val env: Environment[User, SessionAut
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * The index page just displays all ground truth labels for now.
+    * Returns all records in gt_label table.
     */
-  def index = UserAwareAction.async { implicit request =>
+  def getAllGTLabels = UserAwareAction.async { implicit request =>
     val gtLabels= GTLabelTable.all
+
     val gtl: List[JsObject] = gtLabels.map { gtLabel =>
       Json.obj(
         "gtLabelId" -> gtLabel.gtLabelId, "routeId" -> gtLabel.routeId, "gsvPanoramaId" -> gtLabel.gsvPanoramaId,
@@ -46,7 +47,5 @@ class GTLabelController @Inject()(implicit val env: Environment[User, SessionAut
     val gtlCollection = Json.obj("ground_truth_labels" -> gtl)
     Future.successful(Ok(gtlCollection))
   }
-
-
 
 }

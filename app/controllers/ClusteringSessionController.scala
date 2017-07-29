@@ -19,29 +19,28 @@ import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.extras.geojson
 
-
 import scala.concurrent.Future
 
 class ClusteringSessionController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * The index page just displays all undeleted clustering sessions for now.
+    * Returns all records in clusterin_session table that are not marked as deleted.
     */
-  def index = UserAwareAction.async { implicit request =>
+  def getClusteringSessionsWithoutDeleted = UserAwareAction.async { implicit request =>
     val clusteringSessions= ClusteringSessionTable.selectSessionsWithoutDeleted
+
     val ses: List[JsObject] = clusteringSessions.map { clusteringSession =>
       val clusteringSessionId: Int = clusteringSession.clusteringSessionId
       val routeId: Int = clusteringSession.routeId
       val clustering_threshold: Double = clusteringSession.clustering_threshold
       val time_created: java.sql.Timestamp = clusteringSession.time_created
       val deleted: Boolean = clusteringSession.deleted
-      Json.obj("clusteringSessionId" -> clusteringSessionId, "routeId" -> routeId, "clustering_threshold" -> clustering_threshold, "time_created" -> time_created, "deleted" -> deleted)
+      Json.obj("clusteringSessionId" -> clusteringSessionId, "routeId" -> routeId,
+               "clustering_threshold" -> clustering_threshold, "time_created" -> time_created, "deleted" -> deleted)
     }
     val sessionCollection = Json.obj("sessions" -> ses)
     Future.successful(Ok(sessionCollection))
   }
-
-
 
 }

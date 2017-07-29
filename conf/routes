@@ -115,7 +115,7 @@ GET     /gtresolution                            @controllers.GroundTruthResolut
 GET     /gtresolution/labelData/:labelId         @controllers.GroundTruthResolutionController.getLabelData(labelId: Int)
 
 # Clustering session end points
-GET     /clusteringsessions                             @controllers.ClusteringSessionController.index
+GET     /clusteringsessions                             @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted
 
 # Ground Truth Label end points
-GET     /gtlabels                                       @controllers.GTLabelController.index
+GET     /gtlabels                                       @controllers.GTLabelController.getAllGTLabels

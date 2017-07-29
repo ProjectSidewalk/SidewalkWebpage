@@ -54,7 +54,10 @@ object ClusteringSessionTable{
   }
 
   def updateDeleted(clustering_session_id: Int, deleted: Boolean)= db.withTransaction { implicit session =>
-    val q = for {clustering_session <- clustering_sessions if clustering_session.clusteringSessionId === clustering_session_id } yield clustering_session.deleted
+    val q = for {
+      clustering_session <- clustering_sessions
+      if clustering_session.clusteringSessionId === clustering_session_id
+    } yield clustering_session.deleted
     q.update(deleted)
   }
 
