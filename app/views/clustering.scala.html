@@ -1,0 +1,7 @@
+@import models.user.User
+
+@(title: String, user: Option[User] = None)
+@main(title) {
+    @navbar(user)
+    Hello.
+}

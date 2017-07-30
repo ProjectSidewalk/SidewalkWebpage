@@ -16,6 +16,7 @@ GET     /results                                @controllers.ApplicationControll
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
 GET     /mobile                                 @controllers.ApplicationController.mobile
+GET     /clustering                             @controllers.ClusteringController.index
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
