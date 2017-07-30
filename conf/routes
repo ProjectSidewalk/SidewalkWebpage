@@ -16,7 +16,7 @@ GET     /results                                @controllers.ApplicationControll
 GET     /faq                                    @controllers.ApplicationController.faq
 GET     /student                                @controllers.ApplicationController.student
 GET     /mobile                                 @controllers.ApplicationController.mobile
-GET     /clustering                             @controllers.ClusteringController.index
+GET     /clustering                             @controllers.ClusteringSessionController.index
 
 # Auditing tasks
 GET     /audit                                  @controllers.AuditController.audit
@@ -117,6 +117,7 @@ GET     /gtresolution/labelData/:labelId         @controllers.GroundTruthResolut
 
 # Clustering session end points
 GET     /clusteringsessions                             @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted
+GET     /clusterRoute/:routeId                          @controllers.ClusteringSessionController.runClustering(routeId: Int)
 
 # Ground Truth Label end points
 GET     /gtlabels                                       @controllers.GTLabelController.getAllGTLabels

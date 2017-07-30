@@ -11,11 +11,41 @@ import play.api.libs.json.{JsObject, Json}
 
 import scala.concurrent.Future
 
+import scala.sys.process._
+
 class ClusteringSessionController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  // Helper methods
+  def isAdmin(user: Option[User]): Boolean = user match {
+    case Some(user) =>
+      if (user.roles.getOrElse(Seq()).contains("Administrator")) true else false
+    case _ => false
+  }
+
+  // Pages
+  def index = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val clusteringOutput = "python label_clustering.py".!!
+      println(clusteringOutput)
+      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  def runClustering(routeId: Int) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val clusteringOutput = "python label_clustering.py".!!
+      val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> clusteringOutput)
+      Future.successful(Ok(testJson))
+    } else {
+    Future.successful(Redirect("/"))
+    }
+  }
+
   /**
-    * Returns all records in clusterin_session table that are not marked as deleted.
+    * Returns all records in clustering_session table that are not marked as deleted.
     */
   def getClusteringSessionsWithoutDeleted = UserAwareAction.async { implicit request =>
     val clusteringSessions= ClusteringSessionTable.selectSessionsWithoutDeleted
