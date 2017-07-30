@@ -9,6 +9,8 @@ import models.user.User
 
 import scala.concurrent.Future
 
+import scala.sys.process._
+
 
 class ClusteringController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -23,6 +25,8 @@ class ClusteringController @Inject() (implicit val env: Environment[User, Sessio
   // Pages
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
+      val clusteringOutput = "python label_clustering.py".!!
+      println(clusteringOutput)
       Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
     } else {
       Future.successful(Redirect("/"))
