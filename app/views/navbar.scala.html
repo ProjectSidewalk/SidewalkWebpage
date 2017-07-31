@@ -231,19 +231,44 @@ $(document).ready(function () {
                     }
                 });
 
-                $("[data-hide]").on("click", function(){
-                    $("." + $(this).attr("data-hide")).hide();
-                    // -or-, see below
-                    // $(this).closest("." + $(this).attr("data-hide")).hide();
+                //set tooltip alerts for when users do not enter all sign in / sign up fields
+                $('#username').tooltip({title:'Please enter a username.', trigger: 'manual'});
+                $('#username').on({
+                    'focus': function(){
+                        $('#username').tooltip('hide');
+                    }
+                });
+                $('#identifier').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#identifier').on({
+                    'focus': function(){
+                        $('#identifier').tooltip('hide');
+                    }
+                });
+                $('#email').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#email').on({
+                    'focus': function(){
+                        $('#email').tooltip('hide');
+                    }
+                });
+                $(':password').tooltip({title:'Please enter your password.', trigger: 'manual'});
+                $(':password').on({
+                    'focus': function(){
+                        $(':password').tooltip('hide');
+                    }
                 });
             });
 
+            function validateEmail(email) {
+                var regex = /\S+@@\S+\.\S+/;
+                return regex.test(email);
+            }
+
             // Callback function for checking sign-in results
             function handleSignIn(data) {
+
                 //this means that logging in failed, alert user of failure
                 if(typeof data == 'string'){
-                    $('#incorrect-signin-alert').hide();
-                    $('#incorrect-login-modal-alert').show();
+                    $('#incorrect-login-modal-container').modal('toggle');
                     return;
                 }
 
