@@ -5,12 +5,11 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import models.clustering_session.{ClusteringSessionTable}
+import models.clustering_session.{ClusteringSessionTable, LabelToCluster}
 import models.user.User
 import play.api.libs.json.{JsObject, Json}
 
 import scala.concurrent.Future
-
 import scala.sys.process._
 
 class ClusteringSessionController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
@@ -38,7 +37,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
       val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> clusteringOutput)
       Future.successful(Ok(testJson))
     } else {
-    Future.successful(Redirect("/"))
+      Future.successful(Redirect("/"))
     }
   }
 
@@ -59,6 +58,26 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
     }
     val sessionCollection = Json.obj("sessions" -> ses)
     Future.successful(Ok(sessionCollection))
+  }
+
+  /**
+    * Returns the set of labels associated with the given routeId and hitId
+    *
+    * @param routeId
+    * @param hitId
+    * @return
+    */
+  def getLabelsToCluser(routeId: Int, hitId: String) = UserAwareAction.async {implicit request =>
+    if (isAdmin(request.identity)) {
+      val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluser(routeId, hitId)
+      val json = Json.arr(labsToCluster.map(x => Json.obj(
+        "label_id" -> x.labelId, "label_type" -> x.labelType, "lat" -> x.lat, "lng" -> x.lng, "severity" -> x.severity,
+        "temporary" -> x.temp, "turker_id" -> x.turkerId
+      )))
+      Future.successful(Ok(json))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
 
 }
