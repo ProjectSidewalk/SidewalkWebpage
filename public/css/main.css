@@ -88,6 +88,7 @@ footer {
 .navbarLink{
     display: inline;
     margin-top: 4px;
+    margin-left: 10px;
 }
 
 .navbar-brand.fixed-theme {
@@ -147,9 +148,6 @@ footer {
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
-.navbarResultsBtn{
-    margin-left: 8px;
-}
 .navbarStartBtn:hover {
     background-color:#FCECBE;
     border:1px solid #FCECBE;
@@ -169,7 +167,6 @@ footer {
 
 .grayButton {
     position: relative;
-    left: 20px;
     background-color: #eee;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
