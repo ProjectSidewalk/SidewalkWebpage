@@ -62,14 +62,15 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
 
   /**
     * Returns the set of labels associated with the given routeId and hitId
+    * TODO figure out how to take in an Int for routeId (got a compilation error in conf/routes
     *
     * @param routeId
     * @param hitId
     * @return
     */
-  def getLabelsToCluser(routeId: Int, hitId: String) = UserAwareAction.async {implicit request =>
+  def getLabelsToCluser(routeId: String, hitId: String) = UserAwareAction.async {implicit request =>
     if (isAdmin(request.identity)) {
-      val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluser(routeId, hitId)
+      val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluser(routeId.toInt, hitId)
       val json = Json.arr(labsToCluster.map(x => Json.obj(
         "label_id" -> x.labelId, "label_type" -> x.labelType, "lat" -> x.lat, "lng" -> x.lng, "severity" -> x.severity,
         "temporary" -> x.temp, "turker_id" -> x.turkerId
