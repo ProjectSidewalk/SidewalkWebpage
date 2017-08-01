@@ -34,6 +34,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
   def runClustering(routeId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val clusteringOutput = "python label_clustering.py".!!
+      println(clusteringOutput)
       val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> clusteringOutput)
       Future.successful(Ok(testJson))
     } else {
@@ -69,16 +70,16 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
     * @return
     */
   def getLabelsToCluser(routeId: String, hitId: String) = UserAwareAction.async {implicit request =>
-    if (isAdmin(request.identity)) {
+//    if (isAdmin(request.identity)) {
       val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluser(routeId.toInt, hitId)
       val json = Json.arr(labsToCluster.map(x => Json.obj(
         "label_id" -> x.labelId, "label_type" -> x.labelType, "lat" -> x.lat, "lng" -> x.lng, "severity" -> x.severity,
         "temporary" -> x.temp, "turker_id" -> x.turkerId
       )))
       Future.successful(Ok(json))
-    } else {
-      Future.successful(Redirect("/"))
-    }
+//    } else {
+//      Future.successful(Redirect("/"))
+//    }
   }
 
 }
