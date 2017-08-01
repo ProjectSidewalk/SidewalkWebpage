@@ -127,6 +127,13 @@ object AuditTaskTable {
   }
 
   /**
+    * Return a sub-query of the least-audited streets in a region
+    */
+  def getLeastAuditedStreetsQuery(regionId: Int) = db.withSession {implicit session =>
+    
+  }
+
+  /**
     * Returns the number of tasks completed
     * @return
     */
