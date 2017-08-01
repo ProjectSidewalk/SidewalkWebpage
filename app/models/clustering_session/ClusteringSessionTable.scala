@@ -15,8 +15,8 @@ import scala.slick.lifted.ForeignKeyQuery
 case class ClusteringSession(clusteringSessionId: Int, routeId: Int, clustering_threshold: Double,
                              time_created: java.sql.Timestamp, deleted: Boolean)
 
-case class LabelToCluster(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float], severity: Int,
-                          temp: Boolean, turkerId: String)
+case class LabelToCluster(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float],
+                          severity: Option[Int], temp: Boolean, turkerId: String)
 /**
   *
   */
@@ -74,14 +74,14 @@ object ClusteringSessionTable{
     } yield (_labs._1, _labs._2, _labs._3, _labPoints.lat, _labPoints.lng)
 
     val labelsWithSeverity = for {
-      (_labs, _severity) <- labelsWithLatLng.innerJoin(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _severity.severity)
+      (_labs, _severity) <- labelsWithLatLng.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5,  _severity.severity.?)
 
     val labelsWithTemporariness = for {
-      (_labs, _temporariness) <- labelsWithSeverity.innerJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
-    } yield (_labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _temporariness.temporaryProblem, _labs._1)
+      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
+    } yield (_labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _temporariness.temporaryProblem.?, _labs._1)
 
-    labelsWithTemporariness.list.map(x => LabelToCluster.tupled(x))
+    labelsWithTemporariness.list.map(x => LabelToCluster.tupled((x._1, x._2, x._3, x._4, x._5, x._6.getOrElse(false), x._7)))
   }
 
   def save(clustering_session: ClusteringSession): Int = db.withTransaction { implicit session =>
