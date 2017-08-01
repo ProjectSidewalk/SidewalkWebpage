@@ -241,7 +241,8 @@ function Main (params) {
             }
         });
         $('[data-toggle="tooltip"]').tooltip({
-            delay: { "show": 500, "hide": 100 }
+            delay: { "show": 500, "hide": 100 },
+            html: true
         });
     }
 
@@ -490,12 +491,12 @@ function Main (params) {
         return _tasks.length > 0;
     }
 
-    function getStatus (key) { 
-        return key in status ? status[key] : null; 
+    function getStatus (key) {
+        return key in status ? status[key] : null;
     }
 
-    function setStatus (key, value) { 
-        status[key] = value; return this; 
+    function setStatus (key, value) {
+        status[key] = value; return this;
     }
 
     /**
