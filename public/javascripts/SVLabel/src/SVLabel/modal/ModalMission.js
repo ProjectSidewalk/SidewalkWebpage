@@ -116,7 +116,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 templateHTML = initialMissionHTML;
             }
 
-            distanceString = this._auidtDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
+            distanceString = this._auditDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
@@ -171,11 +171,11 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     uiModalMission.closeButton.on("click", this._handleCloseButtonClick);
 }
 
-ModalMission.prototype._auidtDistanceToString = function  (distance, unit) {
+ModalMission.prototype._auditDistanceToString = function  (distance, unit) {
     if (!unit) unit = "kilometers";
 
     if (unit == "miles") {
-        if (distance <= 0.10){
+        if (distance <= 0.12){
             return "500ft";
         }
         else if (distance <= 0.20) {

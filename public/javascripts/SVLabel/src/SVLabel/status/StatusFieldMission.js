@@ -50,7 +50,10 @@ StatusFieldMission.prototype._auditDistanceToString = function (distance, unit) 
     if (!unit) unit = "kilometers";
 
     if (unit == "miles") {
-        if (distance <= 0.20) {
+        if(distance <= 0.12){
+            return "500ft";
+        }
+        else if (distance <= 0.20) {
             return "1000ft";
         } else if (distance <= 0.25) {
             return "&frac14;mi";
