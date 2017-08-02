@@ -34,7 +34,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
         if (missionLabel == "distance-mission") {
             var distance = mission.getProperty("auditDistanceMi");
-            var distanceString = this._auidtDistanceToString(distance, "miles");
+            var distanceString = this._auditDistanceToString(distance, "miles");
             missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
 
         } else if (missionLabel == "area-coverage-mission") {
@@ -46,7 +46,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
     };
 }
 
-StatusFieldMission.prototype._auidtDistanceToString = function (distance, unit) {
+StatusFieldMission.prototype._auditDistanceToString = function (distance, unit) {
     if (!unit) unit = "kilometers";
 
     if (unit == "miles") {
