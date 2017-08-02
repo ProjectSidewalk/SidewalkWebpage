@@ -39,16 +39,16 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
 
   // Pages
   def index = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+//    if (isAdmin(request.identity)) {
       Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
+//    } else {
+//      Future.successful(Redirect("/"))
+//    }
   }
 
   def runClustering(routeId: Int) = UserAwareAction.async { implicit request =>
 //    if (isAdmin(request.identity)) {
-      val clusteringOutput = "python label_clustering.py".!!
+      val clusteringOutput = ("python label_clustering.py " + routeId).!!
 //      println(clusteringOutput)
       val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
       Future.successful(Ok(testJson))
@@ -100,7 +100,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
   /**
     * Takes in results of clustering, and adds the data to the relevant tables
     */
-  def postClusteringResults = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
+  def postClusteringResults(routeId: String, threshold: String) = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
     // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
     val submission = request.body.validate[List[Lab]]
     submission.fold(
@@ -111,7 +111,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
       submission => {
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
-        val sessionId: Int = ClusteringSessionTable.save(ClusteringSession(0, 6193, 0.05, timestamp, deleted = false))
+        val sessionId: Int = ClusteringSessionTable.save(ClusteringSession(0, routeId.toInt, threshold.toDouble, timestamp, deleted = false))
         submission.groupBy(_.clusterNum).map { case (clust, labels) =>
             val clustId: Int = ClusteringSessionClusterTable.save(ClusteringSessionCluster(0, sessionId))
             for (label <- labels) yield {

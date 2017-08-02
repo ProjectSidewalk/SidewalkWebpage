@@ -119,7 +119,7 @@ GET     /gtresolution/labelData/:labelId         @controllers.GroundTruthResolut
 GET     /clusteringsessions                             @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted
 GET     /clusterRoute/:routeId                          @controllers.ClusteringSessionController.runClustering(routeId: Int)
 GET     /labelsToCluster/:routeId/:hitId                @controllers.ClusteringSessionController.getLabelsToCluser(routeId, hitId)
-POST    /clusteringResults                              @controllers.ClusteringSessionController.postClusteringResults
+POST    /clusteringResults/:routeId/:threshold          @controllers.ClusteringSessionController.postClusteringResults(routeId, threshold)
 
 # Ground Truth Label end points
 GET     /gtlabels                                       @controllers.GTLabelController.getAllGTLabels

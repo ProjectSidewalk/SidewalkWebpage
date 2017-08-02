@@ -12,8 +12,28 @@ if __name__ == '__main__':
     import pandas as pd
     from pandas.io.json import json_normalize
     import json
+    import argparse
+
+    MAJORITY_THRESHOLD = 3
+
+    # read in arguments from command line
+    parser = argparse.ArgumentParser(description='Takes a set of labels from JSON, and outputs the labels grouped into clusters as JSON')
+    parser.add_argument('route_id', type=int,
+                        help='Route Id who\'s labels should be clustered.')
+    parser.add_argument('--clust_thresh', type=float, default=0.005,
+                        help='Cluster distance threshold (in meters)')
+    parser.add_argument('--debug', action='store_true',
+                        help='Debug mode adds print statements')
+    args = parser.parse_args()
+    DEBUG = args.debug
+    CLUSTER_THRESHOLD = args.clust_thresh
+    ROUTE_ID = args.route_id
+    print ROUTE_ID
+
+
     try:
-        url = 'http://localhost:9000/labelsToCluster/6193/6193'
+        url = 'http://localhost:9000/labelsToCluster/' + str(ROUTE_ID) + '/' + str(ROUTE_ID)
+        print url
         response = requests.get(url)
         data = response.json()
         label_data = json_normalize(data[0])
@@ -22,10 +42,6 @@ if __name__ == '__main__':
         print "bleep bloop fail"
         sys.exit()
 
-
-    CLUSTER_THRESHOLD = 0.005 # cluster all labels within 5 meter diameter
-    DEBUG = False
-    MAJORITY_THRESHOLD = 3
 
     # remove other, occlusion, and no sidewalk label types
     included_types = ['CurbRamp', 'SurfaceProblem', 'Obstacle', 'NoCurbRamp']
@@ -118,7 +134,7 @@ if __name__ == '__main__':
     output_data.loc[output_data['label_type'] == 'SurfaceProblem', 'cluster'] += np.max(ramp_data.cluster)
     output_json = output_data.to_json(orient='records', lines=False)
 
-    url = 'http://localhost:9000/clusteringResults'
+    url = 'http://localhost:9000/clusteringResults/' + str(ROUTE_ID) + '/' + str(CLUSTER_THRESHOLD)
     headers = {'content-type': 'application/json; charset=utf-8'}
     # j = json.dumps(output_json)
 
