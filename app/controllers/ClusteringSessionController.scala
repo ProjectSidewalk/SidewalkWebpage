@@ -6,14 +6,27 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.clustering_session.{ClusteringSessionTable, LabelToCluster}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsError, JsObject, Json}
+import play.api.mvc.BodyParsers
 
 import scala.concurrent.Future
 import scala.sys.process._
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+
+case class Lab(labelId: Int, labelType: String, clusterNum: Int)
+case class Bleep(labelId: Int, labelType: String)
 
 class ClusteringSessionController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
+  implicit val labReads: Reads[Lab] = (
+    (JsPath \ "label_id").read[Int] and
+      (JsPath \ "label_type").read[String] and
+        (JsPath \ "cluster").read[Int]
+    )(Lab.apply _)
 
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
@@ -32,14 +45,14 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
   }
 
   def runClustering(routeId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+//    if (isAdmin(request.identity)) {
       val clusteringOutput = "python label_clustering.py".!!
-      println(clusteringOutput)
-      val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> clusteringOutput)
+//      println(clusteringOutput)
+      val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
       Future.successful(Ok(testJson))
-    } else {
-      Future.successful(Redirect("/"))
-    }
+//    } else {
+//      Future.successful(Redirect("/"))
+//    }
   }
 
   /**
@@ -80,6 +93,28 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
 //    } else {
 //      Future.successful(Redirect("/"))
 //    }
+  }
+
+  /**
+    * Takes in results of clustering, and adds the data to the relevant tables
+    */
+  def postClusteringResults = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
+    // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
+    val submission = request.body.validate[List[Lab]]
+    submission.fold(
+      errors => {
+        println("bleepbloop how does parse")
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        for (label <- submission) yield {
+          println(label)
+        }
+      }
+    )
+    val json = Json.obj()
+    println()
+    Future.successful(Ok(json))
   }
 
 }
