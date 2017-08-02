@@ -60,36 +60,36 @@ class GTLabelTable(tag: Tag) extends Table[GTLabel](tag, Some("sidewalk"), "gt_l
   */
 object GTLabelTable{
   val db = play.api.db.slick.DB
-  val gt_labels = TableQuery[GTLabelTable]
+  val gtLabels = TableQuery[GTLabelTable]
 
   def getGTLabel(gtLabelId: Int): Option[GTLabel] = db.withSession { implicit session =>
-    val gt_label = gt_labels.filter(_.gtLabelId === gtLabelId).list
-    gt_label.headOption
+    val gtLabel = gtLabels.filter(_.gtLabelId === gtLabelId).list
+    gtLabel.headOption
   }
 
   def all: List[GTLabel] = db.withSession { implicit session =>
-    gt_labels.list
+    gtLabels.list
   }
 
   def selectExistingLabels: List[GTLabel] = db.withSession { implicit session =>
     (for {
-      (_labs, _existing_labs) <- gt_labels.innerJoin(GTExistingLabelTable.gt_existing_labels).on(_.gtLabelId === _.gtLabelId)
+      (_labs, _existingLabs) <- gtLabels.innerJoin(GTExistingLabelTable.gtExistingLabels).on(_.gtLabelId === _.gtLabelId)
     } yield _labs).list
   }
 
   /** Returns set of labels that  */
   def selectAddedLabels: List[GTLabel] = db.withSession { implicit session =>
     (for {
-      (_labs, _existing_labs) <- gt_labels.leftJoin(GTExistingLabelTable.gt_existing_labels).on(_.gtLabelId === _.gtLabelId)
+      (_labs, _existingLabs) <- gtLabels.leftJoin(GTExistingLabelTable.gtExistingLabels).on(_.gtLabelId === _.gtLabelId)
       // includes only rows without an entry in the gt_existing_label table
       // http://slick.lightbend.com/doc/2.1.0/upgrade.html#isnull-and-isnotnull
-      if _existing_labs.gtExistingLabelId.?.isEmpty
+      if _existingLabs.gtExistingLabelId.?.isEmpty
     } yield _labs).list
   }
 
-  def save(gt_label: GTLabel): Int = db.withTransaction { implicit session =>
+  def save(gtLabel: GTLabel): Int = db.withTransaction { implicit session =>
     val gtId: Int =
-      (gt_labels returning gt_labels.map(_.gtLabelId)) += gt_label
+      (gtLabels returning gtLabels.map(_.gtLabelId)) += gtLabel
     gtId
   }
 

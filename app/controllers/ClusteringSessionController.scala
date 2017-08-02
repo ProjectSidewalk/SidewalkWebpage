@@ -66,11 +66,11 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
     val ses: List[JsObject] = clusteringSessions.map { clusteringSession =>
       val clusteringSessionId: Int = clusteringSession.clusteringSessionId
       val routeId: Int = clusteringSession.routeId
-      val clustering_threshold: Double = clusteringSession.clustering_threshold
-      val time_created: java.sql.Timestamp = clusteringSession.time_created
+      val clusteringThreshold: Double = clusteringSession.clusteringThreshold
+      val timeCreated: java.sql.Timestamp = clusteringSession.timeCreated
       val deleted: Boolean = clusteringSession.deleted
       Json.obj("clusteringSessionId" -> clusteringSessionId, "routeId" -> routeId,
-               "clustering_threshold" -> clustering_threshold, "time_created" -> time_created, "deleted" -> deleted)
+               "clustering_threshold" -> clusteringThreshold, "time_created" -> timeCreated, "deleted" -> deleted)
     }
     val sessionCollection = Json.obj("sessions" -> ses)
     Future.successful(Ok(sessionCollection))

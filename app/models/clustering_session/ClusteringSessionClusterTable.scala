@@ -20,7 +20,7 @@ class ClusteringSessionClusterTable(tag: Tag) extends Table[ClusteringSessionClu
 
   def * = (clusteringSessionClusterId, clusteringSessionId) <> ((ClusteringSessionCluster.apply _).tupled, ClusteringSessionCluster.unapply)
 
-  def clustering_session: ForeignKeyQuery[ClusteringSessionTable, ClusteringSession] =
+  def clusteringSession: ForeignKeyQuery[ClusteringSessionTable, ClusteringSession] =
     foreignKey("clustering_session_cluster_cluster_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTable])(_.clusteringSessionId)
 
 }
@@ -30,24 +30,24 @@ class ClusteringSessionClusterTable(tag: Tag) extends Table[ClusteringSessionClu
   */
 object ClusteringSessionClusterTable{
   val db = play.api.db.slick.DB
-  val clustering_session_clusters = TableQuery[ClusteringSessionClusterTable]
+  val clusteringSessionClusters = TableQuery[ClusteringSessionClusterTable]
 
   def getClusteringSessionCluster(clusteringSessionClusterId: Int): Option[ClusteringSessionCluster] = db.withSession { implicit session =>
-    val clustering_session_cluster = clustering_session_clusters.filter(_.clusteringSessionClusterId === clusteringSessionClusterId).list
-    clustering_session_cluster.headOption
+    val clusteringSessionCluster = clusteringSessionClusters.filter(_.clusteringSessionClusterId === clusteringSessionClusterId).list
+    clusteringSessionCluster.headOption
   }
 
   def all: List[ClusteringSessionCluster] = db.withSession { implicit session =>
-    clustering_session_clusters.list
+    clusteringSessionClusters.list
   }
 
   def getSpecificClusteringSessionClusters(clusteringSessionId: Int): List[ClusteringSessionCluster] = db.withSession { implicit session =>
-    clustering_session_clusters.filter(_.clusteringSessionId === clusteringSessionId).list
+    clusteringSessionClusters.filter(_.clusteringSessionId === clusteringSessionId).list
   }
 
-  def save(clustering_session_cluster: ClusteringSessionCluster): Int = db.withTransaction { implicit session =>
+  def save(clusteringSessionCluster: ClusteringSessionCluster): Int = db.withTransaction { implicit session =>
     val scId: Int =
-      (clustering_session_clusters returning clustering_session_clusters.map(_.clusteringSessionClusterId)) += clustering_session_cluster
+      (clusteringSessionClusters returning clusteringSessionClusters.map(_.clusteringSessionClusterId)) += clusteringSessionCluster
     scId
   }
 

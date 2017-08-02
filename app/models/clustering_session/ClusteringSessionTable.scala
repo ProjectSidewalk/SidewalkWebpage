@@ -12,8 +12,8 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class ClusteringSession(clusteringSessionId: Int, routeId: Int, clustering_threshold: Double,
-                             time_created: java.sql.Timestamp, deleted: Boolean)
+case class ClusteringSession(clusteringSessionId: Int, routeId: Int, clusteringThreshold: Double,
+                             timeCreated: java.sql.Timestamp, deleted: Boolean)
 
 case class LabelToCluster(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float],
                           severity: Option[Int], temp: Boolean, turkerId: String)
@@ -29,10 +29,10 @@ case class LabelsForResolution(labelId: Int, clusterId: Int, gsvPanoramaId: Stri
 class ClusteringSessionTable(tag: Tag) extends Table[ClusteringSession](tag, Some("sidewalk"), "clustering_session") {
   def clusteringSessionId = column[Int]("clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def routeId = column[Int]("route_id", O.NotNull)
-  def clustering_threshold = column[Double]("clustering_threshold", O.NotNull)
+  def clusteringThreshold = column[Double]("clustering_threshold", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
-  def time_created = column[java.sql.Timestamp]("time_created",O.NotNull)
-  def * = (clusteringSessionId, routeId, clustering_threshold, time_created, deleted) <> ((ClusteringSession.apply _).tupled, ClusteringSession.unapply)
+  def timeCreated = column[java.sql.Timestamp]("time_created",O.NotNull)
+  def * = (clusteringSessionId, routeId, clusteringThreshold, timeCreated, deleted) <> ((ClusteringSession.apply _).tupled, ClusteringSession.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] =
     foreignKey("clustering_session_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
@@ -44,19 +44,19 @@ class ClusteringSessionTable(tag: Tag) extends Table[ClusteringSession](tag, Som
   */
 object ClusteringSessionTable{
   val db = play.api.db.slick.DB
-  val clustering_sessions = TableQuery[ClusteringSessionTable]
+  val clusteringSessions = TableQuery[ClusteringSessionTable]
 
   def getClusteringSession(clusteringSessionId: Int): Option[ClusteringSession] = db.withSession { implicit session =>
-    val clustering_session = clustering_sessions.filter(_.clusteringSessionId === clusteringSessionId).list
-    clustering_session.headOption
+    val clusteringSession = clusteringSessions.filter(_.clusteringSessionId === clusteringSessionId).list
+    clusteringSession.headOption
   }
 
   def all: List[ClusteringSession] = db.withSession { implicit session =>
-    clustering_sessions.list
+    clusteringSessions.list
   }
 
   def selectSessionsWithoutDeleted: List[ClusteringSession] = db.withSession { implicit session =>
-    clustering_sessions.filter(_.deleted === false).list
+    clusteringSessions.filter(_.deleted === false).list
   }
 
   /**
@@ -100,9 +100,9 @@ object ClusteringSessionTable{
   def getLabelsForGtResolution(clusteringSessionId: Int): List[LabelsForResolution] = db.withTransaction { implicit session =>
     // does a bunch of inner joins to get most of the label data
     val labels = for {
-      _session <- clustering_sessions if _session.clusteringSessionId === clusteringSessionId
-      _clusters <- ClusteringSessionClusterTable.clustering_session_clusters if _session.clusteringSessionId === _clusters.clusteringSessionId
-      _clustLabs <- ClusteringSessionLabelTable.clustering_session_labels if _clusters.clusteringSessionClusterId === _clustLabs.clusteringSessionClusterId
+      _session <- clusteringSessions if _session.clusteringSessionId === clusteringSessionId
+      _clusters <- ClusteringSessionClusterTable.clusteringSessionClusters if _session.clusteringSessionId === _clusters.clusteringSessionId
+      _clustLabs <- ClusteringSessionLabelTable.clusteringSessionLabels if _clusters.clusteringSessionClusterId === _clustLabs.clusteringSessionClusterId
       _labs <- LabelTable.labels if _clustLabs.labelId === _labs.labelId
       _labPoints <- LabelTable.labelPoints if _labs.labelId === _labPoints.labelId
       _types <- LabelTable.labelTypes if _labs.labelTypeId === _types.labelTypeId
@@ -136,17 +136,17 @@ object ClusteringSessionTable{
   }
 
 
-  def save(clustering_session: ClusteringSession): Int = db.withTransaction { implicit session =>
+  def save(clusteringSession: ClusteringSession): Int = db.withTransaction { implicit session =>
     val sId: Int =
-      (clustering_sessions returning clustering_sessions.map(_.clusteringSessionId)) += clustering_session
+      (clusteringSessions returning clusteringSessions.map(_.clusteringSessionId)) += clusteringSession
     sId
   }
 
-  def updateDeleted(clustering_session_id: Int, deleted: Boolean)= db.withTransaction { implicit session =>
+  def updateDeleted(clusteringSessionId: Int, deleted: Boolean)= db.withTransaction { implicit session =>
     val q = for {
-      clustering_session <- clustering_sessions
-      if clustering_session.clusteringSessionId === clustering_session_id
-    } yield clustering_session.deleted
+      clusteringSession <- clusteringSessions
+      if clusteringSession.clusteringSessionId === clusteringSessionId
+    } yield clusteringSession.deleted
     q.update(deleted)
   }
 
