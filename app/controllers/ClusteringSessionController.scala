@@ -1,13 +1,15 @@
 package controllers
 
+import java.sql.Timestamp
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import models.clustering_session.{ClusteringSessionTable, LabelToCluster}
+import models.clustering_session._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsError, JsObject, Json}
 import play.api.mvc.BodyParsers
 
@@ -107,8 +109,14 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        for (label <- submission) yield {
-          println(label)
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val sessionId: Int = ClusteringSessionTable.save(ClusteringSession(0, 6193, 0.05, timestamp, deleted = false))
+        submission.groupBy(_.clusterNum).map { case (clust, labels) =>
+            val clustId: Int = ClusteringSessionClusterTable.save(ClusteringSessionCluster(0, sessionId))
+            for (label <- labels) yield {
+              ClusteringSessionLabelTable.save(ClusteringSessionLabel(0, clustId, label.labelId))
+            }
         }
       }
     )
