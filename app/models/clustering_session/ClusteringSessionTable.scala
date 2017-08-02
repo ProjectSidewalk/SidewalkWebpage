@@ -56,25 +56,17 @@ object ClusteringSessionTable{
   def getLabelsToCluser(routeId: Int, hitId: String): List[LabelToCluster] = db.withSession {implicit session =>
     val asmts = AMTAssignmentTable.amtAssignments.filter(asmt => asmt.routeId === routeId && asmt.hitId === hitId)
 
-    val tasks = for {
-      (_asmts, _tasks) <- asmts.innerJoin(AuditTaskTable.auditTasks).on(_.amtAssignmentId === _.amtAssignmentId)
-      if _tasks.completed
-    } yield (_asmts.turkerId, _tasks.auditTaskId)
-
+    // does a bunch of inner joins
     val labels = for {
-      (_tasks, _labs) <- tasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_._2 === _.auditTaskId)
-    } yield (_tasks._1, _labs.labelId, _labs.labelTypeId)
-
-    val labelsWithType = for {
-      (_labels, _types) <- labels.innerJoin(LabelTable.labelTypes).on(_._3 === _.labelTypeId)
-    } yield (_labels._1, _labels._2, _types.labelType)
-
-    val labelsWithLatLng = for {
-      (_labs, _labPoints) <- labelsWithType.innerJoin(LabelTable.labelPoints).on(_._2 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labPoints.lat, _labPoints.lng)
+      _asmts <- asmts
+      _tasks <- AuditTaskTable.auditTasks if _asmts.amtAssignmentId === _tasks.amtAssignmentId
+      _labs <- LabelTable.labelsWithoutDeleted if _tasks.auditTaskId === _labs.auditTaskId
+      _latlngs <- LabelTable.labelPoints if _labs.labelId === _latlngs.labelId
+      _types <- LabelTable.labelTypes if _labs.labelTypeId === _types.labelTypeId
+    } yield (_asmts.turkerId, _labs.labelId, _types.labelType, _latlngs.lat, _latlngs.lng)
 
     val labelsWithSeverity = for {
-      (_labs, _severity) <- labelsWithLatLng.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
+      (_labs, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
     } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5,  _severity.severity.?)
 
     val labelsWithTemporariness = for {
@@ -83,6 +75,10 @@ object ClusteringSessionTable{
 
     labelsWithTemporariness.list.map(x => LabelToCluster.tupled((x._1, x._2, x._3, x._4, x._5, x._6.getOrElse(false), x._7)))
   }
+
+//  def getLabelsForGtResolution(routeId: Int): List[Label] = db.withTransaction { implicit session =>
+//
+//  }
 
   def save(clustering_session: ClusteringSession): Int = db.withTransaction { implicit session =>
     val sId: Int =
