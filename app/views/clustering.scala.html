@@ -1,0 +1,14 @@
+@import models.user.User
+
+@(title: String, user: Option[User] = None)
+@main(title) {
+    @navbar(user)
+    <br>
+    <br>
+    Route to cluster: <input type="text" id="route-text" value="" />
+    <button id="clustering-button">Run Clustering</button></a>
+    <p id="clustering-result"></p>
+
+
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/clustering.js")'></script>
+}

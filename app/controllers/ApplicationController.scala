@@ -183,4 +183,24 @@ class ApplicationController @Inject()(implicit val env: Environment[User, Sessio
         Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility")))
     }
   }
+
+  /**
+    * Returns a page for initiating clustering
+    *
+    * @return
+    */
+  def clustering = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Clustering", timestamp))
+        Future.successful(Ok(views.html.developer("Project Sidewalk - Developers", Some(user))))
+      case None =>
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Clustering", timestamp))
+        Future.successful(Ok(views.html.developer("Project Sidewalk - Developers")))
+    }
+  }
 }

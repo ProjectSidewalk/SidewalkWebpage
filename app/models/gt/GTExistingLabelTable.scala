@@ -29,20 +29,20 @@ class GTExistingLabelTable(tag: Tag) extends Table[GTExistingLabel](tag, Some("s
 
 object GTExistingLabelTable{
   val db = play.api.db.slick.DB
-  val gt_existing_labels = TableQuery[GTExistingLabelTable]
+  val gtExistingLabels = TableQuery[GTExistingLabelTable]
 
   def getExistingGTLabel(gtExistingLabelId: Int): Option[GTExistingLabel] = db.withSession { implicit session =>
-    val gt_existing_label = gt_existing_labels.filter(_.gtExistingLabelId === gtExistingLabelId).list
-    gt_existing_label.headOption
+    val gtExistingLabel = gtExistingLabels.filter(_.gtExistingLabelId === gtExistingLabelId).list
+    gtExistingLabel.headOption
   }
 
   def all: List[GTExistingLabel] = db.withSession { implicit session =>
-    gt_existing_labels.list
+    gtExistingLabels.list
   }
 
-  def save(gt_existing_label: GTExistingLabel): Int = db.withTransaction { implicit session =>
+  def save(gtExistingLabel: GTExistingLabel): Int = db.withTransaction { implicit session =>
     val gteId: Int =
-      (gt_existing_labels returning gt_existing_labels.map(_.gtExistingLabelId)) += gt_existing_label
+      (gtExistingLabels returning gtExistingLabels.map(_.gtExistingLabelId)) += gtExistingLabel
     gteId
   }
 
