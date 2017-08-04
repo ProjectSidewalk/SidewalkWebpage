@@ -9,9 +9,16 @@ function Tracker () {
     var actions = [];
     var prevActions = [];
 
+    var currentLabel = null;
+    var updatedLabels = [];
+
     this.init = function () {
         this.trackWindowEvents();
     };
+
+    this.getCurrentLabel = function(){
+        return currentLabel;
+    }
 
     this.trackWindowEvents = function() {
         var prefix = "LowLevelEvent_";
@@ -70,12 +77,16 @@ function Tracker () {
         if (!extraData)
             extraData = {};
 
-        var pov, latlng, panoId, temporaryLabelId;
+        var pov, latlng, panoId;
 
         var note = this._notesToString(notes);
 
         if ('temporaryLabelId' in extraData) {
-            temporaryLabelId = extraData['temporaryLabelId'];
+            if(currentLabel != null){
+                updatedLabels.push(currentLabel);
+                svl.labelContainer.addUpdatedLabel(currentLabel);
+            }
+            currentLabel = extraData['temporaryLabelId'];
         }
 
         // Initialize variables. Note you cannot get pov, panoid, or position
@@ -124,7 +135,7 @@ function Tracker () {
             pitch: pov.pitch,
             zoom: pov.zoom,
             note: note,
-            temporary_label_id: temporaryLabelId,
+            temporary_label_id: currentLabel,
             timestamp: timestamp
         };
         return item;
@@ -154,9 +165,15 @@ function Tracker () {
     this.refresh = function () {
         prevActions = prevActions.concat(actions);
         actions = [];
+
+        updatedLabels = [];
+        if(currentLabel != null){
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+        }
+
         self.push("RefreshTracker");
     };
 
     this.init();
 }
-
