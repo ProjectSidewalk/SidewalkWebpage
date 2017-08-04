@@ -117,6 +117,7 @@ function ContextMenu (uiContextMenu) {
         if (label) {
             label.setProperty('description', description);
         }
+        svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
     }
 
     function handleDescriptionTextBoxBlur() {
