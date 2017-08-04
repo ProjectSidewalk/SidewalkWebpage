@@ -150,6 +150,12 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
+        if(self._isContextMenuAction(action) && currentLabel != null) {
+            currentLabel = svl.contextMenu.getTargetLabel().getProperties().temporary_label_id;
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+        }
+
         // Submit the data collected thus far if actions is too long.
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
             var task = svl.taskContainer.getCurrentTask();
