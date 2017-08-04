@@ -74,19 +74,31 @@ function LabelContainer($) {
             });
 
         if(matchingLabels.length == 0){
-            return [];
+            return null;
         }
-        
+
+        //returns most recent version of label
         return matchingLabels[matchingLabels.length - 1];
     }
 
     //remove old versions of this label, add updated label
     this.addUpdatedLabel = function (tempId) {
-        currentCanvasLabels = _.filter(currentCanvasLabels,
+        var otherLabels = _.filter(currentCanvasLabels,
             function(label){
                 return label.getProperty("temporary_label_id") != tempId;
             });
-        currentCanvasLabels.push(this.findLabelByTempId(tempId));
+
+        //if there are no temporary labels with this ID then just add it
+        //otherwise get rid of all old instances and add the new label
+
+        var match = this.findLabelByTempId(tempId);
+        if(otherLabels.length == currentCanvasLabels.length){
+            currentCanvasLabels.push(match);
+        } else {
+            currentCanvasLabels = otherLabels;
+            if(match != null)
+                currentCanvasLabels.push(match);
+        }
     }
 
     /** Load labels */
