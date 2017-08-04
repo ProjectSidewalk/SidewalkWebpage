@@ -120,7 +120,6 @@ class SignUpController @Inject() (
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
         // Check presenc of user by username
-
         UserTable.find(data.username) match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))

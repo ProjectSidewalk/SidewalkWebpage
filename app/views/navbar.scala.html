@@ -252,12 +252,6 @@ $(document).ready(function () {
                 });
             });
 
-
-            function validateEmail(email) {
-                var regex = /\S+@@\S+\.\S+/;
-                return regex.test(email);
-            }
-
             // Callback function for checking sign-in results
             function handleSignIn(data) {
                 //this means that logging in failed, alert user of failure
@@ -339,7 +333,7 @@ $(document).ready(function () {
                 var password = formData[1].value;
 
                 //if not a valid email address, do not submit form
-                if(!email || !validateEmail(email)){
+                if(!email){
                     invalidSignInUpAlert(true, 'Please enter a valid email address.');
                     return false;
                 }
@@ -352,7 +346,9 @@ $(document).ready(function () {
                 var data = $(this).serialize();
 
                 var url = '/authapi/authenticate';
-                $.post(url, data, handleSignIn);
+                $.post(url, data, handleSignIn).fail(function(e){
+                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                });
                 return false;
             });
 
@@ -368,7 +364,7 @@ $(document).ready(function () {
                 }
 
                 //if not a valid email address, do not submit form
-                if(!email || !validateEmail(email)){
+                if(!email){
                     invalidSignInUpAlert(false, 'Please enter a valid email address.');
                     return false;
                 }
@@ -382,15 +378,18 @@ $(document).ready(function () {
 
                 var url = '/authapi/signup';
                 $.post(url, data, handleSignIn).fail(function(e){
-                    var errorMessage;
-                    console.log(e);
-                    if(e.responseText.toLowerCase().includes("email")){
-                        errorMessage = "That email address already exists. Please try another one."
+                    var errorMessage = "";
+                    if(e.status === 409){
+                        if(e.responseText.toLowerCase().includes("email")){
+                            errorMessage = "That email address already exists. Please try another one."
+                        }
+                        else{
+                            errorMessage = "That username already exists. Please try another one."
+                        }
                     }
-                    else{
-                        errorMessage = "That username already exists. Please try another one."
+                    else{ // Some other Bad Request
+                        errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
                     }
-                    var error = e.responseText;
                     $('#incorrect-signup-alert').hide();
                     $('#invalid-signup-alert').show();
                     $('#invalid-signup-alert').html(
