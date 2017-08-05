@@ -47,6 +47,10 @@ function Tracker () {
         return action.indexOf("ContextMenu") >= 0;
     };
 
+    this._isDeleteLabelAction = function (action) {
+        return action.indexOf("Click_LabelDelete") >= 0;
+    }
+
     /** Returns actions */
     this.getActions = function () {
         return actions;
@@ -154,6 +158,12 @@ function Tracker () {
             currentLabel = svl.contextMenu.getTargetLabel().getProperties().temporary_label_id;
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
+        } else if (self._isDeleteLabelAction(action)){
+            currentLabel = svl.canvas.getCurrentLabel().getProperties().temporary_label_id;
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+
+
         }
 
         // Submit the data collected thus far if actions is too long.
