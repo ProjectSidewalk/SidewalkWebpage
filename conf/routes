@@ -101,6 +101,10 @@ POST    /userapi/logWebpageActivity             @controllers.UserController.logW
 
 # Geometry API
 
+# Route Visualization
+GET     /routeviz                               @controllers.RouteVizController.index
+GET     /routeviz/allRouteStreets               @controllers.RouteVizController.getAllRouteStreets
+
 # Access Feature and Access Score APIs
 GET     /v1/access/features             @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/score/neighborhoods  @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
