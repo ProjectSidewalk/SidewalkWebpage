@@ -70,36 +70,36 @@ function LabelContainer($) {
     this.findLabelByTempId = function (tempId) {
         var matchingLabels =  _.filter(svl.labelContainer.getCanvasLabels(),
             function(label) {
-                return label.getProperty("temporary_label_id") == tempId;
+                return label.getProperty("temporary_label_id") === tempId;
             });
 
-        if(matchingLabels.length == 0){
+        if(matchingLabels.length === 0){
             return null;
         }
 
         //returns most recent version of label
         return matchingLabels[matchingLabels.length - 1];
-    }
+    };
 
     //remove old versions of this label, add updated label
     this.addUpdatedLabel = function (tempId) {
         var otherLabels = _.filter(currentCanvasLabels,
             function(label){
-                return label.getProperty("temporary_label_id") != tempId;
+                return label.getProperty("temporary_label_id") !== tempId;
             });
 
         //if there are no temporary labels with this ID then just add it
         //otherwise get rid of all old instances and add the new label
 
         var match = this.findLabelByTempId(tempId);
-        if(otherLabels.length == currentCanvasLabels.length){
+        if(otherLabels.length === currentCanvasLabels.length){
             currentCanvasLabels.push(match);
         } else {
             currentCanvasLabels = otherLabels;
-            if(match != null)
+            if(match !== null)
                 currentCanvasLabels.push(match);
         }
-    }
+    };
 
     /** Load labels */
     function load () {
@@ -143,13 +143,13 @@ function LabelContainer($) {
         for (; i < len; i++) {
             storedLabel = neighborhoodLabels[neighborhoodId][i];
 
-            if (storedLabel.getProperty("labelId") != "DefaultValue" &&
-                storedLabel.getProperty("labelId") == label.getProperty("labelId")) {
+            if (storedLabel.getProperty("labelId") !== "DefaultValue" &&
+                storedLabel.getProperty("labelId") === label.getProperty("labelId")) {
                 return;
             }
 
             if (storedLabel.getProperty("temporary_label_id") &&
-                storedLabel.getProperty("temporary_label_id") == label.getProperty("temporary_label_id")) {
+                storedLabel.getProperty("temporary_label_id") === label.getProperty("temporary_label_id")) {
                 return
             }
         }
