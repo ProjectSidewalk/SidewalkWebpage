@@ -399,14 +399,30 @@ object AuditTaskTable {
     import models.street.StreetEdgeTable.streetEdgeConverter
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val selectEdgeQuery = Q.query[Int, StreetEdge](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp FROM region
-       |INNER JOIN street_edge AS st_e
-       |ON ST_Intersects(st_e.geom, region.geom)
-       |WHERE st_e.deleted = FALSE AND region.region_id = ?""".stripMargin
-    )
+    val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
+    val completedTasks = auditTasks.filter(_.completed)
 
-    val edges: List[StreetEdge] = selectEdgeQuery(regionId).list
+    val edgesInRegion = for {
+      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
+      _edges <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _edges.streetEdgeId
+    } yield _edges
+
+    val unauditedEdges = for {
+      (_edges, _tasks) <- edgesInRegion.leftJoin(completedTasks).on(_.streetEdgeId === _.streetEdgeId)
+      if _tasks.streetEdgeId.?.isEmpty
+    } yield _edges
+
+    val lowestCompletionCount: Int = (for {
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      if !_counts.streetEdgeId.?.isEmpty
+    } yield _counts.completionCount.?.getOrElse(-1)).min.run.get
+
+    val leastAuditedEdges = for {
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      if !_counts.streetEdgeId.?.isEmpty && _counts.completionCount === lowestCompletionCount
+    } yield _edges
+
+    val edges: List[StreetEdge] = leastAuditedEdges.list
     edges match {
       case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
