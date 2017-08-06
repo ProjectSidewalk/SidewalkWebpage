@@ -425,7 +425,6 @@ object AuditTaskTable {
    * @return
    */
   def selectANewTaskInARegion(regionId: Int, user: User) = db.withSession { implicit session =>
-    import models.street.StreetEdgeTable.streetEdgeConverter
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
     val userId: String = user.userId.toString
 
@@ -442,7 +441,17 @@ object AuditTaskTable {
       if _tasks.streetEdgeId.?.isEmpty
     } yield _edges
 
-    val edges: List[StreetEdge] = unauditedEdges.list
+    val lowestCompletionCount: Int = (for {
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      if !_counts.streetEdgeId.?.isEmpty
+    } yield _counts.completionCount.?.getOrElse(-1)).min.run.get
+
+    val leastAuditedEdges = for {
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      if !_counts.streetEdgeId.?.isEmpty && _counts.completionCount === lowestCompletionCount
+    } yield _edges
+
+    val edges: List[StreetEdge] = leastAuditedEdges.list
 
     edges match {
       case edges if edges.nonEmpty =>
