@@ -8,7 +8,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.libs.Json
 
-case class AMTCondition(amtConditionId: Int, description: Option[String], parameters: String)
+case class AMTCondition(amtConditionId: Int, description: Option[String], parameters: String, volunteerId: String)
 
 /**
   *
@@ -17,8 +17,9 @@ class AMTConditionTable(tag: Tag) extends Table[AMTCondition](tag, Some("sidewal
   def amtConditionId = column[Int]("amt_condition_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def description = column[Option[String]]("description", O.Nullable)
   def parameters = column[String]("parameters", O.NotNull)
+  def volunteerId = column[String]("volunteer_id". O.NotNull)
 
-  def * = (amtConditionId, description, parameters) <> ((AMTCondition.apply _).tupled, AMTCondition.unapply)
+  def * = (amtConditionId, description, parameters, volunteerId) <> ((AMTCondition.apply _).tupled, AMTCondition.unapply)
 
 }
 
@@ -28,6 +29,11 @@ class AMTConditionTable(tag: Tag) extends Table[AMTCondition](tag, Some("sidewal
 object AMTConditionTable {
   val db = play.api.db.slick.DB
   val amtConditions = TableQuery[AMTConditionTable]
+
+  def getVolunteerId(amtConditionId: Int): String = db.withTransaction { implicit session =>
+    val vId = amtConditions.filter(amtConditionId === _.amtConditionId).headOption.map(_.volunteerId)
+    vId
+  }
 
   def save(cond: AMTCondition): Int = db.withTransaction { implicit session =>
     val condId: Int =
