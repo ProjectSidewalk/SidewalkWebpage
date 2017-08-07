@@ -21,6 +21,7 @@ import models.region._
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -161,8 +162,26 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert labels
           for (label: LabelSubmission <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.insertOrUpdate(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
-              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId))
+
+            val existingLabelId: Option[Int] = label.temporaryLabelId match {
+              case Some(tempLabelId) =>
+                LabelTable.find(tempLabelId, label.auditTaskId)
+              case None => {
+                Logger.error("Received label with Null temporary_label_id")
+                None
+              }
+            }
+
+            // If the label already exists, update deleted field, o/w insert the new label.
+            val labelId: Int = existingLabelId match {
+              case Some(labId) =>
+                LabelTable.updateDeleted(labId, label.deleted.value)
+                labId
+              case None =>
+                LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
+                                      label.photographerPitch, label.panoramaLat, label.panoramaLng,
+                                      label.deleted.value, label.temporaryLabelId))
+            }
 
             // Insert label points
             for (point: LabelPointSubmission <- label.points) {

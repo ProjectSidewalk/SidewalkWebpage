@@ -119,6 +119,20 @@ object LabelTable {
     labelList.headOption
   }
 
+  /**
+    * Find a label based on temp_label_id and audit_task_id.
+    *
+    * @param tempLabelId
+    * @param auditTaskId
+    * @return
+    */
+  def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
+    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
+      label => label.labelId
+    }
+    labelIds.list.headOption
+  }
+
   def countLabels: Int = db.withTransaction(implicit session =>
     labels.filter(_.deleted === false).list.size
   )
@@ -235,6 +249,11 @@ object LabelTable {
       p.update(label.deleted)
       labs.list.head.labelId // returns the label id of the updated label
     }
+  }
+
+  def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
+    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
+    labs.update(deleted)
   }
 
   /**
