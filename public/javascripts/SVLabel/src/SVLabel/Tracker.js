@@ -170,7 +170,7 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
-        console.log(action);
+        //console.log(action);
 
         if(self._isContextMenuAction(action) && currentLabel !== null) {
             currentLabel = svl.contextMenu.getTargetLabel().getProperties().temporary_label_id;
