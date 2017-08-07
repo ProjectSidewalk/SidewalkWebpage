@@ -108,7 +108,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             data.labels.push(temp)
         }
 
-        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
+        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibility attributes).
         data.gsv_panoramas = [];
 
         var temp;

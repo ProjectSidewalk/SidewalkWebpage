@@ -217,6 +217,27 @@ object LabelTable {
   }
 
   /**
+    * Updates the label if it is already in the database, otherwise insert a new one.
+    *
+    * @param label
+    * @return the label id of the updated or inserted label
+    */
+  def insertOrUpdate(label: Label): Int = db.withTransaction { implicit session =>
+    val labs = labels.filter(x => x.auditTaskId === label.auditTaskId && x.temporaryLabelId === label.temporaryLabelId)
+    // if no record is found for that auditTaskId, tempLabelId pair, insert new row into label table
+    if (labs.list.isEmpty) {
+      save(label)
+    } else {
+      // if record found, update deleted column
+      val p = for {
+        l <- labs
+      } yield l.deleted
+      p.update(label.deleted)
+      labs.list.head.labelId // returns the label id of the updated label
+    }
+  }
+
+  /**
    * Saves a new label in the table
     *
     * @param label
