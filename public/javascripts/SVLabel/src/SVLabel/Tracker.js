@@ -51,6 +51,10 @@ function Tracker () {
         return action.indexOf("Click_LabelDelete") >= 0;
     };
 
+    this._isTaskStartAction = function (action) {
+        return action.indexOf("TaskStart") >= 0;
+    }
+
     /** Returns actions */
     this.getActions = function () {
         return actions;
@@ -169,17 +173,24 @@ function Tracker () {
             currentLabel = svl.canvas.getCurrentLabel().getProperties().temporary_label_id;
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
-
         }
 
         // Submit the data collected thus far if actions is too long.
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task);
-            svl.form.submit(data, task);
+            self.submitForm();
         }
         return this;
     };
+
+    this.submitForm = function() {
+        var task = svl.taskContainer.getCurrentTask();
+        var data = svl.form.compileSubmissionData(task);
+        svl.form.submit(data, task);
+    }
+
+    this.initTaskId = function() {
+        self.submitForm();
+    }
 
     /**
      * Put the previous labeling actions into prevActions. Then refresh the current actions.
