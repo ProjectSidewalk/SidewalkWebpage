@@ -81,9 +81,15 @@ function Tracker () {
         if (!extraData)
             extraData = {};
 
-        var pov, latlng, panoId;
+        var pov, latlng, panoId, audit_task_id;
 
         var note = this._notesToString(notes);
+
+        if ('canvas' in svl && svl.canvas.getCurrentLabel()){
+            audit_task_id = svl.canvas.getCurrentLabel().getProperties().audit_task_id;
+        } else {
+            audit_task_id = null;
+        }
 
         if ('temporaryLabelId' in extraData) {
             if(currentLabel !== null){
@@ -140,6 +146,7 @@ function Tracker () {
             zoom: pov.zoom,
             note: note,
             temporary_label_id: currentLabel,
+            audit_task_id: audit_task_id,
             timestamp: timestamp
         };
         return item;
@@ -162,7 +169,6 @@ function Tracker () {
             currentLabel = svl.canvas.getCurrentLabel().getProperties().temporary_label_id;
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
-
 
         }
 

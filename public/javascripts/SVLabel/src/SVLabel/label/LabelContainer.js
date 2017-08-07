@@ -92,6 +92,8 @@ function LabelContainer($) {
         //otherwise get rid of all old instances and add the new label
 
         var match = this.findLabelByTempId(tempId);
+
+        // Label with this id doesn't exist
         if(otherLabels.length === currentCanvasLabels.length){
             currentCanvasLabels.push(match);
         } else {

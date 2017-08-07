@@ -1,11 +1,12 @@
 /**
  *
  * @param labelContainer
+ * @param missionModel
  * @param navigationModel
  * @param neighborhoodModel
  * @param panoramaContainer
  * @param taskContainer
-	 * @param mapService
+ * @param mapService
  * @param compass
  * @param tracker
  * @param params
@@ -70,6 +71,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 panorama_lat: prop.panoramaLat,
                 panorama_lng: prop.panoramaLng,
                 temporary_label_id: label.getProperty('temporary_label_id'),
+                audit_task_id: label.getProperty('audit_task_id'),
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
