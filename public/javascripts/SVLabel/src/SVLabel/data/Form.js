@@ -178,7 +178,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
     this.skip = function (task, skipReasonLabel) {
         var data = self._prepareSkipData(skipReasonLabel);
 
-        if (skipReasonLabel == "GSVNotAvailable") {
+        if (skipReasonLabel === "GSVNotAvailable") {
             task.complete();
             taskContainer.push(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
@@ -222,7 +222,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
      * @param async
      */
     this.submit = function (data, task, async) {
-        if (typeof async == "undefined") { async = true; }
+        if (typeof async === "undefined") { async = true; }
 
         if (data.constructor !== Array) { data = [data]; }
 

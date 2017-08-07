@@ -18,7 +18,7 @@ function Tracker () {
 
     this.getCurrentLabel = function(){
         return currentLabel;
-    }
+    };
 
     this.trackWindowEvents = function() {
         var prefix = "LowLevelEvent_";
@@ -49,7 +49,7 @@ function Tracker () {
 
     this._isDeleteLabelAction = function (action) {
         return action.indexOf("Click_LabelDelete") >= 0;
-    }
+    };
 
     /** Returns actions */
     this.getActions = function () {
@@ -86,7 +86,7 @@ function Tracker () {
         var note = this._notesToString(notes);
 
         if ('temporaryLabelId' in extraData) {
-            if(currentLabel != null){
+            if(currentLabel !== null){
                 updatedLabels.push(currentLabel);
                 svl.labelContainer.addUpdatedLabel(currentLabel);
             }
@@ -154,7 +154,7 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
-        if(self._isContextMenuAction(action) && currentLabel != null) {
+        if(self._isContextMenuAction(action) && currentLabel !== null) {
             currentLabel = svl.contextMenu.getTargetLabel().getProperties().temporary_label_id;
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
@@ -183,7 +183,7 @@ function Tracker () {
         actions = [];
 
         updatedLabels = [];
-        if(currentLabel != null){
+        if(currentLabel !== null){
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
         }
