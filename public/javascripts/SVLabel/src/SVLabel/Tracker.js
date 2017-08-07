@@ -11,6 +11,7 @@ function Tracker () {
 
     var currentLabel = null;
     var updatedLabels = [];
+    var debug = false;
 
     this.init = function () {
         this.trackWindowEvents();
@@ -53,7 +54,11 @@ function Tracker () {
 
     this._isTaskStartAction = function (action) {
         return action.indexOf("TaskStart") >= 0;
-    }
+    };
+
+    this._isPanoramaChangeAction = function (action) {
+        return action.indexOf("PanoId_Changed") >= 0;
+    };
 
     /** Returns actions */
     this.getActions = function () {
@@ -165,6 +170,8 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
+        console.log(action);
+
         if(self._isContextMenuAction(action) && currentLabel !== null) {
             currentLabel = svl.contextMenu.getTargetLabel().getProperties().temporary_label_id;
             updatedLabels.push(currentLabel);
@@ -177,6 +184,8 @@ function Tracker () {
 
         // Submit the data collected thus far if actions is too long.
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
+            self.submitForm();
+        } else if (debug === true && self._isPanoramaChangeAction(action)) {
             self.submitForm();
         }
         return this;
