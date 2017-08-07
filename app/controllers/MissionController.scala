@@ -37,7 +37,22 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         }
 
         val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
-        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId)
+        val regionsWhereOriginal1000FtMissionCompleted = completedMissions.filter(m => 
+          m.coverage match {
+            case None => ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10)
+            case _ => false
+          }
+        ).map(_.regionId.getOrElse(-1)).filter(_ != -1)
+        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId).filter(m =>
+          !(m.coverage match {
+            case None => 
+              ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10) ||
+              regionsWhereOriginal1000FtMissionCompleted.exists(_ == m.regionId.getOrElse(-1)) && ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 500.0, 0.10)
+            case _ =>
+              regionsWhereOriginal1000FtMissionCompleted.exists(_ == m.regionId.getOrElse(-1)) && ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10)
+            }
+          )
+        )
 
         val completedMissionJsonObjects: List[JsObject] = completedMissions.map( m =>
           Json.obj("is_completed" -> true,
@@ -66,7 +81,12 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
         Future.successful(Ok(JsArray(concatenated)))
       case _ =>
-        val missions = MissionTable.selectMissions
+        val missions = MissionTable.selectMissions.filter(m => 
+          m.coverage match {
+            case None => !(~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10))
+            case _ => true
+          }
+        ) // Don't include the original 1000-ft mission
         val missionJsonObjects: List[JsObject] = missions.map( m =>
           Json.obj("is_completed" -> false,
             "mission_id" -> m.missionId,
@@ -108,12 +128,23 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 
+  def ~=(x: Double, y: Double, precision: Double) = { // Approximate equality check for Doubles
+    if ((x - y).abs < precision) true else false
+  }
+
   /**
     *
     * @param userId
     * @param regionId
     */
   def updatedUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
+    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId)
+    val hasCompletedOriginal1000FtMission = completedMissions.exists(m => 
+      m.coverage match {
+        case None => ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10)
+        case _ => false
+      }
+    )
     val missions = MissionTable.selectIncompleteMissionsByAUser(userId, regionId)
     val streets = StreetEdgeTable.selectStreetsAuditedByAUser(userId, regionId)
     val CRSEpsg4326 = CRS.decode("epsg:4326")
@@ -121,7 +152,20 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
     val completedDistance_m = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
 
-    val missionsToComplete = missions.filter(_.distance.getOrElse(Double.PositiveInfinity) < completedDistance_m)
+    // If User has audited more distance than a mission's distance in a particular region, mark the mission as completed
+    val missionsToComplete = missions.filter(m =>
+      m.distance.getOrElse(Double.PositiveInfinity) < completedDistance_m &&
+      !(m.coverage match {
+        case None => (
+          (hasCompletedOriginal1000FtMission && ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 500.0, 0.10)) ||
+          ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10)
+        )
+        case _ => (
+          hasCompletedOriginal1000FtMission && ~=(m.distance_ft.getOrElse(Double.PositiveInfinity), 1000.0, 0.10)
+        ) // Don't add the new 500-ft and 1000-ft missions if the user has already completed the old 1000-ft mission
+          // Don't add the old 1000-ft mission
+      })
+    )
     missionsToComplete.foreach { m =>
       MissionUserTable.save(m.missionId, userId.toString)
     }
