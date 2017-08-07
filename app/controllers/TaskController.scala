@@ -191,12 +191,17 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                   Some(gf.createPoint(coord))
                 case _ => None
               }
-              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
-                point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
-                point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
+              // If this label id does not have an entry in the label point table, add it.
+              LabelPointTable.find(labelId) match {
+                case None =>
+                  LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
+                    point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
+                    point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
+              }
+
             }
 
-            // Insert temporariness and severity if they are set.
+            // If Insert temporariness and severity if they are set.
             if (label.severity.isDefined) {
               ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
             }
