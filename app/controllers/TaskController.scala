@@ -200,7 +200,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               }
             }
 
-            // If temporariness/severity they are set, update/insert them.
+            // If temporariness/severity/description they are set, update/insert them.
             if (label.severity.isDefined) {
               ProblemSeverityTable.find(labelId) match {
                 case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
@@ -209,8 +209,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
 
             if (label.temporaryProblem.isDefined) {
-              val temporaryProblem = label.temporaryProblem.get.value
-              ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, temporaryProblem))
+              val tempProblem = label.temporaryProblem.get.value
+              ProblemTemporarinessTable.find(labelId) match {
+                case Some(pt) => ProblemTemporarinessTable.updateTemporariness(pt.problemTemporarinessId, tempProblem)
+                case None => ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, tempProblem))
+              }
             }
 
             if (label.description.isDefined) {
