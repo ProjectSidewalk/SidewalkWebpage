@@ -88,12 +88,13 @@ function LabelContainer($) {
                 return label.getProperty("temporary_label_id") !== tempId;
             });
 
-        //if there are no temporary labels with this ID then just add it
-        //otherwise get rid of all old instances and add the new label
+        //if there are no temporary labels with this ID in currentCanvasLabels
+        //then add it to that list
+        //otherwise get rid of all old instances in currentCanvasLabels and add the updated label
 
         var match = this.findLabelByTempId(tempId);
 
-        // Label with this id doesn't exist
+        // Label with this id doesn't exist in currentCanvasLabels
         if(otherLabels.length === currentCanvasLabels.length){
             currentCanvasLabels.push(match);
         } else {
