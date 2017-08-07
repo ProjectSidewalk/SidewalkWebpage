@@ -114,17 +114,17 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
             // Retrieve the route based on the condition that the worker has been assigned to and the associated unvisited routes
 
-            val conditionId = TurkerTable.getConditionIdByTurkerId(workerId)
+            var conditionId = TurkerTable.getConditionIdByTurkerId(workerId)
             if(conditionId == None){
               // No worker was found with this id (implies no condition was assigned) so assign the condition id that has been least used
               // Select amt_condition.amt_condition_id, count(condition_id) as cnt from amt_assignment Right JOIN amt_condition on (amt_assignment.condition_id = amt_condition.amt_condition_id) group by amt_condition.amt_condition_id order by cnt asc;
+              conditionId = AMTConditionTable.assignAvailableCondition
               // Save turker id and associated condition here
               // Save Turker details
-              //val turker: Turker = Turker(workerId, "routeId")
+              val turker: Turker = Turker(workerId, "",conditionId)
               // TODO: Fix bug: turker id is taken as null
               // TODO: Find how to append new routes to existing turker
-              //TurkerTable.save(turker)
-              conditionId = 1 // Temporary code
+              TurkerTable.save(turker)
             }
 
             val volunteerId = AMTConditionTable.getVolunteerIdByConditionId

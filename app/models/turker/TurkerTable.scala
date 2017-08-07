@@ -6,6 +6,7 @@ package models.turker
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import scala.slick.lifted.ForeignKeyQuery
 
 case class Turker(turkerId: String, routesAudited: String, amtConditionId: Int)
 /**

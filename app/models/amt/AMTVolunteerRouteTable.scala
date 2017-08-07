@@ -34,6 +34,7 @@ class AMTVolunteerRouteTable(tag: Tag) extends Table[AMTVolunteerRoute](tag, Som
 object AMTVolunteerRouteTable {
   val db = play.api.db.slick.DB
   val amtVolunteerRoutes = TableQuery[AMTVolunteerRouteTable]
+  val amtAssignments = TableQuery[AMTAssignments]
 
   def findRoutesByVolunteerId(volunteerId: String): List[Int] = db.withTransaction { implicit session =>
     val routeAsg = amtVolunteerRoutes.filter(_.volunteerId === volunteerId).map(_.routeId).list
@@ -43,6 +44,11 @@ object AMTVolunteerRouteTable {
   def assignRouteByVolunteerIdAndWorkerId(volunteerId: String, workerId: String): Option[Id] = db.withTransaction { implicit session =>
     // Find the first route in the list of routes associated with volunteerId (these are obtained using findRoutesByVolunteerId)
     // that hasnt been audited by workerId (this can be checked in the amt_assignment table)
+    val availableRoutes = findRoutesByVolunteerId(volunteerId)
+    val auditedRoutes = amtAssignments.filter(_.turkerId === worderId).filter(_.completed).map(_.routeId).list
+    //Check if the ordering of the lists is correct here
+    val assignedRoute = (availableRoutes filterNot (auditedRoutes contains)).headOption
+    assignedRoute
   }
 
   def save(asg: AMTVolunteerRoute): Int = db.withTransaction { implicit session =>
