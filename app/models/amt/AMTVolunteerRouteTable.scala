@@ -40,6 +40,11 @@ object AMTVolunteerRouteTable {
     routeAsg
   }
 
+  def assignRouteByVolunteerIdAndWorkerId(volunteerId: String, workerId: String): Option[Id] = db.withTransaction { implicit session =>
+    // Find the first route in the list of routes associated with volunteerId (these are obtained using findRoutesByVolunteerId)
+    // that hasnt been audited by workerId (this can be checked in the amt_assignment table)
+  }
+
   def save(asg: AMTVolunteerRoute): Int = db.withTransaction { implicit session =>
     val asgId: Int =
       (amtVolunteerRoutes returning amtVolunteerRoutes.map(_.amtVolunteerRouteId)) += asg

@@ -30,7 +30,7 @@ object AMTConditionTable {
   val db = play.api.db.slick.DB
   val amtConditions = TableQuery[AMTConditionTable]
 
-  def getVolunteerId(amtConditionId: Int): Option[String] = db.withTransaction { implicit session =>
+  def getVolunteerIdByConditionId(amtConditionId: Int): Option[String] = db.withTransaction { implicit session =>
     val vId = amtConditions.filter(_.amtConditionId === amtConditionId).list.headOption.map(_.volunteerId)
     vId
   }
