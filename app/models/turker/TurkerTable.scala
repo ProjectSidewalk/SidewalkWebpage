@@ -17,6 +17,8 @@ class TurkerTable(tag: Tag) extends Table[Turker](tag, Some("sidewalk"), "turker
   def amtConditionId = column[Int]("amt_condition_id", O.NotNull)
 
   def * = (turkerId, routesAudited, amtConditionId) <> ((Turker.apply _).tupled, Turker.unapply)
+  def condition: ForeignKeyQuery[AMTConditionTable, AMTCondition] =
+    foreignKey("turker_amt_condition_id_fkey", amtConditionId, TableQuery[AMTConditionTable])(_.amtConditionId)
 
 }
 
@@ -31,9 +33,12 @@ object TurkerTable{
     turkers.list
   }
 
-  def getConditionId(turkerId: String): Option[Int] = db.withTransaction { implicit session =>
-    val cId = turkers.filter(_.turkerId === turkerId).list.headOption.map(_.amtConditionId)
-    cId
+  def getConditionIdByTurkerId(turkerId: String): Option[Int] = db.withTransaction { implicit session =>
+    val cId = turkers.filter(_.turkerId === turkerId).list.headOption
+    cId match {
+      case Some(condition) => Some(condition.amtConditionId)
+      case _ => None
+    }
   }
 
   def save(turker: Turker): String = db.withTransaction { implicit session =>

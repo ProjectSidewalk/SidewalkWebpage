@@ -1,7 +1,8 @@
 
 # --- !Ups
 ALTER TABLE turker
-  ADD amt_condition_id INT NOT NULL;
+  ADD amt_condition_id INT NOT NULL,
+  FOREIGN KEY (amt_condition_id) REFERENCES amt_condition(amt_condition_id);
 
 ALTER TABLE amt_condition
   ADD volunteer_id TEXT NOT NULL;
@@ -23,3 +24,4 @@ ALTER TABLE amt_condition
 
 ALTER TABLE turker
   DROP amt_condition_id;
+  DROP CONSTRAINT IF EXISTS turker_amt_condition_id_fkey;
