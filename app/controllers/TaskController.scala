@@ -217,7 +217,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
 
             if (label.description.isDefined) {
-              ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              ProblemDescriptionTable.find(labelId) match {
+                case Some(pd) => ProblemDescriptionTable.updateDescription(pd.problemDescriptionId, label.description.get)
+                case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              }
             }
           }
 
