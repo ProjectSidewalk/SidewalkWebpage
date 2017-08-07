@@ -12,6 +12,7 @@ function LabelFactory (svl) {
             if (label) {
                 if (!('labelId' in param)) {
                     var currentTask = svl.taskContainer.getCurrentTask();
+                    //console.log("AT " + currentTask.getAuditTaskId() + " ST " + currentTask.getStreetEdgeId());
                     label.setProperty("audit_task_id", currentTask.getAuditTaskId());
                     label.setProperty("temporary_label_id", temporaryLabelId);
                     temporaryLabelId++;
