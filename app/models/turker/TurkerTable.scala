@@ -27,8 +27,12 @@ object TurkerTable{
   val db = play.api.db.slick.DB
   val turkers = TableQuery[TurkerTable]
 
-  def getConditionId(turkerId: Int): Int = db.withTransaction { implicit session =>
-    val cId = turkers.filter(turkerId === _.turkerId).headOption.map(_.amtConditionId)
+  def getAllTurkers : List[Turker] = db.withTransaction{ implicit session =>
+    turkers.list
+  }
+
+  def getConditionId(turkerId: String): Option[Int] = db.withTransaction { implicit session =>
+    val cId = turkers.filter(_.turkerId === turkerId).list.headOption.map(_.amtConditionId)
     cId
   }
 

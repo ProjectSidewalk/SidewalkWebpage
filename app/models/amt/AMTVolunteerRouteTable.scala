@@ -36,7 +36,7 @@ object AMTVolunteerRouteTable {
   val amtVolunteerRoutes = TableQuery[AMTVolunteerRouteTable]
 
   def findRoutesByVolunteerId(volunteerId: String): List[Int] = db.withTransaction { implicit session =>
-    val routeAsg = amtVolunteerRoutes.filter(_.volunteerId === volunteerId).map(_routeId).list
+    val routeAsg = amtVolunteerRoutes.filter(_.volunteerId === volunteerId).map(_.routeId).list
     routeAsg
   }
 
