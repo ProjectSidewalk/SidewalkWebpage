@@ -5,10 +5,12 @@ package models.amt
   */
 
 import models.route.{Route, RouteTable}
+import models.user.{UserRole, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
+import scala.language.postfixOps
 
 case class AMTVolunteerRoute(amtVolunteerRouteId: Int, volunteerId: String, ipAddress:String, routeId: Int)
 
@@ -34,18 +36,19 @@ class AMTVolunteerRouteTable(tag: Tag) extends Table[AMTVolunteerRoute](tag, Som
 object AMTVolunteerRouteTable {
   val db = play.api.db.slick.DB
   val amtVolunteerRoutes = TableQuery[AMTVolunteerRouteTable]
-  val amtAssignments = TableQuery[AMTAssignments]
+  val amtAssignments = TableQuery[AMTAssignmentTable]
 
   def findRoutesByVolunteerId(volunteerId: String): List[Int] = db.withTransaction { implicit session =>
     val routeAsg = amtVolunteerRoutes.filter(_.volunteerId === volunteerId).map(_.routeId).list
     routeAsg
   }
 
-  def assignRouteByVolunteerIdAndWorkerId(volunteerId: String, workerId: String): Option[Id] = db.withTransaction { implicit session =>
+  def assignRouteByConditionIdAndWorkerId(conditionId: Int, workerId: String): Option[Int] = db.withTransaction { implicit session =>
     // Find the first route in the list of routes associated with volunteerId (these are obtained using findRoutesByVolunteerId)
     // that hasnt been audited by workerId (this can be checked in the amt_assignment table)
+    val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
     val availableRoutes = findRoutesByVolunteerId(volunteerId)
-    val auditedRoutes = amtAssignments.filter(_.turkerId === worderId).filter(_.completed).map(_.routeId).list
+    val auditedRoutes = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list
     //Check if the ordering of the lists is correct here
     val assignedRoute = (availableRoutes filterNot (auditedRoutes contains)).headOption
     assignedRoute

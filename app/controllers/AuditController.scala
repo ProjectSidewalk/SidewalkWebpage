@@ -113,24 +113,26 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
             // Retrieve the route based on the condition that the worker has been assigned to and the associated unvisited routes
+            var cId = AMTConditionTable.assignAvailableCondition
 
-            var conditionId = TurkerTable.getConditionIdByTurkerId(workerId)
-            if(conditionId == None){
+            if(TurkerTable.getConditionIdByTurkerId(workerId) == None){
               // No worker was found with this id (implies no condition was assigned) so assign the condition id that has been least used
               // Select amt_condition.amt_condition_id, count(condition_id) as cnt from amt_assignment Right JOIN amt_condition on (amt_assignment.condition_id = amt_condition.amt_condition_id) group by amt_condition.amt_condition_id order by cnt asc;
-              conditionId = AMTConditionTable.assignAvailableCondition
               // Save turker id and associated condition here
               // Save Turker details
-              val turker: Turker = Turker(workerId, "",conditionId)
+              val turker: Turker = Turker(workerId, "",cId.getOrElse(1))
+              TurkerTable.save(turker)
+
               // TODO: Fix bug: turker id is taken as null
               // TODO: Find how to append new routes to existing turker
-              TurkerTable.save(turker)
             }
-
-            val volunteerId = AMTConditionTable.getVolunteerIdByConditionId
+            else{
+              cId = TurkerTable.getConditionIdByTurkerId(workerId)
+            }
+            val conditionId = cId.getOrElse(1)
             // We only need the workerId to assign routes since we can obtain condition id and volunteer id by doing inner joins over tables.
             // Skipping this step since we have already obtained volunteer id
-            val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByVolunteerIdAndWorkerId(volunteerId,workerId)
+            val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
             val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 

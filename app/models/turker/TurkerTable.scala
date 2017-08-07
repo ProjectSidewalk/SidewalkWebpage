@@ -5,6 +5,7 @@ package models.turker
   */
 
 import models.utils.MyPostgresDriver.simple._
+import models.amt.{AMTConditionTable,AMTCondition}
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 

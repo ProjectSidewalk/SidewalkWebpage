@@ -5,10 +5,11 @@ package models.amt
   */
 
 import models.utils.MyPostgresDriver.simple._
+import models.user.{UserRoleTable,UserRole}
 import play.api.Play.current
 import play.libs.Json
 
-
+import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AMTCondition(amtConditionId: Int, description: Option[String], parameters: String, volunteerId: String)
@@ -32,23 +33,27 @@ class AMTConditionTable(tag: Tag) extends Table[AMTCondition](tag, Some("sidewal
 object AMTConditionTable {
   val db = play.api.db.slick.DB
   val amtConditions = TableQuery[AMTConditionTable]
-  val amtAssignments = TableQuery[AMTAssignment]
+  val amtAssignments = TableQuery[AMTAssignmentTable]
   val max_num_condition_assignments = 5
 
-  def getVolunteerIdByConditionId(amtConditionId: Int): Option[String] = db.withTransaction { implicit session =>
+  def getVolunteerIdByConditionId(amtConditionId: Int): String = db.withTransaction { implicit session =>
     val vId = amtConditions.filter(_.amtConditionId === amtConditionId).list.headOption.map(_.volunteerId)
-    vId
+    vId.get
   }
 
   def assignAvailableCondition: Option[Int] =  db.withTransaction { implicit session =>
     //Get the condition id with the least number of current assignments
-    /*SELECT amt_condition_id from (
-    Select amt_condition.amt_condition_id, count(condition_id) as cnt
-    from amt_assignment Right JOIN amt_condition on (amt_assignment.condition_id = amt_condition.amt_condition_id)
-    group by amt_condition.amt_condition_id
-    ) t1
-    where cnt<5 order by cnt asc limit 1;*/
-    val cId = (amtAssignments joinRight amtConditions on (_.condition_id === _.amt_condition_id)).groupBy(p => p.amt_condition_id).map{case (amt_condition_id,group) => (amt_condition_id,group.length.run)}.filter{case(amt_condition_id,count_asg) => count_asg < max_num_condition_assignments}.map(_._1).list.headOption
+
+    val selectConditionId = Q.query[Int, Int](
+      """SELECT amt_condition_id
+        |  FROM (SELECT amt_condition.amt_condition_id, count(condition_id) as cnt FROM sidewalk.amt_assignment Right JOIN sidewalk.amt_condition ON (amt_assignment.condition_id = amt_condition.amt_condition_id)
+        |  group by amt_condition.amt_condition_id
+        |  ) t1
+        |  WHERE cnt<? order by cnt asc LIMIT 1;
+      """.stripMargin
+    )
+
+    val cId = selectConditionId(max_num_condition_assignments).list.headOption
     cId
   }
 
