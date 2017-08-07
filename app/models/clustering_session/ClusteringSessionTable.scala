@@ -116,24 +116,24 @@ object ClusteringSessionTable{
     // left joins to get descriptions for any labels that have them
     val labelsWithDescription = for {
       (_labs, _descriptions) <- labels.leftJoin(ProblemDescriptionTable.problemDescriptions).on(_._1 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._6, _labs._8, _labs._9, _labs._10,
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
              _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _descriptions.description.?)
 
     // left joins to get severity for any labels that have them
     val labelsWithSeverity = for {
       (_labs, _severity) <- labelsWithDescription.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._6, _labs._8, _labs._9, _labs._10,
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
              _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19, _severity.severity.?)
 
     // left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
     val labelsWithTemporariness = for {
       (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._6, _labs._8, _labs._9, _labs._10,
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
              _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19, _labs._20,
              _temporariness.temporaryProblem.?)
 
     labelsWithTemporariness.list.map(x =>
-      LabelsForResolution.tupled((x._1, x._2, x._3, x._4, x._5, x._6, x._6, x._8, x._9, x._10, x._11, x._12, x._13,
+      LabelsForResolution.tupled((x._1, x._2, x._3, x._4, x._5, x._6, x._7, x._8, x._9, x._10, x._11, x._12, x._13,
                                   x._14, x._15, x._16, x._17, x._18, x._19, x._20, x._21.getOrElse(false))))
   }
 
