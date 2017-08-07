@@ -198,12 +198,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                     point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
                     point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
               }
-
             }
 
-            // If Insert temporariness and severity if they are set.
+            // If temporariness/severity they are set, update/insert them.
             if (label.severity.isDefined) {
-              ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              ProblemSeverityTable.find(labelId) match {
+                case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
+                case None => ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              }
             }
 
             if (label.temporaryProblem.isDefined) {
