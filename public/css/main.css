@@ -745,7 +745,17 @@ video#bgvid {
 }
 
 
-
+#remainingCounter{
+  margin-top: 40px;
+}
+.counter{
+  text-align: center;
+  color: black;
+  font: normal normal normal 14px/1.4em raleway,sans-serif;
+  font-family: 'Raleway', sans-serif;
+  font-size:20px;
+  margin-top: 35px;
+}
 #gt-container{
     width: 86%;
     margin-left: 7%;
