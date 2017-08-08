@@ -48,13 +48,8 @@ object AMTVolunteerRouteTable {
     // that hasnt been audited by workerId (this can be checked in the amt_assignment table)
     val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
     val availableRoutes = findRoutesByVolunteerId(volunteerId)
-    val auditedRoutes = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list
-    //Check if the ordering of the lists is correct here
-    println(auditedRoutes)
-    println(availableRoutes)
-    println(availableRoutes filterNot auditedRoutes.contains )
-    val assignedRoute = (availableRoutes filterNot auditedRoutes.contains).headOption
-    println(assignedRoute)
+    val auditedRoutes = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list.map(route => route.get)
+    var assignedRoute = (availableRoutes diff auditedRoutes).headOption
     assignedRoute
   }
 
