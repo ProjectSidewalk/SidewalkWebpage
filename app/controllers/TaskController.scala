@@ -21,6 +21,7 @@ import models.region._
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -161,8 +162,27 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert labels
           for (label: LabelSubmission <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.insertOrUpdate(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
-              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId))
+
+            val existingLabelId: Option[Int] = label.temporaryLabelId match {
+              case Some(tempLabelId) =>
+                LabelTable.find(tempLabelId, label.auditTaskId)
+              case None => {
+                Logger.error("Received label with Null temporary_label_id")
+                None
+              }
+            }
+
+            // If the label already exists, update deleted field, o/w insert the new label.
+            val labelId: Int = existingLabelId match {
+              case Some(labId) =>
+                LabelTable.updateDeleted(labId, label.deleted.value)
+                labId
+              case None =>
+                println(label)
+                LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
+                                      label.photographerPitch, label.panoramaLat, label.panoramaLng,
+                                      label.deleted.value, label.temporaryLabelId))
+            }
 
             // Insert label points
             for (point: LabelPointSubmission <- label.points) {
@@ -172,23 +192,36 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                   Some(gf.createPoint(coord))
                 case _ => None
               }
-              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
-                point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
-                point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
+              // If this label id does not have an entry in the label point table, add it.
+              if (LabelPointTable.find(labelId).isEmpty) {
+                LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX,
+                                                point.canvasY, point.heading, point.pitch, point.zoom,
+                                                point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
+                                                point.lat, point.lng, pointGeom))
+              }
             }
 
-            // Insert temporariness and severity if they are set.
+            // If temporariness/severity/description they are set, update/insert them.
             if (label.severity.isDefined) {
-              ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              ProblemSeverityTable.find(labelId) match {
+                case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
+                case None => ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              }
             }
 
             if (label.temporaryProblem.isDefined) {
-              val temporaryProblem = label.temporaryProblem.get.value
-              ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, temporaryProblem))
+              val tempProblem = label.temporaryProblem.get.value
+              ProblemTemporarinessTable.find(labelId) match {
+                case Some(pt) => ProblemTemporarinessTable.updateTemporariness(pt.problemTemporarinessId, tempProblem)
+                case None => ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, tempProblem))
+              }
             }
 
             if (label.description.isDefined) {
-              ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              ProblemDescriptionTable.find(labelId) match {
+                case Some(pd) => ProblemDescriptionTable.updateDescription(pd.problemDescriptionId, label.description.get)
+                case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              }
             }
           }
 

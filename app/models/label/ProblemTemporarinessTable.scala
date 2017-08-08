@@ -18,6 +18,17 @@ object ProblemTemporarinessTable {
   val problemTemporarinesses = TableQuery[ProblemTemporarinessTable]
 
   /**
+    * Find a problem temporariness
+    *
+    * @param labelId
+    * @return
+    */
+  def find(labelId: Int): Option[ProblemTemporariness] = db.withSession { implicit session =>
+    val labelList = problemTemporarinesses.filter(_.labelId === labelId).list
+    labelList.headOption
+  }
+
+  /**
     * Saves a new problem temporariness to the table
     * @param pt
     * @return
@@ -26,6 +37,18 @@ object ProblemTemporarinessTable {
     val problemTemporarinessId: Int =
       (problemTemporarinesses returning problemTemporarinesses.map(_.problemTemporarinessId)) += pt
     problemTemporarinessId
+  }
+
+  /**
+    * Updates temporariness of the specified id to be newTemp.
+    *
+    * @param tempId
+    * @param newTemp
+    * @return
+    */
+  def updateTemporariness(tempId: Int, newTemp: Boolean) = db.withTransaction { implicit session =>
+    val severities = problemTemporarinesses.filter(_.problemTemporarinessId === tempId).map(x => x.temporaryProblem)
+    severities.update(newTemp)
   }
 }
 
