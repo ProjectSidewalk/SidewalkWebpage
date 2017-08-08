@@ -679,6 +679,22 @@
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
+
+
+                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
+                    @if(panoId){
+                        try{
+                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData){
+                                var lat = panoData.location.latLng.lat();
+                                var lng = panoData.location.latLng.lng();
+                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
+                            });
+                        } catch (e) {
+                            console.error("Invalid panorama ID");
+                        }                        
+                    } else {@if(lat && lng) {
+                        svl.map.setPosition(@lat.get, @lng.get);
+                    }}                    
                 }
                 else {
                     // no street view available in this range.
@@ -771,7 +787,6 @@
                 mainParam.regionLayer = null;
             }
             svl.main = new Main(mainParam);
-
         }
     </script>
 

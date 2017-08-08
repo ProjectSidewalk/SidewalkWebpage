@@ -1466,6 +1466,24 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return this;
     };
 
+    // For setting the position when the exact panorama is known
+    self.setPositionByIdAndLatLng = function(panoId, lat, lng){
+        // Only set the location if walking is enabled
+        if (!status.disableWalking) {
+            var gLatLng = new google.maps.LatLng(lat, lng);
+
+            self.enableWalking();
+
+            self.setPano(panoId);
+            map.setCenter(gLatLng);
+
+            self.disableWalking();
+            window.setTimeout(function() { self.enableWalking(); }, 1000);
+        }
+        return this;
+    }
+
+
     /**
      * Stop blinking google maps
      */
