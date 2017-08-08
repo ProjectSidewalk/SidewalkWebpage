@@ -131,6 +131,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+
   /**
     * Audit a given street
     *
@@ -148,10 +149,47 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
+
     request.identity match {
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
     }
+  }
+
+  
+  def auditLocation(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
+    // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
+    val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
+    val region: Option[NamedRegion] = try {
+      Some(regions.head)
+    } catch {
+      case e: NoSuchElementException => None
+      case _: Throwable => None
+    }
+
+    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
+
+    val isAdmin = (request.identity match {
+      case Some(user) => user.roles.getOrElse(Seq()).contains("Administrator")
+      case _ => false
+    })
+
+    request.identity match {
+      case Some(user) => 
+        if(isAdmin){
+          panoId match {
+            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user), None, None, Some(panoId))))
+            case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+              (lat, lng) match {
+                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user), Some(lat), Some(lng))))
+                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+              }
+          }
+        } else {
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user)))) 
+        }
+      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+    }    
   }
 
   /**

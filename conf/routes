@@ -61,6 +61,7 @@ GET     /audit                                               @controllers.AuditC
 GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
+GET 	/audit/street/:id/location 							 @controllers.AuditController.auditLocation(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
