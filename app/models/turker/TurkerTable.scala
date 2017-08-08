@@ -14,7 +14,7 @@ case class Turker(turkerId: String, routesAudited: String, amtConditionId: Int)
   *
   */
 class TurkerTable(tag: Tag) extends Table[Turker](tag, Some("sidewalk"), "turker") {
-  def turkerId = column[String]("turker_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def turkerId = column[String]("turker_id", O.NotNull, O.PrimaryKey)
   def routesAudited = column[String]("routes_audited", O.Nullable)
   def amtConditionId = column[Int]("amt_condition_id", O.NotNull)
 

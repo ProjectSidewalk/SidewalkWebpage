@@ -18,7 +18,7 @@ case class AMTVolunteerRoute(amtVolunteerRouteId: Int, volunteerId: String, ipAd
   *
   */
 class AMTVolunteerRouteTable(tag: Tag) extends Table[AMTVolunteerRoute](tag, Some("sidewalk"), "amt_volunteer_route") {
-  def amtVolunteerRouteId = column[Int]("amt_volunteer_route_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def amtVolunteerRouteId = column[Int]("amt_volunteer_route_id", O.NotNull, O.PrimaryKey)
   def volunteerId = column[String]("volunteer_id", O.NotNull)
   def ipAddress = column[String]("ip_address", O.Nullable)
   def routeId = column[Int]("route_id", O.NotNull)
@@ -50,7 +50,11 @@ object AMTVolunteerRouteTable {
     val availableRoutes = findRoutesByVolunteerId(volunteerId)
     val auditedRoutes = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list
     //Check if the ordering of the lists is correct here
-    val assignedRoute = (availableRoutes filterNot (auditedRoutes contains)).headOption
+    println(auditedRoutes)
+    println(availableRoutes)
+    println(availableRoutes filterNot auditedRoutes.contains )
+    val assignedRoute = (availableRoutes filterNot auditedRoutes.contains).headOption
+    println(assignedRoute)
     assignedRoute
   }
 

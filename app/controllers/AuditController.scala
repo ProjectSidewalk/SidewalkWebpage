@@ -123,8 +123,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               val turker: Turker = Turker(workerId, "",cId.getOrElse(1))
               TurkerTable.save(turker)
 
-              // TODO: Fix bug: turker id is taken as null
-              // TODO: Find how to append new routes to existing turker
+              // Bug: turker id is taken as null
+              // Fixed turker id was set as autoincrement field. Even though it was actually a a string
+
             }
             else{
               cId = TurkerTable.getConditionIdByTurkerId(workerId)

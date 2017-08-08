@@ -8,7 +8,7 @@ ALTER TABLE amt_condition
   ADD volunteer_id TEXT NOT NULL;
 
 CREATE TABLE amt_volunteer_route(
-  amt_volunteer_route_id BIGSERIAL,
+  amt_volunteer_route_id INT,
   volunteer_id TEXT NOT NULL,
   ip_address TEXT,
   route_id INT NOT NULL,
