@@ -130,11 +130,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             else{
               cId = TurkerTable.getConditionIdByTurkerId(workerId)
             }
-            val conditionId = cId.getOrElse(1)
+            val conditionId = cId.getOrElse(1) // When all condition id's have been exhausted assign a default for now (or just assign a different)
             // We only need the workerId to assign routes since we can obtain condition id and volunteer id by doing inner joins over tables.
-            // Skipping this step since we have already obtained volunteer id
+            // Skipping this step since we have already obtained condition id
             val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
+            //Set up a case statement here for when route returned is null (Indicating that the turker has finished all routes assigned to him)
+
             val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
             // Save HIT assignment details
