@@ -56,6 +56,10 @@ function Tracker () {
         return action.indexOf("TaskStart") >= 0;
     }
 
+    this._isSeverityShortcutAction = function (action) {
+        return action.indexOf("KeyboardShortcut_Severity") >= 0;
+    }
+
     /** Returns actions */
     this.getActions = function () {
         return actions;
@@ -163,18 +167,37 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
+
+        if((self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) && currentLabel !== null) {
+
+            var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
+            currentLabel = labelProperties.temporary_label_id;
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+
+            if(notes === null || typeof(notes) === 'undefined') {
+                notes = {'auditTaskId' : labelProperties.audit_task_id};
+            } else {
+                notes['auditTaskId'] = labelProperties.audit_task_id;
+            }
+
+        } else if (self._isDeleteLabelAction(action)){
+
+            var labelProperties = svl.canvas.getCurrentLabel().getProperties();
+            currentLabel = labelProperties.temporary_label_id;
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+
+            if(notes === null || typeof(notes) === 'undefined') {
+                notes = {'auditTaskId' : labelProperties.audit_task_id};
+            } else {
+                notes['auditTaskId'] = labelProperties.audit_task_id;
+            }
+
+        }
+
         var item = self.create(action, notes, extraData);
         actions.push(item);
-
-        if(self._isContextMenuAction(action) && currentLabel !== null) {
-            currentLabel = svl.contextMenu.getTargetLabel().getProperties().temporary_label_id;
-            updatedLabels.push(currentLabel);
-            svl.labelContainer.addUpdatedLabel(currentLabel);
-        } else if (self._isDeleteLabelAction(action)){
-            currentLabel = svl.canvas.getCurrentLabel().getProperties().temporary_label_id;
-            updatedLabels.push(currentLabel);
-            svl.labelContainer.addUpdatedLabel(currentLabel);
-        }
 
         // Submit the data collected thus far if actions is too long.
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
