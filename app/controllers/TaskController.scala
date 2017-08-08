@@ -178,6 +178,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 LabelTable.updateDeleted(labId, label.deleted.value)
                 labId
               case None =>
+                println(label)
                 LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
                                       label.photographerPitch, label.panoramaLat, label.panoramaLng,
                                       label.deleted.value, label.temporaryLabelId))
@@ -192,11 +193,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 case _ => None
               }
               // If this label id does not have an entry in the label point table, add it.
-              LabelPointTable.find(labelId) match {
-                case None =>
-                  LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
-                    point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
-                    point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
+              if (LabelPointTable.find(labelId).isEmpty) {
+                LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX,
+                                                point.canvasY, point.heading, point.pitch, point.zoom,
+                                                point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
+                                                point.lat, point.lng, pointGeom))
               }
             }
 
