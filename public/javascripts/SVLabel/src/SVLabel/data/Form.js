@@ -245,7 +245,10 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                if (result) task.setProperty("auditTaskId", result.audit_task_id);
+                if (result) {
+                    task.setProperty("auditTaskId", result.audit_task_id);
+                    svl.tracker.currentAuditTask = result.audit_task_id;
+                }
             },
             error: function (result) {
                 console.error(result);

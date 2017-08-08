@@ -11,6 +11,7 @@ function Tracker () {
 
     var currentLabel = null;
     var updatedLabels = [];
+    var currentAuditTask = null;
 
     this.init = function () {
         this.trackWindowEvents();
@@ -92,7 +93,7 @@ function Tracker () {
         if ('canvas' in svl && svl.canvas.getCurrentLabel()){
             audit_task_id = svl.canvas.getCurrentLabel().getProperties().audit_task_id;
         } else {
-            audit_task_id = null;
+            audit_task_id = this.currentAuditTask;
         }
 
         if ('temporaryLabelId' in extraData) {
