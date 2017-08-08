@@ -20,7 +20,7 @@ object UserRoleTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
 
-  val roleMapping = Map("User" -> 1, "Administrator" -> 2)
+  val roleMapping = Map("User" -> 1, "Researcher" -> 2, "Administrator" -> 3, "Owner" -> 4)
 
   /**
     * Returns a list of researcher ids
@@ -45,11 +45,16 @@ object UserRoleTable {
     userRoleId
   }
 
-  def getRoles(userId: UUID): Seq[String] = db.withSession { implicit session =>
+  def getRole(userId: UUID): String = db.withSession { implicit session =>
     val _roles = for {
       (_userRoles, _roles) <- userRoles.innerJoin(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
     } yield _roles
-    _roles.list.map(_.role)
+    try {
+      _roles.list.map(_.role).head
+    } catch {
+      case e: NoSuchElementException => "User"
+      case _: Throwable => "User"
+    }
   }
 
 }

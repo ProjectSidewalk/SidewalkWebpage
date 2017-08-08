@@ -78,7 +78,7 @@ class SignUpController @Inject() (
                   loginInfo = loginInfo,
                   username = data.username,
                   email = data.email,
-                  roles = None
+                  role = None
                 )
 
                 for {
@@ -139,7 +139,7 @@ class SignUpController @Inject() (
                   loginInfo = loginInfo,
                   username = data.username,
                   email = data.email,
-                  roles = None
+                  role = None
                 )
 
                 for {

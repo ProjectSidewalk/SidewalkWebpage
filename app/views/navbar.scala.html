@@ -67,7 +67,7 @@
                                     Your dashboard
                                 </a>
                             </li>
-                            @if(user.get.roles.getOrElse(Seq("")).contains("Administrator")) {
+                            @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
                                     <a href='@routes.AdminController.index' role="menuitem">
                                         Admin
@@ -294,7 +294,7 @@ $(document).ready(function () {
                 }
 
                 // Append the link to the admin interface if it the user is admin
-                if (data.roles && data.roles.indexOf("Administrator") >= 0) {
+                if (data.role === "Administrator" || data.role === "Owner") {
                     var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
                     $('#nav-user-menu').children('#dashboard-link').after(adminLi);
                 }

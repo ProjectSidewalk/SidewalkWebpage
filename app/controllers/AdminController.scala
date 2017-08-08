@@ -37,7 +37,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
-      if (user.roles.getOrElse(Seq()).contains("Administrator")) true else false
+      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
     case _ => false
   }
 
