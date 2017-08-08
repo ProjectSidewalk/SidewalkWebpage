@@ -166,10 +166,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             val existingLabelId: Option[Int] = label.temporaryLabelId match {
               case Some(tempLabelId) =>
                 LabelTable.find(tempLabelId, label.auditTaskId)
-              case None => {
+              case None =>
                 Logger.error("Received label with Null temporary_label_id")
                 None
-              }
             }
 
             // If the label already exists, update deleted field, o/w insert the new label.
