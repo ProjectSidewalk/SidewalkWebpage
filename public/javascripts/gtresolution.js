@@ -32,6 +32,7 @@ $(document).ready(function () {
 
     var toInvestigate = [];
     var maxZIndex = 200;
+    var minZIndex = 50;
 
     //stores color information for each label type
     var colorMapping = {
@@ -116,7 +117,7 @@ $(document).ready(function () {
               weight = 0.5;
               fillOpacity = 0.5;
               if(feature.status === "Ground_Truth"){
-                color = "#ada511";
+                color = "#ffe500";
                 opacity = 1;
                 weight = 4;
                 fillOpacity = 0.8;
@@ -124,7 +125,6 @@ $(document).ready(function () {
               }else if(feature.status === "No_Ground_Truth"){
                 color = "#757470";
                 opacity = 0.5;
-                weight = 4;
                 fillOpacity = 0.2;
                 z = 50;
               }
@@ -311,8 +311,10 @@ $(document).ready(function () {
         var icon, size;
         if(status === null){
           size = new google.maps.Size(30, 30);
-        }else{
+        }else if(status === "Ground_Truth" || status === "Filter"){
           size = new google.maps.Size(36, 36);
+        }else{
+          size = new google.maps.Size(32, 32);
         }
         var label_marker = new PanoMarker({
             pano: panoramaContainers[panoIndex].gsv_panorama,
@@ -320,6 +322,7 @@ $(document).ready(function () {
             position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
             icon: selectMarker(label, status),
             id: id,
+            className: status,
             size: size,
             optimized: false
         });
@@ -367,8 +370,9 @@ $(document).ready(function () {
                 .attr('data-content',
                     '<p style="text-align:center"><b>Cluster:</b>&nbsp;' + data.cluster_id + ' <b>Labeler:</b>&nbsp;' + data.turker_id + '<br><b>Severity:</b>&nbsp;' + data.severity + ', <b>Temporary:</b>&nbsp;' + data.temporary + '<br><b>Description:</b>&nbsp;' + data.description
                     + '</p>' +
-                    'Ground Truth: <input type="button" id="commit' + data.label_id + '" style="margin-top:1" value="Yes"></input>' +
-                    '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:1" value="No"></input>') // 9eba9e
+                    'Ground Truth: <input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"></input>' +
+                    '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:1px" value="No"></input><br>' +
+                    '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:25%" value="Send to Back"></input>') // 9eba9e
                     .popover({html: true});
 
 
@@ -379,6 +383,15 @@ $(document).ready(function () {
             $(document).on("click", '.popover #noCommit' + data.label_id , function(){
                 $("#label-id-" + data.label_id).popover('hide');
                 noGroundTruth(panoramaContainers[index].labels[labelIndex]);
+            });
+            $(document).on("click", '.popover #sendToBack' + data.label_id , function(){
+                $("#label-id-" + data.label_id).popover('hide');
+                var minZ = 1000;
+                for(var j = 0; j < panoramaContainers[index].labelMarkers.length; j++){
+                  minZ = Math.min(minZ,panoramaContainers[index].labelMarkers[j].getZIndex());
+                }
+                minZ--;
+                panoramaContainers[index].labelMarkers[labelIndex].setOptions({zIndex: minZ});
             });
 
         }
@@ -416,10 +429,7 @@ $(document).ready(function () {
             }
           }
           panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png");
-          panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: new google.maps.Size(36,36)});
-          for(j = 0; j < panoramaContainers[pano].labelMarkers.length; j++){
-            if(j != labelIndex){maxZIndex++; panoramaContainers[pano].labelMarkers[j].setOptions({zIndex: maxZIndex});}
-          }
+          panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: new google.maps.Size(36,36), className: "Ground_Truth"});
           var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
           //execute commit
           var index;
@@ -433,7 +443,7 @@ $(document).ready(function () {
             ground_truth_labels.push(commit);
           }
           updateCounters();
-          marker.setOptions({strokeColor:"#ada511",strokeOpacity:1, fillOpacity: 0.8, strokeWeight:4, status: "Ground_Truth", zIndex: 200});
+          marker.setOptions({strokeColor:"#ffe500",strokeOpacity:1, fillOpacity: 0.8, strokeWeight:4, status: "Ground_Truth", zIndex: 200});
     }
 
     //this label will not go in ground truth
@@ -449,7 +459,7 @@ $(document).ready(function () {
       }
       if(pano >= 0){
         panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png");
-        panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: new google.maps.Size(36,36), zIndex: 10});}
+        panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: new google.maps.Size(32,32), zIndex: 10, className: "No_Ground_Truth"});
       var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
       //execute commit
       var index;
@@ -463,8 +473,9 @@ $(document).ready(function () {
         eliminated_labels.push(commit);
       }
       updateCounters();
-      marker.setOptions({strokeColor:"#757470", strokeOpacity:0.5, strokeWeight:4, status: "No_Ground_Truth", zIndex: 50, fillOpacity:0.2, size: new google.maps.Size(36,36)});
+      marker.setOptions({strokeColor:"#757470", strokeWeight: 0.5, strokeOpacity:0.5, status: "No_Ground_Truth", zIndex: 50, fillOpacity:0.2, size: new google.maps.Size(36,36)});
     }
+  }
 
     //clear a specific canvas
     function clearCanvas(index) {
@@ -542,6 +553,8 @@ $(document).ready(function () {
           if(eliminated_labels[j].cluster_id === currentCluster){toDisplay.unshift(eliminated_labels[j]);}
         }
         addClusterToPanos(toDisplay);
+      }else if(document.getElementById("remainingCounter").innerHTML === 0){
+        alert("No More Remaining Labels");
       }else{
         nextDisagreement(map);
       }
@@ -563,6 +576,8 @@ $(document).ready(function () {
           if(eliminated_labels[j].cluster_id === currentCluster){toDisplay.unshift(eliminated_labels[j]);}
         }
         addClusterToPanos(toDisplay);
+      }else if(document.getElementById("remainingCounter").innerHTML === 0){
+        alert("No More Remaining Labels");
       }else{
         previousDisagreement(map);
       }
