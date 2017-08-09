@@ -235,6 +235,7 @@ $(document).ready(function () {
             '</div>').children('div.loading').fadeOut('slow', function () {
                 $(this).remove();
           });
+          nextOpenView = calculateNextOpenPanorama();
     }//end of showLabel
 
     //draw a label in the GSV
@@ -296,14 +297,13 @@ $(document).ready(function () {
                     .popover({html: true});
           //clicking yes for ground truth hides popover and calls yesGroundTruth
           $(document).on("click", '.popover #commit' + data.label_id , function(){
-            alert("hey");
               $("#label-id-" + data.label_id).popover('hide');
-              yesGroundTruth(labelIndex,pano);
+              yesGroundTruth(data);
           });
           //clicking no for ground truth hides popover and calls noGroundTruth
           $(document).on("click", '.popover #noCommit' + data.label_id , function(){
               $("#label-id-" + data.label_id).popover('hide');
-              noGroundTruth(labelIndex,pano);
+              noGroundTruth(data);
           });
           //clicking send to back calculates the minimum zIndex of the labels within the panorama, and sends the current label behind that
           $(document).on("click", '.popover #sendToBack' + data.label_id , function(){
@@ -329,11 +329,19 @@ $(document).ready(function () {
     }//end of updateCounters
 
     //place this commit in ground truth
-    function yesGroundTruth(commitIndex, pano){
-          var commit = pano.labels[commitIndex];
-          //update icon
-          pano.labelMarkers[commitIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png");
-          pano.labelMarkers[commitIndex].setOptions({size: statusInfo["Ground_Truth"].size});
+    function yesGroundTruth(commit){
+      //locate panorama and label
+        var labelIndex = -1, pano = -1;
+          for(i = 0; i < panoramaContainers.length; i++){
+           if(panoramaContainers[i].cluster_id === commit.cluster_id && panoramaContainers[i].pano_id === commit.pano_id){
+              labelIndex = panoramaContainers[i].labels.findIndex(lbl => lbl.label_id === commit.label_id );
+              pano = i;
+              break;
+            }
+          }
+          //update visuals
+          panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png");
+          panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: statusInfo["Ground_Truth"].size, className: "Ground_Truth"});
           var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
           //locate label within structure of storage arrays
           var index;
@@ -341,14 +349,15 @@ $(document).ready(function () {
           if(marker.status === "No_Ground_Truth"){
             index = eliminated_labels.findIndex(i => i.label_id === commit.label_id);
             eliminated_labels.splice(index,1);
+            ground_truth_labels.push(commit);
           }
           //if label was not yet dealt with
           else if(marker.status === null){
             index = all_labels[commit.cluster_id].findIndex(i => i.label_id === commit.label_id);
             all_labels[commit.cluster_id].splice(index,1);
+            ground_truth_labels.push(commit);
           }
           //transfer label
-          ground_truth_labels.push(commit);
           //update the label counts
           updateCounters();
           //style marker
@@ -356,11 +365,19 @@ $(document).ready(function () {
     }//end of yesGroundTruth
 
     //this commit will not go in ground truth
-    function noGroundTruth(commitIndex, pano){
-          var commit = pano.labels[commitIndex];
-          //update icon
-          pano.labelMarkers[commitIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png");
-          pano.labelMarkers[commitIndex].setOptions({size: statusInfo["No_Ground_Truth"].size});
+    function noGroundTruth(commit){
+      //locate panorama and label
+        var labelIndex = -1, pano = -1;
+          for(i = 0; i < panoramaContainers.length; i++){
+           if(panoramaContainers[i].cluster_id === commit.cluster_id && panoramaContainers[i].pano_id === commit.pano_id){
+              labelIndex = panoramaContainers[i].labels.findIndex(lbl => lbl.label_id === commit.label_id );
+              pano = i;
+              break;
+            }
+          }
+          //update visuals
+          panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png");
+          panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: statusInfo["No_Ground_Truth"].size, className: "No_Ground_Truth"});
           var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
           //locate label within structure of storage arrays
           var index;
@@ -368,14 +385,15 @@ $(document).ready(function () {
           if(marker.status === "Ground_Truth"){
             index = ground_truth_labels.findIndex(i => i.label_id === commit.label_id);
             ground_truth_labels.splice(index,1);
+            eliminated_labels.push(commit);
           }
           //if label was not yet dealt with
           else if(marker.status === null){
             index = all_labels[commit.cluster_id].findIndex(i => i.label_id === commit.label_id);
             all_labels[commit.cluster_id].splice(index,1);
+            eliminated_labels.push(commit);
           }
           //transfer label
-          eliminated_labels.push(commit);
           //update the label counts
           updateCounters();
           //style marker
@@ -435,6 +453,7 @@ $(document).ready(function () {
             showLabel(marker.meta, panoramaContainers[nextOpenView], marker.status);
           }
     }
+    nextOpenView = calculateNextOpenPanorama();
     //count and display the number of labels in each GSV
     var counts = document.getElementsByClassName("labelCount");
     for(i = 0; i < counts.length; i++){counts[i].innerHTML = panoramaContainers[i].labels.length;}
@@ -466,8 +485,8 @@ $(document).ready(function () {
         addClusterToPanos(toDisplay);
       }
       //if there are no unresolved labels yet, alert user
-      else if(document.getElementById("remainingCounter").innerHTML === 0){
-        alert("No More Remaining Labels");
+      else if(document.getElementById("remainingCounter").innerHTML === "REMAINING LABELS: " + 0){
+        alert("No More Remaining Labels (in this case I would have a button appear that lets you submit your ground truth labels to be stored in the database)");
       }
       //otherwise, go to next cluster
       else{
@@ -725,7 +744,11 @@ $(document).ready(function () {
         document.getElementById("submitClusterSessionId").onclick = function () {
             //execute query
             cluster_session_id = document.getElementById("clusterSessionId").value;
-            var test_labels = gtTestData; //eventually, query will run here
+            var test_labels = gtTestData;
+            /*$.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
+              all_labels = filterCluster(data);
+            }
+            */
             all_labels = filterClusters(test_labels);
             //update counters
             updateCounters();
