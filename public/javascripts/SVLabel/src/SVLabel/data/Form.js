@@ -235,7 +235,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
         labelContainer.refresh();
 
-        console.log(data);
+        //console.log(data);
 
         $.ajax({
             async: async,
