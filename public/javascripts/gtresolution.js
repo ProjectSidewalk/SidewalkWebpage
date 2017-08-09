@@ -262,7 +262,9 @@ $(document).ready(function () {
               }
               else{panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b>" + label.cluster_id + ' | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';}
 
-            $('#toggle-visible-' + label.pano_id  +  label.cluster_id).off("click");
+
+              if(initializedToggleButtons.indexOf(label.pano_id + label.cluster_id) < 0){
+                initializedToggleButtons.push(label.pano_id + label.cluster_id);
             //Toggle visibility of label marker
             $(document).on("click", '#toggle-visible-' + label.pano_id  +  label.cluster_id, function(){
                 if (panoramaContainers[panoIndex].labelMarkers[0].getIcon() === null) {
@@ -277,6 +279,7 @@ $(document).ready(function () {
                   }
                 }
           });
+        }
           }
 
             //add marker label
@@ -509,7 +512,7 @@ $(document).ready(function () {
             panoIndex = j;
           }
         }
-        // If it's being shown, clear the canvas it's being shown in, o/w display the label and log that it is shown
+        // If the pano is already up
         if (panoIndex >= 0) {
             panoramaContainers[panoIndex].labels.push(marker.meta);
             showLabel(marker.meta, panoIndex, marker.status);
@@ -532,7 +535,14 @@ $(document).ready(function () {
           currentLabel = all_labels[currentCluster][0];
         currentCoordinates = new google.maps.LatLng(currentLabel.lat,currentLabel.lng);
         refocusView(map);
-        addClusterToPanos(all_labels[currentCluster]);
+        var toDisplay = all_labels[currentCluster].slice();
+        for (j = 0; j < ground_truth_labels.length; j++) {
+          if(ground_truth_labels[j].cluster_id === currentCluster){toDisplay.unshift(ground_truth_labels[j]);}
+        }
+        for (j = 0; j < eliminated_labels.length; j++) {
+          if(eliminated_labels[j].cluster_id === currentCluster){toDisplay.unshift(eliminated_labels[j]);}
+        }
+        addClusterToPanos(toDisplay);
       }else{
         nextDisagreement(map);
       }
@@ -546,7 +556,14 @@ $(document).ready(function () {
           currentLabel = all_labels[currentCluster][0];
         currentCoordinates = new google.maps.LatLng(currentLabel.lat,currentLabel.lng);
         refocusView(map);
-        addClusterToPanos(all_labels[currentCluster]);
+        var toDisplay = all_labels[currentCluster].slice();
+        for (j = 0; j < ground_truth_labels.length; j++) {
+          if(ground_truth_labels[j].cluster_id === currentCluster){toDisplay.unshift(ground_truth_labels[j]);}
+        }
+        for (j = 0; j < eliminated_labels.length; j++) {
+          if(eliminated_labels[j].cluster_id === currentCluster){toDisplay.unshift(eliminated_labels[j]);}
+        }
+        addClusterToPanos(toDisplay);
       }else{
         previousDisagreement(map);
       }
