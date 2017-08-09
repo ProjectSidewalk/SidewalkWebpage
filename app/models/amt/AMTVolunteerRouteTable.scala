@@ -59,7 +59,7 @@ object AMTVolunteerRouteTable {
     availableRoutes
   }
 
-  def getNeighborhoodByConditionId(conditionId: Int): Option[Int] = = db.withTransaction{ implicit session =>
+  def getNeighborhoodByConditionId(conditionId: Int): Option[Int] = db.withTransaction{ implicit session =>
     val availableRoute = getRoutesByConditionId(conditionId).headOption
     RouteTable.getRegionByRouteId(availableRoute)
   }
