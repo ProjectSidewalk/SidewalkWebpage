@@ -48,6 +48,10 @@ function Tracker () {
         return action.indexOf("ContextMenu") >= 0;
     };
 
+    this._isContextMenuClose = function (action) {
+        return action.indexOf("ContextMenu_Close") >= 0 || action.indexOf("ContextMenu_OKButtonClick") >= 0;
+    }
+
     this._isDeleteLabelAction = function (action) {
         return action.indexOf("Click_LabelDelete") >= 0;
     };
@@ -198,6 +202,10 @@ function Tracker () {
 
         var item = self.create(action, notes, extraData);
         actions.push(item);
+
+        if(self._isContextMenuClose(action)){
+            currentLabel = null;
+        }
 
         // Submit the data collected thus far if actions is too long.
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {

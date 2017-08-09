@@ -359,6 +359,8 @@ function ContextMenu (uiContextMenu) {
             }
         }
         self.updateRadioButtonImages();
+        console.log(self.getTargetLabel().getProperties());
+        svl.tracker.push('ContextMenu_Open', null, {'temporaryLabelId': self.getTargetLabel().getProperties().temporary_label_id});
     }
 
     self.getContextMenuUI = getContextMenuUI;
