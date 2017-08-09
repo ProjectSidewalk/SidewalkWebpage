@@ -16,6 +16,7 @@ GET     /results                                             @controllers.Applic
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
+GET     /referral                                            @controllers.ApplicationController.customUrlRedirect(referrer: String, endPoint: Option[String])
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
