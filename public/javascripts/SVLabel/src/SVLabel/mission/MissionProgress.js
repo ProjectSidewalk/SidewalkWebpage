@@ -70,6 +70,15 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         this._completeTheCurrentMission(mission, neighborhood);
         this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
+        console.log(this);
+        console.log('Reached finishMission');
+        // Added a route completion trigger here
+        // When route length is much greater than mission length then
+        // it becomes necessary to trigger route completion event at the end of a mission rather than
+        // waiting for a null nextTask as in MapService.js
+        var currentRoute = svl.routeContainer.getCurrentRoute();
+        _routeModel.routeCompleted(currentRoute.getProperty("routeId"), mission, neighborhood);
+
         if(mission.getProperty("label") != "mturk-mission") {
             this._updateTheCurrentMission(mission, neighborhood);
         }
