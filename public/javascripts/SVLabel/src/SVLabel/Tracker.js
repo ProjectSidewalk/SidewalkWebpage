@@ -64,6 +64,10 @@ function Tracker () {
         return action.indexOf("KeyboardShortcut_Severity") >= 0;
     }
 
+    this._isFinishLabelingAction = function (action) {
+        return action.indexOf("LabelingCanvas_FinishLabeling") >= 0;
+    }
+
     /** Returns actions */
     this.getActions = function () {
         return actions;
@@ -203,8 +207,14 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
+        var contextMenuLabel = true;
+
+        if(self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')){
+            contextMenuLabel = false;
+        }
+
         //we are no longer interacting with a label, set currentLabel to null
-        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action)){
+        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
             currentLabel = null;
         }
 
