@@ -164,7 +164,7 @@ $(document).ready(function () {
                   visible: false
                 });
                 marker.bindTo('center', labeling, 'position');
-                marker.addListener('click', function() {
+                /*marker.addListener('click', function() {
                   //test whether the label is already being shown in one of the four views
                   var id = marker.meta.label_id;
                   var labelIndex = -1;
@@ -184,13 +184,12 @@ $(document).ready(function () {
                       panoramaContainers[nextOpenView].label.label_id = id;
                       showLabel(marker.meta, nextOpenView, marker.status);
                     }
-                });
+                });*/
                 marker.addListener('mouseover', function() {
                   //test whether label is present within a view
-                  var present = panoramaContainers.some(panoramaContainer => panoramaContainer.label.label_id === marker.meta.label_id);
+                  var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.cluster_id === marker.meta.cluster_id && panoramaContainer.pano_id === marker.meta.pano_id);
                   //if so, highlight that view with a border
-                  if (present) {
-                      var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.label.label_id === marker.meta.label_id );
+                  if (pano != null) {
                       pano.view.style.borderStyle = "solid";
                   }
                   //emphasize label on map
@@ -199,11 +198,9 @@ $(document).ready(function () {
 
                 marker.addListener('mouseout', function(){
                   //test whether label is present within a view
-                  var present = panoramaContainers.some(panoramaContainer => panoramaContainer.label.label_id === marker.meta.label_id);
-                  // if present, hide border highlight, o/w remove emphasis
-                  //if not, remove emphasis
-                  if (present) {
-                      var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.label.label_id === marker.meta.label_id );
+                  var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.cluster_id === marker.meta.cluster_id && panoramaContainer.pano_id === marker.meta.pano_id);
+                  //if so, highlight that view with a border
+                  if (pano != null) {
                       pano.view.style.borderStyle = "hidden";
                   }
                     marker.setOptions({fillColor: "#" + colorMapping[marker.meta.label_type].fillStyle});
@@ -258,7 +255,7 @@ $(document).ready(function () {
             //update info
             if(panoramaContainers[panoIndex].info.innerHTML === "Empty"){
               if(status != "Filter"){
-                panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + " | <b>Labels Shown: </b> " + panoramaContainers[panoIndex].labels.length + ' | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
+                panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + ' | <b>Labels Shown: </b> <span class="labelCount">' + panoramaContainers[panoIndex].labels.length + '</span> | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
               }
               else{panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b>" + label.cluster_id + ' | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';}
 
@@ -295,7 +292,7 @@ $(document).ready(function () {
             var toChange = panoramaContainers[panoIndex].gsv_panorama;
             toChange.setPano(label.pano_id);
             toChange.setPov(pov);
-            toChange.setZoom(10);
+            toChange.setZoom(2);
         $('#pano' + (panoIndex + 1) + '-holder').prepend(
             '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">' +
             '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%"></p>' +
@@ -524,6 +521,8 @@ $(document).ready(function () {
             showLabel(marker.meta, nextOpenView, marker.status);
           }
     }
+    var counts = document.getElementsByClassName("labelCount");
+    for(i = 0; i < counts.length; i++){counts[i].innerHTML = panoramaContainers[i].labels.length;}
   }
 
 
