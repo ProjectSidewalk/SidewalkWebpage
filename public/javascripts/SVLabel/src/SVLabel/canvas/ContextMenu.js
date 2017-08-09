@@ -356,8 +356,10 @@ function ContextMenu (uiContextMenu) {
                     }
                     $descriptionTextBox.prop("placeholder", defaultText + example);
 
-                    //don't push event on Occlusion or NoSidewalk labels
-                    svl.tracker.push('ContextMenu_Open', null, {'temporaryLabelId': self.getTargetLabel().getProperties().temporary_label_id});
+                    var labelProperties = self.getTargetLabel().getProperties();
+
+                    //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                    svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
                 }
             }
         }
