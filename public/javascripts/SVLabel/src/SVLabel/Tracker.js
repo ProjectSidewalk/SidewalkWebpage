@@ -203,7 +203,8 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
-        if(self._isContextMenuClose(action)){
+        //we are no longer interacting with a label, set currentLabel to null
+        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action)){
             currentLabel = null;
         }
 
