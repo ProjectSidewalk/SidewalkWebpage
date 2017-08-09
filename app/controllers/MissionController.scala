@@ -8,6 +8,9 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
 import models.mission.{Mission, MissionTable, MissionUserTable}
+import models.turker.{Turker, TurkerTable}
+import models.amt.{AMTVolunteerRouteTable}
+import models.route.{RouteTable}
 import models.street.StreetEdgeTable
 import models.user.{User, UserCurrentRegionTable}
 import org.geotools.geometry.jts.JTS
@@ -91,6 +94,30 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case _ =>
         val mission = MissionTable.selectMTurkMission
+        val missionJsonObjects: List[JsObject] = mission.map( m =>
+          Json.obj("is_completed" -> false,
+            "mission_id" -> m.missionId,
+            "region_id" -> m.regionId,
+            "label" -> m.label,
+            "level" -> m.level,
+            "distance" -> m.distance,
+            "distance_ft" -> m.distance_ft,
+            "distance_mi" -> m.distance_mi,
+            "coverage" -> m.coverage)
+        )
+
+        Future.successful(Ok(JsArray(missionJsonObjects)))
+    }
+  }
+
+  def getMTurkMissionsByTurker(turkerId: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case _ =>
+        val conditionId = TurkerTable.getConditionIdByTurkerId(turkerId)
+        val routeId = AMTVolunteerRouteTable.getRoutesByConditionId(conditionId).list.headOption
+        val regionId = RouteTable.getRegionByRouteId(routeId)
+        val mission = MissionTable.selectMTurkMissionByRegion(regionId)
+
         val missionJsonObjects: List[JsObject] = mission.map( m =>
           Json.obj("is_completed" -> false,
             "mission_id" -> m.missionId,

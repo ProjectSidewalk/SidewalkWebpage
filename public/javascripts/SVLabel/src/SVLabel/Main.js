@@ -202,7 +202,10 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
-        loadData(neighborhood, route, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        //Turkers
+        svl.turkerId = params.form.turkerId;
+
+        loadData(neighborhood, route, svl.turkerId, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -264,7 +267,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, route, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (neighborhood, route, turkerId, taskContainer, missionModel, neighborhoodModel) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -284,11 +287,17 @@ function Main (params) {
             handleDataLoadComplete();
         });
 
+        /*
         // Fetch all the missions
         missionModel.fetchMissions(function () {
             loadingMissionsCompleted = true;
             handleDataLoadComplete();
-        });
+        });*/
+        // Fetch all turker missions
+        missionModel.fetchTurkerMissions(turkerId, function () {
+         loadingMissionsCompleted = true;
+         handleDataLoadComplete();
+         });
 
         neighborhoodModel.fetchNeighborhoods(function () {
             loadNeighborhoodsCompleted = true;

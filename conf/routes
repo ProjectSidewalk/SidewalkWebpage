@@ -69,6 +69,7 @@ GET     /routes/:id                             @controllers.RouteController.get
 
 # Missions
 GET     /missionturk                            @controllers.MissionController.getMTurkMissions
+GET     /missionturk/:turkerId                  @controllers.MissionController.getMTurkMissionsByTurker(turkerId: String)
 GET     /mission                                @controllers.MissionController.getMissions
 POST    /mission                                @controllers.MissionController.post
 
