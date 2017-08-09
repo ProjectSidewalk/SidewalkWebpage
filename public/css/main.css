@@ -855,7 +855,7 @@ video#bgvid {
     vertical-align: middle;
 }
 .viewnum{
-    width: 30%;
+    width: 20%;
     position: absolute;
     left: 0;
     top: 0;
@@ -866,9 +866,9 @@ video#bgvid {
     padding-left: 3px;
 }
 .labelstats{
-    width: 70%;
+    width: 90%;
     position: absolute;
-    left: 30%;
+    left: 10%;
     top:0;
     height: 8%;
     text-align: right;

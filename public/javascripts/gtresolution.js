@@ -1,5 +1,9 @@
 $(document).ready(function () {
 
+  $(function () {
+    $('[data-toggle="popover"]').popover()
+  })
+
     //current route
     var cluster_session_id;
     //all labels and gt labels
@@ -27,6 +31,7 @@ $(document).ready(function () {
     var nextOpenView = 0;
 
     var toInvestigate = [];
+    var maxZIndex = 200;
 
     //stores color information for each label type
     var colorMapping = {
@@ -97,6 +102,10 @@ $(document).ready(function () {
           var lbl = eliminated_labels[j];
           features.push({position: new google.maps.LatLng(lbl.lat, lbl.lng), type: lbl.label_type, meta: lbl, status: "No_Ground_Truth"});
         }
+        for (j = 0; j < toInvestigate.length; j++) {
+          var lbl = toInvestigate[j].label;
+          features.push({position: new google.maps.LatLng(lbl.lat, lbl.lng), type: lbl.label_type, meta: lbl, status: "Filter"});
+        }
 
 
             // Create markers.
@@ -144,7 +153,7 @@ $(document).ready(function () {
                     fontWeight: 'bold',
                     fontSize: '12px'},
                   icon: {
-                    url: "public/javascripts/SVLabel/img/ground_truth/gt_marker_label.png",
+                    url: "",
                     labelOrigin: new google.maps.Point(3,5),
                     size: new google.maps.Size(5, 5)
                   },
@@ -158,7 +167,12 @@ $(document).ready(function () {
                 marker.addListener('click', function() {
                   //test whether the label is already being shown in one of the four views
                   var id = marker.meta.label_id;
-                  var labelIndex = panoramaContainers.findIndex(panoramaContainer => panoramaContainer.label.label_id === id );
+                  var labelIndex = -1;
+                  for(i = 0; i < panoramaContainers.length; i++){
+                    if(panoramaContainers[i].cluster_id === marker.meta.cluster_id && panoramaContainers[i].pano_id === marker.meta.cluster_id){
+                      labelIndex = panoramaContainers[i].findIndex(lbl => lbl.label_id === id );
+                    }
+                  }
                   // If it's being shown, clear the canvas it's being shown in, o/w display the label and log that it is shown
                   if (labelIndex >= 0) {
                       $('#clear' + (labelIndex + 1)).trigger('click');
@@ -166,12 +180,6 @@ $(document).ready(function () {
                       var mLabel = mapLabels.find(lbl => lbl.id === marker.meta.label_id );
                       mLabel.setOptions({visible: false});
                   } else {
-                    /*check if pano is already being shown, if so add label to that panorama
-                    var pano = feature.properties.metadata.pano_id;
-                    var panoIndex = panoramaContainers.findIndex(panoramaContainer => panoramaContainer.label.pano_id === pano );
-                    if (panoIndex >= 0) {
-                      showLabel(feature.properties.metadata, panoIndex);
-                    }else{*/
                       $('#clear' + (nextOpenView + 1)).trigger('click');
                       panoramaContainers[nextOpenView].label.label_id = id;
                       showLabel(marker.meta, nextOpenView, marker.status);
@@ -231,39 +239,60 @@ $(document).ready(function () {
     //if all full, choose the first view
     function calculateNextOpen() {
         for (var i = 0; i < panoramaContainers.length; i++) {
-            if (panoramaContainers[i].label.label_id === undefined) {
+            if (panoramaContainers[i].labels.length === 0) {
                 return i;
             }
         }
         return 0;
     }
 
+    var initializedToggleButtons = [];
 
     //show label in panorama
     function showLabel(label, panoIndex, status) {
             $('#pano' + (panoIndex + 1) + '-holder').children('div.loading').fadeOut('slow', function () {
                 $(this).remove();
             });
-            panoramaContainers[panoIndex].label = label;
+            panoramaContainers[panoIndex].cluster_id = label.cluster_id;
+            panoramaContainers[panoIndex].pano_id = label.pano_id;
             //update info
-            if(status != "Filter"){
-              panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + " | <b>Labeler: </b> " + label.turker_id;
+            if(panoramaContainers[panoIndex].info.innerHTML === "Empty"){
+              if(status != "Filter"){
+                panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + " | <b>Labels Shown: </b> " + panoramaContainers[panoIndex].labels.length + ' | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
+              }
+              else{panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b>" + label.cluster_id + ' | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';}
+
+            $('#toggle-visible-' + label.pano_id  +  label.cluster_id).off("click");
+            //Toggle visibility of label marker
+            $(document).on("click", '#toggle-visible-' + label.pano_id  +  label.cluster_id, function(){
+                if (panoramaContainers[panoIndex].labelMarkers[0].getIcon() === null) {
+                  for(var i = 0; i < panoramaContainers[panoIndex].labelMarkers.length; i++){
+                    var marker = mapMarkers.find(mkr => mkr.meta.label_id === panoramaContainers[panoIndex].labels[i].label_id );
+                    if(marker !=  null){panoramaContainers[panoIndex].labelMarkers[i].setIcon(selectMarker(panoramaContainers[panoIndex].labels[i],marker.status));}
+                    else{panoramaContainers[panoIndex].labelMarkers[i].setIcon(selectMarker(panoramaContainers[panoIndex].labels[i],null));}
+                  }
+                } else {
+                  for(var i = 0; i < panoramaContainers[panoIndex].labelMarkers.length; i++){
+                    panoramaContainers[panoIndex].labelMarkers[i].setIcon(null);
+                  }
+                }
+          });
+          }
+
             //add marker label
-            var markerLabel = mapLabels.find(mkr => mkr.id === label.label_id );
-              markerLabel.setOptions({visible: true, label: {
-                text: "V"+(nextOpenView+1),
-                fontWeight: 'bold',
-                fontSize: '12px'}});
-            }
-            else{panoramaContainers[panoIndex].info.innerHTML = "<b>Cluster ID: </b>" + label.cluster_id;}
             nextOpenView = calculateNextOpen();
             //draw label
-            renderLabel(label, panoIndex, status);
+            var pov = renderLabel(label, panoIndex, status);
+            var markerLabel = mapLabels.find(mkr => mkr.id === label.label_id );
+              markerLabel.setOptions({visible: true, label: {
+                text: "V"+(panoIndex+1),
+                fontWeight: 'bold',
+                fontSize: '12px'}});
             //update selected panorama
             var toChange = panoramaContainers[panoIndex].gsv_panorama;
             toChange.setPano(label.pano_id);
-            toChange.setPov({heading: label.heading, pitch: label.pitch});
-            toChange.setZoom(label.zoom);
+            toChange.setPov(pov);
+            toChange.setZoom(10);
         $('#pano' + (panoIndex + 1) + '-holder').prepend(
             '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">' +
             '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%"></p>' +
@@ -280,7 +309,7 @@ $(document).ready(function () {
         var labelPosition = mapXYtoPov(label.sv_canvas_x, label.sv_canvas_y, label.canvasWidth, label.canvas_height, label.zoom, label.heading, label.pitch);
         var id = "label-id-" + label.label_id;
         var icon, size;
-        if(status === null || status === "Filter"){
+        if(status === null){
           size = new google.maps.Size(30, 30);
         }else{
           size = new google.maps.Size(36, 36);
@@ -289,85 +318,74 @@ $(document).ready(function () {
             pano: panoramaContainers[panoIndex].gsv_panorama,
             container: panoramaContainers[panoIndex].view,
             position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
-            id: id,
             icon: selectMarker(label, status),
+            id: id,
             size: size,
-            scaledSize: new google.maps.Size(10, 10),
             optimized: false
         });
-        panoramaContainers[panoIndex].labelMarker = label_marker;
+        panoramaContainers[panoIndex].labelMarkers.push(label_marker);
+        var markerIndex = panoramaContainers[panoIndex].labelMarkers.length - 1;
+
         // Add listener to marker to show info upon clicking
-        google.maps.event.addListener(panoramaContainers[panoIndex].labelMarker, 'click', function () {
-            createPopover(panoIndex, status);
+        google.maps.event.addListener(panoramaContainers[panoIndex].labelMarkers[markerIndex], 'click', function () {
+            maxZIndex++;
+            panoramaContainers[panoIndex].labelMarkers[markerIndex].setOptions({zIndex: maxZIndex});
+            for(var i = 0; i<panoramaContainers[panoIndex].labelMarkers.length; i++){
+              if(i != markerIndex){$('#' + panoramaContainers[panoIndex].labelMarkers[i].getId()).popover('hide');}
+            }
+            createPopover(panoIndex, label,status);
         });
 
         // Popover follows marker when POV is changed
         google.maps.event.addListener(panoramaContainers[panoIndex].gsv_panorama, 'pov_changed', function () {
-            if (panoramaContainers[panoIndex].popoverOn) {
-                $("#" + id).popover('show');
-            }
-        });
-        return this;
+                createPopover(panoIndex, label,status);
+                $("#" + id).popover('hide');
+         });
+
+         for(var i = 0; i < panoramaContainers[panoIndex].labelMarkers.length; i++){
+           if(i != markerIndex){
+           google.maps.event.addListener(panoramaContainers[panoIndex].labelMarkers[i], 'click', function () {
+                   createPopover(panoIndex, label,status);
+                   $("#" + id).popover('hide');
+            });
+          }
+         }
+
+        return {heading: labelPosition.heading, pitch: labelPosition.pitch};
     }
 
 
     // Create popover for marker
-    function createPopover(index, status) {
-        var data = panoramaContainers[index].label;
+    function createPopover(index, data, status) {
+      if(status === "Filter"){return;}
+        var labelIndex = panoramaContainers[index].labels.findIndex(lbl => lbl.label_id === data.label_id );
         var markerElement = $("#label-id-" + data.label_id);
-        panoramaContainers[index].popoverOn = !panoramaContainers[index].popoverOn;
 
-        if (markerElement.attr('data-toggle') === undefined) {
             markerElement
                 .attr('data-toggle', 'popover')
                 .attr('data-placement', 'top')
                 .attr('data-content',
-                    '<p style="text-align:center"><b>Severity:</b>&nbsp;' + data.severity + ', <b>Description:</b>&nbsp;' + data.description + ', <b>Temporary:</b>&nbsp;' + data.temporary
+                    '<p style="text-align:center"><b>Cluster:</b>&nbsp;' + data.cluster_id + ' <b>Labeler:</b>&nbsp;' + data.turker_id + '<br><b>Severity:</b>&nbsp;' + data.severity + ', <b>Temporary:</b>&nbsp;' + data.temporary + '<br><b>Description:</b>&nbsp;' + data.description
                     + '</p>' +
-                    '<input type="button" id="commit' + data.label_id + '" style="margin-top:2" value="Commit to GT"></input>' +
-                    '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:2" value="Don\'t Commit to GT"></input>' +
-                    '<a href="javascript:;" id="toggle-visible-' + data.label_id + '" style="margin-left:8px"><span class="glyphicon glyphicon-eye-open" style="color:#7CE98B; font-size:14px"></span></a>') // 9eba9e
-                .popover({html: true})
-                .parent().delegate('a#toggle-visible-' + data.label_id, 'click', function (e) {
-                if (panoramaContainers[index].labelMarker.getIcon() === null) {
-                    var marker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id );
-                    if(marker !=  null){panoramaContainers[index].labelMarker.setIcon(selectMarker(data,marker.status));}
-                    else{panoramaContainers[index].labelMarker.setIcon(selectMarker(data,null));}
-                    markerElement.children('a').children('span').css('color', '#7CE98B');
-                } else {
-                    panoramaContainers[index].labelMarker.setIcon(null);
-                    markerElement.children('a').children('span').css('color', '#F8F4F0');
-                }
-            });
+                    'Ground Truth: <input type="button" id="commit' + data.label_id + '" style="margin-top:1" value="Yes"></input>' +
+                    '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:1" value="No"></input>') // 9eba9e
+                    .popover({html: true});
+
+
             $(document).on("click", '.popover #commit' + data.label_id , function(){
                 $("#label-id-" + data.label_id).popover('hide');
-                yesGroundTruth(panoramaContainers[index].label);
+                yesGroundTruth(panoramaContainers[index].labels[labelIndex]);
             });
             $(document).on("click", '.popover #noCommit' + data.label_id , function(){
                 $("#label-id-" + data.label_id).popover('hide');
-                noGroundTruth(panoramaContainers[index].label);
+                noGroundTruth(panoramaContainers[index].labels[labelIndex]);
             });
-            panoramaContainers[index].popoverOn = true;
 
-            if(status === "Filter"){
-              markerElement.attr('data-content','<a href="javascript:;" id="toggle-visible-' + data.label_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#7CE98B; font-size:14px"></span></a>');
-            }
-
-            // Toggle visibility of label marker
-            markerElement.on('click', 'a#toggle-visible-' + data.label_id, function (e) {
-                if (panoramaContainers[index].labelMarker.getIcon() === null) {
-                    panoramaContainers[index].labelMarker.setIcon("assets/javascripts/SVLabel/img/cursors/Cursor_" + data.label_type + ".png");
-                    this.children('span').css('color', '#7CE98B');
-                } else {
-                    panoramaContainers[index].labelMarker.setIcon(null);
-                    this.children('span').css('color', '#F8F4F0');
-                }
-            });
         }
-    }
+
 
     function selectMarker(label, status){
-      if(status === "Ground_Truth"){
+      if(status === "Ground_Truth" || status === "Filter"){
         return "assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + label.label_type + ".png";
       }else if(status === "No_Ground_Truth"){
         return "assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + label.label_type + ".png";
@@ -389,9 +407,19 @@ $(document).ready(function () {
     //this label will go in ground truth
     function yesGroundTruth(commit){
           //update visuals
-          var pano = panoramaContainers.findIndex(i => i.label.label_id === commit.label_id);
-          panoramaContainers[pano].labelMarker.setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png");
-          panoramaContainers[pano].labelMarker.setOptions({size: new google.maps.Size(36,36)});
+          var labelIndex = -1, pano = -1;
+          for(i = 0; i < panoramaContainers.length; i++){
+            if(panoramaContainers[i].cluster_id === commit.cluster_id && panoramaContainers[i].pano_id === commit.pano_id){
+              labelIndex = panoramaContainers[i].labels.findIndex(lbl => lbl.label_id === commit.label_id );
+              pano = i;
+              break;
+            }
+          }
+          panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png");
+          panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: new google.maps.Size(36,36)});
+          for(j = 0; j < panoramaContainers[pano].labelMarkers.length; j++){
+            if(j != labelIndex){maxZIndex++; panoramaContainers[pano].labelMarkers[j].setOptions({zIndex: maxZIndex});}
+          }
           var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
           //execute commit
           var index;
@@ -411,8 +439,17 @@ $(document).ready(function () {
     //this label will not go in ground truth
     function noGroundTruth(commit){
       //update visuals
-      var pano = panoramaContainers.findIndex(i => i.label.label_id === commit.label_id);
-      if(pano >= 0){panoramaContainers[pano].labelMarker.setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png");}
+      var labelIndex = -1, pano = -1;
+      for(i = 0; i < panoramaContainers.length; i++){
+        if(panoramaContainers[i].cluster_id === commit.cluster_id && panoramaContainers[i].pano_id === commit.pano_id){
+          labelIndex = panoramaContainers[i].labels.findIndex(lbl => lbl.label_id === commit.label_id );
+          pano = i;
+          break;
+        }
+      }
+      if(pano >= 0){
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png");
+        panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: new google.maps.Size(36,36), zIndex: 10});}
       var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
       //execute commit
       var index;
@@ -426,50 +463,65 @@ $(document).ready(function () {
         eliminated_labels.push(commit);
       }
       updateCounters();
-      marker.setOptions({strokeColor:"#757470",strokeOpacity:0.5, strokeWeight:4, status: "No_Ground_Truth", zIndex: 50, fillOpacity:0.2, size: new google.maps.Size(37,37)});
+      marker.setOptions({strokeColor:"#757470", strokeOpacity:0.5, strokeWeight:4, status: "No_Ground_Truth", zIndex: 50, fillOpacity:0.2, size: new google.maps.Size(36,36)});
     }
 
     //clear a specific canvas
-    function clearCanvas(index, layers) {
+    function clearCanvas(index) {
         var panoramaContainer = panoramaContainers[index];
-        if (panoramaContainer.labelMarker !== null) {
-            var labelId = panoramaContainer.label.label_id;
-            var layer = undefined;
-            var labelsOfAType = [];
+        for(i = 0; i < panoramaContainer.labelMarkers.length; i++) {
+            var markerLabel = panoramaContainer.labelMarkers[i];
+            $('#' + markerLabel.getId()).popover('hide');
 
-            for (var labelType in layers) {
-                if (layers.hasOwnProperty(labelType)) {
-                    if (!Array.isArray(layers[labelType])) { // Go through all labels on map and find the one that matches the one that we're trying to clear from the canvas
-                        labelsOfAType = $.map(layers[labelType]._layers, function (value, index) {
-                            return [value];
-                        });
-                        layer = (layer === undefined) ? labelsOfAType.find(function (label) {
-                            return label.feature.properties.label_id === labelId
-                        }) : layer;
-                    }
-                }
-            }
-
-            if (layer !== undefined) {
-                layer.setRadius(5);
-            }
+            var labelId = panoramaContainer.labels[i].label_id;
 
             var marker = mapMarkers.find(mkr => mkr.meta.label_id === labelId );
             if(marker != null && marker.status === null){marker.setOptions({fillColor: "#" + colorMapping[marker.meta.label_type].fillStyle});}
-            var mLabel = mapLabels.find(lbl => lbl.id === labelId );
+            var mLabel = mapLabels.find(mkr => mkr.id === labelId );
             if(mLabel != null){mLabel.setOptions({visible: false});}
 
-            $('#label-id-' + labelId).popover('hide');
-            panoramaContainer.info.innerHTML = "";
-            panoramaContainer.view.style.borderStyle = "hidden";
-            panoramaContainer.label = {};
-            panoramaContainer.popoverOn = false;
-            nextOpenView = calculateNextOpen();
-            google.maps.event.clearListeners(panoramaContainers[index].gsv_panorama, 'pov_changed');
-            panoramaContainers[index].labelMarker.setMap(null);
-            panoramaContainers[index].labelMarker = null;
+            markerLabel.setMap(null);
+
         }
+
+        panoramaContainer.info.innerHTML = "Empty";
+        panoramaContainer.view.style.borderStyle = "hidden";
+        panoramaContainer.labels = [];
+        nextOpenView = calculateNextOpen();
+        google.maps.event.clearListeners(panoramaContainers[index].gsv_panorama, 'pov_changed');
+        panoramaContainer.labelMarkers = [];
     }
+
+
+    //add all labels in cluster to panoramas
+    function addClusterToPanos(cluster){
+      for(var p = 0; p < 4; p++){
+        clearCanvas(p);
+      }
+      for(var i = 0; i < cluster.length; i++){
+        var toShow = cluster[i];
+        //test whether the label is already being shown in one of the four views
+        var id = toShow.label_id;
+        var marker = mapMarkers.find(mkr => mkr.meta.label_id === id );
+        var panoIndex = -1;
+        for(var j = 0; j < panoramaContainers.length; j++){
+          if(panoramaContainers[j].cluster_id === marker.meta.cluster_id && panoramaContainers[j].pano_id === marker.meta.pano_id){
+            panoIndex = j;
+          }
+        }
+        // If it's being shown, clear the canvas it's being shown in, o/w display the label and log that it is shown
+        if (panoIndex >= 0) {
+            panoramaContainers[panoIndex].labels.push(marker.meta);
+            showLabel(marker.meta, panoIndex, marker.status);
+            if(marker.status === null){marker.setOptions({fillColor: "#" + colorMapping[marker.meta.label_type].fillStyle});}
+            var mLabel = mapLabels.find(lbl => lbl.id === marker.meta.label_id );
+        } else {
+            $('#clear' + (nextOpenView + 1)).trigger('click');
+            panoramaContainers[nextOpenView].labels.push(marker.meta);
+            showLabel(marker.meta, nextOpenView, marker.status);
+          }
+    }
+  }
 
 
     //next button functionality
@@ -480,6 +532,7 @@ $(document).ready(function () {
           currentLabel = all_labels[currentCluster][0];
         currentCoordinates = new google.maps.LatLng(currentLabel.lat,currentLabel.lng);
         refocusView(map);
+        addClusterToPanos(all_labels[currentCluster]);
       }else{
         nextDisagreement(map);
       }
@@ -493,6 +546,7 @@ $(document).ready(function () {
           currentLabel = all_labels[currentCluster][0];
         currentCoordinates = new google.maps.LatLng(currentLabel.lat,currentLabel.lng);
         refocusView(map);
+        addClusterToPanos(all_labels[currentCluster]);
       }else{
         previousDisagreement(map);
       }
@@ -617,9 +671,10 @@ $(document).ready(function () {
                 gsv_panorama: null, // the StreetViewPanorama object for each view
                 view: document.getElementsByClassName("gtpano")[i], // holder for the GSV panorama
                 info: document.getElementsByClassName("labelstats")[i], // div above panorama holding label information
-                label: {}, // metadata of label displayed in each panorama ({} if no label is displayed)
-                popoverOn: false, //
-                labelMarker: null // the marker for the label in the panorama
+                labels: [], // metadata of label displayed in each panorama ({} if no label is displayed)
+                labelMarkers: [], // the marker for the label in the panorama
+                cluster_id: null,
+                pano_id: null
             });
         }
 
@@ -636,16 +691,16 @@ $(document).ready(function () {
             previousDisagreement(map);
         };
         document.getElementById("clear1").onclick = function () {
-            clearCanvas(0, self.allLayers);
+            clearCanvas(0);
         };
         document.getElementById("clear2").onclick = function () {
-            clearCanvas(1, self.allLayers);
+            clearCanvas(1);
         };
         document.getElementById("clear3").onclick = function () {
-            clearCanvas(2, self.allLayers);
+            clearCanvas(2);
         };
         document.getElementById("clear4").onclick = function () {
-            clearCanvas(3, self.allLayers);
+            clearCanvas(3);
         };
         document.getElementById("submitClusterSessionId").onclick = function () {
             cluster_session_id = document.getElementById("clusterSessionId").value;
@@ -653,7 +708,8 @@ $(document).ready(function () {
             all_labels = filterClusters(test_labels);
             updateCounters();
             document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
-            dealWithConflict(toInvestigate, 0)
+            initializeAllLayers(all_labels, self, map);
+            dealWithConflict(toInvestigate, 0);
         };
 
         //reduce filler at bottom of page (styling purposes)
@@ -685,7 +741,16 @@ $(document).ready(function () {
                 cluster_data.splice(i,1);
               }
             }else{
-              toInvestigate.push({meta: cluster_data, sev: sameSeverity, temp: sameTemp});
+              middle = chooseMiddle(cluster_data);
+              var label = cluster_data[middle];
+              var cluster = cluster_data.slice();
+              toInvestigate.push({data: cluster, label: label, sev: sameSeverity, temp: sameTemp});
+              ground_truth_labels.push(cluster_data[middle]);
+              cluster_data.splice(middle,1);
+              for(var i = 0; i < cluster_data.length; i){
+                eliminated_labels.push(cluster_data[i]);
+                cluster_data.splice(i,1);
+              }
             }
           }
         }
@@ -694,35 +759,35 @@ $(document).ready(function () {
     }
 
     function dealWithConflict(data, index){
-          var cluster_data = data[index].meta;
-            //calculate middle label
-            middle = chooseMiddle(cluster_data);
+          var label_data = data[index].label;
+          var cluster_data = data[index].data;
+            //set coordinates
+            currentCoordinates = new google.maps.LatLng(label_data.lat, label_data.lng);
+            map.setCenter(currentCoordinates);
             //show on panorama
                 panoramaContainers[0].gsv_panorama = new google.maps.StreetViewPanorama(document.getElementById("panorama-1"), {
-                    pano: cluster_data[middle].pano_id,
+                    pano: label_data.pano_id,
                     pov: {
-                        heading: cluster_data[middle].heading,
-                        pitch: cluster_data[middle].pitch
+                        heading: label_data.heading,
+                        pitch: label_data.pitch
                     },
                     disableDefaultUI: true,
                     clickToGo: false
                 });
-            showLabel(cluster_data[middle],0,"Filter");
+
+                  clearCanvas(0);
+            showLabel(label_data,0,"Filter");
+            panoramaContainers[0].labels.push(label_data);
             document.getElementById("panorama-3").innerHTML = '<br><table style="width:100%"><tr><th>Labeler</th><th id="sev_heading" style="text-align:center">Severity</th><th id="temp_heading" style="text-align:center">Temp</th><th style="text-align:center">Description</th></tr>' +
             '<tr><td>' + cluster_data[0].turker_id + '</td><td style="text-align:center">' + cluster_data[0].severity + '</td><td style="text-align:center">' + cluster_data[0].temporary + '</td>'+ '</td><td style="text-align:center">' + cluster_data[0].description +
             '<tr><td>' + cluster_data[1].turker_id + '</td><td style="text-align:center">' + cluster_data[1].severity + '</td><td style="text-align:center">' + cluster_data[1].temporary + '</td>'+ '</td><td style="text-align:center">' + cluster_data[1].description +
             '<tr><td>' + cluster_data[2].turker_id + '</td><td style="text-align:center">' + cluster_data[2].severity + '</td><td style="text-align:center">' + cluster_data[2].temporary + '</td>'+ '</td><td style="text-align:center">' + cluster_data[2].description + '</table><br>' +
             'Severity: <select name="severity" id="severity"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><br>' +
             'Temporary: <input type="checkbox" id ="temp"><br>' +
-            '<button id="prelimCommit' + cluster_data[middle].cluster_id + '">Add to Ground Truth</button>';
-            //designate other labels as not ground truth
-            var toUpdate = cluster_data[middle];
+            '<button style="margin-top:4px" id="prelimCommit' + label_data.cluster_id + '">Submit Updates to Ground Truth</button>';
+            //update label found in ground truth
+            var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === cluster_data[middle].label_id);
             var next = index + 1;
-            cluster_data.splice(middle,1);
-            for(var i = 0; i < cluster_data.length; i){
-              eliminated_labels.push(cluster_data[i]);
-              cluster_data.splice(i,1);
-            }
 
             if(!data[index].sev){
               document.getElementById("sev_heading").style.backgroundColor = "#ff6d77";
@@ -735,8 +800,6 @@ $(document).ready(function () {
                 //update severity and temporary
                 toUpdate.severity = document.getElementById("severity").value;
                 toUpdate.temporary = document.getElementById("temp").checked;
-                //add middle label to be investigated, other two to eliminated_labels
-                ground_truth_labels.push(toUpdate);
                 updateCounters();
                 //move to next one
                 if(next < data.length){
@@ -753,7 +816,8 @@ $(document).ready(function () {
                   var panoramas = panoramaContainers.map(panoramaContainer => panoramaContainer.view );
                   clearCanvas(0, self.allLayers);
                   initializePanoramas(currentLabel, panoramas);
-                  initializeAllLayers(all_labels, self, map);
+                  addClusterToPanos(all_labels[currentCluster]);
+                  document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
               }
             });
     }
