@@ -177,7 +177,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 LabelTable.updateDeleted(labId, label.deleted.value)
                 labId
               case None =>
-                println(label)
                 LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
                                       label.photographerPitch, label.panoramaLat, label.panoramaLng,
                                       label.deleted.value, label.temporaryLabelId))
