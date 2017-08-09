@@ -204,6 +204,8 @@ function Main (params) {
 
         //Turkers
         svl.turkerId = params.form.turkerId;
+        svl.assignmentId = params.form.assignmentId;
+        svl.hitId = params.form.hitId;
 
         loadData(neighborhood, route, svl.turkerId, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 

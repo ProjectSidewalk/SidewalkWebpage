@@ -66,6 +66,10 @@ object AMTAssignmentTable {
     q.update(completed)
   }
 
+  def getCountOfCompletedByTurkerId(turkerId: String): Option[Int] = db.withTransaction { implicit session =>
+    amtAssignments.filter(_.turkerId === turkerId && _.completed === true).length.run
+  }
+
   /**
     * Update the `assignment_end` column of the specified assignment row
     *

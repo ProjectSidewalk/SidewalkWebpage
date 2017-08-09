@@ -53,10 +53,15 @@ object AMTVolunteerRouteTable {
     assignedRoute
   }
 
-  def getNeighborhoodByConditionId(conditionId: Int): List[Int] = db.withTransaction{ implicit session =>
+  def getRoutesByConditionId(conditionId: Int): List[Int] = db.withTransaction{ implicit session =>
     val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
-    val availableRoutes = findRoutesByVolunteerId(volunteerId).headOption
+    val availableRoutes = findRoutesByVolunteerId(volunteerId)
+    availableRoutes
+  }
 
+  def getNeighborhoodByConditionId(conditionId: Int): Option[Int] = = db.withTransaction{ implicit session =>
+    val availableRoute = getRoutesByConditionId(conditionId).headOption
+    RouteTable.getRegionByRouteId(availableRoute)
   }
 
   def save(asg: AMTVolunteerRoute): Int = db.withTransaction { implicit session =>
