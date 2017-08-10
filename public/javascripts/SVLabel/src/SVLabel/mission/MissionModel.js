@@ -86,6 +86,7 @@ function MissionModel () {
             for (var i = 0, len = missions.length; i < len; i++) {
                 missionParameters = {
                     regionId: missions[i].region_id,
+                    routeId: missions[i].route_id,
                     missionId: missions[i].mission_id,
                     label: missions[i].label,
                     level: missions[i].level,

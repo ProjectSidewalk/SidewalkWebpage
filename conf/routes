@@ -23,6 +23,7 @@ GET     /audit                                  @controllers.AuditController.aud
 GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                          @controllers.AuditController.postComment
+POST    /audit/amtAssignment                    @controllers.AuditController.postAMTAssignment
 POST    /audit/nostreetview                     @controllers.AuditController.postNoStreetView
 
 # User authentication
@@ -65,6 +66,7 @@ POST    /task                                   @controllers.TaskController.post
 
 # Route API
 POST    /route                                  @controllers.RouteController.post
+GET     /route/:id                              @controllers.RouteController.getRouteById(id: Int)
 GET     /routes/:id                             @controllers.RouteController.getStreetsOnARoute(id: Int)
 
 # Missions

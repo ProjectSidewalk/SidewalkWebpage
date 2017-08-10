@@ -214,6 +214,26 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+
+  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+    val submission = request.body.validate[AMTAssignmentCreateRecordSubmission]
+
+    // Inputs to AMT Assignment Constructor 0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None, submission.turkerId, submission.conditionId, submission.routeId, false)
+        val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+
+        Future.successful(Ok(Json.obj(asgId)))
+      }
+    )
+  }
+
   /**
     * This method handles a comment POST request. It parse the comment and insert it into the comment table
     *

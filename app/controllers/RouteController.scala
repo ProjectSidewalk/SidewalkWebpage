@@ -20,7 +20,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
-import models.route.{RouteStreet, RouteStreetTable}
+import models.route.{RouteTable, RouteStreet, RouteStreetTable}
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
@@ -80,6 +80,18 @@ class RouteController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     Future.successful(Ok(rStreetsJsonObj))
+  }
+
+  def getRouteById(routeId: Int) = UserAwareAction.async { implicit request =>
+    val route = RouteTable.getRoute(routeId).get
+    val routeJsonObj = Json.obj(
+      "route_id": route.routeId,
+      "street_count": route.streetCount,
+      "route_length_mi": route.route_length_mi,
+      "region_id": route.regionId
+    )
+    Future.successful(Ok(JsArray(routeJsonObj)))
+
   }
 
   def updateRouteAssignmentCompleteness(amtAssignmentId: Option[Int], routeAssignment: AMTRouteAssignmentSubmission): Unit = {
