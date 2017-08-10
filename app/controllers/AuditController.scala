@@ -136,7 +136,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
             //Set up a case statement here for when route returned is null (Indicating that the turker has finished all routes assigned to him)
-
+            if(route == null){
+              Future.successful(Ok(views.html.index("Project Sidewalk")))
+            }
             val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
             // Save HIT assignment details
