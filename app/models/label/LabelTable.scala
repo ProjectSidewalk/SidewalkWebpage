@@ -94,7 +94,7 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  case class LabelMetadata(labelId: Int, deleted: Boolean, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
+  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                            canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                            auditTaskId: Int,
                            userId: String, username: String,
@@ -269,10 +269,10 @@ object LabelTable {
   }
 
   def retrieveLabelMetadata: List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.queryNA[(Int, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
+    val selectQuery = Q.queryNA[(Int, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, java.sql.Timestamp, String, String, Option[Int], Boolean,
       Option[String])](
-      """SELECT lb1.label_id, lb1.deleted, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
+      """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
         |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, ati.timestamp,
         |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
         |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
