@@ -291,9 +291,8 @@ object LabelTable {
         |					ON lb.label_id = prob_temp.label_id
         |				) AS lb_big
         |WHERE lb1.audit_task_id = at.audit_task_id and (lb1.audit_task_id = ati.audit_task_id and
-        |      lb1.temporary_label_id = ati.temporary_label_id and ati.note = 'LabelingCanvas_FinishLabeling')
-        |      and lb1.label_id = lb_big.label_id and
-        |      at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |      lb1.temporary_label_id = ati.temporary_label_id and ati.action = 'LabelingCanvas_FinishLabeling') and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
         |	ORDER BY ati.timestamp DESC""".stripMargin
     )
     selectQuery.list.map(label => LabelMetadata.tupled(label))
