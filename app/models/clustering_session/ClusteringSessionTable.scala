@@ -121,13 +121,13 @@ object ClusteringSessionTable{
 
     // left joins to get severity for any labels that have them
     val labelsWithSeverity = for {
-      (_labs, _severity) <- labelsWithDescription.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
+      (_labs, _severity) <- labelsWithDescription.leftJoin(LabelTable.severities).on(_._1 === _.labelId)
     } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
              _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19, _severity.severity.?)
 
     // left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
     val labelsWithTemporariness = for {
-      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
+      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._1 === _.labelId)
     } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
              _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19, _labs._20,
              _temporariness.temporaryProblem.?)
