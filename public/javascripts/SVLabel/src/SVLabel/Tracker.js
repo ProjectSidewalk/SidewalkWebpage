@@ -50,7 +50,7 @@ function Tracker () {
 
     this._isContextMenuClose = function (action) {
         return action.indexOf("ContextMenu_Close") >= 0 || action.indexOf("ContextMenu_OKButtonClick") >= 0;
-    }
+    };
 
     this._isDeleteLabelAction = function (action) {
         return action.indexOf("Click_LabelDelete") >= 0;
@@ -58,15 +58,15 @@ function Tracker () {
 
     this._isTaskStartAction = function (action) {
         return action.indexOf("TaskStart") >= 0;
-    }
+    };
 
     this._isSeverityShortcutAction = function (action) {
         return action.indexOf("KeyboardShortcut_Severity") >= 0;
-    }
+    };
 
     this._isFinishLabelingAction = function (action) {
         return action.indexOf("LabelingCanvas_FinishLabeling") >= 0;
-    }
+    };
 
     /** Returns actions */
     this.getActions = function () {
@@ -229,11 +229,11 @@ function Tracker () {
         var task = svl.taskContainer.getCurrentTask();
         var data = svl.form.compileSubmissionData(task);
         svl.form.submit(data, task);
-    }
+    };
 
     this.initTaskId = function() {
         self.submitForm();
-    }
+    };
 
     /**
      * Put the previous labeling actions into prevActions. Then refresh the current actions.
