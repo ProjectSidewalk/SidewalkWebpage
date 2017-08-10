@@ -136,23 +136,26 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
             //Set up a case statement here for when route returned is null (Indicating that the turker has finished all routes assigned to him)
-            if(route == null){
-              Future.successful(Ok(views.html.index("Project Sidewalk")))
+
+            if(routeId == None){
+                Future.successful(Ok(views.html.index("Project Sidewalk")))
             }
-            val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
+            else {
+              val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
-            // Save HIT assignment details
-            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
-            val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+              // Save HIT assignment details
+              val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+              val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
-            // Load the first task from the selected route
-            val regionId = route.get.regionId
-            val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
-            val regionName = region.get.name
-            val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
+              // Load the first task from the selected route
+              val regionId = route.get.regionId
+              val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
+              val regionName = region.get.name
+              val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
 
 
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+            }
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
             Future.successful(Ok(views.html.index("Project Sidewalk")))
