@@ -47,8 +47,8 @@ object ProblemTemporarinessTable {
     * @return
     */
   def updateTemporariness(tempId: Int, newTemp: Boolean) = db.withTransaction { implicit session =>
-    val temproraryLabelRecords = problemTemporarinesses.filter(_.problemTemporarinessId === tempId).map(x => x.temporaryProblem)
-    temproraryLabelRecords.update(newTemp)
+    val temporaryLabelRecords = problemTemporarinesses.filter(_.problemTemporarinessId === tempId).map(x => x.temporaryProblem)
+    temporaryLabelRecords.update(newTemp)
   }
 }
 
