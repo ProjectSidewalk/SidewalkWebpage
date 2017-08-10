@@ -180,7 +180,7 @@ function Tracker () {
      */
     this.push = function (action, notes, extraData) {
 
-        console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
+        //console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
         if((self._isContextMenuAction(action) || self._isSeverityShortcutAction(action))) {
 
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
@@ -193,7 +193,7 @@ function Tracker () {
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
-            console.log("Current Label: " + currentLabel + " " + action);
+            //console.log("Current Label: " + currentLabel + " " + action);
 
         } else if (self._isDeleteLabelAction(action)){
 
