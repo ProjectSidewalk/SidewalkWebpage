@@ -159,13 +159,14 @@ function Canvas(ribbon) {
         labels.push(status.currentLabel);  // Todo. Delete this. I think this is not necessary.
         svl.labelContainer.push(status.currentLabel);
 
+
         // Todo. Instead of calling the contextMenu show, throw an Canvas:closeLabelPath event.
         if ('contextMenu' in svl) {
             svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
                 targetLabel: status.currentLabel,
                 targetLabelColor: labelColor.fillStyle
             });
-        }
+          }
 
         // Todo. Again, thrown an event (e.g., Canvas:closeLabelPath) instead of svl.onboarding.pushOnboardingLabel invocation.
         if ('onboarding' in svl && svl.onboarding && svl.onboarding.isOnboarding()) {

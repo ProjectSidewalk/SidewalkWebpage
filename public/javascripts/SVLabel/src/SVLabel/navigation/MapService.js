@@ -1097,12 +1097,25 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 canvasCoordinate = point.getCanvasCoordinate(getPov());
 
             _canvas.setCurrentLabel(selectedLabel);
+
             if ('contextMenu' in svl) {
                 svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                 });
-            }
+                labelType = selectedLabel.getProperty("labelType");
+                if(labelType === "Other"){
+                  //no tooltips for other
+                  $('#severity-one').tooltip('destroy');
+                  $('#severity-three').tooltip('destroy');
+                  $('#severity-five').tooltip('destroy');
+                }else{
+                  //update tooltips
+                  $('#severity-one').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-one", title:"Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"});
+                  $('#severity-three').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-three", title:"Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"});
+                  $('#severity-five').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-five", title:"Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"});
+                }
+              }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Double click
             svl.tracker.push('ViewControl_DoubleClick');
