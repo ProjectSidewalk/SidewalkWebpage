@@ -81,9 +81,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var currentRoute = svl.routeContainer.getCurrentRoute();
         _routeModel.routeCompleted(currentRoute.getProperty("routeId"), mission, neighborhood);
 
-        if(mission.getProperty("label") != "mturk-mission") {
+        //if(mission.getProperty("label") != "mturk-mission") {
+            // Update the route within this
             this._updateTheCurrentMission(mission, neighborhood);
-        }
+        //}
 
         // While the mission complete modal is open, after the **neighborhood** is 100% audited,
         // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
@@ -144,6 +145,14 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         //Add code here to bring up the submit HIT button and post to the turkSubmit link
         // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
         if (nextMission == null) throw new Error("No missions available");
+
+        // Update route here (may need to add route to taskContainer as well) and post to the audit/amtAssignment end point
+
+        var route; //Get route from next mission
+        var route_json = $.ajax("/route/"+nextMission.routeId);
+        route = svl.routeFactory.create(nextMission.routeId, route_json["region_id"], route_json["route_length_mi"], route_json["street_count"]);
+        svl.routeContainer.add(route);
+        svl.routeContainer.setCurrentRoute(route);
 
         missionContainer.setCurrentMission(nextMission);
 
