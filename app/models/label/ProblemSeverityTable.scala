@@ -18,6 +18,17 @@ object ProblemSeverityTable {
   val problemSeverities = TableQuery[ProblemSeverityTable]
 
   /**
+    * Find a problem severity
+    *
+    * @param labelId
+    * @return
+    */
+  def find(labelId: Int): Option[ProblemSeverity] = db.withSession { implicit session =>
+    val labelList = problemSeverities.filter(_.labelId === labelId).list
+    labelList.headOption
+  }
+
+  /**
     * Saves a new problem temporariness to the table
     * @param ps
     * @return
@@ -26,6 +37,18 @@ object ProblemSeverityTable {
     val problemSeverityId: Int =
       (problemSeverities returning problemSeverities.map(_.problemSeverityId)) += ps
     problemSeverityId
+  }
+
+  /**
+    * Updates severity of the specified id to be newSeverity.
+    *
+    * @param severityId
+    * @param newSeverity
+    * @return
+    */
+  def updateSeverity(severityId: Int, newSeverity: Int) = db.withTransaction { implicit session =>
+    val severities = problemSeverities.filter(_.problemSeverityId === severityId).map(x => x.severity)
+    severities.update(newSeverity)
   }
 }
 

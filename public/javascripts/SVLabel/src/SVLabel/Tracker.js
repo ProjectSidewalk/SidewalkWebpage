@@ -9,8 +9,20 @@ function Tracker () {
     var actions = [];
     var prevActions = [];
 
+    var currentLabel = null;
+    var updatedLabels = [];
+    var currentAuditTask = null;
+
     this.init = function () {
         this.trackWindowEvents();
+    };
+
+    this.getCurrentLabel = function(){
+        return currentLabel;
+    };
+
+    this.setAuditTaskID = function(taskID) {
+        currentAuditTask = taskID;
     };
 
     this.trackWindowEvents = function() {
@@ -38,6 +50,26 @@ function Tracker () {
 
     this._isContextMenuAction = function (action) {
         return action.indexOf("ContextMenu") >= 0;
+    };
+
+    this._isContextMenuClose = function (action) {
+        return action.indexOf("ContextMenu_Close") >= 0 || action.indexOf("ContextMenu_OKButtonClick") >= 0;
+    };
+
+    this._isDeleteLabelAction = function (action) {
+        return action.indexOf("Click_LabelDelete") >= 0;
+    };
+
+    this._isTaskStartAction = function (action) {
+        return action.indexOf("TaskStart") >= 0;
+    };
+
+    this._isSeverityShortcutAction = function (action) {
+        return action.indexOf("KeyboardShortcut_Severity") >= 0;
+    };
+
+    this._isFinishLabelingAction = function (action) {
+        return action.indexOf("LabelingCanvas_FinishLabeling") >= 0;
     };
 
     /** Returns actions */
@@ -70,12 +102,22 @@ function Tracker () {
         if (!extraData)
             extraData = {};
 
-        var pov, latlng, panoId, temporaryLabelId;
+        var pov, latlng, panoId, audit_task_id;
 
         var note = this._notesToString(notes);
 
+        if ('canvas' in svl && svl.canvas.getCurrentLabel()){
+            audit_task_id = svl.canvas.getCurrentLabel().getProperties().audit_task_id;
+        } else {
+            audit_task_id = currentAuditTask;
+        }
+
         if ('temporaryLabelId' in extraData) {
-            temporaryLabelId = extraData['temporaryLabelId'];
+            if(currentLabel !== null){
+                updatedLabels.push(currentLabel);
+                svl.labelContainer.addUpdatedLabel(currentLabel);
+            }
+            currentLabel = extraData['temporaryLabelId'];
         }
 
         // Initialize variables. Note you cannot get pov, panoid, or position
@@ -124,7 +166,8 @@ function Tracker () {
             pitch: pov.pitch,
             zoom: pov.zoom,
             note: note,
-            temporary_label_id: temporaryLabelId,
+            temporary_label_id: currentLabel,
+            audit_task_id: audit_task_id,
             timestamp: timestamp
         };
         return item;
@@ -136,16 +179,66 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
+
+        //console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
+        if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
+
+            var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
+            currentLabel = labelProperties.temporary_label_id;
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+
+            if(notes === null || typeof(notes) === 'undefined') {
+                notes = {'auditTaskId' : labelProperties.audit_task_id};
+            } else {
+                notes['auditTaskId'] = labelProperties.audit_task_id;
+            }
+            //console.log("Current Label: " + currentLabel + " " + action);
+
+        } else if (self._isDeleteLabelAction(action)){
+
+            var labelProperties = svl.canvas.getCurrentLabel().getProperties();
+            currentLabel = labelProperties.temporary_label_id;
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+
+            if(notes === null || typeof(notes) === 'undefined') {
+                notes = {'auditTaskId' : labelProperties.audit_task_id};
+            } else {
+                notes['auditTaskId'] = labelProperties.audit_task_id;
+            }
+
+        }
+
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
+        var contextMenuLabel = true;
+
+        if(self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')){
+            contextMenuLabel = false;
+        }
+
+        //we are no longer interacting with a label, set currentLabel to null
+        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
+            currentLabel = null;
+        }
+
         // Submit the data collected thus far if actions is too long.
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task);
-            svl.form.submit(data, task);
+            self.submitForm();
         }
         return this;
+    };
+
+    this.submitForm = function() {
+        var task = svl.taskContainer.getCurrentTask();
+        var data = svl.form.compileSubmissionData(task);
+        svl.form.submit(data, task);
+    };
+
+    this.initTaskId = function() {
+        self.submitForm();
     };
 
     /**
@@ -154,9 +247,15 @@ function Tracker () {
     this.refresh = function () {
         prevActions = prevActions.concat(actions);
         actions = [];
+
+        updatedLabels = [];
+        if(currentLabel !== null){
+            updatedLabels.push(currentLabel);
+            svl.labelContainer.addUpdatedLabel(currentLabel);
+        }
+
         self.push("RefreshTracker");
     };
 
     this.init();
 }
-

@@ -119,6 +119,20 @@ object LabelTable {
     labelList.headOption
   }
 
+  /**
+    * Find a label based on temp_label_id and audit_task_id.
+    *
+    * @param tempLabelId
+    * @param auditTaskId
+    * @return
+    */
+  def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
+    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
+      label => label.labelId
+    }
+    labelIds.list.headOption
+  }
+
   def countLabels: Int = db.withTransaction(implicit session =>
     labels.filter(_.deleted === false).list.size
   )
@@ -216,6 +230,11 @@ object LabelTable {
     _labels.list.size
   }
 
+  def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
+    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
+    labs.update(deleted)
+  }
+
   /**
    * Saves a new label in the table
     *
@@ -250,9 +269,9 @@ object LabelTable {
         |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
         |					ON lb.label_id = prob_temp.label_id
         |				) AS lb_big
-        |WHERE lb1.audit_task_id = at.audit_task_id and (lb1.audit_task_id = ati.audit_task_id and
-        |      lb1.temporary_label_id = ati.temporary_label_id) and lb1.label_id = lb_big.label_id and
-        |      at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |WHERE lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and (lb1.audit_task_id = ati.audit_task_id and
+        |      lb1.temporary_label_id = ati.temporary_label_id and ati.action = 'LabelingCanvas_FinishLabeling') and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
         |	ORDER BY ati.timestamp DESC""".stripMargin
     )
     selectQuery.list.map(label => LabelMetadata.tupled(label))
