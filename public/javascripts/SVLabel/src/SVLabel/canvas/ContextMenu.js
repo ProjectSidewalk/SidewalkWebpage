@@ -355,12 +355,11 @@ function ContextMenu (uiContextMenu) {
                         example = " (e.g., unleveled due to a tree root)";
                     }
                     $descriptionTextBox.prop("placeholder", defaultText + example);
-
-                    var labelProperties = self.getTargetLabel().getProperties();
-
-                    //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
-                    svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
                 }
+                var labelProperties = self.getTargetLabel().getProperties();
+
+                //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
         }
         self.updateRadioButtonImages();

@@ -21,6 +21,10 @@ function Tracker () {
         return currentLabel;
     };
 
+    this.setAuditTaskID = function(taskID) {
+        currentAuditTask = taskID;
+    };
+
     this.trackWindowEvents = function() {
         var prefix = "LowLevelEvent_";
 
@@ -105,7 +109,7 @@ function Tracker () {
         if ('canvas' in svl && svl.canvas.getCurrentLabel()){
             audit_task_id = svl.canvas.getCurrentLabel().getProperties().audit_task_id;
         } else {
-            audit_task_id = this.currentAuditTask;
+            audit_task_id = currentAuditTask;
         }
 
         if ('temporaryLabelId' in extraData) {
@@ -176,7 +180,8 @@ function Tracker () {
      */
     this.push = function (action, notes, extraData) {
 
-        if((self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) && currentLabel !== null) {
+        console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
+        if((self._isContextMenuAction(action) || self._isSeverityShortcutAction(action))) {
 
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
@@ -188,6 +193,7 @@ function Tracker () {
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
+            console.log("Current Label: " + currentLabel + " " + action);
 
         } else if (self._isDeleteLabelAction(action)){
 

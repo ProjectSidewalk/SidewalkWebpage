@@ -247,7 +247,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             success: function (result) {
                 if (result) {
                     task.setProperty("auditTaskId", result.audit_task_id);
-                    svl.tracker.currentAuditTask = result.audit_task_id;
+                    svl.tracker.setAuditTaskID(result.audit_task_id);
                 }
             },
             error: function (result) {
