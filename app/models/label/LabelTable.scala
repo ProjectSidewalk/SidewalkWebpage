@@ -334,8 +334,7 @@ object LabelTable {
         |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
         |					ON lb.label_id = prob_temp.label_id
         |				) AS lb_big
-        |WHERE lb1.label_id = ? and
-        |      lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
+        |WHERE lb1.label_id = ? and lb1.audit_task_id = at.audit_task_id and
         |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
         |	ORDER BY lb1.label_id DESC""".stripMargin
     )
