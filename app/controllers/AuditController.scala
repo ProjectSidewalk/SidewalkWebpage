@@ -232,7 +232,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None, submission.turkerId, conditionId, Some(submission.routeId), false)
         val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
-        Future.successful(Ok("New Mission Created"))
+        Future.successful(Ok(Json.obj("asg_id" -> asgId.get)))
       }
     )
   }

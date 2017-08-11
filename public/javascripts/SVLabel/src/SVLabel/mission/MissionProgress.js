@@ -155,6 +155,11 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         svl.routeContainer.setCurrentRoute(route);
         var url = "/audit/amtAssignment ";
 
+        // Fetch tasks for the route
+        taskContainer.fetchTasksOnARoute(nextMission.getProperty("routeId"),function () {
+            console.log("Tasks for the next route have been fetched");
+        });
+
         missionContainer.setCurrentMission(nextMission);
 
         $.ajax({
