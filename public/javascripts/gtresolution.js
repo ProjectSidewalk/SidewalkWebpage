@@ -172,7 +172,7 @@ $(document).ready(function () {
                   zoomControl: true
               });
           }
-    }//end of intializePanoramas
+    }//end of initializePanoramas
 
     //choose the earliest of the open views (views not displaying a label)
     //if all full, choose the first view
@@ -543,10 +543,10 @@ $(document).ready(function () {
 
     //automatic cluster filtering
     function filterClusters(data){
-      data = _.groupBy(data, "cluster_id");
+      var groupedData = _.groupBy(data, "cluster_id");
       //iterate through and filter out clusters that are agreed upon
-      for (var clusterId in data) {
-        var cluster_data = data[clusterId];
+      for (var clusterId in groupedData) {
+        var cluster_data = groupedData[clusterId];
         //if there are 3 labels in the cluster, keep looking
         if(cluster_data.length === 3){
           //check if all labelers are different
@@ -745,18 +745,18 @@ $(document).ready(function () {
             //execute query
             cluster_session_id = document.getElementById("clusterSessionId").value;
             var test_labels = gtTestData;
-            /*$.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
-              all_labels = filterCluster(data);
-            }
-            */
-            all_labels = filterClusters(test_labels);
-            //update counters
-            updateCounters();
-            document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
-            //display all labels on map
-            initializeAllMapMarkers();
-            //deal with the first low disagreement conflict
-            resolveLowDisagreementConflict(toInvestigate, 0);
+            $.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
+                console.log(data);
+                all_labels = filterClusters(data[0]);
+                // all_labels = filterClusters(test_labels);
+                //update counters
+                updateCounters();
+                document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
+                //display all labels on map
+                initializeAllMapMarkers();
+                //deal with the first low disagreement conflict
+                resolveLowDisagreementConflict(toInvestigate, 0);
+            });
         };
         //reduce filler at bottom of page (styling purposes)
         document.getElementById("filler").style.minHeight = "10px";
