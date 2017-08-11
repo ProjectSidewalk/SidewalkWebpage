@@ -36,6 +36,10 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         self.show();
     });
 
+    _modalModel.on("ModalMissionComplete:showHITSubmission", function () {
+        self.show_hit_submission();
+    });
+
     _modalModel.on("ModalMissionComplete:one", function (parameters) {
         self.one(parameters.uiComponent, parameters.eventType, parameters.callback);
     });
@@ -69,6 +73,15 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
         }
+    };
+
+    this.show_hit_submission = function(){
+        this._uiModalMissionComplete.closeButton.css('visibility', 'hidden');
+        this._uiModalMissionComplete.submitHITButton.css('visibility', 'visible');
+    };
+    this.hide_hit_submission = function(){
+        this._uiModalMissionComplete.closeButton.css('visibility', 'visible');
+        this._uiModalMissionComplete.submitHITButton.css('visibility', 'hidden');
     };
 
     this.hide = function () {

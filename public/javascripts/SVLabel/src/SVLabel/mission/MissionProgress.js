@@ -148,7 +148,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         //Add code here to bring up the submit HIT button and post to the turkSubmit link
         // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
-        if (nextMission == null) throw new Error("No missions available");
+        if (nextMission == null) {
+            _modalModel.showModalMissionCompleteHITSubmission();
+            throw new Error("No missions available");
+        }
 
         // Update route here (may need to add route to taskContainer as well) and post to the audit/amtAssignment end point
 
