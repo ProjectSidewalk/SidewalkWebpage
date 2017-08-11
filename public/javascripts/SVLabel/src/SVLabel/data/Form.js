@@ -61,6 +61,13 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             var prop = label.getProperties();
             var points = label.getPath().getPoints();
             var labelLatLng = label.toLatLng();
+            var tempLabelId = label.getProperty('temporary_label_id');
+
+            // if this label is a new label, get the timestamp of its creation from the corresponding interaction
+            var associatedInteraction = data.interactions.find(interaction =>
+                interaction.action === 'LabelingCanvas_FinishLabeling' && interaction.temporary_label_id === tempLabelId);
+            var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
+
 
             var temp = {
                 deleted : label.isDeleted(),
@@ -76,7 +83,8 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 label_points : [],
                 severity: label.getProperty('severity'),
                 temporary_problem: label.getProperty('temporaryProblem'),
-                description: label.getProperty('description')
+                description: label.getProperty('description'),
+                time_created: timeCreated
             };
 
             for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
