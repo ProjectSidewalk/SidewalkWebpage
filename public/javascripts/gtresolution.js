@@ -543,10 +543,10 @@ $(document).ready(function () {
 
     //automatic cluster filtering
     function filterClusters(data){
-        var groupedData = _.groupBy(data, "cluster_id");
+        data = _.groupBy(data, "cluster_id");
         //iterate through and filter out clusters that are agreed upon
-        for (var clusterId in groupedData) {
-            var cluster_data = groupedData[clusterId];
+        for (var clusterId in data) {
+            var cluster_data = data[clusterId];
             //if there are 3 labels in the cluster, keep looking
             if(cluster_data.length === 3){
                 //check if all labelers are different
@@ -615,7 +615,7 @@ $(document).ready(function () {
         }
 
         //update label found in ground truth
-        var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === cluster_data[middle].label_id);
+        var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === label_data.label_id);
         var next = index + 1;
         //button functionality
         $(document).on("click", '#prelimCommit' + toUpdate.cluster_id , function(){
@@ -746,7 +746,6 @@ $(document).ready(function () {
             cluster_session_id = document.getElementById("clusterSessionId").value;
             var test_labels = gtTestData;
             $.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
-                console.log(data);
                 all_labels = filterClusters(data[0]);
                 // all_labels = filterClusters(test_labels);
                 //update counters
