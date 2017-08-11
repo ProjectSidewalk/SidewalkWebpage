@@ -21,46 +21,37 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   /**
-   * Returns an index page.
-    *
-    * @return
-   */
-  def index = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
-    request.identity match {
-      case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
-        Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
-      case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
-        Future.successful(Ok(views.html.index("Project Sidewalk")))
-    }
-  }
-
-  /**
     * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
     *
-    * @param referrer
-    * @param endPoint
     * @return
     */
-  def customUrlRedirect(referrer: String, endPoint: Option[String]) = UserAwareAction.async { implicit request =>
+  def index(referrer: Option[String], redirectTo: String) = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
-    val redirectTo: String = endPoint.getOrElse("/")
-    val activityLogText: String = "Referrer=" + referrer + "_SendTo=" + redirectTo
 
-    request.identity match {
-      case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-        Future.successful(Redirect(redirectTo))
+    referrer match {
+      // If someone is to the site from a custom URL, log it, and send them to the correct location
+      case Some(ref) =>
+        val activityLogText: String = "Referrer=" + ref + "_SendTo=" + redirectTo
+        request.identity match {
+          case Some(user) =>
+            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+            Future.successful(Redirect(redirectTo))
+          case None =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
+            Future.successful(Redirect(redirectTo))
+        }
+      // Otherwise, just load the landing page
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
-        Future.successful(Redirect(redirectTo))
+        request.identity match {
+          case Some(user) =>
+            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+            Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+          case None =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+            Future.successful(Ok(views.html.index("Project Sidewalk")))
+        }
     }
   }
 

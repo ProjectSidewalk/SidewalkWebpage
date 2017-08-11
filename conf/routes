@@ -3,10 +3,10 @@
 # ~~~~
 
 # Home page
-GET     /                                                    @controllers.ApplicationController.index
+GET     /                                                    @controllers.ApplicationController.index(referrer: Option[String] ?= None, to: String ?= "/")
 POST    /                                                    controllers.TeaserController.teaserPost
 
-GET     /home                                                @controllers.ApplicationController.index
+GET     /home                                                @controllers.ApplicationController.index(referrer: Option[String] ?= None, to: String ?= "/")
 GET     /about                                               @controllers.ApplicationController.about
 GET     /api                                                 @controllers.ApplicationController.developer
 GET     /developer                                           @controllers.ApplicationController.developer
@@ -16,7 +16,6 @@ GET     /results                                             @controllers.Applic
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
-GET     /referral                                            @controllers.ApplicationController.customUrlRedirect(referrer: String, endPoint: Option[String])
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
