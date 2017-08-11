@@ -255,9 +255,9 @@ object LabelTable {
       Int, String, String, java.sql.Timestamp, String, String, Option[Int], Boolean,
       Option[String])](
       """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
-        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, ati.timestamp,
+        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
         |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
-        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
         |       sidewalk.user as u, sidewalk.label_point as lp,
         |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
         |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
@@ -272,10 +272,9 @@ object LabelTable {
         |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
         |					ON lb.label_id = prob_temp.label_id
         |				) AS lb_big
-        |WHERE lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and (lb1.audit_task_id = ati.audit_task_id and
-        |      lb1.temporary_label_id = ati.temporary_label_id and ati.action = 'LabelingCanvas_FinishLabeling') and
+        |WHERE lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
         |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
-        |	ORDER BY ati.timestamp DESC""".stripMargin
+        |	ORDER BY lb1.label_id DESC""".stripMargin
     )
     selectQuery.list.map(label => LabelMetadata.tupled(label))
   }
