@@ -22,6 +22,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
+    * If no referrer is specified, then it just loads the landing page
     *
     * @return
     */
@@ -31,12 +32,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
 
     referrer match {
-      // If someone is to the site from a custom URL, log it, and send them to the correct location
+      // If someone is coming to the site from a custom URL, log it, and send them to the correct location
       case Some(ref) =>
         val activityLogText: String = "Referrer=" + ref + "_SendTo=" + redirectTo
         request.identity match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+            println(redirectTo)
             Future.successful(Redirect(redirectTo))
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
