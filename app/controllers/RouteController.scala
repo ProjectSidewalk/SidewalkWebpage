@@ -83,14 +83,14 @@ class RouteController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   def getRouteById(routeId: Int) = UserAwareAction.async { implicit request =>
-    val route = RouteTable.getRoute(routeId).get
+    val route = RouteTable.getRoute(Some(routeId)).get
     val routeJsonObj = Json.obj(
-      "route_id": route.routeId,
-      "street_count": route.streetCount,
-      "route_length_mi": route.route_length_mi,
-      "region_id": route.regionId
+      "route_id" -> routeId,
+      "street_count" -> route.streetCount,
+      "route_length_mi" -> route.route_length_mi,
+      "region_id" -> route.regionId
     )
-    Future.successful(Ok(JsArray(routeJsonObj)))
+    Future.successful(Ok(routeJsonObj))
 
   }
 

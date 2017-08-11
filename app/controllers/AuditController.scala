@@ -225,11 +225,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
+
+        val conditionId = TurkerTable.getConditionIdByTurkerId(submission.turkerId).get
+        val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
-        val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None, submission.turkerId, submission.conditionId, submission.routeId, false)
+        val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None, submission.turkerId, conditionId, Some(submission.routeId), false)
         val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
-        Future.successful(Ok(Json.obj(asgId)))
+        Future.successful(Ok("New Mission Created"))
       }
     )
   }

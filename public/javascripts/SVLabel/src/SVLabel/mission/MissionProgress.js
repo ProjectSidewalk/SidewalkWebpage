@@ -149,12 +149,33 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // Update route here (may need to add route to taskContainer as well) and post to the audit/amtAssignment end point
 
         var route; //Get route from next mission
-        var route_json = $.ajax("/route/"+nextMission.routeId);
-        route = svl.routeFactory.create(nextMission.routeId, route_json["region_id"], route_json["route_length_mi"], route_json["street_count"]);
+        var route_json = $.ajax("/route/"+nextMission.getProperty("routeId"));
+        route = svl.routeFactory.create(nextMission.getProperty("routeId"), route_json["region_id"], route_json["route_length_mi"], route_json["street_count"]);
         svl.routeContainer.add(route);
         svl.routeContainer.setCurrentRoute(route);
+        var url = "/audit/amtAssignment ";
 
         missionContainer.setCurrentMission(nextMission);
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify({
+                "assignment_id": svl.assignmentId,
+                "hit_id": svl.hitId,
+                "turker_id": svl.turkerId,
+                "route_id": nextMission.getProperty("routeId")
+            }),
+            dataType: 'json',
+            success: function (result) {
+
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
 
         /* Not required for mturk code. MAybe we need a flag here instead
         var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));

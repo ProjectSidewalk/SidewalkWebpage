@@ -16,7 +16,7 @@ object TaskSubmissionFormats {
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
-  case class AMTAssignmentCreateRecordSubmission(assignmentId: Int, hitId: String, turkerId: String, conditionId: Int, routeId: Int)
+  case class AMTAssignmentCreateRecordSubmission(assignmentId: String, hitId: String, turkerId: String, routeId: Int)
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
@@ -94,10 +94,9 @@ object TaskSubmissionFormats {
     )(AMTAssignmentSubmission.apply _)
 
   implicit val aMTAssignmentCreateRecordReads: Reads[AMTAssignmentCreateRecordSubmission] =(
-    (JsPath \ "assignment_id").read[Int] and
+    (JsPath \ "assignment_id").read[String] and
       (JsPath \ "hit_id").read[String] and
       (JsPath \ "turker_id").read[String] and
-      (JsPath \ "condition_id").read[Int] and
       (JsPath \ "route_id").read[Int]
   )(AMTAssignmentCreateRecordSubmission.apply _)
 
