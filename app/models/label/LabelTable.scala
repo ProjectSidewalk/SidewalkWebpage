@@ -250,8 +250,9 @@ object LabelTable {
     labelId
   }
 
-  def retrieveLabelMetadata: List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.queryNA[(Int, String, Float, Float, Int, Int, Int, Int, Int,
+  // TODO translate the following three queries to Slick
+  def retrieveLabelMetadata(takeN: Int): List[LabelMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int, (Int, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, java.sql.Timestamp, String, String, Option[Int], Boolean,
       Option[String])](
       """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
@@ -274,9 +275,71 @@ object LabelTable {
         |				) AS lb_big
         |WHERE lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
         |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |	ORDER BY lb1.label_id DESC
+        | LIMIT ?""".stripMargin
+    )
+    selectQuery(takeN).list.map(label => LabelMetadata.tupled(label))
+  }
+
+  def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.query[(String, Int),(Int, String, Float, Float, Int, Int, Int, Int, Int,
+      Int, String, String, java.sql.Timestamp, String, String, Option[Int], Boolean,
+      Option[String])](
+      """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
+        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
+        |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
+        |       sidewalk.user as u, sidewalk.label_point as lp,
+        |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
+        |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
+        |               prob_desc.description
+        |					FROM label as lb
+        |				LEFT JOIN sidewalk.label_type as lbt
+        |					ON lb.label_type_id = lbt.label_type_id
+        |				LEFT JOIN sidewalk.problem_severity as sev
+        |					ON lb.label_id = sev.label_id
+        |				LEFT JOIN sidewalk.problem_description as prob_desc
+        |					ON lb.label_id = prob_desc.label_id
+        |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
+        |					ON lb.label_id = prob_temp.label_id
+        |				) AS lb_big
+        |WHERE u.user_id = ? and
+        |      lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |	ORDER BY lb1.label_id DESC
+        | LIMIT ?""".stripMargin
+    )
+    selectQuery((userId, takeN)).list.map(label => LabelMetadata.tupled(label))
+  }
+
+  def retrieveSingleLabelMetadata(labelId: Int): LabelMetadata = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int,(Int, String, Float, Float, Int, Int, Int, Int, Int,
+      Int, String, String, java.sql.Timestamp, String, String, Option[Int], Boolean,
+      Option[String])](
+      """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
+        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
+        |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
+        |       sidewalk.user as u, sidewalk.label_point as lp,
+        |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
+        |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
+        |               prob_desc.description
+        |					FROM label as lb
+        |				LEFT JOIN sidewalk.label_type as lbt
+        |					ON lb.label_type_id = lbt.label_type_id
+        |				LEFT JOIN sidewalk.problem_severity as sev
+        |					ON lb.label_id = sev.label_id
+        |				LEFT JOIN sidewalk.problem_description as prob_desc
+        |					ON lb.label_id = prob_desc.label_id
+        |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
+        |					ON lb.label_id = prob_temp.label_id
+        |				) AS lb_big
+        |WHERE lb1.label_id = ? and
+        |      lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
         |	ORDER BY lb1.label_id DESC""".stripMargin
     )
-    selectQuery.list.map(label => LabelMetadata.tupled(label))
+    selectQuery(labelId).list.map(label => LabelMetadata.tupled(label)).head
   }
 
 //  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
@@ -314,10 +377,7 @@ object LabelTable {
    * @param labelId
    */
   def getLabelMetadata(labelId: Int): LabelMetadata= db.withSession { implicit session =>
-//    TODO: we can cache the retrieveLabelMetadata table if there are performance issues
-    val userLabels = retrieveLabelMetadata
-    val record = userLabels.filter(_.labelId == labelId)
-    record.head
+    retrieveSingleLabelMetadata(labelId)
   }
 
   /**
@@ -356,7 +416,7 @@ object LabelTable {
    * Date: Sep 1, 2016
    */
   def selectTopLabelsAndMetadata(n: Int): List[LabelMetadata] = db.withSession { implicit session =>
-    retrieveLabelMetadata.take(n)
+    retrieveLabelMetadata(n)
   }
 
   /*
@@ -365,10 +425,7 @@ object LabelTable {
    */
   def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
 
-    val userLabels = retrieveLabelMetadata
-    val records = userLabels.filter(_.userId == userId.toString).take(n)
-    records
-
+    retrieveLabelMetadata(n, userId.toString)
   }
 
   /**
