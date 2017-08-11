@@ -62,10 +62,12 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             var points = label.getPath().getPoints();
             var labelLatLng = label.toLatLng();
             var tempLabelId = label.getProperty('temporary_label_id');
+            var auditTaskId = label.getProperty('audit_task_id');
 
             // if this label is a new label, get the timestamp of its creation from the corresponding interaction
             var associatedInteraction = data.interactions.find(interaction =>
-                interaction.action === 'LabelingCanvas_FinishLabeling' && interaction.temporary_label_id === tempLabelId);
+                interaction.action === 'LabelingCanvas_FinishLabeling' && interaction.temporary_label_id === tempLabelId
+                && interaction.audit_task_id === auditTaskId);
             var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
 
@@ -77,8 +79,8 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 photographer_pitch : prop.photographerPitch,
                 panorama_lat: prop.panoramaLat,
                 panorama_lng: prop.panoramaLng,
-                temporary_label_id: label.getProperty('temporary_label_id'),
-                audit_task_id: label.getProperty('audit_task_id'),
+                temporary_label_id: tempLabelId,
+                audit_task_id: auditTaskId,
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
