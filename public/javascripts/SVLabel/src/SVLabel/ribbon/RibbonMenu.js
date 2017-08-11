@@ -165,19 +165,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 return false;
             }
 
-            if (labelType === "Other") {
-              //destroy tooltips (no example images for other)
-              $('#severity-one').tooltip('destroy');
-              $('#severity-three').tooltip('destroy');
-              $('#severity-five').tooltip('destroy');
-                return false;
-            }else{
-              //update tooltips
-              $('#severity-one').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-one", title:"Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"});
-              $('#severity-three').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-three", title:"Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"});
-              $('#severity-five').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-five", title:"Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"});
-            }
-
             // Track the user action
             tracker.push('Click_ModeSwitch_' + labelType);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);

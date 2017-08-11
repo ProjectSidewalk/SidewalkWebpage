@@ -166,6 +166,17 @@ function Canvas(ribbon) {
                 targetLabel: status.currentLabel,
                 targetLabelColor: labelColor.fillStyle
             });
+            if(labelType === "Other"){
+              //no tooltips for other
+              $('#severity-one').tooltip('destroy');
+              $('#severity-three').tooltip('destroy');
+              $('#severity-five').tooltip('destroy');
+            }else{
+              //update tooltips
+              $('#severity-one').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-one", title:"Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"});
+              $('#severity-three').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-three", title:"Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"});
+              $('#severity-five').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-five", title:"Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"});
+            }
           }
 
         // Todo. Again, thrown an event (e.g., Canvas:closeLabelPath) instead of svl.onboarding.pushOnboardingLabel invocation.
