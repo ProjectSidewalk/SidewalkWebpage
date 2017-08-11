@@ -92,7 +92,7 @@ class CredentialsAuthController @Inject() (
         }
       }.recover {
         case e: ProviderException =>
-          Redirect(routes.ApplicationController.index(None))
+          Redirect(routes.ApplicationController.index())
       }
     )
   }
