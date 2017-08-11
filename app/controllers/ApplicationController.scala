@@ -38,7 +38,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         request.identity match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-            println(redirectTo)
             Future.successful(Redirect(redirectTo))
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
