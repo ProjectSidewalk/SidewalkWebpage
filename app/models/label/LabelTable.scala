@@ -1,9 +1,10 @@
 package models.label
 
+import java.sql.Timestamp
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
-import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskTable, AuditTaskEnvironmentTable}
+import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -21,7 +22,8 @@ case class Label(labelId: Int,
                  panoramaLat: Float,
                  panoramaLng: Float,
                  deleted: Boolean,
-                 temporaryLabelId: Option[Int])
+                 temporaryLabelId: Option[Int],
+                 timeCreated: Option[Timestamp])
 
 case class LabelLocation(labelId: Int,
                          auditTaskId: Int,
@@ -54,9 +56,10 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
   def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
+  def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
 
   def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
-    panoramaLat, panoramaLng, deleted, temporaryLabelId) <> ((Label.apply _).tupled, Label.unapply)
+    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
