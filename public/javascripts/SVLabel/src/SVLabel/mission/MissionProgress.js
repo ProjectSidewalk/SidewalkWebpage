@@ -111,6 +111,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             }
         );
         mission.complete();
+        console.log("mission.complete in completeTheCurrentMission in MissionProgress.js");
 
         // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
@@ -140,6 +141,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
     this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+        // Refresh mission completion here.
+        currentMission.setProperty("isCompleted",true);
+
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
 
         //Add code here to bring up the submit HIT button and post to the turkSubmit link
@@ -192,8 +196,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         // Adjust the target distance based on the tasks available
         //Need to check if this is require for mturk code
-        var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
-        nextMission.adjustTheTargetDistance(incompleteTaskDistance);*/
+        */
+        //var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
+        //nextMission.adjustTheTargetDistance(incompleteTaskDistance);
     };
 
     /**
