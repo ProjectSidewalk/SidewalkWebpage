@@ -52,22 +52,22 @@ $(document).ready(function () {
     //stores information for each of the status
     var statusInfo = {
         null: {
-            size: new google.maps.Size(30, 30),
-            path: "/cursors/Cursor_",
+            size: new google.maps.Size(18, 18),
+            path: "/ground_truth/gt_",
             markerOptions: {strokeColor:"#000000",strokeOpacity:0.8, fillOpacity: 0.5, strokeWeight:0.5, status: null, zIndex: 100}
         }, //not yet dealt with, no status
         "Filter": {
-            size: new google.maps.Size(36, 36),
+            size: new google.maps.Size(21, 21),
             path: "/ground_truth/gt_commit_",
             markerOptions: {strokeColor:"#ffe500",strokeOpacity:1, fillOpacity: 0.8, strokeWeight:4, status: "Ground_Truth", zIndex: 200}
         }, //filter labels are dealth with in low disgareement round
         "Ground_Truth": {
-            size: new google.maps.Size(36, 36),
+            size: new google.maps.Size(21, 21),
             path: "/ground_truth/gt_commit_",
             markerOptions: {strokeColor:"#ffe500",strokeOpacity:1, fillOpacity: 0.8, strokeWeight:4, status: "Ground_Truth", zIndex: 200}
         }, //labels in ground truth
         "No_Ground_Truth": {
-            size: new google.maps.Size(32, 32),
+            size: new google.maps.Size(18, 18),
             path: "/ground_truth/gt_exclude_",
             markerOptions: {strokeColor:"#757470", strokeWeight: 0.5, strokeOpacity:0.5, status: "No_Ground_Truth", zIndex: 50, fillOpacity:0.2}
         } //labels designated not in ground truth
@@ -110,7 +110,7 @@ $(document).ready(function () {
                 meta: feature.meta,
                 status: feature.status,
                 center: new google.maps.LatLng(feature.meta.lat,feature.meta.lng),
-                radius:0.8,
+                radius:0.5,
                 clickabe: true,
                 fillColor: colorMapping[feature.meta.label_type].fillStyle
             });
@@ -123,7 +123,7 @@ $(document).ready(function () {
                 position: new google.maps.LatLng(feature.meta.lat, feature.meta.lng),
                 draggable: false,
                 label: {text: "",fontWeight: 'bold',fontSize: '12px'},
-                icon: {url: "",labelOrigin: new google.maps.Point(3,5),size: new google.maps.Size(5, 5)},
+                icon: {url: "",labelOrigin: new google.maps.Point(2,6),size: new google.maps.Size(5, 5)},
                 opacity: 1,
                 crossOnDrag: false,
                 visible: false
@@ -169,7 +169,8 @@ $(document).ready(function () {
                 },
                 disableDefaultUI: true,
                 clickToGo: false,
-                zoomControl: true
+                zoomControl: true,
+                scrollwheel: false
             });
         }
     }//end of initializePanoramas
@@ -207,8 +208,8 @@ $(document).ready(function () {
                     //if hidden, show all labels in the GSV
                     for(var i = 0; i < pano.labelMarkers.length; i++){
                         var marker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id );
-                        if(marker !=  null){pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + pano.labels[i].label_type + ".png");}
-                        else{pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[null].path + pano.labels[i].label_type + ".png");}
+                        if(marker !=  null){pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + pano.labels[i].label_type + ".png?size=200");}
+                        else{pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[null].path + pano.labels[i].label_type + ".png?size=200");}
                     }
                 } else {
                     //if showing, hide all labels in the GSV
@@ -222,12 +223,12 @@ $(document).ready(function () {
         var pov = renderLabel(label, pano, status);
         //display the GSV number on the map label
         var markerLabel = mapLabels.find(mkr => mkr.id === label.label_id );
-        markerLabel.setOptions({visible: true, label: {text: "V"+(pano.number),fontWeight: 'bold',fontSize: '12px'}});
+        markerLabel.setOptions({visible: true, label: {text: (pano.number).toString(),fontWeight: 'bold',fontSize: '12px'}});
         //update selected panorama with pano, pov, and zoom
         var toChange = pano.gsv_panorama;
         toChange.setPano(label.pano_id);
         toChange.setPov(pov);
-        toChange.setZoom(2);
+        toChange.setZoom(3);
         //flash on top of GSV, prevent user from clicking during rendering
         $('#pano' + (pano.number) + '-holder').prepend(
             '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">' +
@@ -249,7 +250,7 @@ $(document).ready(function () {
             pano: pano.gsv_panorama,
             container: pano.view,
             position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
-            icon: "assets/javascripts/SVLabel/img" + statusInfo[status].path + label.label_type + ".png",
+            icon: "assets/javascripts/SVLabel/img" + statusInfo[status].path + label.label_type + ".png?size=200",
             id: id,
             size: size,
             optimized: false
@@ -340,7 +341,7 @@ $(document).ready(function () {
             }
         }
         //update visuals
-        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png");
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png?size=200");
         panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: statusInfo["Ground_Truth"].size, className: "Ground_Truth"});
         var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
         //locate label within structure of storage arrays
@@ -376,7 +377,7 @@ $(document).ready(function () {
             }
         }
         //update visuals
-        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png");
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png?size=200");
         panoramaContainers[pano].labelMarkers[labelIndex].setOptions({size: statusInfo["No_Ground_Truth"].size, className: "No_Ground_Truth"});
         var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id );
         //locate label within structure of storage arrays
@@ -453,6 +454,20 @@ $(document).ready(function () {
                 showLabel(marker.meta, panoramaContainers[nextOpenView], marker.status);
             }
         }
+        //focus views in between headings of labels
+        for(var p = 0; p < 4; p++){
+          var pano = panoramaContainers[p];
+          var count = pano.labels.length;
+          var headingSum = 0, pitchSum = 0;
+          for(var l = 0; l < count; l++){
+            var hdng = mapXYtoPov(pano.labels[l].sv_canvas_x, pano.labels[l].sv_canvas_y, pano.labels[l].canvasWidth, pano.labels[l].canvas_height, pano.labels[l].zoom, pano.labels[l].heading, pano.labels[l].pitch).heading;
+            if(hdng < 0){hdng = 360+hdng;}
+            var ptch = mapXYtoPov(pano.labels[l].sv_canvas_x, pano.labels[l].sv_canvas_y, pano.labels[l].canvasWidth, pano.labels[l].canvas_height, pano.labels[l].zoom, pano.labels[l].heading, pano.labels[l].pitch).pitch;
+            headingSum+=hdng;
+            pitchSum+=ptch;
+          }
+          pano.gsv_panorama.setPov({heading: headingSum/count, pitch: pitchSum/count});
+        }
         nextOpenView = calculateNextOpenPanorama();
         //count and display the number of labels in each GSV
         var counts = document.getElementsByClassName("labelCount");
@@ -483,6 +498,7 @@ $(document).ready(function () {
                 if(eliminated_labels[j].cluster_id === currentCluster){toDisplay.unshift(eliminated_labels[j]);}
             }
             addClusterToPanos(toDisplay);
+            map.setZoom(21);
         }
         //if there are no unresolved labels yet, alert user
         else if(document.getElementById("remainingCounter").innerHTML === "REMAINING LABELS: " + 0){
@@ -496,6 +512,7 @@ $(document).ready(function () {
 
     //focus view on current label
     function refocusView(map) {
+        map.setZoom(21);
         map.setCenter(currentCoordinates);
     }//end refocusView
 
@@ -669,14 +686,14 @@ $(document).ready(function () {
             center: new google.maps.LatLng(38.95965576171875,-77.07019805908203),
             mapTypeControl:false,
             mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
-            maxZoom : 21,
-            minZoom : 21,
+            maxZoom : 22,
+            minZoom : 19,
             overviewMapControl:false,
             panControl:true,
             rotateControl:false,
             scaleControl:false,
             streetViewControl:false,
-            zoomControl:false,
+            zoomControl:true,
             zoom: 21
         };
         var mapCanvas = document.getElementById("groundtruth-map");
@@ -745,9 +762,9 @@ $(document).ready(function () {
             //execute query
             cluster_session_id = document.getElementById("clusterSessionId").value;
             var test_labels = gtTestData;
-            $.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
-                all_labels = filterClusters(data[0]);
-                // all_labels = filterClusters(test_labels);
+            //$.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
+                //all_labels = filterClusters(data[0]);
+                all_labels = filterClusters(test_labels);
                 //update counters
                 updateCounters();
                 document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
@@ -755,7 +772,7 @@ $(document).ready(function () {
                 initializeAllMapMarkers();
                 //deal with the first low disagreement conflict
                 resolveLowDisagreementConflict(toInvestigate, 0);
-            });
+            //});
         };
         //reduce filler at bottom of page (styling purposes)
         document.getElementById("filler").style.minHeight = "10px";
