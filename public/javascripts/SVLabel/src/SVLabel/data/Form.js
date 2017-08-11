@@ -30,7 +30,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
         // Assignment Completion Data
         var data = {
-            amt_assignment_id: params.amtAssignmentId,
+            amt_assignment_id: svl.amtAssignmentId,
             completed: true
         };
 

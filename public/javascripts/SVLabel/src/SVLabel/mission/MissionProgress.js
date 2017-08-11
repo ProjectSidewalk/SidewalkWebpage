@@ -179,7 +179,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             }),
             dataType: 'json',
             success: function (result) {
-
+                svl.amtAssignmentId = result["asg_id"];
             },
             error: function (result) {
                 console.error(result);
