@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.user.UserCurrentRegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
@@ -18,6 +19,20 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
     <div class="container toolUI" style = "visibility: hidden;">
+        <div id="advanced-overlay">
+            <div id="overlay-text">
+                <div id="advanced-neighborhood-text">
+                    <p>
+                        <b>Notice:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                    </p>
+                    <p>
+                        If you get stuck, click the Jump button to navigate to a different area.
+                    </p>
+                    <span class="advanced-neighborhood-option" id="continue-advanced">Yes, continue</span>
+                    <span class="advanced-neighborhood-option" id="redirect-advanced">No, take me somewhere else</span>
+                </div>
+            </div>
+        </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -124,13 +139,13 @@
             <div id="status-holder">
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
-                    @if(!user) {
+
                     <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    } else {
-                    <a href="" target="_blank" id="status-neighborhood-link">
-                        <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    </a>
-                    }
+
+              <!--      <a href="" target="_blank" id="status-neighborhood-link">
+                        <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
+                    </a>-->
+
                     <div class="status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
@@ -631,7 +646,11 @@
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
             };
             svl.user = new User(userParam, svl.userModel);
+
+            $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
         } else {
+            $('#status-neighborhood-link').hide();
+
             var userParam = { username : "anonymous" };
             svl.user = new User(userParam, svl.userModel);
         }
@@ -677,6 +696,14 @@
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
             enableTouchSupport();
+
+            $('#continue-advanced').on('click', function(){
+                $('#advanced-overlay').hide();
+            });
+
+            $('#redirect-advanced').on('click', function(){
+                $(location).attr('href', '/audit/easyRegion');
+            });
         });
 
         function enableTouchSupport() {
@@ -734,6 +761,9 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
+                if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
+                       $('#advanced-overlay').show();
+                }
             } else {
                 mainParam.regionId = 1;
                 mainParam.regionName = "";

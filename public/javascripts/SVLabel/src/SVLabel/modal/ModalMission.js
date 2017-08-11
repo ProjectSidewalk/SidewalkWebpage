@@ -100,6 +100,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
      */
     this.setMissionMessage = function (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
+
         var label = mission.getProperty("label"),
             templateHTML,
             missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
@@ -110,12 +111,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 distanceString;
                 templateHTML = distanceMissionHTML;
 
-            if(missionContainer.isTheFirstMission()){
+            if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
             }
 
-            distanceString = this._auidtDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
+            distanceString = this._auditDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
@@ -170,11 +171,14 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     uiModalMission.closeButton.on("click", this._handleCloseButtonClick);
 }
 
-ModalMission.prototype._auidtDistanceToString = function  (distance, unit) {
+ModalMission.prototype._auditDistanceToString = function  (distance, unit) {
     if (!unit) unit = "kilometers";
 
     if (unit == "miles") {
-        if (distance <= 0.20) {
+        if (distance <= 0.12){
+            return "500ft";
+        }
+        else if (distance <= 0.20) {
             return "1000ft";
         } else if (distance <= 0.25) {
             return "&frac14;mi";

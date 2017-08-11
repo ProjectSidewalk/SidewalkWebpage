@@ -55,6 +55,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         svl.map.timeoutWalking();
         //restore user ability to walk after param moveTime
         setTimeout(svl.map.resetWalking, moveTime);
+        //additional check to hide arrows after the fact
+        //pop-up may become visible during timeout period
+        if (svl.popUpMessage.getStatus('isVisible')){
+            svl.panorama.set('linksControl', false);//disable arrows
+        }
     }
 
     this._moveForward = function (){
@@ -265,6 +270,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         });
                         break;
                     case 90:
+                        if (contextMenu.isOpen()){
+                            contextMenu.hide();
+                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
                         if (status.shiftDown) {
                             // Zoom out
@@ -294,115 +303,26 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                     }
                     break;
-
                 case 27:
                     // "Escape"
+
+                    if (contextMenu.isOpen()) {
+                        contextMenu.hide();
+                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                    }
+
                     if (canvas.getStatus('drawing')) {
                         canvas.cancelDrawing();
                         svl.tracker.push("KeyboardShortcut_CancelDrawing");
+                    } else {
+                        ribbon.backToWalk();
                     }
+                    svl.modalExample.hide();
                     break;
-                case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
-                    // "b" for a blocked view
-                    ribbon.modeSwitch("Occlusion");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_Occlusion", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
-                    // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
-                    ribbon.modeSwitch("CurbRamp");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
-                    // "e" for Explore. Switch the mode to Walk (camera) mode.
-                    ribbon.modeSwitch("Walk");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_Walk", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
-                    // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
-                    ribbon.modeSwitch("NoCurbRamp");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
-                    ribbon.modeSwitch("NoSidewalk");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_NoSidewalk", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
-                    // "o" for Obstacle
-                    ribbon.modeSwitch("Obstacle");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
-                    ribbon.modeSwitch("SurfaceProblem");
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
-                        keyCode: e.keyCode
-                    });
-                    break;
-                case 90:
-                    // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                    if (!status.focusOnTextField) {
-                        if (contextMenu.isOpen()) {
-                            contextMenu.hide();
-                        }
-                        if (status.shiftDown) {
-                            // Zoom out
-                            zoomControl.zoomOut();
-                            svl.tracker.push("KeyboardShortcut_ZoomOut", {
-                                keyCode: e.keyCode
-                            });
-                        } else {
-                            ribbon.backToWalk();
-                        }
-                        svl.modalExample.hide();
-                        break;
-                    }
             }
+
             contextMenu.updateRadioButtonImages();
         }
-
-
-        /*
-         This is a callback method that is triggered when a keyUp
-         event occurs. It is not relevant to ContextMenu's textbox focus.
-         */
-        switch (e.keyCode) {
-            case 13:
-                // "Enter"
-                if (contextMenu.isOpen()) {
-                    contextMenu.hide();
-                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                }
-                break;
-            case 27:
-                // "Escape"
-                
-                if (contextMenu.isOpen()) {
-                    contextMenu.hide();
-                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                }
-
-                if (canvas.getStatus('drawing')) {
-                    canvas.cancelDrawing();
-                    svl.tracker.push("KeyboardShortcut_CancelDrawing");
-                } else {
-                    ribbon.backToWalk();
-                }
-                svl.modalExample.hide();
-                break;
-        }
-
-        contextMenu.updateRadioButtonImages();
     };
 
     

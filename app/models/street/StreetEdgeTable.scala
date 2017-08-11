@@ -5,6 +5,9 @@ import java.util.UUID
 import java.util.Calendar
 import java.text.SimpleDateFormat
 
+import org.geotools.geometry.jts.JTS
+import org.geotools.referencing.CRS
+
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.region.RegionTable
@@ -124,6 +127,7 @@ object StreetEdgeTable {
   def totalStreetDistance(): Float = db.withSession { implicit session =>
     // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
     (distances.sum * 0.000621371).toFloat
   }
@@ -140,6 +144,8 @@ object StreetEdgeTable {
     val edges = for {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
+
+    // get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = edges.groupBy(x => x).map(_._1.geom.transform(26918).length).list
     (distances.sum * 0.000621371).toFloat
   }
@@ -186,7 +192,7 @@ object StreetEdgeTable {
         c.set(Calendar.MINUTE, 0)
         c.set(Calendar.SECOND, 0)
         c.set(Calendar.MILLISECOND, 0)
-        (c, pair._2.get * 0.000621371)
+        (c, pair._2.get * 0.000621371) // converts from meters to miles
       }})
 
     // sum the distances by date
@@ -262,6 +268,7 @@ object StreetEdgeTable {
     selectAuditedStreetsQuery(regionId).list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
+  /** Gets a list of all street edges that the user has audited in the specified region */
   def selectStreetsAuditedByAUser(userId: UUID, regionId: Int): List[StreetEdge] = db.withSession { implicit session =>
     val selectAuditedStreetsQuery = Q.query[(String, Int), StreetEdge](
       """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
@@ -277,6 +284,35 @@ object StreetEdgeTable {
       """.stripMargin
     )
     selectAuditedStreetsQuery((userId.toString, regionId)).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /** Gets a list of all street edges that the user has audited */
+  def selectAllStreetsAuditedByAUser(userId: UUID): List[StreetEdge] = db.withSession { implicit session =>
+    val selectAuditedStreetsQuery = Q.query[String, StreetEdge](
+      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
+        |  FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.street_edge_region
+        |  ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        |INNER JOIN sidewalk.audit_task
+        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |  AND audit_task.completed = TRUE
+        |  AND audit_task.user_id = ?
+        |WHERE street_edge.deleted=FALSE
+      """.stripMargin
+    )
+    selectAuditedStreetsQuery(userId.toString).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /** Returns the total distance that the specified user has audited in miles */
+  def getDistanceAudited(userId: UUID): Float = db.withSession {implicit session =>
+    // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
+    val CRSEpsg4326 = CRS.decode("epsg:4326")
+    val CRSEpsg26918 = CRS.decode("epsg:26918")
+    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+
+    val userStreets = selectAllStreetsAuditedByAUser(userId)
+    // get length of each street segment, sum the lengths, and convert from meters to miles
+    (userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum * 0.000621371).toFloat
   }
 
   /**

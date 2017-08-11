@@ -10,6 +10,7 @@ function ContextMenu (uiContextMenu) {
         $temporaryProblemCheckbox = uiContextMenu.temporaryProblemCheckbox,
         $descriptionTextBox = uiContextMenu.textBox,
         windowWidth = $menuWindow.width();
+        windowHeight = $menuWindow.height();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
 
@@ -21,7 +22,11 @@ function ContextMenu (uiContextMenu) {
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
             hide();
-            if (clicked_out) _handleSeverityPopup();
+            wasOpen = true;
+            if (clicked_out) {
+             svl.tracker.push('ContextMenu_CloseClickOut');
+            _handleSeverityPopup();
+            }
         }
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
@@ -30,6 +35,7 @@ function ContextMenu (uiContextMenu) {
         var key_pressed = e.which || e.keyCode;
         if (key_pressed == 13 && isOpen()){
             hide();
+            svl.tracker.push('ContextMenu_ClosePressEnter');
             _handleSeverityPopup();
         }
     };//handles pressing enter key to exit ContextMenu
@@ -57,7 +63,7 @@ function ContextMenu (uiContextMenu) {
         if (isMac){
             if (lastKeyCmd && down[91] && isOpen() && down[65]){
                 $descriptionTextBox.select();
-                down[65] = false; //reset A key 
+                down[65] = false; //reset A key
             }//A key, menu shown
 
         }//mac
@@ -112,6 +118,8 @@ function ContextMenu (uiContextMenu) {
     function handleDescriptionTextBoxChange(e) {
         var description = $(this).val(),
             label = getTargetLabel();
+        svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
+
         if (label) {
             label.setProperty('description', description);
         }
@@ -145,7 +153,7 @@ function ContextMenu (uiContextMenu) {
 
     }
 
-    function _handleSeverityPopup (){
+    function _handleSeverityPopup () {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
         if (labels.length == 0){
@@ -295,10 +303,20 @@ function ContextMenu (uiContextMenu) {
                 acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'CurbRamp'];
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
+                var topCoordinate = y + 20;
+                var connectorCoordinate = -13;
+                //if the menu is so far down the screen that it will get cut off
+                if(topCoordinate>370){
+                  topCoordinate = y - 40 - windowHeight;
+                  connectorCoordinate = windowHeight + 13;
+                }
                 $menuWindow.css({
                     visibility: 'visible',
                     left: x - windowWidth / 2,
-                    top: y + 20
+                    top: topCoordinate
+                });
+                $connector.css({
+                  top: connectorCoordinate
                 });
 
                 if (param) {
@@ -338,6 +356,10 @@ function ContextMenu (uiContextMenu) {
                     }
                     $descriptionTextBox.prop("placeholder", defaultText + example);
                 }
+                var labelProperties = self.getTargetLabel().getProperties();
+
+                //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
         }
         self.updateRadioButtonImages();

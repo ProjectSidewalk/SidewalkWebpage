@@ -110,7 +110,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     };
 
     function renderRoutesOnGoogleMap(state) {
-        if ('map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
+
+        if (svl.isOnboarding() && 'map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
             var paths = [];
             //var currentPosition = svl.map.getPosition();
 
@@ -545,11 +546,13 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         missionContainer.setCurrentMission(mission);
         if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
+
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                 svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
             modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
+
         }else{
             modalMission.setMissionMessage(mission, neighborhood);
         }

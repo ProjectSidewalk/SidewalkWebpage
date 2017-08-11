@@ -1,11 +1,12 @@
 /**
  *
  * @param labelContainer
+ * @param missionModel
  * @param navigationModel
  * @param neighborhoodModel
  * @param panoramaContainer
  * @param taskContainer
-	 * @param mapService
+ * @param mapService
  * @param compass
  * @param tracker
  * @param params
@@ -70,6 +71,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 panorama_lat: prop.panoramaLat,
                 panorama_lng: prop.panoramaLng,
                 temporary_label_id: label.getProperty('temporary_label_id'),
+                audit_task_id: label.getProperty('audit_task_id'),
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
@@ -106,7 +108,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             data.labels.push(temp)
         }
 
-        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibilty attributes).
+        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibility attributes).
         data.gsv_panoramas = [];
 
         var temp;
@@ -178,7 +180,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
     this.skip = function (task, skipReasonLabel) {
         var data = self._prepareSkipData(skipReasonLabel);
 
-        if (skipReasonLabel == "GSVNotAvailable") {
+        if (skipReasonLabel === "GSVNotAvailable") {
             task.complete();
             taskContainer.push(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
@@ -222,7 +224,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
      * @param async
      */
     this.submit = function (data, task, async) {
-        if (typeof async == "undefined") { async = true; }
+        if (typeof async === "undefined") { async = true; }
 
         if (data.constructor !== Array) { data = [data]; }
 
@@ -233,6 +235,8 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
         labelContainer.refresh();
 
+        //console.log(data);
+
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -241,7 +245,10 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                if (result) task.setProperty("auditTaskId", result.audit_task_id);
+                if (result) {
+                    task.setProperty("auditTaskId", result.audit_task_id);
+                    svl.tracker.setAuditTaskID(result.audit_task_id);
+                }
             },
             error: function (result) {
                 console.error(result);

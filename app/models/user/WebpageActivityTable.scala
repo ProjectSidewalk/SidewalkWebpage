@@ -4,6 +4,7 @@ import java.util.UUID
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.libs.json.{JsObject, Json}
 
 case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: java.sql.Timestamp)
 
@@ -70,5 +71,59 @@ object WebpageActivityTable {
   def selectSignInCount(userId: UUID): Option[Integer] = db.withTransaction { implicit session =>
     val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").list
     Some(signInActivities.length)
+  }
+
+  /**
+    * Returns a list of signin counts, each element being a count of logins for a user
+    *
+    * @return List[(userId: String, count: Int)]
+    */
+  def selectAllSignInCounts: List[(String, Int)] = db.withTransaction { implicit session =>
+    activities.filter(_.activity === "SignIn").groupBy(x => x.userId).map{
+      case (id, group) => (id, group.map(_.activity).length)
+    }.list
+  }
+
+  /**
+    * Returns all WebpageActivities that contain the given string in their 'activity' field
+    */
+  def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
+    activities.filter(_.activity.like("%"++activity++"%")).list
+  }
+
+  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
+    *
+    * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins
+    * with "Cli...", such as "Click" will be matched)
+    *
+    * @param activity
+    * @param keyVals
+    * @return
+    */
+  def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
+    var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
+    for(keyVal <- keyVals) yield {
+      filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
+    }
+    filteredActivities.list
+  }
+
+  // Returns all webpage activities
+  def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>
+    activities.list
+  }
+
+  def webpageActivityListToJson(webpageActivities: List[WebpageActivity]): List[JsObject] = {
+    webpageActivities.map(webpageActivity => webpageActivityToJson(webpageActivity)).toList
+  }
+
+  def webpageActivityToJson(webpageActivity: WebpageActivity): JsObject = {
+    Json.obj(
+      "webpageActivityId" -> webpageActivity.webpageActivityId,
+      "userId" -> webpageActivity.userId,
+      "ipAddress" -> webpageActivity.ipAddress,
+      "activity" -> webpageActivity.description,
+      "timestamp" -> webpageActivity.timestamp
+    )
   }
 }

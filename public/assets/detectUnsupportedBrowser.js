@@ -4,7 +4,7 @@ function hideBrowserVersionAlert(){
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    if(!bowser.chrome){
+    if(!bowser.chrome && !bowser.firefox && !bowser.safari){
         document.getElementById("unsupported-browser-alert").style.visibility="visible";
     }
 }, false);

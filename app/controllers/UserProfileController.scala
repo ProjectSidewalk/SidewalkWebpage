@@ -11,7 +11,9 @@ import formats.json.TaskFormats._
 import forms._
 import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
+import models.mission.MissionTable
 import models.user.User
+import models.user.UserRoleTable
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc.{BodyParsers, RequestHeader, Result}
 import play.extras.geojson
@@ -251,6 +253,14 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     val json = Json.arr(labelCounts.map(x => Json.obj(
       "date" -> x.date, "count" -> x.count
     )))
+    Future.successful(Ok(json))
+  }
+
+  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
+    val missionCounts = MissionTable.selectMissionCountsPerUser
+    val json = Json.arr(missionCounts.map(x =>
+      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1))
+    ))
     Future.successful(Ok(json))
   }
 }

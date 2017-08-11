@@ -53,7 +53,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             beforeJumpListenerHandle: undefined
         },
         jumpLocation = undefined,
-        missionJump = undefined;
+        missionJump = undefined,
+        wasOpen = false;
 
     var initialPositionUpdate = true,
         panoramaOptions,
@@ -1088,6 +1089,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         //    setViewControlLayerCursor('ZoomOut');
         //}
 
+
         currTime = new Date().getTime();
 
         var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
@@ -1099,6 +1101,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
+              if(wasOpen){
+                svl.contextMenu.hide();
+              } else{
                 svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
@@ -1116,6 +1121,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                   $('#severity-five').tooltip('destroy').tooltip({html: true, delay: { "show": 500, "hide": 100 }, container: "#severity-five", title:"Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"});
                 }
               }
+              wasOpen = false;
+            }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Double click
             svl.tracker.push('ViewControl_DoubleClick');
@@ -1171,6 +1178,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
 
+        setViewControlLayerCursor('OpenHand');
         mouseStatus.prevMouseUpTime = currTime;
     }
 
