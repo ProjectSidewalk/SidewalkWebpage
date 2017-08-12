@@ -19,7 +19,8 @@ function Task (geojson, currentLat, currentLng) {
     };
     var properties = {
         auditTaskId: null,
-        streetEdgeId: null
+        streetEdgeId: null,
+        completionCount: null
     };
 
     /**
@@ -32,6 +33,7 @@ function Task (geojson, currentLat, currentLng) {
         _geojson = geojson;
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
+        self.setProperty("completionCount", _geojson.features[0].properties.completion_count);
 
         if (_geojson.features[0].properties.completed) {
             self.complete();
@@ -333,6 +335,10 @@ function Task (geojson, currentLat, currentLng) {
      */
     this.getStreetEdgeId = function () {
         return _geojson.features[0].properties.street_edge_id;
+    };
+
+    this.getStreetCompletionCount = function () {
+        return _geojson.features[0].properties.completion_count;
     };
 
     /**
