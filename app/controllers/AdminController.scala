@@ -355,7 +355,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata = LabelTable.getLabelMetadata(labelId)
+          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
