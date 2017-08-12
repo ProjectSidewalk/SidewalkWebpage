@@ -550,6 +550,7 @@ object AuditTaskTable {
     * @param userId User id
     * @return
     */
+  // TODO: Issue 839 - this pulls streets for a particular region for a user
   def selectTasksInARegion(regionId: Int, userId: UUID): List[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
