@@ -52,7 +52,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         if (!UserCurrentRegionTable.isAssigned(user.userId)) {
           UserCurrentRegionTable.assignRandomly(user.userId)
         }
-        // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
         var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
 
         // TODO: Change here for unaudited routes - #839
@@ -68,7 +67,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
-        // val region: Option[Region] = RegionTable.getRegion
         val region: Option[NamedRegion] = RegionTable.selectAnEasyNamedRegionRoundRobin
         val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
