@@ -1,9 +1,10 @@
 package models.label
 
+import java.sql.Timestamp
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
-import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskTable, AuditTaskEnvironmentTable}
+import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -21,7 +22,8 @@ case class Label(labelId: Int,
                  panoramaLat: Float,
                  panoramaLng: Float,
                  deleted: Boolean,
-                 temporaryLabelId: Option[Int])
+                 temporaryLabelId: Option[Int],
+                 timeCreated: Option[Timestamp])
 
 case class LabelLocation(labelId: Int,
                          auditTaskId: Int,
@@ -54,9 +56,10 @@ class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") 
   def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
+  def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
 
   def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
-    panoramaLat, panoramaLng, deleted, temporaryLabelId) <> ((Label.apply _).tupled, Label.unapply)
+    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
@@ -98,7 +101,7 @@ object LabelTable {
                            canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                            auditTaskId: Int,
                            userId: String, username: String,
-                           timestamp: java.sql.Timestamp,
+                           timestamp: Option[java.sql.Timestamp],
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
                            temporary: Boolean, description: Option[String])
 
@@ -117,6 +120,20 @@ object LabelTable {
   def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
     val labelList = labels.filter(_.labelId === labelId).list
     labelList.headOption
+  }
+
+  /**
+    * Find a label based on temp_label_id and audit_task_id.
+    *
+    * @param tempLabelId
+    * @param auditTaskId
+    * @return
+    */
+  def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
+    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
+      label => label.labelId
+    }
+    labelIds.list.headOption
   }
 
   def countLabels: Int = db.withTransaction(implicit session =>
@@ -216,6 +233,11 @@ object LabelTable {
     _labels.list.size
   }
 
+  def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
+    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
+    labs.update(deleted)
+  }
+
   /**
    * Saves a new label in the table
     *
@@ -228,14 +250,15 @@ object LabelTable {
     labelId
   }
 
-  def retrieveLabelMetadata: List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.queryNA[(Int, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, java.sql.Timestamp, String, String, Option[Int], Boolean,
+  // TODO translate the following three queries to Slick
+  def retrieveLabelMetadata(takeN: Int): List[LabelMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int, (Int, String, Float, Float, Int, Int, Int, Int, Int,
+      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
       Option[String])](
       """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
-        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, ati.timestamp,
+        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
         |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
-        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at, sidewalk.audit_task_interaction as ati,
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
         |       sidewalk.user as u, sidewalk.label_point as lp,
         |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
         |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
@@ -250,12 +273,72 @@ object LabelTable {
         |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
         |					ON lb.label_id = prob_temp.label_id
         |				) AS lb_big
-        |WHERE lb1.audit_task_id = at.audit_task_id and (lb1.audit_task_id = ati.audit_task_id and
-        |      lb1.temporary_label_id = ati.temporary_label_id) and lb1.label_id = lb_big.label_id and
-        |      at.user_id = u.user_id and lb1.label_id = lp.label_id
-        |	ORDER BY ati.timestamp DESC""".stripMargin
+        |WHERE lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |	ORDER BY lb1.label_id DESC
+        | LIMIT ?""".stripMargin
     )
-    selectQuery.list.map(label => LabelMetadata.tupled(label))
+    selectQuery(takeN).list.map(label => LabelMetadata.tupled(label))
+  }
+
+  def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.query[(String, Int),(Int, String, Float, Float, Int, Int, Int, Int, Int,
+      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
+      Option[String])](
+      """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
+        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
+        |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
+        |       sidewalk.user as u, sidewalk.label_point as lp,
+        |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
+        |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
+        |               prob_desc.description
+        |					FROM label as lb
+        |				LEFT JOIN sidewalk.label_type as lbt
+        |					ON lb.label_type_id = lbt.label_type_id
+        |				LEFT JOIN sidewalk.problem_severity as sev
+        |					ON lb.label_id = sev.label_id
+        |				LEFT JOIN sidewalk.problem_description as prob_desc
+        |					ON lb.label_id = prob_desc.label_id
+        |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
+        |					ON lb.label_id = prob_temp.label_id
+        |				) AS lb_big
+        |WHERE u.user_id = ? and
+        |      lb1.deleted = FALSE and lb1.audit_task_id = at.audit_task_id and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |	ORDER BY lb1.label_id DESC
+        | LIMIT ?""".stripMargin
+    )
+    selectQuery((userId, takeN)).list.map(label => LabelMetadata.tupled(label))
+  }
+
+  def retrieveSingleLabelMetadata(labelId: Int): LabelMetadata = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int,(Int, String, Float, Float, Int, Int, Int, Int, Int,
+      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
+      Option[String])](
+      """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
+        |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
+        |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
+        |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
+        |       sidewalk.user as u, sidewalk.label_point as lp,
+        |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
+        |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
+        |               prob_desc.description
+        |					FROM label as lb
+        |				LEFT JOIN sidewalk.label_type as lbt
+        |					ON lb.label_type_id = lbt.label_type_id
+        |				LEFT JOIN sidewalk.problem_severity as sev
+        |					ON lb.label_id = sev.label_id
+        |				LEFT JOIN sidewalk.problem_description as prob_desc
+        |					ON lb.label_id = prob_desc.label_id
+        |				LEFT JOIN sidewalk.problem_temporariness as prob_temp
+        |					ON lb.label_id = prob_temp.label_id
+        |				) AS lb_big
+        |WHERE lb1.label_id = ? and lb1.audit_task_id = at.audit_task_id and
+        |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
+        |	ORDER BY lb1.label_id DESC""".stripMargin
+    )
+    selectQuery(labelId).list.map(label => LabelMetadata.tupled(label)).head
   }
 
 //  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
@@ -293,10 +376,7 @@ object LabelTable {
    * @param labelId
    */
   def getLabelMetadata(labelId: Int): LabelMetadata= db.withSession { implicit session =>
-//    TODO: we can cache the retrieveLabelMetadata table if there are performance issues
-    val userLabels = retrieveLabelMetadata
-    val record = userLabels.filter(_.labelId == labelId)
-    record.head
+    retrieveSingleLabelMetadata(labelId)
   }
 
   /**
@@ -335,7 +415,7 @@ object LabelTable {
    * Date: Sep 1, 2016
    */
   def selectTopLabelsAndMetadata(n: Int): List[LabelMetadata] = db.withSession { implicit session =>
-    retrieveLabelMetadata.take(n)
+    retrieveLabelMetadata(n)
   }
 
   /*
@@ -344,10 +424,7 @@ object LabelTable {
    */
   def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
 
-    val userLabels = retrieveLabelMetadata
-    val records = userLabels.filter(_.userId == userId.toString).take(n)
-    records
-
+    retrieveLabelMetadata(n, userId.toString)
   }
 
   /**
