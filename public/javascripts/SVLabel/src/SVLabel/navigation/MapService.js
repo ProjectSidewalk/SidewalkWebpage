@@ -317,6 +317,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Get a new task and repeat
                 task = svl.taskContainer.nextTask(task);
                 svl.taskContainer.setCurrentTask(task);
+                console.log("Called before next task move");
+                // Gets the new audit task id from the server
+                svl.tracker.initTaskId();
                 if (caller !== undefined) {
                     moveToTheTaskLocation(task, caller);
                 }
@@ -629,6 +632,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
+        // Gets the new audit task id from the server
+        svl.tracker.initTaskId();
+        console.log("Getting taskID before jumping1");
         if (caller === undefined){
             moveToTheTaskLocation(task);
         }
