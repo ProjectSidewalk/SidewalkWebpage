@@ -166,6 +166,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param callback A callback function
      * @param async {boolean}
      */
+    // TODO: Issue 839
     self.fetchTasksInARegion = function (regionId, callback, async) {
         if (typeof async == "undefined") async = true;
 
@@ -211,7 +212,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
             if (taskIn) {
-                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() != taskIn.getStreetEdgeId(); });
+                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() !== taskIn.getStreetEdgeId(); });
 
                 for (var i = 0, len = tasks.length; i < len; i++) {
                     if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
@@ -335,7 +336,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {boolean}
      */
     function isFirstTask () {
-        return length() == 0;
+        return length() === 0;
     }
 
     /**
@@ -356,16 +357,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
-        // Seek the incomplete street edges (tasks) that are connected to the task that has been complted.
+        // Seek the incomplete street edges (tasks) that are connected to the task that has been completed.
         // If there aren't any connected tasks that are incomplete, randomly select a task from
         // any of the incomplete tasks in the neighborhood. If that is empty, return null.
         var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
-        if (candidateTasks.length == 0) {
+        if (candidateTasks.length === 0) {
             candidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function(t) {
-                return (t.getStreetEdgeId() != (finishedTask ? finishedTask.getStreetEdgeId(): null));
+                return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
             });
-            if (candidateTasks.length == 0) return null;
+            if (candidateTasks.length === 0) return null;
         }
 
         // Return the new task. Change the starting point of the new task accordingly.
@@ -424,6 +425,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param regionId {number} Region id
      * @param task {object} Task object
      */
+    // TODO: Issue 839
     function storeTask(regionId, task) {
         if (!(regionId in self._taskStoreByRegionId)) self._taskStoreByRegionId[regionId] = [];
         var streetEdgeIds = self._taskStoreByRegionId[regionId].map(function (task) {

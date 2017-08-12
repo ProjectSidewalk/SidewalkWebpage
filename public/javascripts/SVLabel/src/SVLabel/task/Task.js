@@ -248,7 +248,7 @@ function Task (geojson, currentLat, currentLng) {
     }
 
     this._hasAdvanced = function (currentLat, currentLng) {
-        if (typeof _furthestPoint == "undefined") return false;
+        if (typeof _furthestPoint === "undefined") return false;
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];
         var distanceAtTheFurthestPoint = this.getDistanceFromStart(latFurthest, lngFurthest);
@@ -343,7 +343,7 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     this.getAuditedDistance = function (unit) {
-        if (typeof _furthestPoint == "undefined") return 0;
+        if (typeof _furthestPoint === "undefined") return 0;
         if (!unit) unit = "kilometers";
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];

@@ -55,6 +55,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
         var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
 
+        // TODO: Change here for unaudited routes - #839
         // Check if a user still has tasks available in this region.
         if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) ||
             !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {

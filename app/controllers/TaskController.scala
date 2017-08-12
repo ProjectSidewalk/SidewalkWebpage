@@ -64,6 +64,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @param regionId Region id
     * @return
     */
+  // TODO: Changes needed for unaudited routes - #839
   def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
