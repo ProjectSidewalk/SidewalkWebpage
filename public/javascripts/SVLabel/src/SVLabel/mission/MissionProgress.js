@@ -152,6 +152,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             _modalModel.showModalMissionCompleteHITSubmission();
             throw new Error("No missions available");
         }
+        else{
+            _modalModel.hideModalMissionCompleteHITSubmission();
+        }
 
         // Update route here (may need to add route to taskContainer as well) and post to the audit/amtAssignment end point
 

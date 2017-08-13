@@ -40,6 +40,10 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         self.show_hit_submission();
     });
 
+    _modalModel.on("ModalMissionComplete:hideHITSubmission", function () {
+        self.hide_hit_submission();
+    });
+
     _modalModel.on("ModalMissionComplete:one", function (parameters) {
         self.one(parameters.uiComponent, parameters.eventType, parameters.callback);
     });
@@ -89,6 +93,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
         this._uiModalMissionComplete.foreground.css('visibility', "hidden");
         this._uiModalMissionComplete.background.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButton.css('visibility', 'hidden');
+        this._uiModalMissionComplete.submitHITButton.css('visibility', 'hidden');
         // this._horizontalBarMissionLabel.style("visibility", "hidden");
         this._modalMissionCompleteMap.hide();
 
@@ -101,6 +107,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
+        uiModalMissionComplete.closeButton.css('visibility', 'visible');
+        uiModalMissionComplete.submitHITButton.css('visibility', 'hidden');
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
     };

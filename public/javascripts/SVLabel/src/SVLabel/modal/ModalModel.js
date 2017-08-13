@@ -20,6 +20,10 @@ ModalModel.prototype.showModalMissionCompleteHITSubmission = function () {
     this.trigger("ModalMissionComplete:showHITSubmission");
 };
 
+ModalModel.prototype.hideModalMissionCompleteHITSubmission = function () {
+    this.trigger("ModalMissionComplete:hideHITSubmission");
+};
+
 ModalModel.prototype.triggerMissionCompleteClosed = function (parameters) {
     this.trigger("ModalMissionComplete:closed", parameters);
 };
