@@ -146,6 +146,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case _: Throwable => None
     }
 
+    // TODO: Should this function be modified?
     val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
     request.identity match {
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))

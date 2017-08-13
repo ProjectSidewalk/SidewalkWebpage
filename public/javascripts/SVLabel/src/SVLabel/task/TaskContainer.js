@@ -177,6 +177,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 type: 'get',
                 success: function (result) {
                     var task;
+                    console.log("Number of tasks received: " + result.length);
+                    console.log(result[0]);
                     for (var i = 0; i < result.length; i++) {
                         task = svl.taskFactory.create(result[i]);
                         if ((result[i].features[0].properties.completed)) task.complete();
@@ -202,7 +204,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param unit {string} Distance unit
      * @returns {Array}
      */
-    self._findConnectedTask = function (regionId, taskIn, threshold, unit) {
+    self._findConnectedTasks = function (regionId, taskIn, threshold, unit) {
         var tasks = self.getTasksInRegion(regionId);
 
         if (tasks) {
@@ -307,6 +309,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return taskDistances.reduce(function (a, b) { return a + b; }, 0);
     };
 
+    /**
+     * Find incomplete tasks across all users
+     * @param regionId
+     * @returns {null}
+     */
     self.getIncompleteTasks = function (regionId) {
         if (!regionId && regionId !== 0) {
             console.error("regionId is not specified")
@@ -322,9 +329,20 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 "Probably the data from this region is not loaded yet.");
             return null;
         }
-        return self._taskStoreByRegionId[regionId].filter(function (task) {
+
+        var incompleteTasksByUser = self._taskStoreByRegionId[regionId].filter(function (task) {
             return !task.isCompleted();
         });
+
+        var incompleteTasksAcrossAllUsers = null;
+        if (incompleteTasksByUser.length > 0) {
+            // TODO: Filter them by completion count where count = 0
+            incompleteTasksAcrossAllUsers = incompleteTasksByUser; // needs to update
+        } else {
+            return null;
+        }
+
+        return incompleteTasksAcrossAllUsers;
     };
 
     this.getTasksInRegion = function (regionId) {
@@ -349,6 +367,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Get the next task and set it as a current task.
+     *
+     * Procedure:
+     * If the neighborhood is not 100% complete (across all users)... If the street you just audited connects to any
+     *     streets that no one has audited, then pick one, otherwise jump.
+     * If the neighborhood is 100% complete (across all users)... If the street you just audited connects to any streets
+     *     that you have not personally audited, pick any one of those at random. Otherwise, jump.
+     *  TODO: Need to formalize the comment
+     *  (i) Seek the incomplete street edges (tasks) that are connected to the task that has been completed across all users
+     *  (ii) If none are available and there are unaudited tasks in the neighborhood across users, then select the one
+     *       with 0 completion count
+     *  (iii) If there no audited streets across
+     *  - If there aren't any connected tasks that are incomplete across all users, randomly select a task from
+     *  any of the incomplete tasks (with a 0 completion count) in the neighborhood across all users.
+     *  - If that is empty, return null.
+     *
      * @param finishedTask The task that has been finished.
      * @returns {*} Next task
      */
@@ -357,12 +390,17 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
-        // Seek the incomplete street edges (tasks) that are connected to the task that has been completed.
-        // If there aren't any connected tasks that are incomplete, randomly select a task from
-        // any of the incomplete tasks in the neighborhood. If that is empty, return null.
-        var candidateTasks = self._findConnectedTask(currentNeighborhoodId, finishedTask, null, null);
+        // Find connected tasks that are incomplete by the user
+        var candidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, null, null);
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
-        if (candidateTasks.length === 0) {
+
+        // Select the one that is * also * unaudited across all users
+        if (candidateTasks.length > 0) {
+
+            // TODO: Find tasks that has 0 completion count across users and select one amongst them
+
+        } else {
+            // If there aren't any, select a incomplete task (or unaudited street) in the neighborhood across all users
             candidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function(t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
             });
