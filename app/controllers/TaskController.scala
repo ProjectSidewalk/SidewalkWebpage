@@ -21,6 +21,7 @@ import models.region._
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -159,41 +160,78 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
 
           // Insert labels
-          for (label <- data.labels) {
+          for (label: LabelSubmission <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
-              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId))
+
+            val existingLabelId: Option[Int] = label.temporaryLabelId match {
+              case Some(tempLabelId) =>
+                LabelTable.find(tempLabelId, label.auditTaskId)
+              case None =>
+                Logger.error("Received label with Null temporary_label_id")
+                None
+            }
+
+            // If the label already exists, update deleted field, o/w insert the new label.
+            val labelId: Int = existingLabelId match {
+              case Some(labId) =>
+                LabelTable.updateDeleted(labId, label.deleted.value)
+                labId
+              case None =>
+                // get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp
+                val timeCreated: Option[Timestamp] = label.timeCreated match {
+                  case Some(time) => Some(new Timestamp(time))
+                  case None =>
+                    Logger.error("No timestamp given for a new label")
+                    None
+                }
+                LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
+                                      label.photographerPitch, label.panoramaLat, label.panoramaLng,
+                                      label.deleted.value, label.temporaryLabelId, timeCreated))
+            }
 
             // Insert label points
-            for (point <- label.points) {
+            for (point: LabelPointSubmission <- label.points) {
               val pointGeom: Option[Point] = (point.lat, point.lng) match {
                 case (Some(lat), Some(lng)) =>
                   val coord: Coordinate = new Coordinate(lng.toDouble, lat.toDouble)
                   Some(gf.createPoint(coord))
                 case _ => None
               }
-              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
-                point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
-                point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
+              // If this label id does not have an entry in the label point table, add it.
+              if (LabelPointTable.find(labelId).isEmpty) {
+                LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX,
+                                                point.canvasY, point.heading, point.pitch, point.zoom,
+                                                point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
+                                                point.lat, point.lng, pointGeom))
+              }
             }
 
-            // Insert temporariness and severity if they are set.
+            // If temporariness/severity/description they are set, update/insert them.
             if (label.severity.isDefined) {
-              ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              ProblemSeverityTable.find(labelId) match {
+                case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
+                case None => ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              }
             }
 
             if (label.temporaryProblem.isDefined) {
-              val temporaryProblem = label.temporaryProblem.get.value
-              ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, temporaryProblem))
+              val tempProblem = label.temporaryProblem.get.value
+              ProblemTemporarinessTable.find(labelId) match {
+                case Some(pt) => ProblemTemporarinessTable.updateTemporariness(pt.problemTemporarinessId, tempProblem)
+                case None => ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, tempProblem))
+              }
             }
 
             if (label.description.isDefined) {
-              ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              ProblemDescriptionTable.find(labelId) match {
+                case Some(pd) => ProblemDescriptionTable.updateDescription(pd.problemDescriptionId, label.description.get)
+                case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              }
             }
           }
 
           // Insert interaction
-          for (interaction <- data.interactions) {
+          for (interaction: InteractionSubmission <- data.interactions) {
             AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
               interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))

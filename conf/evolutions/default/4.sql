@@ -1,48 +1,21 @@
 
 # --- !Ups
-INSERT INTO role (role_id, role) VALUES (4, 'Owner');
-UPDATE role SET role = 'Researcher' WHERE role_id = 2;
-UPDATE role SET role = 'Administrator' WHERE role_id = 3;
+INSERT INTO mission (region_id, label, level, deleted, coverage, distance, distance_ft, distance_mi)
+SELECT region_id, label, level, deleted, coverage, distance/2, distance_ft/2, distance_mi/2
+FROM mission
+WHERE deleted = 'f' and distance_ft = 1000;
 
-UPDATE user_role SET role_id = 0 WHERE role_id = 2;
-UPDATE user_role SET role_id = 2 WHERE role_id = 3;
-UPDATE user_role SET role_id = 3 WHERE role_id = 0;
-
-DELETE FROM user_role WHERE user_id = '49787727-e427-4835-a153-9af6a83d1ed1';
-DELETE FROM user_role WHERE user_id IN (
-    SELECT user_id FROM user_role WHERE role_id = 3
-) AND role_id < 3;
-DELETE FROM user_role WHERE user_id IN (
-    SELECT user_id FROM user_role WHERE role_id = 2
-) AND role_id < 2;
-INSERT INTO user_role (user_id, role_id) VALUES
-    ('49787727-e427-4835-a153-9af6a83d1ed1', 4);
-
+INSERT INTO mission (region_id, label, level, deleted, coverage, distance, distance_ft, distance_mi)
+SELECT region_id, label, level, deleted, coverage/2, distance, distance_ft, distance_mi
+FROM (
+  SELECT m1.region_id, m1.label, m1.level, m1.deleted, m2.coverage, m1.distance, m1.distance_ft, m1.distance_mi
+  FROM mission m1 INNER JOIN mission m2 ON m1.region_id = m2.region_id
+  WHERE m1.deleted = 'f' AND m2.deleted = 'f' AND m1.distance_ft = 1000 AND m2.distance_ft = 2000 
+) m3;
 
 # --- !Downs
-INSERT INTO user_role (user_id, role_id)
-SELECT user_id, 1
-FROM (
-    SELECT user_id, role_id
-    FROM user_role
-    WHERE role_id > 1
-) researchers;
-INSERT INTO user_role (user_id, role_id)
-SELECT user_id, 2
-FROM (
-    SELECT user_id, role_id
-    FROM user_role
-    WHERE role_id > 2
-) admins;
-INSERT INTO user_role (user_id, role_id) VALUES
-    ('49787727-e427-4835-a153-9af6a83d1ed1', 3);
+DELETE FROM mission
+WHERE deleted = 'f' AND distance_ft = 500;
 
-DELETE FROM user_role WHERE role_id = 4;
-
-UPDATE user_role SET role_id = 0 WHERE role_id = 2;
-UPDATE user_role SET role_id = 2 WHERE role_id = 3;
-UPDATE user_role SET role_id = 3 WHERE role_id = 0;
-
-UPDATE role SET role = 'Administrator' WHERE role_id = 2;
-UPDATE role SET role = 'Researcher' WHERE role_id = 3;
-DELETE FROM role WHERE role_id = 4;
+DELETE FROM mission
+WHERE deleted = 'f' AND distance_ft = 1000 AND coverage IS NOT NULL
