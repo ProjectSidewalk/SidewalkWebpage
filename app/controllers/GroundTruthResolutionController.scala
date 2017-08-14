@@ -35,12 +35,15 @@ class GroundTruthResolutionController @Inject() (implicit val env: Environment[U
     case _ => false
   }
   def index = UserAwareAction.async { implicit request =>
-    println(request.identity)
     if(isAdmin(request.identity)){
       Future.successful(Ok(views.html.gtresolution("Ground Truth Resolution")))
     }
     else {
-      Future.successful(Ok(views.html.signIn(SignInForm.form, "/gtresolution")))
+      request.identity match{
+        case Some(user) => Future.successful(Ok(views.html.signIn(SignInForm.form, "/gtresolution", Some(user))))
+        case None => Future.successful(Ok(views.html.signIn(SignInForm.form, "/gtresolution")))
+      }
+      
     }
   }
 
