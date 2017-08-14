@@ -53,7 +53,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             beforeJumpListenerHandle: undefined
         },
         jumpLocation = undefined,
-        missionJump = undefined
+        missionJump = undefined,
         wasOpen = false;
 
     var initialPositionUpdate = true,
@@ -1099,6 +1099,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 canvasCoordinate = point.getCanvasCoordinate(getPov());
 
             _canvas.setCurrentLabel(selectedLabel);
+
             if ('contextMenu' in svl) {
               if(wasOpen){
                 svl.contextMenu.hide();
@@ -1106,7 +1107,29 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
-              });}
+                });
+                labelType = selectedLabel.getProperty("labelType");
+                if(labelType === "Other"){
+                  //no tooltips for other
+                  $('#severity-one').tooltip('destroy');
+                  $('#severity-three').tooltip('destroy');
+                  $('#severity-five').tooltip('destroy');
+                }else{
+                  //updatetooltips
+                  $('#severity-one').tooltip('destroy').tooltip({
+                      placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                      title: "Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"
+                  });
+                  $('#severity-three').tooltip('destroy').tooltip({
+                      placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                      title: "Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"
+                  });
+                  $('#severity-five').tooltip('destroy').tooltip({
+                      placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                      title: "Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"
+                  });
+                }
+              }
               wasOpen = false;
             }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {

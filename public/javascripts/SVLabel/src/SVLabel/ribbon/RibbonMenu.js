@@ -136,9 +136,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
                 uiRibbonMenu.streetViewHolder.css("border-color", borderColor);
             }
-			
-			
-			
+
+
+
             // Set the instructional message
             overlayMessageBox.setMessage(labelType);
             overlayMessageBox.setHelpLink(labelType);
@@ -165,15 +165,12 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 return false;
             }
 
-            if (labelType === "Other") {
-                return false;
-            }  // Disable clicking "Other"
-
             // Track the user action
             tracker.push('Click_ModeSwitch_' + labelType);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
             modeSwitch(labelType);
-        }
+
+            }
     }
 
     function handleModeSwitchMouseEnter() {
