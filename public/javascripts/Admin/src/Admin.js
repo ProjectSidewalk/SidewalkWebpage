@@ -1255,6 +1255,49 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         }
     });
 
+    function changeRole(e){
+        var userId = $(this).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
+            .attr('id')
+            .substring("userRoleDropdown".length); // userId is stored in id of dropdown
+        var newRole = 1;
+        if (this.innerText === "Researcher") {
+            newRole = 2;
+        } else if (this.innerText === "Administrator") {
+            newRole = 3;
+        }
+        
+        data = {
+            'userId': userId,
+            'roleId': newRole
+        }
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: '/adminapi/userRole',
+            type: 'put',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                // Change dropdown button to reflect new role
+                var button = $('#userRoleDropdown'+result.user_id);
+                var buttonContents = button.html();
+                var newRole = "";
+                switch(result.role){
+                    case 1: newRole = "User"; break;
+                    case 2: newRole = "Researcher"; break;
+                    case 3: newRole = "Administrator"; break;
+                    default: newRole = "User";
+                }
+                button.html(buttonContents.replace(/User|Researcher|Administrator/g, newRole));
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
 
@@ -1264,6 +1307,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+
+    $('.change-role').on('click', changeRole)
 
     return self;
 }

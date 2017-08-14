@@ -7,8 +7,10 @@ import java.net.URLDecoder
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
+
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
+import formats.json.UserRoleSubmissionFormats._
 import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
@@ -19,10 +21,13 @@ import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivityTable}
 import models.daos.UserDAOImpl
 import models.user.UserRoleTable
+
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json, JsError}
 import play.extras.geojson
+import play.api.mvc.BodyParsers
 
 
 import scala.concurrent.Future
@@ -147,7 +152,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
       val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(x._1))
+        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
       }))
       Future.successful(Ok(jsonArray))
     } else {
@@ -387,7 +392,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getAllRegisteredUserLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.getLabelCountsPerRegisteredUser
     val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(x._1)
+      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
     )))
     Future.successful(Ok(json))
   }
@@ -464,5 +469,38 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }else{
       Future.successful(Redirect("/"))
     }
+  }
+
+  def setUserRole = UserAwareAction.async(BodyParsers.parse.json){ implicit request =>
+    println(request.body)
+    val submission = request.body.validate[UserRoleSubmission]
+    println(submission)
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val userId = UUID.fromString(submission.userId)
+        val newRoleId = submission.roleId
+
+        if(isAdmin(request.identity)){
+          UserTable.findById(userId) match {
+            case Some(user) => 
+              if(UserRoleTable.getRole(userId) == "Owner"){
+                Future.successful(BadRequest("Owner's role cannot be changed"))
+              } else if (newRoleId < 1 || newRoleId > 3) {
+                Future.successful(BadRequest("Invalid role ID"))
+              } else {
+                UserRoleTable.setRole(userId, newRoleId)
+                Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRoleId)))
+              }
+            case None => Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.successful(Redirect("/"))   
+        }
+      }
+    )
   }
 }

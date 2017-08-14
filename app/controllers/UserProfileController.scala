@@ -1,6 +1,7 @@
 package controllers
 
 import javax.inject.Inject
+import java.util.UUID
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -17,6 +18,7 @@ import models.user.UserRoleTable
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc.{BodyParsers, RequestHeader, Result}
 import play.extras.geojson
+
 
 import scala.concurrent.Future
 
@@ -259,7 +261,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     val missionCounts = MissionTable.selectMissionCountsPerUser
     val json = Json.arr(missionCounts.map(x =>
-      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(x._1))
+      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
     ))
     Future.successful(Ok(json))
   }

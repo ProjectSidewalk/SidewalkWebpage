@@ -41,8 +41,12 @@ object UserRoleTable {
     }
   }
 
-  def isResearcher(userId: String): Boolean = db.withSession { implicit session =>
-    userRoles.filter(_.userId === userId).list.head.roleId > 1
+  def setRole(userId: UUID, newRole: Int) = db.withTransaction { implicit session =>
+    val q = for{ l <- userRoles if l.userId === userId.toString } yield l.roleId
+    q.update(newRole)
   }
 
+  def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
+    userRoles.filter(_.userId === userId.toString).list.head.roleId > 1
+  }
 }
