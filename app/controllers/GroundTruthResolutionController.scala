@@ -5,25 +5,18 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable}
-import models.mission.MissionTable
-import models.region.{RegionCompletionTable, RegionTable}
-import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivityTable}
 import models.daos.UserDAOImpl
 import models.user.UserRoleTable
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
-import play.extras.geojson
-import org.joda.time.{DateTime, DateTimeZone}
-import java.sql.Timestamp
+import forms.SignInForm
 
 import scala.concurrent.Future
 
@@ -34,9 +27,21 @@ import scala.concurrent.Future
 class GroundTruthResolutionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  // Helper methods
+
+  // TODO: when merging with develop, change this isAdmin to match develop's isAdmin function in AdminController
+  def isAdmin(user: Option[User]): Boolean = user match {
+    case Some(user) =>
+      if (user.roles.getOrElse(Seq()).contains("Administrator")) true else false
+    case _ => false
+  }
   def index = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(views.html.gtresolution("Ground Truth Resolution")))
+    println(request.identity)
+    if(isAdmin(request.identity)){
+      Future.successful(Ok(views.html.gtresolution("Ground Truth Resolution")))
+    }
+    else {
+      Future.successful(Ok(views.html.signIn(SignInForm.form, "/gtresolution")))
+    }
   }
 
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
