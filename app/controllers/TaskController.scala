@@ -177,9 +177,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 LabelTable.updateDeleted(labId, label.deleted.value)
                 labId
               case None =>
+                // get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp
+                val timeCreated: Option[Timestamp] = label.timeCreated match {
+                  case Some(time) => Some(new Timestamp(time))
+                  case None =>
+                    Logger.error("No timestamp given for a new label")
+                    None
+                }
                 LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
                                       label.photographerPitch, label.panoramaLat, label.panoramaLng,
-                                      label.deleted.value, label.temporaryLabelId))
+                                      label.deleted.value, label.temporaryLabelId, timeCreated))
             }
 
             // Insert label points
@@ -224,7 +231,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
 
           // Insert interaction
-          for (interaction <- data.interactions) {
+          for (interaction: InteractionSubmission <- data.interactions) {
             AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
               interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))
