@@ -2,6 +2,7 @@ function NeighborhoodModel () {
     var self = this;
     this._neighborhoodContainer = null;
     this.isNeighborhoodCompleted = false;
+    this.isNeighborhoodCompletedAcrossAllUsers = null;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -60,6 +61,15 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
             console.error(result);
         }
     });
+};
+
+NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+    return this.isNeighborhoodCompletedAcrossAllUsers;
+};
+
+
+NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+    this.isNeighborhoodCompletedAcrossAllUsers = true;
 };
 
 NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {

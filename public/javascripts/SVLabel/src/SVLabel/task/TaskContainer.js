@@ -86,7 +86,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Go through the tasks and mark the completed task as isCompleted=true
         var neighborhoodTasks = self._taskStoreByRegionId[neighborhood.getProperty("regionId")];
         for (var i = 0, len = neighborhoodTasks.length;  i < len; i++) {
-            if (task.getStreetEdgeId() == neighborhoodTasks[i].getStreetEdgeId()) {
+            if (task.getStreetEdgeId() === neighborhoodTasks[i].getStreetEdgeId()) {
                 neighborhoodTasks[i].complete();
             }
         }
@@ -94,7 +94,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
 
-        if (!('user' in svl) || (svl.user.getProperty('username') == "anonymous" &&
+        if (!('user' in svl) || (svl.user.getProperty('username') === "anonymous" &&
             getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
             !svl.popUpMessage.haveAskedToSignIn())) {
             svl.popUpMessage.promptSignIn();
@@ -303,6 +303,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return beforeJumpNewTask;
     }
 
+    /**
+     * Used to set target distance for Mission Progress
+     *
+     * TODO: 839 - Do we set that for completed tasks across all users?
+     * @param regionId
+     * @param unit
+     */
     self.getIncompleteTaskDistance = function (regionId, unit) {
         var incompleteTasks = self.getIncompleteTasks(regionId);
         var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
@@ -310,11 +317,36 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Find incomplete tasks across all users
+     *
      * @param regionId
      * @returns {null}
      */
     self.getIncompleteTasks = function (regionId) {
+        if (!regionId && regionId !== 0) {
+            console.error("regionId is not specified")
+        }
+        if (!(regionId in self._taskStoreByRegionId)) {
+            self.fetchTasksInARegion(regionId, null, false);
+            // console.error("regionId is not in _taskStoreByRegionId. This is probably because " +
+            //    "you have not fetched the tasks in the region yet (e.g., by fetchTasksInARegion)");
+            // return null;
+        }
+        if (!Array.isArray(self._taskStoreByRegionId[regionId])) {
+            console.error("_taskStoreByRegionId[regionId] is not an array. " +
+                "Probably the data from this region is not loaded yet.");
+            return null;
+        }
+        return self._taskStoreByRegionId[regionId].filter(function (task) {
+            return !task.isCompleted();
+        });
+    };
+
+    /**
+     * Find incomplete tasks across all users
+     * @param regionId
+     * @returns {null}
+     */
+    self.getIncompleteTasksAcrossAllUsers = function (regionId) {
         if (!regionId && regionId !== 0) {
             console.error("regionId is not specified")
         }
@@ -334,15 +366,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             return !task.isCompleted();
         });
 
-        var incompleteTasksAcrossAllUsers = null;
+        var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
-            // TODO: Filter them by completion count where count = 0
-            incompleteTasksAcrossAllUsers = incompleteTasksByUser; // needs to update
+            incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
+                return t.getStreetCompletionCount() === 0;
+            });
+            // Indicates neighborhood is completely audited
+            if (incompleteTasksAcrossAllUsers.length === 0) return [];
         } else {
-            return null;
+            return [];
         }
-
-        return incompleteTasksAcrossAllUsers;
     };
 
     this.getTasksInRegion = function (regionId) {
@@ -363,6 +396,31 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     function length () {
         return previousTasks.length;
+    }
+
+    function findNeighborhoodCompleteAcrossAllUsers(tasks) {
+
+    }
+
+    function _isNeighborhoodCompleteAcrossAllUsers(candidateTasks) {
+        // ---- Select the one that is * also * unaudited across all users ---
+
+        // Find connected tasks that has a 0 completion count (TODO: minimum completion count)
+        candidateTasks = candidateTasks.filter(function (t) { return t.getStreetCompletionCount() === 0; });
+        console.log("Filtered based on completion count: " + candidateTasks);
+
+        // If there aren't any amongst connected tasks, select an incomplete task (or unaudited street) in the
+        // neighborhood across all users
+        if (candidateTasks.length === 0) {
+            candidateTasks = self.getIncompleteTasksAcrossAllUsers(currentNeighborhoodId).filter(function(t) {
+                return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
+            });
+            // Indicates neighborhood is complete
+            if (candidateTasks.length === 0) {
+                neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+                return null;
+            }
+        }
     }
 
     /**
@@ -389,23 +447,33 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var newTask;
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
+        var isNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
 
         // Find connected tasks that are incomplete by the user
         var candidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, null, null);
         candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
+        console.log("Filtered based on completion by user: " + candidateTasks);
 
-        // Select the one that is * also * unaudited across all users
-        if (candidateTasks.length > 0) {
-
-            // TODO: Find tasks that has 0 completion count across users and select one amongst them
-
-        } else {
-            // If there aren't any, select a incomplete task (or unaudited street) in the neighborhood across all users
-            candidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function(t) {
-                return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
-            });
-            if (candidateTasks.length === 0) return null;
+        // Find if the neighborhood is complete
+        if (isNeighborhoodCompleteAcrossAllUsers == null) {
+            var tasksInNeighborhood = _isNeighborhoodCompleteAcrossAllUsers(candidateTasks);
         }
+
+        // If the neighborhood is 100% complete (across all users)
+        if(isNeighborhoodCompleteAcrossAllUsers) {
+            // If the street you just audited connects to
+            // any streets that you have not personally audited, pick any one of those at random. Otherwise, jump.
+        }
+        // If the neighborhood is not 100% complete (across all users) or you don't yet if neighborhood is complete
+        else {
+            // Find if the neighborhood is complete
+            ... If the street you just audited connects
+            // to any streets that no one has audited, then pick one, otherwise jump.
+
+            var tasksInNeighborhood = _isNeighborhoodCompleteAcrossAllUsers(candidateTasks);
+
+        }
+
 
         // Return the new task. Change the starting point of the new task accordingly.
         newTask = _.shuffle(candidateTasks)[0];
