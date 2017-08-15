@@ -570,14 +570,9 @@ $(document).ready(function () {
         //update currentClusterIndex
         if (direction > 0) {
             currentClusterIndex = (currentClusterIndex + direction) % cluster_id_list.length;
-            if (currentClusterIndex === 0) {
-                currentClusterIndex++;
-            }
         } else {
             currentClusterIndex = (currentClusterIndex - 1);
-            if (currentClusterIndex === 0) {
-                currentClusterIndex = cluster_id_list.length;
-            }
+            if (currentClusterIndex < 0) { currentClusterIndex = cluster_id_list.length - 1; }
         }
         var clusterId = cluster_id_list[currentClusterIndex];
         //if there are still unresolved labels in that cluster, display the cluster
@@ -586,14 +581,15 @@ $(document).ready(function () {
             currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
             refocusView(map);
             var toDisplay = all_labels[clusterId].slice();
-            //include labels in teh cluster that have already been dealt with
+            //include labels in the cluster that have already been dealt with
             for (j = 0; j < ground_truth_labels.length; j++) {
-                if (ground_truth_labels[j].cluster_id === clusterId) {
+                if (ground_truth_labels[j].cluster_id === parseInt(clusterId)) {
+                  alert("here");
                     toDisplay.unshift(ground_truth_labels[j]);
                 }
             }
             for (j = 0; j < eliminated_labels.length; j++) {
-                if (eliminated_labels[j].cluster_id === clusterId) {
+                if (eliminated_labels[j].cluster_id === parseInt(clusterId)) {
                     toDisplay.unshift(eliminated_labels[j]);
                 }
             }
