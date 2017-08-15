@@ -197,15 +197,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Find tasks (i.e., street edges) in the region that are connected to the given task.
+     * Find incomplete tasks (i.e., street edges) in the region that are connected to the given task.
+     *
      * @param regionId {number} Region id
      * @param taskIn {object} Task
+     * @param acrossAllUsers
      * @param threshold {number} Distance threshold
      * @param unit {string} Distance unit
      * @returns {Array}
+     * @private
      */
-    self._findConnectedTasks = function (regionId, taskIn, threshold, unit) {
+    self._findConnectedTasks = function (regionId, taskIn, acrossAllUsers, threshold, unit) {
         var tasks = self.getTasksInRegion(regionId);
+
+        if (acrossAllUsers) {
+            tasks = tasks.filter(function (t) { return t.getStreetCompletionCount() === 0; });
+        }
 
         if (tasks) {
             var connectedTasks = [];
@@ -317,7 +324,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     *
+     * Find incomplete tasks by the user
      * @param regionId
      * @returns {null}
      */
@@ -343,8 +350,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Find incomplete tasks across all users
+     *
      * @param regionId
-     * @returns {null}
+     * @returns {*}
      */
     self.getIncompleteTasksAcrossAllUsers = function (regionId) {
         if (!regionId && regionId !== 0) {
@@ -371,11 +379,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
                 return t.getStreetCompletionCount() === 0;
             });
-            // Indicates neighborhood is completely audited
-            if (incompleteTasksAcrossAllUsers.length === 0) return [];
-        } else {
-            return [];
         }
+
+        return incompleteTasksAcrossAllUsers;
     };
 
     this.getTasksInRegion = function (regionId) {
@@ -398,28 +404,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return previousTasks.length;
     }
 
-    function findNeighborhoodCompleteAcrossAllUsers(tasks) {
-
-    }
-
-    function _isNeighborhoodCompleteAcrossAllUsers(candidateTasks) {
-        // ---- Select the one that is * also * unaudited across all users ---
-
-        // Find connected tasks that has a 0 completion count (TODO: minimum completion count)
-        candidateTasks = candidateTasks.filter(function (t) { return t.getStreetCompletionCount() === 0; });
-        console.log("Filtered based on completion count: " + candidateTasks);
-
-        // If there aren't any amongst connected tasks, select an incomplete task (or unaudited street) in the
-        // neighborhood across all users
+    function isNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
+        var candidateTasks = self.getIncompleteTasksAcrossAllUsers(neighborhoodId).filter(function(t) {
+            return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
+        });
+        // Indicates neighborhood is complete
         if (candidateTasks.length === 0) {
-            candidateTasks = self.getIncompleteTasksAcrossAllUsers(currentNeighborhoodId).filter(function(t) {
-                return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
-            });
-            // Indicates neighborhood is complete
-            if (candidateTasks.length === 0) {
-                neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                return null;
-            }
+            neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+            return false;
+        } else {
+            return true;
         }
     }
 
@@ -427,56 +421,65 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the next task and set it as a current task.
      *
      * Procedure:
-     * If the neighborhood is not 100% complete (across all users)... If the street you just audited connects to any
+     * If the neighborhood is not 100% complete (across all users)
+     *    - If the street you just audited connects to any
      *     streets that no one has audited, then pick one, otherwise jump.
-     * If the neighborhood is 100% complete (across all users)... If the street you just audited connects to any streets
+     * Else
+     *    - If the street you just audited connects to any streets
      *     that you have not personally audited, pick any one of those at random. Otherwise, jump.
-     *  TODO: Need to formalize the comment
-     *  (i) Seek the incomplete street edges (tasks) that are connected to the task that has been completed across all users
-     *  (ii) If none are available and there are unaudited tasks in the neighborhood across users, then select the one
-     *       with 0 completion count
-     *  (iii) If there no audited streets across
-     *  - If there aren't any connected tasks that are incomplete across all users, randomly select a task from
-     *  any of the incomplete tasks (with a 0 completion count) in the neighborhood across all users.
-     *  - If that is empty, return null.
      *
      * @param finishedTask The task that has been finished.
      * @returns {*} Next task
      */
     this.nextTask = function (finishedTask) {
         var newTask;
+        var userCandidateTasks = null;
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
-        var isNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
-
-        // Find connected tasks that are incomplete by the user
-        var candidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, null, null);
-        candidateTasks = candidateTasks.filter(function (t) { return !t.isCompleted(); });
-        console.log("Filtered based on completion by user: " + candidateTasks);
-
-        // Find if the neighborhood is complete
-        if (isNeighborhoodCompleteAcrossAllUsers == null) {
-            var tasksInNeighborhood = _isNeighborhoodCompleteAcrossAllUsers(candidateTasks);
-        }
 
         // If the neighborhood is 100% complete (across all users)
-        if(isNeighborhoodCompleteAcrossAllUsers) {
-            // If the street you just audited connects to
-            // any streets that you have not personally audited, pick any one of those at random. Otherwise, jump.
+        if (isNeighborhoodCompleteAcrossAllUsers(currentNeighborhoodId, finishedTask)) {
+            // If the street you just audited connects to any streets that you have not personally audited,
+            // pick any one of those at random. Otherwise, jump.
+
+            // Find connected tasks that are incomplete by the user
+            userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, false, null, null);
+            userCandidateTasks = userCandidateTasks.filter(function (t) {
+                return !t.isCompleted();
+            });
+            console.log("Filtered based on completion by user: " + userCandidateTasks.length);
+
+            if (userCandidateTasks.length === 0) {
+                userCandidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function (t) {
+                    return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
+                });
+            }
         }
-        // If the neighborhood is not 100% complete (across all users) or you don't yet if neighborhood is complete
+        // If the neighborhood is NOT 100% complete (across all users)
         else {
-            // Find if the neighborhood is complete
-            ... If the street you just audited connects
-            // to any streets that no one has audited, then pick one, otherwise jump.
+            // If the street you just audited connects to any streets that no one has audited, then pick one,
+            // otherwise jump.
 
-            var tasksInNeighborhood = _isNeighborhoodCompleteAcrossAllUsers(candidateTasks);
+            // Find connected tasks across all users that are also incomplete by the user
+            userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, true, null, null);
+            userCandidateTasks = userCandidateTasks.filter(function (t) {
+                return !t.isCompleted();
+            });
 
+            console.log("Filtered based on completion count: " + userCandidateTasks.length);
+
+            // If there aren't any amongst connected tasks, select an incomplete task (or unaudited street) in the
+            // neighborhood
+            if (userCandidateTasks.length === 0) {
+                userCandidateTasks = self.getIncompleteTasksAcrossAllUsers(currentNeighborhoodId).filter(function(t) {
+                    return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
+                });
+            }
         }
-
+        if (userCandidateTasks.length === 0) return null;
 
         // Return the new task. Change the starting point of the new task accordingly.
-        newTask = _.shuffle(candidateTasks)[0];
+        newTask = _.shuffle(userCandidateTasks)[0];
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
