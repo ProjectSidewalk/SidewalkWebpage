@@ -67,7 +67,8 @@ object AMTAssignmentTable {
   }
 
   def getCountOfCompletedByTurkerId(turkerId: String): Int = db.withTransaction { implicit session =>
-    amtAssignments.filter(x => x.turkerId === turkerId && x.completed === true).length.run
+    val conditionId = TurkerTable.getConditionIdByTurkerId(turkerId).get
+    amtAssignments.filter(x => x.turkerId === turkerId && x.completed === true && x.conditionId === conditionId).length.run
   }
 
   /**
