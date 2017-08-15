@@ -130,6 +130,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // Skipping this step since we have already obtained condition id
             val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
+
             // If route is None, turker has finished all routes assigned, so send them to homepage.
             route match {
               case None =>
@@ -149,6 +150,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
                 Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
             }
+
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
             Future.successful(Ok(views.html.index("Project Sidewalk")))
@@ -205,6 +207,30 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
     }
+  }
+
+
+  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+    val submission = request.body.validate[AMTAssignmentCreateRecordSubmission]
+
+    // Inputs to AMT Assignment Constructor 0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+
+        val conditionId: Int = TurkerTable.getConditionIdByTurkerId(submission.turkerId).get
+        val now: DateTime = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None,
+                                               submission.turkerId, conditionId, Some(submission.routeId), false)
+        val asgId: Int = AMTAssignmentTable.save(asg)
+
+        Future.successful(Ok(Json.obj("asg_id" -> asgId)))
+      }
+    )
   }
 
   /**

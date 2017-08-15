@@ -10,7 +10,7 @@ function MissionFactory (missionModel) {
     var _missionModel = missionModel;
 
     _missionModel.on("MissionFactory:create", function (parameters) {
-        var mission = self.create(parameters.regionId, parameters.missionId, parameters.label, parameters.level,
+        var mission = self.create(parameters.regionId, parameters.routeId, parameters.missionId, parameters.label, parameters.level,
             parameters.distance, parameters.distanceFt, parameters.distanceMi, parameters.coverage, parameters.isCompleted);
         _missionModel.addAMission(mission);
     });
@@ -29,9 +29,10 @@ function MissionFactory (missionModel) {
  * @param isCompleted A flag indicating if this mission is completed
  * @returns {svl.Mission}
  */
-MissionFactory.prototype.create = function (regionId, missionId, label, level, distance, distanceFt, distanceMi, coverage, isCompleted) {
+MissionFactory.prototype.create = function (regionId, routeId, missionId, label, level, distance, distanceFt, distanceMi, coverage, isCompleted) {
     return new Mission({
         regionId: regionId,
+        routeId: routeId,
         missionId: missionId,
         label: label,
         level: level,

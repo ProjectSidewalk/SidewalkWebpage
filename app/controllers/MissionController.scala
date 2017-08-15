@@ -93,7 +93,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   def getMTurkMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case _ =>
-        val mission = MissionTable.selectMTurkMission
+        val mission = MissionTable.selectMTurkMissions
         val missionJsonObjects: List[JsObject] = mission.map( m =>
           Json.obj("is_completed" -> false,
             "mission_id" -> m.missionId,
@@ -114,12 +114,19 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case _ =>
         val conditionId = TurkerTable.getConditionIdByTurkerId(turkerId).get
-        val routeId = AMTVolunteerRouteTable.getRoutesByConditionId(conditionId).headOption
-        val regionId = RouteTable.getRegionByRouteId(routeId)
-        val mission = MissionTable.selectMTurkMissionByRegion(regionId)
-        val completedMissionCount = AMTAssignmentTable.getCountOfCompletedByTurkerId(turkerId)
+        val routeId = AMTVolunteerRouteTable.getRoutesByConditionId(conditionId)
+        val regionId = RouteTable.getRegionByRouteId(routeId.headOption)
+        val totalMissionCount = routeId.length
+        // If 2 conditions are associated with a different number of missions
+        // in the same region then we need to slice the mission list to get the appropriate number of missions
+        val missions: List[Mission] = MissionTable.selectMTurkMissionsByRegion(regionId)
+        val mturkMissions: List[Mission] = missions.filter(x => x.label == "mturk-mission").slice(0,totalMissionCount)
+        val onboarding: List[Mission] = missions.filter(x => x.label == "onboarding")
+        val relevantMission = mturkMissions ++ onboarding
+        val completedMissionCount: Int = AMTAssignmentTable.getCountOfCompletedByTurkerId(turkerId)
 
-        val missionJsonObjects: List[JsObject] = mission.zipWithIndex.map( m =>
+
+        val missionJsonObjects: List[JsObject] = relevantMission.zipWithIndex.map( m =>
           Json.obj("is_completed" -> (m._2 < completedMissionCount),
             "mission_id" -> m._1.missionId,
             "region_id" -> m._1.regionId,
@@ -128,8 +135,9 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             "distance" -> m._1.distance,
             "distance_ft" -> m._1.distance_ft,
             "distance_mi" -> m._1.distance_mi,
-            "coverage" -> m._1.coverage
-          )
+            "coverage" -> m._1.coverage,
+            "route_id" -> ( if (m._1.label == "mturk-mission") routeId(m._2) else 0)
+            )
     )
 
         Future.successful(Ok(JsArray(missionJsonObjects)))
