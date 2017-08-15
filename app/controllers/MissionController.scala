@@ -136,7 +136,8 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             "distance_ft" -> m._1.distance_ft,
             "distance_mi" -> m._1.distance_mi,
             "coverage" -> m._1.coverage,
-            "route_id" -> ( if (m._1.label == "mturk-mission") routeId(m._2) else 0))
+            "route_id" -> ( if (m._1.label == "mturk-mission") routeId(m._2) else 0)
+            )
     )
 
         Future.successful(Ok(JsArray(missionJsonObjects)))

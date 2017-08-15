@@ -34,17 +34,17 @@ object AMTConditionTable {
   val db = play.api.db.slick.DB
   val amtConditions = TableQuery[AMTConditionTable]
   val amtAssignments = TableQuery[AMTAssignmentTable]
-  val max_num_condition_assignments = 5
+  val maxNumConditionAssignments: Int = 5
 
   def getVolunteerIdByConditionId(amtConditionId: Int): String = db.withTransaction { implicit session =>
-    val vId = amtConditions.filter(_.amtConditionId === amtConditionId).list.headOption.map(_.volunteerId)
+    val vId = amtConditions.filter(_.amtConditionId === amtConditionId).map(_.volunteerId).list.headOption
     vId.get
   }
 
   def assignAvailableCondition: Option[Int] =  db.withTransaction { implicit session =>
     //Get the condition id with the least number of current assignments
 
-    val selectConditionId = Q.query[Int, Int](
+    val selectConditionIdQuery = Q.query[Int, Int](
       """SELECT amt_condition_id
         |  FROM (SELECT amt_condition.amt_condition_id, count(condition_id) as cnt FROM sidewalk.amt_assignment Right JOIN sidewalk.amt_condition ON (amt_assignment.condition_id = amt_condition.amt_condition_id)
         |  group by amt_condition.amt_condition_id
@@ -53,8 +53,7 @@ object AMTConditionTable {
       """.stripMargin
     )
 
-    val cId = selectConditionId(max_num_condition_assignments).list.headOption
-    cId
+    selectConditionIdQuery(maxNumConditionAssignments).list.headOption
   }
 
   def save(cond: AMTCondition): Int = db.withTransaction { implicit session =>

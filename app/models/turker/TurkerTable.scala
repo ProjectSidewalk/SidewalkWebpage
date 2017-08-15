@@ -36,8 +36,8 @@ object TurkerTable{
   }
 
   def getConditionIdByTurkerId(turkerId: String): Option[Int] = db.withTransaction { implicit session =>
-    val cId = turkers.filter(_.turkerId === turkerId).list.headOption
-    cId match {
+    val turker = turkers.filter(_.turkerId === turkerId).list.headOption
+    turker match {
       case Some(condition) => Some(condition.amtConditionId)
       case _ => None
     }
