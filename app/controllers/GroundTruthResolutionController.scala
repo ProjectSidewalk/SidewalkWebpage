@@ -18,7 +18,18 @@ import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import forms.SignInForm
 
+import formats.json.ClusteringFormats
+import models.clustering_session.ClusteringSessionTable
+import play.api.libs.json.{JsError, JsObject, Json}
+import play.api.mvc.BodyParsers
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+import models.gt.GTExistingLabelTable
+import models.gt.GTLabelTable
+import models.gt._
+
 import scala.concurrent.Future
+
 
 /**
   * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
@@ -56,5 +67,39 @@ class GroundTruthResolutionController @Inject() (implicit val env: Environment[U
     	case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
   	}
   }
+
+  /**
+    * Takes in ground truth designated labels and adds the data to the relevant tables
+*/
+  def postGroundTruthResults(clustSessionId: Int) = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
+    val submission = request.body.validate[List[ClusteringFormats.GTLabelSubmission]]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        // get the route id for this clustering session, returning error if no session is found with that ID
+        val routeId: Option[Int] = ClusteringSessionTable.getRouteIdOfClusteringSession(clustSessionId)
+        routeId match {
+          case Some(id) =>
+            for (data <- submission) yield {
+              val gtLabelId: Int = GTLabelTable.save(GTLabel(
+                0, id, data.gsvPanoId, data.labelType, data.svImageX, data.svImageY, data.svCanvasX, data.svCanvasY,
+                data.heading, data.pitch, data.zoom, data.canvasHeight, data.canvasWidth, data.alphaX, data.alphaY,
+                data.lat, data.lng, data.description, data.severity, data.temporary
+              ))
+              if (data.labelId.isDefined) {
+                GTExistingLabelTable.save(GTExistingLabel(0, gtLabelId, data.labelId.get))
+              }
+            }
+          case None =>
+            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No matching clustering session found")))
+        }
+      }
+    )
+    val json = Json.obj()
+    println()
+    Future.successful(Ok(json))
+  }
+
 }
-  

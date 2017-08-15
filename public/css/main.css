@@ -794,6 +794,12 @@ video#bgvid {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     width: 34%;
 }
+#gtSubmit{
+  width: 80%;
+  margin-left: 5%;
+  margin-right: 5%;
+  text-align: center
+}
 #gtrefocus{
     padding:8px 10px;
     width: 20%;
@@ -825,6 +831,15 @@ video#bgvid {
     width: 30%;
     margin-left:3%;
     height: 460px;
+}
+#hiddenColumn{
+  vertical-align: middle;
+  display: none;
+  position: relative;
+  top: 0px;
+  width: 100%;
+  margin-top: 15px;
+  height: 38px;
 }
 .gtpano{
     width: 100%;

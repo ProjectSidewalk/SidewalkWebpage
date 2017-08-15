@@ -59,6 +59,11 @@ object ClusteringSessionTable{
     clusteringSessions.filter(_.deleted === false).list
   }
 
+  def getRouteIdOfClusteringSession(clusteringSessionId: Int): Option[Int] = db.withSession { implicit session =>
+    val routeIds = clusteringSessions.filter(_.clusteringSessionId === clusteringSessionId).map(_.routeId).list
+    routeIds.headOption
+  }
+
   /**
     * Returns labels that were placed during the specified HIT on the specified route, in the form needed for clustering
     *
