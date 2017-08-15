@@ -370,6 +370,7 @@ $(document).ready(function () {
             '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"></input>', // 9eba9e
             html: true
         });
+
         //clicking yes for ground truth hides popover and calls yesGroundTruth
         $(document).on("click", '.popover #commit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
@@ -584,7 +585,6 @@ $(document).ready(function () {
             //include labels in the cluster that have already been dealt with
             for (j = 0; j < ground_truth_labels.length; j++) {
                 if (ground_truth_labels[j].cluster_id === parseInt(clusterId)) {
-                  alert("here");
                     toDisplay.unshift(ground_truth_labels[j]);
                 }
             }
