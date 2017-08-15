@@ -20,14 +20,14 @@ $(document).ready(function () {
     var ground_truth_labels = [];
     //labels designated as not ground truth
     var eliminated_labels = [];
+    //cluster IDs
+    var cluster_id_list = [];
 
     //stores which cluster is being looked at currently
-    var currentCluster;
+    var currentClusterIndex;
     var currentLabel;
     // currentCoordinates are formats for the label's lat lng position, used to focus map
     var currentCoordinates;
-    //number of clusters
-    var clusterCount;
 
     //stores the next open view to display a label on
     var nextOpenView = 0;
@@ -567,32 +567,33 @@ $(document).ready(function () {
 
     //next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
     function transitionDisagreement(direction) {
-        //update currentCluster
+        //update currentClusterIndex
         if (direction > 0) {
-            currentCluster = (currentCluster + direction) % clusterCount;
-            if (currentCluster === 0) {
-                currentCluster++;
+            currentClusterIndex = (currentClusterIndex + direction) % cluster_id_list.length;
+            if (currentClusterIndex === 0) {
+                currentClusterIndex++;
             }
         } else {
-            currentCluster = (currentCluster - 1);
-            if (currentCluster === 0) {
-                currentCluster = clusterCount;
+            currentClusterIndex = (currentClusterIndex - 1);
+            if (currentClusterIndex === 0) {
+                currentClusterIndex = cluster_id_list.length;
             }
         }
+        var clusterId = cluster_id_list[currentClusterIndex];
         //if there are still unresolved labels in that cluster, display the cluster
-        if (all_labels[currentCluster].length > 0) {
-            currentLabel = all_labels[currentCluster][0];
+        if (all_labels[clusterId].length > 0) {
+            currentLabel = all_labels[clusterId][0];
             currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
             refocusView(map);
-            var toDisplay = all_labels[currentCluster].slice();
+            var toDisplay = all_labels[clusterId].slice();
             //include labels in teh cluster that have already been dealt with
             for (j = 0; j < ground_truth_labels.length; j++) {
-                if (ground_truth_labels[j].cluster_id === currentCluster) {
+                if (ground_truth_labels[j].cluster_id === clusterId) {
                     toDisplay.unshift(ground_truth_labels[j]);
                 }
             }
             for (j = 0; j < eliminated_labels.length; j++) {
-                if (eliminated_labels[j].cluster_id === currentCluster) {
+                if (eliminated_labels[j].cluster_id === clusterId) {
                     toDisplay.unshift(eliminated_labels[j]);
                 }
             }
@@ -662,6 +663,7 @@ $(document).ready(function () {
     //automatic cluster filtering
     function filterClusters(data) {
         data = _.groupBy(data, "cluster_id");
+         cluster_id_list = Object.keys(data);
         //iterate through and filter out clusters that are agreed upon
         for (var clusterId in data) {
             var cluster_data = data[clusterId];
@@ -746,19 +748,21 @@ $(document).ready(function () {
                 resolveLowDisagreementConflict(data, next);
             } else {
                 //finished with low level conflicts
-                clusterCount = Object.keys(all_labels).length;
+                cluster_id_list.length = Object.keys(all_labels).length;
                 //intiailize mapbox layers and GSV panoramas
-                currentCluster = 1;
-                while (all_labels[currentCluster].length <= 0) {
-                    currentCluster++;
+                currentClusterIndex = 0;
+                var clusterId = cluster_id_list[currentClusterIndex];
+                while (all_labels[clusterId].length <= 0) {
+                    currentClusterIndex++;
+                    clusterId = cluster_id_list[currentClusterIndex];
                 }
-                currentLabel = all_labels[currentCluster][0];
+                currentLabel = all_labels[clusterId][0];
                 currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
                 map.setCenter(currentCoordinates);
                 clearCanvas(0, self.allLayers);
                 //initialize panoramas and show the first high disagreement cluster
                 initializePanoramas(currentLabel);
-                addClusterToPanos(all_labels[currentCluster]);
+                addClusterToPanos(all_labels[clusterId]);
                 document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
             }
         });
