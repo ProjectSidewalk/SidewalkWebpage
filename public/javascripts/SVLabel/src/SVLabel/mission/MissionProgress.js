@@ -142,7 +142,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
         // Refresh mission completion here.
-        currentMission.setProperty("isCompleted",true);
+        currentMission.setProperty("isCompleted", true);
 
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
 
@@ -152,7 +152,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             _modalModel.showModalMissionCompleteHITSubmission();
             throw new Error("No missions available");
         }
-        else{
+        else {
             _modalModel.hideModalMissionCompleteHITSubmission();
         }
 
@@ -160,13 +160,14 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         var route; //Get route from next mission
         var route_json = $.ajax("/route/"+nextMission.getProperty("routeId"));
-        route = svl.routeFactory.create(nextMission.getProperty("routeId"), route_json["region_id"], route_json["route_length_mi"], route_json["street_count"]);
+        route = svl.routeFactory.create(nextMission.getProperty("routeId"), route_json["region_id"],
+                                        route_json["route_length_mi"], route_json["street_count"]);
         svl.routeContainer.add(route);
         svl.routeContainer.setCurrentRoute(route);
         var url = "/audit/amtAssignment ";
 
         // Fetch tasks for the route
-        taskContainer.fetchTasksOnARoute(nextMission.getProperty("routeId"),function () {
+        taskContainer.fetchTasksOnARoute(nextMission.getProperty("routeId"), function () {
             console.log("Tasks for the next route have been fetched");
         });
 

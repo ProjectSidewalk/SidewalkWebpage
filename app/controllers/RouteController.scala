@@ -20,7 +20,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
-import models.route.{RouteTable, RouteStreet, RouteStreetTable}
+import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable}
 import models.street.StreetEdgeAssignmentCountTable
 import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
@@ -83,7 +83,7 @@ class RouteController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   def getRouteById(routeId: Int) = UserAwareAction.async { implicit request =>
-    val route = RouteTable.getRoute(Some(routeId)).get
+    val route: Route = RouteTable.getRoute(Some(routeId)).get
     val routeJsonObj = Json.obj(
       "route_id" -> routeId,
       "street_count" -> route.streetCount,
