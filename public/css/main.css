@@ -745,7 +745,17 @@ video#bgvid {
 }
 
 
-
+#remainingCounter{
+  margin-top: 40px;
+}
+.counter{
+  text-align: center;
+  color: black;
+  font: normal normal normal 14px/1.4em raleway,sans-serif;
+  font-family: 'Raleway', sans-serif;
+  font-size:20px;
+  margin-top: 35px;
+}
 #gt-container{
     width: 86%;
     margin-left: 7%;
@@ -784,6 +794,12 @@ video#bgvid {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     width: 34%;
 }
+#gtSubmit{
+  width: 80%;
+  margin-left: 5%;
+  margin-right: 5%;
+  text-align: center
+}
 #gtrefocus{
     padding:8px 10px;
     width: 20%;
@@ -816,6 +832,15 @@ video#bgvid {
     margin-left:3%;
     height: 460px;
 }
+#hiddenColumn{
+  vertical-align: middle;
+  display: none;
+  position: relative;
+  top: 0px;
+  width: 100%;
+  margin-top: 15px;
+  height: 38px;
+}
 .gtpano{
     width: 100%;
     height: 100%;
@@ -845,7 +870,7 @@ video#bgvid {
     vertical-align: middle;
 }
 .viewnum{
-    width: 30%;
+    width: 20%;
     position: absolute;
     left: 0;
     top: 0;
@@ -856,9 +881,9 @@ video#bgvid {
     padding-left: 3px;
 }
 .labelstats{
-    width: 70%;
+    width: 90%;
     position: absolute;
-    left: 30%;
+    left: 10%;
     top:0;
     height: 8%;
     text-align: right;

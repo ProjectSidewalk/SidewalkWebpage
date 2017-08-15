@@ -10,10 +10,11 @@
     @navbar(user)
     <div id="content">
         <div id="gt-container">
-            <h3>Ground Truth Resolution Tool</h3>
-
+            <h3 id="round" style="text-align:center; margin-bottom:15">Ground Truth Resolution Tool</h3>
 
             <div id="gt-map-nav">
+              <input name="clusterSessionId" type="text" maxlength="50" id="clusterSessionId" style="width: 60%;" placeholder="Input Cluster Session ID"/>
+              <button id="submitClusterSessionId" style="width: 38%;">Submit Session ID</button>
               <div id="gtButtonContainer">
                 <button class="gtButton" id="gtprev">Prev</button>
                 <button class="gtButton" id="gtrefocus">Refocus</button>
@@ -22,6 +23,7 @@
               <div id="gt-map-holder">
                 <div id="groundtruth-map"></div>
               </div>
+              <div class="counter" id="remainingCounter">REMAINING LABELS: 0</div>
             </div>
 
         <div class="gtcolumn" id="column2">
@@ -36,6 +38,7 @@
                 <div class="viewnum"><b>View 2 </b><a id="clear2" style="cursor: pointer">Clear</a></div><div class="labelstats"></div></div>
                   <div id="panorama-2" class="gtpano"></div>
               </div>
+              <div class="counter" id="gtCounter">DESIGNATED GROUND TRUTH: 0</div>
         </div>
 
         <div class="gtcolumn" id="column3">
@@ -50,8 +53,12 @@
             <div class="viewnum"><b>View 4 </b><a id="clear4" style="cursor: pointer">Clear</a></div><div class="labelstats"></div></div>
               <div id="panorama-4" class="gtpano"></div>
           </div>
+          <div class="counter" id="notGtCounter">DESIGNATED NOT GROUND TRUTH: 0</div>
         </div>
 
+      <div class="gtcolumn" id="hiddenColumn">
+        <button class="gtButton" id="gtSubmit">Submit Ground Truth Labels to Data Tables</button>
+      </div>
 
     </div>
     </div>

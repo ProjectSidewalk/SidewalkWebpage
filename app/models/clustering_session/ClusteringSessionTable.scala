@@ -18,7 +18,7 @@ case class ClusteringSession(clusteringSessionId: Int, routeId: Int, clusteringT
 case class LabelToCluster(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float],
                           severity: Option[Int], temp: Boolean, turkerId: String)
 
-case class LabelsForResolution(labelId: Int, clusterId: Int, gsvPanoramaId: String, labelType: String,
+case class LabelsForResolution(labelId: Int, clusterId: Int, turkerId: String, gsvPanoramaId: String, labelType: String,
                                svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float,
                                zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float,
                                lat: Option[Float], lng: Option[Float], description: Option[String],
@@ -57,6 +57,11 @@ object ClusteringSessionTable{
 
   def selectSessionsWithoutDeleted: List[ClusteringSession] = db.withSession { implicit session =>
     clusteringSessions.filter(_.deleted === false).list
+  }
+
+  def getRouteIdOfClusteringSession(clusteringSessionId: Int): Option[Int] = db.withSession { implicit session =>
+    val routeIds = clusteringSessions.filter(_.clusteringSessionId === clusteringSessionId).map(_.routeId).list
+    routeIds.headOption
   }
 
   /**
@@ -104,9 +109,11 @@ object ClusteringSessionTable{
       _clusters <- ClusteringSessionClusterTable.clusteringSessionClusters if _session.clusteringSessionId === _clusters.clusteringSessionId
       _clustLabs <- ClusteringSessionLabelTable.clusteringSessionLabels if _clusters.clusteringSessionClusterId === _clustLabs.clusteringSessionClusterId
       _labs <- LabelTable.labels if _clustLabs.labelId === _labs.labelId
+      _tasks <- AuditTaskTable.auditTasks if _labs.auditTaskId === _tasks.auditTaskId
+      _amtAsmt <- AMTAssignmentTable.amtAssignments if _tasks.amtAssignmentId === _amtAsmt.amtAssignmentId
       _labPoints <- LabelTable.labelPoints if _labs.labelId === _labPoints.labelId
       _types <- LabelTable.labelTypes if _labs.labelTypeId === _types.labelTypeId
-    } yield (_labs.labelId, _clusters.clusteringSessionClusterId, _labs.gsvPanoramaId, _types.labelType,
+    } yield (_labs.labelId, _clusters.clusteringSessionClusterId, _amtAsmt.turkerId, _labs.gsvPanoramaId, _types.labelType,
              _labPoints.svImageX, _labPoints.svImageY, _labPoints.canvasX, _labPoints.canvasY, _labPoints.heading,
              _labPoints.pitch, _labPoints.zoom, _labPoints.canvasHeight, _labPoints.canvasWidth, _labPoints.alphaX,
              _labPoints.alphaY, _labPoints.lat, _labPoints.lng)
@@ -114,25 +121,25 @@ object ClusteringSessionTable{
     // left joins to get descriptions for any labels that have them
     val labelsWithDescription = for {
       (_labs, _descriptions) <- labels.leftJoin(ProblemDescriptionTable.problemDescriptions).on(_._1 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._6, _labs._8, _labs._9, _labs._10,
-             _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _descriptions.description.?)
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
+             _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _descriptions.description.?)
 
     // left joins to get severity for any labels that have them
     val labelsWithSeverity = for {
-      (_labs, _severity) <- labelsWithDescription.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._6, _labs._8, _labs._9, _labs._10,
-             _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _severity.severity.?)
+      (_labs, _severity) <- labelsWithDescription.leftJoin(LabelTable.severities).on(_._1 === _.labelId)
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
+             _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19, _severity.severity.?)
 
     // left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
     val labelsWithTemporariness = for {
-      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._6, _labs._8, _labs._9, _labs._10,
-             _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19,
+      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._1 === _.labelId)
+    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _labs._6, _labs._7, _labs._8, _labs._9, _labs._10,
+             _labs._11, _labs._12, _labs._13, _labs._14, _labs._15, _labs._16, _labs._17, _labs._18, _labs._19, _labs._20,
              _temporariness.temporaryProblem.?)
 
     labelsWithTemporariness.list.map(x =>
-      LabelsForResolution.tupled((x._1, x._2, x._3, x._4, x._5, x._6, x._6, x._8, x._9, x._10, x._11, x._12, x._13,
-                                  x._14, x._15, x._16, x._17, x._18, x._19, x._20.getOrElse(false))))
+      LabelsForResolution.tupled((x._1, x._2, x._3, x._4, x._5, x._6, x._7, x._8, x._9, x._10, x._11, x._12, x._13,
+                                  x._14, x._15, x._16, x._17, x._18, x._19, x._20, x._21.getOrElse(false))))
   }
 
 
