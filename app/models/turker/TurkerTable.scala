@@ -48,4 +48,10 @@ object TurkerTable{
       (turkers returning turkers.map(_.turkerId)) += turker
     turkerId
   }
+
+  def updateConditionIdByTurkerId(turkerId: String, conditionId: Int) =  db.withTransaction { implicit session =>
+    val q = for{ turker <- turkers if turker.turkerId === turkerId} yield turker.amtConditionId
+    q.update(conditionId)
+  }
+
 }
