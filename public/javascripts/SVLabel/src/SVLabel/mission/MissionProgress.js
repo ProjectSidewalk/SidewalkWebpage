@@ -70,6 +70,17 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         this._completeTheCurrentMission(mission, neighborhood);
         this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
+        console.log(this);
+        console.log('Reached finishMission');
+        // Added a route completion trigger here
+        // When route length is much greater than mission length then
+        // it becomes necessary to trigger route completion event at the end of a mission.
+        // In the previous implementation route lengths were usually close to or slightly lower than mission distance
+        // which is why route completion was triggered when there was a null nextTask as in MapService.js
+
+        var currentRoute = svl.routeContainer.getCurrentRoute();
+        _routeModel.routeCompleted(currentRoute.getProperty("routeId"), mission, neighborhood);
+
         if(mission.getProperty("label") != "mturk-mission") {
             this._updateTheCurrentMission(mission, neighborhood);
         }
@@ -130,9 +141,13 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
 
+        //TODO Add code here to bring up the submit HIT button and post to the turkSubmit link
+        // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
         if (nextMission == null) throw new Error("No missions available");
 
         missionContainer.setCurrentMission(nextMission);
+
+        /* Not required for mturk code. MAybe we need a flag here instead
         var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
 
         // If the current neighborhood is different from the next neighborhood
@@ -142,7 +157,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         // Adjust the target distance based on the tasks available
         var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
-        nextMission.adjustTheTargetDistance(incompleteTaskDistance);
+        nextMission.adjustTheTargetDistance(incompleteTaskDistance);*/
     };
 
     /**

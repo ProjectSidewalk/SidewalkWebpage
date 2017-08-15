@@ -37,6 +37,26 @@ def create_missions_for_routes(engine, cursor, route_rows):
                 'distance_ft': 1000,
                 'distance_mi': 0.189394
             })
+            mission_rows_to_insert.append({
+                'region_id': region_id,
+                'label': 'mturk-mission',
+                'level': 2,
+                'deleted': False,
+                'coverage': None,
+                'distance': 609.6,
+                'distance_ft': 2000,
+                'distance_mi': 0.378788
+            })
+            mission_rows_to_insert.append({
+                'region_id': region_id,
+                'label': 'mturk-mission',
+                'level': 3,
+                'deleted': False,
+                'coverage': None,
+                'distance': 1219.2,
+                'distance_ft': 4000,
+                'distance_mi': 0.757576
+            })
             db_inserted_region_id_list.append(region_id)
             print "Mission created for region", region_id
 
@@ -79,12 +99,10 @@ if __name__ == '__main__':
         routes = map(lambda x: x["route_id"], route_rows)
 
         # Get the list of HITs created, assign routes to HITs
-        assign_routes_to_hits(engine, routes)
+        # assign_routes_to_hits(engine, routes)
 
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
         create_missions_for_routes(engine, cur, route_rows)
-
-        # Manually insert an experiment condition into the amt_condition
-        cur.execute("""INSERT INTO sidewalk.amt_condition (description, parameters) VALUES ('mturk-pilot-1000ft-route-mission', 'hitCost=0.85,routeDistance=1000ft,turkerPerRoute=5,noRoutes=5,noRegion=3')""")
+        
     except Exception as e:
         print "Error: ", e

@@ -10,8 +10,9 @@ import controllers.headers.ProvidesHeader
 import formats.json.IssueFormats._
 import formats.json.TaskSubmissionFormats._
 import formats.json.CommentSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable, AMTRouteAssignmentTable}
+import models.amt.{AMTAssignment, AMTAssignmentTable, AMTRouteAssignmentTable,AMTConditionTable,AMTVolunteerRouteTable}
 import models.audit._
+import models.turker._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
 import models.route._
@@ -82,6 +83,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // This code block doesn't work route by route
         // Future TODO: Make mission-route mechanism for users
 
+        // Maybe just redirect them to the admin dashboard
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Check and make sure that the user has been assigned to a region
@@ -109,31 +112,43 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case "Assigned" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-            // HITs are associated with routes at the time of HIT creation
-            // Retrieve the route based on HIT ID
-            val routeId: Option[Int] = AMTRouteAssignmentTable.findRouteByHITId(hitId)
+            // Retrieve the route based on the condition that the worker has been assigned to and the associated unvisited routes
+            val conditionId: Int = TurkerTable.getConditionIdByTurkerId(workerId) match {
+              case Some(conditionId) =>
+                TurkerTable.getConditionIdByTurkerId(workerId).get
+              case None =>
+                // No worker was found with this id (implies no condition was assigned) so assign the condition id that has been least used
+                // Save turker id and associated condition here
+                val newCId: Option[Int] = AMTConditionTable.assignAvailableCondition
+                val turker: Turker = Turker(workerId, "",newCId.getOrElse(1))
+                TurkerTable.save(turker)
+                newCId.get
+            }
+
+            // When all condition id's have been exhausted assign a default for now (or just assign a different)
+            // We only need the workerId to assign routes since we can obtain condition id and volunteer id by doing inner joins over tables.
+            // Skipping this step since we have already obtained condition id
+            val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
-            val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
+            // If route is None, turker has finished all routes assigned, so send them to homepage.
+            route match {
+              case None =>
+                Future.successful(Ok(views.html.index("Project Sidewalk")))
+              case Some(theRoute) =>
+                val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
-            // Save HIT assignment details
-            val conditionId = 1
-            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
-            val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                // Save HIT assignment details
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
-            // Load the first task from the selected route
-            val regionId = route.get.regionId
-            val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
-            val regionName = region.get.name
-            val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
+                // Load the first task from the selected route
+                val regionId: Int = theRoute.regionId
+                val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
+                val regionName: Option[String] = region.get.name
+                val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
 
-            // Save Turker details
-            //val turker: Turker = Turker(workerId, "routeId")
-            // TODO: Fix bug: turker id is taken as null
-            // TODO: Find how to append new routes to existing turker
-            //TurkerTable.save(turker)
-
-
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+                Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+            }
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
             Future.successful(Ok(views.html.index("Project Sidewalk")))
