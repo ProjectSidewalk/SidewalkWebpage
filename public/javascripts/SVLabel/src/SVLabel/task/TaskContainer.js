@@ -404,18 +404,25 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     function isNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
-        var candidateTasks = self.getIncompleteTasksAcrossAllUsers(neighborhoodId).filter(function(t) {
-            return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
-        });
-        // Indicates neighborhood is complete
-        if (candidateTasks.length === 0) {
-            neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-            console.log("Neighborhood complete");
-            return true;
-        } else {
-            console.log("Neighborhood not complete");
-            return false;
+        var isNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
+
+        // Only run this code if the neighborhood is set as incomplete
+        if (!isNeighborhoodCompleteAcrossAllUsers) {
+            var candidateTasks = self.getIncompleteTasksAcrossAllUsers(neighborhoodId).filter(function (t) {
+                return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
+            });
+            // Indicates neighborhood is complete
+            if (candidateTasks.length === 0) {
+                neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+                console.log("Neighborhood complete");
+                isNeighborhoodCompleteAcrossAllUsers = true;
+            } else {
+                console.log("Neighborhood not complete");
+                isNeighborhoodCompleteAcrossAllUsers = false;
+            }
         }
+
+        return isNeighborhoodCompleteAcrossAllUsers;
     }
 
     /**
