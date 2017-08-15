@@ -128,7 +128,8 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             "distance" -> m._1.distance,
             "distance_ft" -> m._1.distance_ft,
             "distance_mi" -> m._1.distance_mi,
-            "coverage" -> m._1.coverage)
+            "coverage" -> m._1.coverage
+          )
     )
 
         Future.successful(Ok(JsArray(missionJsonObjects)))

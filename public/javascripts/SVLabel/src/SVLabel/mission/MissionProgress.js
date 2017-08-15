@@ -141,7 +141,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
 
-        //Add code here to bring up the submit HIT button and post to the turkSubmit link
+        //TODO Add code here to bring up the submit HIT button and post to the turkSubmit link
         // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
         if (nextMission == null) throw new Error("No missions available");
 
@@ -156,7 +156,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         }
 
         // Adjust the target distance based on the tasks available
-        //Need to check if this is require for mturk code
         var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
         nextMission.adjustTheTargetDistance(incompleteTaskDistance);*/
     };

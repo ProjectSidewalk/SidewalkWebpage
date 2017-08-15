@@ -38,16 +38,16 @@ object AMTVolunteerRouteTable {
   val amtVolunteerRoutes = TableQuery[AMTVolunteerRouteTable]
   val amtAssignments = TableQuery[AMTAssignmentTable]
 
-  def findRoutesByVolunteerId(volunteerId: String): List[Int] = db.withTransaction { implicit session =>
-    val routeAsg = amtVolunteerRoutes.filter(_.volunteerId === volunteerId).map(_.routeId).list
-    routeAsg
+  // Return the list of Route IDs associated with a volunteer's missions
+  def findRoutesIdsByVolunteerId(volunteerId: String): List[Int] = db.withTransaction { implicit session =>
+    amtVolunteerRoutes.filter(_.volunteerId === volunteerId).map(_.routeId).list
   }
 
   def assignRouteByConditionIdAndWorkerId(conditionId: Int, workerId: String): Option[Int] = db.withTransaction { implicit session =>
-    // Find the first route in the list of routes associated with volunteerId (these are obtained using findRoutesByVolunteerId)
+    // Find the first route in the list of routes associated with volunteerId (these are obtained using findRoutesIdsByVolunteerId)
     // that hasnt been audited by workerId (this can be checked in the amt_assignment table)
     val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
-    val availableRoutes = findRoutesByVolunteerId(volunteerId)
+    val availableRoutes = findRoutesIdsByVolunteerId(volunteerId)
     val auditedRoutes = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list.map(route => route.get)
     var assignedRoute = (availableRoutes diff auditedRoutes).headOption
     assignedRoute
@@ -55,7 +55,7 @@ object AMTVolunteerRouteTable {
 
   def getRoutesByConditionId(conditionId: Int): List[Int] = db.withTransaction{ implicit session =>
     val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
-    val availableRoutes = findRoutesByVolunteerId(volunteerId)
+    val availableRoutes = findRoutesIdsByVolunteerId(volunteerId)
     availableRoutes
   }
 

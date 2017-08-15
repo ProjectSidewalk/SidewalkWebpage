@@ -23,5 +23,5 @@ ALTER TABLE amt_condition
   DROP volunteer_id;
 
 ALTER TABLE turker
+  DROP CONSTRAINT IF EXISTS turker_amt_condition_id_fkey,
   DROP amt_condition_id;
-  DROP CONSTRAINT IF EXISTS turker_amt_condition_id_fkey;

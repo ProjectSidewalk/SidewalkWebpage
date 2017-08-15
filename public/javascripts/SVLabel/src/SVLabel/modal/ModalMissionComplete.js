@@ -128,7 +128,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
     //uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
     //uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
-    //Add code here to make missions appear consecutively on a single HIT rather on multiple HITs
+    //TODO Add code here to make missions appear consecutively on a single HIT rather on multiple HITs
     this.hide();
 }
 

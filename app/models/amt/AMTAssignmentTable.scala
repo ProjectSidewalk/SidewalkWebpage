@@ -71,7 +71,7 @@ object AMTAssignmentTable {
   }
 
   /**
-    * Update the `assignment_end` column of the specified assignment row
+    * Update the `assignment_end` timestamp column of the specified amt_assignment row
     *
     * @param amtAssignmentId
     * @param timestamp

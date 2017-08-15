@@ -44,7 +44,7 @@ object RouteTable{
     route.headOption
   }
   def getRegionByRouteId(routeId: Option[Int]): Option[Int] = db.withSession { implicit session =>
-    val regionId = routes.filter(_.routeId === routeId).list.map(_.regionId).headOption
+    val regionId = routes.filter(_.routeId === routeId).map(_.regionId).list.headOption
     regionId
   }
 
