@@ -178,7 +178,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 success: function (result) {
                     var task;
                     console.log("Number of tasks received: " + result.length);
-                    console.log(result[0]);
                     for (var i = 0; i < result.length; i++) {
                         task = svl.taskFactory.create(result[i]);
                         if ((result[i].features[0].properties.completed)) task.complete();
@@ -411,9 +410,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Indicates neighborhood is complete
         if (candidateTasks.length === 0) {
             neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-            return false;
-        } else {
+            console.log("Neighborhood complete");
             return true;
+        } else {
+            console.log("Neighborhood not complete");
+            return false;
         }
     }
 
@@ -447,13 +448,15 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             userCandidateTasks = userCandidateTasks.filter(function (t) {
                 return !t.isCompleted();
             });
-            console.log("Filtered based on completion by user: " + userCandidateTasks.length);
+            console.log("Connected tasks filtered based on completion by user: " + userCandidateTasks.length);
 
             if (userCandidateTasks.length === 0) {
                 userCandidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function (t) {
                     return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
                 });
             }
+            console.log("Neighborhood tasks filtered based on completion by user: " + userCandidateTasks.length);
+
         }
         // If the neighborhood is NOT 100% complete (across all users)
         else {
@@ -466,7 +469,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 return !t.isCompleted();
             });
 
-            console.log("Filtered based on completion count: " + userCandidateTasks.length);
+            console.log("Connected tasks filtered based on completion count: " + userCandidateTasks.length);
 
             // If there aren't any amongst connected tasks, select an incomplete task (or unaudited street) in the
             // neighborhood
@@ -475,6 +478,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
                 });
             }
+            console.log("Neighborhood tasks filtered based on completion count: " + userCandidateTasks.length);
+
         }
         if (userCandidateTasks.length === 0) return null;
 
