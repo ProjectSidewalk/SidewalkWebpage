@@ -677,7 +677,7 @@ $(document).ready(function () {
                     if (!(sameSeverity && sameTemp)) {
                         var label = cluster_data[middle];
                         var cluster = cluster_data.slice();
-                        toInvestigate.push({data: cluster, label: label, sev: sameSeverity, temp: sameTemp});
+                        toInvestigate.push({data: cluster, label: label, sev: sameSeverity, temp: sameTemp, chosen: middle});
                     }
                     //add middle label to ground_truth labels, other two to eliminated_labels
                     //map markers' style and status will update accordingly
@@ -717,9 +717,9 @@ $(document).ready(function () {
         panoramaContainers[0].labels.push(label_data);
         //display information regarding the disagreement and provide option to change severity and temporary
         document.getElementById("panorama-3").innerHTML = '<br><table style="width:100%"><tr><th>Labeler</th><th id="sev_heading" style="text-align:center">Severity</th><th id="temp_heading" style="text-align:center">Temp</th><th style="text-align:center">Description</th></tr>' +
-            '<tr><td>' + cluster_data[0].turker_id + '</td><td style="text-align:center">' + cluster_data[0].severity + '</td><td style="text-align:center">' + cluster_data[0].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[0].description +
-            '<tr><td>' + cluster_data[1].turker_id + '</td><td style="text-align:center">' + cluster_data[1].severity + '</td><td style="text-align:center">' + cluster_data[1].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[1].description +
-            '<tr><td>' + cluster_data[2].turker_id + '</td><td style="text-align:center">' + cluster_data[2].severity + '</td><td style="text-align:center">' + cluster_data[2].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[2].description + '</table><br>' +
+            '<tr><td id="user0">' + cluster_data[0].turker_id + '</td><td style="text-align:center">' + cluster_data[0].severity + '</td><td style="text-align:center">' + cluster_data[0].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[0].description +
+            '<tr><td id="user1">' + cluster_data[1].turker_id + '</td><td style="text-align:center">' + cluster_data[1].severity + '</td><td style="text-align:center">' + cluster_data[1].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[1].description +
+            '<tr><td id="user2">' + cluster_data[2].turker_id + '</td><td style="text-align:center">' + cluster_data[2].severity + '</td><td style="text-align:center">' + cluster_data[2].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[2].description + '</table><br>' +
             'Severity: <select name="severity" id="severity"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><br>' +
             'Temporary: <input type="checkbox" id ="temp"><br>' +
             '<button style="margin-top:4px" id="prelimCommit' + label_data.cluster_id + '">Submit Updates to Ground Truth</button>';
@@ -731,6 +731,8 @@ $(document).ready(function () {
         if (!data[index].temp) {
             document.getElementById("temp_heading").style.backgroundColor = "#ff6d77";
         }
+        //highlight the middle label being shown 
+        document.getElementById("user" + data[index].chosen).style.backgroundColor = "#ffe500";
 
         //update label found in ground truth
         var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === label_data.label_id);
