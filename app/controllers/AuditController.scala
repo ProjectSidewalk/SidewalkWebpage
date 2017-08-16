@@ -50,9 +50,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) {
+          println("Not Assigned")
           UserCurrentRegionTable.assignRandomly(user.userId)
         }
+
         var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
+        println("Assigned" + region.get.regionId)
 
         // TODO: Change here for unaudited routes - #839
         // Check if a user still has tasks available in this region.
