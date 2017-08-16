@@ -73,6 +73,7 @@ object ClusteringSessionTable{
     */
   def getLabelsToCluser(routeId: Int, hitId: String): List[LabelToCluster] = db.withSession {implicit session =>
     val asmts = AMTAssignmentTable.amtAssignments.filter(asmt => asmt.routeId === routeId && asmt.hitId === hitId)
+    println(asmts.list.length)
 
     // does a bunch of inner joins
     val labels = for {
