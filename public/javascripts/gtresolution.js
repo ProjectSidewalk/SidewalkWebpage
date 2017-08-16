@@ -745,27 +745,32 @@ $(document).ready(function () {
             if (next < data.length) {
                 resolveLowDisagreementConflict(data, next);
             } else {
-                //finished with low level conflicts
-                cluster_id_list.length = Object.keys(all_labels).length;
-                //intiailize mapbox layers and GSV panoramas
-                currentClusterIndex = 0;
-                var clusterId = cluster_id_list[currentClusterIndex];
-                while (all_labels[clusterId].length <= 0) {
-                    currentClusterIndex++;
-                    clusterId = cluster_id_list[currentClusterIndex];
-                }
-                currentLabel = all_labels[clusterId][0];
-                currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
-                map.setCenter(currentCoordinates);
-                clearCanvas(0);
-                document.getElementById("panorama-3").innerHTML = null;
-                //initialize panoramas and show the first high disagreement cluster
-                initializePanoramas(currentLabel);
-                addClusterToPanos(all_labels[clusterId]);
-                document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
+                startThirdRound();
             }
         });
     }//end of resolveLowDisagreementConflict
+
+    //begin high disagreemnt round
+    function startThirdRound(){
+      //finished with low level conflicts
+      cluster_id_list.length = Object.keys(all_labels).length;
+      //intiailize mapbox layers and GSV panoramas
+      currentClusterIndex = 0;
+      var clusterId = cluster_id_list[currentClusterIndex];
+      while (all_labels[clusterId].length <= 0) {
+          currentClusterIndex++;
+          clusterId = cluster_id_list[currentClusterIndex];
+      }
+      currentLabel = all_labels[clusterId][0];
+      currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
+      map.setCenter(currentCoordinates);
+      clearCanvas(0);
+      document.getElementById("panorama-3").innerHTML = null;
+      //initialize panoramas and show the first high disagreement cluster
+      initializePanoramas(currentLabel);
+      addClusterToPanos(all_labels[clusterId]);
+      document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
+    }//end of startThirdRound
 
     //choose the middle of three points
     function chooseMiddle(points) {
@@ -905,7 +910,11 @@ $(document).ready(function () {
                 //display all labels on map
                 initializeAllMapMarkers();
                 //deal with the first low disagreement conflict
-                resolveLowDisagreementConflict(toInvestigate, 0);
+                if(toInvestigate.length > 0){
+                  resolveLowDisagreementConflict(toInvestigate, 0);
+                }else{
+                  startThirdRound();
+                }
                 //});
             });
             //reduce filler at bottom of page (styling purposes)
