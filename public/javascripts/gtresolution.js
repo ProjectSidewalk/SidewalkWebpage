@@ -376,13 +376,15 @@ $(document).ready(function () {
             '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"></input>' +
             '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"></input>', // 9eba9e
             html: true,
-            delay: 100
+            delay: 100,
+            id: "#popover-" + data.label_id
         });
 
         //clicking yes for ground truth hides popover and calls yesGroundTruth
         $(document).on("click", '.popover #commit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
             yesGroundTruth(data);
+            changeSeverityPopover(pano,data,status);
         });
         //clicking no for ground truth hides popover and calls noGroundTruth
         $(document).on("click", '.popover #noCommit' + data.label_id, function () {
@@ -400,6 +402,40 @@ $(document).ready(function () {
             pano.labelMarkers[labelIndex].setOptions({zIndex: minZ});
         });
     }//end of createPopover
+
+    function changeSeverityPopover(pano, data, status){
+      var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
+      var markerElement = $("#label-id-" + data.label_id);
+      //create popup
+      markerElement.popover('destroy');
+      markerElement.popover({
+          placement: 'top',
+          content: 'Severity: <select name="changeSeverity" id="changeSeverity' + data.label_id + '"><option disabled selected value="none"> </option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select> (' + data.severity + ')<br>' +
+          'Temporary: <input type="checkbox" id ="changeTemp' + data.label_id + '"> (' + data.temporary + ')<br>' +
+          '<input type="button" id="updateCommit' + data.label_id + '" style="margin-top:4px" value="Commit"></input>', // 9eba9e
+          html: true,
+          delay: 100
+      });
+      markerElement.popover('show');
+
+      var marker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
+      var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === data.label_id);
+      $(document).on("click", '.popover #updateCommit' + data.label_id, function () {
+        //update severity and temporary
+        var newSeverity = parseInt($(".popover #changeSeverity" + data.label_id).val());
+        if(newSeverity = "none"){newSeverity = data.severity};
+        var newTemp = $(".popover #changeTemp" + data.label_id).is(':checked');
+        toUpdate.severity = newSeverity;
+        marker.meta.severity = newSeverity;
+        pano.labels[labelIndex].severity = newSeverity;
+        toUpdate.temporary = newTemp;
+        marker.meta.temporary = newTemp;
+        pano.labels[labelIndex].temporary = newTemp;
+        markerElement.popover('destroy');
+        createPopover(pano,data,status);
+      });
+
+    }
 
     //update counters at bottom of page
     function updateCounters() {

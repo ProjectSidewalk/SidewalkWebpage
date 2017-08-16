@@ -891,7 +891,9 @@ video#bgvid {
     padding-top: 3px;
     padding-right: 3px;
 }
-
+.popover-content {
+    text-align: center;
+}
 
 #wrap {
     min-height: 100%;
