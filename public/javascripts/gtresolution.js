@@ -235,6 +235,7 @@ $(document).ready(function () {
                 zoomControl: true,
                 scrollwheel: false
             });
+            panoramaContainers[i].gsv_panorama.setOptions({visible: false});
         }
     }//end of initializePanoramas
 
@@ -262,7 +263,7 @@ $(document).ready(function () {
                 pano.info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + ' | <b>Labels Shown: </b> <span class="labelCount">' + pano.labels.length + '</span> | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
             }
         }
-        //if this toggle button has already been intialized, do not re-initialize
+        //if this toggle button has already been initialized, do not re-initialize
         if (initializedToggleButtons.indexOf(label.pano_id + label.cluster_id) < 0) {
             initializedToggleButtons.push(label.pano_id + label.cluster_id);
             //Toggle visibility of label markers (hide and show)
@@ -368,7 +369,8 @@ $(document).ready(function () {
             'Ground Truth: <input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"></input>' +
             '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"></input>' +
             '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"></input>', // 9eba9e
-            html: true
+            html: true,
+            delay: 100
         });
 
         //clicking yes for ground truth hides popover and calls yesGroundTruth
@@ -539,6 +541,7 @@ $(document).ready(function () {
                 showLabel(marker.meta, panoramaContainers[nextOpenView], marker.status);
             }
         }
+        var counts = document.getElementsByClassName("labelCount");
         //focus views in between headings of labels
         for (var p = 0; p < 4; p++) {
             var pano = panoramaContainers[p];
@@ -556,14 +559,13 @@ $(document).ready(function () {
             }
             if (count > 0) {
                 pano.gsv_panorama.setPov({heading: headingSum / count, pitch: pitchSum / count});
+                counts[p].innerHTML = panoramaContainers[p].labels.length;
+                pano.gsv_panorama.setOptions({visible: true});
+            }else{
+                pano.gsv_panorama.setOptions({visible: false});
             }
         }
         nextOpenView = calculateNextOpenPanorama();
-        //count and display the number of labels in each GSV
-        var counts = document.getElementsByClassName("labelCount");
-        for (i = 0; i < counts.length; i++) {
-            counts[i].innerHTML = panoramaContainers[i].labels.length;
-        }
     }//end of addClusterToPanos
 
     //next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
@@ -755,7 +757,8 @@ $(document).ready(function () {
                 currentLabel = all_labels[clusterId][0];
                 currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
                 map.setCenter(currentCoordinates);
-                clearCanvas(0, self.allLayers);
+                clearCanvas(0);
+                document.getElementById("panorama-3").innerHTML = null;
                 //initialize panoramas and show the first high disagreement cluster
                 initializePanoramas(currentLabel);
                 addClusterToPanos(all_labels[clusterId]);
