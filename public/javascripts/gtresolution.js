@@ -340,6 +340,9 @@ $(document).ready(function () {
             for (var i = 0; i < pano.labelMarkers.length; i++) {
                 if (i != markerIndex) {
                     $('#' + pano.labelMarkers[i].getId()).popover('hide');
+                    var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
+                    closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+                    closeMarker.clicked= false;
                 }
             }
             //empasize/deemphasize corresponding label on map
@@ -355,6 +358,9 @@ $(document).ready(function () {
             // Popover follows marker when POV is changed
             createPopover(pano, label, status);
             $("#" + id).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
         });
         //return POV focused on the placed marker
         return {heading: labelPosition.heading, pitch: labelPosition.pitch};
@@ -389,11 +395,17 @@ $(document).ready(function () {
         //clicking no for ground truth hides popover and calls noGroundTruth
         $(document).on("click", '.popover #noCommit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
             noGroundTruth(data);
         });
         //clicking send to back calculates the minimum zIndex of the labels within the panorama, and sends the current label behind that
         $(document).on("click", '.popover #sendToBack' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
             var minZ = 1000;
             for (var j = 0; j < pano.labelMarkers.length; j++) {
                 minZ = Math.min(minZ, pano.labelMarkers[j].getZIndex());
@@ -432,6 +444,8 @@ $(document).ready(function () {
         marker.meta.temporary = newTemp;
         pano.labels[labelIndex].temporary = newTemp;
         markerElement.popover('destroy');
+        marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});
+        marker.clicked = false;
         createPopover(pano,data,status);
       });
 
@@ -535,6 +549,9 @@ $(document).ready(function () {
             var labelId = panoramaContainer.labels[i].label_id;
             //hide popover
             $('#' + markerLabel.getId()).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === labelId);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
             //remove view number label from map marker
             var mLabel = mapLabels.find(mkr => mkr.id === labelId);
             if (mLabel != null) {
