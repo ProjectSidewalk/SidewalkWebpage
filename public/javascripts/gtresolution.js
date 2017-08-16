@@ -167,6 +167,7 @@ $(document).ready(function () {
             var marker = new google.maps.Circle({
                 id: "marker" + feature.meta.label_id,
                 meta: feature.meta,
+                clicked: false,
                 status: feature.status,
                 center: new google.maps.LatLng(feature.meta.lat, feature.meta.lng),
                 radius: 0.5,
@@ -196,7 +197,7 @@ $(document).ready(function () {
                 //if so, highlight that view with a border
                 if (pano != null) {
                     pano.view.style.borderStyle = "solid";
-                }
+                  }
                 //emphasize label on map by highlighting pink
                 marker.setOptions({fillColor: '#ff38fb'});
             });
@@ -207,9 +208,9 @@ $(document).ready(function () {
                 //if so, highlight that view with a border
                 if (pano != null) {
                     pano.view.style.borderStyle = "hidden";
-                }
+                  }
                 //deemphasize label by removing the pink highlight
-                marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});
+                if(!marker.clicked){marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});}
             });
             //add marker to map, add marker and label to storage arrays
             marker.setMap(map);
@@ -341,9 +342,14 @@ $(document).ready(function () {
                     $('#' + pano.labelMarkers[i].getId()).popover('hide');
                 }
             }
+            //empasize/deemphasize corresponding label on map
+            var marker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
+            if(marker.clicked){marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle}); marker.clicked = false}
+            else{marker.setOptions({fillColor: '#ff38fb'}); marker.clicked = true;}
             //create and open popover for label
             createPopover(pano, label, status);
         });
+
         //CHANGE IN POV
         google.maps.event.addListener(pano.gsv_panorama, 'pov_changed', function () {
             // Popover follows marker when POV is changed
@@ -731,7 +737,7 @@ $(document).ready(function () {
         if (!data[index].temp) {
             document.getElementById("temp_heading").style.backgroundColor = "#ff6d77";
         }
-        //highlight the middle label being shown 
+        //highlight the middle label being shown
         document.getElementById("user" + data[index].chosen).style.backgroundColor = "#ffe500";
 
         //update label found in ground truth
