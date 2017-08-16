@@ -133,30 +133,43 @@ if __name__ == '__main__':
     # then add those labels to the output_data. Note that the function 'cluster' modifies the input
     # dataframe, and returns some summary stats, which is why we print the result of the function.
     output_data = pd.DataFrame()
-    if ramp_data.shape[0] > 0:
+    clustOffset = 0
+    if ramp_data.shape[0] > 1:
         print cluster(ramp_data, CLUSTER_THRESHOLD)
         output_data = output_data.append(ramp_data.filter(items=['label_id', 'label_type', 'cluster']))
+    elif ramp_data.shape[0] == 1:
+        ramp_data['cluster'] = 1
+        output_data = output_data.append(ramp_data.filter(items=['label_id', 'label_type', 'cluster']))
+    if output_data.shape[0] > 0:
+        clustOffset = np.max(output_data.cluster)
+
     if surf_data.shape[0] > 0:
         print cluster(surf_data, CLUSTER_THRESHOLD)
-        clustOffset = 0
-        if output_data.shape[0] > 0:
-            clustOffset = np.max(output_data.cluster)
         output_data = output_data.append(surf_data.filter(items=['label_id', 'label_type', 'cluster']))
         output_data.loc[output_data['label_type'] == 'SurfaceProblem', 'cluster'] += clustOffset
+    elif surf_data.shape[0] == 1:
+        surf_data['cluster'] = 1 + clustOffset
+        output_data = output_data.append(surf_data.filter(items=['label_id', 'label_type', 'cluster']))
+    if output_data.shape[0] > 0:
+        clustOffset = np.max(output_data.cluster)
+
     if obs_data.shape[0] > 0:
         print cluster(obs_data, CLUSTER_THRESHOLD)
-        clustOffset = 0
-        if output_data.shape[0] > 0:
-            clustOffset = np.max(output_data.cluster)
         output_data = output_data.append(obs_data.filter(items=['label_id', 'label_type', 'cluster']))
         output_data.loc[output_data['label_type'] == 'Obstacle', 'cluster'] += clustOffset
+    elif obs_data.shape[0] == 1:
+        obs_data['cluster'] = 1 + clustOffset
+        output_data = output_data.append(obs_data.filter(items=['label_id', 'label_type', 'cluster']))
+    if output_data.shape[0] > 0:
+        clustOffset = np.max(output_data.cluster)
+
     if noramp_data.shape[0] > 0:
         print cluster(noramp_data, CLUSTER_THRESHOLD)
-        clustOffset = 0
-        if output_data.shape[0] > 0:
-            clustOffset = np.max(output_data.cluster)
         output_data = output_data.append(noramp_data.filter(items=['label_id', 'label_type', 'cluster']))
         output_data.loc[output_data['label_type'] == 'NoCurbRamp', 'cluster'] += clustOffset
+    elif noramp_data.shape[0] == 1:
+        noramp_data['cluster'] = 1 + clustOffset
+        output_data = output_data.append(noramp_data.filter(items=['label_id', 'label_type', 'cluster']))
 
     output_json = output_data.to_json(orient='records', lines=False)
 
