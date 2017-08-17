@@ -24,6 +24,22 @@ function NeighborhoodModel () {
             $.when($.ajax("/neighborhoods")).done(self._handleFetchComplete)
         }
     };
+    
+    this.fetchNextLeastAuditedRegion = function (username, async, callback) {
+        if (typeof async === "undefined") async = true;
+        $.ajax({
+            async: async,
+            url: "/neighborhoods/" + username, // Needs change - URL incorrect
+            type: 'get',
+            success: function (json) {
+                self._handleFetchComplete(json);
+                if (callback) callback();
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);
 
