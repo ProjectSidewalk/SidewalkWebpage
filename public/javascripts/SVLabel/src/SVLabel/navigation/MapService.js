@@ -967,7 +967,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
-        //position updated, set delay until user can walk again to properly update canvas
         // Takes care of position_changed happening after the map has already been set
         map.setCenter(position);
 
@@ -975,6 +974,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.contextMenu.isOpen()){
             svl.contextMenu.hide();
         }
+
+        // Position updated, set delay until user can walk again to properly update canvas
         if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
             timeoutWalking();
             setTimeout(resetWalking, moveDelay);

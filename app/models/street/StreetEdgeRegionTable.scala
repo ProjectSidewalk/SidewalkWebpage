@@ -6,7 +6,7 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class StreetEdgeRegion(streetEdgeId: Int, parentEdgeId: Int)
+case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 
 class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some("sidewalk"),  "street_edge_region") {
   def streetEdgeId = column[Int]("street_edge_id")
@@ -24,23 +24,46 @@ class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some(
 object StreetEdgeRegionTable {
   val db = play.api.db.slick.DB
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTable]
+  val nonDeletedStreetEdgeRegions = for {
+    _ser <- streetEdgeRegionTable
+    _se <- StreetEdgeTable.streetEdgesWithoutDeleted if _ser.streetEdgeId === _se.streetEdgeId
+    _r <- RegionTable.regionsWithoutDeleted if _ser.regionId === _r.regionId
+  } yield _ser
 
   /**
-   * Get records based on the child id.
-   * @param streetEdgeId
-   * @return
-   */
-  def selectStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
+    * Get records based on the street edge id.
+    * @param streetEdgeId
+    * @return
+    */
+  def selectByStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
     streetEdgeRegionTable.filter(item => item.streetEdgeId === streetEdgeId).list
   }
 
   /**
-   * Get records based on the parent id.
-   * @param regionId
-   * @return
-   */
+    * Get records based on the street edge id.
+    * @param streetEdgeId
+    * @return
+    */
+  def selectNonDeletedByStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
+    nonDeletedStreetEdgeRegions.filter(item => item.streetEdgeId === streetEdgeId).list
+  }
+
+  /**
+    * Get records based on the region id.
+    * @param regionId
+    * @return
+    */
   def selectByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
     streetEdgeRegionTable.filter(item => item.regionId === regionId).list
+  }
+
+  /**
+    * Get records based on the region id.
+    * @param regionId
+    * @return
+    */
+  def selectNonDeletedByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
+    nonDeletedStreetEdgeRegions.filter(item => item.regionId === regionId).list
   }
 
   /**

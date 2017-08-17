@@ -313,6 +313,14 @@ function Main (params) {
         svl.missionContainer.setCurrentMission(onboardingMission);
     }
 
+    function findTheNextRegionWithMissionsNew () {
+
+        // Query the server for the next least unaudited region (across users)
+        // and that hasn't been done by the user
+        var username = svl.user.getProperty("username");
+        return neighborhoodModel.fetchNextLeastAuditedRegion(username);
+    }
+
     function findTheNextRegionWithMissions (currentNeighborhood) {
         var currentRegionId = currentNeighborhood.getProperty("regionId");
         var allRegionIds = svl.neighborhoodContainer.getRegionIds();
@@ -472,6 +480,8 @@ function Main (params) {
 
         if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
             regionId = findTheNextRegionWithMissions(currentNeighborhood);
+
+            // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
             if (regionId == null) return;  // No missions available.
 
             currentNeighborhood = svl.neighborhoodContainer.get(regionId);
