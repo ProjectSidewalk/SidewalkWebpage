@@ -51,7 +51,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Check and make sure that the user has been assigned to a region
         if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-          println("Not Assigned")
           UserCurrentRegionTable.assignRandomly(user.userId)
         }
 
