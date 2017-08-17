@@ -51,7 +51,7 @@ function LabelContainer($) {
     };
 
     /**
-     * Returns canvas labels. NOTE: I don't think this is used anywhere anymore.
+     * Returns canvas labels.
      */
     this.getCanvasLabels = function () {
         return prevCanvasLabels.concat(currentCanvasLabels);
@@ -66,6 +66,44 @@ function LabelContainer($) {
         return prevCanvasLabels;
     };
 
+    //find most recent instance of label with matching temporary ID
+    this.findLabelByTempId = function (tempId) {
+        var matchingLabels =  _.filter(svl.labelContainer.getCanvasLabels(),
+            function(label) {
+                return label.getProperty("temporary_label_id") === tempId;
+            });
+
+        if(matchingLabels.length === 0){
+            return null;
+        }
+
+        //returns most recent version of label
+        return matchingLabels[matchingLabels.length - 1];
+    };
+
+    //remove old versions of this label, add updated label
+    this.addUpdatedLabel = function (tempId) {
+        var otherLabels = _.filter(currentCanvasLabels,
+            function(label){
+                return label.getProperty("temporary_label_id") !== tempId;
+            });
+
+        //if there are no temporary labels with this ID in currentCanvasLabels
+        //then add it to that list
+        //otherwise get rid of all old instances in currentCanvasLabels and add the updated label
+
+        var match = this.findLabelByTempId(tempId);
+
+        // Label with this id doesn't exist in currentCanvasLabels
+        if(otherLabels.length === currentCanvasLabels.length){
+            currentCanvasLabels.push(match);
+        } else {
+            currentCanvasLabels = otherLabels;
+            if(match !== null)
+                currentCanvasLabels.push(match);
+        }
+    };
+
     /** Load labels */
     function load () {
         currentCanvasLabels = svl.storage.get("labels");
@@ -78,7 +116,7 @@ function LabelContainer($) {
     this.push = function (label) {
         currentCanvasLabels.push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
-        
+
         // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
         var panoramaId = label.getProperty("panoId");
         if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
@@ -108,13 +146,13 @@ function LabelContainer($) {
         for (; i < len; i++) {
             storedLabel = neighborhoodLabels[neighborhoodId][i];
 
-            if (storedLabel.getProperty("labelId") != "DefaultValue" &&
-                storedLabel.getProperty("labelId") == label.getProperty("labelId")) {
+            if (storedLabel.getProperty("labelId") !== "DefaultValue" &&
+                storedLabel.getProperty("labelId") === label.getProperty("labelId")) {
                 return;
             }
 
             if (storedLabel.getProperty("temporary_label_id") &&
-                storedLabel.getProperty("temporary_label_id") == label.getProperty("temporary_label_id")) {
+                storedLabel.getProperty("temporary_label_id") === label.getProperty("temporary_label_id")) {
                 return
             }
         }

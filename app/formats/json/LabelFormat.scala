@@ -1,5 +1,7 @@
 package formats.json
 
+import java.sql.Timestamp
+
 import models.label._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -28,7 +30,8 @@ object LabelFormats {
       (__ \ "panorama_lat").write[Float] and
       (__ \ "panorama_lng").write[Float] and
       (__ \ "deleted").write[Boolean] and
-      (__ \ "temporary_label_id").writeNullable[Int]
+      (__ \ "temporary_label_id").writeNullable[Int] and
+      (__ \ "time_created").writeNullable[Timestamp]
     )(unlift(Label.unapply _))
 
 }

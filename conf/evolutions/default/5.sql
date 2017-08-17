@@ -16,6 +16,9 @@ CREATE TABLE amt_volunteer_route(
   FOREIGN KEY (route_id) REFERENCES route(route_id)
 );
 
+ALTER TABLE label
+    ADD time_created TIMESTAMP;
+
 # --- !Downs
 DROP TABLE amt_volunteer_route;
 
@@ -25,3 +28,6 @@ ALTER TABLE amt_condition
 ALTER TABLE turker
   DROP CONSTRAINT IF EXISTS turker_amt_condition_id_fkey,
   DROP amt_condition_id;
+
+ALTER TABLE label
+    DROP time_created;

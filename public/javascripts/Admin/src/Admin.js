@@ -847,7 +847,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-
                 // make a choropleth of neighborhood completion percentages
                 initializeChoroplethNeighborhoodPolygons(choropleth, data);
                 choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
@@ -1096,7 +1095,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
                     var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, anonChart]};
 
-                    vega.embed("#mission-count-chart", combinedChart, opt, function(error, results) {});
+                    vega.embed("#mission-count-chart", combinedChartFiltered, opt, function(error, results) {});
 
                     var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function(cb) {
                         if (cb.srcElement.checked) {
@@ -1192,6 +1191,66 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
                     }
                 });
+            });
+
+            // Creates chart showing how many audit page visits there are, how many people click via choropleth, how
+            // many click "start mapping" on navbar, and how many click "start mapping" on the landing page itself.
+            $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
+                // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
+                // TODO switch this to make use of versioning on the backend once it is implemented...
+                // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
+                var numVisitAudit = visitAuditEvents[0].filter(function(event){
+                    return event.timestamp > 1500584520000;
+                }).length;
+                var numClickStartMappingMainIndex = clickStartMappingMainIndexEvents[0].filter(function(event){
+                    return event.timestamp > 1500584520000;
+                }).length;
+                var numChoroplethClicks = choroplethClickEvents[0].filter(function(event){
+                    return event.timestamp > 1500584520000;
+                }).length;
+                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].filter(function(event){
+                    return event.timestamp > 1500584520000;
+                }).length;                                
+
+                // Fill in values in "How users access Audit Page from Landing Page:" table
+                $("#audit-access-table-start-main").append(
+                    '<td style="text-align: right;">'+
+                        numClickStartMappingMainIndex+
+                    '</td>'+
+                    '<td style="text-align: right;">'+
+                        (parseInt(numClickStartMappingMainIndex)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    '</td>'
+                );
+                $("#audit-access-table-start-nav").append(
+                    '<td style="text-align: right;">'+
+                        numClickStartMappingNavIndex+
+                    '</td>'+
+                    '<td style="text-align: right;">'+
+                        (parseInt(numClickStartMappingNavIndex)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    '</td>'
+                );
+                $("#audit-access-table-choro").append(
+                    '<td style="text-align: right;">'+
+                        numChoroplethClicks+
+                    '</td>'+
+                    '<td style="text-align: right;">'+
+                        (parseInt(numChoroplethClicks)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    '</td>'
+                );
+                $("#audit-access-table-total").append(
+                    '<td style="text-align: right;">'+
+                        numVisitAudit+
+                    '</td>'+
+                    '<td style="text-align: right;">'+
+                        '100.0%'+
+                    '</td>'
+                );
+            });
+            });
+            });
             });
             self.graphsLoaded = true;
         }

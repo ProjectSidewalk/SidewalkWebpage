@@ -131,6 +131,7 @@ function Main (params) {
 
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
             svl.routeModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -527,12 +528,12 @@ function Main (params) {
         return _tasks.length > 0;
     }
 
-    function getStatus (key) { 
-        return key in status ? status[key] : null; 
+    function getStatus (key) {
+        return key in status ? status[key] : null;
     }
 
-    function setStatus (key, value) { 
-        status[key] = value; return this; 
+    function setStatus (key, value) {
+        status[key] = value; return this;
     }
 
     /**
