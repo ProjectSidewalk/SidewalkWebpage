@@ -14,7 +14,6 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
 
-
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
@@ -226,16 +225,16 @@
                                         class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
                                     <div class="problem-severity-axis-label">Passable</div>
                                 </div>
-                                <div class="radio-inline">
-                                    <label class="radio-button-labels">
-                                        <input type="radio" name="problem-severity" value="1">
+                                <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
+                                  <label class="radio-button-labels">
+                                    <input type="radio" name="problem-severity" value="1">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             value="1" alt="Smiley face rating 1">
                                         <div>1</div>
                                     </label>
                                 </div>
-                                <div class="radio-inline">
+                                <div class="radio-inline" id="severity-two">
                                     <label class="radio-button-labels">
                                         <input type="radio" name="problem-severity" value="2">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_2_BW.png'
@@ -244,16 +243,16 @@
                                         <div>2</div>
                                     </label>
                                 </div>
-                                <div class="radio-inline">
-                                    <label class="radio-button-labels">
-                                        <input type="radio" name="problem-severity" value="3">
+                                <div class="radio-inline" id="severity-three" data-toggle="tooltip">
+                                  <label class="radio-button-labels">
+                                      <input type="radio" name="problem-severity" value="3">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
                                             value="3" alt="Smiley face rating 3">
                                         <div>3</div>
                                     </label>
                                 </div>
-                                <div class="radio-inline">
+                                <div class="radio-inline" id="severity-four">
                                     <label class="radio-button-labels">
                                         <input type="radio" name="problem-severity" value="4">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_4_BW.png'
@@ -262,9 +261,9 @@
                                         <div>4</div>
                                     </label>
                                 </div>
-                                <div class="radio-inline">
-                                    <label class="radio-button-labels">
-                                        <input type="radio" name="problem-severity" value="5">
+                                <div class="radio-inline" id="severity-five" data-toggle="tooltip">
+                                  <label class="radio-button-labels">
+                                      <input type="radio" name="problem-severity" value="5">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
                                             value="5" alt="Smiley face rating 5">
@@ -446,12 +445,12 @@
                     </div>
                     <div class="row">
                         <div class="col-md-4">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_Good.png")' class="img-responsive" alt="Two good curb ramps" />
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
                             <p class="bold">Rating 1: Passable</p>
                             <p>Clean curb ramps that are aligned with crosswalks.</p>
                         </div>
                         <div class="col-md-4">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_Neutral.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
                             <p class="bold">Rating 3: Neutral</p>
                             <p>A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs
                                 may have trouble using this curb ramp.</p>
