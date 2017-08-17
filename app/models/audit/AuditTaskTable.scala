@@ -5,13 +5,14 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone, UUID}
 
-import models.street.{StreetEdge, StreetEdgeAssignmentCountTable, StreetEdgeRegionTable, StreetEdgeTable}
-import models.user.User
+import models.street._
+import models.user.{User, UserCurrentRegionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionTable
+import play.api.Logger
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -208,8 +209,8 @@ object AuditTaskTable {
     * @param userId user id
     */
   def isTaskAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
-    val selectAvailableTaskQuery = Q.query[(Int, String), AuditTask](
-      """SELECT audit_task.* FROM sidewalk.user_current_region
+    val selectAvailableTaskQuery = Q.query[(Int, String), Int](
+      """SELECT COUNT(audit_task.*) FROM sidewalk.user_current_region
         |INNER JOIN sidewalk.region
         |ON region.region_id = ?
         |INNER JOIN sidewalk.street_edge
@@ -217,12 +218,12 @@ object AuditTaskTable {
         |LEFT JOIN sidewalk.audit_task
         |ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE user_current_region.user_id = ?
-        |AND audit_task.audit_task_id IS NULL
+        |AND (audit_task.audit_task_id IS NULL OR NOT audit_task.completed)
       """.stripMargin
     )
 
-    val availableTasks = selectAvailableTaskQuery((regionId, userId.toString)).list
-    availableTasks.nonEmpty
+    val availableTasks: Int = selectAvailableTaskQuery((regionId, userId.toString)).list.head
+    availableTasks > 0
   }
 
   /**
@@ -327,14 +328,14 @@ object AuditTaskTable {
    * http://stackoverflow.com/questions/14425844/why-does-slick-generate-a-subquery-when-take-method-is-called
    * http://stackoverflow.com/questions/14920153/how-to-write-nested-queries-in-select-clause
    *
-   * @param username User name. Todo. Change it to user id
+   * @param user User ID.
    * @return
    */
-  def selectANewTask(username: String): NewTask = db.withSession { implicit session =>
+  def selectANewTask(user: UUID): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val completedTasks = for {
-      u <- users.filter(_.username === username)
+      u <- users.filter(_.username === user.toString)
       at <- auditTasks if at.userId === u.userId
     } yield (u.username.?, at.streetEdgeId.?)
 
@@ -347,17 +348,22 @@ object AuditTaskTable {
       (se, ac) <- edges.innerJoin(assignmentCount).on(_.streetEdgeId === _.streetEdgeId)
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac.completionCount)).take(100).list
 
-    // Increment the assignment count and return the task
     val edge = Random.shuffle(edgesWithCompCount).head
+
+    // find a region that this street belongs to, and assign user to that region
+    val regionId: Int = StreetEdgeRegionTable.selectNonDeletedByStreetEdgeId(edge._1).head.regionId
+    UserCurrentRegionTable.update(user, regionId)
+
+    // Increment the assignment count and return the task
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
     NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, completed=false)
   }
 
   /**
-   * Get task without username
-   *
-   * @return
-   */
+    * Get task without username
+    *
+    * @return
+    */
   def selectANewTask: NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
@@ -422,7 +428,7 @@ object AuditTaskTable {
     val lowestCompletionCount: Int = (for {
       (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
       if !_counts.streetEdgeId.?.isEmpty
-    } yield _counts.completionCount.?.getOrElse(-1)).min.run.get
+    } yield _counts.completionCount.?.getOrElse(-1)).min.run.getOrElse(-1)
 
     val leastAuditedEdges = for {
       (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
@@ -436,7 +442,9 @@ object AuditTaskTable {
         val e: StreetEdge = Random.shuffle(edges).head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, lowestCompletionCount, completed=false)
-      case _ => selectANewTask // The list is empty for whatever the reason
+      case _ =>
+        Logger.warn("Unable to assign a task in region " + regionId + " to an anonymous user.")
+        selectANewTask // The list is empty for whatever the reason
     }
   }
 
@@ -444,12 +452,12 @@ object AuditTaskTable {
    * Get a task that is in a given region
    *
    * @param regionId region id
-   * @param user User object. Todo. Change this to user id.
+   * @param user User ID.
    * @return
    */
-  def selectANewTaskInARegion(regionId: Int, user: User) = db.withSession { implicit session =>
+  def selectANewTaskInARegion(regionId: Int, user: UUID) = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-    val userId: String = user.userId.toString
+    val userId: String = user.toString
 
     val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
     val completedTasks = auditTasks.filter(x => x.userId === userId && x.completed)
@@ -464,26 +472,39 @@ object AuditTaskTable {
       if _tasks.streetEdgeId.?.isEmpty
     } yield _edges
 
-    val lowestCompletionCount: Int = (for {
+    // Gets the lowest completion count (across all users) for the set of streets in this region that this particular
+    // user has not audited. This should only be None if the user has audited all routes in this region.
+    val lowestCompletionCount: Option[Int] = (for {
       (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
       if !_counts.streetEdgeId.?.isEmpty
-    } yield _counts.completionCount.?.getOrElse(-1)).min.run.get
+    } yield _counts.completionCount.?.getOrElse(-1)).min.run
 
-    val leastAuditedEdges = for {
-      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
-      if !_counts.streetEdgeId.?.isEmpty && _counts.completionCount === lowestCompletionCount
-    } yield _edges
+    // Gets the list of edges in the region that has the minimum completion count.
+    lowestCompletionCount match {
+      case Some(completionCount) =>
+        // Gets the list of edges in the region that has the minimum completion count.
+        val leastAuditedEdges = for {
+          (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+          if !_counts.streetEdgeId.?.isEmpty && _counts.completionCount === completionCount
+        } yield _edges
+        val edges: List[StreetEdge] = leastAuditedEdges.list
 
-    val edges: List[StreetEdge] = leastAuditedEdges.list
+        edges match {
+          case edges if edges.nonEmpty =>
+            // Increment the assignment count and return the task
+            val e: StreetEdge = Random.shuffle(edges).head
+            StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
+            NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completionCount, completed=false)
 
-    edges match {
-      case edges if edges.nonEmpty =>
-        // Increment the assignment count and return the task
-        val e: StreetEdge = Random.shuffle(edges).head
-        StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, lowestCompletionCount, completed=false)
-      case _ =>
-        selectANewTask // The list is empty for whatever the reason. Probably the user has audited all the streets in the region
+          // If the user has already audited all streets in the region, then the count would be null, so give them a
+          // new task in a new region.
+          case _ =>
+            selectANewTask(user)
+        }
+      // If the user has already audited all streets in the region, then the count would be null, so give them a
+      // new task in a new region.
+      case None =>
+        selectANewTask(user)
     }
   }
 

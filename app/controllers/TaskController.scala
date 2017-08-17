@@ -45,7 +45,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   def getTask = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val task = AuditTaskTable.selectANewTask(user.username)
+        val task = AuditTaskTable.selectANewTask(user.userId)
         Future.successful(Ok(task.toJSON))
       case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
     }
