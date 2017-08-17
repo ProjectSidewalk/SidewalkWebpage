@@ -101,7 +101,6 @@ function Main (params) {
         svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
-        svl.tracker.push('TaskStart');
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);

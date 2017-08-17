@@ -287,8 +287,9 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
             dataType: 'json',
             success: function (result) {
                 if (result) {
-                    task.setProperty("auditTaskId", result.audit_task_id);
-                    svl.tracker.setAuditTaskID(result.audit_task_id);
+                    var taskId = result.audit_task_id;
+                    task.setProperty("auditTaskId", taskId);
+                    svl.tracker.setAuditTaskID(taskId);
                 }
             },
             error: function (result) {
