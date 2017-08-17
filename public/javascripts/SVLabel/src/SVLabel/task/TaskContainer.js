@@ -177,7 +177,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 type: 'get',
                 success: function (result) {
                     var task;
-                    console.log("Number of tasks received: " + result.length);
                     for (var i = 0; i < result.length; i++) {
                         task = svl.taskFactory.create(result[i]);
                         if ((result[i].features[0].properties.completed)) task.complete();
