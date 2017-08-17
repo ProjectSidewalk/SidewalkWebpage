@@ -122,7 +122,7 @@ POST    /gtresolution/results/:clustSessionId    @controllers.GroundTruthResolut
 
 # Clustering session end points
 GET     /clusteringsessions                             @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted
-GET     /clusterRoute/:routeId                          @controllers.ClusteringSessionController.runClustering(routeId: Int)
+GET     /clusterRoute/:routeId/:hitId                   @controllers.ClusteringSessionController.runClustering(routeId: Int, hitId: String)
 GET     /labelsToCluster/:routeId/:hitId                @controllers.ClusteringSessionController.getLabelsToCluser(routeId, hitId)
 GET     /labelsForGtResolution/:sessionId               @controllers.ClusteringSessionController.getLabelsForGtResolution(sessionId)
 POST    /clusteringResults/:routeId/:threshold          @controllers.ClusteringSessionController.postClusteringResults(routeId, threshold)

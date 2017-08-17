@@ -39,9 +39,9 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
 //    }
   }
 
-  def runClustering(routeId: Int) = UserAwareAction.async { implicit request =>
+  def runClustering(routeId: Int, hitId: String) = UserAwareAction.async { implicit request =>
 //    if (isAdmin(request.identity)) {
-      val clusteringOutput = ("python label_clustering.py " + routeId).!!
+      val clusteringOutput = ("python label_clustering.py " + routeId + " " + hitId).!!
 //      println(clusteringOutput)
       val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
       Future.successful(Ok(testJson))
@@ -114,7 +114,6 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
       }
     )
     val json = Json.obj()
-    println()
     Future.successful(Ok(json))
   }
 

@@ -13,6 +13,7 @@ if __name__ == '__main__':
     from pandas.io.json import json_normalize
     import json
     import argparse
+    from sklearn.cluster import KMeans
 
     MAJORITY_THRESHOLD = 3
 
@@ -20,7 +21,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Takes a set of labels from JSON, and outputs the labels grouped into clusters as JSON')
     parser.add_argument('route_id', type=int,
                         help='Route Id who\'s labels should be clustered.')
-    parser.add_argument('--clust_thresh', type=float, default=0.005,
+    parser.add_argument('hit_id', type=str,
+                        help='HIT Id who\'s labels should be clustered.')
+    parser.add_argument('--clust_thresh', type=float, default=0.0075,
                         help='Cluster distance threshold (in meters)')
     parser.add_argument('--debug', action='store_true',
                         help='Debug mode adds print statements')
@@ -28,12 +31,11 @@ if __name__ == '__main__':
     DEBUG = args.debug
     CLUSTER_THRESHOLD = args.clust_thresh
     ROUTE_ID = args.route_id
-    print ROUTE_ID
+    HIT_ID = args.hit_id
 
 
     try:
-        url = 'http://localhost:9000/labelsToCluster/' + str(ROUTE_ID) + '/' + str(ROUTE_ID)
-        print url
+        url = 'http://localhost:9000/labelsToCluster/' + str(ROUTE_ID) + '/' + str(HIT_ID)
         response = requests.get(url)
         data = response.json()
         label_data = json_normalize(data[0])
@@ -73,23 +75,17 @@ if __name__ == '__main__':
     obs_data = label_data[label_data.label_type == 'Obstacle']
     noramp_data = label_data[label_data.label_type == 'NoCurbRamp']
 
-    # for each label type, create distance matrix between all pairs of labels
-    ramp_dist_matrix = pdist(np.array(ramp_data[['lat','lng']].as_matrix()), lambda x,y: haversine(x,y))
-    surf_dist_matrix = pdist(np.array(surf_data[['lat','lng']].as_matrix()), lambda x,y: haversine(x,y))
-    obs_dist_matrix = pdist(np.array(obs_data[['lat','lng']].as_matrix()), lambda x,y: haversine(x,y))
-    noramp_dist_matrix = pdist(np.array(noramp_data[['lat','lng']].as_matrix()), lambda x,y: haversine(x,y))
-
     # for each label type, cluster based on distance
-    ramp_link = linkage(ramp_dist_matrix, method='complete')
-    surf_link = linkage(surf_dist_matrix, method='complete')
-    # obs_link = linkage(obs_dist_matrix, method='complete')
-    # noramp_link = linkage(noramp_dist_matrix, method='complete')
 
-    def cluster(labels, link, clust_thresh):
+    def cluster(labels, clust_thresh):
+        dist_matrix = pdist(np.array(labels[['lat','lng']].as_matrix()), lambda x,y: haversine(x,y))
+        link = linkage(dist_matrix, method='complete')
         curr_type = labels.label_type.iloc[1]
-        # cuts tree so that only labels less than clust_threth meters apart are clustered, adds a col
+        # cuts tree so that only labels less than clust_threth kilometers apart are clustered, adds a col
         # to dataframe with label for the cluster they are in
         labels['cluster'] = fcluster(link, t=clust_thresh, criterion='distance')
+        labelsCopy = labels.copy()
+        newClustId = np.max(labels.cluster) + 1
         #print pd.DataFrame(pd.DataFrame(labels.groupby('cluster').size().rename('points_count')).groupby('points_count').size().rename('points_count_frequency'))
 
         # Majority vote to decide what is included. If a cluster has at least 3 people agreeing on the type
@@ -97,11 +93,18 @@ if __name__ == '__main__':
         # we can look at them by hand through the admin interface to decide.
         included_labels = [] # list of tuples (label_type, lat, lng)
         problem_label_indices = [] # list of indices in dataset of labels that need to be verified
-        clusters = labels.groupby('cluster')
+        clusters = labelsCopy.groupby('cluster')
         total_dups = 0
         agreement_count = 0
         disagreement_count = 0
         for clust_num, clust in clusters:
+            # if we have more labels than the number of GT labelers, then do a 2-means clustering on the cluster.
+            if len(clust) > 3:
+                kmeans = KMeans(n_clusters=2)
+                kmeans.fit(clust.as_matrix(columns=['lat','lng']))
+                labels.set_value(clust.loc[kmeans.labels_ == 1].index,'cluster', newClustId)
+                newClustId += 1
+
             # only include one label per user per cluster
             no_dups = clust.drop_duplicates(subset=['turker_id'])
             total_dups += (len(clust) - len(no_dups))
@@ -124,14 +127,50 @@ if __name__ == '__main__':
 
         return (curr_type, clust_thresh, agreement_count, disagreement_count, total_dups)
 
-    print cluster(ramp_data, ramp_link, CLUSTER_THRESHOLD)
-    print cluster(surf_data, surf_link, CLUSTER_THRESHOLD)
-    # print cluster(obs_data, obs_link, CLUSTER_THRESHOLD)
-    # print cluster(noramp_data, noramp_link, CLUSTER_THRESHOLD)
 
-    # send (maybe route_id), clustering threshold, cluster_id, label_id
-    output_data = ramp_data.append(surf_data).filter(items=['label_id', 'label_type', 'cluster'])
-    output_data.loc[output_data['label_type'] == 'SurfaceProblem', 'cluster'] += np.max(ramp_data.cluster)
+    # For each label type, create distance matrix between all pairs, and cluster based on distance.
+    # Run the clustering on each label type separately (if there are enough labels of that type),
+    # then add those labels to the output_data. Note that the function 'cluster' modifies the input
+    # dataframe, and returns some summary stats, which is why we print the result of the function.
+    output_data = pd.DataFrame()
+    clustOffset = 0
+    if ramp_data.shape[0] > 1:
+        print cluster(ramp_data, CLUSTER_THRESHOLD)
+        output_data = output_data.append(ramp_data.filter(items=['label_id', 'label_type', 'cluster']))
+    elif ramp_data.shape[0] == 1:
+        ramp_data['cluster'] = 1
+        output_data = output_data.append(ramp_data.filter(items=['label_id', 'label_type', 'cluster']))
+    if output_data.shape[0] > 0:
+        clustOffset = np.max(output_data.cluster)
+
+    if surf_data.shape[0] > 0:
+        print cluster(surf_data, CLUSTER_THRESHOLD)
+        output_data = output_data.append(surf_data.filter(items=['label_id', 'label_type', 'cluster']))
+        output_data.loc[output_data['label_type'] == 'SurfaceProblem', 'cluster'] += clustOffset
+    elif surf_data.shape[0] == 1:
+        surf_data['cluster'] = 1 + clustOffset
+        output_data = output_data.append(surf_data.filter(items=['label_id', 'label_type', 'cluster']))
+    if output_data.shape[0] > 0:
+        clustOffset = np.max(output_data.cluster)
+
+    if obs_data.shape[0] > 0:
+        print cluster(obs_data, CLUSTER_THRESHOLD)
+        output_data = output_data.append(obs_data.filter(items=['label_id', 'label_type', 'cluster']))
+        output_data.loc[output_data['label_type'] == 'Obstacle', 'cluster'] += clustOffset
+    elif obs_data.shape[0] == 1:
+        obs_data['cluster'] = 1 + clustOffset
+        output_data = output_data.append(obs_data.filter(items=['label_id', 'label_type', 'cluster']))
+    if output_data.shape[0] > 0:
+        clustOffset = np.max(output_data.cluster)
+
+    if noramp_data.shape[0] > 0:
+        print cluster(noramp_data, CLUSTER_THRESHOLD)
+        output_data = output_data.append(noramp_data.filter(items=['label_id', 'label_type', 'cluster']))
+        output_data.loc[output_data['label_type'] == 'NoCurbRamp', 'cluster'] += clustOffset
+    elif noramp_data.shape[0] == 1:
+        noramp_data['cluster'] = 1 + clustOffset
+        output_data = output_data.append(noramp_data.filter(items=['label_id', 'label_type', 'cluster']))
+
     output_json = output_data.to_json(orient='records', lines=False)
 
     url = 'http://localhost:9000/clusteringResults/' + str(ROUTE_ID) + '/' + str(CLUSTER_THRESHOLD)
