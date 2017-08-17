@@ -28,9 +28,9 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     * Assign a new neighborhood to audit
     * @return
     */
-  def setANewRegion = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    case class RegionId(regionId:Int)
-    implicit val regionIdReads: Reads[RegionId] = (JsPath \ "region_id").read[Int].map(RegionId(_))
+  def assignANewRegion = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    case class RegionId(regionId:Option[Int])
+    implicit val regionIdReads: Reads[RegionId] = (JsPath \ "region_id").read[Option[Int]].map(RegionId(_))
     var submission = request.body.validate[RegionId]
 
     submission.fold(
@@ -38,13 +38,26 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val regionId: Int = submission.regionId
-        request.identity match {
+
+        val regionId: Int = request.identity match {
           case Some(user) =>
 
-            UserCurrentRegionTable.update(user.userId, regionId)
+            submission.regionId match {
+              case Some(regId) =>
+                UserCurrentRegionTable.update(user.userId, regId)
+                regId
+
+              case None =>
+                UserCurrentRegionTable.assignNextRegion(user.userId)
+                val region = RegionTable.selectTheCurrentNamedRegion(user.userId)
+                region.get.regionId
+            }
           case None =>
+          // Get a region for the anonymous user and return it
+            val region: Option[NamedRegion] = RegionTable.selectAnEasyNamedRegionRoundRobin
+            region.get.regionId
         }
+
         Future.successful(Ok(Json.obj(
           "region_id" -> regionId
         )))
