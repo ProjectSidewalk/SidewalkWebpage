@@ -245,8 +245,6 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
 
         labelContainer.refresh();
 
-        //console.log(data);
-
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -259,7 +257,6 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
-                    console.log("Got: " + taskId);
                 }
             },
             error: function (result) {

@@ -523,6 +523,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             svl.compass.showMessage();
             if (!svl.map.getLabelBeforeJumpListenerStatus()) svl.compass.update();
         }
+
+        if ('form' in svl){
+            svl.form.submit(svl.form.compileSubmissionData(currentTask), currentTask);
+        }
     };
 
     /**
