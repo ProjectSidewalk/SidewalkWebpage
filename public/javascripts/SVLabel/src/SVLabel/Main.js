@@ -18,6 +18,8 @@ function Main (params) {
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
+    var loadDifficultNeighborhoodsCompleted = false;
+
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
@@ -271,6 +273,11 @@ function Main (params) {
             loadNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
+
+        neighborhoodModel.fetchDifficultNeighborhoods(function () {
+            loadDifficultNeighborhoodsCompleted = true;
+            handleDataLoadComplete();
+        });
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -413,7 +420,8 @@ function Main (params) {
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
-            loadingMissionsCompleted && loadNeighborhoodsCompleted) {
+            loadingMissionsCompleted && loadNeighborhoodsCompleted &&
+            loadDifficultNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
@@ -441,8 +449,7 @@ function Main (params) {
                 $("#mini-footer-audit").css("visibility", "visible");
 
                 var regionId = currentNeighborhood.getProperty("regionId");
-                // TODO: Get difficult regions ids from the server
-                var difficultRegionIds = [251, 281, 317, 366];
+                var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
                 if(difficultRegionIds.includes(regionId)){
                     $('#advanced-overlay').show();
                 }

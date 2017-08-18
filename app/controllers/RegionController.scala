@@ -66,6 +66,14 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
   }
 
   /**
+    * This returns the list of difficult neighborhood ids
+    * @return
+    */
+  def getDifficultNeighborhoods = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(Json.obj("regionIds" -> UserCurrentRegionTable.difficultRegionIds)))
+  }
+
+  /**
     * This returns a list of all the streets stored in the database
     * @return
     */

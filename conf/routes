@@ -79,6 +79,7 @@ GET     /label/currentMission                                @controllers.LabelC
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
+GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
 POST    /neighborhood/assignment                             @controllers.RegionController.assignANewRegion
 
 # Map Edit
