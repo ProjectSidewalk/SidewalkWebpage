@@ -26,8 +26,8 @@ function NeighborhoodModel () {
         }
     };
 
-    this.fetchDifficultNeighborhoods = function () {
-        $.ajax({
+    this.fetchDifficultNeighborhoods = function (callback) {
+        $.when($.ajax({
             contentType: 'application/json; charset=utf-8',
             url: "/neighborhoods/difficult",
             type: 'get',
@@ -37,7 +37,7 @@ function NeighborhoodModel () {
             error: function (result) {
                 throw result;
             }
-        });
+        })).done(callback);
     };
     
     this.fetchNextLeastAuditedRegion = function (async) {
