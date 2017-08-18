@@ -201,7 +201,7 @@ object UserDAOImpl {
   * Date: Nov 11, 2016
   */
   def countRegisteredUsersVisitedToday: Int = db.withSession { implicit session =>
-    // TODO: Condense both calculations into one query and then using filters
+    // TODO: Condense both calculations into one query and then use filters
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |  FROM sidewalk.audit_task

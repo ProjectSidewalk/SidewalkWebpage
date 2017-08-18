@@ -2,6 +2,7 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
+import java.net.URLDecoder
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -175,6 +176,28 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+    * Returns label counts by label type, for each region
+    * @return
+    */
+  def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
+
+      val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
+
+      val features: List[JsObject] = neighborhoods.map {neighborhood =>
+       val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
+       Json.obj(
+            "region_id" -> neighborhood.regionId,
+            "labels" -> Json.toJson(labelResults.toMap)
+       )
+      }
+
+      val jsonObjectList = features.map(x => Json.toJson(x))
+
+      Future.successful(Ok(JsArray(jsonObjectList)))
+
+  }
+
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
@@ -332,7 +355,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata = LabelTable.getLabelMetadata(labelId)
+          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -375,5 +398,71 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       "ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false
     )))
     Future.successful(Ok(json))
+  }
+
+  /**
+    * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
+    * If the activity provided doesn't exist, returns 400 (Bad Request).
+    *
+    * @param activity
+    */
+  def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
+    if (isAdmin(request.identity)){
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
+      if(activities.length == 0){
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
+      } else {
+        Future.successful(Ok(Json.arr(activities)))
+      }
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /** Returns all records in the webpage_interactions table as a JSON array. */
+  def getAllWebpageActivities = UserAwareAction.async{implicit request =>
+    if (isAdmin(request.identity)){
+      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+    * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
+    *
+    * @param activity
+    * @param keyValPairs
+    * @return
+    */
+  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)){
+      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
+      Future.successful(Ok(Json.arr(activities)))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /** Returns number of records in webpage_activity table containing the specified activity. */
+  def getNumWebpageActivities(activity: String) =   UserAwareAction.async{implicit request =>
+    if (isAdmin(request.identity)){
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
+      Future.successful(Ok(activities.length + ""))
+    }else{
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
+  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)){
+      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
+      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
+      Future.successful(Ok(activities.length + ""))
+    }else{
+      Future.successful(Redirect("/"))
+    }
   }
 }

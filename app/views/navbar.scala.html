@@ -23,6 +23,9 @@
                     <li class="active">
                         <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
                     </li>
+                    <li class="active">
+                        <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
+                    </li>
 
                 } else {
 
@@ -118,9 +121,15 @@ $(document).ready(function () {
     });
 
     // Triggered when 'Start Mapping' in navbar is clicked
-    // Logs "Click_module=StartMapping_location=Index"
+    // Logs "Click_module=StartMapping_location=Navbar_route=</|/audit|/faq|...>"
     $(".navbarStartBtn").on('click', function(){
         logWebpageActivity("Click_module=StartMapping");
+    });
+
+    // Triggered when 'Results' in navbar is clicked
+    // Logs "Click_module=Results_location=Navbar_route=</|/audit|/faq|...>"
+    $(".navbarResultsBtn ").on('click', function(){
+        logWebpageActivity("Click_module=Results");
     });
 
     // Triggered when links in the navbar are pressed when on the Audit page
@@ -242,12 +251,6 @@ $(document).ready(function () {
                     // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
             });
-            
-
-            function validateEmail(email) {
-                var regex = /\S+@@\S+\.\S+/;
-                return regex.test(email);
-            }
 
             // Callback function for checking sign-in results
             function handleSignIn(data) {
@@ -299,7 +302,7 @@ $(document).ready(function () {
                 $('#sign-in-modal-container').modal('toggle');
             }
 
-            
+
             function invalidSignInUpAlert(signIn, message){
                 if(signIn){
                     $('#incorrect-login-modal-alert').hide();
@@ -330,7 +333,7 @@ $(document).ready(function () {
                 var password = formData[1].value;
 
                 //if not a valid email address, do not submit form
-                if(!email || !validateEmail(email)){
+                if(!email){
                     invalidSignInUpAlert(true, 'Please enter a valid email address.');
                     return false;
                 }
@@ -343,7 +346,9 @@ $(document).ready(function () {
                 var data = $(this).serialize();
 
                 var url = '/authapi/authenticate';
-                $.post(url, data, handleSignIn);
+                $.post(url, data, handleSignIn).fail(function(e){
+                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                });
                 return false;
             });
 
@@ -359,7 +364,7 @@ $(document).ready(function () {
                 }
 
                 //if not a valid email address, do not submit form
-                if(!email || !validateEmail(email)){
+                if(!email){
                     invalidSignInUpAlert(false, 'Please enter a valid email address.');
                     return false;
                 }
@@ -373,15 +378,18 @@ $(document).ready(function () {
 
                 var url = '/authapi/signup';
                 $.post(url, data, handleSignIn).fail(function(e){
-                    var errorMessage;
-                    console.log(e);
-                    if(e.responseText.toLowerCase().includes("email")){
-                        errorMessage = "That email address already exists. Please try another one."
+                    var errorMessage = "";
+                    if(e.status === 409){
+                        if(e.responseText.toLowerCase().includes("email")){
+                            errorMessage = "That email address already exists. Please try another one."
+                        }
+                        else{
+                            errorMessage = "That username already exists. Please try another one."
+                        }
                     }
-                    else{
-                        errorMessage = "That username already exists. Please try another one."
+                    else{ // Some other Bad Request
+                        errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
                     }
-                    var error = e.responseText;
                     $('#incorrect-signup-alert').hide();
                     $('#invalid-signup-alert').show();
                     $('#invalid-signup-alert').html(
