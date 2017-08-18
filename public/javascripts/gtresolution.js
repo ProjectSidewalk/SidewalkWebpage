@@ -197,7 +197,7 @@ $(document).ready(function () {
                 //if so, highlight that view with a border
                 if (pano != null) {
                     pano.view.style.borderStyle = "solid";
-                  }
+                }
                 //emphasize label on map by highlighting pink
                 marker.setOptions({fillColor: '#ff38fb'});
             });
@@ -208,9 +208,11 @@ $(document).ready(function () {
                 //if so, highlight that view with a border
                 if (pano != null) {
                     pano.view.style.borderStyle = "hidden";
-                  }
+                }
                 //deemphasize label by removing the pink highlight
-                if(!marker.clicked){marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});}
+                if(!marker.clicked) {
+                    marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});
+                }
             });
             //add marker to map, add marker and label to storage arrays
             marker.setMap(map);
@@ -347,8 +349,9 @@ $(document).ready(function () {
             }
             //empasize/deemphasize corresponding label on map
             var marker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
-            if(marker.clicked){marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle}); marker.clicked = false}
-            else{marker.setOptions({fillColor: '#ff38fb'}); marker.clicked = true;}
+            if (marker.clicked) {
+                marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle}); marker.clicked = false
+            } else {marker.setOptions({fillColor: '#ff38fb'}); marker.clicked = true;}
             //create and open popover for label
             createPopover(pano, label, status);
         });
@@ -415,7 +418,7 @@ $(document).ready(function () {
         });
     }//end of createPopover
 
-    function changeSeverityPopover(pano, data, status){
+    function changeSeverityPopover(pano, data, status) {
       var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
       var markerElement = $("#label-id-" + data.label_id);
       //create popup
@@ -435,7 +438,9 @@ $(document).ready(function () {
       $(document).on("click", '.popover #updateCommit' + data.label_id, function () {
         //update severity and temporary
         var newSeverity = parseInt($(".popover #changeSeverity" + data.label_id).val());
-        if(newSeverity = "none"){newSeverity = data.severity};
+        if(newSeverity = "none") {
+            newSeverity = data.severity;
+        }
         var newTemp = $(".popover #changeTemp" + data.label_id).is(':checked');
         toUpdate.severity = newSeverity;
         marker.meta.severity = newSeverity;
@@ -620,7 +625,7 @@ $(document).ready(function () {
                 pano.gsv_panorama.setPov({heading: headingSum / count, pitch: pitchSum / count});
                 counts[p].innerHTML = panoramaContainers[p].labels.length;
                 pano.gsv_panorama.setOptions({visible: true});
-            }else{
+            } else {
                 pano.gsv_panorama.setOptions({visible: false});
             }
         }
@@ -812,7 +817,7 @@ $(document).ready(function () {
     }//end of resolveLowDisagreementConflict
 
     //begin high disagreemnt round
-    function startThirdRound(){
+    function startThirdRound() {
       //finished with low level conflicts
       cluster_id_list.length = Object.keys(all_labels).length;
       //intiailize mapbox layers and GSV panoramas
@@ -971,9 +976,9 @@ $(document).ready(function () {
                 //display all labels on map
                 initializeAllMapMarkers();
                 //deal with the first low disagreement conflict
-                if(toInvestigate.length > 0){
+                if(toInvestigate.length > 0) {
                   resolveLowDisagreementConflict(toInvestigate, 0);
-                }else{
+                } else {
                   startThirdRound();
                 }
                 //});
