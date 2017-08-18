@@ -167,6 +167,7 @@ $(document).ready(function () {
             var marker = new google.maps.Circle({
                 id: "marker" + feature.meta.label_id,
                 meta: feature.meta,
+                clicked: false,
                 status: feature.status,
                 center: new google.maps.LatLng(feature.meta.lat, feature.meta.lng),
                 radius: 0.5,
@@ -209,7 +210,9 @@ $(document).ready(function () {
                     pano.view.style.borderStyle = "hidden";
                 }
                 //deemphasize label by removing the pink highlight
-                marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});
+                if(!marker.clicked) {
+                    marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});
+                }
             });
             //add marker to map, add marker and label to storage arrays
             marker.setMap(map);
@@ -235,6 +238,7 @@ $(document).ready(function () {
                 zoomControl: true,
                 scrollwheel: false
             });
+            panoramaContainers[i].gsv_panorama.setOptions({visible: false});
         }
     }//end of initializePanoramas
 
@@ -262,7 +266,7 @@ $(document).ready(function () {
                 pano.info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + ' | <b>Labels Shown: </b> <span class="labelCount">' + pano.labels.length + '</span> | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
             }
         }
-        //if this toggle button has already been intialized, do not re-initialize
+        //if this toggle button has already been initialized, do not re-initialize
         if (initializedToggleButtons.indexOf(label.pano_id + label.cluster_id) < 0) {
             initializedToggleButtons.push(label.pano_id + label.cluster_id);
             //Toggle visibility of label markers (hide and show)
@@ -338,16 +342,28 @@ $(document).ready(function () {
             for (var i = 0; i < pano.labelMarkers.length; i++) {
                 if (i != markerIndex) {
                     $('#' + pano.labelMarkers[i].getId()).popover('hide');
+                    var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
+                    closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+                    closeMarker.clicked= false;
                 }
             }
+            //empasize/deemphasize corresponding label on map
+            var marker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
+            if (marker.clicked) {
+                marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle}); marker.clicked = false
+            } else {marker.setOptions({fillColor: '#ff38fb'}); marker.clicked = true;}
             //create and open popover for label
             createPopover(pano, label, status);
         });
+
         //CHANGE IN POV
         google.maps.event.addListener(pano.gsv_panorama, 'pov_changed', function () {
             // Popover follows marker when POV is changed
             createPopover(pano, label, status);
             $("#" + id).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
         });
         //return POV focused on the placed marker
         return {heading: labelPosition.heading, pitch: labelPosition.pitch};
@@ -368,21 +384,31 @@ $(document).ready(function () {
             'Ground Truth: <input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"></input>' +
             '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"></input>' +
             '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"></input>', // 9eba9e
-            html: true
+            html: true,
+            delay: 100,
+            id: "#popover-" + data.label_id
         });
+
         //clicking yes for ground truth hides popover and calls yesGroundTruth
         $(document).on("click", '.popover #commit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
             yesGroundTruth(data);
+            changeSeverityPopover(pano,data,status);
         });
         //clicking no for ground truth hides popover and calls noGroundTruth
         $(document).on("click", '.popover #noCommit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
             noGroundTruth(data);
         });
         //clicking send to back calculates the minimum zIndex of the labels within the panorama, and sends the current label behind that
         $(document).on("click", '.popover #sendToBack' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
             var minZ = 1000;
             for (var j = 0; j < pano.labelMarkers.length; j++) {
                 minZ = Math.min(minZ, pano.labelMarkers[j].getZIndex());
@@ -391,6 +417,44 @@ $(document).ready(function () {
             pano.labelMarkers[labelIndex].setOptions({zIndex: minZ});
         });
     }//end of createPopover
+
+    function changeSeverityPopover(pano, data, status) {
+      var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
+      var markerElement = $("#label-id-" + data.label_id);
+      //create popup
+      markerElement.popover('destroy');
+      markerElement.popover({
+          placement: 'top',
+          content: 'Severity: <select name="changeSeverity" id="changeSeverity' + data.label_id + '"><option disabled selected value="none"> </option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select> (' + data.severity + ')<br>' +
+          'Temporary: <input type="checkbox" id ="changeTemp' + data.label_id + '"> (' + data.temporary + ')<br>' +
+          '<input type="button" id="updateCommit' + data.label_id + '" style="margin-top:4px" value="Commit"></input>', // 9eba9e
+          html: true,
+          delay: 100
+      });
+      markerElement.popover('show');
+
+      var marker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
+      var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === data.label_id);
+      $(document).on("click", '.popover #updateCommit' + data.label_id, function () {
+        //update severity and temporary
+        var newSeverity = parseInt($(".popover #changeSeverity" + data.label_id).val());
+        if(newSeverity = "none") {
+            newSeverity = data.severity;
+        }
+        var newTemp = $(".popover #changeTemp" + data.label_id).is(':checked');
+        toUpdate.severity = newSeverity;
+        marker.meta.severity = newSeverity;
+        pano.labels[labelIndex].severity = newSeverity;
+        toUpdate.temporary = newTemp;
+        marker.meta.temporary = newTemp;
+        pano.labels[labelIndex].temporary = newTemp;
+        markerElement.popover('destroy');
+        marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle});
+        marker.clicked = false;
+        createPopover(pano,data,status);
+      });
+
+    }
 
     //update counters at bottom of page
     function updateCounters() {
@@ -490,6 +554,9 @@ $(document).ready(function () {
             var labelId = panoramaContainer.labels[i].label_id;
             //hide popover
             $('#' + markerLabel.getId()).popover('hide');
+            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === labelId);
+            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+            closeMarker.clicked= false;
             //remove view number label from map marker
             var mLabel = mapLabels.find(mkr => mkr.id === labelId);
             if (mLabel != null) {
@@ -538,6 +605,7 @@ $(document).ready(function () {
                 showLabel(marker.meta, panoramaContainers[nextOpenView], marker.status);
             }
         }
+        var counts = document.getElementsByClassName("labelCount");
         //focus views in between headings of labels
         for (var p = 0; p < 4; p++) {
             var pano = panoramaContainers[p];
@@ -555,14 +623,13 @@ $(document).ready(function () {
             }
             if (count > 0) {
                 pano.gsv_panorama.setPov({heading: headingSum / count, pitch: pitchSum / count});
+                counts[p].innerHTML = panoramaContainers[p].labels.length;
+                pano.gsv_panorama.setOptions({visible: true});
+            } else {
+                pano.gsv_panorama.setOptions({visible: false});
             }
         }
         nextOpenView = calculateNextOpenPanorama();
-        //count and display the number of labels in each GSV
-        var counts = document.getElementsByClassName("labelCount");
-        for (i = 0; i < counts.length; i++) {
-            counts[i].innerHTML = panoramaContainers[i].labels.length;
-        }
     }//end of addClusterToPanos
 
     //next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
@@ -584,7 +651,6 @@ $(document).ready(function () {
             //include labels in the cluster that have already been dealt with
             for (j = 0; j < ground_truth_labels.length; j++) {
                 if (ground_truth_labels[j].cluster_id === parseInt(clusterId)) {
-                  alert("here");
                     toDisplay.unshift(ground_truth_labels[j]);
                 }
             }
@@ -675,7 +741,7 @@ $(document).ready(function () {
                     if (!(sameSeverity && sameTemp)) {
                         var label = cluster_data[middle];
                         var cluster = cluster_data.slice();
-                        toInvestigate.push({data: cluster, label: label, sev: sameSeverity, temp: sameTemp});
+                        toInvestigate.push({data: cluster, label: label, sev: sameSeverity, temp: sameTemp, chosen: middle});
                     }
                     //add middle label to ground_truth labels, other two to eliminated_labels
                     //map markers' style and status will update accordingly
@@ -715,9 +781,9 @@ $(document).ready(function () {
         panoramaContainers[0].labels.push(label_data);
         //display information regarding the disagreement and provide option to change severity and temporary
         document.getElementById("panorama-3").innerHTML = '<br><table style="width:100%"><tr><th>Labeler</th><th id="sev_heading" style="text-align:center">Severity</th><th id="temp_heading" style="text-align:center">Temp</th><th style="text-align:center">Description</th></tr>' +
-            '<tr><td>' + cluster_data[0].turker_id + '</td><td style="text-align:center">' + cluster_data[0].severity + '</td><td style="text-align:center">' + cluster_data[0].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[0].description +
-            '<tr><td>' + cluster_data[1].turker_id + '</td><td style="text-align:center">' + cluster_data[1].severity + '</td><td style="text-align:center">' + cluster_data[1].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[1].description +
-            '<tr><td>' + cluster_data[2].turker_id + '</td><td style="text-align:center">' + cluster_data[2].severity + '</td><td style="text-align:center">' + cluster_data[2].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[2].description + '</table><br>' +
+            '<tr><td id="user0">' + cluster_data[0].turker_id + '</td><td style="text-align:center">' + cluster_data[0].severity + '</td><td style="text-align:center">' + cluster_data[0].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[0].description +
+            '<tr><td id="user1">' + cluster_data[1].turker_id + '</td><td style="text-align:center">' + cluster_data[1].severity + '</td><td style="text-align:center">' + cluster_data[1].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[1].description +
+            '<tr><td id="user2">' + cluster_data[2].turker_id + '</td><td style="text-align:center">' + cluster_data[2].severity + '</td><td style="text-align:center">' + cluster_data[2].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[2].description + '</table><br>' +
             'Severity: <select name="severity" id="severity"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><br>' +
             'Temporary: <input type="checkbox" id ="temp"><br>' +
             '<button style="margin-top:4px" id="prelimCommit' + label_data.cluster_id + '">Submit Updates to Ground Truth</button>';
@@ -729,6 +795,8 @@ $(document).ready(function () {
         if (!data[index].temp) {
             document.getElementById("temp_heading").style.backgroundColor = "#ff6d77";
         }
+        //highlight the middle label being shown
+        document.getElementById("user" + data[index].chosen).style.backgroundColor = "#ffe500";
 
         //update label found in ground truth
         var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === label_data.label_id);
@@ -743,26 +811,32 @@ $(document).ready(function () {
             if (next < data.length) {
                 resolveLowDisagreementConflict(data, next);
             } else {
-                //finished with low level conflicts
-                cluster_id_list.length = Object.keys(all_labels).length;
-                //intiailize mapbox layers and GSV panoramas
-                currentClusterIndex = 0;
-                var clusterId = cluster_id_list[currentClusterIndex];
-                while (all_labels[clusterId].length <= 0) {
-                    currentClusterIndex++;
-                    clusterId = cluster_id_list[currentClusterIndex];
-                }
-                currentLabel = all_labels[clusterId][0];
-                currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
-                map.setCenter(currentCoordinates);
-                clearCanvas(0, self.allLayers);
-                //initialize panoramas and show the first high disagreement cluster
-                initializePanoramas(currentLabel);
-                addClusterToPanos(all_labels[clusterId]);
-                document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
+                startThirdRound();
             }
         });
     }//end of resolveLowDisagreementConflict
+
+    //begin high disagreemnt round
+    function startThirdRound() {
+      //finished with low level conflicts
+      cluster_id_list.length = Object.keys(all_labels).length;
+      //intiailize mapbox layers and GSV panoramas
+      currentClusterIndex = 0;
+      var clusterId = cluster_id_list[currentClusterIndex];
+      while (all_labels[clusterId].length <= 0) {
+          currentClusterIndex++;
+          clusterId = cluster_id_list[currentClusterIndex];
+      }
+      currentLabel = all_labels[clusterId][0];
+      currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
+      map.setCenter(currentCoordinates);
+      clearCanvas(0);
+      document.getElementById("panorama-3").innerHTML = null;
+      //initialize panoramas and show the first high disagreement cluster
+      initializePanoramas(currentLabel);
+      addClusterToPanos(all_labels[clusterId]);
+      document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
+    }//end of startThirdRound
 
     //choose the middle of three points
     function chooseMiddle(points) {
@@ -902,7 +976,11 @@ $(document).ready(function () {
                 //display all labels on map
                 initializeAllMapMarkers();
                 //deal with the first low disagreement conflict
-                resolveLowDisagreementConflict(toInvestigate, 0);
+                if(toInvestigate.length > 0) {
+                  resolveLowDisagreementConflict(toInvestigate, 0);
+                } else {
+                  startThirdRound();
+                }
                 //});
             });
             //reduce filler at bottom of page (styling purposes)

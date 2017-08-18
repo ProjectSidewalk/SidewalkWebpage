@@ -850,7 +850,7 @@ video#bgvid {
     z-index: 1;
     border-style: hidden;
     border-width: 8px;
-    border-color: #efe70f;
+    border-color: #ff38fb;
 }
 .col-lg-6 {
     height: 48%;
@@ -894,7 +894,9 @@ video#bgvid {
     padding-top: 3px;
     padding-right: 3px;
 }
-
+.popover-content {
+    text-align: center;
+}
 
 #wrap {
     min-height: 100%;
