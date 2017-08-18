@@ -19,7 +19,8 @@ function Task (geojson, currentLat, currentLng) {
     };
     var properties = {
         auditTaskId: null,
-        streetEdgeId: null
+        streetEdgeId: null,
+        completionCount: null
     };
 
     /**
@@ -32,6 +33,7 @@ function Task (geojson, currentLat, currentLng) {
         _geojson = geojson;
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
+        self.setProperty("completionCount", _geojson.features[0].properties.completion_count);
 
         if (_geojson.features[0].properties.completed) {
             self.complete();
@@ -248,7 +250,7 @@ function Task (geojson, currentLat, currentLng) {
     }
 
     this._hasAdvanced = function (currentLat, currentLng) {
-        if (typeof _furthestPoint == "undefined") return false;
+        if (typeof _furthestPoint === "undefined") return false;
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];
         var distanceAtTheFurthestPoint = this.getDistanceFromStart(latFurthest, lngFurthest);
@@ -335,6 +337,10 @@ function Task (geojson, currentLat, currentLng) {
         return _geojson.features[0].properties.street_edge_id;
     };
 
+    this.getStreetCompletionCount = function () {
+        return _geojson.features[0].properties.completion_count;
+    };
+
     /**
      * Returns the task start time
      */
@@ -343,7 +349,7 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     this.getAuditedDistance = function (unit) {
-        if (typeof _furthestPoint == "undefined") return 0;
+        if (typeof _furthestPoint === "undefined") return 0;
         if (!unit) unit = "kilometers";
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];
