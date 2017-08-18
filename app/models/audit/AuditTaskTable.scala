@@ -335,7 +335,7 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val completedTasks = for {
-      u <- users.filter(_.username === username)
+      u <- users.filter(_.userId === user.toString)
       at <- completedAuditTasks if at.userId === u.userId
     } yield (u.username.?, at.streetEdgeId.?)
 
