@@ -97,7 +97,6 @@ function Main (params) {
         svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
-        svl.tracker.push('TaskStart');
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
@@ -125,7 +124,9 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
+            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -241,7 +242,8 @@ function Main (params) {
             }
         });
         $('[data-toggle="tooltip"]').tooltip({
-            delay: { "show": 500, "hide": 100 }
+            delay: { "show": 500, "hide": 100 },
+            html: true
         });
     }
 
@@ -309,6 +311,14 @@ function Main (params) {
             svl.missionContainer.add(null, onboardingMission);
         }
         svl.missionContainer.setCurrentMission(onboardingMission);
+    }
+
+    function findTheNextRegionWithMissionsNew () {
+
+        // Query the server for the next least unaudited region (across users)
+        // and that hasn't been done by the user
+        var username = svl.user.getProperty("username");
+        return neighborhoodModel.fetchNextLeastAuditedRegion(username);
     }
 
     function findTheNextRegionWithMissions (currentNeighborhood) {
@@ -470,6 +480,8 @@ function Main (params) {
 
         if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
             regionId = findTheNextRegionWithMissions(currentNeighborhood);
+
+            // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
             if (regionId == null) return;  // No missions available.
 
             currentNeighborhood = svl.neighborhoodContainer.get(regionId);
@@ -492,12 +504,12 @@ function Main (params) {
         return _tasks.length > 0;
     }
 
-    function getStatus (key) { 
-        return key in status ? status[key] : null; 
+    function getStatus (key) {
+        return key in status ? status[key] : null;
     }
 
-    function setStatus (key, value) { 
-        status[key] = value; return this; 
+    function setStatus (key, value) {
+        status[key] = value; return this;
     }
 
     /**

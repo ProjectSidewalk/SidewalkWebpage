@@ -2,6 +2,7 @@ function NeighborhoodModel () {
     var self = this;
     this._neighborhoodContainer = null;
     this.isNeighborhoodCompleted = false;
+    this.isNeighborhoodCompletedAcrossAllUsers = null;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -11,6 +12,7 @@ function NeighborhoodModel () {
             layer =leafletLayers[i];
             regionId = layer.feature.properties.region_id;
             regionName = layer.feature.properties.region_name;
+            // TODO: Add a isCompleted property
             self.create(regionId, layer, regionName);
         }
     };
@@ -22,6 +24,22 @@ function NeighborhoodModel () {
             $.when($.ajax("/neighborhoods")).done(self._handleFetchComplete)
         }
     };
+    
+    this.fetchNextLeastAuditedRegion = function (username, async, callback) {
+        if (typeof async === "undefined") async = true;
+        $.ajax({
+            async: async,
+            url: "/neighborhoods/" + username, // Needs change - URL incorrect
+            type: 'get',
+            success: function (json) {
+                self._handleFetchComplete(json);
+                if (callback) callback();
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);
 
@@ -60,6 +78,15 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
             console.error(result);
         }
     });
+};
+
+NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+    return this.isNeighborhoodCompletedAcrossAllUsers;
+};
+
+
+NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+    this.isNeighborhoodCompletedAcrossAllUsers = true;
 };
 
 NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {

@@ -1197,7 +1197,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653

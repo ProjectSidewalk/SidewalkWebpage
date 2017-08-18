@@ -2,7 +2,7 @@ package models.user
 
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
-import models.region.{NamedRegion, RegionTable}
+import models.region.{NamedRegion, RegionCompletion, RegionCompletionTable, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
@@ -86,13 +86,23 @@ object UserCurrentRegionTable {
     */
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
-    // if they have audited less than 2 miles and there is an easy region left, give them an easy one
-    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId)) {
-      val regionId = scala.util.Random.shuffle(regionIds.filterNot(difficultRegionIds.contains(_))).head
-      update(userId, regionId)
+
+    val difficultRegionCompletions: List[RegionCompletion] =
+      RegionCompletionTable.regionCompletions
+        .filter(_.regionId inSet regionIds)
+        .filter(_.regionId inSet difficultRegionIds)
+        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .sortBy(region => region.auditedDistance / region.totalDistance).list
+
+    // if they have audited less than 2 miles and there is an easy region left (or if there are no difficult regions
+    // left to finish), give them an easy one
+    if ((regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId)) ||
+        difficultRegionCompletions.isEmpty) {
+      assignNextEasyRegion(userId)
     }
     else {
-      val regionId = scala.util.Random.shuffle(difficultRegionIds).head
+      // take the least-audited difficult region
+      val regionId = scala.util.Random.shuffle(regionIds.intersect(difficultRegionIds.toSet)).head
       update(userId, regionId)
     }
   }
@@ -104,15 +114,17 @@ object UserCurrentRegionTable {
     */
   def assignNextEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
-    // if they have audited less than 2 miles and there is an easy region left, give them an easy one
-    if (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty) {
-      val regionId = scala.util.Random.shuffle(regionIds.filterNot(difficultRegionIds.contains(_))).head
-      update(userId, regionId)
-    }
-    else {
-      val regionId = scala.util.Random.shuffle(regionIds).head
-      update(userId, regionId)
-    }
+
+    // Assign one of the least-audited regions that are easy.
+    val completions: List[RegionCompletion] =
+      RegionCompletionTable.regionCompletions
+        .filter(_.regionId inSet regionIds)
+        .filterNot(_.regionId inSet difficultRegionIds)
+        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
+
+    val regionId = scala.util.Random.shuffle(completions).head.regionId
+    update(userId, regionId)
   }
 
   /**

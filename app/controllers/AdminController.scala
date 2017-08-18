@@ -355,7 +355,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata = LabelTable.getLabelMetadata(labelId)
+          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -458,7 +458,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
   def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)){
-      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
+      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(activities.length + ""))
     }else{
