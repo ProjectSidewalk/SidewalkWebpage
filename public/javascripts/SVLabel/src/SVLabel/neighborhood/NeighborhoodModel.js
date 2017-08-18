@@ -25,15 +25,25 @@ function NeighborhoodModel () {
         }
     };
     
-    this.fetchNextLeastAuditedRegion = function (username, async, callback) {
+    this.fetchNextLeastAuditedRegion = function (async) {
         if (typeof async === "undefined") async = true;
         $.ajax({
             async: async,
-            url: "/neighborhoods/" + username, // Needs change - URL incorrect
-            type: 'get',
+            contentType: 'application/json; charset=utf-8',
+            url: "/neighborhood/assignment",
+            type: 'post',
+            data: JSON.stringify({"region_id": null}),
+            dataType: 'json',
             success: function (json) {
-                self._handleFetchComplete(json);
-                if (callback) callback();
+                var regionId = json.region_id;
+                if (regionId) {
+                    var neighborhood = svl.neighborhoodContainer.get(json.region_id);
+                    self.setCurrentNeighborhood(neighborhood);
+                } else {
+                    // When no region is left to assign to the user
+                    self.setCurrentNeighborhood(null);
+                    console.error("No regions to assign to the user!");
+                }
             },
             error: function (result) {
                 throw result;
@@ -58,10 +68,10 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
 };
 
 /**
- * Todo. The method name is confusing. Make it clear that this method just updates the remote database.
+ *
  * @param regionId
  */
-NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
+NeighborhoodModel.prototype.updateUserRegionInDatabase = function (regionId) {
     regionId = parseInt(regionId, 10);
     var url = "/neighborhood/assignment";
     $.ajax({
