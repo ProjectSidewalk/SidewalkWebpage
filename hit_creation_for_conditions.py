@@ -8,8 +8,7 @@ from pprint import pprint
 
 
 '''
-Create missions for the assigned routes if it doesn't exist. 
-This program is only meant to simulate creating HITs having a 1-to-1 mapping with the routes.
+Create missions for the routes if they don't exist
 '''
 
 
@@ -63,46 +62,84 @@ def create_missions_for_routes(engine, cursor, route_rows):
     mission_table_df = pd.DataFrame(mission_rows_to_insert)
     mission_table_df.to_sql('mission', engine, if_exists='append', index=False)
 
-
 '''
-    Assign routes to the newly created HITs.
-    The RequesterAnnotation attribute of the HIT stores the associated route_id
+This creates a HIT for each specified condition
 '''
 
+def create_hits_for_conditions(conditions, number_of_assignments = 3):
+    # HIT Parameters
 
-def assign_routes_to_hits(engine, routes):
+    title = "Help make our sidewalks more accessible for wheelchair users with Google Maps"
 
-    hit_route_map = []
+    description = "In this task, you will virtually walk through city streets " + \
+    "in Washington DC to find and label accessibility features (e.g., " + \
+    "curb ramps) and problems (e.g., degraded sidewalks, missing curb ramps) " + \
+    "using our custom tool called Project Sidewalk."
 
-    print "Total HITs:", len(routes)
+    keywords = "Accessibility, Americans with Disabilities, Wheelchairs, Image Labeling,"
+    " Games, Mobility Impairments, Smart Cities"
+    frame_height = 800  # the height of the iframe holding the external hit
+    amount = '0.0'
 
-    for route_id in routes:
-        hit_route_map.append({'hit_id': route_id, 'route_id': route_id})
+    # Get mturk client
+    mturk = connect_to_mturk()
 
-    hit_route_df = pd.DataFrame(hit_route_map)
-    hit_route_df.to_sql('amt_route_assignment', engine,
-                        if_exists='append', index=False)
+        t_before_creation = datetime.now()
+
+        for condition in conditions:
+
+            # The external question object allows you to view an external url inside an iframe
+            # mTurk automatically appends worker and hit variables to the external url
+            # Variable passed to the external url are workerid, assignmentid, hitid, ...
+            # Once the task is successfully completed the external server needs to
+            # perform a POST operation to an mturk url
+            url = 'https://sidewalk-mturk.umiacs.umd.edu/auditCondition?conditionId='+condition
+            external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
+                '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
+                str(frame_height) + '</FrameHeight></ExternalQuestion>'
+
+
+            # Create a sample HIT that expires after an 'LifetimeInSeconds'
+
+            mturk.create_hit(
+                Title=title,
+                LifetimeInSeconds=86400,
+                AssignmentDurationInSeconds=3600,
+                MaxAssignments=number_of_assignments,
+                Description=description,
+                Keywords=keywords,
+                Question=external_question,
+                Reward=amount,
+                RequesterAnnotation=str(condition)
+            )
+            print "HIT for condition", condition, "created"
 
 
 if __name__ == '__main__':
-    
+
     try:
         # Connect to PostgreSQL database
         conn, engine = connect_to_db()
 
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        # Get all the current condition_ids in  sidewalk.amt_condition
+        cur.execute(
+            """SELECT condition_id from sidewalk.amt_condition""")
+        condition_rows = cur.fetchall()
+        conditions = map(lambda x: x["condition_id"], condition_rows)
+
+        specific_conditions = [1]
+        number_of_assignments = 3
+
+        create_hits_for_conditions(specific_conditions)
+
         # Get all the current route_ids in  sidewalk.route
         cur.execute(
             """SELECT route_id, region_id from sidewalk.route order by street_count desc""")
         route_rows = cur.fetchall()
-        routes = map(lambda x: x["route_id"], route_rows)
-
-        # Get the list of HITs created, assign routes to HITs
-        # assign_routes_to_hits(engine, routes)
-
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
         create_missions_for_routes(engine, cur, route_rows)
-        
+
     except Exception as e:
         print "Error: ", e

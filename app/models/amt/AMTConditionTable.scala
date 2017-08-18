@@ -5,10 +5,14 @@ package models.amt
   */
 
 import models.utils.MyPostgresDriver.simple._
+import models.user.{UserRoleTable,UserRole}
 import play.api.Play.current
 import play.libs.Json
 
-case class AMTCondition(amtConditionId: Int, description: Option[String], parameters: String)
+import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+
+case class AMTCondition(amtConditionId: Int, description: Option[String], parameters: String, volunteerId: String)
 
 /**
   *
@@ -17,8 +21,9 @@ class AMTConditionTable(tag: Tag) extends Table[AMTCondition](tag, Some("sidewal
   def amtConditionId = column[Int]("amt_condition_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def description = column[Option[String]]("description", O.Nullable)
   def parameters = column[String]("parameters", O.NotNull)
+  def volunteerId = column[String]("volunteer_id", O.NotNull)
 
-  def * = (amtConditionId, description, parameters) <> ((AMTCondition.apply _).tupled, AMTCondition.unapply)
+  def * = (amtConditionId, description, parameters, volunteerId) <> ((AMTCondition.apply _).tupled, AMTCondition.unapply)
 
 }
 
@@ -28,6 +33,28 @@ class AMTConditionTable(tag: Tag) extends Table[AMTCondition](tag, Some("sidewal
 object AMTConditionTable {
   val db = play.api.db.slick.DB
   val amtConditions = TableQuery[AMTConditionTable]
+  val amtAssignments = TableQuery[AMTAssignmentTable]
+  val maxNumConditionAssignments: Int = 5
+
+  def getVolunteerIdByConditionId(amtConditionId: Int): String = db.withTransaction { implicit session =>
+    val vId = amtConditions.filter(_.amtConditionId === amtConditionId).map(_.volunteerId).list.headOption
+    vId.get
+  }
+
+  def assignAvailableCondition: Option[Int] =  db.withTransaction { implicit session =>
+    //Get the condition id with the least number of current assignments
+
+    val selectConditionIdQuery = Q.query[Int, Int](
+      """SELECT amt_condition_id
+        |  FROM (SELECT amt_condition.amt_condition_id, count(condition_id) as cnt FROM sidewalk.amt_assignment Right JOIN sidewalk.amt_condition ON (amt_assignment.condition_id = amt_condition.amt_condition_id)
+        |  group by amt_condition.amt_condition_id
+        |  ) t1
+        |  WHERE cnt<? order by cnt asc LIMIT 1;
+      """.stripMargin
+    )
+
+    selectConditionIdQuery(maxNumConditionAssignments).list.headOption
+  }
 
   def save(cond: AMTCondition): Int = db.withTransaction { implicit session =>
     val condId: Int =

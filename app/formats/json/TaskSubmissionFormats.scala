@@ -1,6 +1,9 @@
 package formats.json
 
+import java.sql.Timestamp
+
 import play.api.libs.json.{JsBoolean, JsPath, Reads}
+
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
@@ -8,7 +11,7 @@ object TaskSubmissionFormats {
   case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String])
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
-  case class LabelSubmission(gsvPanoramaId: String, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryProblem: Option[JsBoolean], description: Option[String], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int])
+  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryProblem: Option[JsBoolean], description: Option[String], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long])
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean])
   case class AMTAssignmentSubmission(assignmentId: Int, hitId: Option[String], assignmentEnd: Option[String])
   case class AMTRouteAssignmentSubmission(assignmentId: Int, completed: Option[Boolean])
@@ -16,6 +19,7 @@ object TaskSubmissionFormats {
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
+  case class AMTAssignmentCreateRecordSubmission(assignmentId: String, hitId: String, turkerId: String, routeId: Int)
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
@@ -66,6 +70,7 @@ object TaskSubmissionFormats {
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "photographer_heading").read[Float] and
       (JsPath \ "photographer_pitch").read[Float] and
@@ -76,7 +81,8 @@ object TaskSubmissionFormats {
       (JsPath \ "temporary_problem").readNullable[JsBoolean] and
       (JsPath \ "description").readNullable[String] and
       (JsPath \ "label_points").read[Seq[LabelPointSubmission]] and
-      (JsPath \ "temporary_label_id").readNullable[Int]
+      (JsPath \ "temporary_label_id").readNullable[Int] and
+      (JsPath \ "time_created").readNullable[Long]
     )(LabelSubmission.apply _)
 
   implicit val auditTaskReads: Reads[TaskSubmission] = (
@@ -91,6 +97,13 @@ object TaskSubmissionFormats {
       (JsPath \ "hit_id").readNullable[String] and
       (JsPath \ "assignment_end").readNullable[String]
     )(AMTAssignmentSubmission.apply _)
+
+  implicit val aMTAssignmentCreateRecordReads: Reads[AMTAssignmentCreateRecordSubmission] =(
+    (JsPath \ "assignment_id").read[String] and
+      (JsPath \ "hit_id").read[String] and
+      (JsPath \ "turker_id").read[String] and
+      (JsPath \ "route_id").read[Int]
+  )(AMTAssignmentCreateRecordSubmission.apply _)
 
   implicit val amtRouteAssignmentReads: Reads[AMTRouteAssignmentSubmission] = (
     (JsPath \ "amt_assignment_id").read[Int] and

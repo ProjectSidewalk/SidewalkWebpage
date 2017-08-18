@@ -13,6 +13,7 @@ function Mission(parameters) {
             auditDistanceFt: null,
             auditDistanceMi: null,
             regionId: null,
+            routeId:null,
             label: null,
             missionId: null,
             level: null,
@@ -30,6 +31,7 @@ function Mission(parameters) {
     
     function _init(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
+        if ("routeId" in parameters) setProperty("routeId", parameters.routeId);
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("level" in parameters) setProperty("level", parameters.level);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
@@ -134,6 +136,7 @@ function Mission(parameters) {
         // Play the animation and audio effect after task completion.
 
         setProperty("isCompleted", true);
+        console.log("isCompleted has been set to true");
 
         // Update the neighborhood status
         if ("labelContainer" in svl) {

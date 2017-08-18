@@ -334,8 +334,8 @@ function Label (svl, pathIn, params) {
      * @param key
      * @returns {*}
      */
-    function getStatus (key) { 
-        return status[key]; 
+    function getStatus (key) {
+        return status[key];
     }
 
     function getVisibility () { return status.visibility; }
@@ -469,7 +469,7 @@ function Label (svl, pathIn, params) {
                     var imageCoordinateY = 3328 - iy * 26;
                     var canvasPoint = util.panomarker.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
 
-                    console.log(canvasPoint);
+                    //console.log(canvasPoint);
                     ctx.save();
                     ctx.strokeStyle = 'rgba(255,255,255,1)';
                     ctx.lineWidth = 2;

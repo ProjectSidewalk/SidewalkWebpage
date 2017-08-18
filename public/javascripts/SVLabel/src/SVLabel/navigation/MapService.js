@@ -53,7 +53,8 @@ function MapService (canvas, neighborhoodModel, routeModel, uiMap, params) {
             beforeJumpListenerHandle: undefined
         },
         jumpLocation = undefined,
-        missionJump = undefined;
+        missionJump = undefined,
+        wasOpen = false;
 
     var initialPositionUpdate = true,
         panoramaOptions,
@@ -1097,6 +1098,7 @@ function MapService (canvas, neighborhoodModel, routeModel, uiMap, params) {
         //    setViewControlLayerCursor('ZoomOut');
         //}
 
+
         currTime = new Date().getTime();
 
         var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
@@ -1107,10 +1109,14 @@ function MapService (canvas, neighborhoodModel, routeModel, uiMap, params) {
 
             _canvas.setCurrentLabel(selectedLabel);
             if ('contextMenu' in svl) {
+              if(wasOpen){
+                svl.contextMenu.hide();
+              } else{
                 svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
-                });
+              });}
+              wasOpen = false;
             }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Double click
@@ -1167,6 +1173,7 @@ function MapService (canvas, neighborhoodModel, routeModel, uiMap, params) {
         }
 
 
+        setViewControlLayerCursor('OpenHand');
         mouseStatus.prevMouseUpTime = currTime;
     }
 

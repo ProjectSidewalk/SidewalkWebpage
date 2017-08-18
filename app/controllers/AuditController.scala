@@ -10,8 +10,9 @@ import controllers.headers.ProvidesHeader
 import formats.json.IssueFormats._
 import formats.json.TaskSubmissionFormats._
 import formats.json.CommentSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable, AMTRouteAssignmentTable}
+import models.amt.{AMTAssignment, AMTAssignmentTable, AMTRouteAssignmentTable,AMTConditionTable,AMTVolunteerRouteTable}
 import models.audit._
+import models.turker._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
 import models.route._
@@ -82,6 +83,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // This code block doesn't work route by route
         // Future TODO: Make mission-route mechanism for users
 
+        // Maybe just redirect them to the admin dashboard
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Check and make sure that the user has been assigned to a region
@@ -109,31 +112,163 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case "Assigned" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-            // HITs are associated with routes at the time of HIT creation
-            // Retrieve the route based on HIT ID
-            val routeId: Option[Int] = AMTRouteAssignmentTable.findRouteByHITId(hitId)
+            // Retrieve the route based on the condition that the worker has been assigned to and the associated unvisited routes
+            val conditionId: Int = TurkerTable.getConditionIdByTurkerId(workerId) match {
+              case Some(conditionId) =>
+                TurkerTable.getConditionIdByTurkerId(workerId).get
+              case None =>
+                // No worker was found with this id (implies no condition was assigned) so assign the condition id that has been least used
+                // Save turker id and associated condition here
+                val newCId: Option[Int] = AMTConditionTable.assignAvailableCondition
+                val turker: Turker = Turker(workerId, "",newCId.getOrElse(1))
+                TurkerTable.save(turker)
+                newCId.get
+            }
+
+            // When all condition id's have been exhausted assign a default for now (or just assign a different)
+            // We only need the workerId to assign routes since we can obtain condition id and volunteer id by doing inner joins over tables.
+            // Skipping this step since we have already obtained condition id
+            val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
             val route: Option[Route] = RouteTable.getRoute(routeId)
-            val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
-            // Save HIT assignment details
-            val conditionId = 1
-            val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
-            val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+            // If route is None, turker has finished all routes assigned, so send them to homepage.
+            route match {
+              case None =>
+                Future.successful(Ok(views.html.index("Project Sidewalk")))
+              case Some(theRoute) =>
+                val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
-            // Load the first task from the selected route
-            val regionId = route.get.regionId
-            val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
-            val regionName = region.get.name
-            val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
+                // Save HIT assignment details
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
-            // Save Turker details
-            //val turker: Turker = Turker(workerId, "routeId")
-            // TODO: Fix bug: turker id is taken as null
-            // TODO: Find how to append new routes to existing turker
-            //TurkerTable.save(turker)
+                // Load the first task from the selected route
+                val regionId: Int = theRoute.regionId
+                val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
+                val regionName: Option[String] = region.get.name
+                val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
 
+                Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+            }
 
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+          case "Preview" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+            Future.successful(Ok(views.html.index("Project Sidewalk")))
+          case "Blank" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Blank", timestamp))
+            Future.successful(Ok(views.html.blankIndex("Project Sidewalk")))
+        }
+    }
+  }
+
+  def auditCondition = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    // Get mTurk parameters
+    // Map with keys ["assignmentId","hitId","turkSubmitTo","workerId"]
+    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+    //println(timestamp + " " + qString)
+
+    var screenStatus: String = null
+    var hitId: String = null
+    var assignmentId: String = null
+    var workerId: String = null
+    var conditionId: Integer = 0
+
+    if (qString.nonEmpty && qString.contains("assignmentId")) {
+
+      assignmentId = qString("assignmentId")
+
+      if (qString("assignmentId") != "ASSIGNMENT_ID_NOT_AVAILABLE") {
+        // User clicked the ACCEPT HIT button
+        hitId = qString("hitId")
+        workerId = qString("workerId")
+        conditionId = qString("conditionId").toInt
+        screenStatus = "Assigned"
+      }
+      else {
+        screenStatus = "Preview"
+      }
+    }
+    else {
+      screenStatus = "Blank"
+    }
+
+    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodCompletionRate(1).sortWith(_.rate < _.rate)
+
+    request.identity match {
+      case Some(user) =>
+        // This code block doesn't work route by route
+        // Future TODO: Make mission-route mechanism for users
+
+        // Maybe just redirect them to the admin dashboard
+
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
+
+        // Check and make sure that the user has been assigned to a region
+        if (!UserCurrentRegionTable.isAssigned(user.userId)) {
+          UserCurrentRegionTable.assignRandomly(user.userId)
+        }
+        // val region: Option[Region] = RegionTable.getCurrentRegion(user.userId)
+        var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
+
+        // Check if a user still has tasks available in this region.
+        if (!AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) ||
+          !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
+          UserCurrentRegionTable.assignNextRegion(user.userId)
+          region = RegionTable.selectTheCurrentNamedRegion(user.userId)
+        }
+
+        val route = None
+
+        val task: NewTask = if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user)
+        else AuditTaskTable.selectANewTask(user.username)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
+      case None =>
+
+        screenStatus match {
+          case "Assigned" =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
+
+            // Retrieve the route based on the condition that the worker has been assigned to and the associated unvisited routes
+            TurkerTable.getConditionIdByTurkerId(workerId) match {
+              case Some(cId) =>
+                TurkerTable.updateConditionIdByTurkerId(workerId, conditionId)
+              case None =>
+                // No worker was found with this id (implies no condition was assigned)
+                // Save turker id and the condition specified in the query string here
+                val turker: Turker = Turker(workerId,"",conditionId)
+                TurkerTable.save(turker)
+            }
+
+            // When all condition id's have been exhausted assign a default for now (or just assign a different)
+            // We only need the workerId to assign routes since we can obtain condition id and volunteer id by doing inner joins over tables.
+            // Skipping this step since we have already obtained condition id
+            val routeId: Option[Int] = AMTVolunteerRouteTable.assignRouteByConditionIdAndWorkerId(conditionId,workerId)
+            val route: Option[Route] = RouteTable.getRoute(routeId)
+
+            // If route is None, turker has finished all routes assigned, so send them to homepage.
+            route match {
+              case None =>
+                Future.successful(Ok(views.html.index("Project Sidewalk")))
+              case Some(theRoute) =>
+                val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
+
+                // Save HIT assignment details
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+
+                // Load the first task from the selected route
+                val regionId: Int = theRoute.regionId
+                val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
+                val regionName: Option[String] = region.get.name
+                val task: NewTask = AuditTaskTable.selectANewTask(routeStreetId.getOrElse(0), asgId)
+
+                Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
+            }
+
           case "Preview" =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
             Future.successful(Ok(views.html.index("Project Sidewalk")))
@@ -151,10 +286,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
     // val region: Option[Region] = RegionTable.getRegion(regionId)
     val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
     request.identity match {
       case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
+
         // Update the currently assigned region for the user
         UserCurrentRegionTable.update(user.userId, regionId)
 
@@ -163,6 +303,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None =>
         val route = None
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
         val task: NewTask = AuditTaskTable.selectANewTask
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
     }
@@ -190,6 +331,30 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, Some(user))))
       case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, route, None)))
     }
+  }
+
+
+  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+    val submission = request.body.validate[AMTAssignmentCreateRecordSubmission]
+
+    // Inputs to AMT Assignment Constructor 0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+
+        val conditionId: Int = TurkerTable.getConditionIdByTurkerId(submission.turkerId).get
+        val now: DateTime = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None,
+                                               submission.turkerId, conditionId, Some(submission.routeId), false)
+        val asgId: Int = AMTAssignmentTable.save(asg)
+
+        Future.successful(Ok(Json.obj("asg_id" -> asgId)))
+      }
+    )
   }
 
   /**

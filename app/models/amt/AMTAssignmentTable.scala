@@ -66,8 +66,13 @@ object AMTAssignmentTable {
     q.update(completed)
   }
 
+  def getCountOfCompletedByTurkerId(turkerId: String): Int = db.withTransaction { implicit session =>
+    val conditionId = TurkerTable.getConditionIdByTurkerId(turkerId).get
+    amtAssignments.filter(x => x.turkerId === turkerId && x.completed === true && x.conditionId === conditionId).length.run
+  }
+
   /**
-    * Update the `assignment_end` column of the specified assignment row
+    * Update the `assignment_end` timestamp column of the specified amt_assignment row
     *
     * @param amtAssignmentId
     * @param timestamp

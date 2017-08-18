@@ -3,7 +3,7 @@ package models.label
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class ProblemDescription(problemSeverityId: Int, labelId: Int, description: String)
+case class ProblemDescription(problemDescriptionId: Int, labelId: Int, description: String)
 
 class ProblemDescriptionTable(tag: Tag) extends Table[ProblemDescription](tag, Some("sidewalk"), "problem_description") {
   def problemDescriptionId = column[Int]("problem_description_id", O.PrimaryKey, O.AutoInc)
@@ -18,7 +18,18 @@ object ProblemDescriptionTable {
   val problemDescriptions = TableQuery[ProblemDescriptionTable]
 
   /**
-    * Saves a new problem temporariness to the table
+    * Find a problem description
+    *
+    * @param labelId
+    * @return
+    */
+  def find(labelId: Int): Option[ProblemDescription] = db.withSession { implicit session =>
+    val descriptions = problemDescriptions.filter(_.labelId === labelId).list
+    descriptions.headOption
+  }
+
+  /**
+    * Saves a new problem description to the table
     * @param pd
     * @return
     */
@@ -26,6 +37,18 @@ object ProblemDescriptionTable {
     val problemDescriptionId: Int =
       (problemDescriptions returning problemDescriptions.map(_.problemDescriptionId)) += pd
     problemDescriptionId
+  }
+
+  /**
+    * Updates description of the specified id to be newDescription.
+    *
+    * @param descriptionId
+    * @param newDescription
+    * @return
+    */
+  def updateDescription(descriptionId: Int, newDescription: String) = db.withTransaction { implicit session =>
+    val description = problemDescriptions.filter(_.problemDescriptionId === descriptionId).map(x => x.description)
+    description.update(newDescription)
   }
 }
 

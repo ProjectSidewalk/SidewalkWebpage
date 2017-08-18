@@ -211,9 +211,12 @@ object MissionTable {
     * Returns mturk mission
     */
 
-  def selectMTurkMission: List[Mission] = db.withSession { implicit session =>
+  def selectMTurkMissions: List[Mission] = db.withSession { implicit session =>
     missionsWithoutDeleted.filter(_.label inSet List("mturk-mission","onboarding")).list
-    //missionsWithoutDeleted.filter(l => l.label === "mturk-mission" || l.label ===  "onboarding").list
+  }
+
+  def selectMTurkMissionsByRegion(regionId: Option[Int]): List[Mission] = db.withSession { implicit session =>
+    missionsWithoutDeleted.filter(l => (l.label === "mturk-mission" && l.regionId === regionId) || l.label === "onboarding").list
   }
 
   /**

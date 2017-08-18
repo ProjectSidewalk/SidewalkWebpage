@@ -22,7 +22,11 @@ function ContextMenu (uiContextMenu) {
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
             hide();
-            if (clicked_out) _handleSeverityPopup();
+            wasOpen = true;
+            if (clicked_out) {
+             svl.tracker.push('ContextMenu_CloseClickOut');
+            _handleSeverityPopup();
+            }
         }
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
@@ -31,6 +35,7 @@ function ContextMenu (uiContextMenu) {
         var key_pressed = e.which || e.keyCode;
         if (key_pressed == 13 && isOpen()){
             hide();
+            svl.tracker.push('ContextMenu_ClosePressEnter');
             _handleSeverityPopup();
         }
     };//handles pressing enter key to exit ContextMenu
@@ -113,6 +118,8 @@ function ContextMenu (uiContextMenu) {
     function handleDescriptionTextBoxChange(e) {
         var description = $(this).val(),
             label = getTargetLabel();
+        svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
+
         if (label) {
             label.setProperty('description', description);
         }
@@ -146,7 +153,7 @@ function ContextMenu (uiContextMenu) {
 
     }
 
-    function _handleSeverityPopup (){
+    function _handleSeverityPopup () {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
         if (labels.length == 0){
@@ -349,6 +356,10 @@ function ContextMenu (uiContextMenu) {
                     }
                     $descriptionTextBox.prop("placeholder", defaultText + example);
                 }
+                var labelProperties = self.getTargetLabel().getProperties();
+
+                //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
         }
         self.updateRadioButtonImages();

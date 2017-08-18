@@ -37,7 +37,7 @@ function AdminGSVLabel() {
                             '</tr>'+
                             '<tr>'+
                                 '<th>Description</th>'+
-                                '<td colspan="3" id="description"></td>'+
+                                '<td colspan="3" id="label-description"></td>'+
                             '</tr>'+
                             '<tr>'+
                             '<th>Time Submitted</th>'+
@@ -55,7 +55,7 @@ function AdminGSVLabel() {
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
         self.modalTemporary = self.modal.find("#temporary");
-        self.modalDescription = self.modal.find("#description");
+        self.modalDescription = self.modal.find("#label-description");
         self.modalTask = self.modal.find("#task");
     }
 

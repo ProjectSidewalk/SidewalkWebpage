@@ -12,7 +12,7 @@ import scala.slick.lifted.ForeignKeyQuery
 case class Route(routeId: Int, regionId: Int, streetCount: Int,
                  route_length_mi: Double,
                  mean_street_length_mi : Double,
-                 std_street_length_mi: Double)
+                 std_street_length_mi: Option[Double])
 /**
   *
   */
@@ -22,7 +22,7 @@ class RouteTable(tag: Tag) extends Table[Route](tag, Some("sidewalk"), "route") 
   def streetCount = column[Int]("street_count", O.NotNull)
   def route_length_mi = column[Double]("route_length_mi", O.NotNull)
   def mean_street_length_mi = column[Double]("mean_street_length_mi", O.NotNull)
-  def std_street_length_mi = column[Double]("std_street_length_mi", O.Nullable)
+  def std_street_length_mi = column[Option[Double]]("std_street_length_mi", O.Nullable)
 
   def * = (routeId, regionId, streetCount, route_length_mi,
     mean_street_length_mi, std_street_length_mi) <> ((Route.apply _).tupled, Route.unapply)
@@ -42,6 +42,10 @@ object RouteTable{
   def getRoute(routeId: Option[Int]): Option[Route] = db.withSession { implicit session =>
     val route = routes.filter(_.routeId === routeId).list
     route.headOption
+  }
+  def getRegionByRouteId(routeId: Option[Int]): Option[Int] = db.withSession { implicit session =>
+    val regionId = routes.filter(_.routeId === routeId).map(_.regionId).list.headOption
+    regionId
   }
 
   def save(route: Route): Int = db.withTransaction { implicit session =>

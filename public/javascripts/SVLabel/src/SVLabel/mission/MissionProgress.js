@@ -70,9 +70,21 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         this._completeTheCurrentMission(mission, neighborhood);
         this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
-        if(mission.getProperty("label") != "mturk-mission") {
+        console.log(this);
+        console.log('Reached finishMission');
+        // Added a route completion trigger here
+        // When route length is much greater than mission length then
+        // it becomes necessary to trigger route completion event at the end of a mission.
+        // In the previous implementation route lengths were usually close to or slightly lower than mission distance
+        // which is why route completion was triggered when there was a null nextTask as in MapService.js
+
+        var currentRoute = svl.routeContainer.getCurrentRoute();
+        _routeModel.routeCompleted(currentRoute.getProperty("routeId"), mission, neighborhood);
+
+        //if(mission.getProperty("label") != "mturk-mission") {
+            // Update the route within this
             this._updateTheCurrentMission(mission, neighborhood);
-        }
+        //}
 
         // While the mission complete modal is open, after the **neighborhood** is 100% audited,
         // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
@@ -99,6 +111,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             }
         );
         mission.complete();
+        console.log("mission.complete in completeTheCurrentMission in MissionProgress.js");
 
         // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
@@ -128,11 +141,59 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
     this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+        // Refresh mission completion here.
+        currentMission.setProperty("isCompleted", true);
+
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
 
-        if (nextMission == null) throw new Error("No missions available");
+        //Added code here to bring up the submit HIT button and post to the turkSubmit link
+        // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
+        if (nextMission == null) {
+            _modalModel.showModalMissionCompleteHITSubmission();
+            throw new Error("No missions available");
+        }
+        else {
+            _modalModel.hideModalMissionCompleteHITSubmission();
+        }
+
+        // Update route here (may need to add route to taskContainer as well) and post to the audit/amtAssignment end point
+
+        var route; //Get route from next mission
+        var route_json = $.ajax("/route/"+nextMission.getProperty("routeId"));
+        route = svl.routeFactory.create(nextMission.getProperty("routeId"), route_json["region_id"],
+                                        route_json["route_length_mi"], route_json["street_count"]);
+        svl.routeContainer.add(route);
+        svl.routeContainer.setCurrentRoute(route);
+        var url = "/audit/amtAssignment ";
+
+        // Fetch tasks for the route
+        taskContainer.fetchTasksOnARoute(nextMission.getProperty("routeId"), function () {
+            console.log("Tasks for the next route have been fetched");
+        });
 
         missionContainer.setCurrentMission(nextMission);
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify({
+                "assignment_id": svl.assignmentId,
+                "hit_id": svl.hitId,
+                "turker_id": svl.turkerId,
+                "route_id": nextMission.getProperty("routeId")
+            }),
+            dataType: 'json',
+            success: function (result) {
+                svl.amtAssignmentId = result["asg_id"];
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+
+        /* Not required for mturk code. MAybe we need a flag here instead
         var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
 
         // If the current neighborhood is different from the next neighborhood
@@ -142,7 +203,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         // Adjust the target distance based on the tasks available
         var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
-        nextMission.adjustTheTargetDistance(incompleteTaskDistance);
+        nextMission.adjustTheTargetDistance(incompleteTaskDistance);*/
     };
 
     /**

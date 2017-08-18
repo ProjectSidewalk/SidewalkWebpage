@@ -101,7 +101,6 @@ function Main (params) {
         svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
-        svl.tracker.push('TaskStart');
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
@@ -131,6 +130,7 @@ function Main (params) {
 
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
             svl.routeModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -202,7 +202,12 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
 
-        loadData(neighborhood, route, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        //Turkers
+        svl.turkerId = params.form.turkerId;
+        svl.assignmentId = params.form.assignmentId;
+        svl.hitId = params.form.hitId;
+
+        loadData(neighborhood, route, svl.turkerId, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
@@ -264,7 +269,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, route, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (neighborhood, route, turkerId, taskContainer, missionModel, neighborhoodModel) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -284,11 +289,17 @@ function Main (params) {
             handleDataLoadComplete();
         });
 
+        /*
         // Fetch all the missions
         missionModel.fetchMissions(function () {
             loadingMissionsCompleted = true;
             handleDataLoadComplete();
-        });
+        });*/
+        // Fetch all turker missions
+        missionModel.fetchTurkerMissions(turkerId, function () {
+         loadingMissionsCompleted = true;
+         handleDataLoadComplete();
+         });
 
         neighborhoodModel.fetchNeighborhoods(function () {
             loadNeighborhoodsCompleted = true;
@@ -516,12 +527,12 @@ function Main (params) {
         return _tasks.length > 0;
     }
 
-    function getStatus (key) { 
-        return key in status ? status[key] : null; 
+    function getStatus (key) {
+        return key in status ? status[key] : null;
     }
 
-    function setStatus (key, value) { 
-        status[key] = value; return this; 
+    function setStatus (key, value) {
+        status[key] = value; return this;
     }
 
     /**
@@ -644,6 +655,8 @@ function Main (params) {
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svl.ui.modalMissionComplete.submitHITButton = $("#modal-mission-complete-hit-submission-button");
+
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
