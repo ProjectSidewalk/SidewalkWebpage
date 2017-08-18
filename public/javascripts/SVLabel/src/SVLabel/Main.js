@@ -97,7 +97,6 @@ function Main (params) {
         svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
-        svl.tracker.push('TaskStart');
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
@@ -125,7 +124,8 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
+            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
