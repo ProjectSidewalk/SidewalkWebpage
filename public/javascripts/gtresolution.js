@@ -275,11 +275,13 @@ $(document).ready(function () {
                     //if hidden, show all labels in the GSV
                     for (var i = 0; i < pano.labelMarkers.length; i++) {
                         var marker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
+                        var type = pano.labels[i].label_type;
+                        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
                         if (marker != null) {
-                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + pano.labels[i].label_type + ".png?size=200");
+                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + type + ".png?size=200");
                         }
                         else {
-                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[null].path + pano.labels[i].label_type + ".png?size=200");
+                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[null].path + type + ".png?size=200");
                         }
                     }
                 } else {
@@ -320,11 +322,13 @@ $(document).ready(function () {
         //create a marker for the label in the panorama
         var id = "label-id-" + label.label_id;
         var size = statusInfo[status].size;
+        var type = pano.labels[labelPosition].label_type;
+        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
         var label_marker = new PanoMarker({
             pano: pano.gsv_panorama,
             container: pano.view,
             position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
-            icon: "assets/javascripts/SVLabel/img" + statusInfo[status].path + label.label_type + ".png?size=200",
+            icon: "assets/javascripts/SVLabel/img" + statusInfo[status].path + type + ".png?size=200",
             id: id,
             size: size,
             optimized: false
@@ -479,7 +483,9 @@ $(document).ready(function () {
             }
         }
         //update visuals
-        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png?size=200");
+        var type = commit.label_type;
+        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + type + ".png?size=200");
         panoramaContainers[pano].labelMarkers[labelIndex].setOptions({
             size: statusInfo["Ground_Truth"].size,
             className: "Ground_Truth"
@@ -518,7 +524,9 @@ $(document).ready(function () {
             }
         }
         //update visuals
-        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png?size=200");
+        var type = commit.label_type;
+        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + type + ".png?size=200");
         panoramaContainers[pano].labelMarkers[labelIndex].setOptions({
             size: statusInfo["No_Ground_Truth"].size,
             className: "No_Ground_Truth"
@@ -734,8 +742,9 @@ $(document).ready(function () {
                 //check if all labelers are different
                 if (!((cluster_data[0].turker_id === cluster_data[1].turker_id) || (cluster_data[0].turker_id === cluster_data[2].turker_id) || (cluster_data[1].turker_id === cluster_data[2].turker_id))) {
                     //check if severities are all the same
-                    var sameSeverity = !(cluster_data[0].severity === null && cluster_data[1].severity === null && cluster_data[2].severity === null) && (cluster_data[0].severity === cluster_data[1].severity && cluster_data[0].severity === cluster_data[2].severity);
-                    var sameTemp = (cluster_data[0].temporary === cluster_data[1].temporary && cluster_data[0].temporary === cluster_data[2].temporary);
+                    var noInfoLabel = (cluster_data[0].label_type === cluster_data[1].label_type && cluster_data[0].label_type === cluster_data[2].label_type) && cluster_data[0].label_type.isInList('Occlusion', 'NoSidewalk');
+                    var sameSeverity = noInfoLabel || (!(cluster_data[0].severity === null && cluster_data[1].severity === null && cluster_data[2].severity === null) && (cluster_data[0].severity === cluster_data[1].severity && cluster_data[0].severity === cluster_data[2].severity));
+                    var sameTemp = noInfoLabel || (cluster_data[0].temporary === cluster_data[1].temporary && cluster_data[0].temporary === cluster_data[2].temporary);
                     //calculate middle label
                     middle = chooseMiddle(cluster_data);
                     if (!(sameSeverity && sameTemp)) {
