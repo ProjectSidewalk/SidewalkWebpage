@@ -7,55 +7,33 @@
     <!-- Fixed navbar -->
 <nav id="header" class="navbar navbar-fixed-top">
     <div id="header-container" class="container navbar-container">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar"><span id="menubutton" class="logintext">Menu</span>
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
+        <div>
             <a id="brand" class="navbar-brand" href="/"><img id="biglogo" alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(url.isDefined && url.get != "/audit") {
 
-                    <li class="active">
+                    <li class="active navbarLink">
                         <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
                     </li>
-                    <li class="active">
+                    <li class="active navbarLink">
                         <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
                     </li>
 
                 } else {
 
-                    <script type="text/javascript">
-                            $("#biglogo").css("top", "0px");
-                            $("#biglogo").css("height", "28px" ); //logo resize
-                            $("#biglogo").css("width", "auto" );
-                            $("#header").css("max-height", "45px");
-                            $("#header-container").css("max-height", "45px");
-                            $("#header-container").css("top", "-13px"); //logo margin
-                            $("#header").addClass("navbar-xs");
-                            $("#header").removeClass("navbar");
-                            $("#brand").addClass("navbar-xs-brand");
-                            $("#brand").removeClass("navbar-brand");
-                            $("#navbar").css("margin-top", "16px"); //button margin
-                            $(".navbar-header").css("top", "0px");
-                            $("body").css("padding-top", "14px");
-                    </script>
-
                     <li class="navbarLink">
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
                     <li class = "navbarLink">
-                      <a href='@routes.ApplicationController.faq' id="toolbar-onboarding-link" target="_blank">FAQ</a>
+                      <a href='@routes.ApplicationController.faq' id="toolbar-faq-link" target="_blank">FAQ</a>
                     </li>
 
                 }
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
-                <li class="dropdown" id="navbar-dropdown-list">
+                <li class="dropdown navbarLink" id="navbar-dropdown-list">
                     @if(user) {
                         <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
@@ -79,9 +57,7 @@
                             </li>
                         </ul>
                     } else {
-                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
-                                &nbsp;Sign in
-                        </a>
+                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Sign in</button>
                     }
                 </li>
             </ul>
@@ -235,6 +211,16 @@ $(document).ready(function () {
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+    <div class="modal fade" id="incorrect-login-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="incorrect-login-modal">
+                <div class="modal-body">
+                    <span>Incorrect email address or password.</span>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
     <script>
             $(document).ready(function() {
                 $("#navbar-agree-to-terms").click(function() {
@@ -245,19 +231,44 @@ $(document).ready(function () {
                     }
                 });
 
-                $("[data-hide]").on("click", function(){
-                    $("." + $(this).attr("data-hide")).hide();
-                    // -or-, see below
-                    // $(this).closest("." + $(this).attr("data-hide")).hide();
+                //set tooltip alerts for when users do not enter all sign in / sign up fields
+                $('#username').tooltip({title:'Please enter a username.', trigger: 'manual'});
+                $('#username').on({
+                    'focus': function(){
+                        $('#username').tooltip('hide');
+                    }
+                });
+                $('#identifier').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#identifier').on({
+                    'focus': function(){
+                        $('#identifier').tooltip('hide');
+                    }
+                });
+                $('#email').tooltip({title:'Please enter a valid email address.', trigger: 'manual'});
+                $('#email').on({
+                    'focus': function(){
+                        $('#email').tooltip('hide');
+                    }
+                });
+                $(':password').tooltip({title:'Please enter your password.', trigger: 'manual'});
+                $(':password').on({
+                    'focus': function(){
+                        $(':password').tooltip('hide');
+                    }
                 });
             });
 
+            function validateEmail(email) {
+                var regex = /\S+@@\S+\.\S+/;
+                return regex.test(email);
+            }
+
             // Callback function for checking sign-in results
             function handleSignIn(data) {
+
                 //this means that logging in failed, alert user of failure
                 if(typeof data == 'string'){
-                    $('#incorrect-signin-alert').hide();
-                    $('#incorrect-login-modal-alert').show();
+                    $('#incorrect-login-modal-container').modal('toggle');
                     return;
                 }
 
