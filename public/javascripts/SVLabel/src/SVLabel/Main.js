@@ -497,7 +497,6 @@ function Main (params) {
                 regionId = currentNeighborhood.getProperty("regionId");
             else
                 regionId = null;
-            console.log("Assigned Region: " + regionId);
 
             // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
             if (regionId === null) return;  // No missions available.

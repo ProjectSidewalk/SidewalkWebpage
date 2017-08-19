@@ -55,6 +55,7 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return region id
     */
+  // TODO: #997 Needs update - give least audited region
   def assignRandomly(userId: UUID): Int = db.withSession { implicit session =>
     // Check if there are any records
     val _currentRegions = for {
@@ -64,7 +65,7 @@ object UserCurrentRegionTable {
     val currentRegionList = _currentRegions.list
 
     if (currentRegionList.isEmpty) {
-
+      // For a new user whose current region is not assigned
       val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin(userId)
 
       val regionId: Int = if (region.isDefined) {
@@ -87,6 +88,7 @@ object UserCurrentRegionTable {
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
+    // TODO: Add a detailed comment
     val difficultRegionCompletions: List[RegionCompletion] =
       RegionCompletionTable.regionCompletions
         .filter(_.regionId inSet regionIds)
@@ -123,7 +125,16 @@ object UserCurrentRegionTable {
         .filter(region => region.auditedDistance / region.totalDistance < 1.0)
         .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
 
-    val regionId = scala.util.Random.shuffle(completions).head.regionId
+    val regionId: Int = completions match {
+      case Nil =>
+        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
+        // In this case, pick any easy region amongst regions that are not audited by the user
+        scala.util.Random.shuffle(regionIds).head
+      case _ =>
+        // Pick an easy regions that is least audited
+        scala.util.Random.shuffle(completions).head.regionId
+
+    }
     update(userId, regionId)
   }
 

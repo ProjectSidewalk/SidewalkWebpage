@@ -121,6 +121,7 @@ object RegionTable {
     *
     * @return
     */
+  // TODO: #997 Needs update - give least audited region
   def selectANamedRegionRoundRobin(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     // If a novice user (audited less than 2 miles)
     if (StreetEdgeTable.getDistanceAudited(userId) < UserCurrentRegionTable.experiencedUserMileageThreshold) {
@@ -135,6 +136,7 @@ object RegionTable {
     *
     * @return
     */
+  // TODO: #997 Needs update - give least audited region
   def selectAnEasyNamedRegionRoundRobin: Option[NamedRegion] = db.withSession { implicit session =>
     // If the first one is an easy region, use it. O/w keep getting regions until we get an easy one (or we have
     // wrapped around back to the first region, meaning there are no easy regions left).
