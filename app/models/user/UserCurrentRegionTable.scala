@@ -55,7 +55,6 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return region id
     */
-  // TODO: #997 Needs update - give least audited region
   def assignRandomly(userId: UUID): Int = db.withSession { implicit session =>
     // Check if there are any records
     val _currentRegions = for {
@@ -76,8 +75,8 @@ object UserCurrentRegionTable {
       save(userId, regionId)
       regionId
     } else {
-      // TODO: Which case would this be? This function is only called immediately after signing up or when the user
-      // visits the audit page when a current region is not yet assigned
+      // TODO: Which case would this be? assignRandomly function is only called immediately after signing up or when the
+      // user visits the audit page when a current region is not yet assigned
       assignNextRegion(userId)
     }
   }
