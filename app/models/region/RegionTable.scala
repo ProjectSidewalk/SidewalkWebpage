@@ -126,7 +126,7 @@ object RegionTable {
   def selectANamedRegionRoundRobin(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     // If a novice user (audited less than 2 miles)
     if (StreetEdgeTable.getDistanceAudited(userId) < UserCurrentRegionTable.experiencedUserMileageThreshold) {
-      selectAnEasyNamedRegionRoundRobin
+      selectALeastAuditedEasyRegion
     } else {
       Some(namedRegionRoundRobin.next)
     }
@@ -134,10 +134,10 @@ object RegionTable {
 
   /**
     * Get a Named Region that has not been flagged as difficult (if any are left) in a round-robin fashion.
+    * Used for anonymous users
     *
     * @return
     */
-  // TODO: #997 Needs update - give least audited region
   def selectAnEasyNamedRegionRoundRobin: Option[NamedRegion] = db.withSession { implicit session =>
     // If the first one is an easy region, use it. O/w keep getting regions until we get an easy one (or we have
     // wrapped around back to the first region, meaning there are no easy regions left).
@@ -152,6 +152,38 @@ object RegionTable {
       }
       Some(currentRegion)
     }
+  }
+
+  /**
+    * Get a named easy region that is amongst the least audited regions
+    * Used for anonymous users
+    *
+    * @return
+    */
+  def selectALeastAuditedEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
+
+    // TODO: Get a list of regionIds from this iterator
+    val regionIds = namedRegionRoundRobin
+
+    // Assign one of the least-audited regions that are easy.
+    val completions: List[RegionCompletion] =
+      RegionCompletionTable.regionCompletions
+        .filterNot(_.regionId inSet UserCurrentRegionTable.difficultRegionIds)
+        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
+
+    val regionId: Int = completions match {
+      case Nil =>
+        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
+        // In this case, pick any easy region amongst regions that are not audited by the user
+        scala.util.Random.shuffle(regionIds).filterNot(UserCurrentRegionTable.difficultRegionIds.contains(_)).head
+      case _ =>
+        // Pick an easy regions that is least audited
+        scala.util.Random.shuffle(completions).head.regionId
+    }
+
+    // TODO: Return a selected NamedRegion
+
   }
 
   /**

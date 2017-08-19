@@ -53,7 +53,7 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
             }
           case None =>
           // Get a region for the anonymous user
-            val region: Option[NamedRegion] = RegionTable.selectAnEasyNamedRegionRoundRobin
+            val region: Option[NamedRegion] = RegionTable.selectALeastAuditedEasyRegion
             region.get.regionId
         }
 
