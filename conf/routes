@@ -57,8 +57,8 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[Boolean] ?= None)
-GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
+GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
+#GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                                       @controllers.AuditController.postComment
