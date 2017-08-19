@@ -77,7 +77,7 @@ object UserCurrentRegionTable {
       regionId
     } else {
       // TODO: Which case would this be? This function is only called immediately after signing up or when the user
-      // visits the audit region which a current region being assigned
+      // visits the audit page when a current region is not yet assigned
       assignNextRegion(userId)
     }
   }
