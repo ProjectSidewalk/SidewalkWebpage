@@ -3,6 +3,8 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
+import models.mission.MissionTable
+
 import math._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeTable}
 import models.user.UserCurrentRegionTable
@@ -121,7 +123,6 @@ object RegionTable {
     *
     * @return
     */
-  // TODO: #997 Needs update - give least audited region
   def selectANamedRegionRoundRobin(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     // If a novice user (audited less than 2 miles)
     if (StreetEdgeTable.getDistanceAudited(userId) < UserCurrentRegionTable.experiencedUserMileageThreshold) {

@@ -64,20 +64,46 @@ object UserCurrentRegionTable {
     val currentRegionList = _currentRegions.list
 
     if (currentRegionList.isEmpty) {
-      // For a new user whose current region is not assigned
-      val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin(userId)
+      // For a new user whose current region is not assigned, assign an easy least audited region
+      assignEasyRegion(userId)
+    } else {
+      // Note: Which case would this be? assignRandomly() is only called immediately after signing up or when the
+      // user visits the audit page when a current region is not yet assigned
+      assignNextRegion(userId)
+    }
+  }
 
-      val regionId: Int = if (region.isDefined) {
-        region.get.regionId
-      } else {
-        scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).filterNot(difficultRegionIds.contains(_)).head
-      }
+  /**
+    * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
+    * @param userId
+    * @return
+    */
+  def assignEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
+    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
+
+    // Assign one of the least-audited regions that are easy.
+    val completions: List[RegionCompletion] =
+      RegionCompletionTable.regionCompletions
+        .filter(_.regionId inSet regionIds)
+        .filterNot(_.regionId inSet difficultRegionIds)
+        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
+
+    val regionId: Int = completions match {
+      case Nil =>
+        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
+        // In this case, pick any easy region amongst regions that are not audited by the user
+        scala.util.Random.shuffle(regionIds).filterNot(difficultRegionIds.contains(_)).head
+      case _ =>
+        // Pick an easy regions that is least audited
+        scala.util.Random.shuffle(completions).head.regionId
+
+    }
+    if (!isAssigned(userId)) {
       save(userId, regionId)
       regionId
     } else {
-      // TODO: Which case would this be? assignRandomly function is only called immediately after signing up or when the
-      // user visits the audit page when a current region is not yet assigned
-      assignNextRegion(userId)
+      update(userId, regionId)
     }
   }
 
@@ -97,46 +123,17 @@ object UserCurrentRegionTable {
         .filter(region => region.auditedDistance / region.totalDistance < 1.0)
         .sortBy(region => region.auditedDistance / region.totalDistance).list
 
-    // if they have audited less than 2 miles and there is an easy region left (or if there are no difficult regions
+    // If they have audited less than 2 miles and there is an easy region left (or if there are no difficult regions
     // left to finish), give them an easy one
     if ((regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId)) ||
         difficultRegionCompletions.isEmpty) {
-      assignNextEasyRegion(userId)
+      assignEasyRegion(userId)
     }
     else {
-      // take the least-audited difficult region
+      // Take the least-audited difficult region
       val regionId = scala.util.Random.shuffle(regionIds.intersect(difficultRegionIds.toSet)).head
       update(userId, regionId)
     }
-  }
-
-  /**
-    * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
-    * @param userId
-    * @return
-    */
-  def assignNextEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
-    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
-
-    // Assign one of the least-audited regions that are easy.
-    val completions: List[RegionCompletion] =
-      RegionCompletionTable.regionCompletions
-        .filter(_.regionId inSet regionIds)
-        .filterNot(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
-        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
-
-    val regionId: Int = completions match {
-      case Nil =>
-        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
-        // In this case, pick any easy region amongst regions that are not audited by the user
-        scala.util.Random.shuffle(regionIds).head
-      case _ =>
-        // Pick an easy regions that is least audited
-        scala.util.Random.shuffle(completions).head.regionId
-
-    }
-    update(userId, regionId)
   }
 
   /**

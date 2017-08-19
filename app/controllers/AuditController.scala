@@ -59,7 +59,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         nextRegion match {
           case Some("easy") =>
             // Assign an easy region is the query string has nextRegion=easy
-            UserCurrentRegionTable.assignNextEasyRegion(user.userId)
+            UserCurrentRegionTable.assignEasyRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
           case Some("regular") =>
             // Assign an easy region is the query string has nextRegion=regular
@@ -114,7 +114,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-        UserCurrentRegionTable.assignNextEasyRegion(user.userId)
+        UserCurrentRegionTable.assignEasyRegion(user.userId)
 
         var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
         region = RegionTable.selectTheCurrentNamedRegion(user.userId)
