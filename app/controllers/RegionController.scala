@@ -44,16 +44,18 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
 
             submission.regionId match {
               case Some(regId) =>
+                // Sets a region based on the request from the user
                 UserCurrentRegionTable.update(user.userId, regId)
                 regId
 
               case None =>
+                // Assigns a region to the user on request from a signed in user
                 UserCurrentRegionTable.assignNextRegion(user.userId)
                 val region = RegionTable.selectTheCurrentNamedRegion(user.userId)
                 region.get.regionId
             }
           case None =>
-          // Get a region for the anonymous user and return it
+          // Get a region for the anonymous user
             val region: Option[NamedRegion] = RegionTable.selectAnEasyNamedRegionRoundRobin
             region.get.regionId
         }

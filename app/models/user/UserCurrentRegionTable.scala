@@ -76,6 +76,8 @@ object UserCurrentRegionTable {
       save(userId, regionId)
       regionId
     } else {
+      // TODO: Which case would this be? This function is only called immediately after signing up or when the user
+      // visits the audit region which a current region being assigned
       assignNextRegion(userId)
     }
   }
