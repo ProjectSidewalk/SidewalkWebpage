@@ -414,6 +414,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 //console.log("Neighborhood complete");
                 isNeighborhoodCompleteAcrossAllUsers = true;
+                $('#neighborhood-completion-overlay').show();
             } else {
                 //console.log("Neighborhood not complete");
                 isNeighborhoodCompleteAcrossAllUsers = false;
