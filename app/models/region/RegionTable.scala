@@ -60,6 +60,10 @@ object RegionTable {
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
+  val namedRegions = for {
+    (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+    if _regionProperties.key === "Neighborhood Name"
+  } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
 
   // Create a round robin neighborhood supplier to be used in getRegion.
   // http://stackoverflow.com/questions/19771992/is-there-a-round-robin-circular-queue-avaliable-in-scala-collections
@@ -101,11 +105,6 @@ object RegionTable {
     * @return
     */
   def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    val namedRegions = for {
-      (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
-
     namedRegions.list.map(x => NamedRegion.tupled(x))
   }
 
@@ -162,9 +161,6 @@ object RegionTable {
     */
   def selectALeastAuditedEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
 
-    // TODO: Get a list of regionIds from this iterator
-    val regionIds = namedRegionRoundRobin
-
     // Assign one of the least-audited regions that are easy.
     val completions: List[RegionCompletion] =
       RegionCompletionTable.regionCompletions
@@ -176,13 +172,14 @@ object RegionTable {
       case Nil =>
         // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
         // In this case, pick any easy region amongst regions that are not audited by the user
+        val regionIds: List[Int] = namedRegions.list.map(_._1)
         scala.util.Random.shuffle(regionIds).filterNot(UserCurrentRegionTable.difficultRegionIds.contains(_)).head
       case _ =>
-        // Pick an easy regions that is least audited
+        // Pick an easy region that is least audited
         scala.util.Random.shuffle(completions).head.regionId
     }
-
-    // TODO: Return a selected NamedRegion
+    val selectedNamedRegion = namedRegions.filter(_._1 === regionId).list.map(x => NamedRegion.tupled(x))
+    selectedNamedRegion.headOption
 
   }
 

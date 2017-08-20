@@ -95,7 +95,7 @@ object UserCurrentRegionTable {
         // In this case, pick any easy region amongst regions that are not audited by the user
         scala.util.Random.shuffle(regionIds).filterNot(difficultRegionIds.contains(_)).head
       case _ =>
-        // Pick an easy regions that is least audited
+        // Pick an easy region that is least audited
         scala.util.Random.shuffle(completions).head.regionId
 
     }
