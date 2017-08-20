@@ -30,6 +30,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
         } else {
             svl.taskContainer.initNextTask(newTask);
         }
@@ -415,6 +416,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 //console.log("Neighborhood complete");
                 isNeighborhoodCompleteAcrossAllUsers = true;
                 $('#neighborhood-completion-overlay').show();
+                tracker.push("NeighborhoodComplete_AcrossAllUsers", {'RegionId': neighborhoodId})
             } else {
                 //console.log("Neighborhood not complete");
                 isNeighborhoodCompleteAcrossAllUsers = false;
