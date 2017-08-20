@@ -1167,42 +1167,56 @@ kbd {
 .toolUI{
     position: relative;
 }
-#advanced-overlay{
+/*Overlay box - start*/
+#advanced-overlay, #neighborhood-completion-overlay{
     display:none;
 }
-#overlay-text{
+.overlay-text{
     height: 100%;
     width: 100%;
     position: absolute;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.89);
     z-index: 5;
 }
-#advanced-neighborhood-text{
+#advanced-neighborhood-text, #neighborhood-completion-text{
     color: white;
     text-align: center;
-    width: 59%;
+    width: 65%;
     position: relative;
-    margin-top: 27vh;
     margin-left: 18vw;
     border-radius: 5px;
     font-size: 21px;
 }
-#advanced-neighborhood-text p{
+#advanced-neighborhood-text {
+    margin-top: 20vh;
+}
+#neighborhood-completion-text {
+    margin-top: 23vh;
+}
+#advanced-neighborhood-text p, #neighborhood-completion-text p{
     border-radius: 5px;
     padding: 7px;
 }
-.advanced-neighborhood-option{
+.overlay-header {
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+}
+.overlay-option{
     margin: 20px 5px;
     padding: 7px;
     border: 1px solid white;
     border-radius: 5px;
     display: inline-block;
 }
-.advanced-neighborhood-option:hover{
+.overlay-option:hover{
     background-color: white;
     color: black;
     cursor: pointer;
 }
+
+/*Overlay box - end*/
+
 .resultsImages{
     margin-top: 10px;
 }

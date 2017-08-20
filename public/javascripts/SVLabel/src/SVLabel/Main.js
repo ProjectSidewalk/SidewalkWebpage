@@ -109,6 +109,7 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
+        svl.advancedOverlay = params.advancedOverlay;
 
 
 
@@ -450,7 +451,7 @@ function Main (params) {
 
                 var regionId = currentNeighborhood.getProperty("regionId");
                 var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
-                if(difficultRegionIds.includes(regionId)){
+                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay){
                     $('#advanced-overlay').show();
                 }
                 startTheMission(mission, currentNeighborhood);
