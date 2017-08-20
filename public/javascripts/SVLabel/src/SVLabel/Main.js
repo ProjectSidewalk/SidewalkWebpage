@@ -194,6 +194,12 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
+        // Mark neighborhood as complete if the initial task's completion count > 0
+        // Proxy for knowing if the neighborhood is complete across all users
+        if(task.getStreetCompletionCount() > 0) {
+            svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+        }
+
         if (getStatus("isFirstTask")) {
             svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
             svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +

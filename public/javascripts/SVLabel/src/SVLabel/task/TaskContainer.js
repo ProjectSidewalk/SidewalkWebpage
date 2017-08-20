@@ -402,7 +402,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return previousTasks.length;
     }
 
-    function isNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
+    function findNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
         var isNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
 
         // Only run this code if the neighborhood is set as incomplete
@@ -447,7 +447,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
         // If the neighborhood is 100% complete (across all users)
-        if (isNeighborhoodCompleteAcrossAllUsers(currentNeighborhoodId, finishedTask)) {
+        if (findNeighborhoodCompleteAcrossAllUsers(currentNeighborhoodId, finishedTask)) {
             // If the street you just audited connects to any streets that you have not personally audited,
             // pick any one of those at random. Otherwise, jump.
 
