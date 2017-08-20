@@ -48,9 +48,9 @@ CREATE TABLE gt_label
   alpha_y Double Precision NOT NULL,
   lat Double Precision,
   lng Double Precision,
-  description Text,
-  severity Int,
-  temporary_problem Boolean default FALSE,
+  description Text NOT NULL,
+  severity Int NOT NULL,
+  temporary_problem Boolean default FALSE NOT NULL,
   PRIMARY KEY (gt_label_id),
   FOREIGN KEY (route_id) REFERENCES route(route_id),
   FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id)

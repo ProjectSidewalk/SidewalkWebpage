@@ -37,9 +37,9 @@ class GTLabelTable(tag: Tag) extends Table[GTLabel](tag, Some("sidewalk"), "gt_l
   def alphaY = column[Float]("alpha_y", O.NotNull)
   def lat = column[Option[Float]]("lat", O.Nullable)
   def lng = column[Option[Float]]("lng", O.Nullable)
-  def description = column[String]("description", O.Nullable)
-  def severity = column[Int]("severity", O.Nullable)
-  def temporaryProblem = column[Boolean]("temporary_problem", O.Nullable)
+  def description = column[Option[String]]("description", O.Nullable)
+  def severity = column[Option[Int]]("severity", O.Nullable)
+  def temporaryProblem = column[Option[Boolean]]("temporary_problem", O.Nullable)
 
 
 
