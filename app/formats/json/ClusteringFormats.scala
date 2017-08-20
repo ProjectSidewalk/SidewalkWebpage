@@ -17,7 +17,7 @@ object ClusteringFormats {
   case class GTLabelSubmission(labelId: Option[Int], clusterId: Int, gsvPanoId: String, labelType: Int, svImageX: Int,
                                svImageY: Int, svCanvasX: Int, svCanvasY: Int, heading: Float, pitch: Float, zoom: Int,
                                canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float],
-                               lng: Option[Float], description: String, severity: Int, temporary: Boolean)
+                               lng: Option[Float], description: Option[String], severity: Option[Int], temporary: Option[Boolean])
 
 
   implicit val clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
@@ -44,8 +44,8 @@ object ClusteringFormats {
       (JsPath \ "alpha_y").read[Float] and
       (JsPath \ "lat").read[Option[Float]] and
       (JsPath \ "lng").read[Option[Float]] and
-      (JsPath \ "description").read[String] and
-      (JsPath \ "severity").read[Int] and
-      (JsPath \ "temporary").read[Boolean]
+      (JsPath \ "description").readNullable[String] and
+      (JsPath \ "severity").readNullable[Int] and
+      (JsPath \ "temporary").readNullable[Boolean]
     )(GTLabelSubmission.apply _)
 }
