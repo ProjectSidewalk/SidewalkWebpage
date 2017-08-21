@@ -382,25 +382,30 @@ $(document).ready(function () {
         var markerElement = $("#label-id-" + data.label_id);
 
         //create popup
+        //ground truth yes/no buttons and send to back button are common to all label types
         var popupButtonHtml = 'Ground Truth: ' +
             '<input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"/>' +
             '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"/>' +
             '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"/>';
 
+        // labeler name is common to all label types as well
         var labelDescriptors = '<p style="text-align:center; margin-bottom:2px">' +
                                '<b>Labeler:</b>&nbsp;' + data.turker_id;
 
         // TODO add comments for this section
         // TODO look up a better way to do this than .indexOf
+        // for the label types with gray icons, include name of label type to distinguish between them
         if (['Other', 'Occlusion', 'NoSidewalk'].indexOf(data.label_type) >= 0) {
             labelDescriptors += ', <b>Label Type:</b>&nbsp;' + data.label_type;
         }
 
+        // for occlusion and no sidewalk label types, there is no severity/temp popup, so don't try to display it
         if (['Occlusion', 'NoSidewalk'].indexOf(data.label_type) < 0) {
             labelDescriptors += ', <b>Severity:</b>&nbsp;' + data.severity +
                                 ', <b>Temporary:</b>&nbsp;' + data.temporary;
         }
         labelDescriptors += '</p>';
+
         var popupContent = labelDescriptors + popupButtonHtml;
         markerElement.popover({
             placement: 'top',
@@ -449,9 +454,16 @@ $(document).ready(function () {
       markerElement.popover('destroy');
       markerElement.popover({
           placement: 'top',
-          content: 'Severity: <select name="changeSeverity" id="changeSeverity' + data.label_id + '"><option disabled selected value="none"> </option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select> (' + data.severity + ')<br>' +
+          content: 'Want to change anything?<br>' +
+          'Severity: <select name="changeSeverity" id="changeSeverity' + data.label_id + '">' +
+          '<option disabled selected value="none"> </option><option value="1">1</option>' +
+                                                           '<option value="2">2</option>' +
+                                                           '<option value="3">3</option>' +
+                                                           '<option value="4">4</option>' +
+                                                           '<option value="5">5</option>' +
+                                                           '</select> (' + data.severity + ')<br>' +
           'Temporary: <input type="checkbox" id ="changeTemp' + data.label_id + '"> (' + data.temporary + ')<br>' +
-          '<input type="button" id="updateCommit' + data.label_id + '" style="margin-top:4px" value="Update"></input>', // 9eba9e
+          '<input type="button" id="updateCommit' + data.label_id + '" style="margin-top:4px" value="Update"/>',
           html: true,
           delay: 100
       });
