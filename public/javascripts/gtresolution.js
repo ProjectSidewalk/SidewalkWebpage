@@ -772,11 +772,24 @@ $(document).ready(function () {
             //if there are 3 labels in the cluster, keep looking
             if (cluster_data.length === 3) {
                 //check if all labelers are different
-                if (!((cluster_data[0].turker_id === cluster_data[1].turker_id) || (cluster_data[0].turker_id === cluster_data[2].turker_id) || (cluster_data[1].turker_id === cluster_data[2].turker_id))) {
+                if (!(cluster_data[0].turker_id === cluster_data[1].turker_id ||
+                      cluster_data[0].turker_id === cluster_data[2].turker_id ||
+                      cluster_data[1].turker_id === cluster_data[2].turker_id)) {
+                    //check if label type even has severity/temporariness attributes
+                    var noInfoLabel = (cluster_data[0].label_type === cluster_data[1].label_type &&
+                                       cluster_data[0].label_type === cluster_data[2].label_type) &&
+                                      ['Occlusion','NoSidewalk'].indexOf(cluster_data[0].label_type) >= 0;
                     //check if severities are all the same
-                    var noInfoLabel = (cluster_data[0].label_type === cluster_data[1].label_type && cluster_data[0].label_type === cluster_data[2].label_type) && ['Occlusion','NoSidewalk'].indexOf(cluster_data[0].label_type) >= 0;
-                    var sameSeverity = noInfoLabel || (!(cluster_data[0].severity === null && cluster_data[1].severity === null && cluster_data[2].severity === null) && (cluster_data[0].severity === cluster_data[1].severity && cluster_data[0].severity === cluster_data[2].severity));
-                    var sameTemp = noInfoLabel || (cluster_data[0].temporary === cluster_data[1].temporary && cluster_data[0].temporary === cluster_data[2].temporary);
+                    var sameSeverity = noInfoLabel ||
+                                       (!(cluster_data[0].severity === null &&
+                                          cluster_data[1].severity === null &&
+                                          cluster_data[2].severity === null) &&
+                                         (cluster_data[0].severity === cluster_data[1].severity &&
+                                          cluster_data[0].severity === cluster_data[2].severity));
+                    //check if temporariness are all the same
+                    var sameTemp = noInfoLabel ||
+                                   (cluster_data[0].temporary === cluster_data[1].temporary &&
+                                    cluster_data[0].temporary === cluster_data[2].temporary);
                     //calculate middle label
                     middle = chooseMiddle(cluster_data);
                     if (!(sameSeverity && sameTemp)) {
