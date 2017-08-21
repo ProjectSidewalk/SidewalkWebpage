@@ -71,14 +71,15 @@ object ClusteringSessionTable{
     * @param hitId
     * @return
     */
-  def getLabelsToCluser(routeId: Int, hitId: String): List[LabelToCluster] = db.withSession {implicit session =>
-    val asmts = AMTAssignmentTable.amtAssignments.filter(asmt => asmt.routeId === routeId && asmt.hitId === hitId)
+  def getLabelsToCluster(routeId: Int, hitId: String): List[LabelToCluster] = db.withSession { implicit session =>
+    val asmts = AMTAssignmentTable.amtAssignments.filter(asmt => asmt.routeId === routeId && asmt.hitId === hitId && asmt.completed)
+    val nonOnboardingLabs = LabelTable.labelsWithoutDeleted.filterNot(_.gsvPanoramaId === "stxXyCKAbd73DmkM2vsIHA")
 
     // does a bunch of inner joins
     val labels = for {
       _asmts <- asmts
       _tasks <- AuditTaskTable.auditTasks if _asmts.amtAssignmentId === _tasks.amtAssignmentId
-      _labs <- LabelTable.labelsWithoutDeleted if _tasks.auditTaskId === _labs.auditTaskId
+      _labs <- nonOnboardingLabs if _tasks.auditTaskId === _labs.auditTaskId
       _latlngs <- LabelTable.labelPoints if _labs.labelId === _latlngs.labelId
       _types <- LabelTable.labelTypes if _labs.labelTypeId === _types.labelTypeId
     } yield (_asmts.turkerId, _labs.labelId, _types.labelType, _latlngs.lat, _latlngs.lng)

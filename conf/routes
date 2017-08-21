@@ -3,29 +3,29 @@
 # ~~~~
 
 # Home page
-GET     /                                       @controllers.AuditController.audit
-POST    /                                       controllers.TeaserController.teaserPost
+GET     /                                                    @controllers.AuditController.audit
+POST    /                                                    controllers.TeaserController.teaserPost
 
-GET     /home                                   @controllers.AuditController.audit
-GET     /about                                  @controllers.ApplicationController.about
-GET     /api                                    @controllers.ApplicationController.developer
-GET     /developer                              @controllers.ApplicationController.developer
-GET     /terms                                  @controllers.ApplicationController.terms
-GET     /demo                                   @controllers.ApplicationController.demo
-GET     /results                                @controllers.ApplicationController.results
-GET     /faq                                    @controllers.ApplicationController.faq
-GET     /student                                @controllers.ApplicationController.student
-GET     /mobile                                 @controllers.ApplicationController.mobile
-GET     /clustering                             @controllers.ClusteringSessionController.index
+GET     /home                                                @controllers.AuditController.audit
+GET     /about                                               @controllers.ApplicationController.about
+GET     /api                                                 @controllers.ApplicationController.developer
+GET     /developer                                           @controllers.ApplicationController.developer
+GET     /terms                                               @controllers.ApplicationController.terms
+GET     /demo                                                @controllers.ApplicationController.demo
+GET     /results                                             @controllers.ApplicationController.results
+GET     /faq                                                 @controllers.ApplicationController.faq
+GET     /student                                             @controllers.ApplicationController.student
+GET     /mobile                                              @controllers.ApplicationController.mobile
+GET     /clustering                                          @controllers.ClusteringSessionController.index
 
 # Auditing tasks
-GET     /audit                                  @controllers.AuditController.audit
-GET     /auditCondition                         @controllers.AuditController.auditCondition
-GET     /audit/region/:id                       @controllers.AuditController.auditRegion(id: Int)
-GET     /audit/street/:id                       @controllers.AuditController.auditStreet(id: Int)
-POST    /audit/comment                          @controllers.AuditController.postComment
-POST    /audit/amtAssignment                    @controllers.AuditController.postAMTAssignment
-POST    /audit/nostreetview                     @controllers.AuditController.postNoStreetView
+GET     /audit                                               @controllers.AuditController.audit
+GET     /auditCondition                                      @controllers.AuditController.auditCondition
+GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
+GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
+POST    /audit/comment                                       @controllers.AuditController.postComment
+POST    /audit/amtAssignment                                 @controllers.AuditController.postAMTAssignment
+POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -67,22 +67,22 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 
 # Task API.
-GET     /task                                   @controllers.TaskController.getTask
-GET     /task/street/:id                        @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
-GET     /tasks/route/:id                        @controllers.TaskController.getTasksOnARoute(id: Int)
-GET     /tasks                                  @controllers.TaskController.getTasksInARegion(regionId: Int)
-POST    /task                                   @controllers.TaskController.post
+GET     /task                                                @controllers.TaskController.getTask
+GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
+GET     /tasks/route/:id                                     @controllers.TaskController.getTasksOnARoute(id: Int)
+GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
+POST    /task                                                @controllers.TaskController.post
 
 # Route API
-POST    /route                                  @controllers.RouteController.post
-GET     /route/:id                              @controllers.RouteController.getRouteById(id: Int)
-GET     /routes/:id                             @controllers.RouteController.getStreetsOnARoute(id: Int)
+POST    /route                                               @controllers.RouteController.post
+GET     /route/:id                                           @controllers.RouteController.getRouteById(id: Int)
+GET     /routes/:id                                          @controllers.RouteController.getStreetsOnARoute(id: Int)
 
 # Missions
-GET     /missionturk                            @controllers.MissionController.getMTurkMissions
-GET     /missionturk/:turkerId                  @controllers.MissionController.getMTurkMissionsByTurker(turkerId: String)
-GET     /mission                                @controllers.MissionController.getMissions
-POST    /mission                                @controllers.MissionController.post
+GET     /missionturk                                         @controllers.MissionController.getMTurkMissions
+GET     /missionturk/:turkerId                               @controllers.MissionController.getMTurkMissionsByTurker(turkerId: String)
+GET     /mission                                             @controllers.MissionController.getMissions
+POST    /mission                                             @controllers.MissionController.post
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
@@ -119,21 +119,19 @@ GET     /v1/access/score/neighborhoods                       @controllers.Projec
 GET     /v1/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file                           controllers.Assets.at(path="/public", file)
-GET     /webjars/*file                          controllers.WebJarAssets.at(file)
+GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
+GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
 
 
 # Set up ground truth resolution page
-GET     /gtresolution                            @controllers.GroundTruthResolutionController.index
-GET     /gtresolution/labelData/:labelId         @controllers.GroundTruthResolutionController.getLabelData(labelId: Int)
-POST    /gtresolution/results/:clustSessionId    @controllers.GroundTruthResolutionController.postGroundTruthResults(clustSessionId: Int)
+GET     /gtresolution                                        @controllers.GroundTruthResolutionController.index
+GET     /gtresolution/labelData/:labelId                     @controllers.GroundTruthResolutionController.getLabelData(labelId: Int)
+POST    /gtresolution/results/:clustSessionId                @controllers.GroundTruthResolutionController.postGroundTruthResults(clustSessionId: Int)
+GET     /gtlabels                                            @controllers.GTLabelController.getAllGTLabels
+GET     /labelsForGtResolution/:sessionId                    @controllers.ClusteringSessionController.getLabelsForGtResolution(sessionId)
 
 # Clustering session end points
-GET     /clusteringsessions                             @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted
-GET     /clusterRoute/:routeId/:hitId                   @controllers.ClusteringSessionController.runClustering(routeId: Int, hitId: String)
-GET     /labelsToCluster/:routeId/:hitId                @controllers.ClusteringSessionController.getLabelsToCluser(routeId, hitId)
-GET     /labelsForGtResolution/:sessionId               @controllers.ClusteringSessionController.getLabelsForGtResolution(sessionId)
-POST    /clusteringResults/:routeId/:threshold          @controllers.ClusteringSessionController.postClusteringResults(routeId, threshold)
-
-# Ground Truth Label end points
-GET     /gtlabels                                       @controllers.GTLabelController.getAllGTLabels
+GET     /clusteringsessions                                  @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted
+GET     /clusterRoute/:routeId/:hitId                        @controllers.ClusteringSessionController.runClustering(routeId: Int, hitId: String)
+GET     /labelsToCluster/:routeId/:hitId                     @controllers.ClusteringSessionController.getLabelsToCluster(routeId, hitId)
+POST    /clusteringResults/:routeId/:threshold               @controllers.ClusteringSessionController.postClusteringResults(routeId, threshold)
