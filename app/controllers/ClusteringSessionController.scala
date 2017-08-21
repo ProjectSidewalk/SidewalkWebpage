@@ -77,9 +77,9 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
     * @param hitId
     * @return
     */
-  def getLabelsToCluser(routeId: String, hitId: String) = UserAwareAction.async { implicit request =>
+  def getLabelsToCluster(routeId: String, hitId: String) = UserAwareAction.async { implicit request =>
 //    if (isAdmin(request.identity)) {
-      val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluser(routeId.toInt, hitId)
+      val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluster(routeId.toInt, hitId)
       val json = Json.arr(labsToCluster.map(x => Json.obj(
         "label_id" -> x.labelId, "label_type" -> x.labelType, "lat" -> x.lat, "lng" -> x.lng, "severity" -> x.severity,
         "temporary" -> x.temp, "turker_id" -> x.turkerId
