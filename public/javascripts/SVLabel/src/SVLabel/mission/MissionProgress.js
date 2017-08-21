@@ -177,11 +177,11 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             var newTaskId = Object.keys(taskContainer._taskStoreByRouteId[nextRouteId]).filter(function start(el){return taskContainer._taskStoreByRouteId[nextRouteId][el]['isStartEdge'];})[0];
             var newTask = taskContainer._taskStoreByRouteId[nextRouteId][newTaskId].task;
             var currentTaskId = taskContainer.getCurrentTask().getStreetEdgeId();
-            //if(currentTaskId !== newTaskId){
+            if(currentTaskId !== newTaskId){
                 // Jump if the first street edge in the next route is not the same as the last street edge on the completed route.
-                taskContainer.setCurrentTask(newTask);
                 svl.map.moveToTheTaskLocation(newTask);
-            //}
+                taskContainer.setCurrentTask(newTask);
+            }
         });
 
         missionContainer.setCurrentMission(nextMission);
