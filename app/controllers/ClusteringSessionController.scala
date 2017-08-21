@@ -77,7 +77,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
     * @param hitId
     * @return
     */
-  def getLabelsToCluser(routeId: String, hitId: String) = UserAwareAction.async {implicit request =>
+  def getLabelsToCluser(routeId: String, hitId: String) = UserAwareAction.async { implicit request =>
 //    if (isAdmin(request.identity)) {
       val labsToCluster: List[LabelToCluster] = ClusteringSessionTable.getLabelsToCluser(routeId.toInt, hitId)
       val json = Json.arr(labsToCluster.map(x => Json.obj(
@@ -93,7 +93,7 @@ class ClusteringSessionController @Inject()(implicit val env: Environment[User, 
   /**
     * Takes in results of clustering, and adds the data to the relevant tables
     */
-  def postClusteringResults(routeId: String, threshold: String) = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
+  def postClusteringResults(routeId: String, threshold: String) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
     val submission = request.body.validate[List[ClusteringFormats.ClusteredLabelSubmission]]
     submission.fold(

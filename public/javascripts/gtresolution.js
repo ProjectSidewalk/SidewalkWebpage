@@ -236,7 +236,7 @@ $(document).ready(function () {
                 disableDefaultUI: true,
                 clickToGo: false,
                 zoomControl: true,
-                scrollwheel: false
+                scrollwheel: true
             });
             panoramaContainers[i].gsv_panorama.setOptions({visible: false});
         }
@@ -275,11 +275,13 @@ $(document).ready(function () {
                     //if hidden, show all labels in the GSV
                     for (var i = 0; i < pano.labelMarkers.length; i++) {
                         var marker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
+                        var type = pano.labels[i].label_type;
+                        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
                         if (marker != null) {
-                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + pano.labels[i].label_type + ".png?size=200");
+                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + type + ".png?size=200");
                         }
                         else {
-                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[null].path + pano.labels[i].label_type + ".png?size=200");
+                            pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[null].path + type + ".png?size=200");
                         }
                     }
                 } else {
@@ -320,11 +322,13 @@ $(document).ready(function () {
         //create a marker for the label in the panorama
         var id = "label-id-" + label.label_id;
         var size = statusInfo[status].size;
+        var type = label.label_type;
+        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
         var label_marker = new PanoMarker({
             pano: pano.gsv_panorama,
             container: pano.view,
             position: {heading: labelPosition.heading, pitch: labelPosition.pitch},
-            icon: "assets/javascripts/SVLabel/img" + statusInfo[status].path + label.label_type + ".png?size=200",
+            icon: "assets/javascripts/SVLabel/img" + statusInfo[status].path + type + ".png?size=200",
             id: id,
             size: size,
             optimized: false
@@ -376,24 +380,48 @@ $(document).ready(function () {
         } //do not give second round labels popovers
         var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
         var markerElement = $("#label-id-" + data.label_id);
+
         //create popup
+        //ground truth yes/no buttons and send to back button are common to all label types
+        var popupButtonHtml = 'Ground Truth: ' +
+            '<input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"/>' +
+            '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"/>' +
+            '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"/>';
+
+        // labeler name is common to all label types as well
+        var labelDescriptors = '<p style="text-align:center; margin-bottom:2px">' +
+                               '<b>Labeler:</b>&nbsp;' + data.turker_id;
+
+        // TODO add comments for this section
+        // TODO look up a better way to do this than .indexOf
+        // for the label types with gray icons, include name of label type to distinguish between them
+        if (['Other', 'Occlusion', 'NoSidewalk'].indexOf(data.label_type) >= 0) {
+            labelDescriptors += ', <b>Label Type:</b>&nbsp;' + data.label_type;
+        }
+
+        // for occlusion and no sidewalk label types, there is no severity/temp popup, so don't try to display it
+        if (['Occlusion', 'NoSidewalk'].indexOf(data.label_type) < 0) {
+            labelDescriptors += ', <b>Severity:</b>&nbsp;' + data.severity +
+                                ', <b>Temporary:</b>&nbsp;' + data.temporary;
+        }
+        labelDescriptors += '</p>';
+
+        var popupContent = labelDescriptors + popupButtonHtml;
         markerElement.popover({
             placement: 'top',
-            content: '<p style="text-align:center; margin-bottom:2px"><b>Labeler:</b>&nbsp;' + data.turker_id + ', <b>Severity:</b>&nbsp;' + data.severity + ', <b>Temporary:</b>&nbsp;' + data.temporary
-            + '</p>' +
-            'Ground Truth: <input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"></input>' +
-            '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"></input>' +
-            '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"></input>', // 9eba9e
+            content: popupContent, // 9eba9e
             html: true,
             delay: 100,
             id: "#popover-" + data.label_id
         });
 
-        //clicking yes for ground truth hides popover and calls yesGroundTruth
+        //clicking Yes for GT calls yesGroundTruth and opens severity rating popup (if that label type uses severity)
         $(document).on("click", '.popover #commit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
             yesGroundTruth(data);
-            changeSeverityPopover(pano,data,status);
+            if (['Occlusion', 'NoSidewalk'].indexOf(data.label_type) < 0) {
+                changeSeverityPopover(pano, data, status);
+            }
         });
         //clicking no for ground truth hides popover and calls noGroundTruth
         $(document).on("click", '.popover #noCommit' + data.label_id, function () {
@@ -418,6 +446,7 @@ $(document).ready(function () {
         });
     }//end of createPopover
 
+    // TODO make severity selection mandatory
     function changeSeverityPopover(pano, data, status) {
       var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
       var markerElement = $("#label-id-" + data.label_id);
@@ -425,9 +454,16 @@ $(document).ready(function () {
       markerElement.popover('destroy');
       markerElement.popover({
           placement: 'top',
-          content: 'Severity: <select name="changeSeverity" id="changeSeverity' + data.label_id + '"><option disabled selected value="none"> </option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select> (' + data.severity + ')<br>' +
+          content: 'Want to change anything?<br>' +
+          'Severity: <select name="changeSeverity" id="changeSeverity' + data.label_id + '">' +
+          '<option disabled selected value="none"> </option><option value="1">1</option>' +
+                                                           '<option value="2">2</option>' +
+                                                           '<option value="3">3</option>' +
+                                                           '<option value="4">4</option>' +
+                                                           '<option value="5">5</option>' +
+                                                           '</select> (' + data.severity + ')<br>' +
           'Temporary: <input type="checkbox" id ="changeTemp' + data.label_id + '"> (' + data.temporary + ')<br>' +
-          '<input type="button" id="updateCommit' + data.label_id + '" style="margin-top:4px" value="Commit"></input>', // 9eba9e
+          '<input type="button" id="updateCommit' + data.label_id + '" style="margin-top:4px" value="Update"/>',
           html: true,
           delay: 100
       });
@@ -479,7 +515,9 @@ $(document).ready(function () {
             }
         }
         //update visuals
-        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + commit.label_type + ".png?size=200");
+        var type = commit.label_type;
+        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + type + ".png?size=200");
         panoramaContainers[pano].labelMarkers[labelIndex].setOptions({
             size: statusInfo["Ground_Truth"].size,
             className: "Ground_Truth"
@@ -518,7 +556,9 @@ $(document).ready(function () {
             }
         }
         //update visuals
-        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + commit.label_type + ".png?size=200");
+        var type = commit.label_type;
+        if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
+        panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + type + ".png?size=200");
         panoramaContainers[pano].labelMarkers[labelIndex].setOptions({
             size: statusInfo["No_Ground_Truth"].size,
             className: "No_Ground_Truth"
@@ -732,10 +772,24 @@ $(document).ready(function () {
             //if there are 3 labels in the cluster, keep looking
             if (cluster_data.length === 3) {
                 //check if all labelers are different
-                if (!((cluster_data[0].turker_id === cluster_data[1].turker_id) || (cluster_data[0].turker_id === cluster_data[2].turker_id) || (cluster_data[1].turker_id === cluster_data[2].turker_id))) {
+                if (!(cluster_data[0].turker_id === cluster_data[1].turker_id ||
+                      cluster_data[0].turker_id === cluster_data[2].turker_id ||
+                      cluster_data[1].turker_id === cluster_data[2].turker_id)) {
+                    //check if label type even has severity/temporariness attributes
+                    var noInfoLabel = (cluster_data[0].label_type === cluster_data[1].label_type &&
+                                       cluster_data[0].label_type === cluster_data[2].label_type) &&
+                                      ['Occlusion','NoSidewalk'].indexOf(cluster_data[0].label_type) >= 0;
                     //check if severities are all the same
-                    var sameSeverity = !(cluster_data[0].severity === null && cluster_data[1].severity === null && cluster_data[2].severity === null) && (cluster_data[0].severity === cluster_data[1].severity && cluster_data[0].severity === cluster_data[2].severity);
-                    var sameTemp = (cluster_data[0].temporary === cluster_data[1].temporary && cluster_data[0].temporary === cluster_data[2].temporary);
+                    var sameSeverity = noInfoLabel ||
+                                       (!(cluster_data[0].severity === null &&
+                                          cluster_data[1].severity === null &&
+                                          cluster_data[2].severity === null) &&
+                                         (cluster_data[0].severity === cluster_data[1].severity &&
+                                          cluster_data[0].severity === cluster_data[2].severity));
+                    //check if temporariness are all the same
+                    var sameTemp = noInfoLabel ||
+                                   (cluster_data[0].temporary === cluster_data[1].temporary &&
+                                    cluster_data[0].temporary === cluster_data[2].temporary);
                     //calculate middle label
                     middle = chooseMiddle(cluster_data);
                     if (!(sameSeverity && sameTemp)) {
@@ -830,7 +884,9 @@ $(document).ready(function () {
       currentLabel = all_labels[clusterId][0];
       currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
       map.setCenter(currentCoordinates);
-      clearCanvas(0);
+        if (panoramaContainers[0].gsv_panorama !== null) {
+            clearCanvas(0);
+        }
       document.getElementById("panorama-3").innerHTML = null;
       //initialize panoramas and show the first high disagreement cluster
       initializePanoramas(currentLabel);
@@ -937,6 +993,7 @@ $(document).ready(function () {
         document.getElementById("gtSubmit").onclick = function () {
             async = true;
             var data = [];
+            console.log(ground_truth_labels);
             for (var i = 0; i < ground_truth_labels.length; i++) {
                 var toSubmit = ground_truth_labels[i];
                 toSubmit.label_type = labelTypeMapping[toSubmit.label_type];
@@ -945,6 +1002,7 @@ $(document).ready(function () {
 
                 data.push(toSubmit);
             }
+            console.log(data);
             $.ajax({
                 async: true,
                 contentType: 'application/json; charset=utf-8',

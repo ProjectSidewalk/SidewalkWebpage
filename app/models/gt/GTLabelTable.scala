@@ -13,9 +13,9 @@ import scala.slick.lifted.ForeignKeyQuery
 case class GTLabel(gtLabelId: Int, routeId: Int, gsvPanoramaId: String, labelTypeId: Int, svImageX: Int, svImageY: Int,
                    canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int,
                    canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float],
-                   description: String,
-                   severity: Int,
-                   temporaryProblem: Boolean)
+                   description: Option[String],
+                   severity: Option[Int],
+                   temporaryProblem: Option[Boolean])
 /**
   *
   */
@@ -37,9 +37,9 @@ class GTLabelTable(tag: Tag) extends Table[GTLabel](tag, Some("sidewalk"), "gt_l
   def alphaY = column[Float]("alpha_y", O.NotNull)
   def lat = column[Option[Float]]("lat", O.Nullable)
   def lng = column[Option[Float]]("lng", O.Nullable)
-  def description = column[String]("description", O.NotNull)
-  def severity = column[Int]("severity", O.NotNull)
-  def temporaryProblem = column[Boolean]("temporary_problem", O.NotNull)
+  def description = column[Option[String]]("description", O.Nullable)
+  def severity = column[Option[Int]]("severity", O.Nullable)
+  def temporaryProblem = column[Option[Boolean]]("temporary_problem", O.Nullable)
 
 
 
