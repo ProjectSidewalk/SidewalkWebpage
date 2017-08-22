@@ -2,6 +2,7 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
+import java.sql.Time
 import java.net.URLDecoder
 
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
@@ -263,6 +264,37 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.successful(Redirect("/"))
     }
   }
+
+  /**
+  * Get all auditing times
+  *
+  * @return
+  */
+def getAuditTimes() = UserAwareAction.async { implicit request =>
+  if (isAdmin(request.identity)) {
+      val interactions = AuditTaskInteractionTable.selectAllAuditTimes("97760883-8ef0-4309-9a5e-0c086ef27573").map(timestamps => Json.obj(
+      "time" -> timestamps.timestamp))
+      Future.successful(Ok(JsArray(interactions)))
+  } else {
+    Future.successful(Redirect("/"))
+  }
+}
+
+/**
+  * Get all anonymous auditing times
+  *
+  * @return
+  */
+def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
+  if (isAdmin(request.identity)) {
+      val interactionsAnon = AuditTaskInteractionTable.selectAllAnonAuditTimes("97760883-8ef0-4309-9a5e-0c086ef27573").map(timestamps => Json.obj(
+      "time" -> timestamps.timestamp))
+      Future.successful(Ok(JsArray(interactionsAnon)))
+  } else {
+    Future.successful(Redirect("/"))
+  }
+}
+
 
   /**
     * This method returns the tasks and labels submitted by the given user.
