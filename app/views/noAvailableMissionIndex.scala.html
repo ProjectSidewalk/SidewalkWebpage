@@ -1,0 +1,20 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
+@import models.user.User
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
+
+@main(title) {
+    @navbar(user)
+    <div id="content">
+        <div class="container">
+            <h2>Welcome!</h2>
+            <p>
+                You've completed all the missions that were available to you.
+                If you would like to contribute more as a volunteer please visit our public website for <a href="http://sidewalk.umiacs.umd.edu/r=mturk_no_mission_available">Project Sidewalk</a>.
+                Even five minutes of your day could help make someone else’s.
+            </p>
+        </div>
+    </div>
+}

@@ -808,7 +808,8 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
+            // Disabled the difficult region popup for mturk experiments
+                if(false && @UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
                        $('#advanced-overlay').show();
                 }
             } else {
