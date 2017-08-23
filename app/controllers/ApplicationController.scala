@@ -7,6 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
+import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
@@ -58,10 +59,12 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                 Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
               case None =>
-                // If the turker doesnt exist in the user table create a new record with the role set to 4 indicating turker
-
-                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
-                Future.successful(Ok(views.html.index("Project Sidewalk")))
+                //Add an entry into the amt_assignment table
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId)
+                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                // Since the turker doesnt exist in the user table create a new record with the role set to "Turker"
+                val redirectTo = List("turkerSignUp",hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
+                Future.successful(Redirect(redirectTo))
             }
 
           case _ =>
