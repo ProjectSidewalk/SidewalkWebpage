@@ -104,7 +104,7 @@ def create_hits_for_conditions(conditions, number_of_assignments = 3):
             mturk.create_hit(
                 Title=title,
                 LifetimeInSeconds=86400,
-                AssignmentDurationInSeconds=3600,
+                AssignmentDurationInSeconds=7200,
                 MaxAssignments=number_of_assignments,
                 Description=description,
                 Keywords=keywords,
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         condition_rows = cur.fetchall()
         conditions = map(lambda x: x["condition_id"], condition_rows)
 
-        specific_conditions = [1]
+        specific_conditions = [75]
         number_of_assignments = 3
 
         create_hits_for_conditions(specific_conditions)
