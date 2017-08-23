@@ -89,6 +89,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.background.css('visibility', "visible");
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
+        //generate confirmation code here if svl.missionContainer.isTheFirstMission returns true
     };
 
     this.update = function (mission, neighborhood) {
