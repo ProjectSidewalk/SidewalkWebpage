@@ -84,35 +84,35 @@ def create_hits_for_conditions(conditions, number_of_assignments = 3):
     # Get mturk client
     mturk = connect_to_mturk()
 
-        t_before_creation = datetime.now()
+    t_before_creation = datetime.now()
 
-        for condition in conditions:
+    for condition in conditions:
 
-            # The external question object allows you to view an external url inside an iframe
-            # mTurk automatically appends worker and hit variables to the external url
-            # Variable passed to the external url are workerid, assignmentid, hitid, ...
-            # Once the task is successfully completed the external server needs to
-            # perform a POST operation to an mturk url
-            url = 'https://sidewalk-mturk.umiacs.umd.edu/auditCondition?conditionId='+condition
-            external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
-                '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
-                str(frame_height) + '</FrameHeight></ExternalQuestion>'
+        # The external question object allows you to view an external url inside an iframe
+        # mTurk automatically appends worker and hit variables to the external url
+        # Variable passed to the external url are workerid, assignmentid, hitid, ...
+        # Once the task is successfully completed the external server needs to
+        # perform a POST operation to an mturk url
+        url = 'https://sidewalk-mturk.umiacs.umd.edu/auditCondition?conditionId='+condition
+        external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
+            '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
+            str(frame_height) + '</FrameHeight></ExternalQuestion>'
 
 
-            # Create a sample HIT that expires after an 'LifetimeInSeconds'
+        # Create a sample HIT that expires after an 'LifetimeInSeconds'
 
-            mturk.create_hit(
-                Title=title,
-                LifetimeInSeconds=86400,
-                AssignmentDurationInSeconds=7200,
-                MaxAssignments=number_of_assignments,
-                Description=description,
-                Keywords=keywords,
-                Question=external_question,
-                Reward=amount,
-                RequesterAnnotation=str(condition)
-            )
-            print "HIT for condition", condition, "created"
+        mturk.create_hit(
+            Title=title,
+            LifetimeInSeconds=86400,
+            AssignmentDurationInSeconds=7200,
+            MaxAssignments=number_of_assignments,
+            Description=description,
+            Keywords=keywords,
+            Question=external_question,
+            Reward=amount,
+            RequesterAnnotation=str(condition)
+        )
+        print "HIT for condition", condition, "created"
 
 
 if __name__ == '__main__':
