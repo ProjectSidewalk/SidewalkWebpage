@@ -70,8 +70,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         this._completeTheCurrentMission(mission, neighborhood);
         this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
-        console.log(this);
-        console.log('Reached finishMission');
         // Added a route completion trigger here
         // When route length is much greater than mission length then
         // it becomes necessary to trigger route completion event at the end of a mission.
@@ -111,7 +109,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             }
         );
         mission.complete();
-        console.log("mission.complete in completeTheCurrentMission in MissionProgress.js");
 
         // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
@@ -173,7 +170,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         // Fetch tasks for the route
         taskContainer.fetchTasksOnARoute(nextRouteId, function () {
-            console.log("Tasks for the next route have been fetched");
             // Replace current task with the first task from the next route
             var newStreetEdgeId = Object.keys(taskContainer._taskStoreByRouteId[nextRouteId]).filter(function start(el){return taskContainer._taskStoreByRouteId[nextRouteId][el]['isStartEdge'];})[0];
             var newTask = taskContainer._taskStoreByRouteId[nextRouteId][newStreetEdgeId].task;

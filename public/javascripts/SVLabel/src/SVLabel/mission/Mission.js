@@ -136,7 +136,6 @@ function Mission(parameters) {
         // Play the animation and audio effect after task completion.
 
         setProperty("isCompleted", true);
-        console.log("isCompleted has been set to true");
 
         // Update the neighborhood status
         if ("labelContainer" in svl) {
