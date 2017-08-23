@@ -152,7 +152,8 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             _modalModel.updateModalMissionComplete(currentMission, currentNeighborhood);
             _modalModel.showModalMissionComplete();
             _modalModel.showModalMissionCompleteHITSubmission();
-            throw new Error("No missions available");
+            console.error("No missions available");
+            return;
         }
         else {
             _modalModel.hideModalMissionCompleteHITSubmission();
