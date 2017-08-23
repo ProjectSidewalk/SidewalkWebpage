@@ -174,10 +174,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         taskContainer.fetchTasksOnARoute(nextRouteId, function () {
             console.log("Tasks for the next route have been fetched");
             // Replace current task with the first task from the next route
-            var newTaskId = Object.keys(taskContainer._taskStoreByRouteId[nextRouteId]).filter(function start(el){return taskContainer._taskStoreByRouteId[nextRouteId][el]['isStartEdge'];})[0];
-            var newTask = taskContainer._taskStoreByRouteId[nextRouteId][newTaskId].task;
-            var currentTaskId = taskContainer.getCurrentTask().getStreetEdgeId();
-            if(currentTaskId != newTaskId){
+            var newStreetEdgeId = Object.keys(taskContainer._taskStoreByRouteId[nextRouteId]).filter(function start(el){return taskContainer._taskStoreByRouteId[nextRouteId][el]['isStartEdge'];})[0];
+            var newTask = taskContainer._taskStoreByRouteId[nextRouteId][newStreetEdgeId].task;
+            var currentStreetEdgeId = taskContainer.getCurrentTask().getStreetEdgeId();
+            if(currentStreetEdgeId != newStreetEdgeId){
                 // Jump if the first street edge in the next route is not the same as the last street edge on the completed route.
                 svl.map.moveToTheTaskLocation(newTask);
                 taskContainer.setCurrentTask(newTask);
