@@ -178,7 +178,7 @@ class SignUpController @Inject() (
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
 
-    UserTable.find(data.username) match {
+    UserTable.find(workerId) match {
       case Some(user) =>
         Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
       case None =>
