@@ -640,6 +640,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
 
         // Zoom control
         svl.ui.zoomControl = {};

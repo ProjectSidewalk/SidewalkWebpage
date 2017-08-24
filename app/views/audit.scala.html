@@ -427,11 +427,10 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
-                            @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
-                                    <button class="btn blue-btn" id="modal-mission-generate-confirmation-button">Click to generate HIT confirmation code</button>
-                                    <div id="confirmation-text"></div>
+                            @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                    <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                             }
+                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
                         </div>
                     </div>
                 </div>
@@ -773,6 +772,7 @@
                 mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
+
             svl.main = new Main(mainParam);
 
         }

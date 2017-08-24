@@ -75,11 +75,16 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
         this._uiModalMissionComplete.foreground.css('visibility', "hidden");
         this._uiModalMissionComplete.background.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButton.css('visibility', "hidden");
         // this._horizontalBarMissionLabel.style("visibility", "hidden");
         this._modalMissionCompleteMap.hide();
-
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
+        if(uiModalMissionComplete.confirmationText!=null && uiModalMissionComplete.confirmationText!=undefined){
+            uiModalMissionComplete.confirmationText.empty();
+            uiModalMissionComplete.confirmationText.remove();
+            delete uiModalMissionComplete.confirmationText;
+        }
     };
 
     this.show = function () {
@@ -87,9 +92,30 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
+        uiModalMissionComplete.closeButton.css('visibility', "visible");
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
-        //generate confirmation code here if svl.missionContainer.isTheFirstMission returns true
+
+        /*If the user has completed his first mission then hide the continue button.
+         Display the generate confirmation button. When clicked, remove this button completely
+         and make the Continue button visible again.
+         */
+        if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
+            uiModalMissionComplete.closeButton.css('visibility', "hidden");
+            //TODO: AJAX call to generate a confirmation code associated with HIT Id, Assignment Id, and Worker Id
+            uiModalMissionComplete.generateConfirmationButton.click(function () {
+                var para = document.createElement("p");
+                var node = document.createTextNode("Confirmation Code: Q-W-EEF-RG");
+                para.appendChild(node);
+                para.setAttribute("id", "modal-mission-complete-confirmation-text");
+                this.after(para);
+                uiModalMissionComplete.confirmationText = $("modal-mission-complete-confirmation-text");
+                uiModalMissionComplete.closeButton.css('visibility', "visible");
+                this.remove();
+                delete uiModalMissionComplete.generateConfirmationButton
+            });
+
+        }
     };
 
     this.update = function (mission, neighborhood) {
