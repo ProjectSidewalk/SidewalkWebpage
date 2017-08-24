@@ -428,6 +428,10 @@
                                 </tr>
                             </table>
                             <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
+                            @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                                    <button class="btn blue-btn" id="modal-mission-generate-confirmation-button">Click to generate HIT confirmation code</button>
+                                    <div id="confirmation-text"></div>
+                            }
                         </div>
                     </div>
                 </div>
