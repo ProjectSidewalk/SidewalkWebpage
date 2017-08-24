@@ -178,44 +178,48 @@ class SignUpController @Inject() (
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
 
-    // Create a temporary email and password. Keep the username as the workerId.
-    val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
-    val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
+    UserTable.find(data.username) match {
+      case Some(user) =>
+        Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
+      case None =>
+        // Create a temporary email and password. Keep the username as the workerId.
+        val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
 
+        val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
+        val authInfo = passwordHasher.hash(turker_password)
+        val user = User(
+          userId = UUID.randomUUID(),
+          loginInfo = loginInfo,
+          username = workerId,
+          email = turker_email,
+          roles = None
+        )
 
-    val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
-    val authInfo = passwordHasher.hash(turker_password)
-    val user = User(
-      userId = UUID.randomUUID(),
-      loginInfo = loginInfo,
-      username = workerId,
-      email = turker_email,
-      roles = None
-    )
+        for {
+          user <- userService.save(user)
+          authInfo <- authInfoService.save(loginInfo, authInfo)
+          authenticator <- env.authenticatorService.create(user.loginInfo)
+          value <- env.authenticatorService.init(authenticator)
+          result <- env.authenticatorService.embed(value, Future.successful(
+            Redirect("/")
+          ))
+        } yield {
+          // Set the user role and assign the neighborhood to audit.
+          UserRoleTable.addTurkerRole(user.userId)
+          UserCurrentRegionTable.assignRandomly(user.userId)
 
-    for {
-      user <- userService.save(user)
-      authInfo <- authInfoService.save(loginInfo, authInfo)
-      authenticator <- env.authenticatorService.create(user.loginInfo)
-      value <- env.authenticatorService.init(authenticator)
-      result <- env.authenticatorService.embed(value, Future.successful(
-        Redirect("/")
-      ))
-    } yield {
-      // Set the user role and assign the neighborhood to audit.
-      UserRoleTable.addTurkerRole(user.userId)
-      UserCurrentRegionTable.assignRandomly(user.userId)
+          // Add Timestamp
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-      // Add Timestamp
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
-      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
-      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+          env.eventBus.publish(SignUpEvent(user, request, request2lang))
+          env.eventBus.publish(LoginEvent(user, request, request2lang))
 
-      env.eventBus.publish(SignUpEvent(user, request, request2lang))
-      env.eventBus.publish(LoginEvent(user, request, request2lang))
-
-      result
+          result
+        }
     }
   }
 }
