@@ -7,14 +7,15 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
-case class MissionUser(missionUserId: Int, missionId: Int, userId: String)
+case class MissionUser(missionUserId: Int, missionId: Int, userId: String, paid: Boolean)
 
 class MissionUserTable(tag: Tag) extends Table[MissionUser](tag, Some("sidewalk"), "mission_user") {
   def missionUserId = column[Int]("mission_user_id", O.PrimaryKey, O.AutoInc)
   def missionId = column[Int]("mission_id", O.NotNull)
   def userId = column[String]("user_id", O.NotNull)
+  def paid = column[Boolean]("paid",O.Default(false))
 
-  def * = (missionUserId, missionId, userId) <> ((MissionUser.apply _).tupled, MissionUser.unapply)
+  def * = (missionUserId, missionId, userId, paid) <> ((MissionUser.apply _).tupled, MissionUser.unapply)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("mission_user_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
@@ -38,7 +39,7 @@ object MissionUserTable {
     * @param userId user id
     * @return missionUserId
     */
-  def save(missionId: Int, userId: String): Int = save(MissionUser(0, missionId, userId))
+  def save(missionId: Int, userId: String, paid: Boolean): Int = save(MissionUser(0, missionId, userId, paid))
 
   /**
     * Insert a new mission user

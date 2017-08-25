@@ -5,7 +5,13 @@ ALTER TABLE amt_assignment
   ADD turker_id TEXT NOT NULL,
   ADD confirmation_code TEXT;
 
+ALTER TABLE mission_user
+  ADD paid BOOLEAN NOT NULL DEFAULT FALSE;
+
 # --- !Downs
+
+ALTER TABLE mission_user
+  DROP paid;
 
 ALTER TABLE amt_assignment
   DROP turker_id,
