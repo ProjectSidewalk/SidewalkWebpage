@@ -1244,3 +1244,34 @@ kbd {
     background-color: #fff;
     width: 100%;
 }
+.survey-question{
+    margin-bottom:20px;
+}
+.survey-textarea{
+    width:100%;
+}
+.liekert{
+    list-style:none;
+    width:100%;
+    margin:0;
+    padding:0 0 35px;
+    display:block;
+}
+.liekert-option{
+    display:inline-block;
+    width:19%;
+    text-align:center;
+    vertical-align:top;
+    font-weight:normal;
+}
+.likert-option input[type=radio] {
+    display:block;
+    position:relative;
+    top:0;
+    left:50%;
+    margin-left:-6px;
+}
+.liekert-option label {
+    width:100%;
+    font-weight:normal;
+}
