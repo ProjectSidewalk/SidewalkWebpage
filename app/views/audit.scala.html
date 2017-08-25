@@ -2,6 +2,7 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
+@import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
@@ -755,7 +756,9 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-
+            @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+            svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username)";
+            }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;

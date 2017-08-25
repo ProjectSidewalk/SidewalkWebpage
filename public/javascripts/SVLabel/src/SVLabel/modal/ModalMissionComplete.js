@@ -80,10 +80,11 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this._modalMissionCompleteMap.hide();
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
-        if(uiModalMissionComplete.confirmationText!=null && uiModalMissionComplete.confirmationText!=undefined){
-            uiModalMissionComplete.confirmationText.empty();
-            uiModalMissionComplete.confirmationText.remove();
-            delete uiModalMissionComplete.confirmationText;
+        if(this._uiModalMissionComplete.confirmationText!=null && this._uiModalMissionComplete.confirmationText!=undefined){
+            this._uiModalMissionComplete.confirmationText.empty();
+            this._uiModalMissionComplete.confirmationText.remove();
+            delete this._uiModalMissionComplete.confirmationText;
+            delete svl.confirmationCode;
         }
     };
 
@@ -102,18 +103,18 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
          */
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            //TODO: AJAX call to generate a confirmation code associated with HIT Id, Assignment Id, and Worker Id
-            uiModalMissionComplete.generateConfirmationButton.click(function () {
+            console.log("Reached modal mission complete");
+            uiModalMissionComplete.generateConfirmationButton.onclick = function () {
                 var para = document.createElement("p");
-                var node = document.createTextNode("Confirmation Code: Q-W-EEF-RG");
+                var node = document.createTextNode("Confirmation Code: " + svl.confirmationCode);
                 para.appendChild(node);
                 para.setAttribute("id", "modal-mission-complete-confirmation-text");
                 this.after(para);
-                uiModalMissionComplete.confirmationText = $("modal-mission-complete-confirmation-text");
+                uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
                 uiModalMissionComplete.closeButton.css('visibility', "visible");
                 this.remove();
-                delete uiModalMissionComplete.generateConfirmationButton
-            });
+                delete uiModalMissionComplete.generateConfirmationButton;
+            };
 
         }
     };

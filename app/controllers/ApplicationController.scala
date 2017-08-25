@@ -16,6 +16,7 @@ import play.api.data.Forms._
 
 
 import scala.concurrent.Future
+import scala.util.Random
 
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -60,7 +61,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
               case None =>
                 //Add an entry into the amt_assignment table
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId)
+                val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 // Since the turker doesnt exist in the user table create a new record with the role set to "Turker"
                 val redirectTo = List("turkerSignUp",hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
