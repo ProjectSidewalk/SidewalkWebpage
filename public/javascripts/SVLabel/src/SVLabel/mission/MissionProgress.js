@@ -49,11 +49,31 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         );
         mission.complete();
 
-        // mTurk survey prompt, replace mTurk variable with actual assessment of
-        // if modal should display (e.g. all missions for HIT have been completed)
-        var mTurk = false;
+        // mTurk survey prompt, replace mTurk variable with actual assessment of if modal should display
+        // query if 1. user is mturk 2. user has just completed all missions in their *first* HIT
+        /*
+
+            $.ajax({
+                url: //endpoint that checks above conditions
+                data: //any local data required by the endpoint in JSON format
+                success: function(data){
+                    if(data.displayModal == true){}
+                        $('#survey-modal-container').modal({
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+                    }
+                }
+            });
+        */
+
+        //this is placeholder; replace with above commented code once endpoint is implemented
+        var mTurk = true;
         if(mTurk) {
-            $('#survey-modal-container').modal('show');
+            $('#survey-modal-container').modal({
+                backdrop: 'static',
+                keyboard: false
+            });
         }
 
         // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
