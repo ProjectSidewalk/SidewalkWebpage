@@ -428,8 +428,10 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                            @if(user){
+                                @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
+                                }
                             }
                             <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
                         </div>
@@ -756,8 +758,10 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-            @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
-            svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username)";
+            @if(user){
+                @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username)";
+                }
             }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
