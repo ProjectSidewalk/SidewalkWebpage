@@ -798,12 +798,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                       var regStats = getSummaryStats(regTimes, "time");
                       var anonStats = getSummaryStats(anonTimes, "time");
 
-                      var allHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - All Users", yAxisTitle:"Counts (users)", xDomain:[0, 200],
-                                      width:250, height:250, binStep:10, legendOffset:-80};
-                      var regHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Registered Users", yAxisTitle:"Counts (users)", xDomain:[0, 200],
-                                      width:250, height:250, binStep:10, legendOffset:-80};
-                      var anonHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Anon Users", yAxisTitle:"Counts (users)", xDomain:[0, 200],
-                                      width:250, height:250, binStep:10, legendOffset:-80};
+                      var allHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - All Users",
+                                         yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
+                                         binStep:10, legendOffset:-80};
+                      var regHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Registered Users",
+                                         yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
+                                         binStep:10, legendOffset:-80};
+                      var anonHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Anon Users",
+                                          yAxisTitle:"Counts (users)", xDomain:[0, 200],  width:250, height:250,
+                                          binStep:10, legendOffset:-80};
 
                       var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
                       var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
