@@ -2,6 +2,7 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
+@import models.survey._
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
@@ -19,100 +20,73 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+    @if(user){
+        @if(user.get.roles.getOrElse(Seq("")).contains("User")){
+            <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content" id="survey-modal">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="sign-in-label">Survey</h4>
+                        </div>
+                        <div class="modal-body">
 
-    <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content" id="survey-modal">
-                <div class="modal-header">
-                    <h4 class="modal-title" id="sign-in-label">Survey</h4>
-                </div>
-                <div class="modal-body">
+                            <form id="surveyForm" onsubmit="submitSurvey()">
+                                @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                    @if(surveyQuestion.surveyInputType == "liekert"){
+                                        <ul class="liekert">
+                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                            <li class="liekert-option">
+                                                <input type="radio" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required/>
+                                                <label>@surveyOption.surveyOptionText</label>
+                                            </li>
+                                        }
+                                        </ul>
+                                    }
+                                    else{
+                                        @if(surveyQuestion.surveyInputType == "free-text-feedback"){
+                                            <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                            <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="How can we make the tool better?"></textarea>
+                                        }
+                                    }
+                                }
+                                <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
+            <script>
+                    /*$(document).ready(function(){
+                     $('#survey-modal-container').modal({
+                     backdrop: 'static',
+                     keyboard: false
+                     });
+                     });*/
 
-                    <form id="surveyForm" onsubmit="submitSurvey()">
-                        <h4 class="survey-question">How much did you enjoy this task?</h4>
-                        <ul class="liekert">
-                            <li class="liekert-option">
-                                <input type="radio" name="enjoyability" value="very_boring" required/>
-                                <label>Very boring</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="enjoyability" value="boring" />
-                                <label>Boring</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="enjoyability" value="neutral" />
-                                <label>Neutral</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="enjoyability" value="enjoyable" />
-                                <label>Enjoyable</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="enjoyability" value="very_enjoyable" />
-                                <label>Very enjoyable</label>
-                            </li>
-                        </ul>
-                        <h4 class="survey-question">How difficult did you find this task?</h4>
-                        <ul class="liekert">
-                            <li class="liekert-option">
-                                <input type="radio" name="difficulty" value="very_difficult" required/>
-                                <label>Very difficult</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="difficulty" value="difficult" />
-                                <label>Difficult</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="difficulty" value="neutral" />
-                                <label>Neutral</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="difficulty" value="easy" />
-                                <label>Easy</label>
-                            </li>
-                            <li class="liekert-option">
-                                <input type="radio" name="difficulty" value="very_easy" />
-                                <label>Very easy</label>
-                            </li>
-                        </ul>
-                        <h4 class="survey-question">Do you have any feedback for us?</h4>
-                        <textarea class="survey-textarea" name="feedback" placeholder="How can we make the tool better?"></textarea>
-                        <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                </div>
-            </div><!-- /.modal-content -->
-        </div><!-- /.modal-dialog -->
-    </div><!-- /.modal -->
+                    function submitSurvey(){
+                        var formData = $('#surveyForm').serialize();
+                        //alert(formData);
 
-    <script>
-        /*$(document).ready(function(){
-            $('#survey-modal-container').modal({
-                backdrop: 'static',
-                keyboard: false
-            });
-        });*/
+                        var surveyUrl = '/survey';
 
-        function submitSurvey(){
-            var formData = $('#surveyForm').serialize();
-            //alert(formData);
+                        //submit data from survey
+                        $.ajax({
+                            url: surveyUrl,
+                            data: formData,
+                            success: function(data){
+                                //close modal here / redirect to task complete page
+                                $('#survey-modal-container').modal('hide');
+                            }
+                        });
 
-            var surveyUrl = '';
-
-            //submit data from survey
-            $.ajax({
-                url: surveyUrl,
-                data: formData,
-                success: function(data){
-                    //close modal here / redirect to task complete page
-                    $('#survey-modal-container').modal('hide');
-                }
-            });
-
-            return false;
+                        return false;
+                    }
+            </script>
         }
-    </script>
+    }
 
     <div class="container toolUI" style = "visibility: hidden;">
         <div id="advanced-overlay">
