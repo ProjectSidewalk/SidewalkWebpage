@@ -47,6 +47,8 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
+GET     /adminiapi/audittimesAnon                            @controllers.AdminController.getAnonAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -92,8 +94,6 @@ GET     /contribution/tasks                                  @controllers.UserPr
 GET     /contribution/auditCounts                            @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
-GET     /adminapi/audittimes                                  @controllers.AdminController.getAuditTimes()
-GET     /adminiapi/audittimesAnon                            @controllers.AdminController.getAnonAuditTimes()
 GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
 

@@ -31,7 +31,7 @@ case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, a
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
-case class AuditInteractionTimeStamp(timestamp: Option[Float])
+case class UserAuditTime(userId: String, duration: Option[Float], ipAddress: Option[String])
 
 
 
@@ -83,9 +83,12 @@ object AuditTaskInteractionTable {
   })
 
 
-  implicit val auditInteractionTimeStamp = GetResult[AuditInteractionTimeStamp](r => {
-      AuditInteractionTimeStamp(
-        r.nextFloatOption)
+  implicit val userAuditTime = GetResult[UserAuditTime](r => {
+      UserAuditTime(
+        r.nextString,
+        r.nextFloatOption,
+        r.nextStringOption
+      )
     })
 
   val db = play.api.db.slick.DB
@@ -130,11 +133,13 @@ object AuditTaskInteractionTable {
   * Select all audit task interaction times
   * @return
   */
-def selectAllAuditTimes(): List[AuditInteractionTimeStamp] = db.withSession { implicit session =>
-  val selectAuditTimestampQuery = Q.query[String, AuditInteractionTimeStamp](
-    """SELECT CAST(extract( second from SUM(diff) ) /60 +
+def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
+  val selectAuditTimesQuery = Q.query[String, UserAuditTime](
+    """SELECT user_audit_times.user_id,
+      |       CAST(extract( second from SUM(diff) ) /60 +
       |            extract( minute from SUM(diff) ) +
-      |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing
+      |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
+      |       NULL
       |FROM (
       |    SELECT audit_task.user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
       |    FROM audit_task_interaction
@@ -143,11 +148,11 @@ def selectAllAuditTimes(): List[AuditInteractionTimeStamp] = db.withSession { im
       |    WHERE action = 'ViewControl_MouseDown'
       |        AND audit_task.user_id <> ?
       |        AND audit_task.user_id NOT IN (SELECT user_id FROM user_role WHERE role_id > 1)
-      |    ) step1
+      |    ) user_audit_times
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY user_id;""".stripMargin
     )
-    val timestamps: List[AuditInteractionTimeStamp] = selectAuditTimestampQuery(anonUserId).list
+    val timestamps: List[UserAuditTime] = selectAuditTimesQuery(anonUserId).list
     timestamps
 }
 
@@ -156,14 +161,16 @@ def selectAllAuditTimes(): List[AuditInteractionTimeStamp] = db.withSession { im
   *
   * @return
   */
-def selectAllAnonAuditTimes(): List[AuditInteractionTimeStamp] = db.withSession { implicit session =>
-  val selectAuditTimestampQuery = Q.query[String, AuditInteractionTimeStamp](
-    """SELECT CAST(extract( second from SUM(diff) ) /60 +
+def selectAllAnonAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
+  val selectAnonAuditTimesQuery = Q.query[(String, String), UserAuditTime](
+    """SELECT ?,
+      |       CAST(extract( second from SUM(diff) ) /60 +
       |            extract( minute from SUM(diff) ) +
-      |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing
+      |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
+      |       NULL
       |FROM
       |(
-      |    SELECT ip_address, (timestamp - Lag(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+      |    SELECT user_id, ip_address, (timestamp - Lag(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
       |    FROM audit_task_interaction
       |    LEFT JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
       |    LEFT JOIN audit_task_environment ON audit_task.audit_task_id = audit_task_environment.audit_task_id
@@ -176,11 +183,11 @@ def selectAllAnonAuditTimes(): List[AuditInteractionTimeStamp] = db.withSession 
       |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_environment.audit_task_id
       |        WHERE completed = true
       |    )
-      |) step1
+      |) user_audit_times
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY ip_address;""".stripMargin
   )
-  val timestamps: List[AuditInteractionTimeStamp] = selectAuditTimestampQuery(anonUserId).list
+  val timestamps: List[UserAuditTime] = selectAnonAuditTimesQuery((anonUserId, anonUserId)).list
   timestamps
 }
 
