@@ -42,7 +42,7 @@ object SurveyQuestionTable{
   }
 
   def listAll: List[SurveyQuestion] = db.withTransaction { implicit session =>
-    surveyQuestions.list
+    surveyQuestions.filter(_.deleted === false).list
   }
 
   def save(surveyQuestion: SurveyQuestion): Int = db.withTransaction { implicit session =>
