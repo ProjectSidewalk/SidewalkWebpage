@@ -34,8 +34,6 @@ case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, a
 case class UserAuditTime(userId: String, duration: Option[Float], ipAddress: Option[String])
 
 
-
-
 class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
@@ -152,8 +150,8 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY user_id;""".stripMargin
     )
-    val timestamps: List[UserAuditTime] = selectAuditTimesQuery(anonUserId).list
-    timestamps
+    val auditTimes: List[UserAuditTime] = selectAuditTimesQuery(anonUserId).list
+    auditTimes
 }
 
 /**
@@ -167,7 +165,7 @@ def selectAllAnonAuditTimes(): List[UserAuditTime] = db.withSession { implicit s
       |       CAST(extract( second from SUM(diff) ) /60 +
       |            extract( minute from SUM(diff) ) +
       |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
-      |       NULL
+      |       user_audit_times.ip_address
       |FROM
       |(
       |    SELECT user_id, ip_address, (timestamp - Lag(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
@@ -187,8 +185,8 @@ def selectAllAnonAuditTimes(): List[UserAuditTime] = db.withSession { implicit s
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY ip_address;""".stripMargin
   )
-  val timestamps: List[UserAuditTime] = selectAnonAuditTimesQuery((anonUserId, anonUserId)).list
-  timestamps
+  val auditTimes: List[UserAuditTime] = selectAnonAuditTimesQuery((anonUserId, anonUserId)).list
+  auditTimes
 }
 
 
