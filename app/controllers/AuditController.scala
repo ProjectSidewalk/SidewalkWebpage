@@ -19,6 +19,7 @@ import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdg
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
+import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Play.current
@@ -58,14 +59,16 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         nextRegion match {
           case Some("easy") =>
-            // Assign an easy region is the query string has nextRegion=easy
+            // Assign an easy region if the query string has nextRegion=easy
             UserCurrentRegionTable.assignEasyRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
           case Some("regular") =>
-            // Assign an easy region is the query string has nextRegion=regular
+            // Assign an easy region if the query string has nextRegion=regular
             UserCurrentRegionTable.assignNextRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
-          case _ =>
+          case Some(illformedString) =>
+            Logger.warn(s"Parameter to audit must be \'easy\' or \'regular\', but \'$illformedString\' was passed.")
+          case None =>
             ;
         }
 
