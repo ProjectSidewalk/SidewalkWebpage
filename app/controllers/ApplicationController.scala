@@ -24,14 +24,27 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
     * If no referrer is specified, then it just loads the landing page
     *
+    * @param referrer String - identifier for a site that a user is referred from
+    * @param r String - identifier for a site that a user is referred from
+    * @param redirectTo String - endpoint to load after logging referral
     * @return
     */
-  def index(referrer: Option[String], redirectTo: String) = UserAwareAction.async { implicit request =>
+  def index(referrer: Option[String], r: Option[String], redirectTo: String) = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
-    referrer match {
+    // check both the 'referrer' and 'r' optional param to see if either contains a referral (preference to 'referral')
+    val possibleReferral: Option[String] = referrer match {
+      case Some(longRef) => Some(longRef)
+      case None =>
+        r match {
+          case Some(shortRef) => Some(shortRef)
+          case None => None
+        }
+    }
+
+    possibleReferral match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location
       case Some(ref) =>
         val activityLogText: String = "Referrer=" + ref + "_SendTo=" + redirectTo

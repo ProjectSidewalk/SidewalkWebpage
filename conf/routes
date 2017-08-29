@@ -3,10 +3,10 @@
 # ~~~~
 
 # Home page
-GET     /                                                    @controllers.ApplicationController.index(referrer: Option[String] ?= None, to: String ?= "/")
+GET     /                                                    @controllers.ApplicationController.index(referrer: Option[String] ?= None, r: Option[String] ?= None, to: String ?= "/")
 POST    /                                                    controllers.TeaserController.teaserPost
 
-GET     /home                                                @controllers.ApplicationController.index(referrer: Option[String] ?= None, to: String ?= "/")
+GET     /home                                                @controllers.ApplicationController.index(referrer: Option[String] ?= None, r: Option[String] ?= None, to: String ?= "/")
 GET     /about                                               @controllers.ApplicationController.about
 GET     /api                                                 @controllers.ApplicationController.developer
 GET     /developer                                           @controllers.ApplicationController.developer
