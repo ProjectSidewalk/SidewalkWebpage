@@ -5,7 +5,7 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class SurveyQuestion(surveyQuestionId: Int, surveyQuestionText: String, surveyInputType: String, surveyCategoryOptionId: Option[Int], surveyDisplayRank: Option[Int], deleted: Boolean)
+case class SurveyQuestion(surveyQuestionId: Int, surveyQuestionText: String, surveyInputType: String, surveyCategoryOptionId: Option[Int], surveyDisplayRank: Option[Int], deleted: Boolean, surveyUserRoleId: Int)
 
 class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sidewalk"), "survey_question") {
   def surveyQuestionId = column[Int]("survey_question_id", O.PrimaryKey, O.AutoInc)
@@ -14,8 +14,9 @@ class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sid
   def surveyCategoryOptionId = column[Option[Int]]("survey_category_option_id", O.Nullable)
   def surveyDisplayRank = column[Option[Int]]("survey_display_rank", O.Nullable)
   def deleted = column[Boolean]("deleted", O.NotNull)
+  def surveyUserRoleId = column[Int]("survey_user_role_id",O.NotNull)
 
-  def * = (surveyQuestionId, surveyQuestionText, surveyInputType, surveyCategoryOptionId, surveyDisplayRank, deleted) <> ((SurveyQuestion.apply _).tupled, SurveyQuestion.unapply)
+  def * = (surveyQuestionId, surveyQuestionText, surveyInputType, surveyCategoryOptionId, surveyDisplayRank, deleted, surveyUserRoleId) <> ((SurveyQuestion.apply _).tupled, SurveyQuestion.unapply)
   def survey_category_option: ForeignKeyQuery[SurveyCategoryOptionTable, SurveyCategoryOption] =
     foreignKey("survey_question_survey_category_option_id_fkey", surveyCategoryOptionId, TableQuery[SurveyCategoryOptionTable])(_.surveyCategoryOptionId)
 
@@ -43,6 +44,10 @@ object SurveyQuestionTable{
 
   def listAll: List[SurveyQuestion] = db.withTransaction { implicit session =>
     surveyQuestions.filter(_.deleted === false).list
+  }
+
+  def listAllByUserRoleId(userRoleId: Int): List[SurveyQuestion] = db.withTransaction { implicit session =>
+    surveyQuestions.filter(x => x.deleted === false && x.surveyUserRoleId === userRoleId).list
   }
 
   def save(surveyQuestion: SurveyQuestion): Int = db.withTransaction { implicit session =>

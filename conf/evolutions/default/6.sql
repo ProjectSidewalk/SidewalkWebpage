@@ -15,6 +15,7 @@ CREATE TABLE survey_question
   survey_category_option_id INT,
   survey_display_rank INT,
   deleted BOOLEAN NOT NULL DEFAULT FALSE,
+  survey_user_role_id INT NOT NULL DEFAULT 1,
   PRIMARY KEY (survey_question_id),
   FOREIGN KEY (survey_category_option_id) REFERENCES survey_category_option(survey_category_option_id)
 );
@@ -35,6 +36,7 @@ create TABLE user_survey_text_submission
   survey_question_id INT NOT NULL,
   survey_text_submission TEXT,
   time_submitted TIMESTAMP,
+  num_missions_completed INT,
   PRIMARY KEY (user_survey_text_submission_id),
   FOREIGN KEY (user_id) REFERENCES "user"(user_id),
   FOREIGN key (survey_question_id) REFERENCES  survey_question(survey_question_id)
@@ -47,6 +49,7 @@ CREATE TABLE user_survey_option_submission
   survey_question_id INT NOT NULL,
   survey_option_id INT,
   time_submitted TIMESTAMP,
+  num_missions_completed INT,
   PRIMARY KEY (user_survey_option_submission_id),
   FOREIGN KEY (user_id) REFERENCES "user"(user_id),
   FOREIGN key (survey_question_id) REFERENCES  survey_question(survey_question_id)

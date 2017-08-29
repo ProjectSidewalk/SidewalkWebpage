@@ -13,6 +13,7 @@ import formats.json.SurveySubmissionFormats._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.survey._
 import models.user._
+import models.mission.MissionTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
@@ -45,38 +46,55 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
+
         val ipAddress: String = request.remoteAddress
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId))
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
+        val allSurveyQuestionIds = allSurveyQuestions.map(_.surveyQuestionId)
+        val answeredQuestions = submission.answeredQuestions
+        val answeredQuestionIds = submission.answeredQuestions.map(_.surveyQuestionId.toInt)
+        val unansweredQuestionIds = allSurveyQuestionIds diff answeredQuestionIds
         // Iterate over all the questions and check if there is a submission attribute matching question id.
         // Add the associated submission to the user_submission tables for that question
-        allSurveyQuestions.forEach{ question =>
-          val questionIdString = question.surveyQuestionId.toString
-          if(submission.contains(questionIdString)){
-            if(question.surveyInputType != "free-text-feedback"){
-              for(value <- submission(questionIdString)){
-                val userOptionSubmission = UserOptionSubmission(0, userId, question.surveyQuestionId, value, timestamp)
-                val userOptionSubmissionId: Int = UserOptionSubmissionTable.save(userOptionSubmission)
+
+
+        answeredQuestions.foreach{ q =>
+          val questionId = q.surveyQuestionId.toInt
+          val temp_question = SurveyQuestionTable.getQuestionById(questionId)
+          temp_question match{
+            case Some(question) =>
+              if (question.surveyInputType != "free-text-feedback") {
+                val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, Some(q.answerText.toInt), timestamp, numMissionsCompleted)
+                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
               }
-            }
-            else{
-              val userTextSubmission = UserTextSubmission(0, userId, question.surveyQuestionId, submission(questionIdString), timestamp)
-              val userTextSubmissionId: Int = UserTextSubmissionTable.save(userTextSubmission)
-            }
-          }
-          else{
-            if(question.surveyInputType != "free-text-feedback"){
-              val userOptionSubmission = UserOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp)
-              val userOptionSubmissionId: Int = UserOptionSubmissionTable.save(userOptionSubmission)
-            }
-            else{
-              val userTextSubmission = UserTextSubmission(0, userId, question.surveyQuestionId, None, timestamp)
-              val userTextSubmissionId: Int = UserTextSubmissionTable.save(userTextSubmission)
-            }
+              else {
+                val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, Some(q.answerText), timestamp, numMissionsCompleted)
+                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+              }
+            case None =>
+              None
           }
         }
+        unansweredQuestionIds.foreach{ questionId =>
+          val temp_question = SurveyQuestionTable.getQuestionById(questionId)
+          temp_question match{
+            case Some(question)=>
+              if(question.surveyInputType != "free-text-feedback"){
+                val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
+                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
+              }
+              else{
+                val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
+                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+              }
+            case None =>
+              None
+          }
+        }
+
         Future.successful(Ok(Json.obj("survey_success" -> "True")))
       }
     )
