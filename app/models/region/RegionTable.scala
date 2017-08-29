@@ -161,7 +161,8 @@ object RegionTable {
     */
   def selectALeastAuditedEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
 
-    // Assign one of the least-audited regions that are easy.
+    // Assign one of the unaudited regions.
+    // TODO: Assign one of the least-audited regions that are easy.
     val completions: List[RegionCompletion] =
       RegionCompletionTable.regionCompletions
         .filterNot(_.regionId inSet UserCurrentRegionTable.difficultRegionIds)

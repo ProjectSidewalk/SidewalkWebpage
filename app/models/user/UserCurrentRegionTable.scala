@@ -57,7 +57,8 @@ object UserCurrentRegionTable {
   def assignEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
-    // Assign one of the least-audited regions that are easy.
+    // Assign one of the unaudited regions that are easy.
+    // TODO: Assign one of the least-audited regions that are easy.
     val completions: List[RegionCompletion] =
       RegionCompletionTable.regionCompletions
         .filter(_.regionId inSet regionIds)
@@ -71,7 +72,8 @@ object UserCurrentRegionTable {
         // In this case, pick any easy region amongst regions that are not audited by the user
         scala.util.Random.shuffle(regionIds).filterNot(difficultRegionIds.contains(_)).head
       case _ =>
-        // Pick an easy region that is least audited
+        // Pick an easy region that is unaudited.
+        // TODO: Pick an easy region that is least audited.
         scala.util.Random.shuffle(completions).head.regionId
 
     }
