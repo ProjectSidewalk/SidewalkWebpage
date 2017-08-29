@@ -96,11 +96,17 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
         }
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
+        nextRegion match {
+          case Some(regionType) =>
+            Logger.warn(s"Anon users cannot have region difficulty specified via a parameter, but $regionType was passed")
+            Future.successful(Redirect("/audit"))
+          case None =>
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-        val region: Option[NamedRegion] = RegionTable.selectALeastAuditedEasyRegion
-        val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+            val region: Option[NamedRegion] = RegionTable.selectALeastAuditedEasyRegion
+            val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+        }
     }
   }
 
