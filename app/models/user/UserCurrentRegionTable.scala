@@ -50,30 +50,6 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Assign a region to the given user. This is used for the initial assignment.
-    *
-    * @param userId user id
-    * @return region id
-    */
-  def assignRandomly(userId: UUID): Int = db.withSession { implicit session =>
-    // Check if there are any records
-    val _currentRegions = for {
-      (_regions, _currentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
-      if _currentRegions.userId === userId.toString
-    } yield _currentRegions
-    val currentRegionList = _currentRegions.list
-
-    if (currentRegionList.isEmpty) {
-      // For a new user whose current region is not assigned, assign an easy least audited region
-      assignEasyRegion(userId)
-    } else {
-      // Note: Which case would this be? assignRandomly() is only called immediately after signing up or when the
-      // user visits the audit page when a current region is not yet assigned
-      assignNextRegion(userId)
-    }
-  }
-
-  /**
     * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
     * @param userId
     * @return

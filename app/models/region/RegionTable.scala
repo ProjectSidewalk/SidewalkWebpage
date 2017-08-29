@@ -170,8 +170,7 @@ object RegionTable {
 
     val regionId: Int = completions match {
       case Nil =>
-        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
-        // In this case, pick any easy region amongst regions that are not audited by the user
+        // Indicates that there are no unaudited regions across all users. In this case, pick any easy region.
         val regionIds: List[Int] = namedRegions.list.map(_._1)
         scala.util.Random.shuffle(regionIds).filterNot(UserCurrentRegionTable.difficultRegionIds.contains(_)).head
       case _ =>
