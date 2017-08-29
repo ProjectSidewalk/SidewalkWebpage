@@ -113,4 +113,5 @@ GET     /assets/*file                                        controllers.Assets.
 GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
 
 # Survey
+GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
 POST    /survey                                              @controllers.SurveyController.postSurvey
