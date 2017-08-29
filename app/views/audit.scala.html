@@ -37,15 +37,13 @@
                                         <ul class="liekert">
                                         @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
                                             <li class="liekert-option">
-                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required/>
+                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" />
                                                 <label>@surveyOption.surveyOptionText</label>
                                             </li>
                                         }
                                         </ul>
-                                    }
-                                    else{
+                                    } else{
                                         @if(surveyQuestion.surveyInputType == "free-text-feedback"){
-                                            <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
                                             <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="How can we make the tool better?"></textarea>
                                         }
                                     }
@@ -71,11 +69,15 @@
                         //alert(formData);
 
                         var surveyUrl = '/survey';
-
+                        var async = true;
                         //submit data from survey
                         $.ajax({
+                            async: async,
+                            contentType: 'application/json; charset=utf-8',
                             url: surveyUrl,
-                            data: {"answered_questions":formData, "is_admin":@user.get.roles.getOrElse(Seq("")).contains("Admin")},
+                            type: 'post',
+                            dataType: 'json',
+                            data: JSON.stringify({"answered_questions":formData, "is_admin":@user.get.roles.getOrElse(Seq("")).contains("Admin")}),
                             success: function(data){
                                 //close modal here / redirect to task complete page
                                 $('#survey-modal-container').modal('hide');
