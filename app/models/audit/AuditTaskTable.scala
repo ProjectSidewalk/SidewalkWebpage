@@ -420,18 +420,13 @@ object AuditTaskTable {
       _edges <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _edges.streetEdgeId
     } yield _edges
 
-    val unauditedEdges = for {
-      (_edges, _tasks) <- edgesInRegion.leftJoin(completedTasks).on(_.streetEdgeId === _.streetEdgeId)
-      if _tasks.streetEdgeId.?.isEmpty
-    } yield _edges
-
     val lowestCompletionCount: Int = (for {
-      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
       if !_counts.streetEdgeId.?.isEmpty
     } yield _counts.completionCount.?.getOrElse(-1)).min.run.getOrElse(-1)
 
     val leastAuditedEdges = for {
-      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
       if !_counts.streetEdgeId.?.isEmpty && _counts.completionCount === lowestCompletionCount
     } yield _edges
 
@@ -467,15 +462,10 @@ object AuditTaskTable {
       _edges <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _edges.streetEdgeId
     } yield _edges
 
-    val unauditedEdges = for {
-      (_edges, _tasks) <- edgesInRegion.leftJoin(completedTasks).on(_.streetEdgeId === _.streetEdgeId)
-      if _tasks.streetEdgeId.?.isEmpty
-    } yield _edges
-
     // Gets the lowest completion count (across all users) for the set of streets in this region that this particular
     // user has not audited. This should only be None if the user has audited all routes in this region.
     val lowestCompletionCount: Option[Int] = (for {
-      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+      (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
       if !_counts.streetEdgeId.?.isEmpty
     } yield _counts.completionCount.?.getOrElse(-1)).min.run
 
@@ -484,7 +474,7 @@ object AuditTaskTable {
       case Some(completionCount) =>
         // Gets the list of edges in the region that has the minimum completion count.
         val leastAuditedEdges = for {
-          (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(unauditedEdges).on(_.streetEdgeId === _.streetEdgeId)
+          (_counts, _edges) <- StreetEdgeAssignmentCountTable.streetEdgeAssignmentCounts.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
           if !_counts.streetEdgeId.?.isEmpty && _counts.completionCount === completionCount
         } yield _edges
         val edges: List[StreetEdge] = leastAuditedEdges.list
