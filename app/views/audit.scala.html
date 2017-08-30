@@ -26,12 +26,14 @@
                 <div class="modal-dialog">
                     <div class="modal-content" id="survey-modal">
                         <div class="modal-header">
-                            <h4 class="modal-title" id="sign-in-label">Survey</h4>
+                            <h4 class="modal-title" id="sign-in-label">Feedback Survey</h4>
                         </div>
                         <div class="modal-body">
 
                             <form id="surveyForm" onsubmit="submitSurvey()">
+                                <ol>
                                 @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                                    <li>
                                     <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
                                     @if(surveyQuestion.surveyInputType == "radio" || surveyQuestion.surveyInputType == "checkbox"){
                                         <ul class="liekert">
@@ -44,10 +46,12 @@
                                         </ul>
                                     } else{
                                         @if(surveyQuestion.surveyInputType == "free-text-feedback"){
-                                            <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="How can we make the tool better?"></textarea>
+                                            <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" style="height:32px"></textarea>
                                         }
                                     }
+                                    </li>
                                 }
+                            </ol>
                                 <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
                             </form>
                         </div>
@@ -83,8 +87,6 @@
                                 $('#survey-modal-container').modal('hide');
                             }
                         });
-
-                        return false;
                     }
             </script>
         }

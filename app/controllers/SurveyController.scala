@@ -101,7 +101,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
   }
 
-  def shouldDisplaySurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def shouldDisplaySurvey = UserAwareAction.async { implicit request =>
     val userId: UUID = request.identity match {
       case Some(user) => user.userId
       case None =>
@@ -110,11 +110,10 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     }
     val userRoles = UserRoleTable.getRoles(userId)
 
-
-    val numMissionsBeforeSurvey = 1
+    val numMissionsBeforeSurvey = 2
     val userRoleForSurvey = "User"
 
-    val displaySurvey = userRoles.contains(userRoleForSurvey) && MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
+    val displaySurvey = userRoles.contains(userRoleForSurvey) //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
     Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
 
   }
