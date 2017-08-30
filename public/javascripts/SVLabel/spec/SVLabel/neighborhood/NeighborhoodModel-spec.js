@@ -70,7 +70,7 @@ describe("NeighborhoodModel module.", function () {
 
         it("should call `moveToANewRegion` method", function () {
             neighborhoodModel.neighborhoodCompleted(1);
-            expect(neighborhoodModel.moveToANewRegion).toHaveBeenCalled();
+            expect(neighborhoodModel.updateUserRegionInDatabase).toHaveBeenCalled();
         });
 
         it("should call `NeighborhoodContainer.setCurrentNeighborhood`", function () {

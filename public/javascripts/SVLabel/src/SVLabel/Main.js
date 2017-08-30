@@ -18,6 +18,8 @@ function Main (params) {
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
+    var loadDifficultNeighborhoodsCompleted = false;
+
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
@@ -270,6 +272,11 @@ function Main (params) {
             loadNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
+
+        neighborhoodModel.fetchDifficultNeighborhoods(function () {
+            loadDifficultNeighborhoodsCompleted = true;
+            handleDataLoadComplete();
+        });
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -312,26 +319,24 @@ function Main (params) {
         svl.missionContainer.setCurrentMission(onboardingMission);
     }
 
-    function findTheNextRegionWithMissionsNew () {
-
-        // Query the server for the next least unaudited region (across users)
-        // and that hasn't been done by the user
-        var username = svl.user.getProperty("username");
-        return neighborhoodModel.fetchNextLeastAuditedRegion(username);
+    // Query the server for the next least unaudited region (across users)
+    // and that hasn't been done by the user
+    function findTheNextRegionWithMissions () {
+        svl.neighborhoodModel.fetchNextLeastAuditedRegion(false);
     }
 
-    function findTheNextRegionWithMissions (currentNeighborhood) {
+    function findTheNextRegionWithMissionsOld (currentNeighborhood) {
         var currentRegionId = currentNeighborhood.getProperty("regionId");
         var allRegionIds = svl.neighborhoodContainer.getRegionIds();
         var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
         var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
         availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
 
-        while(availableMissions.length == 0) {
+        while(availableMissions.length === 0) {
             nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, allRegionIds);
             availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            if (nextRegionId == currentRegionId) {
+            if (nextRegionId === currentRegionId) {
                 console.error("No more available regions to audit");
                 return null;
             }
@@ -340,7 +345,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl && svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
+        return 'user' in svl && svl.user.getProperty('username') === "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {
@@ -414,7 +419,8 @@ function Main (params) {
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
-            loadingMissionsCompleted && loadNeighborhoodsCompleted) {
+            loadingMissionsCompleted && loadNeighborhoodsCompleted &&
+            loadDifficultNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
@@ -440,6 +446,12 @@ function Main (params) {
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 $("#mini-footer-audit").css("visibility", "visible");
+
+                var regionId = currentNeighborhood.getProperty("regionId");
+                var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
+                if(difficultRegionIds.includes(regionId)){
+                    $('#advanced-overlay').show();
+                }
                 startTheMission(mission, currentNeighborhood);
             }
         }
@@ -478,14 +490,16 @@ function Main (params) {
         var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
 
         if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
-            regionId = findTheNextRegionWithMissions(currentNeighborhood);
+            findTheNextRegionWithMissions();
+            currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+            if (currentNeighborhood)
+                regionId = currentNeighborhood.getProperty("regionId");
+            else
+                regionId = null;
 
             // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
-            if (regionId == null) return;  // No missions available.
+            if (regionId === null) return;  // No missions available.
 
-            currentNeighborhood = svl.neighborhoodContainer.get(regionId);
-            svl.neighborhoodModel.moveToANewRegion(regionId);
-            svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
             svl.taskContainer.getFinishedAndInitNextTask();
