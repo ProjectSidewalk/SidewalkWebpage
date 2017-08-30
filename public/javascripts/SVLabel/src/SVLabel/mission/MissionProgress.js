@@ -36,7 +36,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         self._completeTheCurrentMission(mission, neighborhood);
         self._completeMissionsWithSatisfiedCriteria(neighborhood);
 
-        //self._updateTheCurrentMission(mission, neighborhood);
+        self._updateTheCurrentMission(mission, neighborhood);
 
         // While the mission complete modal is open, after the **neighborhood** is 100% audited,
         // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
@@ -70,8 +70,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         this._completeTheCurrentMission(mission, neighborhood);
         this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
-        console.log(this);
-        console.log('Reached finishMission');
         // Added a route completion trigger here
         // When route length is much greater than mission length then
         // it becomes necessary to trigger route completion event at the end of a mission.
@@ -83,7 +81,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         //if(mission.getProperty("label") != "mturk-mission") {
             // Update the route within this
-            this._updateTheCurrentMission(mission, neighborhood);
+            //this._updateTheCurrentMission(mission, neighborhood);
         //}
 
         // While the mission complete modal is open, after the **neighborhood** is 100% audited,
@@ -111,7 +109,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             }
         );
         mission.complete();
-        console.log("mission.complete in completeTheCurrentMission in MissionProgress.js");
 
         // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
@@ -149,27 +146,27 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         //Added code here to bring up the submit HIT button and post to the turkSubmit link
         // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
         if (nextMission == null) {
+            _modalModel.updateModalMissionComplete(currentMission, currentNeighborhood);
+            _modalModel.showModalMissionComplete();
             _modalModel.showModalMissionCompleteHITSubmission();
-            throw new Error("No missions available");
+            console.error("No missions available");
+            return;
         }
         else {
             _modalModel.hideModalMissionCompleteHITSubmission();
         }
 
+        var nextRouteId = nextMission.getProperty("routeId");
+
         // Update route here (may need to add route to taskContainer as well) and post to the audit/amtAssignment end point
 
         var route; //Get route from next mission
-        var route_json = $.ajax("/route/"+nextMission.getProperty("routeId"));
-        route = svl.routeFactory.create(nextMission.getProperty("routeId"), route_json["region_id"],
+        var route_json = $.ajax("/route/"+nextRouteId);
+        route = svl.routeFactory.create(nextRouteId, route_json["region_id"],
                                         route_json["route_length_mi"], route_json["street_count"]);
         svl.routeContainer.add(route);
         svl.routeContainer.setCurrentRoute(route);
         var url = "/audit/amtAssignment ";
-
-        // Fetch tasks for the route
-        taskContainer.fetchTasksOnARoute(nextMission.getProperty("routeId"), function () {
-            console.log("Tasks for the next route have been fetched");
-        });
 
         missionContainer.setCurrentMission(nextMission);
 
@@ -187,6 +184,18 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             dataType: 'json',
             success: function (result) {
                 svl.amtAssignmentId = result["asg_id"];
+                // Fetch tasks for the route
+                taskContainer.fetchTasksOnARoute(nextRouteId, function () {
+                    // Replace current task with the first task from the next route
+                    var newStreetEdgeId = Object.keys(taskContainer._taskStoreByRouteId[nextRouteId]).filter(function start(el){return taskContainer._taskStoreByRouteId[nextRouteId][el]['isStartEdge'];})[0];
+                    var newTask = taskContainer._taskStoreByRouteId[nextRouteId][newStreetEdgeId].task;
+                    var currentStreetEdgeId = taskContainer.getCurrentTask().getStreetEdgeId();
+                    if(currentStreetEdgeId != newStreetEdgeId){
+                        // Jump if the first street edge in the next route is not the same as the last street edge on the completed route.
+                        svl.map.moveToTheTaskLocation(newTask);
+                        taskContainer.setCurrentTask(newTask);
+                    }
+                });
             },
             error: function (result) {
                 console.error(result);
