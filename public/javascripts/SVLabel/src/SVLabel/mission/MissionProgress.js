@@ -52,9 +52,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // mTurk survey prompt, replace mTurk variable with actual assessment of if modal should display
         // query if 1. user is mturk 2. user has just completed all missions in their *first* HIT
 
-            var url = '/survey/display'
-            var numMissionsBeforeSurvey = 2
-            var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length-1; // subtract 1 to exclude onboarding
+            var url = '/survey/display';
+            var numMissionsBeforeSurvey = 2;
+            var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
             $.ajax({
                 async: true,
                 url: url,//endpoint that checks above conditions

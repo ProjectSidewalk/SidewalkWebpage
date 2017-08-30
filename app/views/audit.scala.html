@@ -30,7 +30,7 @@
                         </div>
                         <div class="modal-body">
 
-                            <form id="surveyForm" onsubmit="submitSurvey()">
+                            <form id="surveyForm" method="post">
                                 <ol>
                                 @for(surveyQuestion <- SurveyQuestionTable.listAll){
                                     <li>
@@ -68,7 +68,7 @@
                      });
                      });*/
 
-                    function submitSurvey(){
+                    $("#surveyForm").submit(function submitSurvey(e){
                         var formData = $('#surveyForm').serializeArray();
                         //alert(formData);
 
@@ -87,7 +87,8 @@
                                 $('#survey-modal-container').modal('hide');
                             }
                         });
-                    }
+                        e.preventDefault();
+                    });
             </script>
         }
     }
