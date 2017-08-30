@@ -38,7 +38,8 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     var missionTitles = {
         "initial-mission": "Initial Mission",
         "distance-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
+        "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
+        "mturk-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
     };
 
     var initialMissionHTML = '<figure> \
@@ -180,13 +181,20 @@ ModalMission.prototype._auditDistanceToString = function  (distance, unit) {
         }
         else if (distance <= 0.20) {
             return "1000ft";
-        } else if (distance <= 0.25) {
+        }
+        else if (distance <= 0.25) {
             return "&frac14;mi";
-        } else if (distance <= 0.5) {
-            return "&frac12;mi"
-        } else if (distance <= 0.75) {
+        }
+        else if(distance <= 0.39){
+            return "2000ft";
+        }
+        else if (distance <= 0.5) {
+            return "&frac12;mi";
+        }
+        else if (distance <= 0.75) {
             return "&frac34;mi";
-        } else {
+        }
+        else {
             return distance.toFixed(0, 10) + "";
         }
     } else if (unit == "feet") {

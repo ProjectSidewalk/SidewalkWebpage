@@ -134,7 +134,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // If route is None, turker has finished all routes assigned, so send them to homepage.
             route match {
               case None =>
-                Future.successful(Ok(views.html.index("Project Sidewalk")))
+                Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
               case Some(theRoute) =>
                 val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
@@ -252,7 +252,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // If route is None, turker has finished all routes assigned, so send them to homepage.
             route match {
               case None =>
-                Future.successful(Ok(views.html.index("Project Sidewalk")))
+                Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
               case Some(theRoute) =>
                 val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
