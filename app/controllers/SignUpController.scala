@@ -120,7 +120,7 @@ class SignUpController @Inject() (
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
-        // Check presenc of user by username
+        // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
@@ -207,7 +207,7 @@ class SignUpController @Inject() (
         } yield {
           // Set the user role and assign the neighborhood to audit.
           UserRoleTable.addTurkerRole(user.userId)
-          UserCurrentRegionTable.assignRandomly(user.userId)
+          UserCurrentRegionTable.assignEasyRegion(user.userId)
 
           // Add Timestamp
           val now = new DateTime(DateTimeZone.UTC)
