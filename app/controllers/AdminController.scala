@@ -10,7 +10,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit._
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable}
@@ -24,7 +24,6 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.extras.geojson
-
 
 import scala.concurrent.Future
 
@@ -272,8 +271,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   */
 def getAuditTimes() = UserAwareAction.async { implicit request =>
   if (isAdmin(request.identity)) {
-        val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-          Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
+        val auditTimes: List[JsObject] = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
+          Json.obj(
+            "user_id" -> auditTime.userId,
+            "time" -> auditTime.duration,
+            "ip_address" -> auditTime.ipAddress,
+            "is_researcher" -> UserRoleTable.researcherIds.contains(auditTime.userId)
+          ))
       Future.successful(Ok(JsArray(auditTimes)))
   } else {
     Future.successful(Redirect("/"))
@@ -288,7 +292,12 @@ def getAuditTimes() = UserAwareAction.async { implicit request =>
 def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
   if (isAdmin(request.identity)) {
       val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
+        Json.obj(
+          "user_id" -> auditTime.userId,
+          "time" -> auditTime.duration,
+          "ip_address" -> auditTime.ipAddress,
+          "is_researcher" -> false
+    ))
       Future.successful(Ok(JsArray(anonAuditTimes)))
   } else {
     Future.successful(Redirect("/"))
