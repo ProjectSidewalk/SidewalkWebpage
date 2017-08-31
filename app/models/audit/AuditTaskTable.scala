@@ -293,7 +293,7 @@ object AuditTaskTable {
 
 
   /**
-    * Returns distance audited by each user.
+    * Returns distance audited by each registered user.
     *
     * @return
     */

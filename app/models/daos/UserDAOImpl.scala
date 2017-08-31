@@ -6,15 +6,16 @@ import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
-import models.label.Label
 import models.audit._
 
 import play.api.Play.current
 
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+
+import models.utils.MyPostgresDriver.simple._
+
 
 class UserDAOImpl extends UserDAO {
 
@@ -152,8 +153,6 @@ object UserDAOImpl {
   /**
     * Gets the number of missions completed by each anonymous user.
     *
-    * Unfortunate limitation of slick: https://groups.google.com/forum/#!topic/scalaquery/lrumVNo3JE4
-    *
     * @return List[(String: ipAddress, Int: missionCount)]
     */
   def getAnonUserCompletedMissionCounts: List[(Option[String], Int)] = db.withSession { implicit session =>
@@ -171,6 +170,29 @@ object UserDAOImpl {
     // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
     // missions ended up in the completedMissions query.
     missionCounts.map{pair => (pair._1, pair._2.getOrElse(0))}
+  }
+
+
+  /**
+    * Returns distance audited by each anonymous user.
+    * @return
+    */
+  def getAnonUserDistanceAudited: List[(String, Float)] = db.withSession { implicit session =>
+
+    val distances = for {
+      // get only audits from anon users
+      _tasks <- AuditTaskTable.completedTasks if _tasks.userId === anonId
+      // join completed audit tasks with street edge table to get distances
+      _edges <- AuditTaskTable.streetEdges if _edges.streetEdgeId === _tasks.streetEdgeId
+      // join with audit task environment table to get IP addresses
+      _environments <- auditTaskEnvironmentTable if _environments.auditTaskId === _tasks.auditTaskId
+    // compute length of those street edges
+    } yield (_environments.ipAddress, _edges.geom.transform(26918).length)
+
+    // group by IP address and sum
+    distances.groupBy(_._1).map{ case (user, group) => (user, group.map(_._2).sum) }.list collect {
+      case (Some(ip), Some(dist)) => (ip, dist) // filters out null ip addresses and distances
+    }
   }
 
   /*
