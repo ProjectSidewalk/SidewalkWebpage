@@ -780,8 +780,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
 
             //Draw a chart of total time spent auditing
-            $.getJSON("/adminapi/audittimes", function (regData) {
-                  $.getJSON("/adminiapi/audittimesAnon", function (anonData) {
+            $.getJSON("/adminapi/auditTimesRegistered", function (regData) {
+                  $.getJSON("/adminapi/auditTimesAnon", function (anonData) {
                       var allTimes = [];
                       var regTimes = [];
                       var anonTimes = [];

@@ -269,7 +269,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   *
   * @return
   */
-  def getAuditTimes = UserAwareAction.async { implicit request =>
+  def getRegisteredUserAuditTimes = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
           val auditTimes: List[JsObject] = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
             Json.obj(
@@ -321,7 +321,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Get distance audited for each anonymous user.
-    * 
+    *
     * @return
     */
   def getAnonUserAuditDistances = UserAwareAction.async { implicit request =>

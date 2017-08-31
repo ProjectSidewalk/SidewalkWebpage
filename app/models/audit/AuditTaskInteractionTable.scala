@@ -128,7 +128,7 @@ object AuditTaskInteractionTable {
   }
 
   /**
-  * Select all audit task interaction times
+  * Select all registered user audit task interaction times
   * @return
   */
 def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
