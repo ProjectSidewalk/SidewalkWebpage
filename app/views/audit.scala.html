@@ -34,7 +34,11 @@
                                 <ol>
                                 @for(surveyQuestion <- SurveyQuestionTable.listAll){
                                     <li>
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                    @if(surveyQuestion.required == true) {
+                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
+                                    } else {
+                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                    }
                                     @if(surveyQuestion.surveyInputType == "radio"){
                                         <ul class="liekert">
                                         @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
