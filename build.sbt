@@ -83,3 +83,5 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(PreserveDanglingCloseParenthesis, true)
 
 fork in run := true
+
+fork in run := true
