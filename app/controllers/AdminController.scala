@@ -269,40 +269,70 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   *
   * @return
   */
-def getAuditTimes() = UserAwareAction.async { implicit request =>
-  if (isAdmin(request.identity)) {
-        val auditTimes: List[JsObject] = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
+  def getAuditTimes = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+          val auditTimes: List[JsObject] = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
+            Json.obj(
+              "user_id" -> auditTime.userId,
+              "time" -> auditTime.duration,
+              "ip_address" -> auditTime.ipAddress,
+              "is_researcher" -> UserRoleTable.researcherIds.contains(auditTime.userId)
+            ))
+        Future.successful(Ok(JsArray(auditTimes)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+    * Get all anonymous auditing times
+    *
+    * @return
+    */
+  def getAnonAuditTimes = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+        val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
           Json.obj(
             "user_id" -> auditTime.userId,
             "time" -> auditTime.duration,
             "ip_address" -> auditTime.ipAddress,
-            "is_researcher" -> UserRoleTable.researcherIds.contains(auditTime.userId)
-          ))
-      Future.successful(Ok(JsArray(auditTimes)))
-  } else {
-    Future.successful(Redirect("/"))
+            "is_researcher" -> false
+      ))
+        Future.successful(Ok(JsArray(anonAuditTimes)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
-}
 
-/**
-  * Get all anonymous auditing times
-  *
-  * @return
-  */
-def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
-  if (isAdmin(request.identity)) {
-      val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
-        Json.obj(
-          "user_id" -> auditTime.userId,
-          "time" -> auditTime.duration,
-          "ip_address" -> auditTime.ipAddress,
-          "is_researcher" -> false
-    ))
-      Future.successful(Ok(JsArray(anonAuditTimes)))
-  } else {
-    Future.successful(Redirect("/"))
+  /**
+    * Get distance audited for each registered user.
+    *
+    * @return
+    */
+  def getRegisteredUserAuditDistances = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val regDists: List[JsObject] = AuditTaskTable.selectAuditedDistanceByUsers.map(userDist =>
+        Json.obj("user_id" -> userDist._1, "distance" -> userDist._2))
+      Future.successful(Ok(JsArray(regDists)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
-}
+
+  /**
+    * Get distance audited for each anonymous user.
+    * 
+    * @return
+    */
+  def getAnonUserAuditDistances = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val anonDists: List[JsObject] = UserDAOImpl.getAnonUserDistanceAudited.map(userDist =>
+      Json.obj("ip_address" -> userDist._1, "distance" -> userDist._2))
+      Future.successful(Ok(JsArray(anonDists)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
 
 
   /**

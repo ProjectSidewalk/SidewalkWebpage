@@ -297,7 +297,7 @@ object AuditTaskTable {
     *
     * @return
     */
-  def selectAuditedDistanceByUsers(): List[(String, Float)] = db.withSession { implicit session =>
+  def selectAuditedDistanceByUsers: List[(String, Float)] = db.withSession { implicit session =>
 
     val distances = for {
       // remove anon user id
