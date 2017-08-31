@@ -16,6 +16,7 @@ CREATE TABLE survey_question
   survey_display_rank INT,
   deleted BOOLEAN NOT NULL DEFAULT FALSE,
   survey_user_role_id INT NOT NULL DEFAULT 1,
+  required BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (survey_question_id),
   FOREIGN KEY (survey_category_option_id) REFERENCES survey_category_option(survey_category_option_id)
 );
@@ -28,6 +29,38 @@ CREATE TABLE survey_option(
  PRIMARY KEY (survey_option_id),
  FOREIGN KEY (survey_category_option_id) REFERENCES survey_category_option(survey_category_option_id)
 );
+
+INSERT INTO survey_category_option VALUES (1, 'enjoyment');
+INSERT INTO survey_category_option VALUES (2, 'difficulty');
+INSERT INTO survey_category_option VALUES (3, 'self-efficacy');
+INSERT INTO survey_category_option VALUES (4, 'motivation');
+
+INSERT INTO survey_option VALUES (1, 1, 'Very boring', 1);
+INSERT INTO survey_option VALUES (2, 1, 'Boring', 2);
+INSERT INTO survey_option VALUES (3, 1, 'Neutral', 3);
+INSERT INTO survey_option VALUES (4, 1, 'Enjoyable', 4);
+INSERT INTO survey_option VALUES (5, 1, 'Very enjoyable', 5);
+INSERT INTO survey_option VALUES (6, 2, 'Very difficult', 1);
+INSERT INTO survey_option VALUES (7, 2, 'Difficult', 2);
+INSERT INTO survey_option VALUES (8, 2, 'Neutral', 3);
+INSERT INTO survey_option VALUES (9, 2, 'Easy', 4);
+INSERT INTO survey_option VALUES (10, 2, 'Very easy', 5);
+INSERT INTO survey_option VALUES (11, 3, 'Poor', 1);
+INSERT INTO survey_option VALUES (12, 3, 'Fair', 2);
+INSERT INTO survey_option VALUES (13, 3, 'Good', 3);
+INSERT INTO survey_option VALUES (14, 3, 'Very Good', 4);
+INSERT INTO survey_option VALUES (15, 3, 'Excellent', 5);
+INSERT INTO survey_option VALUES (16, 4, 'It''s fun.', 1);
+INSERT INTO survey_option VALUES (17, 4, 'For the money.', 2);
+INSERT INTO survey_option VALUES (18, 4, 'To help people.', 3);
+INSERT INTO survey_option VALUES (19, 4, 'Accessibility is an important cause', 4);
+
+INSERT INTO survey_question VALUES (1, 'How much did you enjoy this task?', 'radio', 1, 1, false, 1,true);
+INSERT INTO survey_question VALUES (2, 'How difficult did you find this task?', 'radio', 2, 2, false, 1, true);
+INSERT INTO survey_question VALUES (3, 'How well do you think you did on this task?', 'radio', 3, 3, false, 1, true);
+INSERT INTO survey_question VALUES (4, 'Why did you choose to contribute to Project Sidewalk?', 'free-text-feedback', NULL, 5, false, 1, true);
+INSERT INTO survey_question VALUES (5, 'Do you have any feedback for us?', 'free-text-feedback', NULL, 4, false, 1, false);
+
 
 create TABLE user_survey_text_submission
 (
