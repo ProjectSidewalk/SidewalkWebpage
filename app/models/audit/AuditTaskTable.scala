@@ -101,8 +101,12 @@ object AuditTaskTable {
   val streetEdges = TableQuery[StreetEdgeTable]
   val users = TableQuery[UserTable]
 
+  val completedTasks = auditTasks.filter(_.completed === true)
+
   case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int,
+                                 taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int],
+                                 temporaryLabelId: Option[Int], labelType: Option[String])
 
   /**
     * This method returns all the tasks
@@ -267,7 +271,6 @@ object AuditTaskTable {
     * @return
     */
   def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
-    val completedTasks = auditTasks.filter(_.completed === true)
     val _streetEdges = (for {
       (_auditTasks, _streetEdges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges).filter(edge => edge.deleted === false)
@@ -281,12 +284,31 @@ object AuditTaskTable {
    * @return
    */
   def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
-    val completedTasks = auditTasks.filter(_.completed === true)
     val _streetEdges = (for {
       (_auditTasks, _streetEdges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
     } yield _streetEdges).filter(edge => edge.deleted === false)
 
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+
+  /**
+    * Returns distance audited by each user.
+    *
+    * @return
+    */
+  def selectAuditedDistanceByUsers(): List[(String, Float)] = db.withSession { implicit session =>
+
+    val distances = for {
+      // remove anon user id
+      _usersTasks <- completedTasks.filterNot(_.userId === AuditTaskInteractionTable.anonUserId)
+      // join completed audit tasks with street edge table
+      _edges <- streetEdges if _edges.streetEdgeId === _usersTasks.streetEdgeId
+    // compute length of those street edges
+    } yield (_usersTasks.userId, _edges.geom.transform(26918).length)
+
+    // group by user id and sum
+    distances.groupBy(_._1).map{ case (user, group) => (user, group.map(_._2).sum.get) }.list
   }
 
 
@@ -334,13 +356,13 @@ object AuditTaskTable {
   def selectANewTask(user: UUID): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val completedTasks = for {
+    val userCompletedTasks = for {
       u <- users.filter(_.username === user.toString)
       at <- auditTasks if at.userId === u.userId
     } yield (u.username.?, at.streetEdgeId.?)
 
     val edges = for {
-      (e, c) <- streetEdges.leftJoin(completedTasks).on(_.streetEdgeId === _._2)
+      (e, c) <- streetEdges.leftJoin(userCompletedTasks).on(_.streetEdgeId === _._2)
       if c._1.isEmpty && !e.deleted
     } yield e
 
@@ -455,7 +477,7 @@ object AuditTaskTable {
     val userId: String = user.toString
 
     val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-    val completedTasks = auditTasks.filter(x => x.userId === userId && x.completed)
+    val userCompletedTasks = auditTasks.filter(x => x.userId === userId && x.completed)
 
     val edgesInRegion = for {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
