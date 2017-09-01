@@ -34,7 +34,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(qString)
 
     var referrer: Option[String] = qString.get("referrer") match{
       case Some(r) =>
@@ -87,16 +86,26 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 Future.successful(Redirect(redirectTo))
             }
         }
-
-      // Otherwise, just load the landing page
       case None =>
+        // When there are no referrers, just load the landing page but store the query parameters that were passed anyway
+        val activityLogText: String = "/"+qString.keys.map(i => i.toString +"="+ y(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
-            Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+            if(qString.isEmpty){
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+            } else{
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+              Future.successful(Redirect("/"))
+            }
           case None =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
-            Future.successful(Ok(views.html.index("Project Sidewalk")))
+            if(qString.isEmpty){
+              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+              Future.successful(Ok(views.html.index("Project Sidewalk")))
+            } else{
+              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
+              Future.successful(Redirect("/"))
+            }
         }
     }
   }
