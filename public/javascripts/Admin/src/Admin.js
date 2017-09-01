@@ -780,18 +780,18 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
 
             //Draw a chart of total time spent auditing
-            $.getJSON("/adminapi/auditTimesRegistered", function (regData) {
-                  $.getJSON("/adminapi/auditTimesAnon", function (anonData) {
+            $.getJSON("/adminapi/auditTimesRegistered", function (regTimeData) {
+                  $.getJSON("/adminapi/auditTimesAnon", function (anonTimeData) {
                       var allTimes = [];
                       var regTimes = [];
                       var anonTimes = [];
-                      for (var i = 0; i < regData.length; i++) {
-                          regTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
-                          allTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
+                      for (var i = 0; i < regTimeData.length; i++) {
+                          regTimes.push({time: regTimeData[i].time, binned: Math.min(200.0, regTimeData[i].time)});
+                          allTimes.push({time: regTimeData[i].time, binned: Math.min(200.0, regTimeData[i].time)});
                       }
-                      for (var i = 0; i < anonData.length; i++) {
-                          allTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
-                          anonTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
+                      for (var i = 0; i < anonTimeData.length; i++) {
+                          allTimes.push({time: anonTimeData[i].time, binned: Math.min(200.0, anonTimeData[i].time)});
+                          anonTimes.push({time: anonTimeData[i].time, binned: Math.min(200.0, anonTimeData[i].time)});
                       }
 
                       var allStats = getSummaryStats(allTimes, "time");
@@ -819,6 +819,71 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                       var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
 
                       vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function(error, results) {});
+
+
+                      // combine audit time data with audit distance data to chart audit speed
+                      $.getJSON("/adminapi/registeredUserDistances", function (regDistData) {
+                          $.getJSON("/adminapi/anonUserDistances", function (anonDistData) {
+                              var allSpeeds = [];
+                              var regSpeeds = [];
+                              var anonSpeeds = [];
+                              for (var i = 0; i < regTimeData.length; i++) {
+                                  // find entry in distance data, combine them and put in speed lists
+                                  var j = regDistData.map(function(x) {return x.user_id}).indexOf(regTimeData[i].user_id);
+                                  if (j >= 0 && regDistData[j].distance / regTimeData[i].time !== Infinity && regDistData[j].distance >= 304.8) {
+                                      if (regTimeData[i].time / (regDistData[j].distance * 0.00328084) < 1) {
+                                          console.log(regDistData[j].distance * 0.00328084);
+                                          console.log(regDistData[j].user_id);
+                                      }
+                                      regSpeeds.push({speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
+                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084))});
+                                      allSpeeds.push({speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
+                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084))});
+                                  }
+                              }
+                              for (var i = 0; i < anonTimeData.length; i++) {
+                                  // find entry in distance data, combine them and put in speed lists
+                                  var j = anonDistData.map(function(x) {return x.ip_address}).indexOf(anonTimeData[i].ip_address);
+                                  if (j >= 0 && anonDistData[j].distance / anonTimeData[i].time !== Infinity && anonDistData[j].distance >= 304.8) {
+                                      if (anonTimeData[i].time / (anonDistData[j].distance * 0.00328084) < 1) {
+                                          console.log(anonDistData[j].distance * 0.00328084);
+                                          console.log(anonDistData[j].ip_address);
+                                      }
+                                      anonSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
+                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084))});
+                                      allSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
+                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084))});
+                                  }
+                              }
+                              console.log(allSpeeds.length);
+                              console.log(regSpeeds.length);
+                              console.log(anonSpeeds.length);
+
+                              var allSpeedStats = getSummaryStats(allSpeeds, "speed");
+                              var regSpeedStats = getSummaryStats(regSpeeds, "speed");
+                              var anonSpeedStats = getSummaryStats(anonSpeeds, "speed");
+
+                              var allSpeedHistOpts = {col:"binned", xAxisTitle:"Auditing Speed (meter / minutes) - All Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80};
+                              var regSpeedHistOpts = {col:"binned", xAxisTitle:"Auditing Speed (meter / minutes) - Registered Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80};
+                              var anonSpeedHistOpts = {col:"binned", xAxisTitle:"Auditing Speed (meter / minutes) - Anon Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80};
+
+                              var allSpeedChart = getVegaLiteHistogram(allSpeeds, allSpeedStats.mean, allSpeedStats.median, allSpeedHistOpts);
+                              var regSpeedChart = getVegaLiteHistogram(regSpeeds, regSpeedStats.mean, regSpeedStats.median, regSpeedHistOpts);
+                              var anonSpeedChart = getVegaLiteHistogram(anonSpeeds, anonSpeedStats.mean, anonSpeedStats.median, anonSpeedHistOpts);
+
+                              $("#all-audit-speed-std").html((allSpeedStats.std).toFixed(2) + " meter / minutes");
+                              $("#reg-audit-speed-std").html((regSpeedStats.std).toFixed(2) + " meter / minutes");
+                              $("#anon-audit-speed-std").html((anonSpeedStats.std).toFixed(2) + " meter / minutes");
+
+                              var combinedSpeedChart = {"hconcat": [allSpeedChart, regSpeedChart, anonSpeedChart]};
+
+                              vega.embed("#auditing-speed-histogram", combinedSpeedChart, opt, function(error, results) {});
+                          });
+                      });
+
                     });
             });
 
