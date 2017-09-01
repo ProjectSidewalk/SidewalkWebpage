@@ -88,7 +88,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         }
       case None =>
         // When there are no referrers, just load the landing page but store the query parameters that were passed anyway
-        val activityLogText: String = "/"+qString.keys.map(i => i.toString +"="+ y(i).toString).mkString("&")
+        val activityLogText: String = "/?"+qString.keys.map(i => i.toString +"="+ qString(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
             if(qString.isEmpty){
