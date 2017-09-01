@@ -177,9 +177,14 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
 
     UserTable.find(workerId) match {
       case Some(user) =>
+        // This case should never be reached since the Turkers are automatically assigned a user_id
+        // And since worker id s are unique to each turker there shouldnt be two turkers assigned the same user_id
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
         Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
       case None =>
         // Create a temporary email and password. Keep the username as the workerId.
@@ -212,6 +217,7 @@ class SignUpController @Inject() (
           // Add Timestamp
           val now = new DateTime(DateTimeZone.UTC)
           val timestamp: Timestamp = new Timestamp(now.getMillis)
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
