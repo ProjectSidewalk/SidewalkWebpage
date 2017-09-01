@@ -85,6 +85,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
             delete svl.confirmationCode;
+            svl.ui.leftColumn.confirmationCode.css('visibility', "visible");
+            svl.ui.leftColumn.confirmationCode.popover();
         }
     };
 
@@ -115,7 +117,9 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                 this.remove();
                 delete uiModalMissionComplete.generateConfirmationButton;
             };
-
+            svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
+            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on MTurk');
+            svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
         }
     };
 
