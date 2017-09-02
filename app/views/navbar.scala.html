@@ -21,10 +21,10 @@
                 @if(url.isDefined && url.get != "/audit") {
 
                     <li class="active">
-                        <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit()'">Start Mapping</button>
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Mapping</a>
                     </li>
                     <li class="active">
-                        <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
+                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
                     </li>
 
                 } else {
