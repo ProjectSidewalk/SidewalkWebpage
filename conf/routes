@@ -48,6 +48,8 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
+GET     /adminiapi/audittimesAnon                            @controllers.AdminController.getAnonAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -58,8 +60,8 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit
-GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
+GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
+#GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                                       @controllers.AuditController.postComment
@@ -80,7 +82,8 @@ GET     /label/currentMission                                @controllers.LabelC
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
-POST    /neighborhood/assignment                             @controllers.RegionController.setANewRegion
+GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
+POST    /neighborhood/assignment                             @controllers.RegionController.assignANewRegion
 
 # Map Edit
 GET     /map/edit                                            @controllers.MapController.edit

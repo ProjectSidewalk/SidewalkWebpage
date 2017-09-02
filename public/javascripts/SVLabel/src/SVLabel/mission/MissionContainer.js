@@ -126,9 +126,9 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         var missions = self._missionStoreByRegionId[regionId];
 
         for (var i = 0, len = missions.length; i < len; i++) {
-            if (missions[i].getProperty("label") == label) {
+            if (missions[i].getProperty("label") === label) {
                 if (level) {
-                    if (level == missions[i].getProperty("level")) {
+                    if (level === missions[i].getProperty("level")) {
                         return missions[i];
                     }
                 } else {
@@ -223,7 +223,7 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         var currentRegionId = currentRegionId.toString();
         var regionIds = Object.keys(self._missionStoreByRegionId);
         regionIds = regionIds.map(function (key) { return key.toString(); });
-        regionIds = regionIds.filter(function (regionId) { return regionId != "noRegionId"; });
+        regionIds = regionIds.filter(function (regionId) { return regionId !== "noRegionId"; });
 
         var currentRegionIdIndex = regionIds.indexOf(currentRegionId);
         var nextRegionIdIndex = currentRegionIdIndex + 1;
@@ -237,9 +237,9 @@ function MissionContainer (statusFieldMission, missionModel, taskModel) {
         var nextRegionId = self._getANextRegionId(currentRegionId);
         var missions = self._missionStoreByRegionId[nextRegionId];
         missions = missions.filter(function (m) { return !m.isCompleted(); });
-        while (missions.length == 0) {
+        while (missions.length === 0) {
             nextRegionId = self._getANextRegionId(nextRegionId);
-            if (nextRegionId == currentRegionId) throw Error("No missions available");
+            if (nextRegionId === currentRegionId) throw Error("No missions available");
             missions = self._missionStoreByRegionId[nextRegionId];
             missions = missions.filter(function (m) { return !m.isCompleted(); });
         }
