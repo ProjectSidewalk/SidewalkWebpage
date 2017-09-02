@@ -841,8 +841,9 @@
 
         }
 
+        @if(user){
         //Survey Submission
-        $("#surveyForm").submit(function submitSurvey(e){
+        $("#surveyForm").submit(function submitSurvey(e) {
             var formData = $('#surveyForm').serializeArray();
             //alert(formData);
 
@@ -855,8 +856,11 @@
                 url: surveyUrl,
                 type: 'post',
                 dataType: 'json',
-                data: JSON.stringify({"answered_questions":formData, "is_admin":@user.get.roles.getOrElse(Seq("")).contains("Admin")}),
-                success: function(data){
+                data: JSON.stringify({
+                    "answered_questions": formData,
+                    "is_admin":@user.get.roles.getOrElse(Seq("")).contains("Admin")
+                }),
+                success: function (data) {
                     //close modal here / redirect to task complete page
                     $('#survey-modal-container').modal('hide');
                 }
@@ -865,6 +869,7 @@
             // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
             e.preventDefault();
         });
+        }
 
     </script>
 
