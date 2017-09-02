@@ -1233,12 +1233,12 @@ kbd {
     top: 47%;
     right: 44%;
 }
-.leaflet-bottom > .map-legends.wax-legends{
+.leaflet-bottom > .map-legends.wax-legends {
     right: 0px;
     top: 0px;
-    width: 319px;
+    width: 425px;
     max-width: 500px;
-    height: 118px;
+    height: 130px;
 }
 #results-choropleth-container {
     background-color: #fff;
