@@ -881,15 +881,13 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                               for (var i = 0; i < regTimeData.length; i++) {
                                   // find entry in distance data, combine them and put in speed lists
                                   var j = regDistData.map(function(x) {return x.user_id}).indexOf(regTimeData[i].user_id);
-                                  if (j >= 0 && regDistData[j].distance / regTimeData[i].time !== Infinity && regDistData[j].distance >= 304.8) {
+                                  if (j >= 0 && regTimeData[i].time > 0 && regDistData[j].distance >= 304.8) {
                                       regSpeeds.push({
                                           speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084)),
                                           is_researcher: regTimeData[i].is_researcher
                                       });
                                       allSpeeds.push({
                                           speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084)),
                                           is_researcher: regTimeData[i].is_researcher
                                       });
                                   }
@@ -897,44 +895,42 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                               for (var i = 0; i < anonTimeData.length; i++) {
                                   // find entry in distance data, combine them and put in speed lists
                                   var j = anonDistData.map(function(x) {return x.ip_address}).indexOf(anonTimeData[i].ip_address);
-                                  if (j >= 0 && anonDistData[j].distance / anonTimeData[i].time !== Infinity && anonDistData[j].distance >= 304.8) {
+                                  if (j >= 0 && anonTimeData[i].time > 0 && anonDistData[j].distance >= 304.8) {
                                       anonSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084)),
                                           is_researcher: anonTimeData[i].is_researcher
                                       });
                                       allSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084)),
                                           is_researcher: anonTimeData[i].is_researcher
                                       });
                                   }
                               }
 
                               var allSpeedStats = getSummaryStats(allSpeeds, "speed");
-                              var allFilteredSpeedStats = getSummaryStats(allSpeeds, "time", {excludeResearchers:true});
+                              var allFilteredSpeedStats = getSummaryStats(allSpeeds, "speed", {excludeResearchers:true});
                               var regSpeedStats = getSummaryStats(regSpeeds, "speed");
-                              var regFilteredSpeedStats = getSummaryStats(regSpeeds, "time", {excludeResearchers:true});
+                              var regFilteredSpeedStats = getSummaryStats(regSpeeds, "speed", {excludeResearchers:true});
                               var anonSpeedStats = getSummaryStats(anonSpeeds, "speed");
 
                               var allSpeedHistOpts = {
-                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - All Users",
+                                  col:"speed", xAxisTitle:"Auditing Speed (minutes / 1000ft) - All Users",
                                   yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80
                               };
                               var allFilteredSpeedHistOpts = {
-                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - All Users",
+                                  col:"speed", xAxisTitle:"Auditing Speed (minutes / 1000ft) - All Users",
                                   yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
                                   legendOffset:-80, excludeResearchers: true
                               };
                               var regSpeedHistOpts = {
-                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Registered Users",
+                                  col:"speed", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Registered Users",
                                   yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80
                               };
                               var regFilteredSpeedHistOpts = {
-                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Registered Users",
+                                  col:"speed", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Registered Users",
                                   yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
                                   legendOffset:-80, excludeResearchers: true
                               };
                               var anonSpeedHistOpts = {
-                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Anon Users",
+                                  col:"speed", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Anon Users",
                                   yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80
                               };
 
