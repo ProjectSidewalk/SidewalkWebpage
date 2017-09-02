@@ -882,10 +882,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                   // find entry in distance data, combine them and put in speed lists
                                   var j = regDistData.map(function(x) {return x.user_id}).indexOf(regTimeData[i].user_id);
                                   if (j >= 0 && regDistData[j].distance / regTimeData[i].time !== Infinity && regDistData[j].distance >= 304.8) {
-                                      if (regTimeData[i].time / (regDistData[j].distance * 0.00328084) < 1) {
-                                          console.log(regDistData[j].distance * 0.00328084);
-                                          console.log(regDistData[j].user_id);
-                                      }
                                       regSpeeds.push({speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
                                           binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084))});
                                       allSpeeds.push({speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
@@ -896,19 +892,12 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                   // find entry in distance data, combine them and put in speed lists
                                   var j = anonDistData.map(function(x) {return x.ip_address}).indexOf(anonTimeData[i].ip_address);
                                   if (j >= 0 && anonDistData[j].distance / anonTimeData[i].time !== Infinity && anonDistData[j].distance >= 304.8) {
-                                      if (anonTimeData[i].time / (anonDistData[j].distance * 0.00328084) < 1) {
-                                          console.log(anonDistData[j].distance * 0.00328084);
-                                          console.log(anonDistData[j].ip_address);
-                                      }
                                       anonSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
                                           binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084))});
                                       allSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
                                           binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084))});
                                   }
                               }
-                              console.log(allSpeeds.length);
-                              console.log(regSpeeds.length);
-                              console.log(anonSpeeds.length);
 
                               var allSpeedStats = getSummaryStats(allSpeeds, "speed");
                               var regSpeedStats = getSummaryStats(regSpeeds, "speed");
