@@ -366,15 +366,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def completedTasks = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-
-      Future.successful(Ok(JsArray()))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
   /**
     * Get records of audit task interactions of a user
     *
