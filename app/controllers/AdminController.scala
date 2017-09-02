@@ -271,7 +271,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   */
   def getRegisteredUserAuditTimes = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-          val auditTimes: List[JsObject] = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
+          val auditTimes: List[JsObject] = AuditTaskInteractionTable.selectAllRegisteredUserAuditTimes.map(auditTime =>
             Json.obj(
               "user_id" -> auditTime.userId,
               "time" -> auditTime.duration,
@@ -291,7 +291,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAnonAuditTimes = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-        val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
+        val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonUserAuditTimes.map(auditTime =>
           Json.obj(
             "user_id" -> auditTime.userId,
             "time" -> auditTime.duration,
@@ -333,7 +333,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.successful(Redirect("/"))
     }
   }
-
 
   /**
     * This method returns the tasks and labels submitted by the given user.

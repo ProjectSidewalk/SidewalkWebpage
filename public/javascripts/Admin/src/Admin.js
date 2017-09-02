@@ -786,39 +786,90 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                       var regTimes = [];
                       var anonTimes = [];
                       for (var i = 0; i < regTimeData.length; i++) {
-                          regTimes.push({time: regTimeData[i].time, binned: Math.min(200.0, regTimeData[i].time)});
-                          allTimes.push({time: regTimeData[i].time, binned: Math.min(200.0, regTimeData[i].time)});
+                          regTimes.push({
+                              time: regTimeData[i].time,
+                              binned: Math.min(200.0, regTimeData[i].time),
+                              is_researcher: regTimeData[i].is_researcher
+                          });
+                          allTimes.push({
+                              time: regTimeData[i].time,
+                              binned: Math.min(200.0, regTimeData[i].time),
+                              is_researcher: regTimeData[i].is_researcher
+                          });
                       }
                       for (var i = 0; i < anonTimeData.length; i++) {
-                          allTimes.push({time: anonTimeData[i].time, binned: Math.min(200.0, anonTimeData[i].time)});
-                          anonTimes.push({time: anonTimeData[i].time, binned: Math.min(200.0, anonTimeData[i].time)});
+                          allTimes.push({
+                              time: anonTimeData[i].time,
+                              binned: Math.min(200.0, anonTimeData[i].time),
+                              is_researcher: anonTimeData[i].is_researcher
+                          });
+                          anonTimes.push({
+                              time: anonTimeData[i].time,
+                              binned: Math.min(200.0, anonTimeData[i].time),
+                              is_researcher: anonTimeData[i].is_researcher
+                          });
                       }
 
-                      var allStats = getSummaryStats(allTimes, "time");
-                      var regStats = getSummaryStats(regTimes, "time");
-                      var anonStats = getSummaryStats(anonTimes, "time");
+                      var allTimeStats = getSummaryStats(allTimes, "time");
+                      var allFilteredTimeStats = getSummaryStats(allTimes, "time", {excludeResearchers:true});
+                      var regTimeStats = getSummaryStats(regTimes, "time");
+                      var regFilteredTimeStats = getSummaryStats(allTimes, "time", {excludeResearchers:true});
+                      var anonTimeStats = getSummaryStats(anonTimes, "time");
 
-                      var allHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - All Users",
-                                         yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
-                                         binStep:10, legendOffset:-80};
-                      var regHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Registered Users",
-                                         yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
-                                         binStep:10, legendOffset:-80};
-                      var anonHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Anon Users",
-                                          yAxisTitle:"Counts (users)", xDomain:[0, 200],  width:250, height:250,
-                                          binStep:10, legendOffset:-80};
+                      var allTimeHistOpts = {
+                          col:"binned", xAxisTitle:"Total Auditing Time (minutes) - All Users",
+                          yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, binStep:10,
+                          legendOffset:-80
+                      };
+                      var allFilteredTimeHistOpts = {
+                          col:"binned", xAxisTitle:"Total Auditing Time (minutes) - All Users",
+                          yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, binStep:10,
+                          legendOffset:-80, excludeResearchers: true
+                      };
+                      var regTimeHistOpts = {
+                          col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Registered Users",
+                          yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, binStep:10,
+                          legendOffset:-80
+                      };
+                      var regFilteredTimeHistOpts = {
+                          col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Registered Users",
+                          yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, binStep:10,
+                          legendOffset:-80, excludeResearchers: true
+                      };
+                      var anonTimeHistOpts = {
+                          col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
+                          yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 250, height: 250, binStep: 10,
+                          legendOffset: -80
+                      };
 
-                      var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
-                      var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
-                      var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
+                      var allTimeChart = getVegaLiteHistogram(allTimes, allTimeStats.mean, allTimeStats.median, allTimeHistOpts);
+                      var allFilteredTimeChart = getVegaLiteHistogram(allTimes, allFilteredTimeStats.mean, allFilteredTimeStats.median, allFilteredTimeHistOpts);
+                      var regTimeChart = getVegaLiteHistogram(regTimes, regTimeStats.mean, regTimeStats.median, regTimeHistOpts);
+                      var regFilteredTimeChart = getVegaLiteHistogram(regTimes, regFilteredTimeStats.mean, regFilteredTimeStats.median, regFilteredTimeHistOpts);
+                      var anonTimeChart = getVegaLiteHistogram(anonTimes, anonTimeStats.mean, anonTimeStats.median, anonTimeHistOpts);
 
-                      $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
-                      $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
-                      $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
+                      $("#all-audit-times-std").html((allFilteredTimeStats.std).toFixed(2) + " Minutes");
+                      $("#reg-audit-times-std").html((regFilteredTimeStats.std).toFixed(2) + " Minutes");
+                      $("#anon-audit-times-std").html((anonTimeStats.std).toFixed(2) + " Minutes");
 
-                      var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
+                      var combinedTimeChart = {"hconcat": [allTimeChart, regTimeChart, anonTimeChart]};
+                      var combinedFilteredTimeChart = {"hconcat": [allFilteredTimeChart, regFilteredTimeChart, anonTimeChart]};
 
-                      vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function(error, results) {});
+                      vega.embed("#auditing-time-histogram", combinedFilteredTimeChart, opt, function(error, results) {});
+
+                      var checkbox = document.getElementById("audit-times-include-researchers-checkbox").addEventListener("click", function(cb) {
+                          if (cb.srcElement.checked) {
+                              $("#all-audittimes-std").html((allTimeStats.std).toFixed(2) + " Minutes");
+                              $("#reg-audittimes-std").html((regTimeStats.std).toFixed(2) + " Minutes");
+                              vega.embed("#auditing-time-histogram", combinedTimeChart, opt, function (error, results) {
+                              });
+                          } else {
+                              $("#all-audittimes-std").html((allFilteredTimeStats.std).toFixed(2) + " Minutes");
+                              $("#reg-audittimes-std").html((regFilteredTimeStats.std).toFixed(2) + " Minutes");
+                              vega.embed("#auditing-time-histogram", combinedFilteredTimeChart, opt, function (error, results) {
+                              });
+                          }
+                      });
 
 
                       // combine audit time data with audit distance data to chart audit speed

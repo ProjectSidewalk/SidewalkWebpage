@@ -131,7 +131,7 @@ object AuditTaskInteractionTable {
   * Select all registered user audit task interaction times
   * @return
   */
-def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
+def selectAllRegisteredUserAuditTimes: List[UserAuditTime] = db.withSession { implicit session =>
   val selectAuditTimesQuery = Q.query[String, UserAuditTime](
     """SELECT user_audit_times.user_id,
       |       CAST(extract( second from SUM(diff) ) /60 +
@@ -145,7 +145,6 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
       |       ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
       |    WHERE action = 'ViewControl_MouseDown'
       |        AND audit_task.user_id <> ?
-      |        AND audit_task.user_id NOT IN (SELECT user_id FROM user_role WHERE role_id > 1)
       |    ) user_audit_times
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY user_id;""".stripMargin
@@ -159,7 +158,7 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
   *
   * @return
   */
-def selectAllAnonAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
+def selectAllAnonUserAuditTimes: List[UserAuditTime] = db.withSession { implicit session =>
   val selectAnonAuditTimesQuery = Q.query[(String, String), UserAuditTime](
     """SELECT ?,
       |       CAST(extract( second from SUM(diff) ) /60 +
