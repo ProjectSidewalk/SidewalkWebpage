@@ -34,7 +34,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-    println(qString)
 
     var referrer: Option[String] = qString.get("referrer") match{
       case Some(r) =>
