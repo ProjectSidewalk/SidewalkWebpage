@@ -859,13 +859,13 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
                       var checkbox = document.getElementById("audit-times-include-researchers-checkbox").addEventListener("click", function(cb) {
                           if (cb.srcElement.checked) {
-                              $("#all-audittimes-std").html((allTimeStats.std).toFixed(2) + " Minutes");
-                              $("#reg-audittimes-std").html((regTimeStats.std).toFixed(2) + " Minutes");
+                              $("#all-audit-times-std").html((allTimeStats.std).toFixed(2) + " Minutes");
+                              $("#reg-audit-times-std").html((regTimeStats.std).toFixed(2) + " Minutes");
                               vega.embed("#auditing-time-histogram", combinedTimeChart, opt, function (error, results) {
                               });
                           } else {
-                              $("#all-audittimes-std").html((allFilteredTimeStats.std).toFixed(2) + " Minutes");
-                              $("#reg-audittimes-std").html((regFilteredTimeStats.std).toFixed(2) + " Minutes");
+                              $("#all-audit-times-std").html((allFilteredTimeStats.std).toFixed(2) + " Minutes");
+                              $("#reg-audit-times-std").html((regFilteredTimeStats.std).toFixed(2) + " Minutes");
                               vega.embed("#auditing-time-histogram", combinedFilteredTimeChart, opt, function (error, results) {
                               });
                           }
@@ -882,10 +882,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                   // find entry in distance data, combine them and put in speed lists
                                   var j = regDistData.map(function(x) {return x.user_id}).indexOf(regTimeData[i].user_id);
                                   if (j >= 0 && regDistData[j].distance / regTimeData[i].time !== Infinity && regDistData[j].distance >= 304.8) {
-                                      regSpeeds.push({speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084))});
-                                      allSpeeds.push({speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084))});
+                                      regSpeeds.push({
+                                          speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
+                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084)),
+                                          is_researcher: regTimeData[i].is_researcher
+                                      });
+                                      allSpeeds.push({
+                                          speed: regTimeData[i].time / (regDistData[j].distance * 0.00328084),
+                                          binned: Math.min(200.0, regTimeData[i].time / (regDistData[j].distance * 0.00328084)),
+                                          is_researcher: regTimeData[i].is_researcher
+                                      });
                                   }
                               }
                               for (var i = 0; i < anonTimeData.length; i++) {
@@ -893,34 +899,73 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                   var j = anonDistData.map(function(x) {return x.ip_address}).indexOf(anonTimeData[i].ip_address);
                                   if (j >= 0 && anonDistData[j].distance / anonTimeData[i].time !== Infinity && anonDistData[j].distance >= 304.8) {
                                       anonSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084))});
+                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084)),
+                                          is_researcher: anonTimeData[i].is_researcher
+                                      });
                                       allSpeeds.push({speed: anonTimeData[i].time / (anonDistData[j].distance * 0.00328084),
-                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084))});
+                                          binned: Math.min(200.0, anonTimeData[i].time / (anonDistData[j].distance * 0.00328084)),
+                                          is_researcher: anonTimeData[i].is_researcher
+                                      });
                                   }
                               }
 
                               var allSpeedStats = getSummaryStats(allSpeeds, "speed");
+                              var allFilteredSpeedStats = getSummaryStats(allSpeeds, "time", {excludeResearchers:true});
                               var regSpeedStats = getSummaryStats(regSpeeds, "speed");
+                              var regFilteredSpeedStats = getSummaryStats(regSpeeds, "time", {excludeResearchers:true});
                               var anonSpeedStats = getSummaryStats(anonSpeeds, "speed");
 
-                              var allSpeedHistOpts = {col:"binned", xAxisTitle:"Auditing Speed (meter / minutes) - All Users",
-                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80};
-                              var regSpeedHistOpts = {col:"binned", xAxisTitle:"Auditing Speed (meter / minutes) - Registered Users",
-                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80};
-                              var anonSpeedHistOpts = {col:"binned", xAxisTitle:"Auditing Speed (meter / minutes) - Anon Users",
-                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80};
+                              var allSpeedHistOpts = {
+                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - All Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80
+                              };
+                              var allFilteredSpeedHistOpts = {
+                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - All Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
+                                  legendOffset:-80, excludeResearchers: true
+                              };
+                              var regSpeedHistOpts = {
+                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Registered Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80
+                              };
+                              var regFilteredSpeedHistOpts = {
+                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Registered Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
+                                  legendOffset:-80, excludeResearchers: true
+                              };
+                              var anonSpeedHistOpts = {
+                                  col:"binned", xAxisTitle:"Auditing Speed (minutes / 1000ft) - Anon Users",
+                                  yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250, legendOffset:-80
+                              };
 
                               var allSpeedChart = getVegaLiteHistogram(allSpeeds, allSpeedStats.mean, allSpeedStats.median, allSpeedHistOpts);
+                              var allFilteredSpeedChart = getVegaLiteHistogram(allSpeeds, allFilteredSpeedStats.mean, allFilteredSpeedStats.median, allFilteredSpeedHistOpts);
                               var regSpeedChart = getVegaLiteHistogram(regSpeeds, regSpeedStats.mean, regSpeedStats.median, regSpeedHistOpts);
+                              var regFilteredSpeedChart = getVegaLiteHistogram(regSpeeds, regFilteredSpeedStats.mean, regFilteredSpeedStats.median, regFilteredSpeedHistOpts);
                               var anonSpeedChart = getVegaLiteHistogram(anonSpeeds, anonSpeedStats.mean, anonSpeedStats.median, anonSpeedHistOpts);
 
-                              $("#all-audit-speed-std").html((allSpeedStats.std).toFixed(2) + " meter / minutes");
-                              $("#reg-audit-speed-std").html((regSpeedStats.std).toFixed(2) + " meter / minutes");
-                              $("#anon-audit-speed-std").html((anonSpeedStats.std).toFixed(2) + " meter / minutes");
+                              $("#all-audit-speed-std").html((allFilteredSpeedStats.std).toFixed(2) + " minutes / 1000ft");
+                              $("#reg-audit-speed-std").html((regFilteredSpeedStats.std).toFixed(2) + " minutes / 1000ft");
+                              $("#anon-audit-speed-std").html((anonSpeedStats.std).toFixed(2) + " minutes / 1000ft");
 
                               var combinedSpeedChart = {"hconcat": [allSpeedChart, regSpeedChart, anonSpeedChart]};
+                              var combinedFilteredSpeedChart = {"hconcat": [allFilteredSpeedChart, regFilteredSpeedChart, anonSpeedChart]};
 
-                              vega.embed("#auditing-speed-histogram", combinedSpeedChart, opt, function(error, results) {});
+                              vega.embed("#auditing-speed-histogram", combinedFilteredSpeedChart, opt, function(error, results) {});
+
+                              var checkbox = document.getElementById("audit-speed-include-researchers-checkbox").addEventListener("click", function(cb) {
+                                  if (cb.srcElement.checked) {
+                                      $("#all-audit-speed-std").html((allSpeedStats.std).toFixed(2) + " minutes / 1000ft");
+                                      $("#reg-audit-speed-std").html((regSpeedStats.std).toFixed(2) + " minutes / 1000ft");
+                                      vega.embed("#auditing-speed-histogram", combinedSpeedChart, opt, function (error, results) {
+                                      });
+                                  } else {
+                                      $("#all-audit-speed-std").html((allFilteredSpeedStats.std).toFixed(2) + " minutes / 1000ft");
+                                      $("#reg-audit-speed-std").html((regFilteredSpeedStats.std).toFixed(2) + " minutes / 1000ft");
+                                      vega.embed("#auditing-speed-histogram", combinedFilteredSpeedChart, opt, function (error, results) {
+                                      });
+                                  }
+                              });
                           });
                       });
 
