@@ -8,7 +8,7 @@ from pprint import pprint
 
 
 '''
-Create missions for the assigned routes if it doesn't exist
+Create missions for the routes if they don't exist
 '''
 
 
@@ -36,66 +36,42 @@ def create_missions_for_routes(engine, cursor, route_rows):
                 'distance_ft': 1000,
                 'distance_mi': 0.189394
             })
+            mission_rows_to_insert.append({
+                'region_id': region_id,
+                'label': 'mturk-mission',
+                'level': 2,
+                'deleted': False,
+                'coverage': None,
+                'distance': 609.6,
+                'distance_ft': 2000,
+                'distance_mi': 0.378788
+            })
+            mission_rows_to_insert.append({
+                'region_id': region_id,
+                'label': 'mturk-mission',
+                'level': 3,
+                'deleted': False,
+                'coverage': None,
+                'distance': 1219.2,
+                'distance_ft': 4000,
+                'distance_mi': 0.757576
+            })
             db_inserted_region_id_list.append(region_id)
             print "Mission created for region", region_id
 
     mission_table_df = pd.DataFrame(mission_rows_to_insert)
     mission_table_df.to_sql('mission', engine, if_exists='append', index=False)
 
-
 '''
-    Assign routes to the newly created HITs.
-    The RequesterAnnotation attribute of the HIT stores the associated route_id
+This is the main HIT generation function. We just need to specify the number of HIT assignments 
+i.e. number of people who will need to work on the routes. The turkers will be assigned to each condition
+in a round robin fashion. The function doesnt explicitly create a HIT for each condition since, as mentioned
+previously, the assignment of turkers to conditions is handled by the sidewalk-mturk server on the "\" endpoint.
 '''
 
-
-def assign_routes_to_hits(mturk, engine, routes, t_before_creation):
-
-    hit_route_map = []
-
-    # Returns a page of 100 HITs. Seem to be in chronological order.
-    response = mturk.list_hits(MaxResults=100)
-    all_hits = response['HITs']
-    if 'NextToken' in response:
-        next_token = response['NextToken']
-        num_results = response['NumResults']
-        while int(num_results) > 0:
-            # Use the pagination token NextToken to get the next 100 HITs till there
-            # are no more.
-            response = mturk.list_hits(MaxResults=100, NextToken=next_token)
-            num_results = response['NumResults']
-            for hit in response['HITs']:
-                all_hits.append(hit)
-            if 'NextToken' in response:
-                next_token = response['NextToken']
-
-    print "Total HITs:", len(all_hits)
-
-    for hit in all_hits:
-        # Fixed: hit creation time provided by the mturk API has local time info.
-        # t_before_creation doesnt.
-        # Check for Hits created after t_before_creation
-        # You dont want HITs created a half an hour back if they also have route ids.
-        # Even if the incorrect ones get overwritten. I've still given you the
-        # option to set that (currently at 1 minute).
-        if hit['CreationTime'].replace(tzinfo=None) > (t_before_creation - timedelta(minutes=1)):
-            if 'RequesterAnnotation' in hit:
-                # print "HIT Creation Time: ", hit['CreationTime'], "Time Difference",
-                # t_before_creation - timedelta(minutes=1)
-                print "HIT with route", hit['RequesterAnnotation'], "retrieved"
-                route_id = int(hit['RequesterAnnotation'])
-                if route_id in routes:
-                    hit_route_map.append({'hit_id': hit['HITId'], 'route_id': route_id})
-
-    hit_route_df = pd.DataFrame(hit_route_map)
-    hit_route_df.to_sql('amt_route_assignment', engine,
-                        if_exists='append', index=False)
-
-
-if __name__ == '__main__':
-
+def create_hits(number_of_assignments = 1):
     # HIT Parameters
-    url = 'https://sidewalk-mturk.umiacs.umd.edu'
+
     title = "Help make our sidewalks more accessible for wheelchair users with Google Maps"
 
     description = "In this task, you will virtually walk through city streets " + \
@@ -106,19 +82,41 @@ if __name__ == '__main__':
     keywords = "Accessibility, Americans with Disabilities, Wheelchairs, Image Labeling,"
     " Games, Mobility Impairments, Smart Cities"
     frame_height = 800  # the height of the iframe holding the external hit
-    amount = '0.85'
+    amount = '0.0'
+
+    # Get mturk client
+    mturk = connect_to_mturk()
+
+    t_before_creation = datetime.now()
 
     # The external question object allows you to view an external url inside an iframe
     # mTurk automatically appends worker and hit variables to the external url
     # Variable passed to the external url are workerid, assignmentid, hitid, ...
     # Once the task is successfully completed the external server needs to
     # perform a POST operation to an mturk url
+    url = 'https://sidewalk-mturk.umiacs.umd.edu/'
     external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
         '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
         str(frame_height) + '</FrameHeight></ExternalQuestion>'
 
-    # Get mturk client
-    mturk = connect_to_mturk()
+
+    # Create a sample HIT that expires after an 'LifetimeInSeconds'
+
+    mturk.create_hit(
+        Title=title,
+        LifetimeInSeconds=86400,
+        AssignmentDurationInSeconds=7200,
+        MaxAssignments=number_of_assignments,
+        Description=description,
+        Keywords=keywords,
+        Question=external_question,
+        Reward=amount,
+        RequesterAnnotation=str(t_before_creation)
+    )
+    print "HIT created with ", number_of_assignments, " assignments."
+
+
+if __name__ == '__main__':
 
     try:
         # Connect to PostgreSQL database
@@ -126,50 +124,17 @@ if __name__ == '__main__':
 
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        # Get all the current condition_ids in  sidewalk.amt_condition
+        number_of_assignments = 1
+
+        create_hits(number_of_assignments)
+
         # Get all the current route_ids in  sidewalk.route
         cur.execute(
             """SELECT route_id, region_id from sidewalk.route order by street_count desc""")
         route_rows = cur.fetchall()
-        routes = map(lambda x: x["route_id"], route_rows)
-
-        t_before_creation = datetime.now()
-
-        final_specific_routes = [55, 164, 220, 253, 342, 38, 460, 441, 411]
-        # ignored_routes = [374, 206, 94, 346, 293, 139, 38, 53, 6, 225]
-        # routes_for_gt = [38, 460, 441, 411]
-
-        # For new route selection
-        # specific_routes = []
-        # for route_id in routes:
-        #     if route_id not in final_specific_routes + ignored_routes:
-        #         specific_routes.append(route_id)
-        # number_of_routes = 10
-        # specific_routes = specific_routes[0: min(number_of_routes, len(specific_routes))]
-
-        specific_routes = final_specific_routes
-        for route in specific_routes:
-            # Create a sample HIT that expires after an 'LifetimeInSeconds'
-
-            mturk.create_hit(
-                Title=title,
-                LifetimeInSeconds=86400,
-                AssignmentDurationInSeconds=3600,
-                MaxAssignments=5,
-                Description=description,
-                Keywords=keywords,
-                Question=external_question,
-                Reward=amount,
-                RequesterAnnotation=str(route)
-            )
-            print "HIT for route", route, "created"
-
-        # Get the list of HITs created, assign routes to HITs
-        assign_routes_to_hits(mturk, engine, specific_routes, t_before_creation)
-
         # Insert into Mission Table - create new mission for a route (if it doesn't exist)
         create_missions_for_routes(engine, cur, route_rows)
 
-        # Manually insert an experiment condition into the amt_condition
-        cur.execute("""INSERT INTO sidewalk.amt_condition (description, parameters) VALUES ('mturk-pilot-1000ft-route-mission', 'hitCost=0.85,routeDistance=1000ft,turkerPerRoute=5,noRoutes=5,noRegion=3')""")
     except Exception as e:
         print "Error: ", e
