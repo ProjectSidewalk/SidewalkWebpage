@@ -185,7 +185,6 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
-
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
@@ -661,6 +660,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
 
         // Zoom control
         svl.ui.zoomControl = {};
