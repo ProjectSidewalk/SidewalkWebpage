@@ -40,9 +40,9 @@
                                         <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
                                     }
                                     @if(surveyQuestion.surveyInputType == "radio"){
-                                        <ul class="liekert">
+                                        <ul class="survey-option-holder">
                                         @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
-                                            <li class="liekert-option">
+                                            <li class="survey-option">
                                                 @if(surveyQuestion.required == true){
                                                     <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
                                                 } else{
@@ -54,9 +54,9 @@
                                         </ul>
                                     }else{
                                         @if(surveyQuestion.surveyInputType == "checkbox"){
-                                            <ul class="liekert">
+                                            <ul class="survey-option-holder">
                                             @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
-                                                <li class="liekert-option">
+                                                <li class="survey-option">
                                                     <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                                     <label>@surveyOption.surveyOptionText</label>
                                                 </li>

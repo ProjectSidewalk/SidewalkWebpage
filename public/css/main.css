@@ -1265,14 +1265,14 @@ kbd {
     font-weight: normal;
     font-size: 14px;
 }
-.liekert{
+.survey-option-holder{
     list-style:none;
     width:100%;
     margin:0;
     padding:0 0 10px;
     display:block;
 }
-.liekert-option{
+.survey-option{
     display:inline-block;
     width:19%;
     text-align:center;
@@ -1287,7 +1287,7 @@ kbd {
     left:50%;
     margin-left:-6px;
 }
-.liekert-option label {
+.survey-option label {
     width:100%;
     font-weight:normal;
 }
