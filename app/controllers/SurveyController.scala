@@ -111,7 +111,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     val userRoles = UserRoleTable.getRoles(userId)
 
     val numMissionsBeforeSurvey = 2
-    val userRoleForSurvey = "User"
+    val userRoleForSurvey = "Turker"
 
     val displaySurvey = userRoles.contains(userRoleForSurvey) //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
     Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))

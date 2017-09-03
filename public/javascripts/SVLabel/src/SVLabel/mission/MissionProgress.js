@@ -49,8 +49,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         );
         mission.complete();
 
-        // mTurk survey prompt, replace mTurk variable with actual assessment of if modal should display
-        // query if 1. user is mturk 2. user has just completed all missions in their *first* HIT
+        // Survey prompt. Modal should display survey if
+        // 1. User is a Turker (/survey/display endpoint returns true if this is the case).
+        // 2. User has just completed numMissionsBeforeSurvey number of missions.
 
             var url = '/survey/display';
             var numMissionsBeforeSurvey = 2;
