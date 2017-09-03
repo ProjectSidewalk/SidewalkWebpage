@@ -760,7 +760,8 @@
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
             @if(user){
                 @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
-                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username)";
+                    svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
+                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                 }
             }
             var missionDescriptionParam = {};
