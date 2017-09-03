@@ -34,6 +34,7 @@
 }
 
 .status-column-half {
+    white-space: nowrap;    
     padding: 5px 5px 5px 5px;
     margin: 5px 0 5px 0;
     width: 50%;
