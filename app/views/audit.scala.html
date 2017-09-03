@@ -20,16 +20,33 @@
 
     <div class="container toolUI" style = "visibility: hidden;">
         <div id="advanced-overlay">
-            <div id="overlay-text">
+            <div class="overlay-text">
                 <div id="advanced-neighborhood-text">
                     <p>
-                        <b>Notice:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                        <span class="overlay-header">Advanced Neighborhood</span>
+                    </p>
+                    <p>
+                        <b>Warning:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
                     </p>
                     <p>
                         If you get stuck, click the Jump button to navigate to a different area.
                     </p>
-                    <span class="advanced-neighborhood-option" id="continue-advanced">Yes, continue</span>
-                    <span class="advanced-neighborhood-option" id="redirect-advanced">No, take me somewhere else</span>
+                    <span class="overlay-option" id="continue-advanced">Yes, continue in this neighborhood</span>
+                    <span class="overlay-option" id="redirect-advanced">No, go to another neighborhood</span>
+                </div>
+            </div>
+        </div>
+        <div id="neighborhood-completion-overlay">
+            <div class="overlay-text">
+                <div id="neighborhood-completion-text">
+                    <p>
+                        <span class="overlay-header">Neighborhood Completed!</span>
+                    </p>
+                    <p>
+                        <b>Hurray!</b> You just helped complete this neighborhood! You can:
+                    </p>
+                    <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
+                    <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
                 </div>
             </div>
         </div>
@@ -634,6 +651,7 @@
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
         var svl = svl || {};
+        var mainParam = {};
         svl.storage = new TemporaryStorage(JSON);
         if (!("tracker" in svl)) {
             svl.tracker = new Tracker();
@@ -697,12 +715,24 @@
             document.onselectstart = function () { return false; };
             enableTouchSupport();
 
+            // Advanced Neighborhood Overlay
             $('#continue-advanced').on('click', function(){
+                mainParam.advancedOverlay = false;
                 $('#advanced-overlay').hide();
             });
 
             $('#redirect-advanced').on('click', function(){
+                mainParam.advancedOverlay = false;
                 $(location).attr('href', '/audit?nextRegion=easy');
+            });
+
+            // Neighborhood Completion Overlay
+            $('#continue-current').on('click', function(){
+                $('#neighborhood-completion-overlay').hide();
+            });
+
+            $('#redirect-new').on('click', function(){
+                $(location).attr('href', '/audit?nextRegion=regular');
             });
         });
 
@@ -736,7 +766,7 @@
         }
 
         function init() {
-            var mainParam = {},
+            var mainParam = mainParam || {},
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
             formParam.dataStoreUrl = '@routes.TaskController.post';
@@ -763,6 +793,7 @@
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
                 if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
                        $('#advanced-overlay').show();
+                       mainParam.advancedOverlay = true
                 }
             } else {
                 mainParam.regionId = 1;
