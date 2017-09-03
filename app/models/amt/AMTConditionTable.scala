@@ -46,10 +46,15 @@ object AMTConditionTable {
 
     val selectConditionIdQuery = Q.query[Int, Int](
       """SELECT amt_condition_id
-        |  FROM (SELECT amt_condition.amt_condition_id, count(condition_id) as cnt FROM sidewalk.amt_assignment Right JOIN sidewalk.amt_condition ON (amt_assignment.condition_id = amt_condition.amt_condition_id)
+        |  FROM (SELECT amt_condition.amt_condition_id, count(condition_id) as cnt FROM
+        |  (select * from sidewalk.amt_assignment
+        |  where turker_id not in ('APQS1PRMDXAFH','A1SZNIADA6B4OF','A2G18P2LDT3ZUE','TESTWORKERID')) t2
+        |  Right JOIN sidewalk.amt_condition
+        |  ON (t2.condition_id = amt_condition.amt_condition_id)
         |  group by amt_condition.amt_condition_id
         |  ) t1
-        |  WHERE cnt<? order by cnt asc LIMIT 1;
+        |  WHERE amt_condition_id not in (74, 87)
+        |  and cnt<? order by cnt asc LIMIT 1;
       """.stripMargin
     )
 
