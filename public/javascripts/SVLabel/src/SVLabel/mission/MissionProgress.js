@@ -35,6 +35,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         self._completeTheCurrentMission(mission, neighborhood);
         self._completeMissionsWithSatisfiedCriteria(neighborhood);
+        _modalModel.updateModalMissionComplete(mission, neighborhood);
 
         self._updateTheCurrentMission(mission, neighborhood);
 
@@ -44,7 +45,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         if (svl.modalMissionComplete.isOpen())
             return;
 
-        _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
     });
 
@@ -75,7 +75,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // it becomes necessary to trigger route completion event at the end of a mission.
         // In the previous implementation route lengths were usually close to or slightly lower than mission distance
         // which is why route completion was triggered when there was a null nextTask as in MapService.js
-
+        _modalModel.updateModalMissionComplete(mission, neighborhood);
         var currentRoute = svl.routeContainer.getCurrentRoute();
         _routeModel.routeCompleted(currentRoute.getProperty("routeId"), mission, neighborhood);
 
@@ -90,7 +90,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         if (svl.modalMissionComplete.isOpen())
             return;
 
-        _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
     };
 
