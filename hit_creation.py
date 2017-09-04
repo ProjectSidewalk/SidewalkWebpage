@@ -72,7 +72,7 @@ previously, the assignment of turkers to conditions is handled by the sidewalk-m
 def create_hits(number_of_assignments = 1):
     # HIT Parameters
 
-    title = "Help make our sidewalks more accessible for wheelchair users with Google Maps"
+    title = "Help us find and label sidewalk problems in Washington DC"
 
     description = "In this task, you will virtually walk through city streets " + \
     "in Washington DC to find and label accessibility features (e.g., " + \
