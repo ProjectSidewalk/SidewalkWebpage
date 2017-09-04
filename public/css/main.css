@@ -1183,15 +1183,15 @@ kbd {
     text-align: center;
     width: 65%;
     position: relative;
-    margin-left: 18vw;
+    margin: auto;
     border-radius: 5px;
     font-size: 21px;
 }
 #advanced-neighborhood-text {
-    margin-top: 20vh;
+    top: 35%;
 }
 #neighborhood-completion-text {
-    margin-top: 23vh;
+    top: 40%;
 }
 #advanced-neighborhood-text p, #neighborhood-completion-text p{
     border-radius: 5px;
