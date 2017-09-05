@@ -34,9 +34,17 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         //self.finishMission(mission, neighborhood);
 
         _modalModel.updateModalMissionComplete(mission, neighborhood);
+        //Checks if the route completed event occurred before mission completed event
+        var route_completion_event_before_mission = false;
+        if(mission.getLabelCount() == undefined){
+            route_completion_event_before_mission = true;
+        }
         self._completeTheCurrentMission(mission, neighborhood);
         self._completeMissionsWithSatisfiedCriteria(neighborhood);
 
+        if(route_completion_event_before_mission){
+            _modalModel.updateModalMissionComplete(mission, neighborhood);
+        }
         self._updateTheCurrentMission(mission, neighborhood);
 
         // While the mission complete modal is open, after the **neighborhood** is 100% audited,
@@ -145,7 +153,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         //Added code here to bring up the submit HIT button and post to the turkSubmit link
         // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
         if (nextMission == null) {
-            _modalModel.updateModalMissionComplete(currentMission, currentNeighborhood);
             _modalModel.showModalMissionComplete();
             _modalModel.showModalMissionCompleteHITSubmission();
             console.error("No missions available");
