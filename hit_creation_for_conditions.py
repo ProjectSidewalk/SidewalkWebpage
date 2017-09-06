@@ -66,7 +66,7 @@ def create_missions_for_routes(engine, cursor, route_rows):
 This creates a HIT for each specified condition
 '''
 
-def create_hits_for_conditions(conditions, number_of_assignments = 3):
+def create_hits_for_conditions(conditions, end_point ="/auditCondition", number_of_assignments = 3):
     # HIT Parameters
 
     title = "Help make our sidewalks more accessible for wheelchair users with Google Maps"
@@ -93,7 +93,7 @@ def create_hits_for_conditions(conditions, number_of_assignments = 3):
         # Variable passed to the external url are workerid, assignmentid, hitid, ...
         # Once the task is successfully completed the external server needs to
         # perform a POST operation to an mturk url
-        url = 'https://sidewalk-mturk.umiacs.umd.edu/auditCondition?conditionId='+condition
+        url = 'https://sidewalk-mturk.umiacs.umd.edu'+ end_point +'?conditionId='+condition
         external_question = '<ExternalQuestion xmlns = "http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">' + \
             '<ExternalURL>' + url + '</ExternalURL><FrameHeight>' + \
             str(frame_height) + '</FrameHeight></ExternalQuestion>'
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         specific_conditions = [75]
         number_of_assignments = 3
 
-        create_hits_for_conditions(specific_conditions)
+        create_hits_for_conditions(specific_conditions,end_point = "/turkerAuditCondition",number_of_assignments)
 
         # Get all the current route_ids in  sidewalk.route
         cur.execute(

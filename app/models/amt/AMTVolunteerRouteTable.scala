@@ -44,23 +44,23 @@ object AMTVolunteerRouteTable {
   }
 
   def assignRouteByConditionIdAndWorkerId(conditionId: Int, workerId: String): Option[Int] = db.withTransaction { implicit session =>
-    // Find the first route in the list of routes associated with volunteerId (these are obtained using findRoutesIdsByVolunteerId)
-    // that hasnt been audited by workerId (this can be checked in the amt_assignment table)
-    val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
-    val availableRoutes = findRoutesIdsByVolunteerId(volunteerId)
-    val auditedRoutes = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list.map(route => route.get)
-    var assignedRoute = (availableRoutes diff auditedRoutes).headOption
+    // Find the first route in the list of routes associated with volunteerId (these are obtained using
+    // findRoutesIdsByVolunteerId) that hasnt been audited by workerId (this can be checked in the amt_assignment table)
+    val volunteerId: String = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
+    val availableRoutes: List[Int] = findRoutesIdsByVolunteerId(volunteerId)
+    val auditedRoutes: List[Int] = amtAssignments.filter(_.turkerId === workerId).filter(_.completed).map(_.routeId).list.map(route => route.get)
+    var assignedRoute: Option[Int] = (availableRoutes diff auditedRoutes).headOption
     assignedRoute
   }
 
   def getRoutesByConditionId(conditionId: Int): List[Int] = db.withTransaction{ implicit session =>
-    val volunteerId = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
-    val availableRoutes = findRoutesIdsByVolunteerId(volunteerId)
+    val volunteerId: String = AMTConditionTable.getVolunteerIdByConditionId(conditionId)
+    val availableRoutes: List[Int] = findRoutesIdsByVolunteerId(volunteerId)
     availableRoutes
   }
 
   def getNeighborhoodByConditionId(conditionId: Int): Option[Int] = db.withTransaction{ implicit session =>
-    val availableRoute = getRoutesByConditionId(conditionId).headOption
+    val availableRoute: Option[Int] = getRoutesByConditionId(conditionId).headOption
     RouteTable.getRegionByRouteId(availableRoute)
   }
 
