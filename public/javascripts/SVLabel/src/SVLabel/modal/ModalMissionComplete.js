@@ -144,6 +144,10 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
+        //Update the completed mission count on the dashboard
+        var total_missions_available = missionContainer.getMissionsByRegionId(regionId).length;
+        var complete_missions = total_missions_available - missionContainer.getIncompleteMissionsByRegionId(regionId).length;
+        this._setMissionCount(complete_missions,total_missions_available);
 
     };
 
@@ -215,4 +219,8 @@ ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRam
     this._uiModalMissionComplete.obstacleCount.html(obstacleCount);
     this._uiModalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
     this._uiModalMissionComplete.otherCount.html(otherCount);
+};
+
+ModalMissionComplete.prototype._setMissionCount = function (num_missions, total_mission_count) {
+    this._uiModalMissionComplete.missionCounter.html(num_missions+" out of "+total_mission_count+" missions completed");
 };

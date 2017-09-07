@@ -150,7 +150,7 @@
                         <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
                     </a>-->
 
-                    <div class="status-row">
+                    <div class="status-row" style="display:none;">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
@@ -160,6 +160,10 @@
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>labels</small></span>
                         </span>
                     </div>
+                </div>
+                <div class="status-box">
+                    <h1 class="status-holder-header-1">HIT Progress</h1>
+                    <h2><span id="status-holder-mission-counter"></span></h2>
                 </div>
                 <div class="status-box">
                     <h1>Current Mission</h1>
@@ -415,18 +419,20 @@
                                     <td id="modal-mission-complete-other-count" class="col-right"></td>
                                 </tr>
                             </table>
-                            <h3>Neighborhood Progress</h3>
-                            <div id="modal-mission-complete-complete-bar"></div>
+                            <h3 style="display: none">Neighborhood Progress</h3>
+                            <div id="modal-mission-complete-complete-bar" style="display: none"></div>
+                            <h3>HIT Progress</h3>
+                            <div id="modal-mission-complete-mission-counter"></div>
                             <table class="table">
                                 <tr>
                                     <th>Audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
                                 </tr>
-                                <tr>
+                                <tr style="display: none">
                                     <th>Audited in this neighborhood</th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
                                 </tr>
-                                <tr>
+                                <tr style="display: none">
                                     <th>Remaining in this neighborhood</th>
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>

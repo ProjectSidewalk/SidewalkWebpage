@@ -39,7 +39,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         "initial-mission": "Initial Mission",
         "distance-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
         "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "mturk-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
+        "mturk-mission": "Mission __COMPLETED_MISSION_COUNT__ of __TOTAL_MISSION_COUNT__ : Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
     };
 
     var initialMissionHTML = '<figure> \
@@ -113,7 +113,9 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 templateHTML = distanceMissionHTML;
 
             if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
-                missionTitle = "First Mission: " + missionTitle;
+                if(label == "distance-mission"){
+                    missionTitle = "First Mission: " + missionTitle;
+                }
                 templateHTML = initialMissionHTML;
             }
 
@@ -121,6 +123,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
+            if(label == "mturk-mission"){
+                var total_missions_available = missionContainer.getMissionsByRegionId(neighborhood.regionId).length;
+                var current_mission_number = 1+ total_missions_available - missionContainer.getIncompleteMissionsByRegionId(neighborhood.regionId).length;
+                missionTitle = missionTitle.replace("__COMPLETED_MISSION_COUNT__", current_mission_number.toString());
+                missionTitle = missionTitle.replace("__TOTAL_MISSION_COUNT__", total_missions_available.toString());
+            }
 
             templateHTML = templateHTML.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             templateHTML = templateHTML.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
