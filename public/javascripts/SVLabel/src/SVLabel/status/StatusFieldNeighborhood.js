@@ -47,9 +47,13 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
 // prevent status-row from having line breaks by decreasing text size
 function ResizeStatusText(uiStatus){
     var totalLength = uiStatus.auditedDistance.html().length + uiStatus.neighborhoodLabelCount.html().length;
-    if (totalLength >= 7) {
+    if (totalLength >= 9) {
+        uiStatus.statusRow.css('font-size','10px');
+    }
+    else if (totalLength >= 7) {
         uiStatus.statusRow.css('font-size','12px');
-    } else {
+    }
+    else {
         uiStatus.statusRow.css('font-size','14px');        
     }
 }
