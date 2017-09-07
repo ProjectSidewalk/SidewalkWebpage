@@ -435,9 +435,9 @@ function Main (params) {
         var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
         //Update the completed mission count on the dashboard
-        var total_missions_available = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId")).length;
-        var complete_missions = total_missions_available - svl.missionContainer.getIncompleteMissionsByRegionId(neighborhood.getProperty("regionId")).length;
-        svl.statusFieldNeighborhood.setMissionCount(complete_missions,total_missions_available);
+        var totalMissionsAvailable = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId")).length;
+        var completeMissions = totalMissionsAvailable - svl.missionContainer.getIncompleteMissionsByRegionId(neighborhood.getProperty("regionId")).length;
+        svl.statusFieldNeighborhood.setMissionCount(completeMissions,totalMissionsAvailable);
 
     }
 

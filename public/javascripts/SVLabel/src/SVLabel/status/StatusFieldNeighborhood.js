@@ -27,8 +27,8 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
         uiStatus.neighborhoodLabelCount.html(count);
     };
 
-    this.setMissionCount = function (num_missions, total_mission_count) {
-        uiStatus.missionCounter.html(num_missions+" out of "+total_mission_count+" missions completed");
+    this.setMissionCount = function (numMissions, totalMissionCount) {
+        uiStatus.missionCounter.html(numMissions+" out of "+totalMissionCount+" missions completed");
     };
 
 
