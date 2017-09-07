@@ -564,6 +564,7 @@ function Main (params) {
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
+        svl.ui.status.statusRow = $(".status-row");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
