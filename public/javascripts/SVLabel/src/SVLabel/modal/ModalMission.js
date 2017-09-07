@@ -124,10 +124,10 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
             if(label == "mturk-mission"){
-                var total_missions_available = missionContainer.getMissionsByRegionId(neighborhood.regionId).length;
-                var current_mission_number = 1+ total_missions_available - missionContainer.getIncompleteMissionsByRegionId(neighborhood.regionId).length;
-                missionTitle = missionTitle.replace("__COMPLETED_MISSION_COUNT__", current_mission_number.toString());
-                missionTitle = missionTitle.replace("__TOTAL_MISSION_COUNT__", total_missions_available.toString());
+                var totalMissionsAvailable = missionContainer.getMissionsByRegionId(neighborhood.regionId).length;
+                var currentMissionNumber = 1+ totalMissionsAvailable - missionContainer.getIncompleteMissionsByRegionId(neighborhood.regionId).length;
+                missionTitle = missionTitle.replace("__COMPLETED_MISSION_COUNT__", currentMissionNumber.toString());
+                missionTitle = missionTitle.replace("__TOTAL_MISSION_COUNT__", totalMissionsAvailable.toString());
             }
 
             templateHTML = templateHTML.replace("__DISTANCE_PLACEHOLDER__", distanceString);
