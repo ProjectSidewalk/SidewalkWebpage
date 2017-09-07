@@ -150,6 +150,11 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         var nextMission = missionContainer.nextMission(currentNeighborhoodId);
 
+        //Update the completed mission count on the dashboard
+        var totalMissionsAvailable = svl.missionContainer.getMissionsByRegionId(currentNeighborhoodId).length;
+        var completeMissions = totalMissionsAvailable - svl.missionContainer.getIncompleteMissionsByRegionId(currentNeighborhoodId).length;
+        svl.statusFieldNeighborhood.setMissionCount(completeMissions,totalMissionsAvailable);
+
         //Added code here to bring up the submit HIT button and post to the turkSubmit link
         // Or just trigger an event here such that the form submission (POST request to turkSubmit) happens on this event
         if (nextMission == null) {

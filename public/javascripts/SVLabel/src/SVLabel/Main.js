@@ -434,6 +434,10 @@ function Main (params) {
         var unit = "miles";
         var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
+        //Update the completed mission count on the dashboard
+        var totalMissionsAvailable = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId")).length;
+        var completeMissions = totalMissionsAvailable - svl.missionContainer.getIncompleteMissionsByRegionId(neighborhood.getProperty("regionId")).length;
+        svl.statusFieldNeighborhood.setMissionCount(completeMissions,totalMissionsAvailable);
 
     }
 
@@ -466,6 +470,7 @@ function Main (params) {
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 $("#mini-footer-audit").css("visibility", "visible");
+
                 startTheMission(mission, currentNeighborhood);
             }
         }
@@ -573,6 +578,7 @@ function Main (params) {
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
+        svl.ui.status.missionCounter = $("#status-holder-mission-counter");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -656,6 +662,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.submitHITButton = $("#modal-mission-complete-hit-submission-button");
+        svl.ui.modalMissionComplete.missionCounter = $("#modal-mission-complete-mission-counter");
 
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");

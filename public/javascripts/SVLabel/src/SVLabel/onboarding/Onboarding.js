@@ -544,6 +544,11 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
         var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
         var mission = missions[0];
 
+        //Update the completed mission count on the dashboard
+        var totalMissionsAvailable = svl.missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId")).length;
+        var completeMissions = totalMissionsAvailable - svl.missionContainer.getIncompleteMissionsByRegionId(neighborhood.getProperty("regionId")).length;
+        svl.statusFieldNeighborhood.setMissionCount(completeMissions,totalMissionsAvailable);
+
         missionContainer.setCurrentMission(mission);
         if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
 
