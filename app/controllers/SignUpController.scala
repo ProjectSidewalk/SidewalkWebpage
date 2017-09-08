@@ -185,7 +185,8 @@ class SignUpController @Inject() (
         // And since worker id s are unique to each turker there shouldnt be two turkers assigned the same user_id
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
-        Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
+        Future.successful(Redirect("/noAvailableMissionIndex"))
+
       case None =>
         // Create a temporary email and password. Keep the username as the workerId.
         val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"

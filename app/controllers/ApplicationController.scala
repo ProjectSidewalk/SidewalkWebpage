@@ -247,4 +247,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  def noAvailableMissionIndex = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
+  }
+
 }
