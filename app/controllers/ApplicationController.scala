@@ -7,13 +7,16 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
+import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.data.Forms._
 
 
 import scala.concurrent.Future
+import scala.util.Random
 
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -26,23 +29,64 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     *
     * @return
     */
-  def index(referrer: Option[String], redirectTo: String) = UserAwareAction.async { implicit request =>
+  def index = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
+    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+
+    var referrer: Option[String] = qString.get("referrer") match{
+      case Some(r) =>
+        Some(r)
+      case None =>
+        qString.get("r")
+    }
+
 
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location
       case Some(ref) =>
-        val activityLogText: String = "Referrer=" + ref + "_SendTo=" + redirectTo
-        request.identity match {
-          case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-            Future.successful(Redirect(redirectTo))
-          case None =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
-            Future.successful(Redirect(redirectTo))
+        ref match {
+          case "mturk" =>
+            //The referrer is mechanical turk
+            var workerId: String = qString.get("workerId").get
+            var assignmentId: String = qString.get("assignmentId").get
+            var hitId: String = qString.get("hitId").get
+
+            val activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
+            request.identity match {
+              case Some(user) =>
+                WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+                Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+              case None =>
+                //Add an entry into the amt_assignment table
+                val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode)
+                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                // Since the turker doesnt exist in the user table create a new record with the role set to "Turker"
+                val redirectTo = List("turkerSignUp",hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
+                Future.successful(Redirect(redirectTo))
+            }
+
+          case _ =>
+            val redirectTo: String = qString.get("to") match{
+              case Some(to) =>
+                to
+              case None =>
+                "/"
+            }
+
+            val activityLogText: String = "Referrer=" + ref + "_SendTo=" + redirectTo
+            request.identity match {
+              case Some(user) =>
+                WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+                Future.successful(Redirect(redirectTo))
+              case None =>
+                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
+                Future.successful(Redirect(redirectTo))
+            }
         }
+
       // Otherwise, just load the landing page
       case None =>
         request.identity match {

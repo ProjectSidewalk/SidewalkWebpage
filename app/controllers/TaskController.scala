@@ -143,7 +143,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
-              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None)
+              // TODO Used an empty string for volunteer_id and None for confirmationCode. Needs to be changed.
+              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None, "",None)
               Some(AMTAssignmentTable.save(newAsg))
             case _ => None
           }

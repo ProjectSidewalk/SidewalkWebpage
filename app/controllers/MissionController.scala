@@ -145,7 +145,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             for (mission <- submission) yield {
               // Check if duplicate user-mission exists. If not, save it.
               if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
-                MissionUserTable.save(mission.missionId, user.userId.toString)
+                MissionUserTable.save(mission.missionId, user.userId.toString, false)
               }
             }
           case _ =>
@@ -216,7 +216,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
       })
     })
     missionsToComplete.foreach { m =>
-      MissionUserTable.save(m.missionId, userId.toString)
+      MissionUserTable.save(m.missionId, userId.toString, false)
     }
   }
 }
