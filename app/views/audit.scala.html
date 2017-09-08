@@ -797,9 +797,9 @@
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username, AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                     @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
-                        $("#left-column-confirmation-code-button").css('visibility', "hidden");
+                        $("#left-column-confirmation-code-button").hide();
                     } else{
-                        $("#left-column-confirmation-code-button").css('visibility', "visible");
+                        $("#left-column-confirmation-code-button").show();
                         $("#left-column-confirmation-code-button").attr('data-toggle','popover');
                         $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on MTurk');
                         $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
