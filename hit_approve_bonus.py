@@ -16,12 +16,15 @@ try:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Get the list of all missions completed by turkers excluding onboarding and their first 500ft mission
-    # Filter out the missions that were already rewarded with a bonus in a previous run of this program. (These can be stored as an additional column in the mission_user_table)
+    # Filter out the missions that were already rewarded with a bonus in a previous run of this program. 
+    # (These can be stored as an additional column in the mission_user_table)
     # Calculate the distance associated with the completed unpaid missions
     # Calculate bonus amount based on distance audited
-    # Use the boto function award a bonus to that user. (Find the same user in the amt_assignment table and get the hit id and assignment id for this)
+    # Use the boto function award a bonus to that user. 
+    #(Find the same user in the amt_assignment table and get the hit id and assignment id for this)
 
-    cur.execute("""SELECT username,mission.mission_id,mission_user.mission_user_id,mission.label,region_id,distance,distance_ft,distance_mi, hit_id, assignment_id, paid 
+    cur.execute("""SELECT username,mission.mission_id,mission_user.mission_user_id,mission.label,
+        region_id,distance,distance_ft,distance_mi, hit_id, assignment_id, paid 
         from mission_user 
         join mission on(mission.mission_id = mission_user.mission_id) 
         join user_role on(user_role.user_id=mission_user.user_id and user_role.role_id=4) 
@@ -63,7 +66,9 @@ try:
                 reason = "Bonus of $" + str(bonus) + " paid for completing a "+str(row['mission_distance'])+" mile long mission on project sidewalk"
                 
                 if(send_bonuses):
-                    response = mturk.send_bonus(WorkerId=row['username'],BonusAmount=str(bonus),AssignmentId=row['assignment_id'],Reason=reason,UniqueRequestToken=row['username']+row['assignment_id']+row['mission_user_id'])
+                    response = mturk.send_bonus(WorkerId=row['username'],BonusAmount=str(bonus),
+                        AssignmentId=row['assignment_id'],Reason=reason,
+                        UniqueRequestToken=row['username']+row['assignment_id']+row['mission_user_id'])
                 
                 print reason
                 print response

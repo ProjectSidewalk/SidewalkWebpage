@@ -33,8 +33,9 @@ try:
     
     '''
     list_reviewable_hits() gets all HITs that are ready to be reviewed from Amazon, stored in a dict.
-    Each HIT is assigned to multiple (5) turkers, so we call list_assignments_for_hit() to get those
-    assignments using the HIT ID. We can then approve/reject each assignment using it's ID. When we
+    We call list_assignments_for_hit() to get those assignments using the HIT ID. 
+    We can then approve/reject each assignment depending on whether it is present in the amt_assignment table 
+    and if the user has submitted the correct confirmation code. When we
     call approve_assignment(AsmtID), the turker is automatically paid and MTurk fees are debited.
     
     See the following for API reference and python bindings, respectively.

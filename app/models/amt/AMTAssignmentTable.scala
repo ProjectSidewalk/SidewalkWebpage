@@ -34,8 +34,11 @@ object AMTAssignmentTable {
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
     asgId
   }
-  def getConfirmationCode(workerId: String): String = db.withTransaction { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).map(_.confirmationCode).list.head.getOrElse("")
+  def getConfirmationCode(workerId: String, assignmentId: String): String = db.withTransaction { implicit session =>
+    amtAssignments.filter( x => x.workerId === workerId && x.assignmentId === assignmentId).map(_.confirmationCode).list.head.getOrElse("")
+  }
+  def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
+    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).list.head
   }
 }
 

@@ -20,7 +20,7 @@ object UserRoleTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
 
-  val roleMapping = Map("User" -> 1, "Administrator" -> 2, "Turker" -> 4)
+  val roleMapping = Map("User" -> 1, "Administrator" -> 2, "Researcher" -> 3, "Turker" -> 4)
 
   /**
     * Returns a list of researcher ids
@@ -43,6 +43,13 @@ object UserRoleTable {
     val userRoleId: Int =
       (userRoles returning userRoles.map(_.userRoleId)) += userRole
     userRoleId
+  }
+
+  def addResearcherRole(userId: UUID): Int = db.withTransaction { implicit session =>
+    val researcherRole = UserRole(0, userId.toString, roleMapping("Researcher"))
+    val researcherRoleId: Int =
+      (userRoles returning userRoles.map(_.userRoleId)) += researcherRole
+    researcherRoleId
   }
 
   def addTurkerRole(userId: UUID): Int = db.withTransaction { implicit session =>
