@@ -61,12 +61,12 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                 url: url,//endpoint that checks above conditions
                 type: 'get',
                 success: function(data){
-                    svl.popUpMessage.disableInteractions();
-                    if(data.displayModal && numMissionsCompleted == numMissionsBeforeSurvey){
+                    if(data.displayModal && numMissionsCompleted > numMissionsBeforeSurvey){
                         $('#survey-modal-container').modal({
                             backdrop: 'static',
                             keyboard: false
                         });
+                        svl.popUpMessage.disableInteractions();
                     }
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
