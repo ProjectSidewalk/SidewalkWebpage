@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
-import formats.json.TaskSubmissionFormats.{AMTRouteAssignmentSubmission}
+import formats.json.TaskSubmissionFormats.{AMTAssignmentCompletionSubmission}
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
 import models.user.{User, UserCurrentRegionTable}
@@ -160,7 +160,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
 
-    val submission = request.body.validate[AMTRouteAssignmentSubmission]
+    val submission = request.body.validate[AMTAssignmentCompletionSubmission]
 
     submission.fold(
       errors => {

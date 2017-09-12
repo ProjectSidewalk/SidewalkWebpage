@@ -4,7 +4,7 @@ INSERT INTO role (role_id, role) VALUES (4, 'Turker');
 ALTER TABLE amt_assignment
   ADD turker_id TEXT NOT NULL,
   ADD confirmation_code TEXT,
-  ADD completed BOOLEAN;
+  ADD completed BOOLEAN NOT NULL DEFAULT FALSE;
 
 ALTER TABLE mission_user
   ADD paid BOOLEAN NOT NULL DEFAULT FALSE;

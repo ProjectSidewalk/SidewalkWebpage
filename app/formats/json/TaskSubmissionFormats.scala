@@ -18,7 +18,7 @@ object TaskSubmissionFormats {
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditTaskSubmission(assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
-  case class AMTRouteAssignmentSubmission(assignmentId: Int, completed: Option[Boolean])
+  case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
@@ -120,9 +120,9 @@ object TaskSubmissionFormats {
       (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]]
     )(AuditTaskSubmission.apply _)
 
-  implicit val amtRouteAssignmentReads: Reads[AMTRouteAssignmentSubmission] = (
+  implicit val amtAssignmentCompletionReads: Reads[AMTAssignmentCompletionSubmission] = (
     (JsPath \ "amt_assignment_id").read[Int] and
       (JsPath \ "completed").readNullable[Boolean]
-    )(AMTRouteAssignmentSubmission.apply _)
+    )(AMTAssignmentCompletionSubmission.apply _)
 
 }
