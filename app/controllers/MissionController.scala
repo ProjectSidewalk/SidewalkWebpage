@@ -7,6 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
+import formats.json.TaskSubmissionFormats.{AMTRouteAssignmentSubmission}
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
 import models.user.{User, UserCurrentRegionTable}
@@ -152,6 +153,26 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         }
 
         Future.successful(Ok(Json.obj()))
+      }
+    )
+  }
+
+  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+
+    val submission = request.body.validate[AMTRouteAssignmentSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val amtAssignmentId: Option[Int] = Option(submission.assignmentId)
+
+        // Update the AMTAssignmentTable
+        AMTAssignmentTable.updateAssignmentEnd(amtAssignmentId, timestamp)
+        AMTAssignmentTable.updateCompleted(amtAssignmentId, completed=true)
+        Future.successful(Ok(Json.obj("success" -> true)))
       }
     )
   }
