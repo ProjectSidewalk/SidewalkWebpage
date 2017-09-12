@@ -104,6 +104,12 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
 
+            // Assignment Completion Data
+            var data = {
+                amt_assignment_id: svl.amtAssignmentId,
+                completed: true
+            };
+
             $.ajax({
                 async: true,
                 contentType: 'application/json; charset=utf-8',
@@ -112,7 +118,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                 data: JSON.stringify(data),
                 dataType: 'json',
                 success: function (result) {
-                    console.log(result)
                 },
                 error: function (result) {
                     console.error(result);

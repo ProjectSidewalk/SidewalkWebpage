@@ -41,6 +41,10 @@ object AMTAssignmentTable {
   def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
     amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).list.head
   }
+  def getMostRecentAMTAssignmentId(workerId: String): Int = db.withTransaction { implicit session =>
+    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).list.head
+  }
+
   /**
     * Update the `assignment_end` timestamp column of the specified amt_assignment row
     *

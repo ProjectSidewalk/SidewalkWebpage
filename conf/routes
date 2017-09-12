@@ -117,4 +117,4 @@ GET     /assets/*file                                        controllers.Assets.
 GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
 
 # Update AMTAssignment Table
-POST    /amtAssignment                                       controllers.MissionController.postAMTAssignment
+POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
