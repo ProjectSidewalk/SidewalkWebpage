@@ -14,11 +14,11 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(url.isDefined && url.get != "/audit") {
 
-                    <li class="active navbarLink">
-                        <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit()'">Start Mapping</button>
+                   <li class="active navbarLink">
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Mapping</a>
                     </li>
                     <li class="active navbarLink">
-                        <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>
+                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
                     </li>
 
                 } else {
@@ -36,10 +36,10 @@
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
                     @if(user) {
                         
-                        <button id="nav-user-dropdown" class="grayButton" role="button" data-toggle="dropdown" href="#">
+                        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
                             <b class="caret"></b>
-                        </button>
+                        </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
                                 <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">

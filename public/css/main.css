@@ -130,7 +130,7 @@ footer {
     max-height: 30px;
 }
 
-.navbarStartBtn, .navbarResultsBtn {
+.navbar-nav > li > a.navbarBtn {
     background-color:#ffffff;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -163,9 +163,6 @@ footer {
 .navbarStartBtn:active {
     position:relative;
     top:8px;
-}
-#nav-user-menu {
-    margin-top: 10px;
 }
 
 .grayButton {
