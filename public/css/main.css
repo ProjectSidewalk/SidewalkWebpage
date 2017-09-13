@@ -164,7 +164,9 @@ footer {
     position:relative;
     top:8px;
 }
-
+#nav-user-menu {
+    margin-top: 10px;
+}
 
 .grayButton {
     position: relative;
@@ -1001,9 +1003,6 @@ video#bgvid {
     -webkit-box-shadow: 0 8px 6px -6px #999;
     -moz-box-shadow: 0 8px 6px -6px #999;
     box-shadow: 0 8px 6px -6px #999;
-    max-height: 70px;
-
-
 }
 
 .verticalbar {
