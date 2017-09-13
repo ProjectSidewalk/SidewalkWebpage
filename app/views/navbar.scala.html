@@ -35,10 +35,11 @@
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
                     @if(user) {
-                        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                        
+                        <button id="nav-user-dropdown" class="grayButton" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
                             <b class="caret"></b>
-                        </a>
+                        </button>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
                                 <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
