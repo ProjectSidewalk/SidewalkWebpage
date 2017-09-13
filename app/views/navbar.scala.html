@@ -15,7 +15,7 @@
                 @if(url.isDefined && url.get != "/audit") {
 
                     <li class="active navbarLink">
-                        <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit'">Start Mapping</button>
+                        <button class="navbarStartBtn" onclick="location.href='@routes.AuditController.audit()'">Start Mapping</button>
                     </li>
                     <li class="active navbarLink">
                         <button class="navbarResultsBtn" onclick="location.href='@routes.ApplicationController.results'">See Results</button>

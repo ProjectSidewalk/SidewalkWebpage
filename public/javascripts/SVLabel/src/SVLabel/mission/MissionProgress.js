@@ -120,7 +120,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     this._updateTheCurrentNeighborhood = function (neighborhood) {
         var neighborhoodId = neighborhood.getProperty("regionId");
         neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-        neighborhoodModel.moveToANewRegion(neighborhoodId);
+        neighborhoodModel.updateUserRegionInDatabase(neighborhoodId);
 
         var currentTask = taskContainer.getCurrentTask();
         taskContainer.endTask(currentTask);
