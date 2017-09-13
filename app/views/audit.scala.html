@@ -61,6 +61,10 @@
         <div id="svl-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
+                    <div id="left-column-confirmation-code-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon" align="">
+                        Mturk Code
+                    </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon" align="">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon" align="">
@@ -789,11 +793,24 @@
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
             @if(user){
-                @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
+                        $("#left-column-confirmation-code-button").hide();
+                    } else{
+                        $("#left-column-confirmation-code-button").show();
+                        $("#left-column-confirmation-code-button").attr('data-toggle','popover');
+                        $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+                        $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
+                        $("#left-column-confirmation-code-button").popover();
+                    }
+                } else{
+                    $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 }
+            } else{
+                $("#left-column-confirmation-code-button").css('visibility', "hidden");
             }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
