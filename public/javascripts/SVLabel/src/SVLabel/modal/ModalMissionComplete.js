@@ -118,7 +118,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                 delete uiModalMissionComplete.generateConfirmationButton;
             };
             svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
-            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on MTurk');
+            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
         }
     };
