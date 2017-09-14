@@ -61,7 +61,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               case None =>
                 //Add an entry into the amt_assignment table
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode)
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 // Since the turker doesnt exist in the user table create a new record with the role set to "Turker"
                 val redirectTo = List("turkerSignUp",hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
@@ -86,16 +86,26 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 Future.successful(Redirect(redirectTo))
             }
         }
-
-      // Otherwise, just load the landing page
       case None =>
+        // When there are no referrers, just load the landing page but store the query parameters that were passed anyway
+        val activityLogText: String = "/?"+qString.keys.map(i => i.toString +"="+ qString(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
-            Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+            if(qString.isEmpty){
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+            } else{
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+              Future.successful(Redirect("/"))
+            }
           case None =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
-            Future.successful(Ok(views.html.index("Project Sidewalk")))
+            if(qString.isEmpty){
+              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Index", timestamp))
+              Future.successful(Ok(views.html.index("Project Sidewalk")))
+            } else{
+              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, activityLogText, timestamp))
+              Future.successful(Redirect("/"))
+            }
         }
     }
   }
@@ -235,6 +245,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Map", timestamp))
         Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility")))
     }
+  }
+
+  def noAvailableMissionIndex = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
   }
 
 }
