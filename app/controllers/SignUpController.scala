@@ -177,15 +177,15 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
+    var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
 
     UserTable.find(workerId) match {
       case Some(user) =>
-        // This case should never be reached since the Turkers are automatically assigned a user_id
-        // And since worker id s are unique to each turker there shouldnt be two turkers assigned the same user_id
+        // If the turker id already exists in the database then log the user in and
+        activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
-        Future.successful(Redirect("/noAvailableMissionIndex"))
+        env.eventBus.publish(LoginEvent(user, request, request2lang))
+        env.authenticatorService.embed(value, Future.successful(Redirect("/audit")))
 
       case None =>
         // Create a temporary email and password. Keep the username as the workerId.
