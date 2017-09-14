@@ -103,7 +103,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
          */
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            console.log("Reached modal mission complete");
+            //console.log("Reached modal mission complete");
             uiModalMissionComplete.generateConfirmationButton.onclick = function () {
                 var para = document.createElement("p");
                 var node = document.createTextNode("Confirmation Code: " + svl.confirmationCode);

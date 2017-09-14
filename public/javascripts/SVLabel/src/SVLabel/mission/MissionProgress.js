@@ -66,7 +66,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                             backdrop: 'static',
                             keyboard: false
                         });
-                        svl.popUpMessage.disableInteractions();
+                        //console.log('Survey displayed');
                     }
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
