@@ -162,7 +162,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Uh-oh, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to set its quality.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
@@ -339,7 +339,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Uh-oh, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to set its quality.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, ' +
@@ -468,7 +468,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Hmm, this is a slightly severe problem. ' +
+                "message": 'Hmm, this is a slightly severe problem since the ramp does not exist on this side, but does exist on the other. ' +
                 '<span class="bold">Let\s click "3" to change the severity of the missing curb ramp.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
@@ -702,7 +702,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
@@ -825,7 +825,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
@@ -949,7 +949,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
@@ -1001,7 +1001,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
@@ -1224,7 +1224,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This ramp is unblocked, uncluttered, and undamaged. ' +
                 '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
