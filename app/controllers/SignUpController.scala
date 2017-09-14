@@ -208,7 +208,7 @@ class SignUpController @Inject() (
           authenticator <- env.authenticatorService.create(user.loginInfo)
           value <- env.authenticatorService.init(authenticator)
           result <- env.authenticatorService.embed(value, Future.successful(
-            Redirect("/")
+            Redirect("/audit")
           ))
         } yield {
           // Set the user role and assign the neighborhood to audit.
