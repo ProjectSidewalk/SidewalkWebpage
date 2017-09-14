@@ -5,7 +5,9 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String, assignmentStart: Timestamp, assignmentEnd: Option[Timestamp], workerId: String, confirmationCode: Option[String], completed: Boolean)
+case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
+                         assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
+                         workerId: String, confirmationCode: Option[String], completed: Boolean)
 
 /**
  *
@@ -35,12 +37,15 @@ object AMTAssignmentTable {
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
     asgId
   }
+
   def getConfirmationCode(workerId: String, assignmentId: String): String = db.withTransaction { implicit session =>
     amtAssignments.filter( x => x.workerId === workerId && x.assignmentId === assignmentId).map(_.confirmationCode).list.head.getOrElse("")
   }
+
   def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
     amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).list.head
   }
+
   def getMostRecentAMTAssignmentId(workerId: String): Int = db.withTransaction { implicit session =>
     amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).list.head
   }
@@ -56,6 +61,14 @@ object AMTAssignmentTable {
     val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
     q.update(Some(timestamp))
   }
+
+  /**
+    * Update the `completed`  column of the specified amt_assignment row
+    *
+    * @param amtAssignmentId
+    * @param completed
+    * @return
+    */
   def updateCompleted(amtAssignmentId: Int, completed: Boolean) = db.withTransaction { implicit session =>
     val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
     q.update(completed)

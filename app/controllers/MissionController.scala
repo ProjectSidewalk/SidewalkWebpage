@@ -174,7 +174,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
       },
       submission => {
         val amtAssignmentId: Option[Int] = Option(submission.assignmentId)
-        amtAssignmentId match{
+        amtAssignmentId match {
           case Some(asgId) =>
             // Update the AMTAssignmentTable
             AMTAssignmentTable.updateAssignmentEnd(asgId, timestamp)
