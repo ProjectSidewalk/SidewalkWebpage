@@ -49,15 +49,27 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         ref match {
           case "mturk" =>
             //The referrer is mechanical turk
-            var workerId: String = qString.get("workerId").get
-            var assignmentId: String = qString.get("assignmentId").get
-            var hitId: String = qString.get("hitId").get
+            val workerId: String = qString.get("workerId").get
+            val assignmentId: String = qString.get("assignmentId").get
+            val hitId: String = qString.get("hitId").get
 
-            val activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
+            var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
             request.identity match {
               case Some(user) =>
-                WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-                Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+                //Have different cases when the user.username is the same as the workerId and when it isnt
+                user.username match{
+                  case `workerId` =>
+                    val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                    activityLogText = activityLogText + "_reattempt=true"
+                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode)
+                    val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+                    Future.successful(Redirect("/audit"))
+                  case _ =>
+                    val result = Future.successful(Redirect(request.uri))
+                    env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
+                    request.authenticator.discard(result)
+                }
               case None =>
                 //Add an entry into the amt_assignment table
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
