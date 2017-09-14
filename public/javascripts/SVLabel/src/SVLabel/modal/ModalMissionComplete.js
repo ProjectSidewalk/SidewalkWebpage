@@ -105,7 +105,28 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
          */
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            console.log("Reached modal mission complete");
+
+            // Assignment Completion Data
+            var data = {
+                amt_assignment_id: svl.amtAssignmentId,
+                completed: true
+            };
+
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: "/amtAssignment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+            //console.log("Reached modal mission complete");
             uiModalMissionComplete.generateConfirmationButton.onclick = function () {
                 var para = document.createElement("p");
                 var node = document.createTextNode("Confirmation Code: " + svl.confirmationCode);

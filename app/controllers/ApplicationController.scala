@@ -61,7 +61,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               case None =>
                 //Add an entry into the amt_assignment table
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode)
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 // Since the turker doesnt exist in the user table create a new record with the role set to "Turker"
                 val redirectTo = List("turkerSignUp",hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
