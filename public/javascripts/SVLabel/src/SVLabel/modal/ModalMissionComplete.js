@@ -105,7 +105,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
          */
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
-
             // Assignment Completion Data
             var data = {
                 amt_assignment_id: svl.amtAssignmentId,
