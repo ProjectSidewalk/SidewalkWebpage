@@ -795,7 +795,8 @@
             @if(user){
                 @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
-                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username, AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                    svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                     @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
                         $("#left-column-confirmation-code-button").hide();
                     } else{
