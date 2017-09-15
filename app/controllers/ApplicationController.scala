@@ -3,7 +3,7 @@ package controllers
 import java.sql.Timestamp
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette, LogoutEvent}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
@@ -66,9 +66,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/audit"))
                   case _ =>
-                    val result = Future.successful(Redirect(request.uri))
-                    env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
-                    request.authenticator.discard(result)
+                    Future.successful(Redirect(routes.UserController.signOut(request.uri)))
+                    //Need to be able to be able to login as a different user here
+                    // but the signout redirect isnt working
                 }
               case None =>
                 //Add an entry into the amt_assignment table

@@ -184,8 +184,12 @@ class SignUpController @Inject() (
         // If the turker id already exists in the database then log the user in and
         activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-        env.eventBus.publish(LoginEvent(user, request, request2lang))
-        env.authenticatorService.embed(value, Future.successful(Redirect("/audit")))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
+        Future.successful(Redirect("/noAvailableMissionIndex"))
+
+        // Need to be able to sign in again as the user but the following commented code seems to be incomplete
+        //env.eventBus.publish(LoginEvent(user, request, request2lang))
+        //env.authenticatorService.embed(value, Future.successful(Redirect("/audit")))
 
       case None =>
         // Create a temporary email and password. Keep the username as the workerId.
