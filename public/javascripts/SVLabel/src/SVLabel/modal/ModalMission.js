@@ -163,6 +163,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                             // Mission Rewards.
                             var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
                             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__",missionReward.toFixed(2));
+                            svl.ui.status.currentMissionReward.html("Reward: <span style='color:forestgreen'>$"+missionReward.toFixed(2))+"</span>";
                             uiModalMission.rewardText.html(missionRewardText);
                         },
                         error: function (xhr, ajaxOptions, thrownError) {

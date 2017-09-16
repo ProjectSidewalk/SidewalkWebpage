@@ -256,6 +256,7 @@
                         </div>
                     </div>
                     <br class="clear">
+                    <h1 id="current-mission-reward" style="display:none"></h1>
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
@@ -886,6 +887,8 @@
                         $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
                         $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
                         $("#left-column-confirmation-code-button").popover();
+
+                        $("#current-mission-reward").show();
                     }
                     $("#modal-mission-reward-text").show();
                 } else{
