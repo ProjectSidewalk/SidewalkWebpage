@@ -12,8 +12,6 @@ $(document).ready(function () {
     //array that stores information about each GSV
     var panoramaContainers = [];
 
-    //current route
-    var cluster_session_id;
     //all labels not yet dealt with
     var all_labels = [];
     //labels committed to ground truth
@@ -1201,9 +1199,9 @@ $(document).ready(function () {
         // When three GT labelers were clustered, and we are resolving disagreements, this button is pressed.
         document.getElementById("submitClusterSessionId").onclick = function () {
             // Query database for the label data
-            cluster_session_id = document.getElementById("clusterSessionId").value;
+            var clusteringSessionId = document.getElementById("sessionOrConditionId").value;
             // var test_labels = gtTestData;
-            $.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
+            $.getJSON("/labelsForGtResolution/" + clusteringSessionId, function (data) {
                 all_labels = filterClusters(data[0]);
                 console.log(all_labels);
                 // all_labels = filterClusters(test_labels);
@@ -1226,8 +1224,8 @@ $(document).ready(function () {
         // When only one GT labeler was used and we are filling in their missing severity, this button is pressed.
         document.getElementById("submitConditionId").onclick = function () {
             // Query database for the label data
-            cluster_session_id = document.getElementById("clusterSessionId").value;
-            $.getJSON("/labelsForGTFixSeverity/" + cluster_session_id, function (data) {
+            var conditionId = document.getElementById("sessionOrConditionId").value;
+            $.getJSON("/labelsForGTFixSeverity/" + conditionId, function (data) {
                 all_labels = filterSingleLabelsHavingSeverity(data[0]);
                 updateCountersForOneLabeler(0);
                 document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
