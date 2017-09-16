@@ -11,7 +11,8 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
                          assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
-                         turkerId: String, conditionId: Int, routeId: Option[Int], completed: Boolean)
+                         turkerId: String, conditionId: Int, routeId: Option[Int], completed: Boolean,
+                         accepted: Option[Boolean])
 
 /**
  *
@@ -26,9 +27,10 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def conditionId = column[Int]("condition_id", O.NotNull)
   def routeId = column[Option[Int]]("route_id", O.NotNull)
   def completed = column[Boolean]("completed", O.NotNull)
+  def accepted = column[Option[Boolean]]("accepted")
 
   def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, turkerId, conditionId, routeId,
-    completed) <> ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
+    completed, accepted) <> ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] =
     foreignKey("amt_assignment_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
@@ -81,6 +83,18 @@ object AMTAssignmentTable {
   def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
     val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
     q.update(Some(timestamp))
+  }
+
+  /**
+    * Update the `accepted` column of the specified amt_assigment row
+    * 
+    * @param amtAssignmentId
+    * @param accepted
+    * @return
+    */
+  def updateAccepted(amtAssignmentId: Int, accepted: Option[Boolean]) = db.withTransaction { implicit session =>
+    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.accepted
+    q.update(accepted)
   }
 }
 

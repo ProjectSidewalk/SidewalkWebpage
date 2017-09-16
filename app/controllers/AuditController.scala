@@ -140,7 +140,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 val routeStreetId: Option[Int] = RouteStreetTable.getFirstRouteStreetId(routeId.getOrElse(0))
 
                 // Save HIT assignment details
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false, None)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
                 // Load the first task from the selected route
@@ -265,7 +265,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 }
 
                 // Save HIT assignment details
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false, None)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
                 // Load the first task from the selected route
@@ -399,7 +399,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                     }
 
                     // Save HIT assignment details
-                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false)
+                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, conditionId, routeId, false, None)
                     val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
 
                     // Load the first task from the selected route
@@ -492,7 +492,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val now: DateTime = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
         val asg: AMTAssignment = AMTAssignment(0, submission.hitId, submission.assignmentId, timestamp, None,
-                                               submission.turkerId, conditionId, Some(submission.routeId), false)
+                                               submission.turkerId, conditionId, Some(submission.routeId), false, None)
         val asgId: Int = AMTAssignmentTable.save(asg)
 
         Future.successful(Ok(Json.obj("asg_id" -> asgId)))
