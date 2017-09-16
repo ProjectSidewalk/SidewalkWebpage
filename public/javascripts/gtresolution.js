@@ -725,7 +725,7 @@ $(document).ready(function () {
         nextOpenView = calculateNextOpenPanorama();
     }// End of addClusterToPanos
 
-    // Mext and previous button functionality, direction -1 indicates previous, direction 1 indicates next
+    // Next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
     function transitionDisagreement(direction) {
         // Update currentClusterIndex
         if (direction > 0) {
